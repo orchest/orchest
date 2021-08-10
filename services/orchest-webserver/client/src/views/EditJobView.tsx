@@ -710,6 +710,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
               ]}
               icons={["schedule", "tune", "view_comfy", "list"]}
               onChange={onSelectSubview.bind(this)}
+              data-test-id="job-edit"
             />
 
             <div className="tab-view">
@@ -731,6 +732,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                   scheduleOption: "now",
                                 }));
                               }}
+                              data-test-id="job-edit-schedule-now"
                             />
                           </div>
                           <div className="push-down">
@@ -745,6 +747,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                   scheduleOption: "scheduled",
                                 }));
                               }}
+                              data-test-id="job-edit-schedule-date"
                             />
                           </div>
                           <div>
@@ -757,6 +760,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                   scheduleOption: "scheduled",
                                 }))
                               }
+                              data-test-id="job-edit-schedule-date-input"
                             />
                           </div>
                         </div>
@@ -775,6 +779,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                 scheduleOption: "cron",
                               }));
                             }}
+                            data-test-id="job-edit-schedule-cronjob"
                           />
                         </div>
                       )}
@@ -784,6 +789,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                           cronString={state.cronString}
                           onChange={setCronSchedule.bind(this)}
                           disabled={state.scheduleOption !== "cron"}
+                          dataTestId="job-edit-schedule-cronjob-input"
                         />
                       </div>
                     </div>
@@ -808,6 +814,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                           }));
                         }}
                         strategyJSON={_.cloneDeep(state.strategyJSON)}
+                        data-test-id="job-edit"
                       />
                     </div>
                   ),
@@ -824,6 +831,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                           onEnvVariablesChange(e, idx, type)
                         }
                         onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                        data-test-id="job-edit"
                       />
                     </div>
                   ),
@@ -841,6 +849,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                         onSelectionChanged={onPipelineRunsSelectionChanged.bind(
                           this
                         )}
+                        data-test-id="job-edit-pipeline-runs"
                       />
                     </div>
                   ),
@@ -856,6 +865,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   onClick={attemptRunJob.bind(this)}
                   icon="play_arrow"
                   label="Run job"
+                  data-test-id="job-run"
                 />
               )}
               {state.job.status !== "DRAFT" && (
@@ -864,12 +874,14 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   onClick={putJobChanges.bind(this)}
                   icon="save"
                   label="Update job"
+                  data-test-id="job-update"
                 />
               )}
               <MDCButtonReact
                 onClick={cancel.bind(this)}
                 label="Cancel"
                 icon="close"
+                data-test-id="update-job"
               />
             </div>
           </React.Fragment>

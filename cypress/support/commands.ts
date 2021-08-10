@@ -46,7 +46,7 @@ declare global {
         projectUUID: string,
         environment: string
       ): Chainable<string>;
-      getIframe(data_test_id: string): Chainable<JQuery<any>>;
+      getIframe(dataTestId: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       getProjectUUID(project: string): Chainable<string>;
       importProject(url: string, name?: string): Chainable<undefined>;
@@ -282,10 +282,10 @@ Cypress.Commands.add(
         .type(fileName);
     }
     cy.wait("@allPosts");
-    // Press ESC to close the step menu.
-    cy.get("body").trigger("keydown", { keyCode: 27 });
+    // press esc to close the step menu.
+    cy.get("body").trigger("keydown", { keycode: 27 });
     cy.wait(100);
-    cy.get("body").trigger("keyup", { keyCode: 27 });
+    cy.get("body").trigger("keyup", { keycode: 27 });
   }
 );
 
@@ -309,12 +309,12 @@ Cypress.Commands.add("deleteAllPipelines", () => {
   cy.wait("@allDeletes");
 });
 
-Cypress.Commands.add("getIframe", (data_test_id: string) => {
+Cypress.Commands.add("getIframe", (dataTestId: string) => {
   // Simplify the logging to avoid cluttering logs.
-  cy.log(`getIframe "${data_test_id}"`);
+  cy.log(`getIframe "${dataTestId}"`);
   return (
     cy
-      .get(`iframe[data-test-id="${data_test_id}"]`, { log: false })
+      .get(`iframe[data-test-id="${dataTestId}"]`, { log: false })
       .its("0.contentDocument.body", { log: false })
       .should("not.be.empty")
       // wraps "body" DOM element to allow

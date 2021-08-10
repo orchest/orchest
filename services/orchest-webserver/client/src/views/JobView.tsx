@@ -147,6 +147,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
           count.total > 1 ? "pipeline runs" : "pipeline run",
         ].join(" ")
       }
+      data-test-id="job-status"
     />
   );
 };
@@ -381,6 +382,7 @@ const JobView: React.FC<TViewProps> = (props) => {
             classNames={["mdc-button--raised", "themed-secondary"]}
             icon="visibility"
             onClick={onDetailPipelineView.bind(this, pipelineRun)}
+            data-test-id={`job-pipeline-runs-row-view-pipeline-${x}`}
           />
         </div>
       );
@@ -406,6 +408,7 @@ const JobView: React.FC<TViewProps> = (props) => {
               headers={["ID", "Parameters", "Status", "Started at"]}
               selectedIndices={state.selectedIndices}
               onSelectionChanged={onPipelineRunsSelectionChanged.bind(this)}
+              data-test-id="job-pipeline-runs"
             />
           </div>
         );
@@ -517,6 +520,7 @@ const JobView: React.FC<TViewProps> = (props) => {
             label="Refresh"
             icon="refresh"
             onClick={reload.bind(this)}
+            data-test-id="job-refresh"
           />
 
           {state.job.schedule !== null &&

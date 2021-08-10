@@ -9,7 +9,7 @@ export interface IDateTimeInputProps {
 }
 
 const DateTimeInput = React.forwardRef<TDateTimeInputRef, IDateTimeInputProps>(
-  ({ disabled, onFocus }, ref) => {
+  ({ disabled, onFocus, ...props }, ref) => {
     let date = new Date();
     const [state, setState] = React.useState({
       timeValue:
@@ -43,6 +43,7 @@ const DateTimeInput = React.forwardRef<TDateTimeInputRef, IDateTimeInputProps>(
               setState((prevState) => ({ ...prevState, timeValue: value }));
             }}
             onFocus={onFocus}
+            data-test-id={props["data-test-id"] + "-time"}
           />
         </div>
         <div>
@@ -55,6 +56,7 @@ const DateTimeInput = React.forwardRef<TDateTimeInputRef, IDateTimeInputProps>(
               setState((prevState) => ({ ...prevState, dateValue: value }));
             }}
             onFocus={onFocus}
+            data-test-id={props["data-test-id"] + "-date"}
           />
         </div>
       </div>

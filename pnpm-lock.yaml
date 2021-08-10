@@ -6,12 +6,14 @@ importers:
       "@testing-library/cypress": 7.0.6
       cypress: 8.2.0
       cypress-localstorage-commands: 1.4.5
+      deep-equal: 2.0.5
       syncpack: 5.7.11
       typescript: 4.3.2
     devDependencies:
       "@testing-library/cypress": 7.0.6_cypress@8.2.0
       cypress: 8.2.0
       cypress-localstorage-commands: 1.4.5_cypress@8.2.0
+      deep-equal: 2.0.5
       syncpack: 5.7.11
       typescript: 4.3.2
 
@@ -1971,7 +1973,6 @@ packages:
 
   /array-filter/1.0.0:
     resolution: { integrity: sha1-uveeYubvTCpMC4MSMtr/7CUfnYM= }
-    dev: false
 
   /arraybuffer.slice/0.0.7:
     resolution:
@@ -2071,7 +2072,6 @@ packages:
     engines: { node: ">= 0.4" }
     dependencies:
       array-filter: 1.0.0
-    dev: false
 
   /aws-sign2/0.7.0:
     resolution: { integrity: sha1-tG6JCTSpWR8tL2+G1+ap8bP+dqg= }
@@ -2356,7 +2356,6 @@ packages:
     dependencies:
       function-bind: 1.1.1
       get-intrinsic: 1.1.1
-    dev: false
 
   /callsites/3.1.0:
     resolution:
@@ -2953,6 +2952,29 @@ packages:
       supports-color: 8.1.1
     dev: true
 
+  /deep-equal/2.0.5:
+    resolution:
+      {
+        integrity: sha512-nPiRgmbAtm1a3JsnLCf6/SLfXcjyN5v8L1TXzdCmHrXJ4hx+gW/w1YCcn7z8gJtSiDArZCgYtbao3QqLm/N1Sw==,
+      }
+    dependencies:
+      call-bind: 1.0.2
+      es-get-iterator: 1.1.2
+      get-intrinsic: 1.1.1
+      is-arguments: 1.1.0
+      is-date-object: 1.0.2
+      is-regex: 1.1.2
+      isarray: 2.0.5
+      object-is: 1.1.5
+      object-keys: 1.1.1
+      object.assign: 4.1.2
+      regexp.prototype.flags: 1.3.1
+      side-channel: 1.0.4
+      which-boxed-primitive: 1.0.2
+      which-collection: 1.0.1
+      which-typed-array: 1.1.4
+    dev: true
+
   /define-properties/1.1.3:
     resolution:
       {
@@ -2961,7 +2983,6 @@ packages:
     engines: { node: ">= 0.4" }
     dependencies:
       object-keys: 1.1.1
-    dev: false
 
   /delayed-stream/1.0.0:
     resolution: { integrity: sha1-3zrhmayt+31ECqrgsp4icrJOxhk= }
@@ -3186,7 +3207,22 @@ packages:
       string.prototype.trimend: 1.0.4
       string.prototype.trimstart: 1.0.4
       unbox-primitive: 1.0.1
-    dev: false
+
+  /es-get-iterator/1.1.2:
+    resolution:
+      {
+        integrity: sha512-+DTO8GYwbMCwbywjimwZMHp8AuYXOS2JZFWoi2AlPOS3ebnII9w/NLpNZtA7A0YLaVDw+O7KFCeoIV7OPvM7hQ==,
+      }
+    dependencies:
+      call-bind: 1.0.2
+      get-intrinsic: 1.1.1
+      has-symbols: 1.0.2
+      is-arguments: 1.1.0
+      is-map: 2.0.2
+      is-set: 2.0.2
+      is-string: 1.0.5
+      isarray: 2.0.5
+    dev: true
 
   /es-to-primitive/1.2.1:
     resolution:
@@ -3198,7 +3234,6 @@ packages:
       is-callable: 1.2.3
       is-date-object: 1.0.2
       is-symbol: 1.0.3
-    dev: false
 
   /es6-object-assign/1.1.0:
     resolution: { integrity: sha1-wsNYJlYkfDnqEHyx5mUrb58kUjw= }
@@ -3407,7 +3442,6 @@ packages:
 
   /foreach/2.0.5:
     resolution: { integrity: sha1-C+4AUBiusmDQo6865ljdATbsG5k= }
-    dev: false
 
   /forever-agent/0.6.1:
     resolution: { integrity: sha1-+8cfDEGt6zf5bFd60e1C2P2sypE= }
@@ -3523,7 +3557,6 @@ packages:
       function-bind: 1.1.1
       has: 1.0.3
       has-symbols: 1.0.2
-    dev: false
 
   /get-nonce/1.0.1:
     resolution:
@@ -3657,7 +3690,6 @@ packages:
       {
         integrity: sha512-LSBS2LjbNBTf6287JEbEzvJgftkF5qFkmCo9hDRpAzKhUOlJ+hx8dd4USs00SgsUNwc4617J9ki5YtEClM2ffA==,
       }
-    dev: false
 
   /has-binary2/1.0.3:
     resolution:
@@ -3689,7 +3721,6 @@ packages:
         integrity: sha512-chXa79rL/UC2KlX17jo3vRGz0azaWEx5tGqZg5pO3NUyEJVB17dMruQlzCCOfUvElghKcm5194+BCRvi2Rv/Gw==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /has/1.0.3:
     resolution:
@@ -3894,7 +3925,6 @@ packages:
     engines: { node: ">= 0.4" }
     dependencies:
       call-bind: 1.0.2
-    dev: false
 
   /is-arrayish/0.2.1:
     resolution: { integrity: sha1-d8mYQFJ6qOyxqLppe4BkWnqSap0= }
@@ -3905,7 +3935,6 @@ packages:
       {
         integrity: sha512-0JV5+SOCQkIdzjBK9buARcV804Ddu7A0Qet6sHi3FimE9ne6m4BGQZfRn+NZiXbBk4F4XmHfDZIipLj9pX8dSA==,
       }
-    dev: false
 
   /is-binary-path/2.1.0:
     resolution:
@@ -3924,7 +3953,6 @@ packages:
     engines: { node: ">= 0.4" }
     dependencies:
       call-bind: 1.0.2
-    dev: false
 
   /is-callable/1.2.3:
     resolution:
@@ -3932,7 +3960,6 @@ packages:
         integrity: sha512-J1DcMe8UYTBSrKezuIUTUwjXsho29693unXM2YhJUTR2txK/eG47bvNa/wipPFmZFgr/N6f1GA66dv0mEyTIyQ==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /is-ci/3.0.0:
     resolution:
@@ -3959,7 +3986,6 @@ packages:
         integrity: sha512-USlDT524woQ08aoZFzh3/Z6ch9Y/EWXEHQ/AaRN0SkKq4t2Jw2R2339tSXmwuVoY7LLlBCbOIlx2myP/L5zk0g==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /is-extglob/2.1.1:
     resolution: { integrity: sha1-qIwCU1eR8C7TfHahueqXc8gz+MI= }
@@ -4001,6 +4027,13 @@ packages:
       is-path-inside: 3.0.3
     dev: true
 
+  /is-map/2.0.2:
+    resolution:
+      {
+        integrity: sha512-cOZFQQozTha1f4MxLFzlgKYPTyj26picdZTx82hbc/Xf4K/tZOOXSCkMvU4pKioRXGDLJRn0GM7Upe7kR721yg==,
+      }
+    dev: true
+
   /is-nan/1.3.2:
     resolution:
       {
@@ -4018,7 +4051,6 @@ packages:
         integrity: sha512-2z6JzQvZRa9A2Y7xC6dQQm4FSTSTNWjKIYYTt4246eMTJmIo0Q+ZyOsU66X8lxK1AbB92dFeglPLrhwpeRKO6w==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /is-number-object/1.0.4:
     resolution:
@@ -4026,7 +4058,6 @@ packages:
         integrity: sha512-zohwelOAur+5uXtk8O3GPQ1eAcu4ZX3UwxQhUlfFFMNpUd83gXgjbhJh6HmB6LUNV/ieOLQuDwJO3dWJosUeMw==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /is-number/7.0.0:
     resolution:
@@ -4052,7 +4083,13 @@ packages:
     dependencies:
       call-bind: 1.0.2
       has-symbols: 1.0.2
-    dev: false
+
+  /is-set/2.0.2:
+    resolution:
+      {
+        integrity: sha512-+2cnTEZeY5z/iXGbLhPrOAaK/Mau5k5eXq9j14CpRTftq0pAJu2MwVRSZhyZWBzx3o6X795Lz6Bpb6R0GKf37g==,
+      }
+    dev: true
 
   /is-stream/2.0.0:
     resolution:
@@ -4068,7 +4105,6 @@ packages:
         integrity: sha512-buY6VNRjhQMiF1qWDouloZlQbRhDPCebwxSjxMjxgemYT46YMd2NR0/H+fBhEfWX4A/w9TBJ+ol+okqJKFE6vQ==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /is-symbol/1.0.3:
     resolution:
@@ -4078,7 +4114,6 @@ packages:
     engines: { node: ">= 0.4" }
     dependencies:
       has-symbols: 1.0.2
-    dev: false
 
   /is-typed-array/1.1.5:
     resolution:
@@ -4092,7 +4127,6 @@ packages:
       es-abstract: 1.18.0
       foreach: 2.0.5
       has-symbols: 1.0.2
-    dev: false
 
   /is-typedarray/1.0.0:
     resolution: { integrity: sha1-5HnICFjfDBsR3dppQPlgEfzaSpo= }
@@ -4106,6 +4140,20 @@ packages:
     engines: { node: ">=10" }
     dev: true
 
+  /is-weakmap/2.0.1:
+    resolution:
+      {
+        integrity: sha512-NSBR4kH5oVj1Uwvv970ruUkCV7O1mzgVFO4/rev2cLRda9Tm9HrL70ZPut4rOHgY0FNrUu9BCbXA2sdQ+x0chA==,
+      }
+    dev: true
+
+  /is-weakset/2.0.1:
+    resolution:
+      {
+        integrity: sha512-pi4vhbhVHGLxohUw7PhGsueT4vRGFoXhP7+RGN0jKIv9+8PWYCQTqtADngrxOm2g46hoH0+g8uZZBzMrvVGDmw==,
+      }
+    dev: true
+
   /isarray/1.0.0:
     resolution: { integrity: sha1-u5NdSFgsuhaMBoNJV6VKPgcSTxE= }
     dev: false
@@ -4113,6 +4161,13 @@ packages:
   /isarray/2.0.1:
     resolution: { integrity: sha1-o32U7ZzaLVmGXJ92/llu4fM4dB4= }
     dev: false
+
+  /isarray/2.0.5:
+    resolution:
+      {
+        integrity: sha512-xHjhDr3cNBK0BzdUJSPXZntQUx/mwMS5Rw4A7lPJ90XGAO6ISP/ePDNuo0vhqOZU+UD5JoodwCAAoZQd3FeAKw==,
+      }
+    dev: true
 
   /isexe/2.0.0:
     resolution: { integrity: sha1-6PvzdNxVb/iUehDcsFctYz8s+hA= }
@@ -4745,7 +4800,6 @@ packages:
       {
         integrity: sha512-gz58rdPpadwztRrPjZE9DZLOABUpTGdcANUgOwBFO1C+HZZhePoP83M65WGDmbpwFYJSWqavbl4SgDn4k8RYTA==,
       }
-    dev: false
 
   /object-is/1.1.5:
     resolution:
@@ -4756,7 +4810,6 @@ packages:
     dependencies:
       call-bind: 1.0.2
       define-properties: 1.1.3
-    dev: false
 
   /object-keys/1.1.1:
     resolution:
@@ -4764,7 +4817,6 @@ packages:
         integrity: sha512-NuAESUOUMrlIXOfHKzD6bpPu3tYt3xvjNdRIQ+FeT0lNb4K8WR70CaDxhuNguS2XG+GjkyMwOzsN5ZktImfhLA==,
       }
     engines: { node: ">= 0.4" }
-    dev: false
 
   /object.assign/4.1.2:
     resolution:
@@ -4777,7 +4829,6 @@ packages:
       define-properties: 1.1.3
       has-symbols: 1.0.2
       object-keys: 1.1.1
-    dev: false
 
   /once/1.4.0:
     resolution: { integrity: sha1-WDsap3WWHUsROsF9nFC6753Xa9E= }
@@ -5444,6 +5495,17 @@ packages:
         integrity: sha512-a54FxoJDIr27pgf7IgeQGxmqUNYrcV338lf/6gH456HZ/PhX+5BcwHXG9ajESmwe6WRO0tAzRUrRmNONWgkrew==,
       }
 
+  /regexp.prototype.flags/1.3.1:
+    resolution:
+      {
+        integrity: sha512-JiBdRBq91WlY7uRJ0ds7R+dU02i6LKi8r3BuQhNXn+kmeLN+EfHhfjqMRis1zJxnlu88hq/4dx0P2OP3APRTOA==,
+      }
+    engines: { node: ">= 0.4" }
+    dependencies:
+      call-bind: 1.0.2
+      define-properties: 1.1.3
+    dev: true
+
   /request-progress/3.0.0:
     resolution: { integrity: sha1-TKdUCBx/7GP1BeT6qCWqBs1mnb4= }
     dependencies:
@@ -5643,6 +5705,17 @@ packages:
         integrity: sha512-mRz/m/JVscCrkMyPqHc/bczi3OQHkLTqXHEFu0zDhK/qfv3UcOA4SVmRCLmos4bhjr9ekVQubj/R7waKapmiQg==,
       }
     dev: false
+
+  /side-channel/1.0.4:
+    resolution:
+      {
+        integrity: sha512-q5XPytqFEIKHkGdiMIrY10mvLRvnQh42/+GoBlFW3b2LXLE2xxJpZFdm94we0BaoV3RwJyGqg5wS7epxTv0Zvw==,
+      }
+    dependencies:
+      call-bind: 1.0.2
+      get-intrinsic: 1.1.1
+      object-inspect: 1.10.2
+    dev: true
 
   /signal-exit/3.0.3:
     resolution:
@@ -5918,7 +5991,6 @@ packages:
     dependencies:
       call-bind: 1.0.2
       define-properties: 1.1.3
-    dev: false
 
   /string.prototype.trimstart/1.0.4:
     resolution:
@@ -5928,7 +6000,6 @@ packages:
     dependencies:
       call-bind: 1.0.2
       define-properties: 1.1.3
-    dev: false
 
   /string_decoder/1.1.1:
     resolution:
@@ -6295,7 +6366,6 @@ packages:
       has-bigints: 1.0.1
       has-symbols: 1.0.2
       which-boxed-primitive: 1.0.2
-    dev: false
 
   /unfetch/4.2.0:
     resolution:
@@ -6518,7 +6588,18 @@ packages:
       is-number-object: 1.0.4
       is-string: 1.0.5
       is-symbol: 1.0.3
-    dev: false
+
+  /which-collection/1.0.1:
+    resolution:
+      {
+        integrity: sha512-W8xeTUwaln8i3K/cY1nGXzdnVZlidBcagyNFtBdD5kxnb4TvGKR7FfSIS3mYpwWS1QUCutfKz8IY8RjftB0+1A==,
+      }
+    dependencies:
+      is-map: 2.0.2
+      is-set: 2.0.2
+      is-weakmap: 2.0.1
+      is-weakset: 2.0.1
+    dev: true
 
   /which-typed-array/1.1.4:
     resolution:
@@ -6534,7 +6615,6 @@ packages:
       function-bind: 1.1.1
       has-symbols: 1.0.2
       is-typed-array: 1.1.5
-    dev: false
 
   /which/2.0.2:
     resolution:

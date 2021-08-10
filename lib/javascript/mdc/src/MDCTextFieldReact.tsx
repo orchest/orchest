@@ -172,6 +172,7 @@ export class MDCTextFieldReact extends React.Component<any> {
           maxLength={this.props.maxLength}
           ref={this.refManager.nrefs.nativeInput}
           data-test-id={this.props["data-test-id"]}
+          data-test-title={this.props["data-test-title"]}
         />
         {iconRight}
         {label}

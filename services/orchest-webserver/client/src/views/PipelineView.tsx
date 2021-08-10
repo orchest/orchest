@@ -2331,6 +2331,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   label="Back to job"
                   icon="arrow_back"
                   onClick={returnToJob.bind(this, props.queryArgs.job_uuid)}
+                  data-test-id="pipeline-back-to-job"
                 />
               </div>
             )}

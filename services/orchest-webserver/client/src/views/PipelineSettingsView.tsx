@@ -236,48 +236,50 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     );
 
     // @ts-ignore
-    pipelinePromise.promise.then((response) => {
-      let result = JSON.parse(response);
+    pipelinePromise.promise
+      .then((response) => {
+        let result = JSON.parse(response);
 
-      if (result.success) {
-        let pipelineJson = JSON.parse(result["pipeline_json"]);
+        if (result.success) {
+          let pipelineJson = JSON.parse(result["pipeline_json"]);
 
-        // as settings are optional, populate defaults if no values exist
-        if (pipelineJson?.settings === undefined) {
-          pipelineJson.settings = {};
-        }
-        if (pipelineJson?.settings.auto_eviction === undefined) {
-          pipelineJson.settings.auto_eviction = false;
-        }
-        if (pipelineJson?.settings.data_passing_memory_size === undefined) {
-          pipelineJson.settings.data_passing_memory_size =
-            state.dataPassingMemorySize;
-        }
-        if (pipelineJson?.parameters === undefined) {
-          pipelineJson.parameters = {};
-        }
-        if (pipelineJson?.services === undefined) {
-          pipelineJson.services = {};
-        }
+          // as settings are optional, populate defaults if no values exist
+          if (pipelineJson?.settings === undefined) {
+            pipelineJson.settings = {};
+          }
+          if (pipelineJson?.settings.auto_eviction === undefined) {
+            pipelineJson.settings.auto_eviction = false;
+          }
+          if (pipelineJson?.settings.data_passing_memory_size === undefined) {
+            pipelineJson.settings.data_passing_memory_size =
+              state.dataPassingMemorySize;
+          }
+          if (pipelineJson?.parameters === undefined) {
+            pipelineJson.parameters = {};
+          }
+          if (pipelineJson?.services === undefined) {
+            pipelineJson.services = {};
+          }
 
-        // Augment services with order key
-        for (let service in pipelineJson.services) {
-          pipelineJson.services[service].order = getOrderValue();
-        }
+          // Augment services with order key
+          for (let service in pipelineJson.services) {
+            pipelineJson.services[service].order = getOrderValue();
+          }
 
-        setHeaderComponent(pipelineJson?.name);
-        setState((prevState) => ({
-          ...prevState,
-          inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
-          pipelineJson: pipelineJson,
-          dataPassingMemorySize:
-            pipelineJson?.settings.data_passing_memory_size,
-        }));
-      } else {
-        console.warn("Could not load pipeline.json");
-        console.log(result);
-      }
-    });
+          setHeaderComponent(pipelineJson?.name);
+          setState((prevState) => ({
+            ...prevState,
+            inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
+            pipelineJson: pipelineJson,
+            dataPassingMemorySize:
+              pipelineJson?.settings.data_passing_memory_size,
+          }));
+        } else {
+          console.warn("Could not load pipeline.json");
+          console.log(result);
+        }
+      })
+      .catch((err) => console.log(err));
   };
 
   const fetchPipelineMetadata = () => {
@@ -350,14 +352,16 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
           let run = JSON.parse(response);
           return envVariablesDictToArray(run["env_variables"]);
         }),
-      ]).then((values) => {
-        let [pipeline_path, envVariables] = values;
-        setState((prevState) => ({
-          ...prevState,
-          pipeline_path: pipeline_path,
-          envVariables: envVariables,
-        }));
-      });
+      ])
+        .then((values) => {
+          let [pipeline_path, envVariables] = values;
+          setState((prevState) => ({
+            ...prevState,
+            pipeline_path: pipeline_path,
+            envVariables: envVariables,
+          }));
+        })
+        .catch((err) => console.log(err));
     }
   };
 

@@ -49,6 +49,7 @@ export class MDCRadioReact extends React.Component<any> {
             id={"radio-" + randomFor}
             name={this.props.name}
             checked={this.props.checked}
+            data-test-id={this.props["data-test-id"]}
           />
           <div className="mdc-radio__background">
             <div className="mdc-radio__outer-circle"></div>

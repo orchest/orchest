@@ -202,6 +202,7 @@ export class MDCDataTableReact extends React.Component<any, any> {
           data-row-id={"u" + x}
           className="mdc-data-table__row"
           data-test-id={this.props["data-test-id"] + "-row"}
+          data-test-index={this.props["data-test-id"] + `-row-${x}`}
         >
           {(() => {
             if (this.props.selectable) {

@@ -41,6 +41,9 @@ export const EnvVarList: React.FC<IEnvVarListProps> = (props) => (
                 isValidEnvironmentVariableName(pair["name"]) ? [] : ["invalid"]
               )}
               data-test-id={props["data-test-id"] + "-env-var-name"}
+              data-test-title={
+                props["data-test-id"] + `-env-var-${pair["name"]}-name`
+              }
             />
             <MDCTextFieldReact
               value={pair["value"]}
@@ -49,6 +52,9 @@ export const EnvVarList: React.FC<IEnvVarListProps> = (props) => (
               disabled={props.readOnly === true}
               classNames={["column push-down push-right"]}
               data-test-id={props["data-test-id"] + "-env-var-value"}
+              data-test-title={
+                props["data-test-id"] + `-env-var-${pair["name"]}-value`
+              }
             />
             {!props.readOnly && (
               <MDCIconButtonToggleReact
