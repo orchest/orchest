@@ -6,5 +6,6 @@
   "chromeWebSecurity": false,
   "video": false,
   "videoCompression": false,
-  "videoUploadOnPasses": false
+  "videoUploadOnPasses": false,
+  "defaultCommandTimeout": 10000
 }
