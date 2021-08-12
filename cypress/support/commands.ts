@@ -68,16 +68,18 @@ Cypress.Commands.add("getOnboardingCompleted", () =>
 );
 
 // Make sure no test impacts the data directory. Note that
-Cypress.Commands.add("cleanDataDir", () =>
-  cy.exec(`rm -rf ${DATA_DIR}/*`, { failOnNonZeroExit: false })
-);
+Cypress.Commands.add("cleanDataDir", () => {
+  cy.log("Cleaning the data directory.");
+  cy.exec(`rm -rf ${DATA_DIR}/*`, { failOnNonZeroExit: false, log: false });
+});
 
-Cypress.Commands.add("cleanProjectsDir", () =>
-  cy.exec(`rm -rf ${PROJECTS_DIR}/*`, { failOnNonZeroExit: false })
-);
+Cypress.Commands.add("cleanProjectsDir", () => {
+  cy.log("Cleaning the projects directory.");
+  cy.exec(`rm -rf ${PROJECTS_DIR}/*`, { failOnNonZeroExit: false, log: false });
+});
 
 Cypress.Commands.add("createProject", (name) => {
-  cy.visit("/projects");
+  cy.visit("/projects", { log: false });
   cy.findByTestId(TEST_ID.ADD_PROJECT)
     .should("exist")
     .and("be.visible")
@@ -103,6 +105,7 @@ Cypress.Commands.add("importProject", (url, name) => {
 Cypress.Commands.add(
   "addProjectEnvVars",
   (project: string, names: string[], values: string[]) => {
+    cy.intercept("PUT", /.*/).as("allPuts");
     assert(names.length == values.length);
     cy.visit("/projects");
     cy.findByTestId(`settings-button-${project}`).click();
@@ -121,6 +124,7 @@ Cypress.Commands.add(
   "addPipelineEnvVars",
   (pipeline: string, names: string[], values: string[]) => {
     assert(names.length == values.length);
+    cy.intercept("PUT", /.*/).as("allPuts");
     cy.visit("/pipelines");
     cy.findByTestId(`pipeline-${pipeline}`).click();
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
@@ -180,6 +184,7 @@ Cypress.Commands.add("deleteUser", (name) => {
 
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllUsers", () => {
+  cy.intercept("DELETE", /.*/).as("allDeletes");
   cy.visit("/settings");
   cy.findByTestId(TEST_ID.MANAGE_USERS)
     .scrollIntoView()
@@ -196,6 +201,7 @@ Cypress.Commands.add("deleteAllUsers", () => {
 Cypress.Commands.add(
   "createEnvironment",
   (name: string, script?: string, build?: boolean, waitBuild?: boolean) => {
+    cy.intercept("POST", /.*/).as("allPosts");
     cy.visit("environments");
     cy.findByTestId(TEST_ID.ENVIRONMENTS_CREATE).should("be.visible").click();
 
@@ -260,6 +266,7 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
 Cypress.Commands.add(
   "createStep",
   (title: string, createNewFile?: boolean, fileName?: string) => {
+    cy.intercept("POST", /.*/).as("allPosts");
     cy.findByTestId(TEST_ID.STEP_CREATE).click();
     cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
       .type("{selectall}{backspace}")
@@ -291,6 +298,7 @@ Cypress.Commands.add(
 
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllEnvironments", () => {
+  cy.intercept("DELETE", /.*/).as("allDeletes");
   cy.visit("/environments");
   cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click();
@@ -300,6 +308,7 @@ Cypress.Commands.add("deleteAllEnvironments", () => {
 
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllPipelines", () => {
+  cy.intercept("DELETE", /.*/).as("allDeletes");
   cy.visit("/pipelines");
   // se rows != 0 then deleta
   cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
@@ -352,28 +361,31 @@ Cypress.Commands.add(
     if (project === undefined && environment === undefined) {
       return cy
         .exec(
-          'docker images --filter "label=_orchest_env_build_task_uuid" -q | wc -l'
+          'docker images --filter "label=_orchest_env_build_task_uuid" -q | wc -l',
+          { log: false }
         )
-        .its("stdout")
-        .then((stdout) => cy.wrap(parseInt(stdout)));
+        .its("stdout", { log: false })
+        .then((stdout) => cy.wrap(parseInt(stdout), { log: false }));
     } else if (project !== undefined && environment === undefined) {
       cy.getProjectUUID(project).then((proj_uuid) => {
         return cy
           .exec(
-            `docker images --filter "label=_orchest_project_uuid=${proj_uuid}" -q | wc -l`
+            `docker images --filter "label=_orchest_project_uuid=${proj_uuid}" -q | wc -l`,
+            { log: false }
           )
-          .its("stdout")
-          .then((stdout) => cy.wrap(parseInt(stdout)));
+          .its("stdout", { log: false })
+          .then((stdout) => cy.wrap(parseInt(stdout), { log: false }));
       });
     } else if (project !== undefined && environment !== undefined) {
       cy.getProjectUUID(project).then((proj_uuid) => {
         cy.getEnvironmentUUID(proj_uuid, environment).then((env_uuid) => {
           return cy
             .exec(
-              `docker images --filter "label=_orchest_environment_uuid=${env_uuid}" -q | wc -l`
+              `docker images --filter "label=_orchest_environment_uuid=${env_uuid}" -q | wc -l`,
+              { log: false }
             )
-            .its("stdout")
-            .then((stdout) => cy.wrap(parseInt(stdout)));
+            .its("stdout", { log: false })
+            .then((stdout) => cy.wrap(parseInt(stdout), { log: false }));
         });
       });
     } else {
@@ -389,16 +401,16 @@ before(() => {
 beforeEach(() => {
   // When these intercept declarations where in "before()" cypress was
   // reporting issues.
-  cy.intercept(/.*/).as("allRequests");
-  cy.intercept("GET", /.*/).as("allGets");
-  cy.intercept("POST", /.*/).as("allPosts");
-  cy.intercept("PUT", /.*/).as("allPuts");
-  cy.intercept("DELETE", /.*/).as("allDeletes");
-  cy.intercept("GET", /\/store\/environments\/.*/).as("storeGets");
+  // cy.intercept(/.*/).as("allRequests");
+  // cy.intercept("GET", /.*/).as("allGets");
+  // cy.intercept("POST", /.*/).as("allPosts");
+  // cy.intercept("PUT", /.*/).as("allPuts");
+  // cy.intercept("DELETE", /.*/).as("allDeletes");
+  // cy.intercept("GET", /\/store\/environments\/.*/).as("storeGets");
 
   cy.cleanDataDir();
   cy.cleanProjectsDir();
   // Force rediscovery of deleted projects.
-  cy.visit("/projects");
+  cy.visit("/projects", { log: false });
   assertTotalEnvironmentImages(0);
 });

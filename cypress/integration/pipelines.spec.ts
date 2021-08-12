@@ -89,6 +89,7 @@ describe("pipelines", () => {
   });
 
   it("creates a pipeline, edits the path", () => {
+    cy.intercept("PUT", /.*/).as("allPuts");
     cy.createPipeline(PIPELINE_NAMES.PL1);
     let path = `my-super-test.orchest`;
     cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
@@ -102,6 +103,7 @@ describe("pipelines", () => {
   });
 
   it("creates a pipeline, edits the path to be a directory that does not exist", () => {
+    cy.intercept("PUT", /.*/).as("allPuts");
     let path = `/a/b/c/my-super-test.orchest`;
     cy.createPipeline(PIPELINE_NAMES.PL1);
     cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
@@ -120,6 +122,7 @@ describe("pipelines", () => {
       cy.readFile(`${PROJECTS_DIR}/${PROJECT_NAMES.P1}/${input[1]}.orchest`);
     });
     it(`tests pipelines path edit normalization (${input[0]} to ${input[1]})`, () => {
+      cy.intercept("PUT", /.*/).as("allPuts");
       cy.createPipeline(PIPELINE_NAMES.PL1);
       cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
       cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
@@ -221,7 +224,9 @@ describe("pipelines", () => {
       it("tests opening a step in Jupyterlab", () => {
         cy.createStep(STEP_NAMES.ST1, true);
         // Assumes unique step names.
-        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
+        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+          .scrollIntoView()
+          .click({ force: true });
         cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).click();
         waitForJupyterlab();
       });

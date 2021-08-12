@@ -18,7 +18,10 @@ enum STEP_NAMES {
 // Function private to the file to  set the parameters of a step in the
 // editor.
 function setStepParameters(stepTitle, params) {
-  cy.get(`[data-test-title=${stepTitle}]`).scrollIntoView().click();
+  cy.intercept("POST", /.*/).as("allPosts");
+  cy.get(`[data-test-title=${stepTitle}]`)
+    .scrollIntoView()
+    .click({ force: true });
 
   // Delete the current content.
   cy.get(".CodeMirror-line")
@@ -67,7 +70,9 @@ describe("interactive runs", () => {
       cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
       // Select the step. Assumes unique step names.
-      cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
+      cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+        .scrollIntoView()
+        .click({ force: true });
       cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
         "not.exist"
       );
@@ -123,6 +128,7 @@ describe("interactive runs", () => {
       },
     ].forEach((parameters) => {
       it("creates and runs a step with pipeline parameters", () => {
+        cy.intercept("POST", /.*/).as("allPosts");
         // Change the pipeline parameters.
         cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
         cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_TAB_CONFIGURATION).click();
@@ -152,7 +158,9 @@ describe("interactive runs", () => {
         cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
         // Select the step. Assumes unique step names.
-        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`).scrollIntoView().click();
+        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+          .scrollIntoView()
+          .click({ force: true });
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );
@@ -210,7 +218,7 @@ describe("interactive runs", () => {
           // Select the step. Assumes unique step names.
           cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
             .scrollIntoView()
-            .click();
+            .click({ force: true });
           cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
             "not.exist"
           );
