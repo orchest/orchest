@@ -75,6 +75,8 @@ export enum TEST_ID {
   PIPELINE_ENV_VAR_VALUE = "pipeline-env-var-value",
   PIPELINE_NAME_TEXTFIELD = "pipeline-name-textfield",
   PIPELINE_PATH_TEXTFIELD = "pipeline-path-textfield",
+  PIPELINE_SERVICES_ROW = "pipeline-services-row",
+  PIPELINE_SERVICE_ADD = "pipeline-service-add",
   PIPELINE_SETTINGS = "pipeline-settings",
   PIPELINE_SETTINGS_CLOSE = "pipeline-settings-close",
   PIPELINE_SETTINGS_CONFIGURATION_MEMORY_EVICTION = "pipeline-settings-configuration-memory-eviction",
@@ -101,6 +103,8 @@ export enum TEST_ID {
   PROJECT_SETTINGS_SAVE = "project-settings-save",
   PROJECT_URL_TEXTFIELD = "project-url-textfield",
   RESTART = "restart",
+  SERVICE_IMAGE_NAME_DIALOG_IMAGE_NAME = "service-image-name-dialog-image-name",
+  SERVICE_IMAGE_NAME_DIALOG_SAVE = "service-image-name-dialog-save",
   SESSION_TOGGLE_BUTTON = "session-toggle-button",
   STEP_CLOSE_DETAILS = "step-close-details",
   STEP_CREATE = "step-create",
@@ -116,6 +120,7 @@ export enum TEST_ID {
 export const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";
 export const DATA_DIR = "userdir/data";
 export const PROJECTS_DIR = "userdir/projects";
+export const JOBS_DIR = "userdir/jobs/";
 export const TESTS_DATA_DIR = DATA_DIR + "/integration-tests";
 
 const FIXTURE_STEPS_PATH = "cypress/fixtures/custom/steps/";
@@ -190,6 +195,19 @@ export const PROJECTS = {
       return `${FIXTURE_PROJECTS_PATH}/${this.name}`;
     },
   },
+
+  // Contains a custom environment, a pipeline containing all pre-made
+  // services and a step which tests internal connectivity and dumps
+  // said result along with the list of external URLs to test
+  // connectivity to.
+  SERVICES_CONNECTIVITY: {
+    name: "services-connectivity",
+    pipelines: ["services-connectivity"],
+    default_output_file: `${DATA_DIR}/${DEFAULT_STEP_TEST_OUT}`,
+    get_path: function () {
+      return `${FIXTURE_PROJECTS_PATH}/${this.name}`;
+    },
+  },
 };
 
 // This function is necessary because, as of now, cypress does not
@@ -216,4 +234,19 @@ export function assertTotalEnvironmentImages(expected: number, retries = 10) {
       }
     }
   });
+}
+
+export function getJobProjectDirPath(
+  projectUUID: string,
+  pipelineUUID: string,
+  jobUUID: string,
+  runUUID?: string
+) {
+  let r = `${JOBS_DIR}/${projectUUID}/${pipelineUUID}/${jobUUID}`;
+  if (runUUID === undefined) {
+    r += "/snapshot";
+  } else {
+    r += `/${runUUID}`;
+  }
+  return r;
 }

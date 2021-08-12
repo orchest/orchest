@@ -16,7 +16,7 @@ enum JOB_STATUS {
 }
 
 // Assumes to be in a JobView.
-function waitForJobStatus(expected: string, retries = 50) {
+function waitForJobStatus(expected: string, retries = 100) {
   cy.findByTestId(TEST_ID.JOB_STATUS).then((statusElement) => {
     // If the status if not the expected one, try again.
     if (statusElement.text().indexOf(expected) === -1) {

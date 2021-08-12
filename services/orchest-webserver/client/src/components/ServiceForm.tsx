@@ -156,6 +156,7 @@ const ServiceForm: React.FC<any> = (props) => {
                 }}
                 classNames={["fullwidth"]}
                 value={editImageName}
+                data-test-id="service-image-name-dialog-image-name"
               />
               <MDCTooltipReact
                 tooltipID="tooltip-imageNameField"
@@ -201,9 +202,11 @@ const ServiceForm: React.FC<any> = (props) => {
                   }
                   onCloseEditImageName();
                 }}
+                data-test-id="service-image-name-dialog-save"
               />
             </>
           }
+          data-test-id="service-image-name-dialog"
         />
       )}
 
@@ -232,6 +235,7 @@ const ServiceForm: React.FC<any> = (props) => {
                   }}
                   classNames={["fullwidth"]}
                   aria-describedby="tooltip-name"
+                  data-test-id={`service-${props.service.name}-name`}
                 />
                 <MDCTooltipReact
                   tooltipID="tooltip-name"
@@ -256,6 +260,7 @@ const ServiceForm: React.FC<any> = (props) => {
                       : props.service.image
                   }
                   classNames={["fullwidth"]}
+                  data-test-id={`service-${props.service.name}-image`}
                 />
               </div>
               <div className="clear"></div>
@@ -286,6 +291,7 @@ const ServiceForm: React.FC<any> = (props) => {
                   }}
                   classNames={["fullwidth"]}
                   aria-describedby="tooltip-entrypoint"
+                  data-test-id={`service-${props.service.name}-entrypoint`}
                 />
                 <MDCTooltipReact
                   tooltipID="tooltip-entrypoint"
@@ -303,6 +309,7 @@ const ServiceForm: React.FC<any> = (props) => {
                   }}
                   classNames={["fullwidth"]}
                   aria-describedby="tooltip-command"
+                  data-test-id={`service-${props.service.name}-command`}
                 />
                 <MDCTooltipReact
                   tooltipID="tooltip-command"
@@ -336,6 +343,7 @@ const ServiceForm: React.FC<any> = (props) => {
                     handleServiceBindsChange("/project-dir", value);
                   }}
                   classNames={["fullwidth"]}
+                  data-test-id={`service-${props.service.name}-project-mount`}
                 />
               </div>
               <div className="column inner-padded">
@@ -348,6 +356,7 @@ const ServiceForm: React.FC<any> = (props) => {
                     handleServiceBindsChange("/data", value);
                   }}
                   classNames={["fullwidth"]}
+                  data-test-id={`service-${props.service.name}-data-mount`}
                 />
               </div>
               <div className="clear"></div>
@@ -477,7 +486,10 @@ const ServiceForm: React.FC<any> = (props) => {
                   value={props.service.scope.indexOf("noninteractive") >= 0}
                 />
               </div>
-              <div className="column">
+              <div
+                className="column"
+                data-test-id={`service-${props.service.name}-inherited-env-vars`}
+              >
                 <h3>
                   Inherited environment variables{" "}
                   <i
@@ -568,6 +580,7 @@ const ServiceForm: React.FC<any> = (props) => {
 
                 handleServiceChange("env_variables", envVars);
               }}
+              data-test-id={`service-${props.service.name}`}
             />
           </>
         </Box>

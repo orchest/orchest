@@ -983,6 +983,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 run_uuid={props.queryArgs.run_uuid}
                               />
                             ))}
+                          data-test-id="pipeline-services"
                         />
 
                         <Alert status="info">
