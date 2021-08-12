@@ -118,3 +118,4 @@ Not sure where to start? [Book a free, no-pressure pairing session](mailto:rick@
 <a href="https://github.com/joe-bell"><img src="https://avatars.githubusercontent.com/u/7349341?v=4" title="joe-bell" width="50" height="50"></a>
 <a href="https://github.com/cceyda"><img src="https://avatars.githubusercontent.com/u/15624271?v=4" title="cceyda" width="50" height="50"></a>
 <a href="https://github.com/MWeltevrede"><img src="https://avatars.githubusercontent.com/u/31962715?v=4" title="MWeltevrede" width="50" height="50"></a>
+<a href="https://github.com/kingabzpro"><img src="https://avatars.githubusercontent.com/u/36753484?v=4" title="Abid" width="50" height="50"></a>
