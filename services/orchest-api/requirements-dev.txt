@@ -1,4 +1,4 @@
-APScheduler==3.6.3
+APScheduler==3.7.0
 aiodocker==0.18.3
 aiohttp==3.7.4
 amqp==2.6.0
