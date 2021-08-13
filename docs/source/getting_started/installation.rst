@@ -21,7 +21,8 @@ If you do not yet have Docker installed, please visit https://docs.docker.com/ge
 
 Linux, macOS and Windows
 ------------------------
-Simply follow the steps below to install Orchest.
+Simply follow the steps below to install Orchest or signup for the free-of-charge `Orchest Cloud
+<https://cloud.orchest.io/signup>`_ and get a fully configured Orchest instance out of the box!
 
 .. code-block:: bash
 
