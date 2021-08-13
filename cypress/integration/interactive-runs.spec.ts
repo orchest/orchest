@@ -269,9 +269,7 @@ describe("interactive runs", () => {
         });
 
         // Press ESC to close the step menu.
-        cy.get("body").trigger("keydown", { keyCode: 27 });
-        cy.wait(100);
-        cy.get("body").trigger("keyup", { keyCode: 27 });
+        cy.triggerESC();
 
         // Select and run B.
         cy.wait(100);
@@ -362,9 +360,7 @@ describe("interactive runs", () => {
         });
 
         // Press ESC to close the step menu.
-        cy.get("body").trigger("keydown", { keyCode: 27 });
-        cy.wait(100);
-        cy.get("body").trigger("keyup", { keyCode: 27 });
+        cy.triggerESC();
 
         // Select and run B.
         cy.wait(100);
