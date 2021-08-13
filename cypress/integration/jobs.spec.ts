@@ -194,7 +194,7 @@ describe("jobs", () => {
         waitForJobRunsStatus(
           "Success",
           stepPar.length * pipePar.length,
-          50,
+          400,
           () => verifyJobRunsParameters("dump-env-params", expectedRunsParams)
         );
         waitForJobStatus(JOB_STATUS.SUCCESS);
