@@ -1,10 +1,6 @@
 Orchest
 =======
 
-`Website <https://www.orchest.io>`_
--- `GitHub <http://www.github.com/orchest/orchest>`_
--- `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_
-
 .. tip::
    👉 Get started with the :ref:`quickstart <quickstart>`! Or if you like watching short informative
    videos checkout our `knowledge base <https://www.orchest.io/knowledge-base>`_.
