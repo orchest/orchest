@@ -425,7 +425,7 @@ export function setJobParameter(paramName: string, paramValues: object) {
 // Waits for JupyterLab to actually have loaded.
 export function waitForJupyterlab() {
   cy.getIframe(TEST_ID.JUPYTERLAB_IFRAME)
-    .contains("Kernel", { timeout: 20000 })
+    .contains("Kernel", { timeout: 60000 })
     .should("be.visible");
 }
 
