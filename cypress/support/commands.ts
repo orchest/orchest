@@ -70,7 +70,6 @@ Cypress.Commands.add("getOnboardingCompleted", () =>
   cy.getLocalStorage(LOCAL_STORAGE_KEY)
 );
 
-// Make sure no test impacts the data directory. Note that
 Cypress.Commands.add("cleanDataDir", () => {
   cy.log("Cleaning the data directory.");
   cy.exec(`rm -rf ${DATA_DIR}/*`, { failOnNonZeroExit: false, log: false });
