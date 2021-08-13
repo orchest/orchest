@@ -1,4 +1,5 @@
 import {
+  assertEnvIsBuilt,
   mergeEnvVariables,
   TEST_ID,
   STEPS,
@@ -13,6 +14,7 @@ describe("interactive runs", () => {
   beforeEach(() => {
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
+    assertEnvIsBuilt();
     cy.goToMenu("pipelines");
   });
 
