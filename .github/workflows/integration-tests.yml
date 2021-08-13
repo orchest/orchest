@@ -50,6 +50,11 @@ jobs:
           [ ! -z "$(docker images --filter 'label=_orchest_project_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q)
           bash scripts/clean_userdir.sh
 
+      # Orchest won't be able to write files that are part of a project
+      # that was copied in the existing project directory otherwise.
+      - name: Fix group w/x permissions.
+        run: chmod 775 -R ${{ github.workspace }}
+
       - name: Build and Start Orchest
         run: |
           bash scripts/build_container.sh
