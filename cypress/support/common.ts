@@ -1,5 +1,7 @@
 export const QUICKSTART_URL = "https://github.com/orchest/quickstart";
 
+// These can be used to have names when creating entities without having
+// to come up with a name every time.
 export enum SAMPLE_PROJECT_NAMES {
   P1 = "test-project-1",
   P2 = "test-project-2",
@@ -172,6 +174,15 @@ const FIXTURE_STEPS_PATH = "cypress/fixtures/custom/steps/";
 const FIXTURE_PIPELINES_PATH = "cypress/fixtures/custom/pipelines/";
 const FIXTURE_PROJECTS_PATH = "cypress/fixtures/custom/projects/";
 const DEFAULT_STEP_TEST_OUT = "test-output.json";
+
+/*
+STEPS, PIPELINES and PROJECTS are fixtures that can be found in the
+cypress/fixtures directory. These can be copied into a project or into
+the projects directory to quickly setup a step/pipeline/project with the
+functionalities required by some tests. For example, some tests require
+the data-passing project, so said project is simply copied in the
+projects directory during the `beforeEach` of said tests.
+*/
 export const STEPS = {
   // A step that dumps its environment variables, step and pipeline
   // parameters in the data directory as a json file. The path of the
