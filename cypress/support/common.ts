@@ -265,13 +265,13 @@ export const PROJECTS = {
  * @param {expected}  p1 - Expected number of environment images.
  * @param {retries} p2 - How many times to retry if expected != value.
  */
-export function assertTotalEnvironmentImages(expected: number, retries = 10) {
+export function assertTotalEnvironmentImages(expected: number, retries = 50) {
   cy.log(`Asserting that the number of environment images is ${expected}.`);
   cy.totalEnvironmentImages().then((total) => {
     if (total != expected) {
       retries--;
       if (retries > 0) {
-        cy.wait(1000, { log: false });
+        cy.wait(200, { log: false });
         assertTotalEnvironmentImages(expected, retries);
       } else {
         throw new Error(
