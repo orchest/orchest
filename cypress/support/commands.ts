@@ -432,3 +432,16 @@ beforeEach(() => {
   cy.visit("/projects", { log: false });
   assertTotalEnvironmentImages(0);
 });
+
+// Unhandled promise rejections will cause seemingly random errors that
+// are very hard to debug. This will help in understanding if you are
+// getting such an error.
+Cypress.on("uncaught:exception", (err, runnable, promise) => {
+  if (promise) {
+    console.log("Unhandled promise rejection.");
+    console.log(promise);
+    // If false is returned the exception will be ignored and won't
+    // cause the test to fail.
+    // return false
+  }
+});

@@ -178,33 +178,36 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       promiseManager
     );
 
-    fetchListPromise.promise.then((response) => {
-      let projects = JSON.parse(response);
+    fetchListPromise.promise
+      .then((response) => {
+        let projects = JSON.parse(response);
 
-      setState((prevState) => ({
-        ...prevState,
-        fetchListAndSetProject,
-        listData: processListData(projects),
-        projects: projects,
-        loading: false,
-      }));
+        setState((prevState) => ({
+          ...prevState,
+          fetchListAndSetProject,
+          listData: processListData(projects),
+          projects: projects,
+          loading: false,
+        }));
 
-      // Verify selected project UUID
-      if (
-        context.state.project_uuid !== undefined &&
-        projects.filter((project) => project.uuid == context.state.project_uuid)
-          .length == 0
-      ) {
-        context.dispatch({
-          type: "projectSet",
-          payload: projects.length > 0 ? projects[0].uuid : null,
-        });
-      }
+        // Verify selected project UUID
+        if (
+          context.state.project_uuid !== undefined &&
+          projects.filter(
+            (project) => project.uuid == context.state.project_uuid
+          ).length == 0
+        ) {
+          context.dispatch({
+            type: "projectSet",
+            payload: projects.length > 0 ? projects[0].uuid : null,
+          });
+        }
 
-      if (refManager.refs.projectListView) {
-        refManager.refs.projectListView.setSelectedRowIds([]);
-      }
-    });
+        if (refManager.refs.projectListView) {
+          refManager.refs.projectListView.setSelectedRowIds([]);
+        }
+      })
+      .catch(console.log);
   };
 
   const openSettings = (project) => {

@@ -102,6 +102,9 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
                       e.preventDefault();
                       orchest.loadView(nameToComponent(item.view));
                     }}
+                    data-test-id={`menu-${item.label
+                      .toLowerCase()
+                      .replace(/[\W]/g, "-")}`}
                   >
                     <span className="mdc-list-item__ripple" />
                     <i
