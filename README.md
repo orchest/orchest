@@ -53,15 +53,16 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 #### Requirements
 
-- Docker ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7`; run `docker version` to check.)
-
-If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
+- [Docker](https://docs.docker.com/get-docker/) 🐳
+  - [Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` (run `docker version` to check).
 
 > **NOTE:** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
 > the Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
 > visit https://docs.docker.com/docker-for-windows/wsl/.
 
 #### Linux, macOS and Windows
+> Alternatively, signup for the free-of-charge [Orchest Cloud](https://cloud.orchest.io/signup) and 
+> get a fully configured Orchest instance out of the box!
 
 ```bash
 git clone https://github.com/orchest/orchest.git && cd orchest
