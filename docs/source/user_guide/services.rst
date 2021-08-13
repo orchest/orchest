@@ -82,6 +82,7 @@ editor.
    :align: center
 
 .. figure:: ../img/service-logs.png
+   :width: 600
    :align: center
 
 
