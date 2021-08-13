@@ -41,25 +41,25 @@ jobs:
       - name: Install dependencies
         run: pnpm i --dev
 
-      # In case some failed job has left state.
+      # Cleanup state before running tests.
       - name: Pre cleanup
         run: |
           ./orchest stop
           [ ! -z "$(docker ps -a -q)" ] && docker rm -fv $(docker ps -a -q)
           docker image prune -f
           [ ! -z "$(docker images --filter 'label=_orchest_project_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q)
-          sudo bash scripts/clean_userdir.sh
+          bash scripts/clean_userdir.sh
 
       - name: Build and Start Orchest
         run: |
           bash scripts/build_container.sh
-          sudo ./orchest start --cloud
+          ./orchest start --cloud
 
       # Can't use the action provided by cypress because of
       # https://github.com/cypress-io/github-action/issues/145.
       - name: "Run tests"
         run: |
-          sudo --preserve-env pnpm run cy:run -- --record --parallel \
+          pnpm run cy:run -- --record --parallel \
           --browser ${{ matrix.browser }} --group "UI - ${{ matrix.browser }}"
         env:
           CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
@@ -68,11 +68,3 @@ jobs:
           # correctly determine the unique run id necessary to re-run
           # the checks.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Post cleanup
-        run: |
-          ./orchest stop
-          [ ! -z "$(docker ps -a -q)" ] && docker rm -fv $(docker ps -a -q)
-          docker image prune -f
-          [ ! -z "$(docker images --filter 'label=_orchest_project_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q)
-          sudo bash scripts/clean_userdir.sh
