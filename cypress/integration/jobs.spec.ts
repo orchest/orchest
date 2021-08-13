@@ -167,7 +167,7 @@ describe("jobs", () => {
         dumpFiles.map((x) => cy.readFile(`${DATA_DIR}/${x}`));
       });
 
-      it.only("creates a job with parameters, tests combinatorial runs", () => {
+      it("creates a job with parameters, tests combinatorial runs", () => {
         let stepPar = [1, 2, 3, 4];
         let pipePar = ["hello", "there"];
         setJobParameter("pipeline-param-A", pipePar);
