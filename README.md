@@ -61,6 +61,7 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 > visit https://docs.docker.com/docker-for-windows/wsl/.
 
 #### Linux, macOS and Windows
+
 > Alternatively, signup for the free-of-charge [Orchest Cloud](https://cloud.orchest.io/signup) and 
 > get a fully configured Orchest instance out of the box!
 
