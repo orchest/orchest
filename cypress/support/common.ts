@@ -331,6 +331,7 @@ export function dateTimeToInputString(dateTime: Date) {
 
 // Assumes to be in a JobView.
 export function waitForJobStatus(expected: string, retries = 100) {
+  cy.location("pathname").should("eq", "/job");
   cy.findByTestId(TEST_ID.JOB_STATUS).then((statusElement) => {
     // If the status if not the expected one, try again.
     if (statusElement.text().indexOf(expected) === -1) {
@@ -353,6 +354,7 @@ export function waitForJobRunsStatus(
   retries = 50,
   callback?: Function
 ) {
+  cy.location("pathname").should("eq", "/job");
   let passingRuns = [];
   cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
     .each((run) => {
@@ -388,6 +390,8 @@ export function waitForJobRunsStatus(
 
 // Assumes paramName is unique across steps/pipeline params.
 export function setJobParameter(paramName: string, paramValues: object) {
+  cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
+  cy.location("pathname").should("eq", "/edit-job");
   cy.findByTestId(`job-edit-parameter-row-${paramName}-value`).click();
 
   // Delete the current content.
@@ -428,4 +432,19 @@ export function mergeEnvVariables(envVariables: string[][][]) {
     }
   });
   return expectedEnv;
+}
+
+// Currently looks for at least an environment being built since all
+// tests are operating under a single environment.
+export function assertEnvIsBuilt() {
+  // Make sure the environment is built.
+  cy.goToMenu("environments");
+  cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
+  cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
+  cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
+    .scrollIntoView()
+    .should("be.visible")
+    .contains("SUCCESS", { timeout: 20000 });
+
+  cy.goToMenu("pipelines");
 }

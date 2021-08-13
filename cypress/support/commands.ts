@@ -268,6 +268,7 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
 Cypress.Commands.add(
   "createStep",
   (title: string, createNewFile?: boolean, fileName?: string) => {
+    cy.location("pathname").should("eq", "/pipeline");
     cy.intercept("POST", /.*/).as("allPosts");
     cy.findByTestId(TEST_ID.STEP_CREATE).click();
     cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)

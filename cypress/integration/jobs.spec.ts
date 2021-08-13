@@ -1,5 +1,6 @@
 import * as deepEqual from "deep-equal";
 import {
+  assertEnvIsBuilt,
   mergeEnvVariables,
   setJobParameter,
   waitForJobStatus,
@@ -93,14 +94,7 @@ describe("jobs", () => {
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
-      // Make sure the environment is built.
-      cy.goToMenu("environments");
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
-        .scrollIntoView()
-        .should("be.visible")
-        .contains("SUCCESS", { timeout: 20000 });
+      assertEnvIsBuilt();
     });
     context("has created a job draft", () => {
       beforeEach(() => {
@@ -162,8 +156,6 @@ describe("jobs", () => {
       });
 
       it("creates a job with parameters to trigger multiple runs", () => {
-        cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
-
         let dumpFiles = [1, 2, 3, 4].map((x) => `jobRun${x}.json`);
         setJobParameter("test-output-file", dumpFiles);
         cy.findByTestId(TEST_ID.JOB_RUN).click();
@@ -177,9 +169,7 @@ describe("jobs", () => {
         dumpFiles.map((x) => cy.readFile(`${DATA_DIR}/${x}`));
       });
 
-      it("creates a job with parameters, tests combinatorial runs", () => {
-        cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
-
+      it.only("creates a job with parameters, tests combinatorial runs", () => {
         let stepPar = [1, 2, 3, 4];
         let pipePar = ["hello", "there"];
         setJobParameter("pipeline-param-A", pipePar);
@@ -213,8 +203,6 @@ describe("jobs", () => {
       });
 
       it("creates a job with parameters, selects a subset of the runs", () => {
-        cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
-
         let stepPar = [1, 2, 3, 4];
         let pipePar = ["hello", "there"];
         setJobParameter("pipeline-param-A", pipePar);
@@ -354,14 +342,7 @@ describe("jobs", () => {
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
-      // Make sure the environment is built.
-      cy.goToMenu("environments");
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
-        .scrollIntoView()
-        .should("be.visible")
-        .contains("SUCCESS", { timeout: 20000 });
+      assertEnvIsBuilt();
     });
 
     context("has created a job draft", () => {
@@ -392,8 +373,6 @@ describe("jobs", () => {
         it(`tests data passing - ${
           paramsA.input_data_name === undefined ? "unnamed" : "named"
         }`, () => {
-          cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
-
           setJobParameter("input_data", [paramsA.input_data]);
           if (paramsA.input_data_name !== undefined) {
             setJobParameter("input_data_name", [paramsA.input_data_name]);

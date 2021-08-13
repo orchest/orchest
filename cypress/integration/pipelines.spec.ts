@@ -1,4 +1,5 @@
 import {
+  assertEnvIsBuilt,
   waitForJupyterlab,
   TEST_ID,
   PROJECTS_DIR,
@@ -139,13 +140,7 @@ describe("pipelines", () => {
   context("requires an environment image to be available", () => {
     beforeEach(() => {
       cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
-      cy.goToMenu("environments");
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
-        .scrollIntoView()
-        .should("be.visible")
-        .contains("SUCCESS", { timeout: 20000 });
+      assertEnvIsBuilt();
       cy.goToMenu("pipelines");
     });
 

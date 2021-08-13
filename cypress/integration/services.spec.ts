@@ -1,4 +1,5 @@
 import {
+  assertEnvIsBuilt,
   TEST_ID,
   PROJECTS,
   DATA_DIR,
@@ -35,14 +36,8 @@ describe("services", () => {
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
-      // Make sure the environment is built.
-      cy.goToMenu("environments");
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
-        .scrollIntoView()
-        .should("be.visible")
-        .contains("SUCCESS", { timeout: 20000 });
+
+      assertEnvIsBuilt();
     });
 
     context("requires a running interactive session", () => {
@@ -111,6 +106,8 @@ describe("services", () => {
   it("tests services data mounting for interactive runs", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
+    assertEnvIsBuilt();
+    cy.goToMenu("pipelines");
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Stop session", {
       timeout: 30000,
@@ -153,6 +150,8 @@ describe("services", () => {
   it("tests services data mounting for jobs", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
+    assertEnvIsBuilt();
+    cy.goToMenu("pipelines");
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
 
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
@@ -245,6 +244,7 @@ describe("services", () => {
         envVars.pipelines_env_vars_names,
         envVars.pipelines_env_vars_values
       );
+      assertEnvIsBuilt();
       cy.goToMenu("pipelines");
 
       // Create and configure the service.
@@ -378,6 +378,7 @@ describe("services", () => {
         envVars.pipelines_env_vars_names,
         envVars.pipelines_env_vars_values
       );
+      assertEnvIsBuilt();
       cy.goToMenu("pipelines");
 
       // Create and configure the service.
