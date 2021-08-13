@@ -1,6 +1,9 @@
 Installation
 ============
 
+.. tip::
+   Be sure to check out the :ref:`quickstart tutorial <quickstart>` after installing Orchest.
+
 Orchest can be run on Linux, macOS and Windows (using the exact same steps!).
 
 Prerequisites
@@ -86,6 +89,9 @@ You can expect the build to finish in roughly 15 minutes.
 
    # Verify the installation.
    ./orchest --help
+
+   # Start Orchest.
+   ./orchest start
 
 .. tip::
 
