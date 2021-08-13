@@ -64,7 +64,7 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/145.
       - name: "Run tests"
         run: |
-          pnpm run cy:run -- --record --parallel \
+          umask 002 && pnpm run cy:run -- --record --parallel \
           --browser ${{ matrix.browser }} --group "UI - ${{ matrix.browser }}"
         env:
           CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
