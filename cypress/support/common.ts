@@ -1,5 +1,34 @@
 export const QUICKSTART_URL = "https://github.com/orchest/quickstart";
 
+export enum SAMPLE_PROJECT_NAMES {
+  P1 = "test-project-1",
+  P2 = "test-project-2",
+}
+
+export enum SAMPLE_PIPELINE_NAMES {
+  PL1 = "test-pipeline-1",
+  PL2 = "test-pipeline-2",
+}
+
+export enum SAMPLE_STEP_NAMES {
+  ST1 = "test-step-1",
+  ST2 = "test-step-2",
+}
+
+export enum SAMPLE_JOB_NAMES {
+  J1 = "job-1",
+}
+
+export enum JOB_STATUS {
+  ABORTED = "This job was cancelled",
+  PENDING = "Some pipeline runs haven't completed yet",
+  FAILURE = "All pipeline runs were unsuccessful",
+  STARTED = "This job is running",
+  SUCCESS = "All pipeline runs were successful",
+  MIXED_PENDING = "Some pipeline runs haven't completed yet",
+  MIXED_FAILURE = "Some pipeline runs were unsuccessful",
+}
+
 export enum TEST_ID {
   ADD_PROJECT = "add-project",
   ADD_USER = "add-user",
@@ -56,8 +85,24 @@ export enum TEST_ID {
   JOB_UPDATE = "job-update",
   JUPYTERLAB_IFRAME = "jupyterlab-iframe",
   MANAGE_USERS = "manage-users",
+  MENU_ENVIRONMENTS = "menu-environments",
+  MENU_FILE_MANAGER = "menu-file-manager",
+  MENU_JOBS = "menu-jobs",
+  MENU_PIPELINE = "menu-pipelines",
+  MENU_PROJECTS = "menu-projects",
+  MENU_SETTINGS = "menu-settings",
   NEW_USER_NAME = "new-user-name",
   NEW_USER_PASSWORD = "new-user-password",
+  ONBOARDING_CLOSE = "onboarding-close",
+  ONBOARDING_COMPLETE_WITHOUT_QUICKSTART = "onboarding-complete-without-quickstart",
+  ONBOARDING_COMPLETE_WITH_QUICKSTART = "onboarding-complete-with-quickstart",
+  ONBOARDING_DIALOG_CONTENT = "onboarding-dialog-content",
+  ONBOARDING_INDICATOR_BUTTON = "onboarding-indicator-button",
+  ONBOARDING_INDICATOR_LIST = "onboarding-indicator-list",
+  ONBOARDING_INDICATOR_LIST_ITEM = "onboarding-indicator-list-item",
+  ONBOARDING_NEXT = "onboarding-next",
+  ONBOARDING_OPEN = "onboarding-open",
+  ONBOARDING_SLIDE = "onboarding-slide",
   ORCHEST_LOGO = "orchest-logo",
   PIPELINES_TABLE = "pipelines-table",
   PIPELINES_TABLE_ROW = "pipelines-table-row",
@@ -221,11 +266,12 @@ export const PROJECTS = {
  * @param {retries} p2 - How many times to retry if expected != value.
  */
 export function assertTotalEnvironmentImages(expected: number, retries = 10) {
+  cy.log(`Asserting that the number of environment images is ${expected}.`);
   cy.totalEnvironmentImages().then((total) => {
     if (total != expected) {
       retries--;
       if (retries > 0) {
-        cy.wait(1000);
+        cy.wait(1000, { log: false });
         assertTotalEnvironmentImages(expected, retries);
       } else {
         throw new Error(
@@ -249,4 +295,137 @@ export function getJobProjectDirPath(
     r += `/${runUUID}`;
   }
   return r;
+}
+
+export function setStepParameters(stepTitle, params) {
+  cy.intercept("POST", /.*/).as("allPosts");
+  cy.get(`[data-test-title=${stepTitle}]`)
+    .scrollIntoView()
+    .click({ force: true });
+
+  // Delete the current content.
+  cy.get(".CodeMirror-line")
+    .first()
+    .click()
+    // Note that doing a {selectall} followed by a {backspace} does not
+    // seem to work, it results in the parameters we are typing next
+    // being "mangled", i.e. initial chars randomly disappearing.
+    .type("{backspace}".repeat(20));
+  // Write our params.
+  cy.get(".CodeMirror-line")
+    .first()
+    .click()
+    .type(`${JSON.stringify(params)}`, {
+      parseSpecialCharSequences: false,
+    });
+  cy.wait("@allPosts");
+}
+
+// Converts dateTime to a string in the format YYYY-MM-DD required by
+// the job creation view.
+export function dateTimeToInputString(dateTime: Date) {
+  return new Date(dateTime.getTime() - dateTime.getTimezoneOffset() * 60000)
+    .toISOString()
+    .split("T")[0];
+}
+
+// Assumes to be in a JobView.
+export function waitForJobStatus(expected: string, retries = 100) {
+  cy.findByTestId(TEST_ID.JOB_STATUS).then((statusElement) => {
+    // If the status if not the expected one, try again.
+    if (statusElement.text().indexOf(expected) === -1) {
+      retries--;
+      if (retries > 0) {
+        cy.findByTestId(TEST_ID.JOB_REFRESH).click();
+        cy.wait(200);
+        waitForJobStatus(expected, retries);
+      } else {
+        throw new Error(`Job never reached a status of "${expected}".`);
+      }
+    }
+  });
+}
+
+// Assumes to be in a JobView.
+export function waitForJobRunsStatus(
+  expectedStatus: string,
+  expectedNumberOfRuns: number,
+  retries = 50,
+  callback?: Function
+) {
+  let passingRuns = [];
+  cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
+    .each((run) => {
+      if (run.text().indexOf(expectedStatus) !== -1) {
+        passingRuns.push(run);
+      }
+    })
+    .wrap(passingRuns)
+    .then((passingRuns) => {
+      if (passingRuns.length !== expectedNumberOfRuns) {
+        retries--;
+        if (retries > 0) {
+          cy.findByTestId(TEST_ID.JOB_REFRESH).click();
+          cy.wait(200);
+          waitForJobRunsStatus(
+            expectedStatus,
+            expectedNumberOfRuns,
+            retries,
+            callback
+          );
+        } else {
+          throw new Error(
+            `There weren't ${expectedNumberOfRuns} job runs with state "${expectedStatus}".`
+          );
+        }
+      } else {
+        if (callback !== undefined) {
+          callback();
+        }
+      }
+    });
+}
+
+// Assumes paramName is unique across steps/pipeline params.
+export function setJobParameter(paramName: string, paramValues: object) {
+  cy.findByTestId(`job-edit-parameter-row-${paramName}-value`).click();
+
+  // Delete the current content.
+  cy.get(".CodeMirror-line")
+    .first()
+    .click()
+    // Note that doing a {selectall} followed by a {backspace} does not
+    // seem to work, it results in the parameters we are typing next
+    // being "mangled", i.e. initial chars randomly disappearing.
+    .type("{backspace}".repeat(20));
+  // Write our params.
+  cy.get(".CodeMirror-line")
+    .first()
+    .click()
+    .type(`${JSON.stringify(paramValues)}`, {
+      parseSpecialCharSequences: false,
+    });
+}
+
+// Waits for JupyterLab to actually have loaded.
+export function waitForJupyterlab() {
+  cy.getIframe(TEST_ID.JUPYTERLAB_IFRAME)
+    .contains("Kernel", { timeout: 20000 })
+    .should("be.visible");
+}
+
+// Merges the provided env variables into a single object.  Expects a
+// list of lists of length 2, where the first element is a list of env
+// var names and the second element is a list of env var values.
+// Priority is given to values later in the list, i.e. collision are
+// resolved by giving priority to the newest value.
+export function mergeEnvVariables(envVariables: string[][][]) {
+  let expectedEnv = {};
+  envVariables.forEach((namesValuesPair) => {
+    let names = namesValuesPair[0];
+    for (let i = 0; i < names.length; i++) {
+      expectedEnv[names[i]] = namesValuesPair[1][i];
+    }
+  });
+  return expectedEnv;
 }

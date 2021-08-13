@@ -1,17 +1,5 @@
 import projectsWithQuickstart from "../fixtures/async/projects/with-quickstart.json";
-
-enum TEST_ID {
-  CLOSE = "onboarding-close",
-  OPEN = "onboarding-open",
-  COMPLETE_WITH_QUICKSTART = "onboarding-complete-with-quickstart",
-  COMPLETE_WITHOUT_QUICKSTART = "onboarding-complete-without-quickstart",
-  DIALOG_CONTENT = "onboarding-dialog-content",
-  INDICATOR_LIST = "onboarding-indicator-list",
-  INDICATOR_LIST_ITEM = "onboarding-indicator-list-item",
-  INDICATOR_BUTTON = "onboarding-indicator-button",
-  NEXT = "onboarding-next",
-  SLIDE = "onboarding-slide",
-}
+import { TEST_ID } from "../support/common";
 
 const QUICKSTART_PROJECT_UUID = projectsWithQuickstart.find(
   (project) => project.path === "quickstart"
@@ -24,7 +12,9 @@ describe("onboarding", () => {
     });
 
     afterEach(() => {
-      cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("exist").and("be.visible");
+      cy.findByTestId(TEST_ID.ONBOARDING_DIALOG_CONTENT)
+        .should("exist")
+        .and("be.visible");
     });
 
     context("on first visit", () => {
@@ -41,7 +31,7 @@ describe("onboarding", () => {
         it(`in ${view}`, () => {
           cy.setOnboardingCompleted("true");
           cy.visit(view);
-          cy.findByTestId(TEST_ID.OPEN).should("exist").click();
+          cy.findByTestId(TEST_ID.ONBOARDING_OPEN).should("exist").click();
         });
       });
     });
@@ -55,7 +45,7 @@ describe("onboarding", () => {
 
     afterEach(() => {
       const expectOnboardingCompleted = () => {
-        cy.findByTestId(TEST_ID.DIALOG_CONTENT).should("not.exist");
+        cy.findByTestId(TEST_ID.ONBOARDING_DIALOG_CONTENT).should("not.exist");
         cy.getOnboardingCompleted().should("equal", "true");
       };
 
@@ -70,7 +60,7 @@ describe("onboarding", () => {
     // this is tested on the Radix side – if our close button works.
 
     it("when the 'close' button is pressed", () => {
-      cy.findByTestId(TEST_ID.CLOSE).click();
+      cy.findByTestId(TEST_ID.ONBOARDING_CLOSE).click();
     });
 
     it("if user has already completed onboarding", () => {
@@ -86,14 +76,14 @@ describe("onboarding", () => {
             }-quickstart.json`,
           });
 
-          cy.findAllByTestId(TEST_ID.INDICATOR_BUTTON)
+          cy.findAllByTestId(TEST_ID.ONBOARDING_INDICATOR_BUTTON)
             .last()
             .click()
             .then(() => {
               cy.findByTestId(
                 withQuickstart
-                  ? TEST_ID.COMPLETE_WITH_QUICKSTART
-                  : TEST_ID.COMPLETE_WITHOUT_QUICKSTART
+                  ? TEST_ID.ONBOARDING_COMPLETE_WITH_QUICKSTART
+                  : TEST_ID.ONBOARDING_COMPLETE_WITHOUT_QUICKSTART
               )
                 .should("exist")
                 .and("be.visible")
@@ -117,22 +107,22 @@ describe("onboarding", () => {
   context("should allow navigation", () => {
     it("via the 'next' button", () => {
       const visitNextSlideIfPossible = () => {
-        cy.findByTestId(TEST_ID.SLIDE).then(($slide) => {
+        cy.findByTestId(TEST_ID.ONBOARDING_SLIDE).then(($slide) => {
           const index = parseFloat($slide.attr("data-test-index"));
           const length = parseFloat($slide.attr("data-test-length"));
 
           if (index === length - 1) {
             cy.log("prevent forwards navigation on the last slide");
-            cy.findByTestId(TEST_ID.NEXT).should("not.exist");
+            cy.findByTestId(TEST_ID.ONBOARDING_NEXT).should("not.exist");
             return;
           }
 
-          cy.findByTestId(TEST_ID.NEXT)
+          cy.findByTestId(TEST_ID.ONBOARDING_NEXT)
             .should("exist")
             .and("be.visible")
             .click()
             .then(() => {
-              cy.findByTestId(TEST_ID.SLIDE).should(
+              cy.findByTestId(TEST_ID.ONBOARDING_SLIDE).should(
                 "have.attr",
                 "data-test-index",
                 `${index + 1}`
@@ -146,9 +136,9 @@ describe("onboarding", () => {
     });
 
     it("via the indicators", () => {
-      cy.findAllByTestId(TEST_ID.INDICATOR_LIST_ITEM).each(
+      cy.findAllByTestId(TEST_ID.ONBOARDING_INDICATOR_LIST_ITEM).each(
         (listItem, index, listItems) => {
-          cy.findAllByTestId(TEST_ID.SLIDE).should(
+          cy.findAllByTestId(TEST_ID.ONBOARDING_SLIDE).should(
             "have.attr",
             "data-test-length",
             listItems.length
@@ -156,14 +146,14 @@ describe("onboarding", () => {
 
           cy.wrap(listItem)
             .within(() => {
-              cy.findByTestId(TEST_ID.INDICATOR_BUTTON)
+              cy.findByTestId(TEST_ID.ONBOARDING_INDICATOR_BUTTON)
                 .should("exist")
                 .and("be.visible")
                 .click();
             })
             .should("have.attr", "aria-current", "step");
 
-          cy.findByTestId(TEST_ID.SLIDE)
+          cy.findByTestId(TEST_ID.ONBOARDING_SLIDE)
             .should("exist")
             .and("have.attr", "data-test-index", index);
         }

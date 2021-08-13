@@ -1,56 +1,24 @@
-import { TEST_ID, STEPS, PIPELINES } from "../support/common";
-
-enum PROJECT_NAMES {
-  P1 = "test-project-1",
-  P2 = "test-project-2",
-}
-
-enum PIPELINE_NAMES {
-  PL1 = "test-pipeline-1",
-  PL2 = "test-pipeline-2",
-}
-
-enum STEP_NAMES {
-  ST1 = "test-step-1",
-  ST2 = "test-step-2",
-}
-
-// Function private to the file to  set the parameters of a step in the
-// editor.
-function setStepParameters(stepTitle, params) {
-  cy.intercept("POST", /.*/).as("allPosts");
-  cy.get(`[data-test-title=${stepTitle}]`)
-    .scrollIntoView()
-    .click({ force: true });
-
-  // Delete the current content.
-  cy.get(".CodeMirror-line")
-    .first()
-    .click()
-    // Note that doing a {selectall} followed by a {backspace} does not
-    // seem to work, it results in the parameters we are typing next
-    // being "mangled", i.e. initial chars randomly disappearing.
-    .type("{backspace}".repeat(20));
-  // Write our params.
-  cy.get(".CodeMirror-line")
-    .first()
-    .click()
-    .type(`${JSON.stringify(params)}`, {
-      parseSpecialCharSequences: false,
-    });
-  cy.wait("@allPosts");
-}
+import {
+  mergeEnvVariables,
+  TEST_ID,
+  STEPS,
+  PIPELINES,
+  SAMPLE_PROJECT_NAMES,
+  SAMPLE_PIPELINE_NAMES,
+  SAMPLE_STEP_NAMES,
+  setStepParameters,
+} from "../support/common";
 
 describe("interactive runs", () => {
   beforeEach(() => {
     cy.setOnboardingCompleted("true");
-    cy.createProject(PROJECT_NAMES.P1);
-    cy.visit("/pipelines");
+    cy.createProject(SAMPLE_PROJECT_NAMES.P1);
+    cy.goToMenu("pipelines");
   });
 
   context("requires an empty pipeline and a running session", () => {
     beforeEach(() => {
-      cy.createPipeline(PIPELINE_NAMES.PL1);
+      cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
@@ -62,15 +30,15 @@ describe("interactive runs", () => {
       // Copy the step file (notebook).
       cy.exec(
         `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
-          PROJECT_NAMES.P1
+          SAMPLE_PROJECT_NAMES.P1
         }/`
       );
 
       // Create the step and set the notebook.
-      cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
+      cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
       // Select the step. Assumes unique step names.
-      cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+      cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
         .scrollIntoView()
         .click({ force: true });
       cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
@@ -78,7 +46,7 @@ describe("interactive runs", () => {
       );
       cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
 
-      cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+      cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
         .scrollIntoView()
         .contains("Completed", { timeout: 20000 });
       cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file);
@@ -96,21 +64,21 @@ describe("interactive runs", () => {
         // Copy the step file (notebook).
         cy.exec(
           `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
-            PROJECT_NAMES.P1
+            SAMPLE_PROJECT_NAMES.P1
           }/`
         );
 
         // Create the step and set the notebook.
-        cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
+        cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
-        setStepParameters(STEP_NAMES.ST1, parameters);
+        setStepParameters(SAMPLE_STEP_NAMES.ST1, parameters);
 
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
 
-        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+        cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .contains("Completed", { timeout: 20000 });
         cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file)
@@ -150,15 +118,15 @@ describe("interactive runs", () => {
         // Copy the step file (notebook).
         cy.exec(
           `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
-            PROJECT_NAMES.P1
+            SAMPLE_PROJECT_NAMES.P1
           }/`
         );
 
         // Create the step and set the notebook.
-        cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
+        cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
         // Select the step. Assumes unique step names.
-        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+        cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
@@ -167,7 +135,7 @@ describe("interactive runs", () => {
 
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
 
-        cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+        cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .contains("Completed", { timeout: 20000 });
 
@@ -184,22 +152,19 @@ describe("interactive runs", () => {
           pipelines_env_vars_values: ["2", "override", "4"],
         },
       ].forEach((envVars) => {
-        assert(
-          envVars.project_env_vars_names.length ==
-            envVars.project_env_vars_values.length
-        );
-        assert(
-          envVars.pipelines_env_vars_names.length ==
-            envVars.pipelines_env_vars_values.length
-        );
+        [
+          [envVars.project_env_vars_names, envVars.project_env_vars_names],
+          [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+        ].forEach((x) => assert(x[0].length == x[1].length));
+
         it("creates and runs a step with project and pipeline env vars", () => {
           cy.addProjectEnvVars(
-            PROJECT_NAMES.P1,
+            SAMPLE_PROJECT_NAMES.P1,
             envVars.project_env_vars_names,
             envVars.project_env_vars_values
           );
           cy.addPipelineEnvVars(
-            PIPELINE_NAMES.PL1,
+            SAMPLE_PIPELINE_NAMES.PL1,
             envVars.pipelines_env_vars_names,
             envVars.pipelines_env_vars_values
           );
@@ -208,15 +173,19 @@ describe("interactive runs", () => {
           // Copy the step file (notebook).
           cy.exec(
             `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
-              PROJECT_NAMES.P1
+              SAMPLE_PROJECT_NAMES.P1
             }/`
           );
 
           // Create the step and set the notebook.
-          cy.createStep(STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
+          cy.createStep(
+            SAMPLE_STEP_NAMES.ST1,
+            false,
+            STEPS.DUMP_ENV_PARAMS.name
+          );
 
           // Select the step. Assumes unique step names.
-          cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+          cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
             .scrollIntoView()
             .click({ force: true });
           cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
@@ -225,21 +194,17 @@ describe("interactive runs", () => {
 
           cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
 
-          cy.get(`[data-test-title=${STEP_NAMES.ST1}]`)
+          cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
             .scrollIntoView()
             .contains("Completed", { timeout: 20000 });
 
-          let expectedEnv = {};
-          // Note that we are overriding the proj env vars with pipeline
-          // vars by setting them through a dictionary.
-          for (let i = 0; i < envVars.project_env_vars_names.length; i++) {
-            expectedEnv[envVars.project_env_vars_names[i]] =
-              envVars.project_env_vars_values[i];
-          }
-          for (let i = 0; i < envVars.pipelines_env_vars_names.length; i++) {
-            expectedEnv[envVars.pipelines_env_vars_names[i]] =
-              envVars.pipelines_env_vars_values[i];
-          }
+          let expectedEnv = mergeEnvVariables([
+            [envVars.project_env_vars_names, envVars.project_env_vars_values],
+            [
+              envVars.pipelines_env_vars_names,
+              envVars.pipelines_env_vars_values,
+            ],
+          ]);
 
           cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file)
             .its("env")
@@ -258,9 +223,10 @@ describe("interactive runs", () => {
       // Copy the pipeline.
       cy.exec(
         `cp -r ${PIPELINES.DATA_PASSING.get_path()} userdir/projects/${
-          PROJECT_NAMES.P1
+          SAMPLE_PROJECT_NAMES.P1
         }/`
       );
+      // Need to force a reload for discovery.
       cy.visit("/pipelines");
       cy.findByTestId(`pipeline-${PIPELINES.DATA_PASSING.name}`).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(

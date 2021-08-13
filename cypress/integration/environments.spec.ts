@@ -1,18 +1,13 @@
-import { TEST_ID } from "../support/common";
+import { TEST_ID, SAMPLE_PROJECT_NAMES } from "../support/common";
 import { assertTotalEnvironmentImages } from "../support/common";
-
-enum PROJECT_NAMES {
-  P1 = "test-project-1",
-  P2 = "test-project-2",
-}
 
 describe("environments", () => {
   beforeEach(() => {
     cy.setOnboardingCompleted("true");
-    cy.createProject(PROJECT_NAMES.P1);
+    cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     // Delete the environment that has been created with the project.
     cy.deleteAllEnvironments();
-    cy.visit("environments");
+    cy.goToMenu("environments");
   });
 
   context("should have no environment images after running", () => {

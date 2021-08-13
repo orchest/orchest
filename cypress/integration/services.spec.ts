@@ -1,47 +1,15 @@
 import {
   TEST_ID,
-  STEPS,
   PROJECTS,
   DATA_DIR,
   PROJECTS_DIR,
   getJobProjectDirPath,
+  SAMPLE_JOB_NAMES,
+  SAMPLE_PROJECT_NAMES,
+  JOB_STATUS,
+  waitForJobStatus,
+  mergeEnvVariables,
 } from "../support/common";
-
-enum JOB_NAMES {
-  J1 = "job-1",
-}
-
-enum PROJECT_NAMES {
-  P1 = "test-project-1",
-  P2 = "test-project-2",
-}
-
-enum JOB_STATUS {
-  ABORTED = "This job was cancelled",
-  PENDING = "Some pipeline runs haven't completed yet",
-  FAILURE = "All pipeline runs were unsuccessful",
-  STARTED = "This job is running",
-  SUCCESS = "All pipeline runs were successful",
-  MIXED_PENDING = "Some pipeline runs haven't completed yet",
-  MIXED_FAILURE = "Some pipeline runs were unsuccessful",
-}
-
-// Assumes to be in a JobView.
-function waitForJobStatus(expected: string, retries = 100) {
-  cy.findByTestId(TEST_ID.JOB_STATUS).then((statusElement) => {
-    // If the status if not the expected one, try again.
-    if (statusElement.text().indexOf(expected) === -1) {
-      retries--;
-      if (retries > 0) {
-        cy.findByTestId(TEST_ID.JOB_REFRESH).click();
-        cy.wait(200);
-        waitForJobStatus(expected, retries);
-      } else {
-        throw new Error(`Job never reached a status of "${expected}".`);
-      }
-    }
-  });
-}
 
 function verifyExternalConnectivity(externalConnData: { string: [string] }) {
   for (const [service, urls] of Object.entries(externalConnData)) {
@@ -65,10 +33,10 @@ describe("services", () => {
         `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} userdir/projects/`
       );
       // To trigger the project discovery.
-      cy.visit("/projects");
+      cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
       // Make sure the environment is built.
-      cy.visit("/environments");
+      cy.goToMenu("environments");
       cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
       cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
       cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
@@ -79,7 +47,7 @@ describe("services", () => {
 
     context("requires a running interactive session", () => {
       beforeEach(() => {
-        cy.visit("/pipelines");
+        cy.goToMenu("pipelines");
         cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
         cy.findAllByTestId(
           TEST_ID.SESSION_TOGGLE_BUTTON
@@ -115,15 +83,15 @@ describe("services", () => {
 
     context("has created a job draft", () => {
       beforeEach(() => {
-        cy.visit("/jobs");
+        cy.goToMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
-        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(JOB_NAMES.J1);
+        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
       });
 
       it("tests for services connectivity in jobs", () => {
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         waitForJobStatus(JOB_STATUS.SUCCESS);
 
         // Check that the internal connectivity check has gone well.
@@ -141,8 +109,8 @@ describe("services", () => {
     });
   });
   it("tests services data mounting for interactive runs", () => {
-    cy.createProject(PROJECT_NAMES.P1);
-    cy.createPipeline(PROJECT_NAMES.P1);
+    cy.createProject(SAMPLE_PROJECT_NAMES.P1);
+    cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Stop session", {
       timeout: 30000,
@@ -179,12 +147,12 @@ describe("services", () => {
     // Verify that the service was able to touch the files through the
     // data and project directory mounts.
     cy.readFile(`${DATA_DIR}/test1.txt`);
-    cy.readFile(`${PROJECTS_DIR}/${PROJECT_NAMES.P1}/test2.txt`);
+    cy.readFile(`${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/test2.txt`);
   });
 
   it("tests services data mounting for jobs", () => {
-    cy.createProject(PROJECT_NAMES.P1);
-    cy.createPipeline(PROJECT_NAMES.P1);
+    cy.createProject(SAMPLE_PROJECT_NAMES.P1);
+    cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
 
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
@@ -206,12 +174,12 @@ describe("services", () => {
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
 
     // Create and run the job.
-    cy.visit("/jobs");
+    cy.goToMenu("jobs");
     cy.findByTestId(TEST_ID.JOB_CREATE).click();
-    cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(JOB_NAMES.J1);
+    cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
     cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
     cy.findByTestId(TEST_ID.JOB_RUN).click();
-    cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+    cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
     waitForJobStatus(JOB_STATUS.SUCCESS);
     cy.intercept("GET", "/catch/api-proxy/api/jobs/*").as("jobData");
     cy.reload();
@@ -257,33 +225,27 @@ describe("services", () => {
       service_inherited_env_vars: ["a", "b", "c"],
     },
   ].forEach((envVars) => {
-    assert(
-      envVars.project_env_vars_names.length ==
-        envVars.project_env_vars_values.length
-    );
-    assert(
-      envVars.pipelines_env_vars_names.length ==
-        envVars.pipelines_env_vars_values.length
-    );
-    assert(
-      envVars.service_env_vars_names.length ==
-        envVars.service_env_vars_values.length
-    );
+    [
+      [envVars.project_env_vars_names, envVars.project_env_vars_names],
+      [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+      [envVars.service_env_vars_names, envVars.service_env_vars_values],
+    ].forEach((x) => assert(x[0].length == x[1].length));
+
     it("tests services env vars for interactive runs", () => {
       // Create the project and pipeline and add env variables.
-      cy.createProject(PROJECT_NAMES.P1);
+      cy.createProject(SAMPLE_PROJECT_NAMES.P1);
       cy.addProjectEnvVars(
-        PROJECT_NAMES.P1,
+        SAMPLE_PROJECT_NAMES.P1,
         envVars.project_env_vars_names,
         envVars.project_env_vars_values
       );
-      cy.createPipeline(PROJECT_NAMES.P1);
+      cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
       cy.addPipelineEnvVars(
-        PROJECT_NAMES.P1,
+        SAMPLE_PROJECT_NAMES.P1,
         envVars.pipelines_env_vars_names,
         envVars.pipelines_env_vars_values
       );
-      cy.visit("/pipelines");
+      cy.goToMenu("pipelines");
 
       // Create and configure the service.
       cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
@@ -293,17 +255,13 @@ describe("services", () => {
       cy.findByTestId("pipeline-service-template-empty").click();
       cy.findByTestId(TEST_ID.PIPELINE_SERVICES_ROW).click();
 
-      // Define what the run environment variables should be and what the
-      // service env vars will be based on inheritance.
-      let expectedRunEnv = {};
-      for (let i = 0; i < envVars.project_env_vars_names.length; i++) {
-        expectedRunEnv[envVars.project_env_vars_names[i]] =
-          envVars.project_env_vars_values[i];
-      }
-      for (let i = 0; i < envVars.pipelines_env_vars_names.length; i++) {
-        expectedRunEnv[envVars.pipelines_env_vars_names[i]] =
-          envVars.pipelines_env_vars_values[i];
-      }
+      // Define what the run environment variables should be and what
+      // the service env vars will be based on inheritance.
+      let expectedRunEnv = mergeEnvVariables([
+        [envVars.project_env_vars_names, envVars.project_env_vars_values],
+        [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+      ]);
+
       let expectedServiceEnv = {};
       for (let i = 0; i < envVars.service_env_vars_names.length; i++) {
         expectedServiceEnv[envVars.service_env_vars_names[i]] =
@@ -399,36 +357,28 @@ describe("services", () => {
       service_inherited_env_vars: ["a", "b", "c", "d"],
     },
   ].forEach((envVars) => {
-    assert(
-      envVars.project_env_vars_names.length ==
-        envVars.project_env_vars_values.length
-    );
-    assert(
-      envVars.pipelines_env_vars_names.length ==
-        envVars.pipelines_env_vars_values.length
-    );
-    assert(
-      envVars.job_env_vars_names.length == envVars.job_env_vars_values.length
-    );
-    assert(
-      envVars.service_env_vars_names.length ==
-        envVars.service_env_vars_values.length
-    );
+    [
+      [envVars.project_env_vars_names, envVars.project_env_vars_names],
+      [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+      [envVars.job_env_vars_names, envVars.job_env_vars_values],
+      [envVars.service_env_vars_names, envVars.service_env_vars_values],
+    ].forEach((x) => assert(x[0].length == x[1].length));
+
     it("tests services env vars for jobs", () => {
       // Create the project and pipeline and add env variables.
-      cy.createProject(PROJECT_NAMES.P1);
+      cy.createProject(SAMPLE_PROJECT_NAMES.P1);
       cy.addProjectEnvVars(
-        PROJECT_NAMES.P1,
+        SAMPLE_PROJECT_NAMES.P1,
         envVars.project_env_vars_names,
         envVars.project_env_vars_values
       );
-      cy.createPipeline(PROJECT_NAMES.P1);
+      cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
       cy.addPipelineEnvVars(
-        PROJECT_NAMES.P1,
+        SAMPLE_PROJECT_NAMES.P1,
         envVars.pipelines_env_vars_names,
         envVars.pipelines_env_vars_values
       );
-      cy.visit("/pipelines");
+      cy.goToMenu("pipelines");
 
       // Create and configure the service.
       cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
@@ -440,19 +390,12 @@ describe("services", () => {
 
       // Define what the job environment variables should be and what
       // the service env vars will be based on inheritance.
-      let expectedJobEnv = {};
-      for (let i = 0; i < envVars.project_env_vars_names.length; i++) {
-        expectedJobEnv[envVars.project_env_vars_names[i]] =
-          envVars.project_env_vars_values[i];
-      }
-      for (let i = 0; i < envVars.pipelines_env_vars_names.length; i++) {
-        expectedJobEnv[envVars.pipelines_env_vars_names[i]] =
-          envVars.pipelines_env_vars_values[i];
-      }
-      for (let i = 0; i < envVars.job_env_vars_names.length; i++) {
-        expectedJobEnv[envVars.job_env_vars_names[i]] =
-          envVars.job_env_vars_values[i];
-      }
+      let expectedJobEnv = mergeEnvVariables([
+        [envVars.project_env_vars_names, envVars.project_env_vars_values],
+        [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+        [envVars.job_env_vars_names, envVars.job_env_vars_values],
+      ]);
+
       let expectedServiceEnv = {};
       for (let i = 0; i < envVars.service_env_vars_names.length; i++) {
         expectedServiceEnv[envVars.service_env_vars_names[i]] =
@@ -504,9 +447,9 @@ describe("services", () => {
       }
 
       // Create and run the job.
-      cy.visit("/jobs");
+      cy.goToMenu("jobs");
       cy.findByTestId(TEST_ID.JOB_CREATE).click();
-      cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(JOB_NAMES.J1);
+      cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
       cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
       // Set env vars.
       cy.findByTestId(TEST_ID.JOB_EDIT_TAB_ENVIRONMENT_VARIABLES).click();
@@ -540,7 +483,7 @@ describe("services", () => {
       }
 
       cy.findByTestId(TEST_ID.JOB_RUN).click();
-      cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+      cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
       waitForJobStatus(JOB_STATUS.SUCCESS);
 
       let expectedFileContent = expectedValues.map(String).join(",") + "\n";

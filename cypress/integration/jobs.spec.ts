@@ -1,103 +1,16 @@
 import * as deepEqual from "deep-equal";
-import { TEST_ID, STEPS, PROJECTS, DATA_DIR } from "../support/common";
-
-enum JOB_NAMES {
-  J1 = "job-1",
-}
-
-enum JOB_STATUS {
-  ABORTED = "This job was cancelled",
-  PENDING = "Some pipeline runs haven't completed yet",
-  FAILURE = "All pipeline runs were unsuccessful",
-  STARTED = "This job is running",
-  SUCCESS = "All pipeline runs were successful",
-  MIXED_PENDING = "Some pipeline runs haven't completed yet",
-  MIXED_FAILURE = "Some pipeline runs were unsuccessful",
-}
-
-// Assumes to be in a JobView.
-function waitForJobStatus(expected: string, retries = 100) {
-  cy.findByTestId(TEST_ID.JOB_STATUS).then((statusElement) => {
-    // If the status if not the expected one, try again.
-    if (statusElement.text().indexOf(expected) === -1) {
-      retries--;
-      if (retries > 0) {
-        cy.findByTestId(TEST_ID.JOB_REFRESH).click();
-        cy.wait(200);
-        waitForJobStatus(expected, retries);
-      } else {
-        throw new Error(`Job never reached a status of "${expected}".`);
-      }
-    }
-  });
-}
-
-// Assumes to be in a JobView.
-function waitForJobRunsStatus(
-  expectedStatus: string,
-  expectedNumberOfRuns: number,
-  retries = 50,
-  callback?: Function
-) {
-  let passingRuns = [];
-  cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
-    .each((run) => {
-      if (run.text().indexOf(expectedStatus) !== -1) {
-        passingRuns.push(run);
-      }
-    })
-    .wrap(passingRuns)
-    .then((passingRuns) => {
-      if (passingRuns.length !== expectedNumberOfRuns) {
-        retries--;
-        if (retries > 0) {
-          cy.findByTestId(TEST_ID.JOB_REFRESH).click();
-          cy.wait(200);
-          waitForJobRunsStatus(
-            expectedStatus,
-            expectedNumberOfRuns,
-            retries,
-            callback
-          );
-        } else {
-          throw new Error(
-            `There weren't ${expectedNumberOfRuns} job runs with state "${expectedStatus}".`
-          );
-        }
-      } else {
-        if (callback !== undefined) {
-          callback();
-        }
-      }
-    });
-}
-
-function dateTimeToInputString(dateTime: Date) {
-  return new Date(dateTime.getTime() - dateTime.getTimezoneOffset() * 60000)
-    .toISOString()
-    .split("T")[0];
-}
-
-// Assumes paramName is unique across steps/pipeline params.
-function setParameter(paramName: string, paramValues: object) {
-  cy.findByTestId(`job-edit-parameter-row-${paramName}-value`).click();
-
-  // Delete the current content.
-  cy.get(".CodeMirror-line")
-    .first()
-    .click()
-    // Note that doing a {selectall} followed by a {backspace} does not
-    // seem to work, it results in the parameters we are typing next
-    // being "mangled", i.e. initial chars randomly disappearing.
-    .type("{backspace}".repeat(20));
-  // Write our params.
-  cy.get(".CodeMirror-line")
-    .first()
-    .click()
-    .type(`${JSON.stringify(paramValues)}`, {
-      parseSpecialCharSequences: false,
-    });
-}
+import {
+  mergeEnvVariables,
+  setJobParameter,
+  waitForJobStatus,
+  waitForJobRunsStatus,
+  dateTimeToInputString,
+  TEST_ID,
+  PROJECTS,
+  DATA_DIR,
+  SAMPLE_JOB_NAMES,
+  JOB_STATUS,
+} from "../support/common";
 
 // Assumes to be in a JobView and that all runs can have their pipeline
 // view available, thus requiring the run to be started or in an end
@@ -178,10 +91,10 @@ describe("jobs", () => {
       // Copy the pipeline.
       cy.exec(`cp -r ${PROJECTS.DUMP_ENV_PARAMS.get_path()} userdir/projects/`);
       // To trigger the project discovery.
-      cy.visit("/projects");
+      cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
       // Make sure the environment is built.
-      cy.visit("/environments");
+      cy.goToMenu("environments");
       cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
       cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
       cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
@@ -191,15 +104,15 @@ describe("jobs", () => {
     });
     context("has created a job draft", () => {
       beforeEach(() => {
-        cy.visit("/jobs");
+        cy.goToMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
-        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(JOB_NAMES.J1);
+        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
       });
 
       it("creates a job that runs now", () => {
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         waitForJobStatus(JOB_STATUS.SUCCESS);
         // Make sure the file was created, thus the step has properly run.
         cy.readFile(PROJECTS.DUMP_ENV_PARAMS.default_output_file);
@@ -215,7 +128,7 @@ describe("jobs", () => {
           dateString
         );
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         waitForJobStatus(JOB_STATUS.SUCCESS);
         // Make sure the file was created, thus the step has properly run.
         cy.readFile(PROJECTS.DUMP_ENV_PARAMS.default_output_file);
@@ -231,7 +144,7 @@ describe("jobs", () => {
           dateString
         );
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         waitForJobStatus(JOB_STATUS.PENDING);
       });
 
@@ -244,7 +157,7 @@ describe("jobs", () => {
           "* * * * *"
         );
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         waitForJobStatus(JOB_STATUS.STARTED);
       });
 
@@ -252,9 +165,9 @@ describe("jobs", () => {
         cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
 
         let dumpFiles = [1, 2, 3, 4].map((x) => `jobRun${x}.json`);
-        setParameter("test-output-file", dumpFiles);
+        setJobParameter("test-output-file", dumpFiles);
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW).should(
           "have.length",
           dumpFiles.length
@@ -269,10 +182,10 @@ describe("jobs", () => {
 
         let stepPar = [1, 2, 3, 4];
         let pipePar = ["hello", "there"];
-        setParameter("pipeline-param-A", pipePar);
-        setParameter("step-param-a", stepPar);
+        setJobParameter("pipeline-param-A", pipePar);
+        setJobParameter("step-param-a", stepPar);
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
 
         let expectedRunsParams = [];
         for (let p = 0; p < pipePar.length; p++) {
@@ -304,8 +217,8 @@ describe("jobs", () => {
 
         let stepPar = [1, 2, 3, 4];
         let pipePar = ["hello", "there"];
-        setParameter("pipeline-param-A", pipePar);
-        setParameter("step-param-a", stepPar);
+        setJobParameter("pipeline-param-A", pipePar);
+        setJobParameter("step-param-a", stepPar);
         let totalRuns = stepPar.length * pipePar.length;
 
         // Select a subset of the runs.
@@ -320,7 +233,7 @@ describe("jobs", () => {
         }
 
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
 
         // Remove the last element since we have unselected the last 4
         // runs.
@@ -361,17 +274,11 @@ describe("jobs", () => {
         job_env_vars_values: ["cJVal", "dJVal", "eJVal", "fJVal"],
       },
     ].forEach((envVars) => {
-      assert(
-        envVars.project_env_vars_names.length ==
-          envVars.project_env_vars_values.length
-      );
-      assert(
-        envVars.pipelines_env_vars_names.length ==
-          envVars.pipelines_env_vars_values.length
-      );
-      assert(
-        envVars.job_env_vars_names.length == envVars.job_env_vars_values.length
-      );
+      [
+        [envVars.project_env_vars_names, envVars.project_env_vars_names],
+        [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+        [envVars.job_env_vars_names, envVars.job_env_vars_values],
+      ].forEach((x) => assert(x[0].length == x[1].length));
       it("creates a job with project, pipeline, job env vars", () => {
         cy.addProjectEnvVars(
           PROJECTS.DUMP_ENV_PARAMS.name,
@@ -384,9 +291,9 @@ describe("jobs", () => {
           envVars.pipelines_env_vars_values
         );
 
-        cy.visit("/jobs");
+        cy.goToMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
-        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(JOB_NAMES.J1);
+        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
 
         // Set job env vars.
@@ -421,22 +328,14 @@ describe("jobs", () => {
         }
 
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
         waitForJobStatus(JOB_STATUS.SUCCESS);
 
-        let expectedEnv = {};
-        for (let i = 0; i < envVars.project_env_vars_names.length; i++) {
-          expectedEnv[envVars.project_env_vars_names[i]] =
-            envVars.project_env_vars_values[i];
-        }
-        for (let i = 0; i < envVars.pipelines_env_vars_names.length; i++) {
-          expectedEnv[envVars.pipelines_env_vars_names[i]] =
-            envVars.pipelines_env_vars_values[i];
-        }
-        for (let i = 0; i < envVars.job_env_vars_names.length; i++) {
-          expectedEnv[envVars.job_env_vars_names[i]] =
-            envVars.job_env_vars_values[i];
-        }
+        let expectedEnv = mergeEnvVariables([
+          [envVars.project_env_vars_names, envVars.project_env_vars_values],
+          [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
+          [envVars.job_env_vars_names, envVars.job_env_vars_values],
+        ]);
 
         cy.readFile(PROJECTS.DUMP_ENV_PARAMS.default_output_file)
           .its("env")
@@ -453,10 +352,10 @@ describe("jobs", () => {
       // Copy the pipeline.
       cy.exec(`cp -r ${PROJECTS.DATA_PASSING.get_path()} userdir/projects/`);
       // To trigger the project discovery.
-      cy.visit("/projects");
+      cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
       // Make sure the environment is built.
-      cy.visit("/environments");
+      cy.goToMenu("environments");
       cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
       cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
       cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
@@ -467,9 +366,9 @@ describe("jobs", () => {
 
     context("has created a job draft", () => {
       beforeEach(() => {
-        cy.visit("/jobs");
+        cy.goToMenu("jobs");
         cy.findByTestId(TEST_ID.JOB_CREATE).click();
-        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(JOB_NAMES.J1);
+        cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
         cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
       });
 
@@ -495,12 +394,12 @@ describe("jobs", () => {
         }`, () => {
           cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
 
-          setParameter("input_data", [paramsA.input_data]);
+          setJobParameter("input_data", [paramsA.input_data]);
           if (paramsA.input_data_name !== undefined) {
-            setParameter("input_data_name", [paramsA.input_data_name]);
+            setJobParameter("input_data_name", [paramsA.input_data_name]);
           }
           cy.findByTestId(TEST_ID.JOB_RUN).click();
-          cy.findByTestId(`job-${JOB_NAMES.J1}`).click();
+          cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
           waitForJobStatus(JOB_STATUS.SUCCESS);
 
           let expectedName =

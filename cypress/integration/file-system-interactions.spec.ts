@@ -1,9 +1,4 @@
-import { PROJECTS_DIR } from "../support/common";
-
-enum PROJECT_NAMES {
-  P1 = "test-project-1",
-  P2 = "test-project-2",
-}
+import { PROJECTS_DIR, SAMPLE_PROJECT_NAMES } from "../support/common";
 
 describe("file system interactions", () => {
   beforeEach(() => {
@@ -11,14 +6,16 @@ describe("file system interactions", () => {
   });
 
   it("creates a project through the FS", () => {
-    cy.exec(`mkdir ${PROJECTS_DIR}/${PROJECT_NAMES.P1}`);
+    cy.exec(`mkdir ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
+    // Need to force a reload to discover.
     cy.visit("/projects");
     cy.findAllByTestId("projects-table-row").should("have.length", 1);
   });
 
   it("deletes a project through the FS", () => {
-    cy.createProject(PROJECT_NAMES.P1);
-    cy.exec(`rm -rf ${PROJECTS_DIR}/${PROJECT_NAMES.P1}`);
+    cy.createProject(SAMPLE_PROJECT_NAMES.P1);
+    cy.exec(`rm -rf ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
+    // Need to force a reload to discover.
     cy.visit("/projects");
     cy.findAllByTestId("projects-table-row").should("have.length", 0);
   });
@@ -28,6 +25,7 @@ describe("file system interactions", () => {
     projects.map((project) => {
       cy.exec(`mkdir ${PROJECTS_DIR}/${project}`);
     });
+    // Need to force a reload to discover.
     cy.visit("/projects");
     cy.findByTestId("projects-table-body", { timeout: 10000 }).should("exist");
     cy.findAllByTestId("projects-table-row", { timeout: 10000 }).should(
@@ -42,6 +40,7 @@ describe("file system interactions", () => {
       cy.createProject(project.toString());
     });
     cy.cleanProjectsDir();
+    // Need to force a reload to discover.
     cy.visit("/projects");
     cy.findAllByTestId("projects-table-row").should("have.length", 0);
   });

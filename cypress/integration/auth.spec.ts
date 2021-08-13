@@ -11,7 +11,7 @@ describe("auth system", () => {
   });
 
   it("can create and delete multiple users", () => {
-    cy.visit("/settings");
+    cy.goToMenu("settings");
     cy.findByTestId(TEST_ID.MANAGE_USERS)
       .scrollIntoView()
       .should("be.visible")
