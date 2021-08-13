@@ -1,6 +1,5 @@
 {
   "baseUrl": "http://localhost:8000",
-  "experimentalStudio": true,
   "ignoreTestFiles": "**/examples/*",
   "testFiles": "**/*.spec.{ts,tsx}",
   "chromeWebSecurity": false,
