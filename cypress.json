@@ -6,5 +6,6 @@
   "video": false,
   "videoCompression": false,
   "videoUploadOnPasses": false,
-  "defaultCommandTimeout": 10000
+  "defaultCommandTimeout": 10000,
+  "numTestsKeptInMemory": 5
 }
