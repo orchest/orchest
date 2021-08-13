@@ -451,6 +451,6 @@ Cypress.on("uncaught:exception", (err, runnable, promise) => {
     console.log(promise);
     // If false is returned the exception will be ignored and won't
     // cause the test to fail.
-    // return false
+    return false;
   }
 });
