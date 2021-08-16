@@ -8,7 +8,7 @@ setuptools.setup(
         "typer",
         "docker",
         "six>=1.13.0",
-        "aiodocker @ git+https://github.com/yannickperrenet/aiodocker.git",
+        "aiodocker==0.21.0",
         "tqdm==4.53.0",
         "orchest-internals @ file://localhost/orchest/lib/python/orchest-internals",
     ],
