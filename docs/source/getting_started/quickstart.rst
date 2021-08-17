@@ -14,6 +14,8 @@ The example pipeline will download the `sklearn California housing dataset
 data, train some classifiers, and in the final step collect the results from those classifiers.
 
 .. figure:: ../img/quickstart/final-pipeline.png
+   :width: 800
+   :align: center
 
    The resulting pipeline from this quickstart.
 
@@ -33,6 +35,8 @@ To get started with the pipeline in Orchest you can import the GitHub repositori
 ``https://github.com/orchest/quickstart`` through the UI:
 
 .. figure:: ../img/quickstart/import-project.png
+   :width: 800
+   :align: center
 
 Your first project
 ------------------
@@ -47,6 +51,8 @@ For the quickstart we will create a new project named ``quickstart``. After crea
 will see that it does not yet have any :ref:`pipelines <pipeline>`.
 
 .. figure:: ../img/quickstart/project-creation.png
+   :width: 800
+   :align: center
 
 .. note::
    All code in this quickstart is written in Python, nevertheless, we do also support other
@@ -148,12 +154,11 @@ Maybe you already noticed the imports in the previous step:
 
 These dependencies are satisfied by default, because the :ref:`environments <environment glossary>`
 are based on the `Jupyter Docker Stacks <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_
-which already contains a number of common data science packages. In this data exploration step
-however, we make use of `Vaex <https://github.com/vaexio/vaex>`_ to showcase how environments let
-you :ref:`install additional packages <install packages>`.
+which already contains a number of common data science packages.
 
-Go to *Environments* in the left pane menu and inspect the *Python 3* environment. Here you can see
-that ``pip install vaex`` is added to the *Environment set-up script*.
+If you need to add dependencies to customize your environments you can do so by
+:ref:`installing additional packages <install packages>`.
+
 
 Finalizing the pipeline
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -161,6 +166,8 @@ To end up with the final pipeline, please refer to the :ref:`For the impatient <
 to import the pipeline. You can also build the pipeline from scratch yourself!
 
 .. figure:: ../img/quickstart/final-pipeline-completed.png
+   :width: 800
+   :align: center
 
    A successful pipeline run of the final pipeline.
 
