@@ -3,7 +3,7 @@
   "ignoreTestFiles": "**/examples/*",
   "testFiles": "**/*.spec.{ts,tsx}",
   "chromeWebSecurity": false,
-  "video": false,
+  "video": true,
   "videoCompression": false,
   "videoUploadOnPasses": false,
   "defaultCommandTimeout": 10000,
