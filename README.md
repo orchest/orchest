@@ -70,7 +70,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ./orchest install
 
 # Verify the installation.
-./orchest --help
+./orchest version --ext
 
 # Start Orchest.
 ./orchest start

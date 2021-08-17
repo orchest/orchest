@@ -30,7 +30,7 @@ Simply follow the steps below to install Orchest or signup for the free-of-charg
    ./orchest install
 
    # Verify the installation.
-   ./orchest --help
+   ./orchest version --ext
 
    # Start Orchest.
    ./orchest start
@@ -89,7 +89,7 @@ You can expect the build to finish in roughly 15 minutes.
    ./orchest install
 
    # Verify the installation.
-   ./orchest --help
+   ./orchest version --ext
 
    # Start Orchest.
    ./orchest start

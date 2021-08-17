@@ -19,14 +19,7 @@ from typing import List, Optional, Set, Tuple
 
 import typer
 
-from app import spec, utils
-from app.config import (
-    ALLOWED_BUILD_FAILURES,
-    INTERNAL_ERR_MESSAGE,
-    ORCHEST_IMAGES,
-    ORCHEST_WEBSERVER_ADDRESS,
-    _on_start_images,
-)
+from app import config, spec, utils
 from app.debug import debug_dump, health_check
 from app.docker_wrapper import DockerWrapper, OrchestResourceManager
 
@@ -66,7 +59,23 @@ class OrchestApp:
         utils.echo(
             "Checking whether all containers are running the same version of Orchest."
         )
-        self.version(ext=True)
+        try:
+            self.version(ext=True)
+        except typer.Exit:
+            pass
+
+        pulled_images = self.resource_manager.get_images()
+        missing_images = set(req_images) - set(pulled_images)
+        if missing_images:
+            logger.info("Missing images:\n" + "\n".join(missing_images))
+            utils.echo("Installation was unsuccessful.")
+            utils.echo(
+                "Could not pull the specified set of images. Please"
+                " make sure you have enough available disk space."
+            )
+            raise typer.Exit(code=1)
+        else:
+            utils.echo("Installation was successful.")
 
     def update(self, mode=None, dev: bool = False):
         """Update Orchest.
@@ -139,7 +148,7 @@ class OrchestApp:
         # images are checked to make sure optional images, e.g. lang
         # specific images, are updated as well.
         pulled_images = self.resource_manager.get_images()
-        to_pull_images = set(ORCHEST_IMAGES["minimal"]) | set(pulled_images)
+        to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(pulled_images)
         logger.info("Updating images:\n" + "\n".join(to_pull_images))
         self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
 
@@ -159,16 +168,34 @@ class OrchestApp:
         # Delete Orchest dangling images.
         self.resource_manager.remove_orchest_dangling_imgs()
 
+        utils.echo(
+            "Checking whether all containers are running the same version of Orchest."
+        )
+        try:
+            version_exit_code = 0
+            self.version(ext=True)
+        except typer.Exit as e:
+            version_exit_code = e.exit_code
+
+        if version_exit_code == 2:
+            # Could be caused because we are currently in a release
+            # process causing different container versions to be up on
+            # DockerHub. Or the user did not have enough disk space
+            # available.
+            utils.echo("Update was unsuccessful.")
+            utils.echo(
+                "Orchest was unable to pull the latest version of its currently"
+                " pulled images. Please make sure you have enough disk space"
+                " available. Or if you have plently of disk space available,"
+                " try updating again later (~30 minutes should work)."
+            )
+            raise typer.Exit(code=1)
+
         if mode == "web":
             utils.echo("Update completed.")
         else:
             utils.echo("Update completed. To start Orchest again, run:")
             utils.echo("\torchest start")
-
-        utils.echo(
-            "Checking whether all containers are running the same version of Orchest."
-        )
-        self.version(ext=True)
 
     def start(self, container_config: dict):
         """Starts Orchest.
@@ -182,18 +209,21 @@ class OrchestApp:
         # Check that all images required for Orchest to be running are
         # in the system.
         pulled_images = self.resource_manager.get_images()
-        installation_req_images: Set[str] = set(ORCHEST_IMAGES["minimal"])
+        installation_req_images: Set[str] = set(config.ORCHEST_IMAGES["minimal"])
         missing_images = installation_req_images - set(pulled_images)
 
         if missing_images or not self.resource_manager.is_network_installed():
-            utils.echo("Before starting Orchest, make sure Orchest is installed. Run:")
+            utils.echo(
+                "Before starting Orchest, make sure Orchest is correctly installed."
+                " Run:"
+            )
             utils.echo("\torchest install")
             raise typer.Exit(code=1)
 
         # Check that all images required for Orchest to start are in the
         # container_config.
         start_req_images: Set[str] = reduce(
-            lambda x, y: x.union(y), _on_start_images, set()
+            lambda x, y: x.union(y), config._on_start_images, set()
         )
         present_imgs = set(c["Image"] for c in container_config.values())
         if present_imgs < start_req_images:  # proper subset
@@ -231,7 +261,7 @@ class OrchestApp:
 
         # Start the containers in the correct order, keeping in mind
         # dependencies between containers.
-        for i, to_start_imgs in enumerate(_on_start_images):
+        for i, to_start_imgs in enumerate(config._on_start_images):
             filter_ = {"Image": to_start_imgs}
             config_ = spec.filter_container_config(container_config, filter=filter_)
             stdouts = self.docker_client.run_containers(
@@ -361,7 +391,9 @@ class OrchestApp:
 
         # Minimal set of containers to be running for Orchest to be in
         # a valid state.
-        valid_set: Set[str] = reduce(lambda x, y: x.union(y), _on_start_images, set())
+        valid_set: Set[str] = reduce(
+            lambda x, y: x.union(y), config._on_start_images, set()
+        )
 
         if valid_set - set(running_containers_names):
             utils.echo("Orchest is running, but has reached an invalid state. Run:")
@@ -402,20 +434,38 @@ class OrchestApp:
 
         utils.echo("Getting versions of all containers...")
 
+        # Get container versions.
         stdouts = self.resource_manager.containers_version()
         stdout_values = set()
         for img, stdout in stdouts.items():
             stdout_values.add(stdout)
             utils.echo(f"{img:<44}: {stdout}")
 
-        # If not all versions are the same.
-        if len(stdout_values) > 1:
+        # Check whether all required images are present.
+        installation_req_images: Set[str] = set(
+            img
+            for img in config.ORCHEST_IMAGES["minimal"]
+            if img.startswith("orchest/")
+        )
+        missing_images = installation_req_images - set(stdouts.keys())
+
+        if missing_images:
+            logger.info("Missing images:\n" + "\n".join(missing_images))
+            utils.echo(
+                "Could not get version of all Orchest required images because some"
+                " are missing. Make sure Orchest is correctly installed:"
+            )
+            utils.echo("\torchest install")
+            raise typer.Exit(code=1)
+        elif len(stdout_values) > 1:
+            # If not all versions are the same.
             utils.echo(
                 "Not all containers are running on the same version of Orchest, which"
                 " can lead to the application crashing. You can fix this by running:",
             )
             utils.echo("\torchest update")
             utils.echo("This should get all containers on the same version again.")
+            raise typer.Exit(code=2)
         else:
             utils.echo(
                 "All containers are running on the same version"
@@ -482,7 +532,7 @@ class OrchestApp:
             raise typer.Exit(code=1)
 
         wait_msg_template = "[{endpoint}]: Could not reach Orchest."
-        base_url = f"{ORCHEST_WEBSERVER_ADDRESS}{{path}}"
+        base_url = f"{config.ORCHEST_WEBSERVER_ADDRESS}{{path}}"
 
         # Get project information.
         status_code, resp = utils.retry_func(
@@ -522,7 +572,7 @@ class OrchestApp:
         # Environments must be validated before POSTING the job draft,
         # because image locking happens the moment a job is created.
         repeat = True
-        allowed_build_failures = ALLOWED_BUILD_FAILURES
+        allowed_build_failures = config.ALLOWED_BUILD_FAILURES
         while repeat:
             try:
                 status_code, resp = utils.retry_func(
@@ -535,7 +585,7 @@ class OrchestApp:
                     method="POST",
                 )
             except RuntimeError:
-                utils.echo(INTERNAL_ERR_MESSAGE)
+                utils.echo(config.INTERNAL_ERR_MESSAGE)
                 raise typer.Exit(code=1)
             else:
                 if status_code != 201:
@@ -586,7 +636,7 @@ class OrchestApp:
                                 method="POST",
                             )
                         except RuntimeError:
-                            utils.echo(INTERNAL_ERR_MESSAGE)
+                            utils.echo(config.INTERNAL_ERR_MESSAGE)
                             raise typer.Exit(code=1)
 
                         if status_code != 200:
@@ -623,7 +673,7 @@ class OrchestApp:
                 method="POST",
             )
         except RuntimeError:
-            utils.echo(INTERNAL_ERR_MESSAGE)
+            utils.echo(config.INTERNAL_ERR_MESSAGE)
             raise typer.Exit(code=1)
         if status_code != 201:
             utils.echo(f"[jobs]: Unexpected status code: {status_code}.")
@@ -679,7 +729,7 @@ class OrchestApp:
                     url=base_url.format(path=f"/catch/api-proxy/api/jobs/{job_uuid}"),
                 )
             except RuntimeError:
-                utils.echo(INTERNAL_ERR_MESSAGE)
+                utils.echo(config.INTERNAL_ERR_MESSAGE)
                 raise typer.Exit(code=1)
             else:
                 if status_code != 200:
@@ -770,7 +820,7 @@ def get_required_images(language: Optional[str], gpu: bool = False) -> List[str]
         "python": ["orchest/base-kernel-py-gpu:latest"],
     }
 
-    required_images = ORCHEST_IMAGES["minimal"]
+    required_images = config.ORCHEST_IMAGES["minimal"]
 
     if language == "all":
         for lang, _ in language_images.items():
