@@ -17,7 +17,7 @@ from app import config, orchest, spec, utils
     ids=["completed", "none"],
 )
 @patch("app.docker_wrapper.OrchestResourceManager.network", "orchest-ctl-tests")
-def test_install(installed_images, expected_stdout, install_orchest, capsys):
+def test_install(installed_images, expected_stdout, install_orchest, capsys, request):
     required_images = ["A", "B"]
     orchest.get_required_images = MagicMock(return_value=required_images)
 
@@ -34,7 +34,11 @@ def test_install(installed_images, expected_stdout, install_orchest, capsys):
     app.version = MagicMock(return_value=None)
 
     # Install Orchest.
-    app.install(language="python", gpu=False)
+    if request.node.callspec.id == "none":
+        with pytest.raises(click.exceptions.Exit):
+            app.install(language="python", gpu=False)
+    else:
+        app.install(language="python", gpu=False)
 
     captured = capsys.readouterr()
     assert expected_stdout in captured.out
@@ -82,7 +86,7 @@ def test_status(
     app.resource_manager = resource_manager
     app._is_restarting = MagicMock(return_value=restarting)
     app._is_updating = MagicMock(return_value=updating)
-    monkeypatch.setattr(orchest, "_on_start_images", ["A", "B"])
+    monkeypatch.setattr(config, "_on_start_images", ["A", "B"])
 
     exit_code = 0
     try:
@@ -121,12 +125,14 @@ def test_status(
     ],
     ids=["regular", "extensive", "unmatching-versions"],
 )
-def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
+def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch, request):
     if not extensive:
         monkeypatch.setenv("ORCHEST_VERSION", "v0.1.6")
 
     resource_manager = orchest.OrchestResourceManager()
     resource_manager.get_images = MagicMock(return_value=["A", "B"])
+
+    monkeypatch.setattr(config, "ORCHEST_IMAGES", {"minimal": ["A", "B"]})
 
     docker_client = orchest.DockerWrapper()
     docker_client.run_containers = MagicMock(return_value=exec_stdout)
@@ -136,7 +142,11 @@ def test_version(extensive, exec_stdout, expected_stdout, capsys, monkeypatch):
     app = orchest.OrchestApp()
     app.resource_manager = resource_manager
 
-    app.version(ext=extensive)
+    if request.node.callspec.id == "unmatching-versions":
+        with pytest.raises(click.exceptions.Exit):
+            app.version(ext=extensive)
+    else:
+        app.version(ext=extensive)
 
     captured = capsys.readouterr()
     assert expected_stdout in captured.out
@@ -241,7 +251,7 @@ def test_stop(
         "expected_stdout",
     ),
     [
-        (None, None, None, ["A"], "make sure Orchest is installed"),
+        (None, None, None, ["A"], "make sure Orchest is correctly installed"),
         (["A"], None, None, ["A", "B"], "ValueError"),
         (["A", "B"], ["A", "B"], None, ["A", "B"], "Orchest is already running..."),
         (["A", "B"], ["A"], None, ["A", "B"], "Orchest seems to be partially running."),
@@ -302,8 +312,8 @@ def test_start(
     utils.wait_for_zero_exitcode = MagicMock(return_value=None)
 
     app = orchest.OrchestApp()
-    monkeypatch.setattr(orchest, "_on_start_images", [set("A"), set("B")])
-    monkeypatch.setattr(orchest, "ORCHEST_IMAGES", {"minimal": ["A", "B"]})
+    monkeypatch.setattr(config, "_on_start_images", [set("A"), set("B")])
+    monkeypatch.setattr(config, "ORCHEST_IMAGES", {"minimal": ["A", "B"]})
     resource_manager.docker_client = docker_client
     app.resource_manager = resource_manager
     app.docker_client = docker_client
