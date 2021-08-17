@@ -336,8 +336,8 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
         res.abort()
 
         # Necessary to avoid a race condition where a task is aborted
-        # but the image has already been built and the worker won't d
-        # any more "isAborted" checs.
+        # but the image has already been built and the worker won't do
+        # any more "isAborted" checks.
         filters = {
             "label": [
                 f"_orchest_env_build_task_uuid={environment_build_uuid}",
