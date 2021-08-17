@@ -67,6 +67,7 @@ class OrchestApp:
         pulled_images = self.resource_manager.get_images()
         missing_images = set(req_images) - set(pulled_images)
         if missing_images:
+            logger.info("Missing images:\n" + "\n".join(missing_images))
             utils.echo("Installation was unsuccessful.")
             utils.echo(
                 "Could not pull the specified set of images. Please"
@@ -183,10 +184,10 @@ class OrchestApp:
             # available.
             utils.echo("Update was unsuccessful.")
             utils.echo(
-                "Orchest was unable to pull the latest"
-                " version of its currently pulled images. Please make sure you"
-                " have enough disk space available. Otherwise you can try updating"
-                " again in about 30 minutes."
+                "Orchest was unable to pull the latest version of its currently"
+                " pulled images. Please make sure you have enough disk space"
+                " available. Or if you have plently of disk space available,"
+                " try updating again later (~30 minutes should work)."
             )
             raise typer.Exit(code=1)
 
@@ -449,7 +450,7 @@ class OrchestApp:
         missing_images = installation_req_images - set(stdouts.keys())
 
         if missing_images:
-            logger.info("Missing containers:\n" + "\n".join(missing_images))
+            logger.info("Missing images:\n" + "\n".join(missing_images))
             utils.echo(
                 "Could not get version of all Orchest required images because some"
                 " are missing. Make sure Orchest is correctly installed:"
