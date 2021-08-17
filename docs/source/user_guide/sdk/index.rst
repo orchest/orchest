@@ -16,3 +16,4 @@ Convenience wrapper to interact with Orchest. Through code the Orchest SDK, lets
    :caption: Languages
 
    python
+   R
