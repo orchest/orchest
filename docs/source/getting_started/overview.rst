@@ -33,6 +33,7 @@ Easily define your custom runtime environment
 Visually construct pipelines
 ----------------------------
 .. figure:: ../img/overview/visually-construct.png
+   :width: 800
    :align: center
 
 .. _edit with jupyterlab:
@@ -40,6 +41,7 @@ Visually construct pipelines
 Write code using JupyterLab
 ---------------------------
 .. figure:: ../img/overview/edit-with-jupyterlab.png
+   :width: 800
    :align: center
 
 .. _edit with vim:
@@ -55,6 +57,7 @@ Write code using any other editor of choice
 Run any subset of a pipeline
 ----------------------------
 .. figure:: ../img/overview/run-any-subset.png
+   :width: 800
    :align: center
 
 .. _skip cells:
@@ -62,6 +65,7 @@ Run any subset of a pipeline
 Skip certain cells when executing a notebook
 --------------------------------------------
 .. figure:: ../img/overview/skip-cells.png
+   :width: 700
    :align: center
 
    See: :ref:`Skipping notebook cells <skip notebook cells>`.

@@ -1,4 +1,4 @@
 sphinx
-sphinx_rtd_theme
+sphinx_press_theme
 myst-parser[sphinx]
 docutils==0.16

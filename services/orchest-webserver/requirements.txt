@@ -10,7 +10,7 @@ marshmallow-sqlalchemy==0.24.1
 Flask-Migrate==2.5.3
 flask-script==2.0.6
 requests==2.25.0
-APScheduler==3.6.3
+APScheduler==3.7.0
 nbformat==5.0.8
 docker>=4.3.0
 six>=1.13.0
