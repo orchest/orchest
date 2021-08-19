@@ -29,6 +29,8 @@ class Event(Enum):
     ALERT_SHOW = "alert show"
     BUILD_REQUEST = "build request"
     CONFIRM_SHOW = "confirm show"
+    CRONJOB_PAUSE = "cron-job pause"
+    CRONJOB_RESUME = "cron-job resume"
     ENVIRONMENT_BUILD_CANCEL = "environment-build cancel"
     ENVIRONMENT_BUILD_START = "environment-build start"
     HEARTBEAT_TRIGGER = "heartbeat trigger"

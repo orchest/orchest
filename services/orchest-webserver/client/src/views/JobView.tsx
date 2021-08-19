@@ -34,7 +34,7 @@ import JobsView from "@/views/JobsView";
 
 type TSharedStatus = Extract<
   TStatus,
-  "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED"
+  "PENDING" | "STARTED" | "PAUSED" | "SUCCESS" | "FAILURE" | "ABORTED"
 >;
 type TJobStatus = TStatus | "DRAFT";
 
@@ -67,7 +67,8 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   );
 
   const getJobStatusVariant = () => {
-    if (["STARTED", "SUCCESS", "ABORTED"].includes(status)) return status;
+    if (["STARTED", "PAUSED", "SUCCESS", "ABORTED"].includes(status))
+      return status;
 
     if (
       ["PENDING"].includes(status) &&
@@ -129,6 +130,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
           PENDING: "Some pipeline runs haven't completed yet",
           FAILURE: "All pipeline runs were unsuccessful",
           STARTED: "This job is running",
+          PAUSED: "This job is paused",
           SUCCESS: "All pipeline runs were successful",
           MIXED_PENDING: "Some pipeline runs haven't completed yet",
           MIXED_FAILURE: "Some pipeline runs were unsuccessful",
@@ -316,6 +318,51 @@ const JobView: React.FC<TViewProps> = (props) => {
       });
   };
 
+  const pauseCronJob = () => {
+    let pauseCronJobRequest = makeCancelable(
+      makeRequest(
+        "POST",
+        `/catch/api-proxy/api/jobs/cronjobs/pause/${state.job.uuid}`
+      ),
+      promiseManager
+    );
+    /** @ts-ignore */
+    pauseCronJobRequest.promise
+      .then(() => {
+        let job = state.job;
+        job.status = "PAUSED";
+        job.next_scheduled_time = undefined;
+
+        setState((prevState) => ({ ...prevState, job }));
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
+  const resumeCronJob = () => {
+    let pauseCronJobRequest = makeCancelable(
+      makeRequest(
+        "POST",
+        `/catch/api-proxy/api/jobs/cronjobs/resume/${state.job.uuid}`
+      ),
+      promiseManager
+    );
+    /** @ts-ignore */
+    pauseCronJobRequest.promise
+      .then((data: string) => {
+        let parsedData = JSON.parse(data);
+        let job = state.job;
+        job.status = "STARTED";
+        job.next_scheduled_time = parsedData.next_scheduled_time;
+
+        setState((prevState) => ({ ...prevState, job }));
+      })
+      .catch((error) => {
+        console.error(error);
+      });
+  };
+
   const generatedParametersToTableData = (jobGeneratedParameters) => {
     let rows = [];
 
@@ -483,6 +530,8 @@ const JobView: React.FC<TViewProps> = (props) => {
               details:
                 state.job.status === "ABORTED"
                   ? "Cancelled"
+                  : state.job.status === "PAUSED"
+                  ? "Paused"
                   : state.job.next_scheduled_time
                   ? formatServerDateTime(state.job.next_scheduled_time)
                   : formatServerDateTime(state.job.last_scheduled_time),
@@ -520,7 +569,7 @@ const JobView: React.FC<TViewProps> = (props) => {
           />
 
           {state.job.schedule !== null &&
-            ["STARTED", "PENDING"].includes(state.job.status) && (
+            ["STARTED", "PAUSED", "PENDING"].includes(state.job.status) && (
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 onClick={editJob.bind(this)}
@@ -529,7 +578,25 @@ const JobView: React.FC<TViewProps> = (props) => {
               />
             )}
 
-          {["STARTED", "PENDING"].includes(state.job.status) && (
+          {state.job.schedule !== null && state.job.status === "STARTED" && (
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              icon="pause"
+              label="Pause"
+              onClick={pauseCronJob.bind(this)}
+            />
+          )}
+
+          {state.job.schedule !== null && state.job.status === "PAUSED" && (
+            <MDCButtonReact
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              onClick={resumeCronJob.bind(this)}
+              icon="play_arrow"
+              label="Resume"
+            />
+          )}
+
+          {["STARTED", "PAUSED", "PENDING"].includes(state.job.status) && (
             <MDCButtonReact
               classNames={["mdc-button--raised"]}
               label="Cancel job"
