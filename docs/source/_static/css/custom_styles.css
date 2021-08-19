@@ -18,4 +18,11 @@
 .sidebar form.search input[type="text"],
 .vp-sidebar form.search input[type="text"] {
   padding: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sidebar form.search input[type="submit"],
+.vp-sidebar form.search input[type="submit"] {
+  margin-left: 1.5rem;
 }
