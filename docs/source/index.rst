@@ -3,7 +3,7 @@ Orchest
 
 .. tip::
    👉 Get started with the :ref:`quickstart <quickstart>`! Or if you like watching short informative
-   videos checkout our `knowledge base <https://www.orchest.io/knowledge-base>`_.
+   videos checkout our `video tutorials <https://www.orchest.io/video-tutorials>`_.
 
 Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
 your models on the cloud without any knowledge of cloud infrastructure.
