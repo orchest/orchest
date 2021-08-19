@@ -1,17 +1,21 @@
-.sidebar .searchbox {
+.sidebar .searchbox,
+.vt-sidebar .searchbox {
   padding: 1.5rem !important;
 }
 
-.sidebar .searchbox .caption-text {
+.sidebar .searchbox .caption-text,
+.vt-sidebar .searchbox .caption-text {
   margin-bottom: 1rem;
   display: block;
 }
 
-.sidebar form.search {
+.sidebar form.search,
+.vt-sidebar form.search {
   display: flex;
   justify-content: space-between;
 }
 
-.sidebar form.search input[type="text"] {
+.sidebar form.search input[type="text"],
+.vt-sidebar form.search input[type="text"] {
   padding: 4px;
 }
