@@ -1,0 +1,17 @@
+.sidebar .searchbox {
+  padding: 1.5rem !important;
+}
+
+.sidebar .searchbox .caption-text {
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.sidebar form.search {
+  display: flex;
+  justify-content: space-between;
+}
+
+.sidebar form.search input[type="text"] {
+  padding: 4px;
+}
