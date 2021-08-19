@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../../orchest-sdk/python"))
 # -- Project information ----------------------------------------------
 
 project = "Orchest"
-copyright = "2020, Orchest Software B.V."
+copyright = "2021, Orchest Software B.V."
 author = "Rick Lamers, Yannick Perrenet"
 
 # The full version, including alpha/beta/rc tags
