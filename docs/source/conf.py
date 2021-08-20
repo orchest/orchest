@@ -71,6 +71,8 @@ html_theme_options = {
         ("Github", "https://github.com/orchest/orchest"),
     ]
 }
+html_sidebars = {"**": ["searchbox.html", "util/sidetoc.html"]}
+
 
 # Add any paths that contain custom static files (such as style sheets)
 # here, relative to this directory. They are copied after the builtin
