@@ -1,3 +1,6 @@
+from typing import List
+
+
 class ActiveSession(Exception):
     """Some operation could not be done because of an active session."""
 
@@ -25,3 +28,20 @@ class OutOfProjectError(Exception):
     """Attempting to do an operation outside of a project directory."""
 
     pass
+
+
+class ProjectDoesNotExist(Exception):
+    pass
+
+
+class PipelineDoesNotExist(Exception):
+    pass
+
+
+class JobDoesNotExist(Exception):
+    pass
+
+
+class EnvironmentsDoNotExist(Exception):
+    def __init__(self, environment_uuids=List[str]):
+        self.environment_uuids = environment_uuids

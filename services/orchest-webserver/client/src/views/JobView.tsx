@@ -1,6 +1,11 @@
 import * as React from "react";
 import { PieChart } from "react-minimal-pie-chart";
-import { Box, Flex, Text } from "@orchest/design-system";
+import {
+  Box,
+  DIALOG_ANIMATION_DURATION,
+  Flex,
+  Text,
+} from "@orchest/design-system";
 import cronstrue from "cronstrue";
 import {
   MDCButtonReact,
@@ -17,6 +22,7 @@ import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { commaSeparatedString } from "@/utils/text";
 import {
+  checkGate,
   formatServerDateTime,
   getPipelineJSONEndpoint,
   envVariablesDictToArray,
@@ -389,6 +395,64 @@ const JobView: React.FC<TViewProps> = (props) => {
     return detailElements;
   };
 
+  const onJobDuplicate = () => {
+    if (state.job === undefined) {
+      return;
+    }
+    checkGate(state.job.project_uuid)
+      .then(() => {
+        let postJobPromise = makeCancelable(
+          makeRequest("POST", "/catch/api-proxy/api/jobs/duplicate", {
+            type: "json",
+            content: {
+              job_uuid: state.job.uuid,
+            },
+          }),
+          promiseManager
+        );
+
+        postJobPromise.promise
+          .then((response) => {
+            let job = JSON.parse(response);
+
+            orchest.loadView(EditJobView, {
+              queryArgs: {
+                job_uuid: job.uuid,
+              },
+            });
+          })
+          .catch((response) => {
+            if (!response.isCanceled) {
+              try {
+                let result = JSON.parse(response.body);
+                setTimeout(() => {
+                  orchest.alert(
+                    "Error",
+                    "Failed to create job. " + result.message
+                  );
+                });
+              } catch (error) {
+                console.log(error);
+              }
+            }
+          });
+      })
+      .catch((result) => {
+        if (result.reason === "gate-failed") {
+          setTimeout(() => {
+            orchest.requestBuild(
+              state.job.project_uuid,
+              result.data,
+              "DuplicateJob",
+              () => {
+                onJobDuplicate();
+              }
+            );
+          }, DIALOG_ANIMATION_DURATION.OUT);
+        }
+      });
+  };
+
   let rootView;
 
   if (!state.pipeline || !state.job) {
@@ -448,6 +512,13 @@ const JobView: React.FC<TViewProps> = (props) => {
             icon="arrow_back"
             onClick={returnToJobs.bind(this)}
           />
+          <span className="float-right">
+            <MDCButtonReact
+              label="Duplicate job"
+              icon="file_copy"
+              onClick={onJobDuplicate.bind(this)}
+            />
+          </span>
         </div>
 
         <DescriptionList

@@ -597,7 +597,9 @@ class CreateJob(TwoPhaseFunction):
             "parameters": job_spec["parameters"],
             "env_variables": get_proj_pip_env_variables(
                 job_spec["project_uuid"], job_spec["pipeline_uuid"]
-            ),
+            )
+            if "env_variables" not in job_spec
+            else job_spec["env_variables"],
             # NOTE: the definition of a service is currently
             # persisted to disk and considered to be versioned,
             # meaning that nothing in there is considered to be

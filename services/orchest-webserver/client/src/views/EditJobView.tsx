@@ -118,7 +118,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
         let strategyJSON;
 
-        if (state.job.status === "DRAFT") {
+        // Do not generate another strategy_json if it has been defined
+        // already.
+        if (
+          state.job.status === "DRAFT" &&
+          Object.keys(state.job.strategy_json).length === 0
+        ) {
           strategyJSON = generateStrategyJson(pipeline);
         } else {
           strategyJSON = state.job.strategy_json;
@@ -130,7 +135,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
           selectedIndices,
         ] = generateWithStrategy(strategyJSON);
 
-        if (state.job.status !== "DRAFT") {
+        // Account for the fact that a job might have a list of
+        // parameters already defined, i.e. when editing a non draft
+        // job or when duplicating a job.
+        if (state.job.parameters.length > 0) {
           // Determine selection based on strategyJSON
           selectedIndices = parseParameters(
             state.job.parameters,
