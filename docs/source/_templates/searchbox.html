@@ -1,32 +1,10 @@
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css"
-/>
-
 <div id="searchbox" class="searchbox" role="search">
   <div class="caption">
     <span class="caption-text">{{ _('Quick search') }}</span>
     <div class="searchformwrapper">
       <form class="search" action="{{ pathto('search') }}" method="get">
-        <input id="doc_search" type="text" name="q" />
-        <input type="submit" value="{{ _('Search') }}" />
-        <input type="hidden" name="check_keywords" value="yes" />
-        <input type="hidden" name="area" value="default" />
+        <input type="text" id="doc_search" name="q" />
       </form>
     </div>
   </div>
 </div>
-
-<script
-  type="text/javascript"
-  src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js"
-></script>
-<script type="text/javascript">
-  docsearch({
-    apiKey: "485712a32cd1f03c2fc8eade49adbb5d",
-    indexName: "orchest",
-    inputSelector: "#doc_search",
-    algoliaOptions: { facetFilters: ["lang:en"] },
-    debug: false, // Set debug to true if you want to inspect the dropdown
-  });
-</script>
