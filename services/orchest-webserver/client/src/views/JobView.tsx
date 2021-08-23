@@ -439,16 +439,14 @@ const JobView: React.FC<TViewProps> = (props) => {
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
-          setTimeout(() => {
-            orchest.requestBuild(
-              state.job.project_uuid,
-              result.data,
-              "DuplicateJob",
-              () => {
-                onJobDuplicate();
-              }
-            );
-          }, DIALOG_ANIMATION_DURATION.OUT);
+          orchest.requestBuild(
+            state.job.project_uuid,
+            result.data,
+            "DuplicateJob",
+            () => {
+              onJobDuplicate();
+            }
+          );
         }
       });
   };
