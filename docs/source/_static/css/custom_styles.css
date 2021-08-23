@@ -9,20 +9,20 @@
   display: block;
 }
 
-.sidebar form.search,
-.vp-sidebar form.search {
-  display: flex;
-  justify-content: space-between;
-}
-
 .sidebar form.search input[type="text"],
 .vp-sidebar form.search input[type="text"] {
   padding: 4px;
-  flex: 1;
   min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.sidebar form.search input[type="submit"],
-.vp-sidebar form.search input[type="submit"] {
-  margin-left: 1.5rem;
+#searchbox {
+  width: 100%;
+}
+
+/* Algolia search overlay fix */
+.ds-dropdown-menu {
+  position: fixed !important;
+  top: auto !important;
 }
