@@ -1,8 +1,8 @@
 R
 =
 
-Orchest currently does not support a native **R** SDK. You can make use of the `reticulate
-<https://rstudio.github.io/reticulate/>`_ package to interface the Python SDK. An example project is
+The Orchest SDK in **R** works through the `reticulate
+<https://rstudio.github.io/reticulate/>`_ package. An example project is
 provided `here <https://github.com/orchest-examples/orchest-pipeline-r-python-mix>`_.
 
 Using ``reticulate`` to interface the Orchest Python SDK
