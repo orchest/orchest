@@ -550,6 +550,11 @@ p > i.material-icons.float-left {
   }
 }
 
+.largeText {
+  font-size: var(--fontSizes-xl);
+  line-height: var(--lineHeights-xl);
+}
+
 .mdc-dialog .mdc-dialog__title {
   font-size: var(--fontSizes-xl);
   line-height: var(--lineHeights-xl);

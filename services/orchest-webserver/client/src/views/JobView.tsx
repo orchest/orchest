@@ -512,13 +512,6 @@ const JobView: React.FC<TViewProps> = (props) => {
             icon="arrow_back"
             onClick={returnToJobs.bind(this)}
           />
-          <span className="float-right">
-            <MDCButtonReact
-              label="Duplicate job"
-              icon="file_copy"
-              onClick={onJobDuplicate.bind(this)}
-            />
-          </span>
         </div>
 
         <DescriptionList
@@ -588,6 +581,12 @@ const JobView: React.FC<TViewProps> = (props) => {
             label="Refresh"
             icon="refresh"
             onClick={reload.bind(this)}
+          />
+
+          <MDCButtonReact
+            label="Duplicate job"
+            icon="file_copy"
+            onClick={onJobDuplicate.bind(this)}
           />
 
           {state.job.schedule !== null &&
