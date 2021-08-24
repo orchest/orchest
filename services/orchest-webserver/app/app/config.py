@@ -93,6 +93,80 @@ class Config:
 
     RESOURCE_DIR = os.path.join(dir_path, "res")
 
+    LOGGING_CONFIG = {
+        "version": 1,
+        "formatters": {
+            "verbose": {
+                "format": (
+                    "%(levelname)s:%(name)s:%(filename)s - [%(asctime)s] - %(message)s"
+                ),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+            "minimal": {
+                "format": ("%(levelname)s:%(name)s:%(filename)s - %(message)s"),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "verbose",
+            },
+            "console-minimal": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "minimal",
+            },
+            "webserver-file-log": {
+                "level": "INFO",
+                "formatter": "verbose",
+                "class": "logging.FileHandler",
+                "filename": _config.WEBSERVER_LOGS,
+                "mode": "a",
+            },
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+        },
+        "loggers": {
+            # NOTE: this is the name of the Flask app, since we use
+            # ``__name__``. Using ``__name__`` is required for the app
+            # to function correctly. See:
+            # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
+            __name__: {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+            "engineio": {
+                "handlers": ["console"],
+                "level": "ERROR",
+            },
+            "alembic": {
+                "handlers": ["console"],
+                "level": "WARNING",
+            },
+            "werkzeug": {
+                # NOTE: Werkzeug automatically creates a handler at the
+                # level of its logger if none is defined.
+                "level": "INFO",
+                "handlers": ["console-minimal"],
+            },
+            "gunicorn": {
+                "handlers": ["webserver-file-log"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "propagate": False,
+            },
+            "orchest-lib": {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+        },
+    }
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -102,6 +176,75 @@ class DevelopmentConfig(Config):
 class TestingConfig(Config):
     # This config is used by the tests.
     TESTING = True
+    TELEMETRY_DISABLED = True
+
+    # No file logging.
+    LOGGING_CONFIG = {
+        "version": 1,
+        "formatters": {
+            "verbose": {
+                "format": (
+                    "%(levelname)s:%(name)s:%(filename)s - [%(asctime)s] - %(message)s"
+                ),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+            "minimal": {
+                "format": ("%(levelname)s:%(name)s:%(filename)s - %(message)s"),
+                "datefmt": "%d/%b/%Y %H:%M:%S",
+            },
+        },
+        "handlers": {
+            "console": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "verbose",
+            },
+            "console-minimal": {
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "class": "logging.StreamHandler",
+                "formatter": "minimal",
+            },
+        },
+        "root": {
+            "handlers": ["console"],
+            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+        },
+        "loggers": {
+            # NOTE: this is the name of the Flask app, since we use
+            # ``__name__``. Using ``__name__`` is required for the app
+            # to function correctly. See:
+            # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
+            __name__: {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+            "engineio": {
+                "handlers": ["console"],
+                "level": "ERROR",
+            },
+            "alembic": {
+                "handlers": ["console"],
+                "level": "WARNING",
+            },
+            "werkzeug": {
+                # NOTE: Werkzeug automatically creates a handler at the
+                # level of its logger if none is defined.
+                "level": "INFO",
+                "handlers": ["console-minimal"],
+            },
+            "gunicorn": {
+                "handlers": ["console"],
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+                "propagate": False,
+            },
+            "orchest-lib": {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
+        },
+    }
 
 
 # ---- CONFIGURATIONS ----
