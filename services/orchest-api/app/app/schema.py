@@ -444,7 +444,7 @@ job = Model(
         "status": fields.String(
             required=True,
             description="Status of the job.",
-            enum=["DRAFT", "PENDING", "STARTED", "SUCCESS", "ABORTED"],
+            enum=["DRAFT", "PENDING", "STARTED", "PAUSED", "SUCCESS", "ABORTED"],
         ),
         "created_time": fields.String(
             required=True, description="Time at which the job was created"

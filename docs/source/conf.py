@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../../orchest-sdk/python"))
 # -- Project information ----------------------------------------------
 
 project = "Orchest"
-copyright = "2020, Orchest Software B.V."
+copyright = "2021, Orchest Software B.V."
 author = "Rick Lamers, Yannick Perrenet"
 
 # The full version, including alpha/beta/rc tags
@@ -71,10 +71,15 @@ html_theme_options = {
         ("Github", "https://github.com/orchest/orchest"),
     ]
 }
+html_sidebars = {"**": ["searchbox.html", "util/sidetoc.html"]}
+
 
 # Add any paths that contain custom static files (such as style sheets)
 # here, relative to this directory. They are copied after the builtin
 # static files, so a file named "default.css" will overwrite the
 # builtin "default.css".
 html_static_path = ["_static"]
-html_static_path = []
+
+html_css_files = [
+    "css/custom_styles.css",
+]

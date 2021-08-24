@@ -3,7 +3,7 @@ from typing import List, Set
 # NOTE: "orchest/orchest-ctl:latest" is excluded on purpose, since the
 # orchest-ctl is not managing itself. Instead the top-level `orchest`
 # shell script manages its updates.
-_minimal_orchest_images = [
+_minimal_orchest_images: List[str] = [
     "orchest/jupyter-enterprise-gateway:latest",
     "orchest/jupyter-server:latest",
     "orchest/memory-server:latest",

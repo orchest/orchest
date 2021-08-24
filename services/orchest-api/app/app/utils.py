@@ -464,7 +464,7 @@ def jobs_using_environment(project_uuid: str, env_uuid: str):
     return models.Job.query.filter(
         models.Job.project_uuid == project_uuid,
         models.Job.image_mappings.any(orchest_environment_uuid=env_uuid),
-        models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
     ).all()
 
 
@@ -505,7 +505,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
 
     jobs = models.Job.query.filter(
         models.Job.image_mappings.any(docker_img_id=img_id),
-        models.Job.status.in_(["DRAFT", "PENDING", "STARTED"]),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
     ).all()
 
     return bool(int_runs) or bool(int_sessions) or bool(jobs)
