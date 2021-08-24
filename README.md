@@ -14,7 +14,7 @@
 ## Hello, world! 👋
 
 Orchest is a browser based IDE for Data Science. It integrates your favorite Data Science tools out
-of the box, so you don’t have to. The application is easy to use and can run on your laptop as well
+of the box, so you don’t have to. It's is easy to use and can run on your laptop as well
 as on a large scale cloud cluster.
 
 <p align="center">
