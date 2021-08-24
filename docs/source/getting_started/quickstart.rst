@@ -4,8 +4,8 @@ Quickstart
 ==========
 
 .. tip::
-   Have a look at our `YouTube video <https://www.youtube.com/watch?v=j0nySMu1-DQ>`_ for a quick
-   walkthrough of Orchest! 💪
+   💡 Building data pipelines in Orchest is really that easy! Check out our `introductory video
+   <https://vimeo.com/589879082>`_.
 
 This quickstart will follow an example explaining how to build data science pipelines in Orchest and
 touches upon some core principles that will be helpful when you get to building your own pipelines.

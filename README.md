@@ -5,22 +5,21 @@
 </p>
 
 <p align="center">
+<a href=https://orchest.io><img src="https://img.shields.io/badge/Website-violet?style=flat&logo=webflow&labelColor=5c5c5c"></a>
 <a href=https://orchest.readthedocs.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
 <a href=https://www.orchest.io/video-tutorials><img src="https://img.shields.io/badge/Video tutorials-blue?style=flat&logo=airplayvideo&labelColor=5c5c5c"></a>
 <a href=https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 <a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-blue?style=flat&logo=slack&labelColor=5c5c5c"></a>
 </p>
 
-## Hello, world! 👋
+## Build data pipelines, the easy way 🙌
 
-Orchest is a browser based IDE for Data Science. It integrates your favorite Data Science tools out
-of the box, so you don’t have to. It's is easy to use and can run on your laptop as well
-as on a large scale cloud cluster.
+No frameworks. No YAML. Just write Python and R code in Notebooks.
 
 <p align="center">
-<a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ"><img src="https://user-images.githubusercontent.com/1309307/111806797-a2c10300-88d2-11eb-9f21-bf1544f95b34.gif" width="868px" alt="orchest-0.3.0-demo" /></a/></p>
+<a target="_blank" href="https://vimeo.com/589879082"><img src="https://user-images.githubusercontent.com/1309307/111806797-a2c10300-88d2-11eb-9f21-bf1544f95b34.gif" width="868px" alt="orchest-0.3.0-demo" /></a/></p>
 <p align="center">
-  <i>A preview of creating pipelines in Orchest. Watch the <a target="_blank" href="https://www.youtube.com/watch?v=j0nySMu1-DQ">full video</a> to learn more</a></i>.
+  <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
  </p>
 
 Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
@@ -32,10 +31,10 @@ Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
 > For a complete list of Orchest's features, check out the
 > [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
 
-- Visually construct pipelines.
-- Run any subset of a pipeline directly or on a cron-like schedule.
-- Parametrize your data science pipelines to try out different modeling ideas.
-- Easily define your custom runtime environment that runs on any machine.
+- **Visually construct** pipelines through our user-friendly UI.
+- **Code in Notebooks**.
+- Run any subset of a pipeline directly or on a **cron-like schedule**.
+- Easily define your dependencies to run on **any machine**.
 
 #### Who should use Orchest?
 
@@ -79,8 +78,8 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 Now that you have installed Orchest, get started with our
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
 check out [pipelines](https://github.com/orchest/awesome-orchest-pipelines) made by your fellow
-users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials) videos
-explaining and showing some of Orchest's core concepts.
+users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
+explaining some of Orchest's core concepts.
 
 ## License
 
@@ -101,8 +100,6 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 Contributions are more than welcome! Please see our
 [contributor guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
 for more details.
-
-Not sure where to start? [Book a free, no-pressure pairing session](mailto:rick@orchest.io?subject=Pairing%20session&body=I'd%20like%20to%20do%20a%20pairing%20session!) with one of our core contributors.
 
 ## Contributors
 
