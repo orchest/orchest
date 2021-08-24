@@ -488,6 +488,32 @@ def register_orchest_api_views(app, db):
         analytics.send_event(app, analytics.Event.JOB_CANCEL, {"job_uuid": job_uuid})
         return resp.content, resp.status_code, resp.headers.items()
 
+    @app.route("/catch/api-proxy/api/jobs/cronjobs/pause/<job_uuid>", methods=["POST"])
+    def catch_api_proxy_job_cronjobs_pause(job_uuid):
+
+        resp = requests.post(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/jobs/cronjobs/pause/%s" % (job_uuid),
+        )
+
+        analytics.send_event(app, analytics.Event.CRONJOB_PAUSE, {"job_uuid": job_uuid})
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/jobs/cronjobs/resume/<job_uuid>", methods=["POST"])
+    def catch_api_proxy_job_cronjobs_resume(job_uuid):
+
+        resp = requests.post(
+            "http://"
+            + app.config["ORCHEST_API_ADDRESS"]
+            + "/api/jobs/cronjobs/resume/%s" % (job_uuid),
+        )
+
+        analytics.send_event(
+            app, analytics.Event.CRONJOB_RESUME, {"job_uuid": job_uuid}
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/catch/api-proxy/api/jobs/<job_uuid>", methods=["PUT"])
     def catch_api_proxy_job_put(job_uuid):
 

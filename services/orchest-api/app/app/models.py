@@ -350,17 +350,19 @@ class Job(BaseModel):
         cascade="all, delete",
     )
 
-    # The status of a job can be DRAFT, PENDING, STARTED, SUCCESS,
-    # ABORTED, FAILURE. Jobs start as DRAFT, this indicates that the job
-    # has been created but that has not been started by the user. Once a
-    # job is started by the user, what happens depends on the type of
-    # job. One time jobs become PENDING, and become STARTED once they
-    # are run by the scheduler and their pipeline runs are added to the
-    # queue. Once they are completed, their status will be SUCCESS, if
-    # they are aborted, their status will be set to ABORTED. Recurring
-    # jobs, characterized by having a schedule, become STARTED, and can
-    # only move to the ABORTED state in case they get cancelled, which
-    # implies that the job will not be scheduled anymore. One time jobs
+    # The status of a job can be DRAFT, PENDING, STARTED, PAUSED
+    # SUCCESS, ABORTED, FAILURE. Only recurring jobs can be PAUSED. Jobs
+    # start as DRAFT, this indicates that the job has been created but
+    # that has not been started by the user. Once a job is started by
+    # the user, what happens depends on the type of job. One time jobs
+    # become PENDING, and become STARTED once they are run by the
+    # scheduler and their pipeline runs are added to the queue. Once
+    # they are completed, their status will be SUCCESS, if they are
+    # aborted, their status will be set to ABORTED. Recurring jobs,
+    # characterized by having a schedule, become STARTED, and can only
+    # move to the ABORTED state in case they get cancelled, which
+    # implies that the job will not be scheduled anymore. Recurring jobs
+    # can be PAUSED to temporarily stop them from running. One time jobs
     # which fail to run (the related pipeline runs scheduling fails) are
     # set to FAILURE, this is not related to a failure at the pipeline
     # run level.
