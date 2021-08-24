@@ -63,6 +63,7 @@ if [ ${#SERVICES[@]} -eq 0 ]; then
         "orchest-api"
         "orchest-sdk"
         "orchest-ctl"
+        "orchest-webserver"
         "base-images-runnable"
     )
 fi
@@ -161,6 +162,17 @@ do
         TEST_DIR=$DIR/../services/orchest-ctl
         REQ_DIR=$TEST_DIR
         REQ_FILE=$REQ_DIR/requirements-dev.txt
+    fi
+    if [ $SERVICE == "orchest-webserver" ]; then
+
+        if [[ -z "${ORCHEST_TEST_DATABASE_HOST}" ]]; then
+            echo "Setting up local test database..."
+            setup_local_test_db
+        fi
+
+        TEST_DIR=$DIR/../services/orchest-webserver/app
+        REQ_DIR=$TEST_DIR/..
+        REQ_FILE=$REQ_DIR/requirements.txt
     fi
     if [ $SERVICE == "base-images-runnable" ]; then
         TEST_DIR=$DIR/../services/base-images/runnable-shared/runner
