@@ -20,7 +20,7 @@ from app.utils import (
 
 
 def create_job_spec(config) -> dict:
-    """Returns a job spec given the provided configuration.
+    """Returns a job spec based on the provided configuration.
 
     Args: Initial configuration with which the job spec should be built.
         project_uuid, pipeline_uuid, pipeline_run_spec, pipeline_name,
