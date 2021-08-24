@@ -6,6 +6,7 @@ import {
   MDCButtonReact,
   MDCLinearProgressReact,
   MDCRadioReact,
+  MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
   makeRequest,
@@ -248,6 +249,13 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     }));
   };
 
+  const handleJobNameChange = (name) => {
+    setState((prevState) => ({
+      ...prevState,
+      job: { ...prevState.job, name: name },
+    }));
+  };
+
   const generateWithStrategy = (strategyJSON) => {
     // flatten and JSONify strategyJSON to prep data structure for algo
     let flatParameters = {};
@@ -482,6 +490,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         makeRequest("PUT", `/catch/api-proxy/api/jobs/${state.job.uuid}`, {
           type: "json",
           content: {
+            name: state.job.name,
             cron_schedule: cronSchedule,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
@@ -690,18 +699,22 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   return (
     <Layout>
       <div className="view-page job-view">
+        <h2>Edit job</h2>
         {state.job && state.pipeline ? (
           <React.Fragment>
-            <DescriptionList
-              gap="5"
-              columnGap="10"
-              columns={{ initial: 1, "@lg": 2 }}
-              css={{ marginBottom: "$5" }}
-              items={[
-                { term: "Job", details: state.job.name },
-                { term: "pipeline", details: state.pipeline.name },
-              ]}
-            />
+            <div className="columns">
+              <div className="column">
+                <MDCTextFieldReact
+                  label="Job name"
+                  value={state.job.name}
+                  onChange={handleJobNameChange}
+                />
+              </div>
+              <div className="column">
+                <p>Pipeline</p>
+                <span className="largeText">{state.pipeline.name}</span>
+              </div>
+            </div>
 
             <MDCTabBarReact
               selectedIndex={state.selectedTabIndex}

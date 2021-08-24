@@ -115,7 +115,7 @@ def duplicate_job_spec(job_uuid: str) -> dict:
     parent_job = resp.json()
     job_spec = {}
     job_spec["draft"] = True
-    job_spec["name"] = parent_job["name"]
+    job_spec["name"] = "Duplicate of " + parent_job["name"]
     job_spec["cron_schedule"] = parent_job["schedule"]
     job_spec["project_uuid"] = parent_job["project_uuid"]
     job_spec["pipeline_uuid"] = parent_job["pipeline_uuid"]

@@ -486,16 +486,14 @@ const JobView: React.FC<TViewProps> = (props) => {
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
-          setTimeout(() => {
-            orchest.requestBuild(
-              state.job.project_uuid,
-              result.data,
-              "DuplicateJob",
-              () => {
-                onJobDuplicate();
-              }
-            );
-          }, DIALOG_ANIMATION_DURATION.OUT);
+          orchest.requestBuild(
+            state.job.project_uuid,
+            result.data,
+            "DuplicateJob",
+            () => {
+              onJobDuplicate();
+            }
+          );
         }
       });
   };
@@ -559,13 +557,6 @@ const JobView: React.FC<TViewProps> = (props) => {
             icon="arrow_back"
             onClick={returnToJobs.bind(this)}
           />
-          <span className="float-right">
-            <MDCButtonReact
-              label="Duplicate job"
-              icon="file_copy"
-              onClick={onJobDuplicate.bind(this)}
-            />
-          </span>
         </div>
 
         <DescriptionList
@@ -637,6 +628,12 @@ const JobView: React.FC<TViewProps> = (props) => {
             label="Refresh"
             icon="refresh"
             onClick={reload.bind(this)}
+          />
+
+          <MDCButtonReact
+            label="Duplicate job"
+            icon="file_copy"
+            onClick={onJobDuplicate.bind(this)}
           />
 
           {state.job.schedule !== null &&
