@@ -23,9 +23,7 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        # Run copies of the current job in parallel.
-        browser: [chrome]
-        # See link if you plan to increase parallelism.
+        # For parallelism. See the link if you plan to increase it.
         # https://docs.cypress.io/guides/guides/parallelization#Run-completion-delay
         instance: [1]
 
@@ -64,8 +62,8 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/145.
       - name: "Run tests"
         run: |
-          umask 002 && pnpm run cy:run -- --record --parallel \
-          --browser ${{ matrix.browser }} --group "UI - ${{ matrix.browser }}"
+          umask 002 && scripts/run_integration_tests.sh -a -- --record \
+          --parallel --group "Integration tests"
         env:
           CYPRESS_PROJECT_ID: ${{ secrets.CYPRESS_PROJECT_ID }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
