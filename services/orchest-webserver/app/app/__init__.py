@@ -25,8 +25,7 @@ from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import _proxy, is_werkzeug_parent
-from app import analytics
-from app.config import CONFIG_CLASS
+from app import analytics, config
 from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
@@ -53,7 +52,7 @@ def create_app_managed():
 
 def create_app():
     app = Flask(__name__)
-    app.config.from_object(CONFIG_CLASS)
+    app.config.from_object(config.CONFIG_CLASS)
 
     init_logging()
 
@@ -199,82 +198,7 @@ def create_app():
 
 
 def init_logging():
-
-    logging_config = {
-        "version": 1,
-        "formatters": {
-            "verbose": {
-                "format": (
-                    "%(levelname)s:%(name)s:%(filename)s - [%(asctime)s] - %(message)s"
-                ),
-                "datefmt": "%d/%b/%Y %H:%M:%S",
-            },
-            "minimal": {
-                "format": ("%(levelname)s:%(name)s:%(filename)s - %(message)s"),
-                "datefmt": "%d/%b/%Y %H:%M:%S",
-            },
-        },
-        "handlers": {
-            "console": {
-                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
-                "class": "logging.StreamHandler",
-                "formatter": "verbose",
-            },
-            "console-minimal": {
-                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
-                "class": "logging.StreamHandler",
-                "formatter": "minimal",
-            },
-            "webserver-file-log": {
-                "level": "INFO",
-                "formatter": "verbose",
-                "class": "logging.FileHandler",
-                "filename": _config.WEBSERVER_LOGS,
-                "mode": "a",
-            },
-        },
-        "root": {
-            "handlers": ["console"],
-            "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
-        },
-        "loggers": {
-            # NOTE: this is the name of the Flask app, since we use
-            # ``__name__``. Using ``__name__`` is required for the app
-            # to function correctly. See:
-            # https://blog.miguelgrinberg.com/post/why-do-we-pass-name-to-the-flask-class
-            __name__: {
-                "handlers": ["console"],
-                "propagate": False,
-                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
-            },
-            "engineio": {
-                "handlers": ["console"],
-                "level": "ERROR",
-            },
-            "alembic": {
-                "handlers": ["console"],
-                "level": "WARNING",
-            },
-            "werkzeug": {
-                # NOTE: Werkzeug automatically creates a handler at the
-                # level of its logger if none is defined.
-                "level": "INFO",
-                "handlers": ["console-minimal"],
-            },
-            "gunicorn": {
-                "handlers": ["webserver-file-log"],
-                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
-                "propagate": False,
-            },
-            "orchest-lib": {
-                "handlers": ["console"],
-                "propagate": False,
-                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
-            },
-        },
-    }
-
-    dictConfig(logging_config)
+    dictConfig(config.CONFIG_CLASS.LOGGING_CONFIG)
 
 
 def register_teardown_request(app):

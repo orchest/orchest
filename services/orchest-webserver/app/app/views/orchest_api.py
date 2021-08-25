@@ -1,14 +1,11 @@
-import uuid
-
 import requests
 from flask import current_app, jsonify, request
 
-from app import analytics
+from app import analytics, error
+from app.core import jobs
 from app.models import Pipeline, Project
 from app.utils import (
-    create_job_directory,
     get_environments,
-    get_environments_from_pipeline_json,
     get_pipeline_json,
     get_project_directory,
     get_project_snapshot_size,
@@ -175,75 +172,101 @@ def register_orchest_api_views(app, db):
         )
         return resp.content, resp.status_code, resp.headers.items()
 
+    environments_missing_msg = (
+        "The pipeline definition references environments "
+        "that do not exist in the project. "
+        "The following environments do not exist:"
+        " {missing_environment_uuids}.\n\n Please make sure all"
+        " pipeline steps are assigned an environment that exists"
+        " in the project."
+    )
+
     @app.route("/catch/api-proxy/api/jobs/", methods=["POST"])
     def catch_api_proxy_jobs_post():
 
-        json_obj = request.json
-
-        pipeline_path = pipeline_uuid_to_path(
-            json_obj["pipeline_uuid"], json_obj["project_uuid"]
-        )
-        json_obj["pipeline_run_spec"]["run_config"] = {
-            "host_user_dir": app.config["HOST_USER_DIR"],
-            "project_dir": get_project_directory(
-                json_obj["project_uuid"], host_path=True
-            ),
-            "pipeline_path": pipeline_path,
-        }
-
-        json_obj["pipeline_definition"] = get_pipeline_json(
-            json_obj["pipeline_uuid"], json_obj["project_uuid"]
-        )
-
-        # Validate whether the pipeline contains environments
-        # that do not exist in the project.
-        project_environments = get_environments(json_obj["project_uuid"])
-        project_environment_uuids = set(
-            [environment.uuid for environment in project_environments]
-        )
-        pipeline_environment_uuids = get_environments_from_pipeline_json(
-            json_obj["pipeline_definition"]
-        )
-
-        missing_environment_uuids = (
-            pipeline_environment_uuids - project_environment_uuids
-        )
-        if len(missing_environment_uuids) > 0:
-            missing_environment_uuids_str = ", ".join(missing_environment_uuids)
+        try:
+            job_spec = jobs.create_job_spec(request.json)
+        except error.EnvironmentsDoNotExist as e:
             return (
                 jsonify(
                     {
-                        "message": "The pipeline definition references environments "
-                        f"that do not exist in the project. "
-                        "The following environments do not exist:"
-                        f" [{missing_environment_uuids_str}].\n\n Please make sure all"
-                        " pipeline steps are assigned an environment that exists"
-                        " in the project."
+                        "message": environments_missing_msg.format(
+                            missing_environment_uuids=[",".join(e.environment_uuids)]
+                        ),
                     }
                 ),
                 500,
             )
 
-        # Jobs should always have eviction enabled.
-        json_obj["pipeline_definition"]["settings"]["auto_eviction"] = True
-
-        job_uuid = str(uuid.uuid4())
-        json_obj["uuid"] = job_uuid
-        create_job_directory(
-            job_uuid, json_obj["pipeline_uuid"], json_obj["project_uuid"]
-        )
-
         resp = requests.post(
-            "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
-            json=json_obj,
+            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
+            json=job_spec,
         )
 
         analytics.send_event(
             app,
             analytics.Event.JOB_CREATE,
             {
-                "job_definition": json_obj,
-                "snapshot_size": get_project_snapshot_size(json_obj["project_uuid"]),
+                "job_definition": job_spec,
+                "snapshot_size": get_project_snapshot_size(job_spec["project_uuid"]),
+            },
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/api/jobs/duplicate", methods=["POST"])
+    def catch_api_proxy_jobs_duplicate():
+
+        json_obj = request.json
+        try:
+            job_spec = jobs.duplicate_job_spec(json_obj["job_uuid"])
+        except error.ProjectDoesNotExist:
+            msg = (
+                "The job cannot be duplicated because its project does "
+                "not exist anymore."
+            )
+            return (
+                jsonify({"message": msg}),
+                409,
+            )
+        except error.PipelineDoesNotExist:
+            msg = (
+                "The job cannot be duplicated because its pipeline does "
+                "not exist anymore."
+            )
+            return (
+                jsonify({"message": msg}),
+                409,
+            )
+        except error.JobDoesNotExist:
+            msg = "The job cannot be duplicated because it does not exist anymore."
+            return (
+                jsonify({"message": msg}),
+                409,
+            )
+        except error.EnvironmentsDoNotExist as e:
+            return (
+                jsonify(
+                    {
+                        "message": environments_missing_msg.format(
+                            missing_environment_uuids=[",".join(e.environment_uuids)]
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        resp = requests.post(
+            "http://" + current_app.config["ORCHEST_API_ADDRESS"] + "/api/jobs/",
+            json=job_spec,
+        )
+
+        analytics.send_event(
+            app,
+            analytics.Event.JOB_DUPLICATE,
+            {
+                "job_definition": job_spec,
+                "duplicate_from": json_obj["job_uuid"],
+                "snapshot_size": get_project_snapshot_size(job_spec["project_uuid"]),
             },
         )
         return resp.content, resp.status_code, resp.headers.items()

@@ -30,6 +30,7 @@ jobs:
           [
             memory-server,
             orchest-api,
+            orchest-webserver,
             orchest-sdk,
             base-images-runnable,
             orchest-ctl,
