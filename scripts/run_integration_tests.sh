@@ -35,8 +35,14 @@ while getopts ":ag-:" opt; do
   esac
 done
 
-echo -e '\033[0;31mRunning the integration tests will delete all' \
-	'content of the "data" and "userdir/projects" directories.\033[0m'
+echo -e "The integration tests require Orchest to be installed, along with Chrome." \
+  "The tests have been run with Chrome 88, other versions are not guaranteed to" \
+  "work. If Orchest is running, it is expected to run on port 8000. If not running," \
+  "the tests will take care of starting it."
+echo -e '\033[0;31mRunning the integration tests will delete all content of the' \
+	'"data" and "userdir/projects" directories, and you will lose all built' \
+  'environments.\033[0m'
+
 
 if [ "$AUTOCONFIRM" = false ] ; then
 	echo -e "Are you sure you want to continue?"
@@ -52,6 +58,12 @@ if [ "$AUTOCONFIRM" = false ] ; then
 fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+echo "Making sure Orchest is running..."
+${DIR}/../orchest status || ${DIR}/../orchest start || (echo "Could not start Orchest." && exit 1)
+
+echo -e "Removing all environment images..."
+[ ! -z "$(docker images --filter 'label=_orchest_env_build_task_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_env_build_task_uuid" -q) > /dev/null
+
 cd "${DIR}/../"
 
 if [ $MODE == "cli" ]; then

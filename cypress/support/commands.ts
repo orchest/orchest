@@ -425,15 +425,6 @@ before(() => {
 });
 
 beforeEach(() => {
-  // When these intercept declarations where in "before()" cypress was
-  // reporting issues.
-  // cy.intercept(/.*/).as("allRequests");
-  // cy.intercept("GET", /.*/).as("allGets");
-  // cy.intercept("POST", /.*/).as("allPosts");
-  // cy.intercept("PUT", /.*/).as("allPuts");
-  // cy.intercept("DELETE", /.*/).as("allDeletes");
-  // cy.intercept("GET", /\/store\/environments\/.*/).as("storeGets");
-
   cy.cleanDataDir();
   cy.cleanProjectsDir();
   // Force rediscovery of deleted projects.
