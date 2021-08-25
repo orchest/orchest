@@ -71,5 +71,17 @@ describe("file system interactions", () => {
       cy.visit("/pipelines");
       cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 0);
     });
+
+    it("moves a project through the fs", () => {
+      cy.exec(
+        `mv ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1} ${PROJECTS_DIR}/move-project`
+      );
+      cy.visit("/projects");
+      cy.findAllByTestId("projects-table-row").should("have.length", 1);
+      cy.findByTestId("projects-table-row").should(
+        "contain.text",
+        "move-project"
+      );
+    });
   });
 });
