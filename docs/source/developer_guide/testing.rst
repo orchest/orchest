@@ -8,21 +8,38 @@ We use `Cypress <http://cypress.io/>`_ for our integration tests and `pytest
 
 Python tests
 ------------
+Note that running the python tests requires Docker to be installed. This is because
+the `orchest-webserver` and `orchest-api` tests run against a real database. The script
+will take care of starting the database container and removing it when the tests are
+done.
+
 .. code:: sh
 
     # Will install requirement in their resp. virtualenvs.
     scripts/run_tests.sh
 
+Troubleshooting
+~~~~~~~~~~~~~~~
+If the script gets into problems related to installing the dependencies in the virtual
+environment you likely need to run the following: ``sudo apt install
+default-libmysqlclient-dev``.
+
 Integration tests
 -----------------
-Run the `Cypress test runner <https://docs.cypress.io/guides/core-concepts/test-runner#Overview>`_
-against localhost (regardless of whether or not running with ``--dev``).
+To run the end to end tests we make use of `cypress` and a running instance of Orchest,
+`Chrome` is also a requirement.  The provided script takes care of starting Orchest. If
+Orchest is already running it's expected to be listening on port ``8000``. Running all the
+tests can take some time, depending on the host running the tests but also on the
+browser version, run-times have been observed to be between 15 and 30 minutes.
 
 .. code:: sh
 
-    # Orchest has to be running for the integration tests.
-    ./orchest start
-    pnpm run cy:open
+    scripts/run_integration_tests.sh
+
+.. warning::
+    Running the integration tests implies losing all content of the "data" and
+    "userdir/projects" directories, along with all built environments (the script will
+    warn you before proceeding).
 
 Commands
 ~~~~~~~~

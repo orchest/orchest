@@ -24,7 +24,10 @@ while getopts ":ag-:" opt; do
       if [ $OPTARG == "help" ]; then
           echo "Usage:"
           echo "--help        Display help."
-          echo "-a            Auto confirm."
+          echo -e "-a            Auto confirm.\033[0;31m Don't use this unless you know" \
+            "what you are doing: running the integration tests deletes all contents" \
+            'of the "data and "userdir/projects" directories, along with all' \
+            "environments.\033[0m"
           echo "-g            Run cypress in GUI mode."
           exit 0
       fi
