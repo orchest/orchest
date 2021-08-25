@@ -16,9 +16,9 @@ def _get_parent_job_spec(
     name="job-name",
     schedule=None,
     pipeline_name="pipeline-name",
-    env_variables={},
-    strategy_json={},
-    parameters=[{}],
+    env_variables=None,
+    strategy_json=None,
+    parameters=None,
 ):
     return {
         "name": name,
@@ -26,9 +26,9 @@ def _get_parent_job_spec(
         "project_uuid": project_uuid,
         "pipeline_uuid": pipeline_uuid,
         "pipeline_name": pipeline_name,
-        "env_variables": env_variables,
-        "strategy_json": strategy_json,
-        "parameters": parameters,
+        "env_variables": {} if env_variables is None else env_variables,
+        "strategy_json": {} if strategy_json is None else strategy_json,
+        "parameters": [{}] if parameters is None else parameters,
     }
 
 
