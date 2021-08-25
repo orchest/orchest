@@ -1,4 +1,9 @@
-import { PROJECTS_DIR, SAMPLE_PROJECT_NAMES } from "../support/common";
+import {
+  PROJECTS_DIR,
+  SAMPLE_PROJECT_NAMES,
+  SAMPLE_PIPELINE_NAMES,
+  TEST_ID,
+} from "../support/common";
 
 describe("file system interactions", () => {
   beforeEach(() => {
@@ -43,5 +48,28 @@ describe("file system interactions", () => {
     // Need to force a reload to discover.
     cy.visit("/projects");
     cy.findAllByTestId("projects-table-row").should("have.length", 0);
+  });
+
+  context("requires an existing project", () => {
+    beforeEach(() => {
+      cy.createProject(SAMPLE_PROJECT_NAMES.P1);
+    });
+
+    it("deletes a pipeline through the fs", () => {
+      cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
+      let expectedFile = `${SAMPLE_PIPELINE_NAMES.PL1.replaceAll(
+        "-",
+        "_"
+      )}.orchest`;
+      let expectedPath = `${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/${expectedFile}`;
+      // Make sure the creation went well.
+      cy.readFile(expectedPath);
+      // Remove through the FS, expect Orchest to be aware when
+      // refreshing.
+      cy.exec(`rm ${expectedPath}`);
+      // Reload to force the discovery.
+      cy.visit("/pipelines");
+      cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 0);
+    });
   });
 });
