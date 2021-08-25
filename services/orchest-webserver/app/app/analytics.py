@@ -29,12 +29,15 @@ class Event(Enum):
     ALERT_SHOW = "alert show"
     BUILD_REQUEST = "build request"
     CONFIRM_SHOW = "confirm show"
+    CRONJOB_PAUSE = "cron-job pause"
+    CRONJOB_RESUME = "cron-job resume"
     ENVIRONMENT_BUILD_CANCEL = "environment-build cancel"
     ENVIRONMENT_BUILD_START = "environment-build start"
     HEARTBEAT_TRIGGER = "heartbeat trigger"
     JOB_CANCEL = "job cancel"
     JOB_CREATE = "job create"
     JOB_DELETE = "job delete"
+    JOB_DUPLICATE = "job duplicate"
     JOB_UPDATE = "job update"
     JUPYTER_BUILD_START = "jupyter-build start"
     JUPYTER_BUILD_CANCEL = "jupyter-build cancel"
@@ -221,6 +224,10 @@ class _Anonymizer:
             "parameterized_runs_count": len(job_def.pop("parameters", [])),
         }
         return derived_properties
+
+    @staticmethod
+    def job_duplicate(event_properties: dict) -> dict:
+        return _Anonymizer.job_create(event_properties)
 
     @staticmethod
     def job_update(event_properties: dict) -> dict:

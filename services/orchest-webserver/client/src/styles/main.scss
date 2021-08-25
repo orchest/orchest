@@ -73,6 +73,10 @@ p {
   white-space: initial;
 }
 
+.float-right {
+  float: right;
+}
+
 .mdc-drawer .mdc-list-item {
   font-weight: 400;
 }
@@ -544,6 +548,11 @@ p > i.material-icons.float-left {
   .mdc-select__menu {
     position: absolute;
   }
+}
+
+.largeText {
+  font-size: var(--fontSizes-xl);
+  line-height: var(--lineHeights-xl);
 }
 
 .mdc-dialog .mdc-dialog__title {

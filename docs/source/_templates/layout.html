@@ -1,0 +1,21 @@
+{% extends "sphinx_press_theme/layout.html" %} {% block extrahead %}
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.css"
+/>
+<script
+  type="text/javascript"
+  src="https://cdn.jsdelivr.net/npm/docsearch.js@2/dist/cdn/docsearch.min.js"
+></script>
+<script type="text/javascript">
+  window.document.addEventListener("DOMContentLoaded", function () {
+    docsearch({
+      apiKey: "485712a32cd1f03c2fc8eade49adbb5d",
+      indexName: "orchest",
+      inputSelector: "#doc_search",
+      algoliaOptions: { facetFilters: ["lang:en"] },
+      debug: false, // Set debug to true if you want to inspect the dropdown
+    });
+  });
+</script>
+{% endblock %}

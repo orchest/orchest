@@ -958,7 +958,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
 
     $(document).on("keydown.initializePipeline", (e) => {
-      if (e.keyCode == 72) {
+      if (e.keyCode == 72 && !activeElementIsInput()) {
         centerView();
       }
 
