@@ -29,6 +29,8 @@ while getopts ":ag-:" opt; do
             'of the "data and "userdir/projects" directories, along with all' \
             "environments.\033[0m"
           echo "-g            Run cypress in GUI mode."
+          echo '--            Everything after "--" will be passed to the Cypress CLI.' \
+          '"--browser chrome" is passed by default.'
           exit 0
       fi
       ;;
@@ -37,6 +39,10 @@ while getopts ":ag-:" opt; do
       ;;
   esac
 done
+
+shift $(($OPTIND - 1))
+cypress_args="$@"
+
 
 echo -e "The integration tests require Orchest to be installed, along with Chrome." \
   "The tests have been run with Chrome 88, other versions are not guaranteed to" \
@@ -70,7 +76,7 @@ echo -e "Removing all environment images..."
 cd "${DIR}/../"
 
 if [ $MODE == "cli" ]; then
-	pnpm cy:run -- test --browser $BROWSER
+	pnpm cy:run -- test --browser $BROWSER $cypress_args
 else
-	pnpm cy:open -- --config watchForFileChanges=false
+	pnpm cy:open -- --config watchForFileChanges=false $cypress_args
 fi
