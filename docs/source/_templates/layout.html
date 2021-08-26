@@ -23,6 +23,7 @@
     newEl.style.position = "fixed";
     newEl.style.height = "calc(100vh - 3.6rem)";
     newEl.style.marginTop = "3.6rem";
+    newEl.style.overflowY = "auto";
     el.insertAdjacentElement("beforebegin", newEl);
     el.remove();
     newEl.appendChild(el);
