@@ -29,9 +29,9 @@ const SettingsView: React.FC<TViewProps> = () => {
     // the full JSON config object
     configJSON: undefined,
     version: undefined,
-    unsavedChanges: false,
     requiresRestart: false,
   });
+
   const [promiseManager] = React.useState(new PromiseManager());
 
   const updateView = () => {
@@ -127,11 +127,15 @@ const SettingsView: React.FC<TViewProps> = () => {
       setState((prevState) => ({
         ...prevState,
         configJSON: joinedConfig,
-        unsavedChanges: false,
         requiresRestart: REQUIRES_RESTART_ON_CHANGE.some(
           (key) => state.configJSON[key] != joinedConfig[key]
         ),
       }));
+
+      context.dispatch({
+        type: "setUnsavedChanges",
+        payload: false,
+      });
 
       makeRequest("POST", "/async/user-config", {
         type: "FormData",
@@ -247,13 +251,6 @@ const SettingsView: React.FC<TViewProps> = () => {
     getVersion();
   }, []);
 
-  React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
-
   return (
     <Layout>
       <div className={"view-page orchest-settings"}>
@@ -284,8 +281,11 @@ const SettingsView: React.FC<TViewProps> = () => {
                         setState((prevState) => ({
                           ...prevState,
                           config: value,
-                          unsavedChanges: state.config != value,
                         }));
+                        context.dispatch({
+                          type: "setUnsavedChanges",
+                          payload: state.config != value,
+                        });
                       }}
                     />
 
@@ -345,7 +345,7 @@ const SettingsView: React.FC<TViewProps> = () => {
                         "mdc-button--raised",
                         "themed-secondary",
                       ]}
-                      label={state.unsavedChanges ? "SAVE*" : "SAVE"}
+                      label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                       icon="save"
                       onClick={saveConfig.bind(this, state.config)}
                     />

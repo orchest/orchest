@@ -25,7 +25,6 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
   const context = useOrchest();
   const [state, setState] = React.useState({
-    unsavedChanges: false,
     envVariables: null,
     pipeline_count: null,
     job_count: null,
@@ -92,10 +91,10 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
       content: { env_variables: envVariables },
     })
       .then(() => {
-        setState((prevState) => ({
-          ...prevState,
-          unsavedChanges: false,
-        }));
+        context.dispatch({
+          type: "setUnsavedChanges",
+          payload: false,
+        });
       })
       .catch((response) => {
         console.error(response);
@@ -108,9 +107,12 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       envVariables: envVariables,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const addEnvPair = (e) => {
@@ -134,8 +136,11 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       envVariables: envVariables,
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const onClickProjectEntity = (view, projectUUID, e) => {
@@ -153,13 +158,6 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
     return () => promiseManager.cancelCancelablePromises();
   }, []);
-
-  React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
 
   React.useEffect(() => {
     attachResizeListener();
@@ -263,7 +261,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
               </div>
               <div className="bottom-buttons observe-overflow">
                 <MDCButtonReact
-                  label={state.unsavedChanges ? "SAVE*" : "SAVE"}
+                  label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={saveGeneralForm.bind(this)}
                   icon="save"

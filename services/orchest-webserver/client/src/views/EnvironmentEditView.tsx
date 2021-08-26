@@ -37,7 +37,6 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     subviewIndex: 0,
     baseImages: [...DEFAULT_BASE_IMAGES],
     newEnvironment: props.queryArgs.environment_uuid === undefined,
-    unsavedChanges: !props.queryArgs.environment_uuid,
     environment: !props.queryArgs.environment_uuid
       ? {
           uuid: "new",
@@ -120,8 +119,12 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
               ...prevState,
               environment: state.environment,
               newEnvironment: false,
-              unsavedChanges: false,
             }));
+
+            context.dispatch({
+              type: "setUnsavedChanges",
+              payload: false,
+            });
 
             resolve(undefined);
           })
@@ -181,45 +184,65 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     orchest.loadView(EnvironmentsView);
   };
 
-  const onChangeName = (value) =>
+  const onChangeName = (value) => {
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       environment: {
         ...prevState.environment,
         name: value,
       },
     }));
 
-  const onChangeBaseImage = (value) =>
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
+  };
+
+  const onChangeBaseImage = (value) => {
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       environment: {
         ...prevState.environment,
         base_image: value,
       },
     }));
 
-  const onChangeLanguage = (value) =>
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
+  };
+
+  const onChangeLanguage = (value) => {
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       environment: {
         ...prevState.environment,
         language: value,
       },
     }));
 
-  const onGPUChange = (is_checked) =>
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
+  };
+
+  const onGPUChange = (is_checked) => {
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       environment: {
         ...prevState.environment,
         gpu_support: is_checked,
       },
     }));
+
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
+  };
 
   const onCancelAddCustomBaseImageDialog = () => {
     refManager.refs.addCustomBaseImageDialog.close();
@@ -243,9 +266,13 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
         ...prevState.environment,
         base_image: prevState.customBaseImageName,
       },
-      unsavedChanges: true,
       addCustomBaseImageDialog: undefined,
     }));
+
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const onAddCustomBaseImage = () => {
@@ -406,17 +433,14 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   };
 
   React.useEffect(() => {
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: !props.queryArgs.environment_uuid,
+    });
     if (props.queryArgs.environment_uuid) fetchEnvironment();
 
     return () => promiseManager.cancelCancelablePromises();
   }, []);
-
-  React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
 
   return (
     <Layout>
@@ -605,8 +629,12 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                           setState((prevState) => ({
                             ...prevState,
                             environment: state.environment,
-                            unsavedChanges: true,
                           }));
+
+                          context.dispatch({
+                            type: "setUnsavedChanges",
+                            payload: true,
+                          });
                         }}
                       />
                     </div>
@@ -641,7 +669,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 onClick={onSave.bind(this)}
-                label={state.unsavedChanges ? "Save*" : "Save"}
+                label={context.state.unsavedChanges ? "Save*" : "Save"}
                 icon="save"
                 data-test-id="environments-save"
               />

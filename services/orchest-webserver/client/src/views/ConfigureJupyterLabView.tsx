@@ -21,7 +21,6 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
   const { orchest } = window;
 
   const [state, setState] = React.useState({
-    unsavedChanges: false,
     building: false,
     sessionKillStatus: undefined,
     buildRequestInProgress: false,
@@ -165,10 +164,10 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
   };
 
   const save = (cb) => {
-    setState((prevState) => ({
-      ...prevState,
-      unsavedChanges: false,
-    }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: false,
+    });
 
     // auto save the bash script
     let formData = new FormData();
@@ -190,16 +189,8 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
 
   React.useEffect(() => {
     getSetupScript();
-
     return () => promiseManager.cancelCancelablePromises();
   }, []);
-
-  React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
 
   React.useEffect(() => {
     if (
@@ -282,8 +273,11 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
                     setState((prevState) => ({
                       ...prevState,
                       jupyterSetupScript: value,
-                      unsavedChanges: true,
                     }));
+                    context.dispatch({
+                      type: "setUnsavedChanges",
+                      payload: true,
+                    });
                   }}
                 />
               </div>
@@ -307,7 +301,7 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
               />
 
               <MDCButtonReact
-                label={state.unsavedChanges ? "Save*" : "Save"}
+                label={context.state.unsavedChanges ? "Save*" : "Save"}
                 icon="save"
                 classNames={[
                   "mdc-button--raised",

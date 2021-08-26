@@ -55,11 +55,20 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
+export interface LoadViewSpec {
+  // From window.onpopstate.
+  TagName: string;
+  dynamicProps: object;
+  isOnPopState: boolean;
+  onCancelled?: Function;
+}
+
 export interface IOrchestState
   extends Pick<IOrchestSession, "project_uuid" | "pipeline_uuid"> {
   alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
+  loadViewSpec?: LoadViewSpec;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
@@ -101,6 +110,7 @@ export type TOrchestAction =
       payload: IOrchestState["project_uuid"];
     }
   | { type: "setView"; payload: IOrchestState["view"] }
+  | { type: "setLoadViewSpec"; payload: LoadViewSpec }
   | { type: "clearView" }
   | {
       type: "pipelineUpdateReadOnlyState";

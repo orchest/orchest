@@ -53,7 +53,6 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     pipeline: undefined,
     cronString: undefined,
     strategyJSON: {},
-    unsavedChanges: false,
   });
 
   const [refManager] = React.useState(new RefManager());
@@ -86,10 +85,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
             strategyJSON: job.strategy_json,
           }));
         } else {
-          setState((prevState) => ({
-            ...prevState,
-            unsavedChanges: true,
-          }));
+          context.dispatch({
+            type: "setUnsavedChanges",
+            payload: true,
+          });
         }
 
         setState((prevState) => ({ ...prevState, shouldFetchPipeline: true }));
@@ -377,8 +376,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       runJobLoading: true,
-      unsavedChanges: false,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: false,
+    });
 
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
@@ -436,9 +438,13 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       .then(() => {
         setState((prevState) => ({
           ...prevState,
-          unsavedChanges: false,
           runJobCompleted: true,
         }));
+
+        context.dispatch({
+          type: "setUnsavedChanges",
+          payload: false,
+        });
       })
       .catch((response) => {
         if (!response.isCanceled) {
@@ -447,9 +453,13 @@ const EditJobView: React.FC<TViewProps> = (props) => {
             orchest.alert("Error", "Failed to start job. " + result.message);
             setState((prevState) => ({
               ...prevState,
-              unsavedChanges: false,
               runJobCompleted: true,
             }));
+
+            context.dispatch({
+              type: "setUnsavedChanges",
+              payload: false,
+            });
           } catch (error) {
             console.log("error");
           }
@@ -483,8 +493,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       // saving changes
       setState((prevState) => ({
         ...prevState,
-        unsavedChanges: false,
       }));
+
+      context.dispatch({
+        type: "setUnsavedChanges",
+        payload: false,
+      });
 
       let putJobRequest = makeCancelable(
         makeRequest("PUT", `/catch/api-proxy/api/jobs/${state.job.uuid}`, {
@@ -577,8 +591,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       selectedIndices: selectedIndices,
-      unsavedChanges: true,
     }));
+
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const parameterValueOverride = (strategyJSON, parameters) => {
@@ -599,8 +617,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       ...prevState,
       cronString: cronString,
       scheduleOption: "cron",
-      unsavedChanges: true,
     }));
+
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const addEnvVariablePair = (e) => {
@@ -615,8 +637,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
           value: null,
         },
       ]),
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const onEnvVariablesChange = (value, idx, type) => {
@@ -626,8 +651,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       envVariables: envVariables,
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const onEnvVariablesDeletion = (idx) => {
@@ -636,8 +664,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       envVariables: envVariables,
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const detailRows = (pipelineParameters, strategyJSON) => {
@@ -665,13 +696,6 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     fetchJob();
   }, []);
-
-  React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
 
   React.useEffect(() => {
     if (
@@ -831,8 +855,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                             generatedPipelineRuns,
                             generatedPipelineRunRows,
                             selectedIndices,
-                            unsavedChanges: true,
                           }));
+                          context.dispatch({
+                            type: "setUnsavedChanges",
+                            payload: true,
+                          });
                         }}
                         strategyJSON={_.cloneDeep(state.strategyJSON)}
                         data-test-id="job-edit"

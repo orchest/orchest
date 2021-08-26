@@ -47,6 +47,7 @@ export interface IPipelineSettingsView
 
 const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   const orchest = window.orchest;
+  const context = useOrchest();
 
   const { dispatch, get } = useOrchest();
 
@@ -56,7 +57,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     selectedTabIndex: 0,
     inputParameters: JSON.stringify({}, null, 2),
     restartingMemoryServer: false,
-    unsavedChanges: false,
     pipeline_path: undefined,
     dataPassingMemorySize: "1GB",
     pipelineJson: undefined,
@@ -65,7 +65,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     servicesChanged: false,
   });
 
-  if (!session && !state.unsavedChanges && state.servicesChanged) {
+  if (!session && !context.state.unsavedChanges && state.servicesChanged) {
     setState((prevState) => ({
       ...prevState,
       servicesChanged: false,
@@ -123,14 +123,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     }
   }, [state]);
 
-  /* sync local unsaved changes with global state */
-  React.useEffect(() => {
-    dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
-
   const setHeaderComponent = (pipelineName) =>
     dispatch({
       type: "pipelineSet",
@@ -180,10 +172,13 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       servicesChanged: true,
       pipelineJson: pipelineJson,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const nameChangeService = (oldName, newName) => {
@@ -195,10 +190,13 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       servicesChanged: true,
       pipelineJson: pipelineJson,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const deleteService = (serviceName) => {
@@ -207,10 +205,13 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       servicesChanged: true,
       pipelineJson: pipelineJson,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const attachResizeListener = () => overflowListener.attach();
@@ -376,15 +377,19 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       },
     });
 
-  const onChangeName = (value) =>
+  const onChangeName = (value) => {
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       pipelineJson: {
         ...prevState.pipelineJson,
         name: value,
       },
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
+  };
 
   const onChangePipelineParameters = (editor, data, value) => {
     setState((prevState) => ({
@@ -397,12 +402,16 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
       setState((prevState) => ({
         ...prevState,
-        unsavedChanges: true,
         pipelineJson: {
           ...prevState?.pipelineJson,
           parameters: parametersJSON,
         },
       }));
+
+      context.dispatch({
+        type: "setUnsavedChanges",
+        payload: true,
+      });
     } catch (err) {
       // console.log("JSON did not parse")
     }
@@ -420,7 +429,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     if (isValidMemorySize(value)) {
       setState((prevState) => ({
         ...prevState,
-        unsavedChanges: true,
         pipelineJson: {
           ...prevState.pipelineJson,
           settings: {
@@ -429,6 +437,10 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
           },
         },
       }));
+      context.dispatch({
+        type: "setUnsavedChanges",
+        payload: true,
+      });
     }
   };
 
@@ -446,7 +458,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
     setState((prevState) => ({
       ...prevState,
-      unsavedChanges: true,
       pipelineJson: {
         ...prevState.pipelineJson,
         settings: {
@@ -455,6 +466,10 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
         },
       },
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const addEnvVariablePair = (e) => {
@@ -480,7 +495,11 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       const envVariables = prevState.envVariables.slice();
       envVariables[idx][type] = value;
 
-      return { ...prevState, envVariables, unsavedChanges: true };
+      return { ...prevState, envVariables };
+    });
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
     });
   };
 
@@ -489,7 +508,11 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       const envVariables = prevState.envVariables.slice();
       envVariables.splice(idx, 1);
 
-      return { ...prevState, envVariables, unsavedChanges: true };
+      return { ...prevState, envVariables };
+    });
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
     });
   };
 
@@ -575,8 +598,11 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
         if (result.success) {
           setState((prevState) => ({
             ...prevState,
-            unsavedChanges: false,
           }));
+          context.dispatch({
+            type: "setUnsavedChanges",
+            payload: false,
+          });
 
           // Sync name changes with the global context
           dispatch({
@@ -1027,7 +1053,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
               {props.queryArgs.read_only !== "true" && (
                 <div className="bottom-buttons observe-overflow">
                   <MDCButtonReact
-                    label={state.unsavedChanges ? "SAVE*" : "SAVE"}
+                    label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                     classNames={["mdc-button--raised", "themed-secondary"]}
                     onClick={saveGeneralForm.bind(this)}
                     icon="save"
