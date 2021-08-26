@@ -99,27 +99,79 @@ const App = () => {
 
   window.onpopstate = (event) => {
     if (event.state !== null) {
-      let conditionalBody = () => {
-        _loadView(
-          nameToComponent(event.state.viewName),
-          event.state.dynamicProps
-        );
-      };
-
-      if (!context.state.unsavedChanges) {
-        conditionalBody();
-      } else {
-        confirm(
-          "Warning",
-          "There are unsaved changes. Are you sure you want to navigate away?",
-          () => {
-            context.dispatch({ type: "setUnsavedChanges", payload: false });
-            conditionalBody();
-          }
-        );
-      }
+      context.dispatch({
+        type: "setLoadViewSpec",
+        payload: {
+          TagName: nameToComponent(event.state.viewName),
+          dynamicProps: event.state.dynamicProps,
+          isOnPopState: true,
+          processed: false,
+        },
+      });
     }
   };
+
+  React.useEffect(() => {
+    let loadViewSpec = context.state.loadViewSpec;
+    if (
+      loadViewSpec === undefined ||
+      loadViewSpec.processed === undefined ||
+      loadViewSpec.processed
+    )
+      return;
+
+    let TagName = loadViewSpec.TagName;
+    let dynamicProps = loadViewSpec.dynamicProps;
+    let onCancelled = loadViewSpec.onCancelled;
+
+    let conditionalBody;
+    if (loadViewSpec.isOnPopState) {
+      conditionalBody = () => {
+        _loadView(TagName, dynamicProps);
+      };
+    } else {
+      conditionalBody = () => {
+        // This public loadView sets the state through the
+        // history API.
+
+        let [pathname, search] = generateRoute(TagName, dynamicProps);
+
+        // Because pushState objects need to be serialized,
+        // we need to store the string representation of the TagName.
+        let viewName = componentName(TagName);
+        window.history.pushState(
+          {
+            viewName,
+            dynamicProps,
+          },
+          /* `title` argument for pushState was deprecated,
+        document.title should be used instead. */
+          "",
+          pathname + search
+        );
+
+        window.document.title =
+          pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
+
+        _loadView(TagName, dynamicProps);
+      };
+    }
+
+    loadViewSpec.processed = true;
+    if (!context.state.unsavedChanges) {
+      conditionalBody();
+    } else {
+      confirm(
+        "Warning",
+        "There are unsaved changes. Are you sure you want to navigate away?",
+        () => {
+          context.dispatch({ type: "setUnsavedChanges", payload: false });
+          conditionalBody();
+        },
+        onCancelled
+      );
+    }
+  }, [context?.state.loadViewSpec]);
 
   const _loadView = (TagName, dynamicProps) => {
     let viewName = componentName(TagName);
@@ -156,45 +208,16 @@ const App = () => {
   };
 
   const loadView = (TagName, dynamicProps = {}, onCancelled?) => {
-    let conditionalBody = () => {
-      // This public loadView sets the state through the
-      // history API.
-
-      let [pathname, search] = generateRoute(TagName, dynamicProps);
-
-      // Because pushState objects need to be serialized,
-      // we need to store the string representation of the TagName.
-      let viewName = componentName(TagName);
-      window.history.pushState(
-        {
-          viewName,
-          dynamicProps,
-        },
-        /* `title` argument for pushState was deprecated,
-      document.title should be used instead. */
-        "",
-        pathname + search
-      );
-
-      window.document.title =
-        pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
-
-      _loadView(TagName, dynamicProps);
-    };
-
-    if (!context.state.unsavedChanges) {
-      conditionalBody();
-    } else {
-      confirm(
-        "Warning",
-        "There are unsaved changes. Are you sure you want to navigate away?",
-        () => {
-          context.dispatch({ type: "setUnsavedChanges", payload: false });
-          conditionalBody();
-        },
-        onCancelled
-      );
-    }
+    context.dispatch({
+      type: "setLoadViewSpec",
+      payload: {
+        TagName,
+        dynamicProps,
+        isOnPopState: false,
+        processed: false,
+        onCancelled,
+      },
+    });
   };
 
   const loadDefaultView = () => {
@@ -206,15 +229,16 @@ const App = () => {
     // handle default
     if (location.pathname == "/") {
       loadDefaultView();
-    }
-    try {
-      let [TagName, dynamicProps] = decodeRoute(
-        location.pathname,
-        location.search
-      );
-      loadView(TagName, dynamicProps);
-    } catch (error) {
-      loadDefaultView();
+    } else {
+      try {
+        let [TagName, dynamicProps] = decodeRoute(
+          location.pathname,
+          location.search
+        );
+        loadView(TagName, dynamicProps);
+      } catch (error) {
+        loadDefaultView();
+      }
     }
   };
 
