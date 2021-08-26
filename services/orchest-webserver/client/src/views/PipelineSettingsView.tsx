@@ -237,48 +237,50 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     );
 
     // @ts-ignore
-    pipelinePromise.promise.then((response) => {
-      let result = JSON.parse(response);
+    pipelinePromise.promise
+      .then((response) => {
+        let result = JSON.parse(response);
 
-      if (result.success) {
-        let pipelineJson = JSON.parse(result["pipeline_json"]);
+        if (result.success) {
+          let pipelineJson = JSON.parse(result["pipeline_json"]);
 
-        // as settings are optional, populate defaults if no values exist
-        if (pipelineJson?.settings === undefined) {
-          pipelineJson.settings = {};
-        }
-        if (pipelineJson?.settings.auto_eviction === undefined) {
-          pipelineJson.settings.auto_eviction = false;
-        }
-        if (pipelineJson?.settings.data_passing_memory_size === undefined) {
-          pipelineJson.settings.data_passing_memory_size =
-            state.dataPassingMemorySize;
-        }
-        if (pipelineJson?.parameters === undefined) {
-          pipelineJson.parameters = {};
-        }
-        if (pipelineJson?.services === undefined) {
-          pipelineJson.services = {};
-        }
+          // as settings are optional, populate defaults if no values exist
+          if (pipelineJson?.settings === undefined) {
+            pipelineJson.settings = {};
+          }
+          if (pipelineJson?.settings.auto_eviction === undefined) {
+            pipelineJson.settings.auto_eviction = false;
+          }
+          if (pipelineJson?.settings.data_passing_memory_size === undefined) {
+            pipelineJson.settings.data_passing_memory_size =
+              state.dataPassingMemorySize;
+          }
+          if (pipelineJson?.parameters === undefined) {
+            pipelineJson.parameters = {};
+          }
+          if (pipelineJson?.services === undefined) {
+            pipelineJson.services = {};
+          }
 
-        // Augment services with order key
-        for (let service in pipelineJson.services) {
-          pipelineJson.services[service].order = getOrderValue();
-        }
+          // Augment services with order key
+          for (let service in pipelineJson.services) {
+            pipelineJson.services[service].order = getOrderValue();
+          }
 
-        setHeaderComponent(pipelineJson?.name);
-        setState((prevState) => ({
-          ...prevState,
-          inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
-          pipelineJson: pipelineJson,
-          dataPassingMemorySize:
-            pipelineJson?.settings.data_passing_memory_size,
-        }));
-      } else {
-        console.warn("Could not load pipeline.json");
-        console.log(result);
-      }
-    });
+          setHeaderComponent(pipelineJson?.name);
+          setState((prevState) => ({
+            ...prevState,
+            inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
+            pipelineJson: pipelineJson,
+            dataPassingMemorySize:
+              pipelineJson?.settings.data_passing_memory_size,
+          }));
+        } else {
+          console.warn("Could not load pipeline.json");
+          console.log(result);
+        }
+      })
+      .catch((err) => console.log(err));
   };
 
   const fetchPipelineMetadata = () => {
@@ -351,14 +353,16 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
           let run = JSON.parse(response);
           return envVariablesDictToArray(run["env_variables"]);
         }),
-      ]).then((values) => {
-        let [pipeline_path, envVariables] = values;
-        setState((prevState) => ({
-          ...prevState,
-          pipeline_path: pipeline_path,
-          envVariables: envVariables,
-        }));
-      });
+      ])
+        .then((values) => {
+          let [pipeline_path, envVariables] = values;
+          setState((prevState) => ({
+            ...prevState,
+            pipeline_path: pipeline_path,
+            envVariables: envVariables,
+          }));
+        })
+        .catch((err) => console.log(err));
     }
   };
 
@@ -698,6 +702,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   items={["Configuration", "Environment variables", "Services"]}
                   icons={["list", "view_comfy", "miscellaneous_services"]}
                   onChange={onSelectSubview.bind(this)}
+                  data-test-id="pipeline-settings"
                 />
               </div>
 
@@ -722,6 +727,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 label="Pipeline name"
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down"]}
+                                data-test-id="pipeline-settings-configuration-pipeline-name"
                               />
                             </div>
                             <div className="clear"></div>
@@ -800,6 +806,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 label="Automatic memory eviction"
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down", "push-up"]}
+                                data-test-id="pipeline-settings-configuration-memory-eviction"
                               />
 
                               {props.queryArgs.read_only !== "true" && (
@@ -820,6 +827,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   disabled={
                                     props.queryArgs.read_only === "true"
                                   }
+                                  data-test-id="pipeline-settings-configuration-memory-size"
                                 />
                               </div>
                               {(() => {
@@ -869,6 +877,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   icon="memory"
                                   classNames={["mdc-button--raised push-down"]}
                                   onClick={restartMemoryServer.bind(this)}
+                                  data-test-id="pipeline-settings-configuration-restart-memory-server"
                                 />
                               </div>
                             </div>
@@ -886,6 +895,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 <EnvVarList
                                   value={state.envVariables}
                                   readOnly={true}
+                                  data-test-id="pipeline-read-only"
                                 />
                               </>
                             );
@@ -898,6 +908,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 <EnvVarList
                                   value={state.projectEnvVariables}
                                   readOnly={true}
+                                  data-test-id="project-read-only"
                                 />
 
                                 <h3 className="push-down">
@@ -916,6 +927,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   onDelete={(idx) =>
                                     onEnvVariablesDeletion(idx)
                                   }
+                                  data-test-id="pipeline"
                                 />
                                 <p className="push-up">
                                   <i>
@@ -997,6 +1009,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 run_uuid={props.queryArgs.run_uuid}
                               />
                             ))}
+                          data-test-id="pipeline-services"
                         />
 
                         <Alert status="info">
@@ -1034,6 +1047,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   classNames={["close-button"]}
                   icon="close"
                   onClick={closeSettings.bind(this)}
+                  data-test-id="pipeline-settings-close"
                 />
               </div>
               {props.queryArgs.read_only !== "true" && (
@@ -1043,6 +1057,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                     classNames={["mdc-button--raised", "themed-secondary"]}
                     onClick={saveGeneralForm.bind(this)}
                     icon="save"
+                    data-test-id="pipeline-settings-save"
                   />
                 </div>
               )}

@@ -95,6 +95,8 @@ const PipelineStep = React.forwardRef<TPipelineStepRef, IPipelineStepProps>(
     return (
       <div
         data-uuid={props.step.uuid}
+        data-test-title={props.step.title}
+        data-test-id={"pipeline-step"}
         ref={refManager.nrefs.container}
         className={[
           "pipeline-step",

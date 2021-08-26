@@ -308,6 +308,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   icon="add"
                   label="Create environment"
                   onClick={onCreateClick.bind(this)}
+                  data-test-id="environments-create"
                 />
               </div>
               <div className={"environment-actions push-down"}>
@@ -316,6 +317,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   tooltipText="Delete environment"
                   disabled={state.isDeleting}
                   onClick={onDeleteClick.bind(this)}
+                  data-test-id="environments-delete"
                 />
               </div>
 
@@ -331,6 +333,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   "Build status",
                 ]}
                 rows={state.listData}
+                data-test-id="environments"
               />
             </React.Fragment>
           );

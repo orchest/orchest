@@ -119,6 +119,7 @@ export const OnboardingDialog: React.FC = () => {
       <DialogContent
         size="md"
         css={{ paddingTop: "$10", overflow: isAnimating && "hidden" }}
+        data-test-id="onboarding-dialog-content"
       >
         <IconButton
           variant="ghost"
@@ -126,6 +127,7 @@ export const OnboardingDialog: React.FC = () => {
           label="Close"
           onClick={() => onClose()}
           css={{ position: "absolute", top: "$4", right: "$4" }}
+          data-test-id="onboarding-close"
         >
           <IconCrossSolid />
         </IconButton>
@@ -147,6 +149,7 @@ export const OnboardingDialog: React.FC = () => {
                     <DialogHeader css={{ justifyContent: "inherit" }}>
                       <DialogTitle
                         css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
+                        data-test-id="onboarding-title"
                       >
                         {item.title}
                       </DialogTitle>
@@ -248,11 +251,15 @@ export const OnboardingDialog: React.FC = () => {
                         classNames: ["mdc-button--raised", "themed-secondary"],
                         onClick: () =>
                           onClose({ loadQuickstart: hasQuickstart }),
+                        "data-test-id": hasQuickstart
+                          ? "onboarding-complete-with-quickstart"
+                          : "onboarding-complete-without-quickstart",
                       }
                     : {
                         label: "Next",
                         classNames: ["mdc-button--outlined"],
                         onClick: () => cycleSlide(1),
+                        "data-test-id": "onboarding-next",
                       })}
                 />
               </m.div>

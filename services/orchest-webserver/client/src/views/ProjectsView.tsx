@@ -164,6 +164,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
             onClick={() => {
               openSettings(project);
             }}
+            data-test-id={`settings-button-${project.path}`}
           />
         </span>,
       ]);
@@ -179,33 +180,36 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       promiseManager
     );
 
-    fetchListPromise.promise.then((response) => {
-      let projects = JSON.parse(response);
+    fetchListPromise.promise
+      .then((response) => {
+        let projects = JSON.parse(response);
 
-      setState((prevState) => ({
-        ...prevState,
-        fetchListAndSetProject,
-        listData: processListData(projects),
-        projects: projects,
-        loading: false,
-      }));
+        setState((prevState) => ({
+          ...prevState,
+          fetchListAndSetProject,
+          listData: processListData(projects),
+          projects: projects,
+          loading: false,
+        }));
 
-      // Verify selected project UUID
-      if (
-        context.state.project_uuid !== undefined &&
-        projects.filter((project) => project.uuid == context.state.project_uuid)
-          .length == 0
-      ) {
-        context.dispatch({
-          type: "projectSet",
-          payload: projects.length > 0 ? projects[0].uuid : null,
-        });
-      }
+        // Verify selected project UUID
+        if (
+          context.state.project_uuid !== undefined &&
+          projects.filter(
+            (project) => project.uuid == context.state.project_uuid
+          ).length == 0
+        ) {
+          context.dispatch({
+            type: "projectSet",
+            payload: projects.length > 0 ? projects[0].uuid : null,
+          });
+        }
 
-      if (refManager.refs.projectListView) {
-        refManager.refs.projectListView.setSelectedRowIds([]);
-      }
-    });
+        if (refManager.refs.projectListView) {
+          refManager.refs.projectListView.setSelectedRowIds([]);
+        }
+      })
+      .catch(console.log);
   };
 
   const openSettings = (project) => {
@@ -506,10 +510,15 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         return proj.path == state.fetchListAndSetProject;
       })[0];
 
-      context.dispatch({
-        type: "projectSet",
-        payload: createdProject.uuid,
-      });
+      // Needed to avoid a race condition where the project does not
+      // exist anymore because it has been removed between a POST and a
+      // get request.
+      if (createdProject !== undefined) {
+        context.dispatch({
+          type: "projectSet",
+          payload: createdProject.uuid,
+        });
+      }
     }
   }, [state?.fetchListAndSetProject]);
 
@@ -522,7 +531,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
             onClose={onCloseImportProjectModal.bind(this)}
             ref={refManager.nrefs.importProjectDialog}
             content={
-              <div className="project-import-modal">
+              <div
+                className="project-import-modal"
+                data-test-id="import-project-dialog"
+              >
                 {props.queryArgs && props.queryArgs.import_url !== undefined && (
                   <div className="push-down warning">
                     <p>
@@ -542,6 +554,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   label="Git repository URL"
                   value={state.import_url}
                   onChange={handleChange.bind(this, "import_url")}
+                  data-test-id="project-url-textfield"
                 />
 
                 <MDCTextFieldReact
@@ -549,6 +562,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   label="Project name (optional)"
                   value={state.import_project_name}
                   onChange={handleChange.bind(this, "import_project_name")}
+                  data-test-id="project-name-textfield"
                 />
 
                 {(() => {
@@ -599,6 +613,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   label="Import"
                   submitButton
                   onClick={onSubmitImport.bind(this)}
+                  data-test-id="import-project-ok"
                 />
               </React.Fragment>
             }
@@ -658,6 +673,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     label="Project name"
                     value={state.create_project_name}
                     onChange={handleChange.bind(this, "create_project_name")}
+                    data-test-id="project-name-textfield"
                   />
                 }
                 actions={
@@ -674,6 +690,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       label="Create project"
                       submitButton
                       onClick={onSubmitModal.bind(this)}
+                      data-test-id="create-project"
                     />
                   </React.Fragment>
                 }
@@ -700,12 +717,14 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     icon="add"
                     label="Add project"
                     onClick={onCreateClick.bind(this)}
+                    data-test-id="add-project"
                   />
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
                     icon="input"
                     label="Import project"
                     onClick={onImport.bind(this)}
+                    data-test-id="import-project"
                   />
                 </div>
                 <div className={"pipeline-actions push-down"}>
@@ -714,6 +733,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     disabled={state.isDeleting}
                     tooltipText="Delete project"
                     onClick={onDeleteClick.bind(this)}
+                    data-test-id="delete-project"
                   />
                 </div>
 
@@ -731,6 +751,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     "Settings",
                   ]}
                   rows={state.listData}
+                  data-test-id="projects-table"
                 />
               </React.Fragment>
             );

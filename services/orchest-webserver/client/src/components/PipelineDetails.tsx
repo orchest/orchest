@@ -175,6 +175,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
               ]}
               label="Edit in JupyterLab"
               onClick={onOpenNotebook.bind(this)}
+              data-test-id="step-view-in-jupyterlab"
             />
           )}
           <MDCButtonReact
@@ -182,6 +183,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
             classNames={["mdc-button--raised"]}
             label="View file"
             onClick={onOpenFilePreviewView.bind(this, props.step.uuid)}
+            data-test-id="step-view-file"
           />
         </div>
         <div className={"general-actions"}>
@@ -189,12 +191,14 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
             icon="close"
             label="Close"
             onClick={props.onClose.bind(this)}
+            data-test-id="step-close-details"
           />
           {!props.readOnly && (
             <MDCButtonReact
               icon="delete"
               label="Delete"
               onClick={props.onDelete.bind(this)}
+              data-test-id="step-delete"
             />
           )}
         </div>

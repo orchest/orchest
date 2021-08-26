@@ -45,18 +45,20 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
       promiseManager
     );
 
-    projectPromise.promise.then((response) => {
-      let result = JSON.parse(response);
+    projectPromise.promise
+      .then((response) => {
+        let result = JSON.parse(response);
 
-      setState((prevState) => ({
-        ...prevState,
-        envVariables: envVariablesDictToArray(result["env_variables"]),
-        pipeline_count: result["pipeline_count"],
-        job_count: result["job_count"],
-        environment_count: result["environment_count"],
-        projectName: result["path"],
-      }));
-    });
+        setState((prevState) => ({
+          ...prevState,
+          envVariables: envVariablesDictToArray(result["env_variables"]),
+          pipeline_count: result["pipeline_count"],
+          job_count: result["job_count"],
+          environment_count: result["environment_count"],
+          projectName: result["path"],
+        }));
+      })
+      .catch(console.log);
   };
 
   const returnToProjects = () => {
@@ -254,6 +256,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   onDelete={(idx) => onDelete(idx)}
                   readOnly={false}
                   onAdd={addEnvPair.bind(this)}
+                  data-test-id="project"
                 />
               </div>
               <div className="bottom-buttons observe-overflow">
@@ -262,6 +265,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={saveGeneralForm.bind(this)}
                   icon="save"
+                  data-test-id="project-settings-save"
                 />
               </div>
             </>

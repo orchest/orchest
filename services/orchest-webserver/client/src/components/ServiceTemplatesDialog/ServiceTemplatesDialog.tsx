@@ -50,6 +50,7 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
         classNames={["mdc-button--raised", "themed-primary"]}
         label="Add Service"
         onClick={() => setIsOpen(true)}
+        data-test-id="pipeline-service-add"
       />
       <DialogContent>
         <DialogHeader>
@@ -69,6 +70,7 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
                       onSelection(template.config);
                       setIsOpen(false);
                     }}
+                    data-test-id={`pipeline-service-template-${item}`}
                   >
                     {template?.icon || <IconServicesSolid />}
                     {template.label}

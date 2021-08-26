@@ -84,6 +84,7 @@ const HelpView: React.FC<TViewProps> = () => {
         </div>
         <h2 className="push-up">Introduction</h2>
         <MDCButtonReact
+          data-test-id="onboarding-open"
           onClick={() => {
             setIsOnboardingDialogOpen(true);
           }}

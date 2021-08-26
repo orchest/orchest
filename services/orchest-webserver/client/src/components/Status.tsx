@@ -137,7 +137,11 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
   status,
   ...props
 }) => (
-  <StatusGroupRoot rows={description ? 2 : 1} {...props}>
+  <StatusGroupRoot
+    rows={description ? 2 : 1}
+    {...props}
+    data-test-id={props["data-test-id"]}
+  >
     <StatusGroupIcon>
       {icon ||
         {

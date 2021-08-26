@@ -272,6 +272,8 @@ class Jupyter {
     $(this.iframe).attr("width", "100%");
     // @ts-ignore
     $(this.iframe).attr("height", "100%");
+    // @ts-ignore
+    $(this.iframe).attr("data-test-id", "jupyterlab-iframe");
 
     this.jupyterHolder.append(this.iframe);
   }

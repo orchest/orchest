@@ -826,3 +826,25 @@ def has_active_sessions(project_uuid: str, pipeline_uuid=None):
         + request_args_to_string(args),
     )
     return bool(resp.json()["sessions"])
+
+
+def normalize_project_relative_path(path: str) -> str:
+    # https://stackoverflow.com/questions/52260324/why-os-path-normpath-does-not-remove-the-firsts
+    while path.startswith("/"):
+        path = path[1:]
+    return os.path.normpath(path)
+
+
+def is_valid_project_relative_path(project_uuid, path: str) -> str:
+    project_path = os.path.abspath(
+        os.path.normpath(get_project_directory(project_uuid))
+    )
+    new_path_abs = os.path.abspath(
+        os.path.normpath(
+            os.path.join(
+                get_project_directory(project_uuid),
+                normalize_project_relative_path(path),
+            )
+        )
+    )
+    return new_path_abs.startswith(project_path)

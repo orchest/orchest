@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "name": "@orchest/cypress",
+  "version": "1.0.0",
+  "author": "Orchest B.V.",
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "ts:check": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "15.0.1",
+    "typescript": "4.3.2"
+  }
+}

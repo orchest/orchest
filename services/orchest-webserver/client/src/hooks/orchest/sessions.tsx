@@ -120,12 +120,12 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
       })
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
-          err.json().then((errorBody) => {
+          if (err?.message) {
             dispatch({
               type: "alert",
-              payload: ["Error while starting the session", errorBody?.message],
+              payload: ["Error while starting the session", err.message],
             });
-          });
+          }
 
           console.error(err);
         });
