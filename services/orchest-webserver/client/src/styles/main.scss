@@ -231,7 +231,7 @@ h2 {
 }
 
 .material-icons.inline-icon {
-  position: absolute;
+  position: relative;
   &.push-left {
     margin-left: calc(var(--space-5) / 2);
   }

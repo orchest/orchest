@@ -25,6 +25,7 @@ import {
   MDCDataTableReact,
   MDCLinearProgressReact,
   MDCIconButtonToggleReact,
+  MDCTooltipReact,
 } from "@orchest/lib-mdc";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
@@ -807,6 +808,16 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down", "push-up"]}
                                 data-test-id="pipeline-settings-configuration-memory-eviction"
+                              />
+                              <i
+                                className="material-icons inline-icon push-left"
+                                aria-describedby="tooltip-memory-eviction"
+                              >
+                                info
+                              </i>
+                              <MDCTooltipReact
+                                tooltipID="tooltip-memory-eviction"
+                                tooltip="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input."
                               />
 
                               {props.queryArgs.read_only !== "true" && (
