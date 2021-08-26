@@ -353,7 +353,10 @@ const JobList: React.FC<IJobListProps> = (props) => {
     for (let x = 0; x < jobs.length; x++) {
       // keep only jobs that are related to a project!
       rows.push([
-        <span className="mdc-icon-table-wrapper">
+        <span
+          className="mdc-icon-table-wrapper"
+          data-test-id={`job-${jobs[x].name}`}
+        >
           {jobs[x].name}{" "}
           <span className="consume-click">
             <MDCIconButtonToggleReact
@@ -427,6 +430,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                     editJobName: value,
                   }));
                 }}
+                data-test-id="job-edit-name-textfield"
               />
             </React.Fragment>
           }
@@ -465,6 +469,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 label="Create job"
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 onClick={() => onCreateClick()}
+                data-test-id="job-create"
               />
             </div>
             <DialogContent>
@@ -507,6 +512,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                         ref={refManager.nrefs.formJobName}
                         classNames={["fullwidth push-down"]}
                         label="Job name"
+                        data-test-id="job-create-name"
                       />
 
                       <MDCSelectReact
@@ -539,6 +545,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                   submitButton
                   inputType="submit"
                   form="create-job"
+                  data-test-id="job-create-ok"
                 />
               </DialogFooter>
             </DialogContent>

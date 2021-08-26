@@ -739,7 +739,7 @@ class Pipeline:
 
         # list containers
         docker_client = run_config["docker_client"]
-        containers = docker_client.containers.list()
+        containers = docker_client.containers.list(ignore_removed=True)
 
         container_names_to_kill = set(
             [
@@ -773,7 +773,7 @@ class Pipeline:
         # list containers
         docker_client = run_config["docker_client"]
         # use all=True to get stopped containers
-        containers = docker_client.containers.list(all=True)
+        containers = docker_client.containers.list(all=True, ignore_removed=True)
 
         container_names_to_remove = set(
             [

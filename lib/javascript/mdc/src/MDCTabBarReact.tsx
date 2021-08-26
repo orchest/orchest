@@ -56,7 +56,16 @@ export class MDCTabBarReact extends React.Component<any, any> {
       }
 
       this.buttons.push(
-        <button key={key} className="mdc-tab" role="tab" aria-selected="true">
+        <button
+          key={key}
+          className="mdc-tab"
+          role="tab"
+          aria-selected="true"
+          data-test-id={
+            this.props["data-test-id"] +
+            `-tab-${item.toLowerCase().replace(/[\W]/g, "-")}`
+          }
+        >
           <span className="mdc-tab__content">
             {(() => {
               if (icon) {

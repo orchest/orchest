@@ -51,3 +51,4 @@ interactively or on a cron-like schedule.
    developer_guide/development_workflow
    developer_guide/front_end
    developer_guide/implementation_details
+   developer_guide/testing

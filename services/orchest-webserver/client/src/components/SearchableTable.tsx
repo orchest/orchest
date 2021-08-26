@@ -85,6 +85,7 @@ const SearchableTable = React.forwardRef<
         headers={props.headers}
         rows={filteredRows(props.rows)}
         detailRows={filteredRows(props.detailRows)}
+        data-test-id={props["data-test-id"]}
       />
     </React.Fragment>
   );

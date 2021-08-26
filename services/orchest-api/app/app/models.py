@@ -267,9 +267,9 @@ class Job(BaseModel):
 
     # A list of dictionaries. The length of the list is the number of
     # non interactive runs that will be run, one for each parameters
-    # dictinary. A parameter dictionary maps step uuids to a dictionary,
-    # containing the parameters of that step for that particular run.
-    # [{ <step_uuid>: {"a": 1}, ...}, ...GG]
+    # dictionary. A parameter dictionary maps step uuids to a
+    # dictionary, containing the parameters of that step for that
+    # particular run.  [{ <step_uuid>: {"a": 1}, ...}, ...GG]
     parameters = db.Column(
         JSONB,
         nullable=False,

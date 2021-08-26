@@ -140,7 +140,7 @@ const ImageBuild: React.FC<any> = (props) => {
     <React.Fragment>
       {props.build && (
         <div className="build-notice push-down">
-          <div>
+          <div data-test-id="environments-build-status">
             <span className="build-label">Build status:</span>
             {props.build.status}
           </div>

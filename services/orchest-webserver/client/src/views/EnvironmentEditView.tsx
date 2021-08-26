@@ -442,6 +442,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                 items={["Properties", "Build"]}
                 icons={["tune", "view_headline"]}
                 onChange={onSelectSubview.bind(this)}
+                data-test-id="environments"
               />
             </div>
 
@@ -455,6 +456,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                         label="Environment name"
                         onChange={onChangeName.bind(this)}
                         value={state.environment.name}
+                        data-test-id="environments-env-name"
                       />
 
                       <div className="select-button-columns">
@@ -641,6 +643,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                 onClick={onSave.bind(this)}
                 label={state.unsavedChanges ? "Save*" : "Save"}
                 icon="save"
+                data-test-id="environments-save"
               />
 
               {state.subviewIndex == 1 &&
@@ -652,6 +655,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                     onClick={build.bind(this)}
                     label="Build"
                     icon="memory"
+                    data-test-id="environments-start-build"
                   />
                 ) : (
                   <MDCButtonReact
@@ -660,6 +664,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                     onClick={cancelBuild.bind(this)}
                     label="Cancel build"
                     icon="close"
+                    data-test-id="environments-cancel-build"
                   />
                 ))}
             </div>

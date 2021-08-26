@@ -2199,12 +2199,14 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         state.pendingRunUUIDs !== undefined &&
         state.pendingRunType !== undefined
       ) {
+        let uuids = state.pendingRunUUIDs;
+        let runType = state.pendingRunType;
+        setState({
+          pendingRunUUIDs: undefined,
+          pendingRunType: undefined,
+        });
         savePipeline(() => {
-          _runStepUUIDs(state.pendingRunUUIDs, state.pendingRunType);
-          setState({
-            pendingRunUUIDs: undefined,
-            pendingRunType: undefined,
-          });
+          _runStepUUIDs(uuids, runType);
         });
       } else {
         savePipeline();
@@ -2329,6 +2331,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   label="Back to job"
                   icon="arrow_back"
                   onClick={returnToJob.bind(this, props.queryArgs.job_uuid)}
+                  data-test-id="pipeline-back-to-job"
                 />
               </div>
             )}
@@ -2338,6 +2341,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 <MDCButtonReact
                   onClick={centerView.bind(this)}
                   icon="crop_free"
+                  data-test-id="pipeline-center"
                 />
                 <MDCButtonReact onClick={zoomOut.bind(this)} icon="remove" />
                 <MDCButtonReact onClick={zoomIn.bind(this)} icon="add" />
@@ -2356,6 +2360,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                           ]}
                           onClick={runSelectedSteps.bind(this)}
                           label="Run selected steps"
+                          data-test-id="interactive-run-run-selected-steps"
                         />
                         {selectedStepsHasIncoming && (
                           <MDCButtonReact
@@ -2365,6 +2370,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                             ]}
                             onClick={onRunIncoming.bind(this)}
                             label="Run incoming steps"
+                            data-test-id="interactive-run-run-incoming-steps"
                           />
                         )}
                       </div>
@@ -2378,6 +2384,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                         icon="close"
                         disabled={state.waitingOnCancel}
                         label="Cancel run"
+                        data-test-id="interactive-run-cancel"
                       />
                     </div>
                   )}
@@ -2392,6 +2399,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   onClick={newStep.bind(this)}
                   icon={"add"}
                   label={"NEW STEP"}
+                  data-test-id="step-create"
                 />
               )}
 
@@ -2424,6 +2432,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 onClick={openSettings.bind(this, undefined)}
                 label={"Settings"}
                 icon="tune"
+                data-test-id="pipeline-settings"
               />
 
               {state.eventVars.showServices && servicesAvailable() && (
@@ -2511,6 +2520,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   label={"Delete"}
                   onClick={onDeleteMultistep.bind(this)}
                   icon={"delete"}
+                  data-test-id="step-delete-multi"
                 />
               </div>
             )}

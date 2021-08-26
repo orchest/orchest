@@ -71,7 +71,11 @@ class TwoPhaseExecutor(object):
             self.session.rollback()
             raise exc_val
         else:
-            self.session.commit()
+            try:
+                self.session.commit()
+            except Exception as e:
+                self.session.rollback()
+                raise e
 
         for idx, tpf in enumerate(self.collateral_queue):
             try:

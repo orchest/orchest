@@ -265,6 +265,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
           title="Create a new file"
           onClose={onCloseCreateFileModal.bind(this)}
           ref={refManager.nrefs.createFileDialog}
+          data-test-id="project-file-picker-create-new-file-dialog"
           content={
             <div className="create-file-input">
               <div className="push-down">
@@ -277,6 +278,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
                   label="File name"
                   value={state.fileName}
                   onChange={onChangeNewFilename.bind(this)}
+                  data-test-id="project-file-picker-file-name-textfield"
                 />
                 <MDCSelectReact
                   ref={refManager.nrefs.createFileExtensionDropdown}
@@ -308,6 +310,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
                 label="Create file"
                 submitButton
                 onClick={onSubmitModal.bind(this)}
+                data-test-id="project-file-picker-create-file"
               />
             </React.Fragment>
           }

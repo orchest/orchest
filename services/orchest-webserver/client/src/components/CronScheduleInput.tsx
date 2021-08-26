@@ -7,12 +7,14 @@ export interface ICronScheduleInputProps {
   disabled: boolean;
   cronString: string;
   onChange: (value: string) => void;
+  dataTestId: string;
 }
 
 export const CronScheduleInput: React.FC<ICronScheduleInputProps> = ({
   cronString,
   disabled,
   onChange,
+  dataTestId: dataTestId,
 }) => {
   const [state, setState] = React.useState(cronString);
 
@@ -59,6 +61,7 @@ export const CronScheduleInput: React.FC<ICronScheduleInputProps> = ({
         }}
         classNames={["push-down"]}
         value={state}
+        data-test-id={dataTestId}
       />
       <div className={disabled ? "disabled-text" : ""}>
         {(() => {
