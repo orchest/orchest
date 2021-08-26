@@ -60,7 +60,6 @@ export interface LoadViewSpec {
   TagName: string;
   dynamicProps: object;
   isOnPopState: boolean;
-  processed: boolean;
   onCancelled?: Function;
 }
 

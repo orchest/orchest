@@ -105,7 +105,6 @@ const App = () => {
           TagName: nameToComponent(event.state.viewName),
           dynamicProps: event.state.dynamicProps,
           isOnPopState: true,
-          processed: false,
         },
       });
     }
@@ -113,12 +112,7 @@ const App = () => {
 
   React.useEffect(() => {
     let loadViewSpec = context.state.loadViewSpec;
-    if (
-      loadViewSpec === undefined ||
-      loadViewSpec.processed === undefined ||
-      loadViewSpec.processed
-    )
-      return;
+    if (loadViewSpec === undefined) return;
 
     let TagName = loadViewSpec.TagName;
     let dynamicProps = loadViewSpec.dynamicProps;
@@ -157,7 +151,6 @@ const App = () => {
       };
     }
 
-    loadViewSpec.processed = true;
     if (!context.state.unsavedChanges) {
       conditionalBody();
     } else {
@@ -214,7 +207,6 @@ const App = () => {
         TagName,
         dynamicProps,
         isOnPopState: false,
-        processed: false,
         onCancelled,
       },
     });
