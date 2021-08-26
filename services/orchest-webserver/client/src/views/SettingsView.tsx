@@ -242,10 +242,6 @@ const SettingsView: React.FC<TViewProps> = () => {
   };
 
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
     checkOrchestStatus();
     getConfig();
     getVersion();

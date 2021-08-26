@@ -694,11 +694,6 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
-
     fetchJob();
   }, []);
 

@@ -151,11 +151,6 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   };
 
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
-
     fetchSettings();
     attachResizeListener();
 

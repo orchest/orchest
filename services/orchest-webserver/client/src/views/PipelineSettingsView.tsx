@@ -106,10 +106,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
   // Fetch pipeline data on initial mount
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
     fetchPipelineData();
     handleInitialTab();
     return () => promiseManager.cancelCancelablePromises();

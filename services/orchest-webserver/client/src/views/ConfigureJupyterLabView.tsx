@@ -188,13 +188,7 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
   };
 
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
-
     getSetupScript();
-
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
