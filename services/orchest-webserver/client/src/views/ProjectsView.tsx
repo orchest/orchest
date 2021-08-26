@@ -158,12 +158,14 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         <span>{project.session_count}</span>,
         <span>{project.job_count}</span>,
         <span>{project.environment_count}</span>,
-        <MDCIconButtonToggleReact
-          icon={"settings"}
-          onClick={() => {
-            openSettings(project);
-          }}
-        />,
+        <span className="consume-click">
+          <MDCIconButtonToggleReact
+            icon={"settings"}
+            onClick={() => {
+              openSettings(project);
+            }}
+          />
+        </span>,
       ]);
     }
 
