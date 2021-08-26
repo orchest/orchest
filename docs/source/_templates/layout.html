@@ -16,6 +16,16 @@
       algoliaOptions: { facetFilters: ["lang:en"] },
       debug: false, // Set debug to true if you want to inspect the dropdown
     });
+
+    // Fix absolute positioning rendering in Safari
+    let el = document.querySelector(".vp-sidebar,.sidebar");
+    let newEl = document.createElement("div");
+    newEl.style.position = "fixed";
+    newEl.style.height = "calc(100vh - 3.6rem)";
+    newEl.style.marginTop = "3.6rem";
+    el.insertAdjacentElement("beforebegin", newEl);
+    el.remove();
+    newEl.appendChild(el);
   });
 </script>
 {% endblock %}
