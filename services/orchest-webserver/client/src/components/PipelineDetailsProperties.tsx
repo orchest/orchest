@@ -61,6 +61,11 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
       .then((response) => {
         let result = JSON.parse(response);
 
+        // In case no environments are defined, nothing has to be done.
+        if (result.length === 0) {
+          return;
+        }
+
         let environmentOptions = [];
 
         let currentEnvironmentInEnvironments = false;
