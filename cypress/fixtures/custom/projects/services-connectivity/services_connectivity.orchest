@@ -1,0 +1,111 @@
+{
+    "name": "services-connectivity",
+    "parameters": {},
+    "services": {
+        "postgres": {
+            "env_variables": {
+                "POSTGRES_HOST_AUTH_METHOD": "trust"
+            },
+            "image": "postgres",
+            "name": "postgres",
+            "scope": [
+                "interactive",
+                "noninteractive"
+            ]
+        },
+        "redis": {
+            "image": "redis",
+            "name": "redis",
+            "scope": [
+                "interactive",
+                "noninteractive"
+            ]
+        },
+        "streamlit": {
+            "binds": {
+                "/data": "/data",
+                "/project-dir": "/usr/src/app/src"
+            },
+            "command": "-c 'umask 002 && touch /usr/src/app/src/streamlit.py && streamlit run src/streamlit.py'",
+            "entrypoint": "bash",
+            "env_variables": {
+                "STREAMLIT_SERVER_BASE_URL_PATH": "$BASE_PATH_PREFIX_8501"
+            },
+            "image": "orchest/streamlit",
+            "name": "streamlit",
+            "ports": [
+                8501
+            ],
+            "preserve_base_path": true,
+            "scope": [
+                "interactive",
+                "noninteractive"
+            ]
+        },
+        "tensorboard": {
+            "binds": {
+                "/data": "/data"
+            },
+            "command": "-c 'umask 002 && tensorboard --logdir /data --bind_all'",
+            "entrypoint": "bash",
+            "image": "tensorflow/tensorflow",
+            "name": "tensorboard",
+            "ports": [
+                6006
+            ],
+            "scope": [
+                "interactive"
+            ]
+        },
+        "vscode": {
+            "binds": {
+                "/project-dir": "/home/coder/code-server"
+            },
+            "command": "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
+            "entrypoint": "bash",
+            "image": "codercom/code-server:latest",
+            "name": "vscode",
+            "ports": [
+                8080
+            ],
+            "scope": [
+                "interactive"
+            ]
+        }
+    },
+    "settings": {
+        "auto_eviction": false,
+        "data_passing_memory_size": "1GB"
+    },
+    "steps": {
+        "6b1c5931-8bf7-4587-b3ae-06f7ee5ccb8a": {
+            "environment": "30cfd18d-c5ec-4651-8a9b-6e12c36fc3b5",
+            "file_path": "services-connectivity.ipynb",
+            "incoming_connections": [],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    170.3127159640636,
+                    265.03317208016585
+                ]
+            },
+            "parameters": {
+                "postgres-services": [
+                    "postgres"
+                ],
+                "redis-services": [
+                    "redis"
+                ],
+                "test-output-file": "test-output.json"
+            },
+            "title": "services-connectivity",
+            "uuid": "6b1c5931-8bf7-4587-b3ae-06f7ee5ccb8a"
+        }
+    },
+    "uuid": "90fe72b1-c967-4de7-b027-f68311b93049",
+    "version": "1.0.0"
+}

@@ -1,0 +1,37 @@
+{
+    "name": "dump-env-params",
+    "parameters": {
+        "pipeline-param-A": 1
+    },
+    "services": {},
+    "settings": {
+        "auto_eviction": false,
+        "data_passing_memory_size": "1GB"
+    },
+    "steps": {
+        "bb789d4f-9e8c-462d-8a6d-9b437ca705f7": {
+            "environment": "6ad8d7e3-5172-4806-977e-f3e4c7b6de3f",
+            "file_path": "dump-env-params.ipynb",
+            "incoming_connections": [],
+            "kernel": {
+                "display_name": "Python 3",
+                "name": "python"
+            },
+            "meta_data": {
+                "hidden": false,
+                "position": [
+                    275,
+                    349
+                ]
+            },
+            "parameters": {
+                "step-param-a": 1,
+                "test-output-file": "test-output.json"
+            },
+            "title": "dump-env-params",
+            "uuid": "bb789d4f-9e8c-462d-8a6d-9b437ca705f7"
+        }
+    },
+    "uuid": "e3bde42d-6de2-4e69-a191-56b35deb5cf2",
+    "version": "1.0.0"
+}

@@ -286,6 +286,48 @@ class JobDeletion(Resource):
             return {"message": "Job does not exist."}, 404
 
 
+@api.route("/cronjobs/pause/<string:job_uuid>")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+class CronJobPause(Resource):
+    @api.doc("pause_cronjob")
+    @api.response(200, "Cron job paused")
+    def post(self, job_uuid):
+        """Pauses a cron job."""
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_pause = PauseCronJob(tpe).transaction(job_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_pause:
+            return {"message": "Cron job pausing was successful."}, 200
+        else:
+            return {"message": "Could not pause cron job."}, 409
+
+
+@api.route("/cronjobs/resume/<string:job_uuid>")
+@api.param("job_uuid", "UUID of job")
+@api.response(404, "Job not found")
+class CronJobResume(Resource):
+    @api.doc("resume_cronjob")
+    @api.response(200, "Cron job resumed")
+    def post(self, job_uuid):
+        """Resumes a cron job."""
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                next_scheduled_time = ResumeCronJob(tpe).transaction(job_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if next_scheduled_time is not None:
+            return {"next_scheduled_time": next_scheduled_time}, 200
+        else:
+            return {"message": "Could not resume cron job."}, 409
+
+
 class RunJob(TwoPhaseFunction):
     """Start the pipeline runs related to a job"""
 
@@ -597,7 +639,9 @@ class CreateJob(TwoPhaseFunction):
             "parameters": job_spec["parameters"],
             "env_variables": get_proj_pip_env_variables(
                 job_spec["project_uuid"], job_spec["pipeline_uuid"]
-            ),
+            )
+            if "env_variables" not in job_spec
+            else job_spec["env_variables"],
             # NOTE: the definition of a service is currently
             # persisted to disk and considered to be versioned,
             # meaning that nothing in there is considered to be
@@ -867,3 +911,45 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
     def _collateral(self, project_uuid: str, completed: bool):
         if completed and project_uuid is not None:
             process_stale_environment_images(project_uuid)
+
+
+class PauseCronJob(TwoPhaseFunction):
+    """Pauses a cron job."""
+
+    def _transaction(self, job_uuid):
+        job = (
+            models.Job.query.with_for_update()
+            .filter_by(uuid=job_uuid, status="STARTED")
+            .filter(models.Job.schedule.isnot(None))
+            .one_or_none()
+        )
+        if job is None:
+            return False
+        job.status = "PAUSED"
+        job.next_scheduled_time = None
+        return True
+
+    def _collateral(self):
+        pass
+
+
+class ResumeCronJob(TwoPhaseFunction):
+    """Resumes a cron job."""
+
+    def _transaction(self, job_uuid):
+        job = (
+            models.Job.query.with_for_update()
+            .filter_by(uuid=job_uuid, status="PAUSED")
+            .filter(models.Job.schedule.isnot(None))
+            .one_or_none()
+        )
+        if job is None:
+            return None
+        job.status = "STARTED"
+        job.next_scheduled_time = croniter(
+            job.schedule, datetime.now(timezone.utc)
+        ).get_next(datetime)
+        return str(job.next_scheduled_time)
+
+    def _collateral(self):
+        pass

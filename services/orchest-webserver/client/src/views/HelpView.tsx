@@ -43,13 +43,13 @@ const HelpView: React.FC<TViewProps> = () => {
           </a>
           <a
             className="mdc-list-item"
-            href={state.config.ORCHEST_WEB_URLS.website + "/knowledge-base"}
+            href={state.config.ORCHEST_WEB_URLS.website + "/video-tutorials"}
             target="_blank"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/favicon.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">Knowledge base videos</span>
+            <span className="mdc-list-item__text">Video tutorials</span>
           </a>
           <a
             className="mdc-list-item"
@@ -84,6 +84,7 @@ const HelpView: React.FC<TViewProps> = () => {
         </div>
         <h2 className="push-up">Introduction</h2>
         <MDCButtonReact
+          data-test-id="onboarding-open"
           onClick={() => {
             setIsOnboardingDialogOpen(true);
           }}

@@ -176,8 +176,8 @@ def get_orchest_config() -> dict:
     try:
         with open("/config/config.json") as input_json_file:
             return json.load(input_json_file)
-    except Exception:
-        echo("Could not find the configuration file.")
+    except FileNotFoundError:
+        logger.info("Could not find Orchest's global configuration file.")
         return {}
 
 

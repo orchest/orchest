@@ -39,6 +39,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
             pipelineName={props.pipelineName}
             strategyJSON={state.strategyJSON}
             editParameter={editParameter.bind(this)}
+            data-test-id={props["data-test-id"]}
           />
         </div>
         <div className="column">

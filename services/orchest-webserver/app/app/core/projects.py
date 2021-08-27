@@ -158,6 +158,9 @@ class DeleteProject(TwoPhaseFunction):
 
         # Delete the project directory.
         project_path = project_uuid_to_path(project_uuid)
+        # The project has been deleted by a concurrent deletion request.
+        if project_path is None:
+            return
         full_project_path = os.path.join(
             current_app.config["PROJECTS_DIR"], project_path
         )

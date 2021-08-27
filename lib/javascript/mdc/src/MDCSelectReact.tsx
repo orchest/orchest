@@ -108,6 +108,7 @@ export class MDCSelectReact extends React.Component<any> {
           aria-haspopup="listbox"
           aria-expanded="false"
           aria-labelledby={"selected-text-" + id_uuid}
+          data-test-id={this.props["data-test-id"]}
         >
           {this.props.notched ? (
             <span className="mdc-notched-outline">

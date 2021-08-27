@@ -1,5 +1,8 @@
 import json
+import logging
 import os
+import signal
+import time
 from datetime import datetime
 from typing import Any
 
@@ -64,8 +67,11 @@ def write_environment_dockerfile(
     # These labels are coupled with the logic that marks environment
     # images for removal on update and the deletion of said stale
     # images.
-    statements.append("LABEL _orchest_env_build_is_intermediate=1")
+    # The task uuid is applied first so that if a build is aborted early
+    # any produced artifact will at least have this label and will thus
+    # "searchable" through this label, e.g for cleanups.
     statements.append(f"LABEL _orchest_env_build_task_uuid={task_uuid}")
+    statements.append("LABEL _orchest_env_build_is_intermediate=1")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
 
@@ -330,10 +336,34 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                     f"_orchest_env_build_task_uuid={task_uuid}",
                 ]
             }
+            # Necessary to avoid the case where the abortion of a task
+            # comes too late, leaving a dangling image.
+            if AbortableAsyncResult(task_uuid).is_aborted():
+                filters["label"].pop(0)
 
             # Artifacts of this build (intermediate containers, images,
-            # etc.)
-            cleanup_docker_artifacts(filters)
+            # etc.) The cleanup is done by another process to avoid
+            # keeping the celery task from resolving since some sleep
+            # time is involved. The reason for this is that there is a
+            # race condition in case an abortion happens extremely early
+            # in the build, making it so that it's very difficult to
+            # cleanup without "waiting" a bit. This is because we need
+            # to kill the child process which is building to cancel the
+            # build, but killing it too early makes it so that the
+            # artifacts take some time to become "visible" (thus)
+            # cleanable. I've opted for this solution to save time since
+            # we might be moving to a different containerization
+            # backend.
+            if os.fork() == 0:
+                for _ in range(10):
+                    time.sleep(0.5)
+                    try:
+                        cleanup_docker_artifacts(filters)
+                    except Exception as e:
+                        logging.error(e)
+                # To avoid running any celery code that would run once
+                # the task is done.
+                os.kill(os.getpid(), signal.SIGKILL)
 
             # See if outdated images of this environment can be cleaned
             # up.

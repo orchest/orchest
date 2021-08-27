@@ -97,6 +97,7 @@ export default class Admin extends React.Component {
           <MDCButtonReact
             onClick={this.deleteUser.bind(this, user.username)}
             label="Delete"
+            data-test-id={`delete-user-${user.username}`}
           />
         </div>
       );
@@ -111,6 +112,7 @@ export default class Admin extends React.Component {
             onChange={this.handleInput.bind(this, "newUsername")}
             label="Username"
             name="username"
+            data-test-id="new-user-name"
           />
           <br />
           <MDCTextFieldReact
@@ -119,12 +121,14 @@ export default class Admin extends React.Component {
             label="Password"
             inputType="password"
             name="password"
+            data-test-id="new-user-password"
           />
           <br />
           <MDCButtonReact
             onClick={this.addUser.bind(this)}
             classNames={["mdc-button--raised"]}
             label="Add"
+            data-test-id="add-user"
           />
 
           {this.state.formError && (

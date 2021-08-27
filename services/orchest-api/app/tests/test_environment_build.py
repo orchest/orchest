@@ -41,10 +41,19 @@ def test_environment_build(
     monkeypatch,
 ):
     def mock_cleanup_docker_artifacts(filters):
-        docker_cleanup_uuid_request.append(filters["label"][1].split("=")[1])
+        docker_cleanup_uuid_request.add(filters["label"][-1].split("=")[1])
 
     def mock_put_request(self, url, json=None, *args, **kwargs):
         put_requests.append(json["status"])
+        # We need to mock fork and kill because the cleanup function is
+        # actually called by a forked process. This hack allows us to
+        # verify what docker cleanup attempts are made without
+        # interfering with the SioStreamedTask code which makes use of
+        # fork and kill. This is because these states tell us that the
+        # SioStreamedTask is actually done.
+        if json["status"] in ["ABORTED", "SUCCESS", "FAILURE"]:
+            monkeypatch.setattr(os, "fork", lambda: 0)
+            monkeypatch.setattr(os, "kill", lambda *args, **kwargs: True)
         return MockRequestReponse()
 
     def mock_delete_request(self, url, *args, **kwargs):
@@ -117,7 +126,7 @@ def test_environment_build(
 
     put_requests = []
     delete_requests = []
-    docker_cleanup_uuid_request = []
+    docker_cleanup_uuid_request = set()
 
     # Inputs of the function to be tested.
     task_uuid = "task_uuid"
@@ -157,7 +166,7 @@ def test_environment_build(
     assert delete_requests[0] == (project_uuid, environment_uuid)
 
     assert len(docker_cleanup_uuid_request) == 1
-    assert docker_cleanup_uuid_request[0] == task_uuid
+    assert task_uuid in docker_cleanup_uuid_request
 
     assert socketio_data["has_connected"]
     assert socketio_data["has_disconnected"]

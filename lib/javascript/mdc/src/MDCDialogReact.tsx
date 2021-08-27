@@ -46,6 +46,7 @@ export class MDCDialogReact extends React.Component<any> {
         tabIndex="0"
         aria-labelledby={"dialog-title-" + id_uuid}
         aria-describedby={"dialog-content-" + id_uuid}
+        data-test-id={this.props["data-test-id"]}
       >
         <div className="mdc-dialog__container">
           <div className="mdc-dialog__surface">

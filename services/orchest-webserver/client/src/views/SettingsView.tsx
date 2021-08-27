@@ -29,9 +29,9 @@ const SettingsView: React.FC<TViewProps> = () => {
     // the full JSON config object
     configJSON: undefined,
     version: undefined,
-    unsavedChanges: false,
     requiresRestart: false,
   });
+
   const [promiseManager] = React.useState(new PromiseManager());
 
   const updateView = () => {
@@ -52,20 +52,24 @@ const SettingsView: React.FC<TViewProps> = () => {
       promiseManager
     );
 
-    getConfigPromise.promise.then((data) => {
-      try {
-        let configJSON = JSON.parse(data);
-        let visibleJSON = configToVisibleConfig(configJSON);
+    getConfigPromise.promise
+      .then((data) => {
+        try {
+          let configJSON = JSON.parse(data);
+          let visibleJSON = configToVisibleConfig(configJSON);
 
-        setState((prevState) => ({
-          ...prevState,
-          configJSON,
-          config: JSON.stringify(visibleJSON, null, 2),
-        }));
-      } catch (error) {
-        console.warn("Received invalid JSON config from the server.");
-      }
-    });
+          setState((prevState) => ({
+            ...prevState,
+            configJSON,
+            config: JSON.stringify(visibleJSON, null, 2),
+          }));
+        } catch (error) {
+          console.warn("Received invalid JSON config from the server.");
+        }
+        // Needs to be here in case the request is cancelled, will otherwise
+        // result in an uncaught error that can throw off cypress.
+      })
+      .catch((error) => console.log(error));
   };
 
   const onClickManageUsers = () => {
@@ -123,11 +127,15 @@ const SettingsView: React.FC<TViewProps> = () => {
       setState((prevState) => ({
         ...prevState,
         configJSON: joinedConfig,
-        unsavedChanges: false,
         requiresRestart: REQUIRES_RESTART_ON_CHANGE.some(
           (key) => state.configJSON[key] != joinedConfig[key]
         ),
       }));
+
+      context.dispatch({
+        type: "setUnsavedChanges",
+        payload: false,
+      });
 
       makeRequest("POST", "/async/user-config", {
         type: "FormData",
@@ -243,13 +251,6 @@ const SettingsView: React.FC<TViewProps> = () => {
     getVersion();
   }, []);
 
-  React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
-
   return (
     <Layout>
       <div className={"view-page orchest-settings"}>
@@ -280,8 +281,11 @@ const SettingsView: React.FC<TViewProps> = () => {
                         setState((prevState) => ({
                           ...prevState,
                           config: value,
-                          unsavedChanges: state.config != value,
                         }));
+                        context.dispatch({
+                          type: "setUnsavedChanges",
+                          payload: state.config != value,
+                        });
                       }}
                     />
 
@@ -341,7 +345,7 @@ const SettingsView: React.FC<TViewProps> = () => {
                         "mdc-button--raised",
                         "themed-secondary",
                       ]}
-                      label={state.unsavedChanges ? "SAVE*" : "SAVE"}
+                      label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                       icon="save"
                       onClick={saveConfig.bind(this, state.config)}
                     />
@@ -431,6 +435,7 @@ const SettingsView: React.FC<TViewProps> = () => {
                       label="Restart"
                       icon="power_settings_new"
                       onClick={restartOrchest.bind(this)}
+                      data-test-id="restart"
                     />
                   </React.Fragment>
                 );
@@ -461,6 +466,7 @@ const SettingsView: React.FC<TViewProps> = () => {
               onClick={onClickManageUsers.bind(this)}
               icon="people"
               label="Manage users"
+              data-test-id="manage-users"
             />
           </div>
           <div className="clear"></div>

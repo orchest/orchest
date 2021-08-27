@@ -1,0 +1,33 @@
+.sidebar .searchbox,
+.vp-sidebar .searchbox {
+  padding: 1.5rem !important;
+}
+
+.sidebar .searchbox .caption-text,
+.vp-sidebar .searchbox .caption-text {
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.sidebar,
+.vp-sidebar {
+  position: static !important;
+}
+
+.sidebar form.search input[type="text"],
+.vp-sidebar form.search input[type="text"] {
+  padding: 4px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#searchbox {
+  width: 100%;
+}
+
+/* Algolia search overlay fix */
+.ds-dropdown-menu {
+  position: fixed !important;
+  top: auto !important;
+}

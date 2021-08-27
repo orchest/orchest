@@ -1,6 +1,9 @@
 Installation
 ============
 
+.. tip::
+   Be sure to check out the :ref:`quickstart tutorial <quickstart>` after installing Orchest.
+
 Orchest can be run on Linux, macOS and Windows (using the exact same steps!).
 
 Prerequisites
@@ -18,7 +21,8 @@ If you do not yet have Docker installed, please visit https://docs.docker.com/ge
 
 Linux, macOS and Windows
 ------------------------
-Simply follow the steps below to install Orchest.
+Simply follow the steps below to install Orchest or signup for the free-of-charge `Orchest Cloud
+<https://cloud.orchest.io/signup>`_ and get a fully configured Orchest instance out of the box!
 
 .. code-block:: bash
 
@@ -26,7 +30,7 @@ Simply follow the steps below to install Orchest.
    ./orchest install
 
    # Verify the installation.
-   ./orchest --help
+   ./orchest version --ext
 
    # Start Orchest.
    ./orchest start
@@ -85,7 +89,10 @@ You can expect the build to finish in roughly 15 minutes.
    ./orchest install
 
    # Verify the installation.
-   ./orchest --help
+   ./orchest version --ext
+
+   # Start Orchest.
+   ./orchest start
 
 .. tip::
 

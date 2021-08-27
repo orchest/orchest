@@ -148,3 +148,7 @@ dmypy.json
 # Orchest debug dump directory/file
 debug-dump
 debug-dump.tar.gz
+
+# Cypress output
+cypress/videos
+cypress/screenshots

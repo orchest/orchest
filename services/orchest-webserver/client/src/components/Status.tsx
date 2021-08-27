@@ -17,6 +17,7 @@ export type TStatus =
   | "DRAFT"
   | "PENDING"
   | "STARTED"
+  | "PAUSED"
   | "SUCCESS"
   | "ABORTED"
   | "FAILURE"
@@ -59,6 +60,12 @@ export const StatusInline: React.FC<IStatusInlineProps> = ({
           <React.Fragment>
             <IconClockOutline css={{ color: "$warning" }} />
             Running…
+          </React.Fragment>
+        ),
+        PAUSED: (
+          <React.Fragment>
+            <IconClockOutline css={{ color: "$gray500" }} />
+            Paused
           </React.Fragment>
         ),
         PENDING: (
@@ -130,7 +137,11 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
   status,
   ...props
 }) => (
-  <StatusGroupRoot rows={description ? 2 : 1} {...props}>
+  <StatusGroupRoot
+    rows={description ? 2 : 1}
+    {...props}
+    data-test-id={props["data-test-id"]}
+  >
     <StatusGroupIcon>
       {icon ||
         {
@@ -139,6 +150,7 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
             <IconDraftCircleOutline size="full" css={{ color: "$gray500" }} />
           ),
           STARTED: <IconClockOutline size="full" css={{ color: "$warning" }} />,
+          PAUSED: <IconClockOutline size="full" css={{ color: "$gray500" }} />,
           PENDING: <IconClockOutline size="full" css={{ color: "$warning" }} />,
           FAILURE: (
             <IconCrossCircleOutline size="full" css={{ color: "$error" }} />

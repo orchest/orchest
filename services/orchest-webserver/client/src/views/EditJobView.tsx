@@ -6,6 +6,7 @@ import {
   MDCButtonReact,
   MDCLinearProgressReact,
   MDCRadioReact,
+  MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
   makeRequest,
@@ -52,7 +53,6 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     pipeline: undefined,
     cronString: undefined,
     strategyJSON: {},
-    unsavedChanges: false,
   });
 
   const [refManager] = React.useState(new RefManager());
@@ -85,10 +85,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
             strategyJSON: job.strategy_json,
           }));
         } else {
-          setState((prevState) => ({
-            ...prevState,
-            unsavedChanges: true,
-          }));
+          context.dispatch({
+            type: "setUnsavedChanges",
+            payload: true,
+          });
         }
 
         setState((prevState) => ({ ...prevState, shouldFetchPipeline: true }));
@@ -118,7 +118,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
         let strategyJSON;
 
-        if (state.job.status === "DRAFT") {
+        // Do not generate another strategy_json if it has been defined
+        // already.
+        if (
+          state.job.status === "DRAFT" &&
+          Object.keys(state.job.strategy_json).length === 0
+        ) {
           strategyJSON = generateStrategyJson(pipeline);
         } else {
           strategyJSON = state.job.strategy_json;
@@ -130,7 +135,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
           selectedIndices,
         ] = generateWithStrategy(strategyJSON);
 
-        if (state.job.status !== "DRAFT") {
+        // Account for the fact that a job might have a list of
+        // parameters already defined, i.e. when editing a non draft
+        // job or when duplicating a job.
+        if (state.job.parameters.length > 0) {
           // Determine selection based on strategyJSON
           selectedIndices = parseParameters(
             state.job.parameters,
@@ -237,6 +245,13 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       selectedTabIndex: index,
+    }));
+  };
+
+  const handleJobNameChange = (name) => {
+    setState((prevState) => ({
+      ...prevState,
+      job: { ...prevState.job, name: name },
     }));
   };
 
@@ -361,8 +376,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       runJobLoading: true,
-      unsavedChanges: false,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: false,
+    });
 
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
@@ -420,9 +438,13 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       .then(() => {
         setState((prevState) => ({
           ...prevState,
-          unsavedChanges: false,
           runJobCompleted: true,
         }));
+
+        context.dispatch({
+          type: "setUnsavedChanges",
+          payload: false,
+        });
       })
       .catch((response) => {
         if (!response.isCanceled) {
@@ -431,9 +453,13 @@ const EditJobView: React.FC<TViewProps> = (props) => {
             orchest.alert("Error", "Failed to start job. " + result.message);
             setState((prevState) => ({
               ...prevState,
-              unsavedChanges: false,
               runJobCompleted: true,
             }));
+
+            context.dispatch({
+              type: "setUnsavedChanges",
+              payload: false,
+            });
           } catch (error) {
             console.log("error");
           }
@@ -467,13 +493,18 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       // saving changes
       setState((prevState) => ({
         ...prevState,
-        unsavedChanges: false,
       }));
+
+      context.dispatch({
+        type: "setUnsavedChanges",
+        payload: false,
+      });
 
       let putJobRequest = makeCancelable(
         makeRequest("PUT", `/catch/api-proxy/api/jobs/${state.job.uuid}`, {
           type: "json",
           content: {
+            name: state.job.name,
             cron_schedule: cronSchedule,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
@@ -560,8 +591,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       selectedIndices: selectedIndices,
-      unsavedChanges: true,
     }));
+
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const parameterValueOverride = (strategyJSON, parameters) => {
@@ -582,8 +617,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       ...prevState,
       cronString: cronString,
       scheduleOption: "cron",
-      unsavedChanges: true,
     }));
+
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const addEnvVariablePair = (e) => {
@@ -598,8 +637,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
           value: null,
         },
       ]),
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const onEnvVariablesChange = (value, idx, type) => {
@@ -609,8 +651,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       envVariables: envVariables,
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const onEnvVariablesDeletion = (idx) => {
@@ -619,8 +664,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     setState((prevState) => ({
       ...prevState,
       envVariables: envVariables,
-      unsavedChanges: true,
     }));
+    context.dispatch({
+      type: "setUnsavedChanges",
+      payload: true,
+    });
   };
 
   const detailRows = (pipelineParameters, strategyJSON) => {
@@ -650,13 +698,6 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   }, []);
 
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: state.unsavedChanges,
-    });
-  }, [state.unsavedChanges]);
-
-  React.useEffect(() => {
     if (
       state.shouldFetchPipeline &&
       state.job?.pipeline_uuid &&
@@ -682,18 +723,22 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   return (
     <Layout>
       <div className="view-page job-view">
+        <h2>Edit job</h2>
         {state.job && state.pipeline ? (
           <React.Fragment>
-            <DescriptionList
-              gap="5"
-              columnGap="10"
-              columns={{ initial: 1, "@lg": 2 }}
-              css={{ marginBottom: "$5" }}
-              items={[
-                { term: "Job", details: state.job.name },
-                { term: "pipeline", details: state.pipeline.name },
-              ]}
-            />
+            <div className="columns">
+              <div className="column">
+                <MDCTextFieldReact
+                  label="Job name"
+                  value={state.job.name}
+                  onChange={handleJobNameChange}
+                />
+              </div>
+              <div className="column">
+                <p>Pipeline</p>
+                <span className="largeText">{state.pipeline.name}</span>
+              </div>
+            </div>
 
             <MDCTabBarReact
               selectedIndex={state.selectedTabIndex}
@@ -710,6 +755,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
               ]}
               icons={["schedule", "tune", "view_comfy", "list"]}
               onChange={onSelectSubview.bind(this)}
+              data-test-id="job-edit"
             />
 
             <div className="tab-view">
@@ -731,6 +777,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                   scheduleOption: "now",
                                 }));
                               }}
+                              data-test-id="job-edit-schedule-now"
                             />
                           </div>
                           <div className="push-down">
@@ -745,6 +792,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                   scheduleOption: "scheduled",
                                 }));
                               }}
+                              data-test-id="job-edit-schedule-date"
                             />
                           </div>
                           <div>
@@ -757,6 +805,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                   scheduleOption: "scheduled",
                                 }))
                               }
+                              data-test-id="job-edit-schedule-date-input"
                             />
                           </div>
                         </div>
@@ -775,6 +824,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                                 scheduleOption: "cron",
                               }));
                             }}
+                            data-test-id="job-edit-schedule-cronjob"
                           />
                         </div>
                       )}
@@ -784,6 +834,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                           cronString={state.cronString}
                           onChange={setCronSchedule.bind(this)}
                           disabled={state.scheduleOption !== "cron"}
+                          dataTestId="job-edit-schedule-cronjob-input"
                         />
                       </div>
                     </div>
@@ -804,10 +855,14 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                             generatedPipelineRuns,
                             generatedPipelineRunRows,
                             selectedIndices,
-                            unsavedChanges: true,
                           }));
+                          context.dispatch({
+                            type: "setUnsavedChanges",
+                            payload: true,
+                          });
                         }}
                         strategyJSON={_.cloneDeep(state.strategyJSON)}
+                        data-test-id="job-edit"
                       />
                     </div>
                   ),
@@ -824,6 +879,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                           onEnvVariablesChange(e, idx, type)
                         }
                         onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                        data-test-id="job-edit"
                       />
                     </div>
                   ),
@@ -841,6 +897,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                         onSelectionChanged={onPipelineRunsSelectionChanged.bind(
                           this
                         )}
+                        data-test-id="job-edit-pipeline-runs"
                       />
                     </div>
                   ),
@@ -856,6 +913,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   onClick={attemptRunJob.bind(this)}
                   icon="play_arrow"
                   label="Run job"
+                  data-test-id="job-run"
                 />
               )}
               {state.job.status !== "DRAFT" && (
@@ -864,12 +922,14 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   onClick={putJobChanges.bind(this)}
                   icon="save"
                   label="Update job"
+                  data-test-id="job-update"
                 />
               )}
               <MDCButtonReact
                 onClick={cancel.bind(this)}
                 label="Cancel"
                 icon="close"
+                data-test-id="update-job"
               />
             </div>
           </React.Fragment>

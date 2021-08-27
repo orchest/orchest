@@ -1,21 +1,17 @@
 Orchest
 =======
 
-`Website <https://www.orchest.io>`_
--- `GitHub <http://www.github.com/orchest/orchest>`_
--- `Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_
-
 .. tip::
-   👉 Get started with the :ref:`quickstart <quickstart>`! Or if you like watching short informative
-   videos checkout our `knowledge base <https://www.orchest.io/knowledge-base>`_.
+   👉 Get started with the :ref:`quickstart <quickstart>`!
 
-Orchest is a tool for creating data science pipelines. Orchest enables you to develop, train and run
-your models on the cloud without any knowledge of cloud infrastructure.
+Orchest is a tool for building data pipelines, made to be easy to use.
 
-A pipeline in Orchest can be thought of as a graph consisting of executable files within their own
-isolated environment (powered by containerization). You get to describe the execution order of these
-executable files through our visual pipeline editor. After coding your scripts, Orchest allows you
-to select and run any subset of the pipeline whilst keeping in mind the defined execution order.
+A pipeline in Orchest can be thought of as a graph, where the nodes are executable files that
+execute within their own
+isolated environment (powered by containerization), and the edges/connections define the way the data flows. All defined through our visual pipeline editor.
+
+After coding your Notebooks and scripts, Orchest let's you run any subset of the pipeline either
+interactively or on a cron-like schedule.
 
 .. note::
    Orchest is in alpha.
@@ -55,3 +51,4 @@ to select and run any subset of the pipeline whilst keeping in mind the defined 
    developer_guide/development_workflow
    developer_guide/front_end
    developer_guide/implementation_details
+   developer_guide/testing

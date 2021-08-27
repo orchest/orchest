@@ -20,7 +20,7 @@ sys.path.insert(0, os.path.abspath("../../orchest-sdk/python"))
 # -- Project information ----------------------------------------------
 
 project = "Orchest"
-copyright = "2020, Orchest Software B.V."
+copyright = "2021, Orchest Software B.V."
 author = "Rick Lamers, Yannick Perrenet"
 
 # The full version, including alpha/beta/rc tags
@@ -39,7 +39,6 @@ master_doc = "index"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx_rtd_theme",
     "myst_parser",
     "sphinx.ext.autodoc",
     "sphinx.ext.napoleon",
@@ -65,13 +64,22 @@ autodoc_docstring_signature = True
 
 # The theme to use for HTML and HTML Help pages.  See the documentation
 # for a list of builtin themes.
-#
-html_theme = "sphinx_rtd_theme"
-html_theme_options = {"display_version": True}
+html_theme = "press"
+html_theme_options = {
+    "external_links": [
+        ("Website", "https://orchest.io"),
+        ("Github", "https://github.com/orchest/orchest"),
+    ]
+}
+html_sidebars = {"**": ["searchbox.html", "util/sidetoc.html"]}
+
 
 # Add any paths that contain custom static files (such as style sheets)
 # here, relative to this directory. They are copied after the builtin
 # static files, so a file named "default.css" will overwrite the
 # builtin "default.css".
 html_static_path = ["_static"]
-html_static_path = []
+
+html_css_files = [
+    "css/custom_styles.css",
+]

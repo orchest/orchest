@@ -1,0 +1,11 @@
+{
+  "baseUrl": "http://localhost:8000",
+  "ignoreTestFiles": "**/examples/*",
+  "testFiles": "**/*.spec.{ts,tsx}",
+  "chromeWebSecurity": false,
+  "video": true,
+  "videoCompression": false,
+  "videoUploadOnPasses": false,
+  "defaultCommandTimeout": 10000,
+  "numTestsKeptInMemory": 1
+}

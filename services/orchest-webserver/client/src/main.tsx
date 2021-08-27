@@ -24,19 +24,21 @@ declare global {
 // Load after fonts are ready, required by MDC
 window.addEventListener("load", () => {
   document.fonts.ready.then(() => {
-    makeRequest("GET", "/async/server-config").then((result) => {
-      let config = JSON.parse(result as string);
+    makeRequest("GET", "/async/server-config")
+      .then((result) => {
+        let config = JSON.parse(result as string);
 
-      ReactDOM.render(
-        <LazyMotion features={domMax}>
-          <DesignSystemProvider>
-            <OrchestProvider {...config}>
-              <App />
-            </OrchestProvider>
-          </DesignSystemProvider>
-        </LazyMotion>,
-        document.querySelector("#root")
-      );
-    });
+        ReactDOM.render(
+          <LazyMotion features={domMax}>
+            <DesignSystemProvider>
+              <OrchestProvider {...config}>
+                <App />
+              </OrchestProvider>
+            </DesignSystemProvider>
+          </LazyMotion>,
+          document.querySelector("#root")
+        );
+      })
+      .catch((e) => console.log(e));
   });
 });
