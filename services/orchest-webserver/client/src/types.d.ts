@@ -57,10 +57,10 @@ export interface IOrchestSession extends IOrchestSessionUuid {
 
 export interface LoadViewSpec {
   // From window.onpopstate.
-  TagName: string;
+  TagName: React.FunctionComponent;
   dynamicProps: object;
   isOnPopState: boolean;
-  onCancelled?: Function;
+  onCancelled?: () => void;
 }
 
 export interface IOrchestState

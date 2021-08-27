@@ -108,7 +108,7 @@ const ImageBuild: React.FC<any> = (props) => {
     connectSocketIO();
     fitTerminal();
     setIsPolling(true);
-    window.addEventListener("resize", fitTerminal.bind(this));
+    window.addEventListener("resize", fitTerminal);
 
     // Fetch build on initial load
     buildRequest();
@@ -116,7 +116,7 @@ const ImageBuild: React.FC<any> = (props) => {
     return () => {
       if (socket) socket.close();
       promiseManager.cancelCancelablePromises();
-      window.removeEventListener("resize", fitTerminal.bind(this));
+      window.removeEventListener("resize", fitTerminal);
     };
   }, []);
 

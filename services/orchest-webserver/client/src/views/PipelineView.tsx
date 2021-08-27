@@ -1,5 +1,5 @@
 // @ts-nocheck
-import * as React from "react";
+import React from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -143,8 +143,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const loadViewInEdit = () => {
-    let newProps = {};
-    Object.assign(newProps, props);
+    let newProps: Record<string, any> = { ...props };
     newProps.queryArgs.read_only = "false";
     newProps.key = uuidv4();
     // open in non-read only
@@ -1773,7 +1772,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     // initialize interval
     clearInterval(state.timers.pipelineStepStatusPollingInterval);
     state.timers.pipelineStepStatusPollingInterval = setInterval(
-      pollPipelineStepStatuses.bind(this),
+      pollPipelineStepStatuses,
       STATUS_POLL_FREQUENCY
     );
   };
@@ -2091,7 +2090,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return rect;
   };
 
-  const returnToJob = (job_uuid) => {
+  const returnToJob = (job_uuid: string) => {
     orchest.loadView(JobView, {
       queryArgs: {
         job_uuid,
@@ -2116,9 +2115,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           selected={selected}
           ref={state.refManager.nrefs[step.uuid]}
           executionState={getStepExecutionState(step.uuid)}
-          onConnect={makeConnection.bind(this)}
-          onClick={onClickStepHandler.bind(this)}
-          onDoubleClick={onDoubleClickStepHandler.bind(this)}
+          onConnect={makeConnection}
+          onClick={onClickStepHandler}
+          onDoubleClick={onDoubleClickStepHandler}
         />
       );
     }
@@ -2330,7 +2329,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   classNames={["mdc-button--outlined"]}
                   label="Back to job"
                   icon="arrow_back"
-                  onClick={returnToJob.bind(this, props.queryArgs.job_uuid)}
+                  onClick={() => returnToJob(props.queryArgs.job_uuid)}
                   data-test-id="pipeline-back-to-job"
                 />
               </div>
@@ -2339,12 +2338,12 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             <div className="pipeline-actions bottom-left">
               <div className="navigation-buttons">
                 <MDCButtonReact
-                  onClick={centerView.bind(this)}
+                  onClick={centerView}
                   icon="crop_free"
                   data-test-id="pipeline-center"
                 />
-                <MDCButtonReact onClick={zoomOut.bind(this)} icon="remove" />
-                <MDCButtonReact onClick={zoomIn.bind(this)} icon="add" />
+                <MDCButtonReact onClick={zoomOut} icon="remove" />
+                <MDCButtonReact onClick={zoomIn} icon="add" />
               </div>
 
               {props.queryArgs.read_only !== "true" ? (
@@ -2358,7 +2357,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                             "mdc-button--raised",
                             "themed-secondary",
                           ]}
-                          onClick={runSelectedSteps.bind(this)}
+                          onClick={runSelectedSteps}
                           label="Run selected steps"
                           data-test-id="interactive-run-run-selected-steps"
                         />
@@ -2368,7 +2367,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                               "mdc-button--raised",
                               "themed-secondary",
                             ]}
-                            onClick={onRunIncoming.bind(this)}
+                            onClick={onRunIncoming}
                             label="Run incoming steps"
                             data-test-id="interactive-run-run-incoming-steps"
                           />
@@ -2380,7 +2379,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                     <div className="selection-buttons">
                       <MDCButtonReact
                         classNames={["mdc-button--raised"]}
-                        onClick={cancelRun.bind(this)}
+                        onClick={cancelRun}
                         icon="close"
                         disabled={state.waitingOnCancel}
                         label="Cancel run"
@@ -2396,7 +2395,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               {props.queryArgs.read_only !== "true" && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
-                  onClick={newStep.bind(this)}
+                  onClick={newStep}
                   icon={"add"}
                   label={"NEW STEP"}
                   data-test-id="step-create"
@@ -2413,7 +2412,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={openLogs.bind(this)}
+                onClick={openLogs}
                 label={"Logs"}
                 icon="view_headline"
               />
@@ -2421,7 +2420,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               {servicesAvailable() && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
-                  onClick={showServices.bind(this)}
+                  onClick={showServices}
                   label={"Services"}
                   icon="settings"
                 />
@@ -2429,7 +2428,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={openSettings.bind(this, undefined)}
+                onClick={() => openSettings(undefined)}
                 label={"Settings"}
                 icon="tune"
                 data-test-id="pipeline-settings"
@@ -2448,7 +2447,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                           ? "Edit"
                           : "View") + " services"
                       }
-                      onClick={openSettings.bind(this, "services")}
+                      onClick={() => openSettings("services")}
                     />
                   </div>
                 </div>
@@ -2458,9 +2457,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             <div
               className="pipeline-steps-outer-holder"
               ref={state.refManager.nrefs.pipelineStepsOuterHolder}
-              onMouseMove={onPipelineStepsOuterHolderMove.bind(this)}
-              onMouseDown={onPipelineStepsOuterHolderDown.bind(this)}
-              onWheel={onPipelineStepsOuterHolderWheel.bind(this)}
+              onMouseMove={onPipelineStepsOuterHolderMove}
+              onMouseDown={onPipelineStepsOuterHolderDown}
+              onWheel={onPipelineStepsOuterHolderWheel}
             >
               <div
                 className="pipeline-steps-holder"
@@ -2491,13 +2490,13 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           {state.eventVars.openedStep && (
             <PipelineDetails
               key={state.eventVars.openedStep}
-              onSave={onSaveDetails.bind(this)}
-              onNameUpdate={stepNameUpdate.bind(this)}
-              onDelete={onDetailsDelete.bind(this)}
-              onClose={onCloseDetails.bind(this)}
-              onOpenFilePreviewView={onOpenFilePreviewView.bind(this)}
-              onOpenNotebook={onOpenNotebook.bind(this)}
-              onChangeView={onDetailsChangeView.bind(this)}
+              onSave={onSaveDetails}
+              onNameUpdate={stepNameUpdate}
+              onDelete={onDetailsDelete}
+              onClose={onCloseDetails}
+              onOpenFilePreviewView={onOpenFilePreviewView}
+              onOpenNotebook={onOpenNotebook}
+              onChangeView={onDetailsChangeView}
               connections={connections_list}
               defaultViewIndex={state.defaultDetailViewIndex}
               pipeline={state.pipelineJson}
@@ -2518,7 +2517,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
                   label={"Delete"}
-                  onClick={onDeleteMultistep.bind(this)}
+                  onClick={onDeleteMultistep}
                   icon={"delete"}
                   data-test-id="step-delete-multi"
                 />

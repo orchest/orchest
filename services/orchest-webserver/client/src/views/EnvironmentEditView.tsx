@@ -282,7 +282,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
         <MDCDialogReact
           title="Add custom base image"
           ref={refManager.nrefs.addCustomBaseImageDialog}
-          onClose={onCloseAddCustomBaseImageDialog.bind(this)}
+          onClose={onCloseAddCustomBaseImageDialog}
           content={
             <div>
               <MDCTextFieldReact
@@ -302,14 +302,14 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
               <MDCButtonReact
                 classNames={["push-right"]}
                 label="Cancel"
-                onClick={onCancelAddCustomBaseImageDialog.bind(this)}
+                onClick={onCancelAddCustomBaseImageDialog}
               />
               <MDCButtonReact
                 label="Add"
                 icon="check"
                 classNames={["mdc-button--raised"]}
                 submitButton
-                onClick={submitAddCustomBaseImage.bind(this)}
+                onClick={submitAddCustomBaseImage}
               />
             </React.Fragment>
           }
@@ -455,7 +455,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
               <MDCButtonReact
                 label="Back to environments"
                 icon="arrow_back"
-                onClick={returnToEnvironments.bind(this)}
+                onClick={returnToEnvironments}
               />
             </div>
 
@@ -465,7 +465,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                 selectedIndex={state.subviewIndex}
                 items={["Properties", "Build"]}
                 icons={["tune", "view_headline"]}
-                onChange={onSelectSubview.bind(this)}
+                onChange={onSelectSubview}
                 data-test-id="environments"
               />
             </div>
@@ -478,7 +478,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                       <MDCTextFieldReact
                         classNames={["fullwidth", "push-down-7"]}
                         label="Environment name"
-                        onChange={onChangeName.bind(this)}
+                        onChange={onChangeName}
                         value={state.environment.name}
                         data-test-id="environments-env-name"
                       />
@@ -488,14 +488,14 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                           ref={refManager.nrefs.environmentName}
                           classNames={["fullwidth"]}
                           label="Base image"
-                          onChange={onChangeBaseImage.bind(this)}
+                          onChange={onChangeBaseImage}
                           value={state.environment.base_image}
                           options={state.baseImages.map((el) => [el])}
                         />
                         <MDCButtonReact
                           icon="add"
                           label="Custom image"
-                          onClick={onAddCustomBaseImage.bind(this)}
+                          onClick={onAddCustomBaseImage}
                         />
                         <div className="clear"></div>
                       </div>
@@ -508,7 +508,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                         label="Language"
                         classNames={["fullwidth"]}
                         ref={refManager.nrefs.environmentLanguage}
-                        onChange={onChangeLanguage.bind(this)}
+                        onChange={onChangeLanguage}
                         options={[
                           ["python", LANGUAGE_MAP["python"]],
                           ["r", LANGUAGE_MAP["r"]],
@@ -533,7 +533,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                       })()}
 
                       <MDCCheckboxReact
-                        onChange={onGPUChange.bind(this)}
+                        onChange={onGPUChange}
                         label="GPU support"
                         classNames={["push-down-7"]}
                         value={state.environment.gpu_support}
@@ -653,8 +653,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                           "-" +
                           state.environment.uuid
                         }
-                        onUpdateBuild={onUpdateBuild.bind(this)}
-                        onBuildStart={onBuildStart.bind(this)}
+                        onUpdateBuild={onUpdateBuild}
+                        onBuildStart={onBuildStart}
                         ignoreIncomingLogs={state.ignoreIncomingLogs}
                         build={state.environmentBuild}
                         building={state.building}
@@ -668,7 +668,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
             <div className="multi-button">
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
-                onClick={onSave.bind(this)}
+                onClick={onSave}
                 label={context.state.unsavedChanges ? "Save*" : "Save"}
                 icon="save"
                 data-test-id="environments-save"
@@ -680,7 +680,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                   <MDCButtonReact
                     disabled={state.buildRequestInProgress}
                     classNames={["mdc-button--raised"]}
-                    onClick={build.bind(this)}
+                    onClick={build}
                     label="Build"
                     icon="memory"
                     data-test-id="environments-start-build"
@@ -689,7 +689,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                   <MDCButtonReact
                     disabled={state.cancelBuildRequestInProgress}
                     classNames={["mdc-button--raised"]}
-                    onClick={cancelBuild.bind(this)}
+                    onClick={cancelBuild}
                     label="Cancel build"
                     icon="close"
                     data-test-id="environments-cancel-build"

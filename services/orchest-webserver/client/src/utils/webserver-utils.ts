@@ -97,16 +97,17 @@ export function nameToComponent(viewName) {
   return getComponentObject()[viewName];
 }
 
-export function componentName(TagName) {
+export function componentName(CustomComponent: React.FunctionComponent) {
   let viewComponents = getComponentObject();
   for (let viewName of Object.keys(viewComponents)) {
-    if (viewComponents[viewName] === TagName) {
+    if (viewComponents[viewName] === CustomComponent) {
       return viewName;
     }
   }
   if (process.env.NODE_ENV === "development") {
-    console.log("Was not able to get componentName for TagName " + TagName);
+    console.log("Was not able to get componentName for " + CustomComponent);
   }
+  return "";
 }
 
 export function isValidEnvironmentVariableName(name) {
@@ -285,17 +286,16 @@ export class OverflowListener {
     // check if ResizeObserver is defined
     if (window.ResizeObserver) {
       // trigger-overflow only supports a single element on the page
-      // @ts-ignore
+
       let triggerOverflow = $(".trigger-overflow").first()[0];
       if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
         new ResizeObserver(() => {
           if (triggerOverflow) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             if ($(triggerOverflow).overflowing()) {
-              // @ts-ignore
               $(".observe-overflow").addClass("overflowing");
             } else {
-              // @ts-ignore
               $(".observe-overflow").removeClass("overflowing");
             }
           }
@@ -541,7 +541,7 @@ export function viewNameToURIPathComponent(viewName) {
   return dashify(viewName);
 }
 
-export function generateRoute(TagName, dynamicProps) {
+export function generateRoute(TagName: React.FunctionComponent, dynamicProps) {
   // returns: [pathname, search]
   let search = queryArgPropsToQueryArgs(
     dynamicProps ? dynamicProps.queryArgs : {}

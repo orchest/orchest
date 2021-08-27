@@ -65,7 +65,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
           <div className="parameter-key">{parameterKey}:</div>
           <div
             className={parameterValueClasses.join(" ")}
-            onClick={onEditParameter.bind(this, parameterKey, stepStrategy.key)}
+            onClick={() => onEditParameter(parameterKey, stepStrategy.key)}
             data-test-id={
               props["data-test-id"] + `-parameter-row-${parameterKey}-value`
             }
