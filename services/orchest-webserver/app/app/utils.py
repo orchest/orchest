@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import uuid
+from typing import List, Optional
 from urllib.parse import unquote
 
 import requests
@@ -11,6 +12,7 @@ from flask import Response, current_app
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import is_services_definition_valid
+from app import error
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -250,6 +252,63 @@ def delete_environment(app, project_uuid, environment_uuid):
     environment_dir = get_environment_directory(environment_uuid, project_uuid)
     rmtree(environment_dir)
 
+    # Delete the environment from all pipeline definitions in the
+    # project.
+    pipeline_uuids = _get_all_pipeline_uuids_in_project(project_uuid)
+
+    for pipeline_uuid in pipeline_uuids:
+        pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
+
+        if pipeline_json is None:
+            current_app.logger.error(
+                f"Failed to delete environment {environment_uuid} from pipeline JSON."
+            )
+
+        updated_pipeline_json = False
+        for step in pipeline_json.get("steps", []):
+            step = pipeline_json["steps"].get(step)
+            step_env_uuid = step.get("environment", "")
+            if step_env_uuid == environment_uuid:
+                step["environment"] = ""
+                updated_pipeline_json = True
+
+        # Write pipeline_json back
+        if updated_pipeline_json:
+            pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+
+            with open(pipeline_path, "w") as f:
+                json.dump(pipeline_json, f, indent=4, sort_keys=True)
+
+
+def _get_all_pipeline_uuids_in_project(project_uuid: str) -> List[str]:
+    project_path = project_uuid_to_path(project_uuid)
+
+    if project_path is None:
+        current_app.logger.error(
+            f"No project path found for project uuid: {project_uuid}."
+        )
+        raise error.ProjectDoesNotExist("Project path not found for given project UUID")
+
+    # Make it the full path.
+    project_path = os.path.join(
+        current_app.config["USER_DIR"], "projects", project_path
+    )
+
+    pipeline_paths = find_pipelines_in_dir(project_path, project_path)
+
+    pipeline_uuids = []
+    for pipeline_path in pipeline_paths:
+        pipeline_path = normalize_project_relative_path(pipeline_path)
+        pipeline = (
+            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
+            .filter(Pipeline.path == pipeline_path)
+            .first()
+        )
+
+        pipeline_uuids.append(pipeline.uuid)
+
+    return pipeline_uuids
+
 
 def populate_default_environments(project_uuid):
 
@@ -460,7 +519,7 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
     return counts
 
 
-def project_uuid_to_path(project_uuid):
+def project_uuid_to_path(project_uuid: str) -> Optional[str]:
     project = Project.query.filter(Project.uuid == project_uuid).first()
     if project is not None:
         return project.path
