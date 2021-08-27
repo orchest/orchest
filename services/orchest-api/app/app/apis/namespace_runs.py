@@ -13,6 +13,7 @@ from sqlalchemy import nullslast
 
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app import errors as self_errors
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
@@ -285,13 +286,19 @@ class CreateInteractiveRun(TwoPhaseFunction):
                 project_uuid,
                 pipeline.get_environments(),
             )
-        except errors.ImageNotFound as e:
-            msg = (
-                "Pipeline references environments that do not exist in the"
-                f" project, the following environments do not exist: [{e}].\n\n"
-                "Please make sure all pipeline steps are assigned an"
-                " environment that exists in the project."
-            )
+        except self_errors.DockerImageNotFound as e:
+            msg = "Environments not found."
+            if e.errors.get("not-found", False):
+                msg = (
+                    "Please make sure all pipeline steps are assigned an"
+                    " environment that exists in the project. The following"
+                    " environments do not exist: "
+                    + ", ".join(e.errors["not-found"])
+                    + "."
+                )
+            elif e.errors.get("not-defined", False):
+                msg = "Please assign an environment to every pipeline step."
+
             raise errors.ImageNotFound(msg)
 
         # Create Celery object with the Flask context and construct the

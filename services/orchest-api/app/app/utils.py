@@ -13,6 +13,7 @@ from sqlalchemy.orm import undefer
 import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
+from app import errors as self_errors
 from app import schema
 from app.connections import db, docker_client
 
@@ -167,21 +168,36 @@ def get_env_uuids_to_docker_id_mappings(
         Dict[env_uuid] = docker_id
 
     """
-    env_uuid_docker_id_mappings = {
-        env_uuid: get_environment_image_docker_id(
+    env_uuid_docker_id_mappings = {}
+    has_undefined_env = False
+    for env_uuid in env_uuids:
+        if env_uuid == "":
+            has_undefined_env = True
+            continue
+
+        env_uuid_docker_id_mappings[env_uuid] = get_environment_image_docker_id(
             _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=project_uuid, environment_uuid=env_uuid
             )
         )
-        for env_uuid in env_uuids
-    }
+
     envs_missing_image = [
         env_uuid
         for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
         if docker_id is None
     ]
+
+    errors_to_raise = {}
     if len(envs_missing_image) > 0:
-        raise errors.ImageNotFound(", ".join(envs_missing_image))
+        errors_to_raise["not-found"] = envs_missing_image
+    if has_undefined_env:
+        errors_to_raise["not-defined"] = True
+
+    if errors_to_raise:
+        raise self_errors.DockerImageNotFound(
+            "Docker ID not found or not defined.", errors_to_raise
+        )
+
     return env_uuid_docker_id_mappings
 
 
