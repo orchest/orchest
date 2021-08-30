@@ -286,20 +286,16 @@ class CreateInteractiveRun(TwoPhaseFunction):
                 project_uuid,
                 pipeline.get_environments(),
             )
-        except self_errors.DockerImageNotFound as e:
-            msg = "Environments not found."
-            if e.errors.get("not-found", False):
-                msg = (
-                    "Please make sure all pipeline steps are assigned an"
-                    " environment that exists in the project. The following"
-                    " environments do not exist: "
-                    + ", ".join(e.errors["not-found"])
-                    + "."
-                )
-            elif e.errors.get("not-defined", False):
-                msg = "Please assign an environment to every pipeline step."
-
+        except errors.ImageNotFound as e:
+            msg = (
+                "Please make sure all pipeline steps are assigned an"
+                " environment that exists in the project. The following"
+                f" environments do not exist:\n\n {e}."
+            )
             raise errors.ImageNotFound(msg)
+        except self_errors.PipelineDefinitionNotValid:
+            msg = "Please make sure every pipeline step is assigned an environment."
+            raise self_errors.PipelineDefinitionNotValid(msg)
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.

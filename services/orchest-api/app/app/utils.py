@@ -169,11 +169,9 @@ def get_env_uuids_to_docker_id_mappings(
 
     """
     env_uuid_docker_id_mappings = {}
-    has_undefined_env = False
     for env_uuid in env_uuids:
         if env_uuid == "":
-            has_undefined_env = True
-            continue
+            raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
 
         env_uuid_docker_id_mappings[env_uuid] = get_environment_image_docker_id(
             _config.ENVIRONMENT_IMAGE_NAME.format(
@@ -186,17 +184,8 @@ def get_env_uuids_to_docker_id_mappings(
         for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
         if docker_id is None
     ]
-
-    errors_to_raise = {}
     if len(envs_missing_image) > 0:
-        errors_to_raise["not-found"] = envs_missing_image
-    if has_undefined_env:
-        errors_to_raise["not-defined"] = True
-
-    if errors_to_raise:
-        raise self_errors.DockerImageNotFound(
-            "Docker ID not found or not defined.", errors_to_raise
-        )
+        raise errors.ImageNotFound(", ".join(envs_missing_image))
 
     return env_uuid_docker_id_mappings
 
