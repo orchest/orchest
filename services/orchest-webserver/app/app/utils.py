@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 import uuid
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import unquote
 
 import requests
@@ -12,7 +12,6 @@ from flask import Response, current_app
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import is_services_definition_valid
-from app import error
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -254,7 +253,8 @@ def delete_environment(app, project_uuid, environment_uuid):
 
     # Delete the environment from all pipeline definitions in the
     # project.
-    pipeline_uuids = _get_all_pipeline_uuids_in_project(project_uuid)
+    pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
+    pipeline_uuids = [pipeline.uuid for pipeline in pipelines]
 
     for pipeline_uuid in pipeline_uuids:
         pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
@@ -278,36 +278,6 @@ def delete_environment(app, project_uuid, environment_uuid):
 
             with open(pipeline_path, "w") as f:
                 json.dump(pipeline_json, f, indent=4, sort_keys=True)
-
-
-def _get_all_pipeline_uuids_in_project(project_uuid: str) -> List[str]:
-    project_path = project_uuid_to_path(project_uuid)
-
-    if project_path is None:
-        current_app.logger.error(
-            f"No project path found for project uuid: {project_uuid}."
-        )
-        raise error.ProjectDoesNotExist("Project path not found for given project UUID")
-
-    # Make it the full path.
-    project_path = os.path.join(
-        current_app.config["USER_DIR"], "projects", project_path
-    )
-
-    pipeline_paths = find_pipelines_in_dir(project_path, project_path)
-
-    pipeline_uuids = []
-    for pipeline_path in pipeline_paths:
-        pipeline_path = normalize_project_relative_path(pipeline_path)
-        pipeline = (
-            Pipeline.query.filter(Pipeline.project_uuid == project_uuid)
-            .filter(Pipeline.path == pipeline_path)
-            .first()
-        )
-
-        pipeline_uuids.append(pipeline.uuid)
-
-    return pipeline_uuids
 
 
 def populate_default_environments(project_uuid):
