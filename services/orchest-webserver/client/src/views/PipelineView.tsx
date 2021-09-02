@@ -28,8 +28,8 @@ import {
 
 import { Layout } from "@/components/Layout";
 import PipelineConnection from "@/components/PipelineConnection";
-import PipelineDetails from "@/components/PipelineDetails";
-import PipelineStep from "@/components/PipelineStep";
+import PipelineDetails from "@/pipeline-view/PipelineDetails";
+import PipelineStep from "@/pipeline-view/PipelineStep";
 import PipelineSettingsView from "@/views/PipelineSettingsView";
 import LogsView from "@/views/LogsView";
 import FilePreviewView from "@/views/FilePreviewView";
@@ -1229,20 +1229,20 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const selectStep = (pipelineStepUUID) => {
+  const selectStep = (pipelineStepUUID: string) => {
     state.eventVars.openedStep = pipelineStepUUID;
     state.eventVars.selectedSteps = [pipelineStepUUID];
     updateEventVars();
   };
 
-  const onClickStepHandler = (stepUUID) => {
+  const onClickStepHandler = (stepUUID: string) => {
     setTimeout(() => {
       selectStep(stepUUID);
     });
   };
 
-  const onDoubleClickStepHandler = (stepUUID) => {
-    if (props.queryArgs.read_only === "true") {
+  const onDoubleClickStepHandler = (stepUUID: string) => {
+    if (props.queryArgs.read_only) {
       onOpenFilePreviewView(stepUUID);
     } else {
       openNotebook(stepUUID);
@@ -1411,7 +1411,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const openNotebook = (stepUUID) => {
+  const openNotebook = (stepUUID: string) => {
     if (session === undefined) {
       orchest.alert(
         "Error",
@@ -2098,58 +2098,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  let pipelineSteps = [];
-
-  for (let uuid in state.steps) {
-    if (state.steps.hasOwnProperty(uuid)) {
-      let step = state.steps[uuid];
-
-      let selected = state.eventVars.selectedSteps.indexOf(uuid) !== -1;
-
-      // only add steps to the component that have been properly
-      // initialized
-      pipelineSteps.push(
-        <PipelineStep
-          key={step.uuid}
-          step={step}
-          selected={selected}
-          ref={state.refManager.nrefs[step.uuid]}
-          executionState={getStepExecutionState(step.uuid)}
-          onConnect={makeConnection}
-          onClick={onClickStepHandler}
-          onDoubleClick={onDoubleClickStepHandler}
-        />
-      );
-    }
-  }
-
-  let connectionComponents = [];
-  for (let x = 0; x < state.eventVars.connections.length; x++) {
-    let connection = state.eventVars.connections[x];
-    connectionComponents.push(
-      <PipelineConnection
-        key={x}
-        scaleFactor={state.eventVars.scaleFactor}
-        scaleCorrectedPosition={scaleCorrectedPosition}
-        onClick={onClickConnection}
-        {...connection}
-      />
-    );
-  }
-
-  let connections_list = [];
-  if (state.eventVars.openedStep) {
-    let incoming_connections =
-      state.steps[state.eventVars.openedStep].incoming_connections;
-
-    for (let x = 0; x < incoming_connections.length; x++) {
-      connections_list[incoming_connections[x]] = [
-        state.steps[incoming_connections[x]].title,
-        state.steps[incoming_connections[x]].file_path,
-      ];
-    }
-  }
-
   let stepSelectorComponent = undefined;
 
   if (state.eventVars.stepSelector.active) {
@@ -2168,15 +2116,25 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     );
   }
 
+  let connections_list = {};
+  if (state.eventVars.openedStep) {
+    const step = state.steps[state.eventVars.openedStep];
+    const { incoming_connections } = step;
+
+    incoming_connections.forEach((id: string) => {
+      connections_list[id] = [state.steps[id].title, state.steps[id].file_path];
+    });
+  }
+
   // Check if there is an incoming step (that is not part of the
   // selection).
   // This is checked to conditionally render the
   // 'Run incoming steps' button.
   let selectedStepsHasIncoming = false;
   for (let x = 0; x < state.eventVars.selectedSteps.length; x++) {
-    let step = state.steps[state.eventVars.selectedSteps[x]];
-    for (let i = 0; i < step.incoming_connections.length; i++) {
-      let incomingStepUUID = step.incoming_connections[i];
+    let selectedStep = state.steps[state.eventVars.selectedSteps[x]];
+    for (let i = 0; i < selectedStep.incoming_connections.length; i++) {
+      let incomingStepUUID = selectedStep.incoming_connections[i];
       if (state.eventVars.selectedSteps.indexOf(incomingStepUUID) < 0) {
         selectedStepsHasIncoming = true;
         break;
@@ -2186,6 +2144,39 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       break;
     }
   }
+
+  const pipelineSteps = Object.entries(state.steps).map((entry) => {
+    const [uuid, step] = entry;
+    const selected = state.eventVars.selectedSteps.indexOf(uuid) !== -1;
+    // only add steps to the component that have been properly
+    // initialized
+    return (
+      <PipelineStep
+        key={step.uuid}
+        step={step}
+        selected={selected}
+        ref={state.refManager.nrefs[step.uuid]}
+        executionState={getStepExecutionState(step.uuid)}
+        onConnect={makeConnection}
+        onClick={onClickStepHandler}
+        onDoubleClick={onDoubleClickStepHandler}
+      />
+    );
+  });
+
+  const connectionComponents = state.eventVars.connections.map(
+    (connection, index) => {
+      return (
+        <PipelineConnection
+          key={index}
+          scaleFactor={state.eventVars.scaleFactor}
+          scaleCorrectedPosition={scaleCorrectedPosition}
+          onClick={onClickConnection}
+          {...connection}
+        />
+      );
+    }
+  );
 
   React.useEffect(() => {
     pollPipelineStepStatuses();
@@ -2351,7 +2342,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               </div>
 
               {props.queryArgs.read_only !== "true" ? (
-                <React.Fragment>
+                <>
                   {!state.pipelineRunning &&
                     state.eventVars.selectedSteps.length > 0 &&
                     !state.eventVars.stepSelector.active && (
@@ -2391,7 +2382,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                       />
                     </div>
                   )}
-                </React.Fragment>
+                </>
               ) : null}
             </div>
 
