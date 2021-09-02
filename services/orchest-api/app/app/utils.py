@@ -506,6 +506,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
 
     int_sessions = models.InteractiveSession.query.filter(
         models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
+        models.InteractiveSession.status.in_(["LAUNCHING", "RUNNING"]),
     ).all()
 
     jobs = models.Job.query.filter(
