@@ -486,13 +486,37 @@ class InteractiveSession(Session):
         kernels are shut down as well.
 
         """
-        # The request is blocking and returns after all kernels and
-        # server have been shut down.
-        IP = self.get_containers_IP()
+        logger = utils.get_logger()
 
-        utils.shutdown_jupyter_server(
-            f"http://{IP.jupyter_server}:8888{self._notebook_server_info['base_url']}/"
-        )
+        # Stop (and autoremove) containers started through jupyter
+        # EG.
+        if self.containers:
+            session_identity_uuid = list(self.containers.values())[0].labels[
+                "session_identity_uuid"
+            ]
+
+            filters = {
+                "label": [
+                    f"session_identity_uuid={session_identity_uuid}",
+                    "kernel_id",
+                ]
+            }
+            kernel_containers = self.client.containers.list(
+                filters=filters, all=True, ignore_removed=True
+            )
+            for container in kernel_containers:
+                try:
+                    container.remove(force=True)
+                except (
+                    requests.exceptions.HTTPError,
+                    NotFound,
+                    APIError,
+                    ContainerError,
+                ) as e:
+                    logger.error(
+                        "Failed to remove session kernel container %s [%s]"
+                        % (e, type(e))
+                    )
 
         return super().shutdown()
 
