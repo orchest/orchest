@@ -144,7 +144,7 @@ const UpdateView: React.FC<TViewProps> = () => {
                 label="Start update"
                 icon="system_update_alt"
                 disabled={state.updating}
-                onClick={startUpdateTrigger.bind(this)}
+                onClick={startUpdateTrigger}
               />
 
               {elements}

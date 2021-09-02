@@ -176,7 +176,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
             <MDCButtonReact
               label="Back to projects"
               icon="arrow_back"
-              onClick={returnToProjects.bind(this)}
+              onClick={returnToProjects}
             />
           </div>
 
@@ -195,11 +195,13 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                     <h3>
                       <button
                         className="text-button"
-                        onClick={onClickProjectEntity.bind(
-                          this,
-                          PipelinesView,
-                          props.queryArgs.project_uuid
-                        )}
+                        onClick={(e) =>
+                          onClickProjectEntity(
+                            PipelinesView,
+                            props.queryArgs.project_uuid,
+                            e
+                          )
+                        }
                       >
                         {state.pipeline_count +
                           " " +
@@ -214,11 +216,13 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                     <h3>
                       <button
                         className="text-button"
-                        onClick={onClickProjectEntity.bind(
-                          this,
-                          JobsView,
-                          props.queryArgs.project_uuid
-                        )}
+                        onClick={(e) =>
+                          onClickProjectEntity(
+                            JobsView,
+                            props.queryArgs.project_uuid,
+                            e
+                          )
+                        }
                       >
                         {state.job_count +
                           " " +
@@ -231,11 +235,13 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                     <h3>
                       <button
                         className="text-button"
-                        onClick={onClickProjectEntity.bind(
-                          this,
-                          EnvironmentsView,
-                          props.queryArgs.project_uuid
-                        )}
+                        onClick={(e) =>
+                          onClickProjectEntity(
+                            EnvironmentsView,
+                            props.queryArgs.project_uuid,
+                            e
+                          )
+                        }
                       >
                         {state.environment_count +
                           " " +
@@ -255,7 +261,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   onChange={(e, idx, type) => handleChange(e, idx, type)}
                   onDelete={(idx) => onDelete(idx)}
                   readOnly={false}
-                  onAdd={addEnvPair.bind(this)}
+                  onAdd={addEnvPair}
                   data-test-id="project"
                 />
               </div>
@@ -263,7 +269,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                 <MDCButtonReact
                   label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                   classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={saveGeneralForm.bind(this)}
+                  onClick={saveGeneralForm}
                   icon="save"
                   data-test-id="project-settings-save"
                 />

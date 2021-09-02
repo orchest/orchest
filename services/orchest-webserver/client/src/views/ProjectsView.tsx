@@ -484,7 +484,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     }));
   };
 
-  const handleChange = (key, value) => {
+  const handleChange = (key: string, value: string) => {
     let updateObj = {};
     updateObj[key] = value;
     setState((prevState) => ({ ...prevState, ...updateObj }));
@@ -528,7 +528,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         {state.showImportModal && (
           <MDCDialogReact
             title="Import a project"
-            onClose={onCloseImportProjectModal.bind(this)}
+            onClose={onCloseImportProjectModal}
             ref={refManager.nrefs.importProjectDialog}
             content={
               <div
@@ -553,7 +553,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   classNames={["fullwidth push-down"]}
                   label="Git repository URL"
                   value={state.import_url}
-                  onChange={handleChange.bind(this, "import_url")}
+                  onChange={(value) => handleChange("import_url", value)}
                   data-test-id="project-url-textfield"
                 />
 
@@ -561,7 +561,9 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   classNames={["fullwidth"]}
                   label="Project name (optional)"
                   value={state.import_project_name}
-                  onChange={handleChange.bind(this, "import_project_name")}
+                  onChange={(value: string) =>
+                    handleChange("import_project_name", value)
+                  }
                   data-test-id="project-name-textfield"
                 />
 
@@ -598,7 +600,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   icon="close"
                   label="Close"
                   classNames={["push-right"]}
-                  onClick={onCancelImport.bind(this)}
+                  onClick={onCancelImport}
                 />
                 <MDCButtonReact
                   icon="input"
@@ -612,7 +614,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   label="Import"
                   submitButton
-                  onClick={onSubmitImport.bind(this)}
+                  onClick={onSubmitImport}
                   data-test-id="import-project-ok"
                 />
               </React.Fragment>
@@ -665,14 +667,16 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
             return (
               <MDCDialogReact
                 title="Create a new project"
-                onClose={onCloseCreateProjectModal.bind(this)}
+                onClose={onCloseCreateProjectModal}
                 ref={refManager.nrefs.createProjectDialog}
                 content={
                   <MDCTextFieldReact
                     classNames={["fullwidth"]}
                     label="Project name"
                     value={state.create_project_name}
-                    onChange={handleChange.bind(this, "create_project_name")}
+                    onChange={(value: string) =>
+                      handleChange("create_project_name", value)
+                    }
                     data-test-id="project-name-textfield"
                   />
                 }
@@ -682,14 +686,14 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       icon="close"
                       label="Cancel"
                       classNames={["push-right"]}
-                      onClick={onCancelModal.bind(this)}
+                      onClick={onCancelModal}
                     />
                     <MDCButtonReact
                       icon="format_list_bulleted"
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Create project"
                       submitButton
-                      onClick={onSubmitModal.bind(this)}
+                      onClick={onSubmitModal}
                       data-test-id="create-project"
                     />
                   </React.Fragment>
@@ -716,14 +720,14 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     ]}
                     icon="add"
                     label="Add project"
-                    onClick={onCreateClick.bind(this)}
+                    onClick={onCreateClick}
                     data-test-id="add-project"
                   />
                   <MDCButtonReact
                     classNames={["mdc-button--raised"]}
                     icon="input"
                     label="Import project"
-                    onClick={onImport.bind(this)}
+                    onClick={onImport}
                     data-test-id="import-project"
                   />
                 </div>
@@ -732,7 +736,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     icon="delete"
                     disabled={state.isDeleting}
                     tooltipText="Delete project"
-                    onClick={onDeleteClick.bind(this)}
+                    onClick={onDeleteClick}
                     data-test-id="delete-project"
                   />
                 </div>
@@ -740,7 +744,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                 <MDCDataTableReact
                   ref={refManager.nrefs.projectListView}
                   selectable
-                  onRowClick={onClickListItem.bind(this)}
+                  onRowClick={onClickListItem}
                   classNames={["fullwidth"]}
                   headers={[
                     "Project",

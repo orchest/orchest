@@ -42,8 +42,9 @@ import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import PipelineView from "@/views/PipelineView";
 
-export interface IPipelineSettingsView
-  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
+  "pipeline_uuid" | "project_uuid"
+>;
 
 const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   const orchest = window.orchest;
@@ -701,7 +702,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   }
                   items={["Configuration", "Environment variables", "Services"]}
                   icons={["list", "view_comfy", "miscellaneous_services"]}
-                  onChange={onSelectSubview.bind(this)}
+                  onChange={onSelectSubview}
                   data-test-id="pipeline-settings"
                 />
               </div>
@@ -723,7 +724,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                             <div className="column">
                               <MDCTextFieldReact
                                 value={state.pipelineJson?.name}
-                                onChange={onChangeName.bind(this)}
+                                onChange={onChangeName}
                                 label="Pipeline name"
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down"]}
@@ -763,9 +764,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   readOnly:
                                     props.queryArgs.read_only === "true",
                                 }}
-                                onBeforeChange={onChangePipelineParameters.bind(
-                                  this
-                                )}
+                                onBeforeChange={onChangePipelineParameters}
                               />
                               {(() => {
                                 try {
@@ -802,7 +801,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 value={
                                   state.pipelineJson?.settings?.auto_eviction
                                 }
-                                onChange={onChangeEviction.bind(this)}
+                                onChange={onChangeEviction}
                                 label="Automatic memory eviction"
                                 disabled={props.queryArgs.read_only === "true"}
                                 classNames={["push-down", "push-up"]}
@@ -820,9 +819,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                               <div>
                                 <MDCTextFieldReact
                                   value={state.dataPassingMemorySize}
-                                  onChange={onChangeDataPassingMemorySize.bind(
-                                    this
-                                  )}
+                                  onChange={onChangeDataPassingMemorySize}
                                   label="Data passing memory size"
                                   disabled={
                                     props.queryArgs.read_only === "true"
@@ -876,7 +873,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   label="Restart memory-server"
                                   icon="memory"
                                   classNames={["mdc-button--raised push-down"]}
-                                  onClick={restartMemoryServer.bind(this)}
+                                  onClick={restartMemoryServer}
                                   data-test-id="pipeline-settings-configuration-restart-memory-server"
                                 />
                               </div>
@@ -920,7 +917,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 </p>
                                 <EnvVarList
                                   value={state.envVariables}
-                                  onAdd={addEnvVariablePair.bind(this)}
+                                  onAdd={addEnvVariablePair}
                                   onChange={(e, idx, type) =>
                                     onEnvVariablesChange(e, idx, type)
                                   }
@@ -1046,7 +1043,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                 <MDCButtonReact
                   classNames={["close-button"]}
                   icon="close"
-                  onClick={closeSettings.bind(this)}
+                  onClick={closeSettings}
                   data-test-id="pipeline-settings-close"
                 />
               </div>
@@ -1055,7 +1052,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   <MDCButtonReact
                     label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                     classNames={["mdc-button--raised", "themed-secondary"]}
-                    onClick={saveGeneralForm.bind(this)}
+                    onClick={saveGeneralForm}
                     icon="save"
                     data-test-id="pipeline-settings-save"
                   />

@@ -105,7 +105,7 @@ const ProjectSelector = React.forwardRef<
       notched={true}
       classNames={["project-selector", "fullwidth"]}
       options={selectItems}
-      onChange={onChangeProject.bind(this)}
+      onChange={onChangeProject}
       value={state?.project_uuid}
       data-test-id="project-selector"
     />

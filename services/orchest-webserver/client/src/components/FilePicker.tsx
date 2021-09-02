@@ -116,7 +116,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
       <li
         key="create"
         className="mdc-list-item"
-        onClick={onCreateFile.bind(this)}
+        onClick={onCreateFile}
         data-test-id="file-picker-new-file"
       >
         <i className="material-icons">add</i> New file
@@ -125,11 +125,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
 
     if (node.root !== true) {
       nodes.push(
-        <li
-          key=".."
-          className="mdc-list-item"
-          onClick={onNavigateUp.bind(this)}
-        >
+        <li key=".." className="mdc-list-item" onClick={onNavigateUp}>
           ..
         </li>
       );
@@ -140,7 +136,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
         <li
           key={childNode.name}
           className="mdc-list-item"
-          onClick={onSelectListItem.bind(this, childNode)}
+          onClick={() => onSelectListItem(childNode)}
         >
           {childNode.type == "directory" && (
             <i className="material-icons">folder</i>
@@ -262,9 +258,9 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
   return (
     <div className="dropdown-file-picker">
       <MDCTextFieldReact
-        onFocus={onFocusTextField.bind(this)}
-        onBlur={onBlurTextField.bind(this)}
-        onChange={props.onChangeValue.bind(this)}
+        onFocus={onFocusTextField}
+        onBlur={onBlurTextField}
+        onChange={props.onChangeValue}
         value={props.value}
         label="File path"
         icon={props.icon}
@@ -275,7 +271,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
       />
       <div
         ref={refManager.nrefs.fileMenu}
-        onBlur={onBlurMenu.bind(this)}
+        onBlur={onBlurMenu}
         // tabIndex is REQUIRED for proper blur/focus events
         // for the dropdown mdc-list.
         tabIndex={0}

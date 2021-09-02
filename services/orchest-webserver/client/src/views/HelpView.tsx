@@ -25,6 +25,7 @@ const HelpView: React.FC<TViewProps> = () => {
               "/getting_started/quickstart.html"
             }
             target="_blank"
+            rel="noreferrer"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/readthedocs.png" width="100%" />
@@ -35,6 +36,7 @@ const HelpView: React.FC<TViewProps> = () => {
             className="mdc-list-item"
             href={state.config.ORCHEST_WEB_URLS.readthedocs}
             target="_blank"
+            rel="noreferrer"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/readthedocs.png" width="100%" />
@@ -45,6 +47,7 @@ const HelpView: React.FC<TViewProps> = () => {
             className="mdc-list-item"
             href={state.config.ORCHEST_WEB_URLS.website + "/video-tutorials"}
             target="_blank"
+            rel="noreferrer"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/favicon.png" width="100%" />
@@ -55,6 +58,7 @@ const HelpView: React.FC<TViewProps> = () => {
             className="mdc-list-item"
             href={state.config.ORCHEST_WEB_URLS.slack}
             target="_blank"
+            rel="noreferrer"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/slack.png" width="100%" />
@@ -65,6 +69,7 @@ const HelpView: React.FC<TViewProps> = () => {
             className="mdc-list-item"
             href={state.config.ORCHEST_WEB_URLS.github}
             target="_blank"
+            rel="noreferrer"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/github.png" width="100%" />
@@ -75,6 +80,7 @@ const HelpView: React.FC<TViewProps> = () => {
             className="mdc-list-item"
             href={state.config.ORCHEST_WEB_URLS.website}
             target="_blank"
+            rel="noreferrer"
           >
             <i className="mdc-list-item__graphic" aria-hidden="true">
               <img src="/image/favicon.png" width="100%" />
