@@ -491,6 +491,7 @@ class InteractiveSession(Session):
         # Stop (and autoremove) containers started through jupyter
         # EG.
         if self.containers:
+            logger.error("Removing kernel containers")
             session_identity_uuid = list(self.containers.values())[0].labels[
                 "session_identity_uuid"
             ]

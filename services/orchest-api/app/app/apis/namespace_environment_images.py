@@ -1,3 +1,6 @@
+import os
+import signal
+
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
@@ -186,7 +189,15 @@ class DeleteImage(TwoPhaseFunction):
         )
 
         delete_project_environment_dangling_images(project_uuid, environment_uuid)
-
-        # Try with repeat because there might be a race condition where
-        # the aborted runs are still using the image.
-        docker_images_rm_safe(docker_client, image_name)
+        if os.fork() == 0:
+            # Try with repeat because there might be a race condition
+            # where the aborted runs are still using the image. Moreover
+            # , session stopping is executed by a background thread in
+            # the scheduler, so kernel containers might still be
+            # running, the time.sleep() in this function does not seem
+            # to pass control back to the scheduler thread, so we are
+            # forced to have this code run in another process.
+            docker_images_rm_safe(docker_client, image_name)
+            # Make the process kill itself so that no follow up code
+            # is called.
+            os.kill(os.getpid(), signal.SIGKILL)
