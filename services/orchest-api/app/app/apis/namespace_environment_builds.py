@@ -13,7 +13,11 @@ from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_s
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db, docker_client
-from app.utils import register_schema, update_status_db
+from app.utils import (
+    lock_environment_images_for_session,
+    register_schema,
+    update_status_db,
+)
 
 api = Namespace("environment-builds", description="Managing environment builds")
 api = register_schema(api)
@@ -134,6 +138,34 @@ class EnvironmentBuild(Resource):
                 filter_by=filter_by,
             )
             db.session.commit()
+
+            if status_update["status"] == "SUCCESS":
+                # Get the environment build, needed for its env uuid
+                # and project uuid.
+                env_build = models.EnvironmentBuild.query.filter_by(
+                    uuid=environment_build_uuid
+                ).one()
+                # Get the existing mappings for interactive sessions, we
+                # will need to duplicate those for the latest built
+                # image, given that new interactive session kernels
+                # might use this image.
+                existing_env_mappings = (
+                    models.InteractiveSessionImageMapping.query.filter_by(
+                        project_uuid=env_build.project_uuid,
+                        orchest_environment_uuid=env_build.environment_uuid,
+                    ).all()
+                )
+
+                pipeline_uuids = set()
+                for mapping in existing_env_mappings:
+                    pipeline_uuids.add(mapping.pipeline_uuid)
+                for pipeline_uuid in pipeline_uuids:
+                    lock_environment_images_for_session(
+                        env_build.project_uuid,
+                        pipeline_uuid,
+                        set([env_build.environment_uuid]),
+                    )
+
         except Exception:
             db.session.rollback()
             return {"message": "Failed update operation."}, 500
