@@ -41,7 +41,7 @@ import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
-import PipelineView from "@/views/PipelineView";
+import PipelineView from "@/pipeline-view/PipelineView";
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"

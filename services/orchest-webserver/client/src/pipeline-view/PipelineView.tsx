@@ -27,16 +27,17 @@ import {
 } from "@/utils/webserver-utils";
 
 import { Layout } from "@/components/Layout";
-import PipelineConnection from "@/components/PipelineConnection";
-import PipelineDetails from "@/pipeline-view/PipelineDetails";
-import PipelineStep from "@/pipeline-view/PipelineStep";
 import PipelineSettingsView from "@/views/PipelineSettingsView";
-import LogsView from "@/views/LogsView";
 import FilePreviewView from "@/views/FilePreviewView";
 import JobView from "@/views/JobView";
 import JupyterLabView from "@/views/JupyterLabView";
 import PipelinesView from "@/views/PipelinesView";
 import ProjectsView from "@/views/ProjectsView";
+
+import LogsView from "./LogsView";
+import PipelineConnection from "./PipelineConnection";
+import PipelineDetails from "./PipelineDetails";
+import PipelineStep from "./PipelineStep";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;

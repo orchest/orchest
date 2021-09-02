@@ -5,7 +5,7 @@ import {
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
-import PipelineView from "../views/PipelineView";
+import PipelineView from "../pipeline-view/PipelineView";
 import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
 import HelpView from "../views/HelpView";

@@ -21,7 +21,7 @@ import {
 } from "@/utils/webserver-utils";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import LogViewer from "@/components/LogViewer";
+import LogViewer from "@/pipeline-view/LogViewer";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"

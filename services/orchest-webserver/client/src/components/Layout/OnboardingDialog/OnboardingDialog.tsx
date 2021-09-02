@@ -15,7 +15,7 @@ import {
   IconCrossSolid,
   Text,
 } from "@orchest/design-system";
-import PipelineView from "@/views/PipelineView";
+import PipelineView from "@/pipeline-view/PipelineView";
 import { PipelineDiagram } from "./assets";
 import {
   useOnboardingDialogCarousel,

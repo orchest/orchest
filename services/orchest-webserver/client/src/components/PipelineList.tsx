@@ -16,7 +16,7 @@ import {
 import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
-import PipelineView from "../views/PipelineView";
+import PipelineView from "../pipeline-view/PipelineView";
 import ProjectsView from "@/views/ProjectsView";
 
 const INITIAL_PIPELINE_NAME = "Main";
