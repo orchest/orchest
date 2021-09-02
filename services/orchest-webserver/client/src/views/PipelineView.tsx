@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from "react";
+import React, { useRef } from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -49,10 +49,29 @@ type IPipelineViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
+// utility functions that don't need to reside in the component
+
+const areQueryArgsValid = (queryArgs: {
+  pipeline_uuid?: string;
+  project_uuid?: string;
+  [key: string]: any;
+}) => {
+  return (
+    queryArgs.pipeline_uuid !== undefined &&
+    queryArgs.project_uuid !== undefined
+  );
+};
+
 const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { $, orchest } = window;
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
+
+  const timersRef = useRef({
+    pipelineStepStatusPollingInterval: undefined,
+    doubleClickTimeout: undefined,
+    saveIndicatorTimeout: undefined,
+  });
 
   let initialState = {
     // eventVars are variables that are updated immediately because
@@ -86,11 +105,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       },
       scaleFactor: DEFAULT_SCALE_FACTOR,
       connections: [],
-    },
-    timers: {
-      pipelineStepStatusPollingInterval: undefined,
-      doubleClickTimeout: undefined,
-      saveIndicatorTimeout: undefined,
     },
     // rendering state
     pipelineOrigin: [0, 0],
@@ -128,6 +142,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   }
 
   const [state, _setState] = React.useState(initialState);
+  // TODO: clean up this class-component-stye setState
   const setState = (newState) => {
     _setState((prevState) => {
       let updatedState;
@@ -207,8 +222,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           };
         });
 
-        clearTimeout(state.timers.saveIndicatorTimeout);
-        state.timers.saveIndicatorTimeout = setTimeout(() => {
+        clearTimeout(timersRef.current.saveIndicatorTimeout);
+        timersRef.current.saveIndicatorTimeout = setTimeout(() => {
           dispatch({
             type: "pipelineSetSaveStatus",
             payload: "saving",
@@ -289,7 +304,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     // initialize React components based on incoming JSON description of the pipeline
 
     // add steps to the state
-    let steps = state.steps;
+    let { steps } = state;
 
     for (let key in pipelineJson.steps) {
       if (pipelineJson.steps.hasOwnProperty(key)) {
@@ -308,7 +323,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const getPipelineJSON = () => {
-    let steps = state.steps;
+    let { steps } = state;
     return { ...state.pipelineJson, steps };
   };
 
@@ -353,18 +368,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     if (state.eventVars.showServices) {
       state.eventVars.showServices = false;
       updateEventVars();
-    }
-  };
-
-  const areQueryArgsValid = () => {
-    // Verify required props
-    if (
-      props.queryArgs.pipeline_uuid === undefined ||
-      props.queryArgs.project_uuid === undefined
-    ) {
-      return false;
-    } else {
-      return true;
     }
   };
 
@@ -837,8 +840,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             }
 
             state.eventVars.doubleClickFirstClick = true;
-            clearTimeout(state.timers.doubleClickTimeout);
-            state.timers.doubleClickTimeout = setTimeout(() => {
+            clearTimeout(timersRef.current.doubleClickTimeout);
+            timersRef.current.doubleClickTimeout = setTimeout(() => {
               state.eventVars.doubleClickFirstClick = false;
             }, DOUBLE_CLICK_TIMEOUT);
           } else {
@@ -1520,7 +1523,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               pipelineRunning: false,
               waitingOnCancel: false,
             });
-            clearInterval(state.timers.pipelineStepStatusPollingInterval);
+            clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
           }
         })
         .catch((error) => {
@@ -1765,8 +1768,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   const startStatusInterval = () => {
     // initialize interval
-    clearInterval(state.timers.pipelineStepStatusPollingInterval);
-    state.timers.pipelineStepStatusPollingInterval = setInterval(
+    clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
+    timersRef.current.pipelineStepStatusPollingInterval = setInterval(
       pollPipelineStepStatuses,
       STATUS_POLL_FREQUENCY
     );
@@ -2212,7 +2215,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
-      clearTimeout(state.timers.saveIndicatorTimeout);
+      clearTimeout(timersRef.current.saveIndicatorTimeout);
       dispatch({
         type: "pipelineSetSaveStatus",
         payload: "saved",
@@ -2234,42 +2237,46 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       payload: "pipeline",
     });
 
-    if (areQueryArgsValid()) {
-      if (props.queryArgs.run_uuid && props.queryArgs.job_uuid) {
+    const { queryArgs } = props;
+
+    if (areQueryArgsValid(queryArgs)) {
+      const hasActiveRun = queryArgs.run_uuid && queryArgs.job_uuid;
+      if (hasActiveRun) {
         try {
           pollPipelineStepStatuses();
           startStatusInterval();
         } catch (e) {
           console.log("could not start pipeline status updates: " + e);
         }
-      } else {
-        if (props.queryArgs.read_only === "true") {
-          // for non pipelineRun - read only check gate
-          let checkGatePromise = checkGate(props.queryArgs.project_uuid);
-          checkGatePromise
-            .then(() => {
-              loadViewInEdit();
-            })
-            .catch((result) => {
-              if (result.reason === "gate-failed") {
-                orchest.requestBuild(
-                  props.queryArgs.project_uuid,
-                  result.data,
-                  "Pipeline",
-                  () => {
-                    loadViewInEdit();
-                  }
-                );
-              }
-            });
-        }
+      }
+
+      const isNonPipelineRun = !hasActiveRun && props.queryArgs.read_only;
+      if (isNonPipelineRun) {
+        // for non pipelineRun - read only check gate
+        let checkGatePromise = checkGate(queryArgs.project_uuid);
+        checkGatePromise
+          .then(() => {
+            loadViewInEdit();
+          })
+          .catch((result) => {
+            if (result.reason === "gate-failed") {
+              orchest.requestBuild(
+                props.queryArgs.project_uuid,
+                result.data,
+                "Pipeline",
+                () => {
+                  loadViewInEdit();
+                }
+              );
+            }
+          });
       }
 
       connectSocketIO();
       initializeResizeHandlers();
 
       // Edit mode fetches latest interactive run
-      if (props.queryArgs.read_only !== "true") {
+      if (!queryArgs.read_only) {
         fetchActivePipelineRuns();
       }
     } else {
@@ -2288,9 +2295,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       $(document).off("keyup.initializePipeline");
       $(document).off("keydown.initializePipeline");
 
-      clearInterval(state.timers.pipelineStepStatusPollingInterval);
-      clearTimeout(state.timers.doubleClickTimeout);
-      clearTimeout(state.timers.saveIndicatorTimeout);
+      clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
+      clearTimeout(timersRef.current.doubleClickTimeout);
+      clearTimeout(timersRef.current.saveIndicatorTimeout);
 
       state.promiseManager.cancelCancelablePromises();
     };
