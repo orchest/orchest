@@ -564,6 +564,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                                       href={
                                         context.state?.config["GPU_REQUEST_URL"]
                                       }
+                                      rel="noreferrer"
                                     >
                                       form
                                     </a>
@@ -584,6 +585,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                                           .readthedocs +
                                         "/getting_started/installation.html#gpu-support"
                                       }
+                                      rel="noreferrer"
                                     >
                                       the documentation
                                     </a>{" "}

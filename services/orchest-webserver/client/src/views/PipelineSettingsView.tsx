@@ -42,8 +42,9 @@ import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import PipelineView from "@/views/PipelineView";
 
-export interface IPipelineSettingsView
-  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
+  "pipeline_uuid" | "project_uuid"
+>;
 
 const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   const orchest = window.orchest;

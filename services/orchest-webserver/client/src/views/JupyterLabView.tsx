@@ -15,8 +15,9 @@ import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import PipelinesView from "@/views/PipelinesView";
 
-export interface IJupyterLabViewProps
-  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
+  "pipeline_uuid" | "project_uuid"
+>;
 
 const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
   const { state, dispatch, get } = useOrchest();

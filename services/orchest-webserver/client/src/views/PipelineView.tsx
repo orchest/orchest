@@ -45,8 +45,9 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
-interface IPipelineViewProps
-  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+type IPipelineViewProps = TViewPropsWithRequiredQueryArgs<
+  "pipeline_uuid" | "project_uuid"
+>;
 
 const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { $, orchest } = window;
@@ -2053,7 +2054,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       for (let url of urls) {
         serviceLinks.push(
           <div className="link-holder" key={url}>
-            <a target="_blank" href={url}>
+            <a target="_blank" href={url} rel="noreferrer">
               <span className="material-icons">open_in_new</span>{" "}
               {formatUrl(url)}
             </a>
@@ -2142,7 +2143,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     let incoming_connections =
       state.steps[state.eventVars.openedStep].incoming_connections;
 
-    for (var x = 0; x < incoming_connections.length; x++) {
+    for (let x = 0; x < incoming_connections.length; x++) {
       connections_list[incoming_connections[x]] = [
         state.steps[incoming_connections[x]].title,
         state.steps[incoming_connections[x]].file_path,
