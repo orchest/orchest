@@ -38,6 +38,9 @@ import LogsView from "./LogsView";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
+import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
+
+import { useHotKey } from "./hooks/useHotKey";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -67,6 +70,13 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { $, orchest } = window;
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
+
+  useHotKey("control+a", () => {
+    state.eventVars.selectedSteps = Object.keys(state.steps);
+    updateEventVars();
+  });
+
+  useHotKey("control+enter", () => runSelectedSteps());
 
   const timersRef = useRef({
     pipelineStepStatusPollingInterval: undefined,
@@ -1836,7 +1846,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const getSelectedSteps = () => {
-    let rect = getStepSelectorRectangle();
+    let rect = getStepSelectorRectangle(state.eventVars.stepSelector);
 
     let selectedSteps = [];
 
@@ -2071,26 +2081,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return <div>{serviceLinks}</div>;
   };
 
-  const getStepSelectorRectangle = () => {
-    let rect = {
-      x: Math.min(
-        state.eventVars.stepSelector.x1,
-        state.eventVars.stepSelector.x2
-      ),
-      y: Math.min(
-        state.eventVars.stepSelector.y1,
-        state.eventVars.stepSelector.y2
-      ),
-      width: Math.abs(
-        state.eventVars.stepSelector.x2 - state.eventVars.stepSelector.x1
-      ),
-      height: Math.abs(
-        state.eventVars.stepSelector.y2 - state.eventVars.stepSelector.y1
-      ),
-    };
-    return rect;
-  };
-
   const returnToJob = (job_uuid: string) => {
     orchest.loadView(JobView, {
       queryArgs: {
@@ -2098,24 +2088,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       },
     });
   };
-
-  let stepSelectorComponent = undefined;
-
-  if (state.eventVars.stepSelector.active) {
-    let rect = getStepSelectorRectangle();
-
-    stepSelectorComponent = (
-      <div
-        className="step-selector"
-        style={{
-          width: rect.width,
-          height: rect.height,
-          left: rect.x,
-          top: rect.y,
-        }}
-      ></div>
-    );
-  }
 
   let connections_list = {};
   if (state.eventVars.openedStep) {
@@ -2476,7 +2448,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   top: state.pipelineStepsHolderOffsetTop,
                 }}
               >
-                {stepSelectorComponent}
+                {state.eventVars.stepSelector.active && (
+                  <Rectangle
+                    {...getStepSelectorRectangle(state.eventVars.stepSelector)}
+                  ></Rectangle>
+                )}
                 {pipelineSteps}
                 <div className="connections">{connectionComponents}</div>
               </div>
