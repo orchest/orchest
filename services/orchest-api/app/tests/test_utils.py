@@ -212,6 +212,7 @@ class InteractiveSession:
             "pipeline_path": "pip_path",
             "project_dir": "project_dir",
             "host_userdir": "host_userdir",
+            "environments": [],
         }
         client.post("/api/sessions/", json=session_request_spec)
 

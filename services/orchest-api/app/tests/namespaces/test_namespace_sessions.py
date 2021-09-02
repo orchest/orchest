@@ -14,19 +14,20 @@ def test_sessionlist_get_empty(client):
 
 
 def test_sessionlist_post_is_launching(client, pipeline, monkeypatch):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
     monkeypatch.setattr(
         CreateInteractiveSession, "_collateral", lambda *args, **kwargs: None
     )
 
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
     data = client.get("/api/sessions/").get_json()["sessions"][0]
 
     expected = {
@@ -42,15 +43,16 @@ def test_sessionlist_post_is_launching(client, pipeline, monkeypatch):
 
 
 def test_sessionlist_post_is_running(client, pipeline, monkeypatch_interactive_session):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
     data = client.get(
         f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}"
     ).get_json()
@@ -59,16 +61,17 @@ def test_sessionlist_post_is_running(client, pipeline, monkeypatch_interactive_s
 
 
 def test_sessionlist_post_revert(client, pipeline, monkeypatch):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
     monkeypatch.setattr(InteractiveSession, "launch", raise_exception_function)
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     resp = client.get(f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}")
 
@@ -76,12 +79,13 @@ def test_sessionlist_post_revert(client, pipeline, monkeypatch):
 
 
 def test_session_put(client, pipeline, monkeypatch_interactive_session, monkeypatch):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
     class Restarted:
@@ -96,7 +100,7 @@ def test_session_put(client, pipeline, monkeypatch_interactive_session, monkeypa
     monkeypatch.setattr(
         InteractiveSession, "from_container_IDs", lambda *args, **kwargs: r
     )
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     resp = client.put(f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}")
     assert resp.status_code == 200
@@ -108,15 +112,16 @@ def test_session_put_aborts_interactive_run(
 ):
     pr_uuid = interactive_run.project.uuid
     pl_uuid = interactive_run.pipeline.uuid
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pr_uuid,
         "pipeline_uuid": pl_uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     monkeypatch.setattr(
         RestartMemoryServer, "_collateral", lambda *args, **kwargs: None
@@ -138,15 +143,16 @@ def test_session_put_non_existent(client):
 def test_session_delete_is_stopping(
     client, pipeline, monkeypatch_interactive_session, monkeypatch
 ):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     monkeypatch.setattr(
         StopInteractiveSession, "_collateral", lambda *args, **kwargs: None
@@ -166,15 +172,16 @@ def test_session_delete_aborts_interactive_run(
 ):
     pr_uuid = interactive_run.project.uuid
     pl_uuid = interactive_run.pipeline.uuid
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pr_uuid,
         "pipeline_uuid": pl_uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     monkeypatch.setattr(
         StopInteractiveSession, "_collateral", lambda *args, **kwargs: None
@@ -189,12 +196,13 @@ def test_session_delete_aborts_interactive_run(
 
 
 def test_session_delete(client, pipeline, monkeypatch_interactive_session, monkeypatch):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
     class ShutDown:
@@ -209,7 +217,7 @@ def test_session_delete(client, pipeline, monkeypatch_interactive_session, monke
     monkeypatch.setattr(
         InteractiveSession, "from_container_IDs", lambda *args, **kwargs: s
     )
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     resp1 = client.delete(f"/api/sessions/{pipeline.project.uuid}/{pipeline.uuid}")
 
@@ -223,15 +231,16 @@ def test_session_delete(client, pipeline, monkeypatch_interactive_session, monke
 def test_session_delete_revert(
     client, pipeline, monkeypatch_interactive_session, monkeypatch
 ):
-    pipeline_spec = {
+    session_config = {
         "project_uuid": pipeline.project.uuid,
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
         "host_userdir": "host_userdir",
+        "environments": [],
     }
 
-    client.post("/api/sessions/", json=pipeline_spec)
+    client.post("/api/sessions/", json=session_config)
 
     monkeypatch.setattr(
         InteractiveSession, "from_container_IDs", raise_exception_function()
