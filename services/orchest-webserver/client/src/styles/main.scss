@@ -219,6 +219,20 @@ h2 {
   overflow: visible;
 }
 
+.checkbox-tooltip-holder {
+  position: relative;
+  display: inline-block;
+
+  .inline-icon {
+    height: 40px;
+    display: flex;
+    align-items: center;
+    right: calc(-1 * var(--space-5) / 2);
+    top: 0;
+    transform: translateX(100%);
+  }
+}
+
 .mdc-data-table {
   &.row-clickable {
     .mdc-data-table__row {
