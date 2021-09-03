@@ -23,9 +23,13 @@ const useHotKey = (
     // to prevent key events during IME composition https://developer.mozilla.org/en-US/docs/Web/API/Document/keyup_event
     if (event.isComposing || event.keyCode === 229) return;
 
-    // NOTE: all native behaviors are banned!
-    event.preventDefault();
     const key = event.key.toLowerCase();
+
+    //TODO: provide toggle functions for the hook consumer to call
+    // for example, only turn on hotkeys when user is focusing on the canvas
+    if ((event.ctrlKey || event.metaKey) && (key === "a" || key === "enter")) {
+      event.preventDefault();
+    }
 
     if ((key.length === 1 || key === "enter") && !pressedKeysRef.current[key])
       pressedKeysRef.current[key] = true;
