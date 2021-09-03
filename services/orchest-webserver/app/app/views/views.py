@@ -829,7 +829,13 @@ def register_views(app, db):
                 with open(pipeline_json_path, "r") as json_file:
                     pipeline_json = json.load(json_file)
 
-                fix_steps_environments(project_uuid, pipeline_json)
+                # Don't fix the step environments of a json related to
+                # a job or a run, since those refer to the past.
+                if (
+                    "job_uuid" not in request.args
+                    and "pipeline_run_uuid" not in request.args
+                ):
+                    fix_steps_environments(project_uuid, pipeline_json)
 
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
