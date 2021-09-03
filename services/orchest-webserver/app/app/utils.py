@@ -251,34 +251,6 @@ def delete_environment(app, project_uuid, environment_uuid):
     environment_dir = get_environment_directory(environment_uuid, project_uuid)
     rmtree(environment_dir)
 
-    # Delete the environment from all pipeline definitions in the
-    # project.
-    pipelines = Pipeline.query.filter(Pipeline.project_uuid == project_uuid).all()
-    pipeline_uuids = [pipeline.uuid for pipeline in pipelines]
-
-    for pipeline_uuid in pipeline_uuids:
-        pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
-
-        if pipeline_json is None:
-            current_app.logger.error(
-                f"Failed to delete environment {environment_uuid} from pipeline JSON."
-            )
-
-        updated_pipeline_json = False
-        for step in pipeline_json.get("steps", []):
-            step = pipeline_json["steps"].get(step)
-            step_env_uuid = step.get("environment", "")
-            if step_env_uuid == environment_uuid:
-                step["environment"] = ""
-                updated_pipeline_json = True
-
-        # Write pipeline_json back
-        if updated_pipeline_json:
-            pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
-
-            with open(pipeline_path, "w") as f:
-                json.dump(pipeline_json, f, indent=4, sort_keys=True)
-
 
 def populate_default_environments(project_uuid):
 
