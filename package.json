@@ -3,8 +3,8 @@
   "scripts": {
     "build": "pnpm run build --r --stream",
     "check": "pnpm run pkg:check && pnpm run pkg:format && pnpm run ts:check --r --parallel",
-    "cy:open": "pnpx cypress open",
-    "cy:run": "pnpx cypress run",
+    "cy:open": "pnpm exec cypress open",
+    "cy:run": "pnpm exec cypress run",
     "dev": "pnpm run dev --filter '@orchest/client-*...' --r --parallel",
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
