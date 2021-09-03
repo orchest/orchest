@@ -665,10 +665,7 @@ class InteractiveSessionImageMapping(BaseModel):
 
     __tablename__ = "interactive_session_image_mappings"
     __table_args__ = (
-        # No unique constraint on project uuid, pipeline uuid, orchest
-        # env uuid because an interactive session might be using
-        # multiple docker images from the same environment, if different
-        # kernels have been started after different builds.
+        UniqueConstraint("project_uuid", "pipeline_uuid", "orchest_environment_uuid"),
         UniqueConstraint("project_uuid", "pipeline_uuid", "docker_img_id"),
     )
 
