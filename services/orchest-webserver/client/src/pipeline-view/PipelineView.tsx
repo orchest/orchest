@@ -737,16 +737,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       }
     });
 
-    // $(state.refManager.refs.pipelineStepsOuterHolder).on("focus", (e) => {
-    //   enableSelectAllHotkey();
-    //   enableRunStepsHotkey();
-    // });
-
-    // $(state.refManager.refs.pipelineStepsOuterHolder).on("blur", (e) => {
-    //   disableSelectAllHotkey();
-    //   disableRunStepsHotkey();
-    // });
-
     $(state.refManager.refs.pipelineStepsOuterHolder).on("mousemove", (e) => {
       if (state.eventVars.selectedItem !== undefined) {
         let delta = [
@@ -1967,7 +1957,12 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const onMouseLeavePipelineStepsOuterHolder = () => {
+  const enableHotkeys = () => {
+    enableSelectAllHotkey();
+    enableRunStepsHotkey();
+  };
+
+  const disableHotkeys = () => {
     disableSelectAllHotkey();
     disableRunStepsHotkey();
   };
@@ -2013,9 +2008,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
 
     updateEventVars();
-
-    enableSelectAllHotkey();
-    enableRunStepsHotkey();
   };
 
   const onPipelineStepsOuterHolderMove = (e) => {
@@ -2323,7 +2315,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     <OrchestSessionsConsumer>
       <Layout>
         <div className="pipeline-view">
-          <div className="pane pipeline-view-pane">
+          <div
+            className="pane pipeline-view-pane"
+            onMouseLeave={disableHotkeys}
+            onMouseOver={enableHotkeys}
+          >
             {props.queryArgs.job_uuid && props.queryArgs.read_only == "true" && (
               <div className="pipeline-actions top-left">
                 <MDCButtonReact
@@ -2461,7 +2457,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               onMouseMove={onPipelineStepsOuterHolderMove}
               onMouseDown={onPipelineStepsOuterHolderDown}
               onWheel={onPipelineStepsOuterHolderWheel}
-              onMouseLeave={onMouseLeavePipelineStepsOuterHolder}
             >
               <div
                 className="pipeline-steps-holder"
