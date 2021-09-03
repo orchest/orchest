@@ -176,6 +176,9 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 "Pipeline services were referencing environments for "
                 f"which an image does not exist, {e}."
             )
+        except errors.PipelineDefinitionNotValid:
+            msg = "Please make sure every pipeline step is assigned an environment."
+            raise errors.PipelineDefinitionNotValid(msg)
 
         interactive_session = {
             "project_uuid": session_config["project_uuid"],

@@ -49,9 +49,7 @@ def abortable_async_res(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def monkeypatch_image_utils(monkeypatch):
-    monkeypatch.setattr(
-        namespace_environment_images, "remove_if_dangling", lambda *args, **kwargs: None
-    )
+    monkeypatch.setattr(app.utils, "remove_if_dangling", lambda *args, **kwargs: None)
     monkeypatch.setattr(
         namespace_environment_images,
         "docker_images_list_safe",
