@@ -32,6 +32,7 @@ from app.utils import (
     check_pipeline_correctness,
     create_pipeline_file,
     delete_environment,
+    fix_steps_environments,
     get_environment,
     get_environment_directory,
     get_environments,
@@ -827,6 +828,8 @@ def register_views(app, db):
             else:
                 with open(pipeline_json_path, "r") as json_file:
                     pipeline_json = json.load(json_file)
+
+                fix_steps_environments(project_uuid, pipeline_json)
 
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
