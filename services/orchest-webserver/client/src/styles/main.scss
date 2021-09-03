@@ -1439,6 +1439,7 @@ span.code {
     position: absolute;
 
     &.ready-to-drag {
+      cursor: grabbing; // as a fallback
       cursor: grab;
     }
 
