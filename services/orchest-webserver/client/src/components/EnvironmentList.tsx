@@ -176,10 +176,20 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     ).then((response: string) => {
       let data = JSON.parse(response);
       if (data.sessions.length > 0) {
-        orchest.alert(
-          "Error",
-          "Environments cannot be deleted with a running interactive session."
-        );
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/environment-builds/most-recent/${project_uuid}/${environment_uuid}`
+        ).then((response: string) => {
+          let data = JSON.parse(response);
+          if (data.environment_builds.some((x) => x.status == "SUCCESS"))
+            orchest.alert(
+              "Error",
+              "Environments cannot be deleted with a running interactive session."
+            );
+          else {
+            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+          }
+        });
       } else {
         // validate if environment is in use, if it is, prompt user
         // specifically on remove.
