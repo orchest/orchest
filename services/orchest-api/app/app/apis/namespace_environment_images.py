@@ -1,6 +1,4 @@
-import os
-import signal
-
+from flask.globals import current_app
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
@@ -88,7 +86,8 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
 
         self.collateral_kwargs["project_uuid"] = project_uuid
 
-    def _collateral(self, project_uuid: str):
+    @classmethod
+    def _background_collateral(cls, app, project_uuid):
         filters = {
             "label": [
                 "_orchest_env_build_is_intermediate=0",
@@ -96,14 +95,23 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
             ]
         }
         images_to_remove = docker_images_list_safe(docker_client, filters=filters)
+        # Try with repeat because there might be a race condition where
+        # aborted runs are still using the image or kernel containers
+        # are still running.
+        for img in images_to_remove:
+            docker_images_rm_safe(docker_client, img.id)
 
-        # See DeleteImage collateral for info on why this fork is
-        # needed.
-        if os.fork() == 0:
+        with app.app_context():
             docker_utils.delete_project_dangling_images(project_uuid)
-            for img in images_to_remove:
-                docker_images_rm_safe(docker_client, img.id)
-            os.kill(os.getpid(), signal.SIGKILL)
+
+    def _collateral(self, project_uuid: str):
+        # Needs to happen in the background because session shutdown
+        # happens in the background as well. The scheduler won't be
+        # given control if an endpoint is, for example, sleeping.
+        current_app.config["SCHEDULER"].add_job(
+            DeleteProjectEnvironmentImages._background_collateral,
+            args=[current_app._get_current_object(), project_uuid],
+        )
 
 
 class DeleteImage(TwoPhaseFunction):
@@ -137,24 +145,26 @@ class DeleteImage(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["environment_uuid"] = environment_uuid
 
-    def _collateral(self, project_uuid: str, environment_uuid: str):
+    @classmethod
+    def _background_collateral(cls, app, project_uuid, environment_uuid):
         image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
             project_uuid=project_uuid, environment_uuid=environment_uuid
         )
+        # Try with repeat because there might be a race condition where
+        # aborted runs are still using the image or kernel containers
+        # are still running.
+        docker_images_rm_safe(docker_client, image_name)
 
-        if os.fork() == 0:
-            # Session stopping is executed by a background thread in the
-            # scheduler, so kernel containers might still be running,
-            # the time.sleep() in this function and the next one does
-            # not seem to pass control back to the scheduler thread, so
-            # we are forced to have this code run in another process.
+        with app.app_context():
             docker_utils.delete_project_environment_dangling_images(
                 project_uuid, environment_uuid
             )
 
-            # Try with repeat because there might be a race condition
-            # where the aborted runs are still using the image.
-            docker_images_rm_safe(docker_client, image_name)
-            # Make the process kill itself so that no follow up code is
-            # called.
-            os.kill(os.getpid(), signal.SIGKILL)
+    def _collateral(self, project_uuid: str, environment_uuid: str):
+        # Needs to happen in the background because session shutdown
+        # happens in the background as well. The scheduler won't be
+        # given control if an endpoint is, for example, sleeping.
+        current_app.config["SCHEDULER"].add_job(
+            DeleteImage._background_collateral,
+            args=[current_app._get_current_object(), project_uuid, environment_uuid],
+        )

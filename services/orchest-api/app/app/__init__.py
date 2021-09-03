@@ -176,6 +176,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
     if be_scheduler and not is_werkzeug_parent():
         # Create a scheduler and have the scheduling logic running
         # periodically.
+
         scheduler = BackgroundScheduler(
             job_defaults={
                 # Infinite amount of grace time, so that if a task
@@ -187,7 +188,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                 # amount of times, e.g. for concurrent requests issuing
                 # the same tasks.
                 "max_instances": 2 ** 31,
-            }
+            },
         )
         app.config["SCHEDULER"] = scheduler
         scheduler.start()
