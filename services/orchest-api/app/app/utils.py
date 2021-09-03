@@ -483,8 +483,6 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
         bool:
     """
 
-    # We have to consider all environments of a project in use if any
-    # session is running, since a kernel container might be using them.
     int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
     int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
     jobs = jobs_using_environment(project_uuid, env_uuid)
