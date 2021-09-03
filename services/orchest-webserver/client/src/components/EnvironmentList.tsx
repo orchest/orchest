@@ -169,27 +169,44 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     environment_uuid,
     environmentName
   ) => {
-    // validate if environment is in use, if it is, prompt user
-    // specifically on remove
-
+    // Do not allow environment deletions if a session is ongoing.
     makeRequest(
       "GET",
-      `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+      `/catch/api-proxy/api/sessions/?project_uuid=${project_uuid}`
     ).then((response: string) => {
       let data = JSON.parse(response);
-      if (data.in_use) {
-        orchest.confirm(
-          "Warning",
-          "The environment you're trying to delete (" +
-            environmentName +
-            ") is in use. " +
-            "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
-          () => {
-            _removeEnvironment(project_uuid, environment_uuid, environmentName);
-          }
+      if (data.sessions.length > 0) {
+        orchest.alert(
+          "Error",
+          "Environments cannot be deleted with a running interactive session."
         );
       } else {
-        _removeEnvironment(project_uuid, environment_uuid, environmentName);
+        // validate if environment is in use, if it is, prompt user
+        // specifically on remove.
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+        ).then((response: string) => {
+          let data = JSON.parse(response);
+          if (data.in_use) {
+            orchest.confirm(
+              "Warning",
+              "The environment you're trying to delete (" +
+                environmentName +
+                ") is in use. " +
+                "Are you sure you want to delete it? This will abort all jobs that are using it.",
+              () => {
+                _removeEnvironment(
+                  project_uuid,
+                  environment_uuid,
+                  environmentName
+                );
+              }
+            );
+          } else {
+            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+          }
+        });
       }
     });
   };

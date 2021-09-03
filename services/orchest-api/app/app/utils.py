@@ -485,9 +485,7 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
 
     # We have to consider all environments of a project in use if any
     # session is running, since a kernel container might be using them.
-    int_sess = models.InteractiveSession.query.filter(
-        models.InteractiveSession.project_uuid == project_uuid,
-    ).all()
+    int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
     int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
     jobs = jobs_using_environment(project_uuid, env_uuid)
     return len(int_runs) > 0 or len(int_sess) > 0 or len(jobs) > 0
