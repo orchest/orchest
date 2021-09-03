@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -1957,7 +1957,34 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const enableHotkeys = () => {
+  useEffect(() => {
+    const keyDownHandler = (event: KeyboardEvent) => {
+      if (event.key === " " && !state.eventVars.draggingPipeline) {
+        state.eventVars.keysDown[32] = true;
+        $(state.refManager.refs.pipelineStepsOuterHolder)
+          .removeClass("dragging")
+          .addClass("ready-to-drag");
+        updateEventVars();
+      }
+    };
+    const keyUpHandler = (event: KeyboardEvent) => {
+      if (event.key === " ") {
+        $(state.refManager.refs.pipelineStepsOuterHolder).removeClass([
+          "ready-to-drag",
+          "dragging",
+        ]);
+      }
+    };
+
+    document.body.addEventListener("keydown", keyDownHandler);
+    document.body.addEventListener("keyup", keyUpHandler);
+    return () => {
+      document.body.removeEventListener("keydown", keyDownHandler);
+      document.body.removeEventListener("keyup", keyUpHandler);
+    };
+  }, []);
+
+  const onMouseOverPipelineView = () => {
     enableSelectAllHotkey();
     enableRunStepsHotkey();
   };
@@ -1975,7 +2002,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       if (state.eventVars.keysDown[32]) {
         // space held while clicking, means canvas drag
 
-        $(state.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
+        $(state.refManager.refs.pipelineStepsOuterHolder)
+          .addClass("dragging")
+          .removeClass("ready-to-drag");
         state.eventVars.draggingPipeline = true;
       }
     }
@@ -2318,7 +2347,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           <div
             className="pane pipeline-view-pane"
             onMouseLeave={disableHotkeys}
-            onMouseOver={enableHotkeys}
+            onMouseOver={onMouseOverPipelineView}
           >
             {props.queryArgs.job_uuid && props.queryArgs.read_only == "true" && (
               <div className="pipeline-actions top-left">
