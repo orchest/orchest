@@ -97,10 +97,13 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
         }
         images_to_remove = docker_images_list_safe(docker_client, filters=filters)
 
-        # Try with repeat because there might be a race condition
-        # where the aborted runs are still using the image.
-        for img in images_to_remove:
-            docker_images_rm_safe(docker_client, img.id)
+        # See DeleteImage collateral for info on why this fork is
+        # needed.
+        if os.fork() == 0:
+            docker_utils.delete_project_dangling_images(project_uuid)
+            for img in images_to_remove:
+                docker_images_rm_safe(docker_client, img.id)
+            os.kill(os.getpid(), signal.SIGKILL)
 
 
 class DeleteImage(TwoPhaseFunction):
@@ -139,18 +142,19 @@ class DeleteImage(TwoPhaseFunction):
             project_uuid=project_uuid, environment_uuid=environment_uuid
         )
 
-        docker_utils.delete_project_environment_dangling_images(
-            project_uuid, environment_uuid
-        )
         if os.fork() == 0:
+            # Session stopping is executed by a background thread in the
+            # scheduler, so kernel containers might still be running,
+            # the time.sleep() in this function and the next one does
+            # not seem to pass control back to the scheduler thread, so
+            # we are forced to have this code run in another process.
+            docker_utils.delete_project_environment_dangling_images(
+                project_uuid, environment_uuid
+            )
+
             # Try with repeat because there might be a race condition
-            # where the aborted runs are still using the image. Moreover
-            # , session stopping is executed by a background thread in
-            # the scheduler, so kernel containers might still be
-            # running, the time.sleep() in this function does not seem
-            # to pass control back to the scheduler thread, so we are
-            # forced to have this code run in another process.
+            # where the aborted runs are still using the image.
             docker_images_rm_safe(docker_client, image_name)
-            # Make the process kill itself so that no follow up code
-            # is called.
+            # Make the process kill itself so that no follow up code is
+            # called.
             os.kill(os.getpid(), signal.SIGKILL)
