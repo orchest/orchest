@@ -1,3 +1,4 @@
+from flask.globals import current_app
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
@@ -11,13 +12,13 @@ from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db, docker_client
+from app.core import docker_utils
 from app.utils import (
     interactive_runs_using_environment,
     interactive_sessions_using_environment,
     is_environment_in_use,
     jobs_using_environment,
     register_schema,
-    remove_if_dangling,
 )
 
 api = Namespace("environment-images", description="Managing environment images")
@@ -71,59 +72,10 @@ class ProjectEnvironmentDanglingImages(Resource):
         tag-less and which are not referenced by any run
         or job which are pending or running."""
 
-        delete_project_environment_dangling_images(project_uuid, environment_uuid)
+        docker_utils.delete_project_environment_dangling_images(
+            project_uuid, environment_uuid
+        )
         return {"message": "Successfully removed dangling images."}, 200
-
-
-def delete_project_dangling_images(project_uuid):
-    """Removes dangling images related to a project.
-
-    Dangling images are images that have been left nameless and
-    tag-less and which are not referenced by any run
-    or job which are pending or running.
-
-    Args:
-        project_uuid:
-    """
-    # Look only through runs belonging to the project.
-    filters = {
-        "label": [
-            "_orchest_env_build_is_intermediate=0",
-            f"_orchest_project_uuid={project_uuid}",
-        ]
-    }
-
-    project_images = docker_images_list_safe(docker_client, filters=filters)
-
-    for docker_img in project_images:
-        remove_if_dangling(docker_img)
-
-
-def delete_project_environment_dangling_images(project_uuid, environment_uuid):
-    """Removes dangling images related to an environment.
-
-    Dangling images are images that have been left nameless and
-    tag-less and which are not referenced by any run
-    or job which are pending or running.
-
-    Args:
-        project_uuid:
-        environment_uuid:
-    """
-    # Look only through runs belonging to the project consider only
-    # docker ids related to the environment_uuid.
-    filters = {
-        "label": [
-            "_orchest_env_build_is_intermediate=0",
-            f"_orchest_project_uuid={project_uuid}",
-            f"_orchest_environment_uuid={environment_uuid}",
-        ]
-    }
-
-    project_env_images = docker_images_list_safe(docker_client, filters=filters)
-
-    for docker_img in project_env_images:
-        remove_if_dangling(docker_img)
 
 
 class DeleteProjectEnvironmentImages(TwoPhaseFunction):
@@ -134,7 +86,8 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
 
         self.collateral_kwargs["project_uuid"] = project_uuid
 
-    def _collateral(self, project_uuid: str):
+    @classmethod
+    def _background_collateral(cls, app, project_uuid):
         filters = {
             "label": [
                 "_orchest_env_build_is_intermediate=0",
@@ -142,11 +95,23 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
             ]
         }
         images_to_remove = docker_images_list_safe(docker_client, filters=filters)
-
-        # Try with repeat because there might be a race condition
-        # where the aborted runs are still using the image.
+        # Try with repeat because there might be a race condition where
+        # aborted runs are still using the image or kernel containers
+        # are still running.
         for img in images_to_remove:
             docker_images_rm_safe(docker_client, img.id)
+
+        with app.app_context():
+            docker_utils.delete_project_dangling_images(project_uuid)
+
+    def _collateral(self, project_uuid: str):
+        # Needs to happen in the background because session shutdown
+        # happens in the background as well. The scheduler won't be
+        # given control if an endpoint is, for example, sleeping.
+        current_app.config["SCHEDULER"].add_job(
+            DeleteProjectEnvironmentImages._background_collateral,
+            args=[current_app._get_current_object(), project_uuid],
+        )
 
 
 class DeleteImage(TwoPhaseFunction):
@@ -180,13 +145,26 @@ class DeleteImage(TwoPhaseFunction):
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["environment_uuid"] = environment_uuid
 
-    def _collateral(self, project_uuid: str, environment_uuid: str):
+    @classmethod
+    def _background_collateral(cls, app, project_uuid, environment_uuid):
         image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
             project_uuid=project_uuid, environment_uuid=environment_uuid
         )
-
-        delete_project_environment_dangling_images(project_uuid, environment_uuid)
-
         # Try with repeat because there might be a race condition where
-        # the aborted runs are still using the image.
+        # aborted runs are still using the image or kernel containers
+        # are still running.
         docker_images_rm_safe(docker_client, image_name)
+
+        with app.app_context():
+            docker_utils.delete_project_environment_dangling_images(
+                project_uuid, environment_uuid
+            )
+
+    def _collateral(self, project_uuid: str, environment_uuid: str):
+        # Needs to happen in the background because session shutdown
+        # happens in the background as well. The scheduler won't be
+        # given control if an endpoint is, for example, sleeping.
+        current_app.config["SCHEDULER"].add_job(
+            DeleteImage._background_collateral,
+            args=[current_app._get_current_object(), project_uuid, environment_uuid],
+        )

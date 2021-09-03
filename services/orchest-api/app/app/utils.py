@@ -483,8 +483,8 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
         bool:
     """
 
-    int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
     int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
+    int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
     jobs = jobs_using_environment(project_uuid, env_uuid)
     return len(int_runs) > 0 or len(int_sess) > 0 or len(jobs) > 0
 
@@ -506,6 +506,7 @@ def is_docker_image_in_use(img_id: str) -> bool:
 
     int_sessions = models.InteractiveSession.query.filter(
         models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
+        models.InteractiveSession.status.in_(["LAUNCHING", "RUNNING"]),
     ).all()
 
     jobs = models.Job.query.filter(
