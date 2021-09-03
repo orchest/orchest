@@ -1246,12 +1246,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const stepNameUpdate = (pipelineStepUUID, title, file_path) => {
-    state.steps[pipelineStepUUID].title = title;
-    state.steps[pipelineStepUUID].file_path = file_path;
-    setState({ steps: state.steps });
-  };
-
   const makeConnection = (sourcePipelineStepUUID, targetPipelineStepUUID) => {
     if (
       state.steps[targetPipelineStepUUID].incoming_connections.indexOf(
@@ -1806,8 +1800,10 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const onSaveDetails = (updatedStep) => {
-    state.steps[updatedStep.uuid] = updatedStep;
+  const onSaveDetails = (stepChanges, uuid) => {
+    // Mutate step with changes
+    _.assignIn(state.steps[uuid], stepChanges);
+
     setState({
       steps: state.steps,
       saveHash: uuidv4(),
@@ -2492,7 +2488,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             <PipelineDetails
               key={state.eventVars.openedStep}
               onSave={onSaveDetails.bind(this)}
-              onNameUpdate={stepNameUpdate.bind(this)}
               onDelete={onDetailsDelete.bind(this)}
               onClose={onCloseDetails.bind(this)}
               onOpenFilePreviewView={onOpenFilePreviewView.bind(this)}
