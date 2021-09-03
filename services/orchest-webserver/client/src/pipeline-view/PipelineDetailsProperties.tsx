@@ -14,13 +14,20 @@ import {
 import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import ProjectFilePicker from "../components/ProjectFilePicker";
 
-const ConnectionItem = (props) => (
-  <div className="connection-item" data-uuid={props.connection.uuid}>
-    <i className="material-icons">drag_indicator</i>{" "}
-    <span>{props.connection.name[0]}</span>{" "}
-    <span className="filename">({props.connection.name[1]})</span>
-  </div>
-);
+const ConnectionItem = ({
+  connection: { name, uuid },
+}: {
+  connection: { name: [string, string]; uuid: string };
+}) => {
+  const [title, filePath] = name;
+
+  return (
+    <div className="connection-item" data-uuid={uuid}>
+      <i className="material-icons">drag_indicator</i> <span>{title}</span>{" "}
+      <span className="filename">({filePath})</span>
+    </div>
+  );
+};
 
 const KERNEL_OPTIONS = [
   ["python", "Python"],
@@ -430,13 +437,13 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
             className="connection-list"
             ref={refManager.nrefs.connectionList}
           >
-            {props.step.incoming_connections.map((item, key) => (
+            {props.step.incoming_connections.map((item: string) => (
               <ConnectionItem
                 connection={{
                   name: props.connections[item],
                   uuid: item,
                 }}
-                key={key}
+                key={item}
               />
             ))}
           </div>

@@ -20,7 +20,7 @@ import {
   getPipelineStepChildren,
   setWithRetry,
 } from "@/utils/webserver-utils";
-import PipelineView from "@/views/PipelineView";
+import PipelineView from "@/pipeline-view/PipelineView";
 
 const MODE_MAPPING = {
   py: "text/x-python",

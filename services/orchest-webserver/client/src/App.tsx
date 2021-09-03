@@ -9,7 +9,7 @@ import MainDrawer from "./components/MainDrawer";
 import Jupyter from "./jupyter/Jupyter";
 
 import PipelineSettingsView from "./views/PipelineSettingsView";
-import PipelineView from "./views/PipelineView";
+import PipelineView from "./pipeline-view/PipelineView";
 import ProjectsView from "./views/ProjectsView";
 import JupyterLabView from "./views/JupyterLabView";
 

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React from "react";
+import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -27,16 +27,20 @@ import {
 } from "@/utils/webserver-utils";
 
 import { Layout } from "@/components/Layout";
-import PipelineConnection from "@/components/PipelineConnection";
-import PipelineDetails from "@/components/PipelineDetails";
-import PipelineStep from "@/components/PipelineStep";
 import PipelineSettingsView from "@/views/PipelineSettingsView";
-import LogsView from "@/views/LogsView";
 import FilePreviewView from "@/views/FilePreviewView";
 import JobView from "@/views/JobView";
 import JupyterLabView from "@/views/JupyterLabView";
 import PipelinesView from "@/views/PipelinesView";
 import ProjectsView from "@/views/ProjectsView";
+
+import LogsView from "./LogsView";
+import PipelineConnection from "./PipelineConnection";
+import PipelineDetails from "./PipelineDetails";
+import PipelineStep from "./PipelineStep";
+import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
+
+import { useHotKey } from "./hooks/useHotKey";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -49,10 +53,51 @@ type IPipelineViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
+// utility functions that don't need to reside in the component
+
+const areQueryArgsValid = (queryArgs: {
+  pipeline_uuid?: string;
+  project_uuid?: string;
+  [key: string]: any;
+}) => {
+  return (
+    queryArgs.pipeline_uuid !== undefined &&
+    queryArgs.project_uuid !== undefined
+  );
+};
+
 const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { $, orchest } = window;
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
+
+  const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
+    "ctrl+a, command+a",
+    "pipeline-editor",
+    () => {
+      state.eventVars.selectedSteps = Object.keys(state.steps);
+      updateEventVars();
+    }
+  );
+
+  const [enableRunStepsHotkey, disableRunStepsHotkey] = useHotKey(
+    "ctrl+enter, command+enter",
+    "pipeline-editor",
+    () => {
+      runSelectedSteps();
+    }
+  );
+
+  // useEffect(() => {
+  //   enableSelectAllHotkey();
+  //   enableRunStepsHotkey();
+  // }, []);
+
+  const timersRef = useRef({
+    pipelineStepStatusPollingInterval: undefined,
+    doubleClickTimeout: undefined,
+    saveIndicatorTimeout: undefined,
+  });
 
   let initialState = {
     // eventVars are variables that are updated immediately because
@@ -86,11 +131,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       },
       scaleFactor: DEFAULT_SCALE_FACTOR,
       connections: [],
-    },
-    timers: {
-      pipelineStepStatusPollingInterval: undefined,
-      doubleClickTimeout: undefined,
-      saveIndicatorTimeout: undefined,
     },
     // rendering state
     pipelineOrigin: [0, 0],
@@ -128,6 +168,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   }
 
   const [state, _setState] = React.useState(initialState);
+  // TODO: clean up this class-component-stye setState
   const setState = (newState) => {
     _setState((prevState) => {
       let updatedState;
@@ -207,8 +248,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
           };
         });
 
-        clearTimeout(state.timers.saveIndicatorTimeout);
-        state.timers.saveIndicatorTimeout = setTimeout(() => {
+        clearTimeout(timersRef.current.saveIndicatorTimeout);
+        timersRef.current.saveIndicatorTimeout = setTimeout(() => {
           dispatch({
             type: "pipelineSetSaveStatus",
             payload: "saving",
@@ -289,7 +330,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     // initialize React components based on incoming JSON description of the pipeline
 
     // add steps to the state
-    let steps = state.steps;
+    let { steps } = state;
 
     for (let key in pipelineJson.steps) {
       if (pipelineJson.steps.hasOwnProperty(key)) {
@@ -308,7 +349,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const getPipelineJSON = () => {
-    let steps = state.steps;
+    let { steps } = state;
     return { ...state.pipelineJson, steps };
   };
 
@@ -353,18 +394,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     if (state.eventVars.showServices) {
       state.eventVars.showServices = false;
       updateEventVars();
-    }
-  };
-
-  const areQueryArgsValid = () => {
-    // Verify required props
-    if (
-      props.queryArgs.pipeline_uuid === undefined ||
-      props.queryArgs.project_uuid === undefined
-    ) {
-      return false;
-    } else {
-      return true;
     }
   };
 
@@ -837,8 +866,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             }
 
             state.eventVars.doubleClickFirstClick = true;
-            clearTimeout(state.timers.doubleClickTimeout);
-            state.timers.doubleClickTimeout = setTimeout(() => {
+            clearTimeout(timersRef.current.doubleClickTimeout);
+            timersRef.current.doubleClickTimeout = setTimeout(() => {
               state.eventVars.doubleClickFirstClick = false;
             }, DOUBLE_CLICK_TIMEOUT);
           } else {
@@ -1226,20 +1255,20 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const selectStep = (pipelineStepUUID) => {
+  const selectStep = (pipelineStepUUID: string) => {
     state.eventVars.openedStep = pipelineStepUUID;
     state.eventVars.selectedSteps = [pipelineStepUUID];
     updateEventVars();
   };
 
-  const onClickStepHandler = (stepUUID) => {
+  const onClickStepHandler = (stepUUID: string) => {
     setTimeout(() => {
       selectStep(stepUUID);
     });
   };
 
-  const onDoubleClickStepHandler = (stepUUID) => {
-    if (props.queryArgs.read_only === "true") {
+  const onDoubleClickStepHandler = (stepUUID: string) => {
+    if (props.queryArgs.read_only) {
       onOpenFilePreviewView(stepUUID);
     } else {
       openNotebook(stepUUID);
@@ -1408,7 +1437,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const openNotebook = (stepUUID) => {
+  const openNotebook = (stepUUID: string) => {
     if (session === undefined) {
       orchest.alert(
         "Error",
@@ -1520,7 +1549,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               pipelineRunning: false,
               waitingOnCancel: false,
             });
-            clearInterval(state.timers.pipelineStepStatusPollingInterval);
+            clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
           }
         })
         .catch((error) => {
@@ -1765,8 +1794,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   const startStatusInterval = () => {
     // initialize interval
-    clearInterval(state.timers.pipelineStepStatusPollingInterval);
-    state.timers.pipelineStepStatusPollingInterval = setInterval(
+    clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
+    timersRef.current.pipelineStepStatusPollingInterval = setInterval(
       pollPipelineStepStatuses,
       STATUS_POLL_FREQUENCY
     );
@@ -1832,7 +1861,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const getSelectedSteps = () => {
-    let rect = getStepSelectorRectangle();
+    let rect = getStepSelectorRectangle(state.eventVars.stepSelector);
 
     let selectedSteps = [];
 
@@ -1928,6 +1957,43 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
+  useEffect(() => {
+    const keyDownHandler = (event: KeyboardEvent) => {
+      if (event.key === " " && !state.eventVars.draggingPipeline) {
+        state.eventVars.keysDown[32] = true;
+        $(state.refManager.refs.pipelineStepsOuterHolder)
+          .removeClass("dragging")
+          .addClass("ready-to-drag");
+        updateEventVars();
+      }
+    };
+    const keyUpHandler = (event: KeyboardEvent) => {
+      if (event.key === " ") {
+        $(state.refManager.refs.pipelineStepsOuterHolder).removeClass([
+          "ready-to-drag",
+          "dragging",
+        ]);
+      }
+    };
+
+    document.body.addEventListener("keydown", keyDownHandler);
+    document.body.addEventListener("keyup", keyUpHandler);
+    return () => {
+      document.body.removeEventListener("keydown", keyDownHandler);
+      document.body.removeEventListener("keyup", keyUpHandler);
+    };
+  }, []);
+
+  const onMouseOverPipelineView = () => {
+    enableSelectAllHotkey();
+    enableRunStepsHotkey();
+  };
+
+  const disableHotkeys = () => {
+    disableSelectAllHotkey();
+    disableRunStepsHotkey();
+  };
+
   const onPipelineStepsOuterHolderDown = (e) => {
     state.eventVars.mouseClientX = e.clientX;
     state.eventVars.mouseClientY = e.clientY;
@@ -1936,7 +2002,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       if (state.eventVars.keysDown[32]) {
         // space held while clicking, means canvas drag
 
-        $(state.refManager.refs.pipelineStepsOuterHolder).addClass("dragging");
+        $(state.refManager.refs.pipelineStepsOuterHolder)
+          .addClass("dragging")
+          .removeClass("ready-to-drag");
         state.eventVars.draggingPipeline = true;
       }
     }
@@ -2067,26 +2135,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return <div>{serviceLinks}</div>;
   };
 
-  const getStepSelectorRectangle = () => {
-    let rect = {
-      x: Math.min(
-        state.eventVars.stepSelector.x1,
-        state.eventVars.stepSelector.x2
-      ),
-      y: Math.min(
-        state.eventVars.stepSelector.y1,
-        state.eventVars.stepSelector.y2
-      ),
-      width: Math.abs(
-        state.eventVars.stepSelector.x2 - state.eventVars.stepSelector.x1
-      ),
-      height: Math.abs(
-        state.eventVars.stepSelector.y2 - state.eventVars.stepSelector.y1
-      ),
-    };
-    return rect;
-  };
-
   const returnToJob = (job_uuid: string) => {
     orchest.loadView(JobView, {
       queryArgs: {
@@ -2095,74 +2143,14 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  let pipelineSteps = [];
-
-  for (let uuid in state.steps) {
-    if (state.steps.hasOwnProperty(uuid)) {
-      let step = state.steps[uuid];
-
-      let selected = state.eventVars.selectedSteps.indexOf(uuid) !== -1;
-
-      // only add steps to the component that have been properly
-      // initialized
-      pipelineSteps.push(
-        <PipelineStep
-          key={step.uuid}
-          step={step}
-          selected={selected}
-          ref={state.refManager.nrefs[step.uuid]}
-          executionState={getStepExecutionState(step.uuid)}
-          onConnect={makeConnection}
-          onClick={onClickStepHandler}
-          onDoubleClick={onDoubleClickStepHandler}
-        />
-      );
-    }
-  }
-
-  let connectionComponents = [];
-  for (let x = 0; x < state.eventVars.connections.length; x++) {
-    let connection = state.eventVars.connections[x];
-    connectionComponents.push(
-      <PipelineConnection
-        key={x}
-        scaleFactor={state.eventVars.scaleFactor}
-        scaleCorrectedPosition={scaleCorrectedPosition}
-        onClick={onClickConnection}
-        {...connection}
-      />
-    );
-  }
-
-  let connections_list = [];
+  let connections_list = {};
   if (state.eventVars.openedStep) {
-    let incoming_connections =
-      state.steps[state.eventVars.openedStep].incoming_connections;
+    const step = state.steps[state.eventVars.openedStep];
+    const { incoming_connections } = step;
 
-    for (let x = 0; x < incoming_connections.length; x++) {
-      connections_list[incoming_connections[x]] = [
-        state.steps[incoming_connections[x]].title,
-        state.steps[incoming_connections[x]].file_path,
-      ];
-    }
-  }
-
-  let stepSelectorComponent = undefined;
-
-  if (state.eventVars.stepSelector.active) {
-    let rect = getStepSelectorRectangle();
-
-    stepSelectorComponent = (
-      <div
-        className="step-selector"
-        style={{
-          width: rect.width,
-          height: rect.height,
-          left: rect.x,
-          top: rect.y,
-        }}
-      ></div>
-    );
+    incoming_connections.forEach((id: string) => {
+      connections_list[id] = [state.steps[id].title, state.steps[id].file_path];
+    });
   }
 
   // Check if there is an incoming step (that is not part of the
@@ -2171,9 +2159,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   // 'Run incoming steps' button.
   let selectedStepsHasIncoming = false;
   for (let x = 0; x < state.eventVars.selectedSteps.length; x++) {
-    let step = state.steps[state.eventVars.selectedSteps[x]];
-    for (let i = 0; i < step.incoming_connections.length; i++) {
-      let incomingStepUUID = step.incoming_connections[i];
+    let selectedStep = state.steps[state.eventVars.selectedSteps[x]];
+    for (let i = 0; i < selectedStep.incoming_connections.length; i++) {
+      let incomingStepUUID = selectedStep.incoming_connections[i];
       if (state.eventVars.selectedSteps.indexOf(incomingStepUUID) < 0) {
         selectedStepsHasIncoming = true;
         break;
@@ -2183,6 +2171,39 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       break;
     }
   }
+
+  const pipelineSteps = Object.entries(state.steps).map((entry) => {
+    const [uuid, step] = entry;
+    const selected = state.eventVars.selectedSteps.indexOf(uuid) !== -1;
+    // only add steps to the component that have been properly
+    // initialized
+    return (
+      <PipelineStep
+        key={step.uuid}
+        step={step}
+        selected={selected}
+        ref={state.refManager.nrefs[step.uuid]}
+        executionState={getStepExecutionState(step.uuid)}
+        onConnect={makeConnection}
+        onClick={onClickStepHandler}
+        onDoubleClick={onDoubleClickStepHandler}
+      />
+    );
+  });
+
+  const connectionComponents = state.eventVars.connections.map(
+    (connection, index) => {
+      return (
+        <PipelineConnection
+          key={index}
+          scaleFactor={state.eventVars.scaleFactor}
+          scaleCorrectedPosition={scaleCorrectedPosition}
+          onClick={onClickConnection}
+          {...connection}
+        />
+      );
+    }
+  );
 
   React.useEffect(() => {
     pollPipelineStepStatuses();
@@ -2212,7 +2233,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
-      clearTimeout(state.timers.saveIndicatorTimeout);
+      clearTimeout(timersRef.current.saveIndicatorTimeout);
       dispatch({
         type: "pipelineSetSaveStatus",
         payload: "saved",
@@ -2234,42 +2255,46 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       payload: "pipeline",
     });
 
-    if (areQueryArgsValid()) {
-      if (props.queryArgs.run_uuid && props.queryArgs.job_uuid) {
+    const { queryArgs } = props;
+
+    if (areQueryArgsValid(queryArgs)) {
+      const hasActiveRun = queryArgs.run_uuid && queryArgs.job_uuid;
+      if (hasActiveRun) {
         try {
           pollPipelineStepStatuses();
           startStatusInterval();
         } catch (e) {
           console.log("could not start pipeline status updates: " + e);
         }
-      } else {
-        if (props.queryArgs.read_only === "true") {
-          // for non pipelineRun - read only check gate
-          let checkGatePromise = checkGate(props.queryArgs.project_uuid);
-          checkGatePromise
-            .then(() => {
-              loadViewInEdit();
-            })
-            .catch((result) => {
-              if (result.reason === "gate-failed") {
-                orchest.requestBuild(
-                  props.queryArgs.project_uuid,
-                  result.data,
-                  "Pipeline",
-                  () => {
-                    loadViewInEdit();
-                  }
-                );
-              }
-            });
-        }
+      }
+
+      const isNonPipelineRun = !hasActiveRun && props.queryArgs.read_only;
+      if (isNonPipelineRun) {
+        // for non pipelineRun - read only check gate
+        let checkGatePromise = checkGate(queryArgs.project_uuid);
+        checkGatePromise
+          .then(() => {
+            loadViewInEdit();
+          })
+          .catch((result) => {
+            if (result.reason === "gate-failed") {
+              orchest.requestBuild(
+                props.queryArgs.project_uuid,
+                result.data,
+                "Pipeline",
+                () => {
+                  loadViewInEdit();
+                }
+              );
+            }
+          });
       }
 
       connectSocketIO();
       initializeResizeHandlers();
 
       // Edit mode fetches latest interactive run
-      if (props.queryArgs.read_only !== "true") {
+      if (!queryArgs.read_only) {
         fetchActivePipelineRuns();
       }
     } else {
@@ -2288,9 +2313,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       $(document).off("keyup.initializePipeline");
       $(document).off("keydown.initializePipeline");
 
-      clearInterval(state.timers.pipelineStepStatusPollingInterval);
-      clearTimeout(state.timers.doubleClickTimeout);
-      clearTimeout(state.timers.saveIndicatorTimeout);
+      clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
+      clearTimeout(timersRef.current.doubleClickTimeout);
+      clearTimeout(timersRef.current.saveIndicatorTimeout);
 
       state.promiseManager.cancelCancelablePromises();
     };
@@ -2319,7 +2344,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     <OrchestSessionsConsumer>
       <Layout>
         <div className="pipeline-view">
-          <div className="pane pipeline-view-pane">
+          <div
+            className="pane pipeline-view-pane"
+            onMouseLeave={disableHotkeys}
+            onMouseOver={onMouseOverPipelineView}
+          >
             {props.queryArgs.job_uuid && props.queryArgs.read_only == "true" && (
               <div className="pipeline-actions top-left">
                 <MDCButtonReact
@@ -2344,7 +2373,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               </div>
 
               {props.queryArgs.read_only !== "true" ? (
-                <React.Fragment>
+                <>
                   {!state.pipelineRunning &&
                     state.eventVars.selectedSteps.length > 0 &&
                     !state.eventVars.stepSelector.active && (
@@ -2384,7 +2413,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                       />
                     </div>
                   )}
-                </React.Fragment>
+                </>
               ) : null}
             </div>
 
@@ -2477,7 +2506,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   top: state.pipelineStepsHolderOffsetTop,
                 }}
               >
-                {stepSelectorComponent}
+                {state.eventVars.stepSelector.active && (
+                  <Rectangle
+                    {...getStepSelectorRectangle(state.eventVars.stepSelector)}
+                  ></Rectangle>
+                )}
                 {pipelineSteps}
                 <div className="connections">{connectionComponents}</div>
               </div>

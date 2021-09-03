@@ -1438,6 +1438,11 @@ span.code {
     overflow: hidden;
     position: absolute;
 
+    &.ready-to-drag {
+      cursor: grabbing; // as a fallback
+      cursor: grab;
+    }
+
     &.dragging {
       cursor: grabbing;
 
