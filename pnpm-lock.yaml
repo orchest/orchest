@@ -196,6 +196,7 @@ importers:
       eslint-plugin-react: ^7.24.0
       eslint-plugin-react-hooks: ^4.2.0
       framer-motion: 4.1.17
+      hotkeys-js: ^3.8.7
       isomorphic-unfetch: 3.1.0
       jquery: ^3.5.1
       lodash: ^4.17.20
@@ -226,6 +227,7 @@ importers:
       dashify: 2.0.0
       date-fns: 2.20.1
       framer-motion: 4.1.17_react-dom@16.13.1+react@16.13.1
+      hotkeys-js: 3.8.7
       isomorphic-unfetch: 3.1.0
       jquery: 3.6.0
       lodash: 4.17.21
@@ -4519,6 +4521,13 @@ packages:
         integrity: sha512-mxIDAb9Lsm6DoOJ7xH+5+X4y1LU/4Hi50L9C5sIswK3JzULS4bwk1FvjdBgvYR4bzT4tuUQiC15FE2f5HbLvYw==,
       }
     dev: true
+
+  /hotkeys-js/3.8.7:
+    resolution:
+      {
+        integrity: sha512-ckAx3EkUr5XjDwjEHDorHxRO2Kb7z6Z2Sxul4MbBkN8Nho7XDslQsgMJT+CiJ5Z4TgRxxvKHEpuLE3imzqy4Lg==,
+      }
+    dev: false
 
   /http-errors/1.7.3:
     resolution:

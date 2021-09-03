@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -71,18 +71,27 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
 
-  // persist the config to prevent useHotKey rerendering internally
-  const hotkeyConfig = useRef([
-    [
-      "ctrl+a",
-      () => {
-        state.eventVars.selectedSteps = Object.keys(state.steps);
-        updateEventVars();
-      },
-    ],
-    ["ctrl+enter", () => runSelectedSteps()],
-  ]);
-  useHotKey(hotkeyConfig.current);
+  const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
+    "ctrl+a, command+a",
+    "pipeline-editor",
+    () => {
+      state.eventVars.selectedSteps = Object.keys(state.steps);
+      updateEventVars();
+    }
+  );
+
+  const [enableRunStepsHotkey, disableRunStepsHotkey] = useHotKey(
+    "ctrl+enter, command+enter",
+    "pipeline-editor",
+    () => {
+      runSelectedSteps();
+    }
+  );
+
+  // useEffect(() => {
+  //   enableSelectAllHotkey();
+  //   enableRunStepsHotkey();
+  // }, []);
 
   const timersRef = useRef({
     pipelineStepStatusPollingInterval: undefined,
@@ -727,6 +736,16 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         }
       }
     });
+
+    // $(state.refManager.refs.pipelineStepsOuterHolder).on("focus", (e) => {
+    //   enableSelectAllHotkey();
+    //   enableRunStepsHotkey();
+    // });
+
+    // $(state.refManager.refs.pipelineStepsOuterHolder).on("blur", (e) => {
+    //   disableSelectAllHotkey();
+    //   disableRunStepsHotkey();
+    // });
 
     $(state.refManager.refs.pipelineStepsOuterHolder).on("mousemove", (e) => {
       if (state.eventVars.selectedItem !== undefined) {
@@ -1948,6 +1967,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
+  const onMouseLeavePipelineStepsOuterHolder = () => {
+    disableSelectAllHotkey();
+    disableRunStepsHotkey();
+  };
+
   const onPipelineStepsOuterHolderDown = (e) => {
     state.eventVars.mouseClientX = e.clientX;
     state.eventVars.mouseClientY = e.clientY;
@@ -1989,6 +2013,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
 
     updateEventVars();
+
+    enableSelectAllHotkey();
+    enableRunStepsHotkey();
   };
 
   const onPipelineStepsOuterHolderMove = (e) => {
@@ -2434,6 +2461,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               onMouseMove={onPipelineStepsOuterHolderMove}
               onMouseDown={onPipelineStepsOuterHolderDown}
               onWheel={onPipelineStepsOuterHolderWheel}
+              onMouseLeave={onMouseLeavePipelineStepsOuterHolder}
             >
               <div
                 className="pipeline-steps-holder"
