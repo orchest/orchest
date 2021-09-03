@@ -115,7 +115,7 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
     initializeSocketIOListener();
     startLogSession();
 
-    window.addEventListener("resize", fitTerminal.bind(this));
+    window.addEventListener("resize", fitTerminal);
     fitTerminal();
 
     return () => {
@@ -124,7 +124,7 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
       props.sio.off("pty-output", onPtyOutputHandler);
       props.sio.off("pty-reset", onPtyReset);
 
-      window.removeEventListener("resize", fitTerminal.bind(this));
+      window.removeEventListener("resize", fitTerminal);
     };
   }, []);
 

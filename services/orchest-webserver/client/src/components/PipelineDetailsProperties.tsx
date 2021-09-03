@@ -338,7 +338,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
       <div className="input-group">
         <MDCTextFieldReact
           value={props.step.title}
-          onChange={onChangeTitle.bind(this)}
+          onChange={onChangeTitle}
           label="Title"
           disabled={props.readOnly}
           classNames={["fullwidth", "push-down"]}
@@ -362,14 +362,14 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
               project_uuid={props.project_uuid}
               pipeline_uuid={props.pipeline_uuid}
               step_uuid={props.step.uuid}
-              onChange={onChangeFileName.bind(this)}
+              onChange={onChangeFileName}
             />
           )}
         </div>
 
         <MDCSelectReact
           label="Kernel language"
-          onChange={onChangeKernel.bind(this)}
+          onChange={onChangeKernel}
           options={KERNEL_OPTIONS}
           value={props.step.kernel.name}
           disabled={props.readOnly}
@@ -386,7 +386,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
           label="Environment"
           disabled={props.readOnly}
           classNames={["fullwidth"]}
-          onChange={onChangeEnvironment.bind(this)}
+          onChange={onChangeEnvironment}
           options={state.environmentOptions}
           value={props.step.environment}
         />

@@ -263,7 +263,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
       {state.createFileModal && (
         <MDCDialogReact
           title="Create a new file"
-          onClose={onCloseCreateFileModal.bind(this)}
+          onClose={onCloseCreateFileModal}
           ref={refManager.nrefs.createFileDialog}
           data-test-id="project-file-picker-create-new-file-dialog"
           content={
@@ -277,7 +277,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
                 <MDCTextFieldReact
                   label="File name"
                   value={state.fileName}
-                  onChange={onChangeNewFilename.bind(this)}
+                  onChange={onChangeNewFilename}
                   data-test-id="project-file-picker-file-name-textfield"
                 />
                 <MDCSelectReact
@@ -285,7 +285,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
                   label="Extension"
                   value={state.selectedExtension}
                   options={ALLOWED_STEP_EXTENSIONS.map((el) => ["." + el])}
-                  onChange={onChangeNewFilenameExtension.bind(this)}
+                  onChange={onChangeNewFilenameExtension}
                 />
               </div>
               <MDCTextFieldReact
@@ -302,14 +302,14 @@ const ProjectFilePicker: React.FC<any> = (props) => {
                 icon="close"
                 label="Cancel"
                 classNames={["push-right"]}
-                onClick={onCancelModal.bind(this)}
+                onClick={onCancelModal}
               />
               <MDCButtonReact
                 icon="add"
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 label="Create file"
                 submitButton
-                onClick={onSubmitModal.bind(this)}
+                onClick={onSubmitModal}
                 data-test-id="project-file-picker-create-file"
               />
             </React.Fragment>
@@ -320,7 +320,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
         <FilePicker
           tree={state.tree}
           cwd={state.cwd}
-          onFocus={onFocus.bind(this)}
+          onFocus={onFocus}
           value={props.value}
           icon={state.selectedFileExists ? "check" : "warning"}
           iconTitle={
@@ -328,8 +328,8 @@ const ProjectFilePicker: React.FC<any> = (props) => {
               ? "File exists in the project directory."
               : "Warning: this file wasn't found in the project directory."
           }
-          onCreateFile={onCreateFile.bind(this)}
-          onChangeValue={onChangeFileValue.bind(this)}
+          onCreateFile={onCreateFile}
+          onChangeValue={onChangeFileValue}
         />
       )}
     </React.Fragment>

@@ -292,20 +292,13 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const onRowClick = (row, idx, event) => {
     let job = state.jobs[idx];
+    const ViewToLoad = job.status === "DRAFT" ? EditJobView : JobView;
 
-    if (job.status === "DRAFT") {
-      orchest.loadView(EditJobView, {
-        queryArgs: {
-          job_uuid: job.uuid,
-        },
-      });
-    } else {
-      orchest.loadView(JobView, {
-        queryArgs: {
-          job_uuid: job.uuid,
-        },
-      });
-    }
+    orchest.loadView(ViewToLoad, {
+      queryArgs: {
+        job_uuid: job.uuid,
+      },
+    });
   };
 
   const onEditJobNameClick = (jobUUID, jobName) => {
@@ -556,14 +549,14 @@ const JobList: React.FC<IJobListProps> = (props) => {
               icon="delete"
               tooltipText="Delete job"
               disabled={state.isDeleting}
-              onClick={onDeleteClick.bind(this)}
+              onClick={onDeleteClick}
             />
           </div>
 
           <SearchableTable
             ref={refManager.nrefs.jobTable}
             selectable={true}
-            onRowClick={onRowClick.bind(this)}
+            onRowClick={onRowClick}
             rows={jobListToTableData(state.jobs)}
             headers={["Job", "Pipeline", "Snapshot date", "Status"]}
           />

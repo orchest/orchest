@@ -195,7 +195,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
       }
       actions={
         <>
-          <MDCButtonReact label="Cancel" onClick={onCancel.bind(this)} />
+          <MDCButtonReact label="Cancel" onClick={onCancel} />
           {state?.showBuildStatus && (
             <MDCButtonReact
               submitButton
@@ -205,7 +205,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
                   ? ["push-left", "mdc-button--raised", "themed-secondary"]
                   : ["push-left"]
               }
-              onClick={onViewBuildStatus.bind(this)}
+              onClick={onViewBuildStatus}
             />
           )}
           {state?.allowBuild && (
@@ -217,7 +217,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
                 "push-left",
               ]}
               label="Build"
-              onClick={onBuild.bind(this)}
+              onClick={onBuild}
             />
           )}
         </>

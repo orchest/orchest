@@ -4,6 +4,7 @@ import os
 import re
 import subprocess
 import uuid
+from typing import Optional
 from urllib.parse import unquote
 
 import requests
@@ -460,7 +461,7 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
     return counts
 
 
-def project_uuid_to_path(project_uuid):
+def project_uuid_to_path(project_uuid: str) -> Optional[str]:
     project = Project.query.filter(Project.uuid == project_uuid).first()
     if project is not None:
         return project.path

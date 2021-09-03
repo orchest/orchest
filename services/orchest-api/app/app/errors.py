@@ -8,3 +8,7 @@ class JupyterBuildInProgressException(Exception):
 
 class SessionContainerError(Exception):
     pass
+
+
+class PipelineDefinitionNotValid(Exception):
+    pass

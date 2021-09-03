@@ -293,8 +293,8 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
                     .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
                 }
                 streamIdentity={"jupyter"}
-                onUpdateBuild={onUpdateBuild.bind(this)}
-                onBuildStart={onBuildStart.bind(this)}
+                onUpdateBuild={onUpdateBuild}
+                onBuildStart={onBuildStart}
                 ignoreIncomingLogs={state.ignoreIncomingLogs}
                 build={state.jupyterBuild}
                 building={state.building}
@@ -309,7 +309,7 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
                   "push-right",
                 ]}
                 submitButton
-                onClick={save.bind(this, undefined)}
+                onClick={() => save(undefined)}
               />
 
               {!state.building ? (
@@ -321,7 +321,7 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
                   }
                   icon="memory"
                   classNames={["mdc-button--raised"]}
-                  onClick={buildImage.bind(this)}
+                  onClick={buildImage}
                 />
               ) : (
                 <MDCButtonReact
@@ -329,7 +329,7 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
                   disabled={state.cancelBuildRequestInProgress}
                   icon="close"
                   classNames={["mdc-button--raised"]}
-                  onClick={cancelImageBuild.bind(this)}
+                  onClick={cancelImageBuild}
                 />
               )}
             </>
