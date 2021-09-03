@@ -2488,7 +2488,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             <PipelineDetails
               key={state.eventVars.openedStep}
               onSave={onSaveDetails}
-              onNameUpdate={stepNameUpdate}
               onDelete={onDetailsDelete}
               onClose={onCloseDetails}
               onOpenFilePreviewView={onOpenFilePreviewView}
