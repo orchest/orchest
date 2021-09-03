@@ -1268,7 +1268,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const onDoubleClickStepHandler = (stepUUID: string) => {
-    if (props.queryArgs.read_only) {
+    if (props.queryArgs.read_only === "true") {
       onOpenFilePreviewView(stepUUID);
     } else {
       openNotebook(stepUUID);
@@ -2268,7 +2268,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         }
       }
 
-      const isNonPipelineRun = !hasActiveRun && props.queryArgs.read_only;
+      const isNonPipelineRun =
+        !hasActiveRun && props.queryArgs.read_only === "true";
       if (isNonPipelineRun) {
         // for non pipelineRun - read only check gate
         let checkGatePromise = checkGate(queryArgs.project_uuid);
@@ -2294,7 +2295,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       initializeResizeHandlers();
 
       // Edit mode fetches latest interactive run
-      if (!queryArgs.read_only) {
+      if (!queryArgs.read_only !== "true") {
         fetchActivePipelineRuns();
       }
     } else {
