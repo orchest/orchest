@@ -28,27 +28,27 @@ export const CronScheduleInput: React.FC<ICronScheduleInputProps> = ({
       <div className="push-down separated">
         <MDCButtonReact
           disabled={disabled}
-          onClick={handleButton.bind(this, "* * * * *")}
+          onClick={() => handleButton("* * * * *")}
           label="Every minute"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={handleButton.bind(this, "0 * * * *")}
+          onClick={() => handleButton("0 * * * *")}
           label="Hourly"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={handleButton.bind(this, "0 0 * * *")}
+          onClick={() => handleButton("0 0 * * *")}
           label="Daily"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={handleButton.bind(this, "0 0 * * 0")}
+          onClick={() => handleButton("0 0 * * 0")}
           label="Weekly"
         />
         <MDCButtonReact
           disabled={disabled}
-          onClick={handleButton.bind(this, "0 0 1 * *")}
+          onClick={() => handleButton("0 0 1 * *")}
           label="Monthly"
         />
       </div>

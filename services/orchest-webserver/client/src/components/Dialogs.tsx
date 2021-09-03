@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import AlertDialog from "./AlertDialog";
 import { uuidv4 } from "@orchest/lib-utils";
 import ConfirmDialog from "./ConfirmDialog";
@@ -27,7 +27,7 @@ function newslines2breaks(lines: string) {
   return lineElements;
 }
 
-const Dialogs = React.forwardRef((_, ref) => {
+const Dialogs = (_, ref) => {
   const [dialogs, setDialogs] = React.useState([]);
 
   const requestBuild = (
@@ -123,6 +123,6 @@ const Dialogs = React.forwardRef((_, ref) => {
 
   // return dialogs;
   return <React.Fragment>{dialogs.length > 0 ? dialogs : null}</React.Fragment>;
-});
+};
 
-export default Dialogs;
+export default React.forwardRef(Dialogs);

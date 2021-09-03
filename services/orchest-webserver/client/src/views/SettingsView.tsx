@@ -347,7 +347,7 @@ const SettingsView: React.FC<TViewProps> = () => {
                       ]}
                       label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
                       icon="save"
-                      onClick={saveConfig.bind(this, state.config)}
+                      onClick={() => saveConfig(state.config)}
                     />
                   </div>
                 );
@@ -366,7 +366,7 @@ const SettingsView: React.FC<TViewProps> = () => {
               classNames={["mdc-button--outlined"]}
               label="Configure JupyterLab"
               icon="tune"
-              onClick={loadConfigureJupyterLab.bind(this)}
+              onClick={loadConfigureJupyterLab}
             />
           </div>
           <div className="clear"></div>
@@ -412,7 +412,7 @@ const SettingsView: React.FC<TViewProps> = () => {
               classNames={["mdc-button--outlined"]}
               label="Check for updates"
               icon="system_update_alt"
-              onClick={updateView.bind(this)}
+              onClick={updateView}
             />
           </div>
           <div className="clear"></div>
@@ -434,7 +434,7 @@ const SettingsView: React.FC<TViewProps> = () => {
                       classNames={["mdc-button--outlined"]}
                       label="Restart"
                       icon="power_settings_new"
-                      onClick={restartOrchest.bind(this)}
+                      onClick={restartOrchest}
                       data-test-id="restart"
                     />
                   </React.Fragment>
@@ -463,7 +463,7 @@ const SettingsView: React.FC<TViewProps> = () => {
           <div className="column">
             <MDCButtonReact
               classNames={["mdc-button--outlined"]}
-              onClick={onClickManageUsers.bind(this)}
+              onClick={onClickManageUsers}
               icon="people"
               label="Manage users"
               data-test-id="manage-users"

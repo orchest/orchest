@@ -179,6 +179,9 @@ def get_orchest_config() -> dict:
     except FileNotFoundError:
         logger.info("Could not find Orchest's global configuration file.")
         return {}
+    except json.decoder.JSONDecodeError:
+        logger.info("Malformed Orchest global configuration file.")
+        return {}
 
 
 # orchest <arguments> cmd <arguments>, excluding the use of cmd as an

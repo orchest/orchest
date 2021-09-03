@@ -27,7 +27,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const [refManager] = React.useState(new RefManager());
 
   const onOpenNotebook = () => props.onOpenNotebook();
-  const onOpenFilePreviewView = (step_uuid) =>
+  const onOpenFilePreviewView = (step_uuid: string) =>
     props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
 
   const onMouseMove = (e) => {
@@ -118,8 +118,8 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     <div className="pipeline-details pane" style={{ width: paneWidth + "px" }}>
       <div
         className="col-drag-resize"
-        onMouseDown={onColumnResizeMouseDown.bind(this)}
-        onMouseUp={onColumnResizeMouseUp.bind(this)}
+        onMouseDown={onColumnResizeMouseDown}
+        onMouseUp={onColumnResizeMouseUp}
       />
       <div className={"overflowable"}>
         <div className="input-group">
@@ -129,7 +129,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
             items={["Properties", "Logs"]}
             icons={["tune", "view_headline"]}
             V
-            onChange={onSelectSubView.bind(this)}
+            onChange={onSelectSubView}
           />
         </div>
 
@@ -174,7 +174,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
                 "push-right",
               ]}
               label="Edit in JupyterLab"
-              onClick={onOpenNotebook.bind(this)}
+              onClick={onOpenNotebook}
               data-test-id="step-view-in-jupyterlab"
             />
           )}
@@ -182,7 +182,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
             icon="visibility"
             classNames={["mdc-button--raised"]}
             label="View file"
-            onClick={onOpenFilePreviewView.bind(this, props.step.uuid)}
+            onClick={() => onOpenFilePreviewView(props.step.uuid)}
             data-test-id="step-view-file"
           />
         </div>
@@ -190,14 +190,14 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
           <MDCButtonReact
             icon="close"
             label="Close"
-            onClick={props.onClose.bind(this)}
+            onClick={props.onClose}
             data-test-id="step-close-details"
           />
           {!props.readOnly && (
             <MDCButtonReact
               icon="delete"
               label="Delete"
-              onClick={props.onDelete.bind(this)}
+              onClick={props.onDelete}
               data-test-id="step-delete"
             />
           )}

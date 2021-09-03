@@ -754,7 +754,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   ")",
               ]}
               icons={["schedule", "tune", "view_comfy", "list"]}
-              onChange={onSelectSubview.bind(this)}
+              onChange={onSelectSubview}
               data-test-id="job-edit"
             />
 
@@ -832,7 +832,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                       <div>
                         <CronScheduleInput
                           cronString={state.cronString}
-                          onChange={setCronSchedule.bind(this)}
+                          onChange={setCronSchedule}
                           disabled={state.scheduleOption !== "cron"}
                           dataTestId="job-edit-schedule-cronjob-input"
                         />
@@ -874,7 +874,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                       </p>
                       <EnvVarList
                         value={state.envVariables}
-                        onAdd={addEnvVariablePair.bind(this)}
+                        onAdd={addEnvVariablePair}
                         onChange={(e, idx, type) =>
                           onEnvVariablesChange(e, idx, type)
                         }
@@ -894,9 +894,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                         )}
                         rows={state.generatedPipelineRunRows}
                         selectedIndices={state.selectedIndices}
-                        onSelectionChanged={onPipelineRunsSelectionChanged.bind(
-                          this
-                        )}
+                        onSelectionChanged={onPipelineRunsSelectionChanged}
                         data-test-id="job-edit-pipeline-runs"
                       />
                     </div>
@@ -910,7 +908,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                 <MDCButtonReact
                   disabled={state.runJobLoading}
                   classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={attemptRunJob.bind(this)}
+                  onClick={attemptRunJob}
                   icon="play_arrow"
                   label="Run job"
                   data-test-id="job-run"
@@ -919,14 +917,14 @@ const EditJobView: React.FC<TViewProps> = (props) => {
               {state.job.status !== "DRAFT" && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={putJobChanges.bind(this)}
+                  onClick={putJobChanges}
                   icon="save"
                   label="Update job"
                   data-test-id="job-update"
                 />
               )}
               <MDCButtonReact
-                onClick={cancel.bind(this)}
+                onClick={cancel}
                 label="Cancel"
                 icon="close"
                 data-test-id="update-job"

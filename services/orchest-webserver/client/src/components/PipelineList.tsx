@@ -418,7 +418,7 @@ const PipelineList: React.FC<any> = (props) => {
       {state.createModal && (
         <MDCDialogReact
           title="Create a new pipeline"
-          onClose={onCloseCreatePipelineModal.bind(this)}
+          onClose={onCloseCreatePipelineModal}
           ref={refManager.nrefs.createPipelineDialog}
           content={
             <React.Fragment>
@@ -457,14 +457,14 @@ const PipelineList: React.FC<any> = (props) => {
                 icon="close"
                 label="Cancel"
                 classNames={["push-right"]}
-                onClick={onCancelModal.bind(this)}
+                onClick={onCancelModal}
               />
               <MDCButtonReact
                 icon="add"
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 label="Create pipeline"
                 submitButton
-                onClick={onSubmitModal.bind(this)}
+                onClick={onSubmitModal}
                 data-test-id="pipeline-create-ok"
               />
             </React.Fragment>
@@ -523,7 +523,7 @@ const PipelineList: React.FC<any> = (props) => {
           classNames={["mdc-button--raised", "themed-secondary"]}
           icon="add"
           label="Create pipeline"
-          onClick={onCreateClick.bind(this)}
+          onClick={onCreateClick}
           data-test-id="pipeline-create"
         />
       </div>
@@ -532,7 +532,7 @@ const PipelineList: React.FC<any> = (props) => {
           icon="delete"
           tooltipText="Delete pipeline"
           disabled={state.isDeleting}
-          onClick={onDeleteClick.bind(this)}
+          onClick={onDeleteClick}
           data-test-id="pipeline-delete"
         />
       </div>
@@ -540,7 +540,7 @@ const PipelineList: React.FC<any> = (props) => {
       <MDCDataTableReact
         ref={refManager.nrefs.pipelineListView}
         selectable
-        onRowClick={onClickListItem.bind(this)}
+        onRowClick={onClickListItem}
         classNames={["fullwidth"]}
         headers={["Pipeline", "Path", "Session"]}
         rows={state.listData}

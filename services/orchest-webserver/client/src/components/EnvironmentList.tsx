@@ -307,7 +307,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   icon="add"
                   label="Create environment"
-                  onClick={onCreateClick.bind(this)}
+                  onClick={onCreateClick}
                   data-test-id="environments-create"
                 />
               </div>
@@ -316,7 +316,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   icon="delete"
                   tooltipText="Delete environment"
                   disabled={state.isDeleting}
-                  onClick={onDeleteClick.bind(this)}
+                  onClick={onDeleteClick}
                   data-test-id="environments-delete"
                 />
               </div>
@@ -324,7 +324,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
               <MDCDataTableReact
                 ref={refManager.nrefs.environmentListView}
                 selectable
-                onRowClick={onClickListItem.bind(this)}
+                onRowClick={onClickListItem}
                 classNames={["fullwidth"]}
                 headers={[
                   "Environment",

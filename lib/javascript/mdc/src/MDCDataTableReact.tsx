@@ -52,8 +52,8 @@ export class MDCDataTableReact extends React.Component<any, any> {
     this.callSelectionChanged();
   }
 
-  getSelectedRowIndices() {
-    let selectedRowIndices = [];
+  getSelectedRowIndices(): number[] {
+    let selectedRowIndices: number[] = [];
     let selectedRowIDs = this.mdc.getSelectedRowIds();
 
     // 'u0' => 0
@@ -64,7 +64,7 @@ export class MDCDataTableReact extends React.Component<any, any> {
     return selectedRowIndices;
   }
 
-  setSelectedRowIds(rowIds) {
+  setSelectedRowIds(rowIds: string[]) {
     if (this.mdc.getRows().length > 0) {
       this.mdc.setSelectedRowIds(rowIds);
     }
