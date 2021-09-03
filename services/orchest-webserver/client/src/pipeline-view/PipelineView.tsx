@@ -71,12 +71,18 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { get, state: orchestState, dispatch } = useOrchest();
   const session = get.session(props.queryArgs);
 
-  useHotKey("control+a", () => {
-    state.eventVars.selectedSteps = Object.keys(state.steps);
-    updateEventVars();
-  });
-
-  useHotKey("control+enter", () => runSelectedSteps());
+  // persist the config to prevent useHotKey rerendering internally
+  const hotkeyConfig = useRef([
+    [
+      "ctrl+a",
+      () => {
+        state.eventVars.selectedSteps = Object.keys(state.steps);
+        updateEventVars();
+      },
+    ],
+    ["ctrl+enter", () => runSelectedSteps()],
+  ]);
+  useHotKey(hotkeyConfig.current);
 
   const timersRef = useRef({
     pipelineStepStatusPollingInterval: undefined,

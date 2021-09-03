@@ -1,74 +1,67 @@
 import { useEffect, useRef, useMemo } from "react";
 
-const isEqualWithoutOrder = (arr1: unknown[], arr2: unknown[]) => {
-  if (arr1.length !== arr2.length) return false;
-  return !arr1.some((i) => !arr2.includes(i));
-};
-
-const getKeyArr = (str: string) => str.split(/\s*\+\s*/); // 'a +   b' => ['a', 'b']
-
-const getUniqueKeys = (keys: string[]) => {
-  const registered: Record<string, number> = {};
-  const uniqueKeys = [];
-  keys.forEach((key) => {
-    if (registered[key] === undefined) {
-      uniqueKeys.push(key);
-      registered[key] = uniqueKeys.length - 1;
-    } else {
-      // move the key to the last position
-      // we don't need to update all registered key's index
-      // because this function is called per keystroke
-      // it could only have one duplicate, i.e. the last keystroke
-      uniqueKeys.push(uniqueKeys.splice(registered[key], 1)[0]);
-    }
-  });
-  return uniqueKeys;
-};
+const getKeyArr = (str: string) =>
+  str.split(/\s*\+\s*/).filter((i) => i !== ""); // 'a +   b  +' => ['a', 'b']
+const ctrlRegex = /(\bctrl|\bcontrol|\bmeta|\bcmd)(\s*\+\s*)?/;
 
 const useHotKey = (
-  nonMacHotKey: string,
-  callback: (keyCombination: string) => void
+  nonMacHotkeys: [nonMacHotKey: string, callback: () => void][]
 ) => {
-  const pressedKeysRef = useRef<string[]>([]);
+  const pressedKeysRef = useRef<Record<string, boolean>>({});
+  const hotkeys = useMemo(() => {
+    const normalizedHotKeys = nonMacHotkeys
+      .filter(([str]) => ctrlRegex.test(str)) // all combination should have a ctrl or cmd
+      .map(([nonMacHotkey, callback]): [string[], () => void] => {
+        const keyArr = getKeyArr(nonMacHotkey.replace(ctrlRegex, ""));
+        return [keyArr, callback];
+      });
 
-  const hotkey = useMemo(() => {
-    const isMac = /(Mac)/i.test(window.navigator.userAgent);
-    return isMac ? nonMacHotKey.replace("control", "meta") : nonMacHotKey; // switch to Cmd if user is on Mac
-  }, [nonMacHotKey]);
-  const maxKeyCombination = useMemo(() => getKeyArr(hotkey).length, [hotkey]);
+    return normalizedHotKeys;
+  }, [nonMacHotkeys]);
 
   const keydownCallbackRef = useRef((event: KeyboardEvent) => {
+    // to prevent key events during IME composition https://developer.mozilla.org/en-US/docs/Web/API/Document/keyup_event
+    if (event.isComposing || event.keyCode === 229) return;
+
     // NOTE: all native behaviors are banned!
     event.preventDefault();
     const key = event.key.toLowerCase();
-    const keysArr = getUniqueKeys([...pressedKeysRef.current, key]);
 
-    pressedKeysRef.current =
-      keysArr.length > maxKeyCombination ? keysArr.slice(1) : keysArr;
+    if ((key.length === 1 || key === "enter") && !pressedKeysRef.current[key])
+      pressedKeysRef.current[key] = true;
 
-    const combinationArr = getKeyArr(hotkey);
-    const keysArrToCompare =
-      keysArr.length > combinationArr.length
-        ? keysArr.slice(-combinationArr.length)
-        : keysArr;
+    for (let i = 0; i < hotkeys.length; i++) {
+      const [combination, callback] = hotkeys[i];
+      const shouldFire =
+        (event.ctrlKey || event.metaKey) &&
+        !combination.some((k) => !pressedKeysRef.current[k]);
 
-    const shouldFire = isEqualWithoutOrder(keysArrToCompare, combinationArr);
-
-    if (shouldFire) callback(pressedKeysRef.current.join("+"));
+      if (shouldFire) {
+        callback();
+        break;
+      }
+    }
   });
 
-  const keyupCallbackRef = useRef(() => {
-    pressedKeysRef.current = [];
+  const keyupCallbackRef = useRef((event: KeyboardEvent) => {
+    // to prevent key events during IME composition https://developer.mozilla.org/en-US/docs/Web/API/Document/keyup_event
+    if (event.isComposing || event.keyCode === 229) return;
+
+    const key = event.key.toLowerCase();
+    // NOTE: while user is holding meta key, keyup for other keys does not fire
+    // as a workaround, we clean up all pressedKeys when ctrl/meta is released
+    if (pressedKeysRef.current[key]) delete pressedKeysRef.current[key];
+    if (event.ctrlKey || event.metaKey) pressedKeysRef.current = {};
   });
 
   useEffect(() => {
-    document.body.addEventListener("keydown", keydownCallbackRef.current);
-    document.body.addEventListener("keyup", keyupCallbackRef.current);
-  }, [hotkey]);
+    document.addEventListener("keydown", keydownCallbackRef.current);
+    document.addEventListener("keyup", keyupCallbackRef.current);
+  }, [hotkeys]);
 
   return () => {
-    document.body.removeEventListener("keydown", keydownCallbackRef.current);
-    document.body.removeEventListener("keyup", keyupCallbackRef.current);
+    document.removeEventListener("keydown", keydownCallbackRef.current);
+    document.removeEventListener("keyup", keyupCallbackRef.current);
   };
 };
 
