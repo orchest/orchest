@@ -214,10 +214,10 @@ def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
         try:
             return docker_client.images.remove(*args, **kwargs)
         except docker.errors.ImageNotFound as e:
-            logging.error("Failed to remove image: %s" % e)
+            logging.debug("Failed to remove image: %s" % e)
             return
         except Exception as e:
-            logging.error("Failed to remove image: %s" % e)
+            logging.debug("Failed to remove image: %s" % e)
         time.sleep(1)
 
 

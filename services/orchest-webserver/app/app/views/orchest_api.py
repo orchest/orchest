@@ -1,7 +1,6 @@
 import requests
 from flask import current_app, jsonify, request
 
-from _orchest.internals import config as _config
 from app import analytics, error
 from app.core import jobs
 from app.models import Pipeline, Project
@@ -329,15 +328,9 @@ def register_orchest_api_views(app, db):
 
         project_dir = get_project_directory(json_obj["project_uuid"], host_path=True)
 
-        p_json = get_pipeline_json(json_obj["pipeline_uuid"], json_obj["project_uuid"])
-
-        services = p_json.get("services", {})
-        environments = {step["environment"] for step in p_json["steps"].values()}
-        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-        for service in services.values():
-            img = service["image"]
-            if img.startswith(prefix):
-                environments.add(img.replace(prefix, ""))
+        services = get_pipeline_json(
+            json_obj["pipeline_uuid"], json_obj["project_uuid"]
+        ).get("services", {})
 
         session_config = {
             "project_uuid": project_uuid,
@@ -345,7 +338,6 @@ def register_orchest_api_views(app, db):
             "pipeline_path": pipeline_path,
             "project_dir": project_dir,
             "host_userdir": app.config["HOST_USER_DIR"],
-            "environments": list(environments),
             "services": services,
         }
 

@@ -157,18 +157,24 @@ class CreateInteractiveSession(TwoPhaseFunction):
         ]:
             raise JupyterBuildInProgressException()
 
-        # Make sure the required environments are there. This piece of
+        # Make sure the service environments are there. This piece of
         # code needs to be there to reject a session post if the
         # referenced environments aren't there, since this is something
         # the background task that is launching the session cannot do.
+        env_as_services = set()
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        for service in session_config.get("services", {}).values():
+            img = service["image"]
+            if img.startswith(prefix):
+                env_as_services.add(img.replace(prefix, ""))
         try:
             get_env_uuids_to_docker_id_mappings(
-                session_config["project_uuid"], set(session_config["environments"])
+                session_config["project_uuid"], env_as_services
             )
         except errors.ImageNotFound as e:
             raise errors.ImageNotFound(
-                "Pipeline is referencing environments for which an image does not "
-                f"exist, {e}."
+                "Pipeline services were referencing environments for "
+                f"which an image does not exist, {e}."
             )
         except errors.PipelineDefinitionNotValid:
             msg = "Please make sure every pipeline step is assigned an environment."
@@ -196,12 +202,18 @@ class CreateInteractiveSession(TwoPhaseFunction):
             try:
                 project_uuid = session_config["project_uuid"]
                 pipeline_uuid = session_config["pipeline_uuid"]
-                environments = set(session_config["environments"])
+
+                env_as_services = set()
+                prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+                for service in session_config.get("services", {}).values():
+                    img = service["image"]
+                    if img.startswith(prefix):
+                        env_as_services.add(img.replace(prefix, ""))
 
                 # Lock the orchest environment images that are used
                 # as services.
                 env_uuid_docker_id_mappings = lock_environment_images_for_session(
-                    project_uuid, pipeline_uuid, environments
+                    project_uuid, pipeline_uuid, env_as_services
                 )
                 session_config[
                     "env_uuid_docker_id_mappings"
