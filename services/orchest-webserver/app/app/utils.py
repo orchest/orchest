@@ -4,7 +4,6 @@ import os
 import re
 import subprocess
 import uuid
-from collections import defaultdict
 from typing import Optional
 from urllib.parse import unquote
 
@@ -317,66 +316,9 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
             # Apply pipeline migrations
             pipeline_json = migrate_pipeline(pipeline_json)
 
-            fix_steps_environments(project_uuid, pipeline_json)
-
             return pipeline_json
     except Exception as e:
         current_app.logger.error("Could not read pipeline JSON from %s" % e)
-
-
-def fix_steps_environments(project_uuid: str, pipeline_json: dict) -> None:
-    envs = get_environments(project_uuid)
-    envs_uuids = set()
-    envs_by_language = defaultdict(set)
-    envs_uuids_by_language = defaultdict(set)
-    for env in envs:
-        envs_by_language[env.language].add(env)
-        envs_uuids_by_language[env.language].add(env.uuid)
-        envs_uuids.add(env.uuid)
-
-    had_changes = False
-    for step in pipeline_json["steps"].values():
-        is_notebook = step["file_path"].endswith("ipynb")
-        env_to_set = None
-
-        if is_notebook:
-            step_language = kernel_name_to_language(
-                step["kernel"].get("name", "python")
-            )
-            language_envs = envs_by_language.get(step_language, set())
-            language_envs_uuids = envs_uuids_by_language.get(step_language, set())
-
-            # The environment needs to be fixed.
-            if step["environment"] not in language_envs_uuids:
-                env_to_set = ""
-                if language_envs:
-                    env_to_set = next(iter(language_envs))
-        # The environment needs to be fixed.
-        elif step["environment"] not in envs_uuids:
-            env_to_set = ""
-            if envs:
-                env_to_set = envs[0]
-
-        if env_to_set is not None:
-            had_changes = True
-            if env_to_set == "":
-                step["environment"] = ""
-                step["kernel"]["display_name"] = ""
-                step["kernel"]["name"] = ""
-            else:
-                step["environment"] = env_to_set.uuid
-                step["kernel"]["display_name"] = env_to_set.name
-                step["kernel"]["name"] = language_to_kernel_name(env_to_set.language)
-
-    if had_changes:
-        try:
-            pipeline_dir = get_pipeline_directory(
-                pipeline_json["uuid"],
-                project_uuid,
-            )
-            pipeline_set_notebook_kernels(pipeline_json, pipeline_dir, project_uuid)
-        except KeyError as e:
-            current_app.logger.error(e)
 
 
 def get_hash(path):
@@ -935,13 +877,3 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
         )
     )
     return new_path_abs.startswith(project_path)
-
-
-def kernel_name_to_language(kernel_name: str) -> str:
-    mapping = {"ir": "r"}
-    return mapping.get(kernel_name, kernel_name)
-
-
-def language_to_kernel_name(language: str) -> str:
-    mapping = {"r": "ir"}
-    return mapping.get(language, language)
