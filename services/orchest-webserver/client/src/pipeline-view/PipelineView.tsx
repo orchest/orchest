@@ -2295,7 +2295,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       initializeResizeHandlers();
 
       // Edit mode fetches latest interactive run
-      if (!queryArgs.read_only !== "true") {
+      if (queryArgs.read_only !== "true") {
         fetchActivePipelineRuns();
       }
     } else {
