@@ -88,11 +88,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   );
 
-  // useEffect(() => {
-  //   enableSelectAllHotkey();
-  //   enableRunStepsHotkey();
-  // }, []);
-
   const timersRef = useRef({
     pipelineStepStatusPollingInterval: undefined,
     doubleClickTimeout: undefined,
