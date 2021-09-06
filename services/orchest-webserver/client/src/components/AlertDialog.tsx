@@ -24,7 +24,7 @@ const AlertDialog: React.FC<IAlertDialogProps> = (props) => {
           classNames={["mdc-button--raised", "themed-secondary"]}
           submitButton
           label="Ok"
-          onClick={close.bind(this)}
+          onClick={close}
         />
       }
     />

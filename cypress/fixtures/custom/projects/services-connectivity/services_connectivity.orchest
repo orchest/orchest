@@ -46,7 +46,7 @@
             "binds": {
                 "/data": "/data"
             },
-            "command": "-c 'umask 002 && tensorboard --logdir /data --bind_all'",
+            "command": "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
             "entrypoint": "bash",
             "image": "tensorflow/tensorflow",
             "name": "tensorboard",

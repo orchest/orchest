@@ -5,7 +5,7 @@ import {
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
-import PipelineView from "../views/PipelineView";
+import PipelineView from "../pipeline-view/PipelineView";
 import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
 import HelpView from "../views/HelpView";
@@ -104,7 +104,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         {state.pipelineName && state.view == "jupyter" && (
           <MDCButtonReact
             classNames={["mdc-button--outlined"]}
-            onClick={showPipeline.bind(this)}
+            onClick={showPipeline}
             icon="device_hub"
             label="Switch to Pipeline"
           />
@@ -116,7 +116,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
             <MDCButtonReact
               disabled={get.currentSession?.status !== "RUNNING"}
               classNames={["mdc-button--outlined"]}
-              onClick={showJupyter.bind(this)}
+              onClick={showJupyter}
               icon="science"
               label="Switch to JupyterLab"
               data-test-id="switch-to-jupyterlab"
@@ -127,14 +127,14 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
           <MDCIconButtonToggleReact
             icon="logout"
             tooltipText="Logout"
-            onClick={logoutHandler.bind(this)}
+            onClick={logoutHandler}
           />
         )}
 
         <MDCIconButtonToggleReact
           icon="help"
           tooltipText="Help"
-          onClick={orchest.loadView.bind(orchest, HelpView)}
+          onClick={() => orchest.loadView(HelpView)}
         />
       </div>
     </header>

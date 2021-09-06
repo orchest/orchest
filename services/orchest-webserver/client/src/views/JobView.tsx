@@ -34,7 +34,7 @@ import ParamTree from "@/components/ParamTree";
 import ParameterEditor from "@/components/ParameterEditor";
 import SearchableTable from "@/components/SearchableTable";
 import EnvVarList from "@/components/EnvVarList";
-import PipelineView from "@/views/PipelineView";
+import PipelineView from "@/pipeline-view/PipelineView";
 import EditJobView from "@/views/EditJobView";
 import JobsView from "@/views/JobsView";
 
@@ -434,7 +434,7 @@ const JobView: React.FC<TViewProps> = (props) => {
             label="View pipeline"
             classNames={["mdc-button--raised", "themed-secondary"]}
             icon="visibility"
-            onClick={onDetailPipelineView.bind(this, pipelineRun)}
+            onClick={() => onDetailPipelineView(pipelineRun)}
             data-test-id={`job-pipeline-runs-row-view-pipeline-${x}`}
           />
         </div>
@@ -516,7 +516,7 @@ const JobView: React.FC<TViewProps> = (props) => {
               detailRows={detailRows(state.job.pipeline_runs)}
               headers={["ID", "Parameters", "Status", "Started at"]}
               selectedIndices={state.selectedIndices}
-              onSelectionChanged={onPipelineRunsSelectionChanged.bind(this)}
+              onSelectionChanged={onPipelineRunsSelectionChanged}
               data-test-id="job-pipeline-runs"
             />
           </div>
@@ -558,7 +558,7 @@ const JobView: React.FC<TViewProps> = (props) => {
           <MDCButtonReact
             label="Back to jobs"
             icon="arrow_back"
-            onClick={returnToJobs.bind(this)}
+            onClick={returnToJobs}
           />
         </div>
 
@@ -620,7 +620,7 @@ const JobView: React.FC<TViewProps> = (props) => {
             "Environment variables",
           ]}
           icons={["list", "tune", "view_comfy"]}
-          onChange={onSelectSubview.bind(this)}
+          onChange={onSelectSubview}
         />
 
         <div className="tab-view">{tabView}</div>
@@ -630,21 +630,21 @@ const JobView: React.FC<TViewProps> = (props) => {
             disabled={state.refreshing}
             label="Refresh"
             icon="refresh"
-            onClick={reload.bind(this)}
+            onClick={reload}
             data-test-id="job-refresh"
           />
 
           <MDCButtonReact
             label="Duplicate job"
             icon="file_copy"
-            onClick={onJobDuplicate.bind(this)}
+            onClick={onJobDuplicate}
           />
 
           {state.job.schedule !== null &&
             ["STARTED", "PAUSED", "PENDING"].includes(state.job.status) && (
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
-                onClick={editJob.bind(this)}
+                onClick={editJob}
                 icon="tune"
                 label="Edit"
               />
@@ -673,7 +673,7 @@ const JobView: React.FC<TViewProps> = (props) => {
               classNames={["mdc-button--raised"]}
               label="Cancel job"
               icon="close"
-              onClick={cancelJob.bind(this)}
+              onClick={cancelJob}
             />
           )}
         </div>

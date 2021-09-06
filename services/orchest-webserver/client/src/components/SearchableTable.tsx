@@ -1,40 +1,41 @@
-import * as React from "react";
+import React from "react";
 import { MDCDataTableReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 
-export type TSearchableTableRef = any;
-export interface ISearchableTableProps {
-  selectable?: boolean;
-  headers: any[];
-  rows: any[];
-  detailRows?: any[];
-  selectedIndices?: any[];
-  onRowClick?: () => void;
-  onSelectionChanged?: () => void;
+interface ForwardedSearchableTableProps {
+  getSelectedRowIndices: () => number[];
+  setSelectedRowIds: (rowIds: string[]) => void;
 }
 
-const SearchableTable = React.forwardRef<
-  TSearchableTableRef,
-  ISearchableTableProps
->((props, ref) => {
-  const tableRef = React.useRef<{
-    getSelectedRowIndices: () => any;
-    setSelectedRowIds: (rowIds: any) => any;
-  }>(null);
+interface SearchableTableProps<T> {
+  selectable?: boolean;
+  headers: any[];
+  rows: T[][];
+  detailRows?: any[];
+  selectedIndices?: number[];
+  onRowClick?: (row: any, idx: any, event: any) => void; // TODO: remove any
+  onSelectionChanged?: (selectedRows: T[], allRows: T[]) => void;
+}
+
+const SearchableTable = <T extends string | number | Object>(
+  props: SearchableTableProps<T>,
+  ref: React.MutableRefObject<ForwardedSearchableTableProps>
+) => {
+  const tableRef = React.useRef<ForwardedSearchableTableProps>(null);
 
   const [state, setState] = React.useState({
     rowSearchMask: new Array(props.rows.length).fill(1),
     searchValue: "",
   });
 
-  const onSearchChange = (searchValue) => {
+  const onSearchChange = (searchValue: string) => {
     // case insensitive search
     const value = searchValue.toLocaleLowerCase();
 
     const rowSearchMask =
       value.length === 0
         ? new Array(props.rows.length).fill(1)
-        : props.rows.map((row) =>
-            row.join(" ").toLocaleLowerCase().indexOf(value) !== -1 ? 1 : 0
+        : props.rows.map((cols) =>
+            cols.join(" ").toLocaleLowerCase().indexOf(value) !== -1 ? 1 : 0
           );
 
     setState({
@@ -43,8 +44,8 @@ const SearchableTable = React.forwardRef<
     });
   };
 
-  const filteredRows = (rows) =>
-    !rows ? null : rows.filter((_, i) => state.rowSearchMask[i] === 1);
+  const filteredRows = (rows: unknown[]) =>
+    !rows ? null : rows.filter((_, i: number) => state.rowSearchMask[i] === 1);
 
   React.useEffect(
     () =>
@@ -66,17 +67,16 @@ const SearchableTable = React.forwardRef<
   }));
 
   return (
-    <React.Fragment>
+    <>
       <MDCTextFieldReact
-        onChange={onSearchChange.bind(this)}
+        onChange={onSearchChange}
         value={state.searchValue}
         classNames={["mdc-text-field--outlined", "fullwidth", "search"]}
         notched={true}
         label="Search"
       />
-
       <MDCDataTableReact
-        ref={tableRef as any}
+        ref={tableRef as React.LegacyRef<MDCDataTableReact>}
         selectable={props.selectable}
         selectedIndices={filteredRows(props.selectedIndices)}
         onSelectionChanged={props.onSelectionChanged}
@@ -87,8 +87,8 @@ const SearchableTable = React.forwardRef<
         detailRows={filteredRows(props.detailRows)}
         data-test-id={props["data-test-id"]}
       />
-    </React.Fragment>
+    </>
   );
-});
+};
 
-export default SearchableTable;
+export default React.forwardRef(SearchableTable);

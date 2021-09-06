@@ -9,7 +9,7 @@ import MainDrawer from "./components/MainDrawer";
 import Jupyter from "./jupyter/Jupyter";
 
 import PipelineSettingsView from "./views/PipelineSettingsView";
-import PipelineView from "./views/PipelineView";
+import PipelineView from "./pipeline-view/PipelineView";
 import ProjectsView from "./views/ProjectsView";
 import JupyterLabView from "./views/JupyterLabView";
 
@@ -27,6 +27,8 @@ import JobsView from "./views/JobsView";
 
 import $ from "jquery";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 $.fn.overflowing = function () {
   let overflowed = false;
 
@@ -48,10 +50,14 @@ window.$ = $;
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
   const [view, setView] = React.useState(null);
-  const [state, setState] = React.useState({
+  const [state, setState] = React.useState<{
+    activeViewName: string;
+    ViewComponent: React.FunctionComponent;
+    dynamicProps: Record<string, unknown>;
+  }>({
     activeViewName: "",
     dynamicProps: null,
-    TagName: null,
+    ViewComponent: null,
   });
 
   const context = useOrchest();
@@ -111,20 +117,17 @@ const App = () => {
   };
 
   React.useEffect(() => {
-    let loadViewSpec = context.state.loadViewSpec;
-    if (loadViewSpec === undefined) return;
+    if (context.state.loadViewSpec === undefined) return;
 
-    let TagName = loadViewSpec.TagName;
-    let dynamicProps = loadViewSpec.dynamicProps;
-    let onCancelled = loadViewSpec.onCancelled;
+    const {
+      TagName,
+      dynamicProps,
+      isOnPopState,
+      onCancelled,
+    } = context.state.loadViewSpec;
 
-    let conditionalBody;
-    if (loadViewSpec.isOnPopState) {
-      conditionalBody = () => {
-        _loadView(TagName, dynamicProps);
-      };
-    } else {
-      conditionalBody = () => {
+    const conditionalBody = () => {
+      if (!isOnPopState) {
         // This public loadView sets the state through the
         // history API.
 
@@ -138,18 +141,18 @@ const App = () => {
             viewName,
             dynamicProps,
           },
-          /* `title` argument for pushState was deprecated,
-        document.title should be used instead. */
           "",
           pathname + search
         );
 
+        /* `title` argument for pushState was deprecated,
+        document.title should be used instead. */
         window.document.title =
           pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
+      }
 
-        _loadView(TagName, dynamicProps);
-      };
-    }
+      _loadView(TagName, dynamicProps);
+    };
 
     if (!context.state.unsavedChanges) {
       conditionalBody();
@@ -166,8 +169,8 @@ const App = () => {
     }
   }, [context?.state.loadViewSpec]);
 
-  const _loadView = (TagName, dynamicProps) => {
-    let viewName = componentName(TagName);
+  const _loadView = (ViewComponent: React.FunctionComponent, dynamicProps) => {
+    let viewName = componentName(ViewComponent);
 
     // Analytics call
     sendEvent("view load", { name: viewName });
@@ -176,31 +179,38 @@ const App = () => {
       window.Intercom("update");
     }
 
-    if (KEEP_PIPELINE_VIEWS.indexOf(TagName) === -1) {
+    if (KEEP_PIPELINE_VIEWS.indexOf(ViewComponent) === -1) {
       context.dispatch({ type: "pipelineClear" });
     }
 
     // select menu if menu tag is selected
     setState((prevState) => ({
       ...prevState,
-      TagName,
+      ViewComponent,
       dynamicProps,
       activeViewName: viewName,
     }));
   };
 
-  const _generateView = (TagName, dynamicProps) => {
+  const _generateView = (
+    ViewComponent: React.FunctionComponent<{ project_uuid: string }>,
+    dynamicProps: Record<string, unknown>
+  ) => {
     return (
-      <TagName
+      <ViewComponent
         {...dynamicProps}
-        {...(INJECT_PROJECT_UUID_VIEWS.indexOf(TagName) !== -1 && {
+        {...(INJECT_PROJECT_UUID_VIEWS.indexOf(ViewComponent) !== -1 && {
           project_uuid: context.state.project_uuid,
         })}
       />
     );
   };
 
-  const loadView = (TagName, dynamicProps = {}, onCancelled?) => {
+  const loadView = (
+    TagName: React.FunctionComponent,
+    dynamicProps = {},
+    onCancelled?: () => void
+  ) => {
     context.dispatch({
       type: "setLoadViewSpec",
       payload: {
@@ -249,11 +259,11 @@ const App = () => {
   };
 
   const requestBuild = (
-    project_uuid,
+    project_uuid: string,
     environmentValidationData,
     requestedFromView,
     onBuildComplete,
-    onCancel
+    onCancel: () => void
   ) => {
     // Analytics call
     sendEvent("build request", {
@@ -314,8 +324,8 @@ const App = () => {
   };
 
   React.useEffect(() => {
-    if (state.TagName)
-      setView(_generateView(state.TagName, state.dynamicProps));
+    if (state.ViewComponent)
+      setView(_generateView(state.ViewComponent, state.dynamicProps));
   }, [state, context?.state?.project_uuid]);
 
   return (

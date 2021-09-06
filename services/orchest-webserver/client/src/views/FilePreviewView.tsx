@@ -20,7 +20,7 @@ import {
   getPipelineStepChildren,
   setWithRetry,
 } from "@/utils/webserver-utils";
-import PipelineView from "@/views/PipelineView";
+import PipelineView from "@/pipeline-view/PipelineView";
 
 const MODE_MAPPING = {
   py: "text/x-python",
@@ -167,7 +167,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         });
     });
 
-  const stepNavigate = (stepUUID) => {
+  const stepNavigate = (stepUUID: string) => {
     let propClone = JSON.parse(JSON.stringify(props));
     propClone.queryArgs.step_uuid = stepUUID;
 
@@ -178,7 +178,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
     return steps.map((step) => (
       <button
         key={step.uuid}
-        onClick={stepNavigate.bind(this, step.uuid)}
+        onClick={() => stepNavigate(step.uuid)}
         className="text-button"
       >
         {step.title}
@@ -296,12 +296,12 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
           <MDCButtonReact
             classNames={["refresh-button"]}
             icon="refresh"
-            onClick={loadFile.bind(this)}
+            onClick={loadFile}
           />
           <MDCButtonReact
             classNames={["close-button"]}
             icon="close"
-            onClick={loadPipelineView.bind(this)}
+            onClick={loadPipelineView}
           />
         </div>
 

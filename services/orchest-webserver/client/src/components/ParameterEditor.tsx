@@ -38,7 +38,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
           <ParamTree
             pipelineName={props.pipelineName}
             strategyJSON={state.strategyJSON}
-            editParameter={editParameter.bind(this)}
+            editParameter={editParameter}
             data-test-id={props["data-test-id"]}
           />
         </div>

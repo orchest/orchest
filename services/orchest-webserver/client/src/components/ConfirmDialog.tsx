@@ -40,14 +40,14 @@ const ConfirmDialog: React.FC<IConfirmDialogProps> = (props) => {
       ref={refManager.nrefs.dialog}
       title={props.title}
       onClose={props.onClose}
-      onOpened={onOpened.bind(this)}
+      onOpened={onOpened}
       content={props.content && <p>{props.content}</p>}
       actions={
         <React.Fragment>
           <MDCButtonReact
             label="Cancel"
             classNames={["push-right"]}
-            onClick={cancel.bind(this)}
+            onClick={cancel}
             data-test-id="confirm-dialog-cancel"
           />
           <MDCButtonReact
@@ -55,7 +55,7 @@ const ConfirmDialog: React.FC<IConfirmDialogProps> = (props) => {
             submitButton
             ref={refManager.nrefs.okButton}
             label="Ok"
-            onClick={confirm.bind(this)}
+            onClick={confirm}
             data-test-id="confirm-dialog-ok"
           />
         </React.Fragment>

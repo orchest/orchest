@@ -5,12 +5,9 @@ on:
     branches:
       - master
       - dev
-      - "release/**"
   pull_request:
     branches:
       - master
-      - dev
-      - "release/**"
 
 jobs:
   integration-tests:

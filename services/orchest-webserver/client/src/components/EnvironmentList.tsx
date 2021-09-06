@@ -169,27 +169,54 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     environment_uuid,
     environmentName
   ) => {
-    // validate if environment is in use, if it is, prompt user
-    // specifically on remove
-
+    // Do not allow environment deletions if a session is ongoing.
     makeRequest(
       "GET",
-      `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+      `/catch/api-proxy/api/sessions/?project_uuid=${project_uuid}`
     ).then((response: string) => {
       let data = JSON.parse(response);
-      if (data.in_use) {
-        orchest.confirm(
-          "Warning",
-          "The environment you're trying to delete (" +
-            environmentName +
-            ") is in use. " +
-            "Are you sure you want to delete it? This will abort all sessions and jobs/interactive runs that are using it.",
-          () => {
+      if (data.sessions.length > 0) {
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/environment-builds/most-recent/${project_uuid}/${environment_uuid}`
+        ).then((response: string) => {
+          let data = JSON.parse(response);
+          if (data.environment_builds.some((x) => x.status == "SUCCESS"))
+            orchest.alert(
+              "Error",
+              "Environments cannot be deleted with a running interactive session."
+            );
+          else {
             _removeEnvironment(project_uuid, environment_uuid, environmentName);
           }
-        );
+        });
       } else {
-        _removeEnvironment(project_uuid, environment_uuid, environmentName);
+        // validate if environment is in use, if it is, prompt user
+        // specifically on remove.
+        makeRequest(
+          "GET",
+          `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+        ).then((response: string) => {
+          let data = JSON.parse(response);
+          if (data.in_use) {
+            orchest.confirm(
+              "Warning",
+              "The environment you're trying to delete (" +
+                environmentName +
+                ") is in use. " +
+                "Are you sure you want to delete it? This will abort all jobs that are using it.",
+              () => {
+                _removeEnvironment(
+                  project_uuid,
+                  environment_uuid,
+                  environmentName
+                );
+              }
+            );
+          } else {
+            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+          }
+        });
       }
     });
   };
@@ -307,7 +334,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   icon="add"
                   label="Create environment"
-                  onClick={onCreateClick.bind(this)}
+                  onClick={onCreateClick}
                   data-test-id="environments-create"
                 />
               </div>
@@ -316,7 +343,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                   icon="delete"
                   tooltipText="Delete environment"
                   disabled={state.isDeleting}
-                  onClick={onDeleteClick.bind(this)}
+                  onClick={onDeleteClick}
                   data-test-id="environments-delete"
                 />
               </div>
@@ -324,7 +351,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
               <MDCDataTableReact
                 ref={refManager.nrefs.environmentListView}
                 selectable
-                onRowClick={onClickListItem.bind(this)}
+                onRowClick={onClickListItem}
                 classNames={["fullwidth"]}
                 headers={[
                   "Environment",

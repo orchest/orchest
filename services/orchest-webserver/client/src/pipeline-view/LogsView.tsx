@@ -21,10 +21,11 @@ import {
 } from "@/utils/webserver-utils";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import LogViewer from "@/components/LogViewer";
+import LogViewer from "@/pipeline-view/LogViewer";
 
-export interface ILogsViewProps
-  extends TViewPropsWithRequiredQueryArgs<"pipeline_uuid" | "project_uuid"> {}
+export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
+  "pipeline_uuid" | "project_uuid"
+>;
 
 const LogsView: React.FC<ILogsViewProps> = (props) => {
   const orchest = window.orchest;

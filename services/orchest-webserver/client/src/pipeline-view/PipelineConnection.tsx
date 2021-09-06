@@ -10,10 +10,10 @@ export interface IPipelineConnectionProps {
   startNodeUUID: any;
   endNodeUUID: any;
   onClick: any;
-  xEnd: Number;
-  yEnd: Number;
+  xEnd: number;
+  yEnd: number;
   selected: boolean;
-  scaleFactor: Number;
+  scaleFactor: number;
   scaleCorrectedPosition: any;
 }
 

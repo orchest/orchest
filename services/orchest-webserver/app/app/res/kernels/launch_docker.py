@@ -47,6 +47,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     labels["kernel_id"] = kernel_id
     labels["component"] = "kernel"
     labels["app"] = "enterprise-gateway"
+    labels["session_identity_uuid"] = os.environ["ORCHEST_SESSION_UUID"]
 
     # Capture env parameters...
     param_env = dict()

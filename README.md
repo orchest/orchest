@@ -52,8 +52,7 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 #### Requirements
 
-- [Docker](https://docs.docker.com/get-docker/) 🐳
-  - [Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` (run `docker version` to check).
+- [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
 
 > **NOTE:** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
 > the Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
@@ -118,3 +117,4 @@ for more details.
 <a href="https://github.com/cceyda"><img src="https://avatars.githubusercontent.com/u/15624271?v=4" title="cceyda" width="50" height="50"></a>
 <a href="https://github.com/MWeltevrede"><img src="https://avatars.githubusercontent.com/u/31962715?v=4" title="MWeltevrede" width="50" height="50"></a>
 <a href="https://github.com/kingabzpro"><img src="https://avatars.githubusercontent.com/u/36753484?v=4" title="Abid" width="50" height="50"></a>
+<a href="https://github.com/iannbing"><img src="https://avatars.githubusercontent.com/u/627607?v=4" title="iannbing" width="50" height="50"></a>

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import subprocess
 import uuid
 from typing import Optional
@@ -446,13 +447,21 @@ def discoverFSCreatedProjects():
 
     # Detect new projects by detecting directories that were not
     # registered in the db as projects.
-    existing_project_paths = [project.path for project in Project.query.all()]
-    project_paths = [
-        entry.name
-        for entry in os.scandir(current_app.config["PROJECTS_DIR"])
-        if entry.is_dir()
-    ]
-    new_project_paths = set(project_paths) - set(existing_project_paths)
+    existing_project_names = [project.path for project in Project.query.all()]
+
+    fs_project_names = []
+    for entry in os.scandir(current_app.config["PROJECTS_DIR"]):
+        if not entry.is_dir():
+            continue
+
+        # In the UI we enforce the same naming convention, because git
+        # has strict naming requirements on repository names.
+        if re.search(r"[^A-Za-z0-9_.-]", entry.name) is not None:
+            continue
+
+        fs_project_names.append(entry.name)
+
+    new_project_names = set(fs_project_names) - set(existing_project_names)
 
     # Do not do project discovery if a project is moving, because
     # a new_project_path could actually be a moving project. Given
@@ -465,14 +474,14 @@ def discoverFSCreatedProjects():
 
     # Use a TwoPhaseExecutor for each project so that issues in one
     # project do not hinder the discovery of others.
-    for new_project_path in new_project_paths:
+    for new_project_name in new_project_names:
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreateProject(tpe).transaction(new_project_path)
+                CreateProject(tpe).transaction(new_project_name)
         except Exception as e:
             current_app.logger.error(
                 (
                     "Error during project initialization (discovery) of "
-                    f"{new_project_path}: {e}."
+                    f"{new_project_name}: {e}."
                 )
             )
