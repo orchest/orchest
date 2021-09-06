@@ -88,11 +88,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   );
 
-  // useEffect(() => {
-  //   enableSelectAllHotkey();
-  //   enableRunStepsHotkey();
-  // }, []);
-
   const timersRef = useRef({
     pipelineStepStatusPollingInterval: undefined,
     doubleClickTimeout: undefined,
@@ -2295,7 +2290,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       initializeResizeHandlers();
 
       // Edit mode fetches latest interactive run
-      if (!queryArgs.read_only !== "true") {
+      if (queryArgs.read_only !== "true") {
         fetchActivePipelineRuns();
       }
     } else {

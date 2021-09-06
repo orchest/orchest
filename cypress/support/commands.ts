@@ -420,10 +420,6 @@ Cypress.Commands.add(
   }
 );
 
-before(() => {
-  cy.configureCypressTestingLibrary({ testIdAttribute: "data-test-id" });
-});
-
 beforeEach(() => {
   cy.cleanDataDir();
   cy.cleanProjectsDir();
