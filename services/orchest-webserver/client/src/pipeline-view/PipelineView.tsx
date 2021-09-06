@@ -1826,7 +1826,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   const onSaveDetails = (stepChanges, uuid) => {
     // Mutate step with changes
-    _.assignIn(state.steps[uuid], stepChanges);
+    _.merge(state.steps[uuid], stepChanges);
 
     setState({
       steps: state.steps,
