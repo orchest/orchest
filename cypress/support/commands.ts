@@ -60,10 +60,6 @@ declare global {
   }
 }
 
-before(() => {
-  cy.configureCypressTestingLibrary({ testIdAttribute: "data-test-id" });
-});
-
 Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.setLocalStorage(LOCAL_STORAGE_KEY, value);
   // Needed to close the onboarding modal.
