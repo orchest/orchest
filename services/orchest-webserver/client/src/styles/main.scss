@@ -280,11 +280,16 @@ a.button {
     }
     .columns {
       .column {
+        margin-bottom: var(--space-5);
         &:nth-child(2n) {
           padding-left: 2.5%;
         }
         &:nth-child(2n + 1) {
           padding-right: 2.5%;
+        }
+        .disk-size-info {
+          width: 70%;
+          font-weight: 500;
         }
       }
     }

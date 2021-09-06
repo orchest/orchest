@@ -19,10 +19,16 @@ export class MDCLinearProgressReact extends React.Component<any> {
   }
 
   render() {
-    let topClasses = ["mdc-linear-progress mdc-linear-progress--indeterminate"];
-
+    let topClasses = ["mdc-linear-progress"];
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
+    }
+
+    if (this.props.progress === undefined) {
+      topClasses.push("mdc-linear-progress--indeterminate");
+    } else {
+      this.mdc.determinate = true;
+      this.mdc.progress = Number(this.props.progress);
     }
 
     return (
@@ -31,6 +37,8 @@ export class MDCLinearProgressReact extends React.Component<any> {
         ref={this.refManager.nrefs.progress}
         className={topClasses.join(" ")}
         aria-label="Progress Bar"
+        aria-valuemin={0}
+        aria-valuemax={1}
       >
         <div className="mdc-linear-progress__buffer">
           <div className="mdc-linear-progress__buffer-bar"></div>
