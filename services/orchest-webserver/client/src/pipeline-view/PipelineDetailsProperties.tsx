@@ -136,7 +136,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
     props.onSave(
       {
         environment: updatedEnvironmentUUID,
-        kernel: { display_name: updatedEnvironmentName },
+        kernel: { ...props.step.kernel, display_name: updatedEnvironmentName },
       },
       props.step.uuid
     );
@@ -156,6 +156,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
     props.onSave(
       {
         kernel: {
+          ...props.step.kernel,
           name: updatedKernel,
         },
       },
