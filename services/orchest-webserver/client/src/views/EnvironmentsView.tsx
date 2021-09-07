@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useParams } from "react-router-dom";
 import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
@@ -11,8 +12,9 @@ export interface IEnvironmentsViewProps
   extends TViewProps,
     IProjectBasedViewProps {}
 
-const EnvironmentsView: React.FC<IEnvironmentsViewProps> = (props) => {
+const EnvironmentsView: React.FC<IEnvironmentsViewProps> = () => {
   const { dispatch } = useOrchest();
+  const { projectId } = useParams<{ projectId: string }>();
 
   React.useEffect(() => {
     dispatch({ type: "setView", payload: "environments" });
@@ -21,10 +23,7 @@ const EnvironmentsView: React.FC<IEnvironmentsViewProps> = (props) => {
 
   return (
     <Layout>
-      <ProjectBasedView
-        project_uuid={props.project_uuid}
-        childView={EnvironmentList}
-      />
+      <ProjectBasedView projectId={projectId} childView={EnvironmentList} />
     </Layout>
   );
 };

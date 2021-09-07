@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import {
   Box,
   Dialog,
@@ -29,6 +30,8 @@ import EditJobView from "@/views/EditJobView";
 import JobView from "@/views/JobView";
 import ProjectsView from "@/views/ProjectsView";
 
+import { siteMap, generatePathFromRoute } from "../Routes";
+
 import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
 
@@ -37,6 +40,7 @@ export interface IJobListProps {
 }
 
 const JobList: React.FC<IJobListProps> = (props) => {
+  const history = useHistory<{ isDraft: boolean }>();
   const [state, setState] = React.useState({
     isDeleting: false,
     jobs: undefined,
@@ -236,12 +240,12 @@ const JobList: React.FC<IJobListProps> = (props) => {
         postJobPromise.promise
           .then((response) => {
             let job = JSON.parse(response);
-
-            orchest.loadView(EditJobView, {
-              queryArgs: {
-                job_uuid: job.uuid,
-              },
-            });
+            history.push(
+              generatePathFromRoute(siteMap.job.path, {
+                projectId: project_uuid,
+                jobId: job.uuid,
+              })
+            );
           })
           .catch((response) => {
             if (!response.isCanceled) {
@@ -292,13 +296,21 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const onRowClick = (row, idx, event) => {
     let job = state.jobs[idx];
-    const ViewToLoad = job.status === "DRAFT" ? EditJobView : JobView;
+    // const ViewToLoad = job.status === "DRAFT" ? EditJobView : JobView;
 
-    orchest.loadView(ViewToLoad, {
-      queryArgs: {
-        job_uuid: job.uuid,
-      },
-    });
+    // TODO: can we combine JobView and EditJobView?
+    // JobView should be able to determine the job status, without us passing the query string
+    // otherwise, user might accidentally change the query string and mess around jobs
+
+    history.push(
+      generatePathFromRoute(siteMap.job.path, {
+        projectId: props.project_uuid,
+        jobId: job.uuid,
+      }),
+      {
+        isDraft: job.status === "DRAFT",
+      } // TODO: JobView should use useLocation to get state.isDraft
+    );
   };
 
   const onEditJobNameClick = (jobUUID, jobName) => {
@@ -389,7 +401,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
       })
       .catch((e) => {
         if (e && e.status == 404) {
-          orchest.loadView(ProjectsView);
+          history.push(siteMap.projects.path);
         }
         console.log(e);
       });

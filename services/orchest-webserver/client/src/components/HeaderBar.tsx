@@ -1,23 +1,22 @@
 import * as React from "react";
+import { useHistory } from "react-router-dom";
+
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
-import PipelineView from "../pipeline-view/PipelineView";
-import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
-import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
-import ProjectsView from "@/views/ProjectsView";
+
+import { siteMap, generatePathFromRoute } from "@/Routes";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;
 
-export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
-  const orchest = window.orchest;
-
+export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
+  const history = useHistory();
   const { state, dispatch, get } = useOrchest();
 
   const isProjectSelectorVisible = [
@@ -26,26 +25,33 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
     "pipelines",
   ].includes(state?.view);
 
+  const goToHome = () => {
+    history.push(siteMap.projects.path);
+  };
+
+  const showHelp = () => {
+    history.push(siteMap.help.path);
+  };
+
   const showPipeline = () => {
     dispatch({ type: "setView", payload: "pipeline" });
-
-    orchest.loadView(PipelineView, {
-      queryArgs: {
-        pipeline_uuid: state.pipeline_uuid,
-        project_uuid: state.project_uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.pipeline.path, {
+        projectId: state.project_uuid,
+        pipelineId: state.pipeline_uuid,
+      })
+    );
   };
 
   const showJupyter = () => {
     dispatch({ type: "setView", payload: "jupyter" });
 
-    orchest.loadView(JupyterLabView, {
-      queryArgs: {
-        pipeline_uuid: state.pipeline_uuid,
-        project_uuid: state.project_uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.jupyterLab.path, {
+        projectId: state.project_uuid,
+        pipelineId: state.pipeline_uuid,
+      })
+    );
   };
 
   const logoutHandler = () => {
@@ -66,9 +72,7 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         </button>
         <img
           className="pointer logo"
-          onClick={() => {
-            orchest.loadView(ProjectsView);
-          }}
+          onClick={goToHome}
           src="/image/logo.svg"
           data-test-id="orchest-logo"
         />
@@ -134,11 +138,11 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         <MDCIconButtonToggleReact
           icon="help"
           tooltipText="Help"
-          onClick={() => orchest.loadView(HelpView)}
+          onClick={showHelp}
         />
       </div>
     </header>
   );
-});
+};
 
-export default HeaderBar;
+export default React.forwardRef(HeaderBar);

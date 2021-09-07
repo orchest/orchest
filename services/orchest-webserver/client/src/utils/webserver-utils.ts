@@ -392,10 +392,10 @@ export function cleanServerDateTime(dateTimeString) {
 }
 
 export function getPipelineJSONEndpoint(
-  pipeline_uuid,
-  project_uuid,
-  job_uuid?,
-  pipeline_run_uuid?
+  pipeline_uuid: string,
+  project_uuid: string,
+  job_uuid?: string,
+  pipeline_run_uuid?: string
 ) {
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
@@ -409,7 +409,7 @@ export function getPipelineJSONEndpoint(
   return pipelineURL;
 }
 
-export function getPipelineStepParents(stepUUID, pipelineJSON) {
+export function getPipelineStepParents(stepUUID: string, pipelineJSON) {
   let incomingConnections = [];
   for (let [_, step] of Object.entries(pipelineJSON.steps)) {
     if ((step as any).uuid == stepUUID) {
@@ -418,12 +418,9 @@ export function getPipelineStepParents(stepUUID, pipelineJSON) {
     }
   }
 
-  let parentSteps = [];
-  for (let parentStepUUID of incomingConnections) {
-    parentSteps.push(pipelineJSON.steps[parentStepUUID]);
-  }
-
-  return parentSteps;
+  return incomingConnections.map(
+    (parentStepUUID) => pipelineJSON.steps[parentStepUUID]
+  );
 }
 
 export function getPipelineStepChildren(stepUUID, pipelineJSON) {

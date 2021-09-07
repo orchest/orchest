@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useParams, useHistory } from "react-router-dom";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -8,7 +9,7 @@ import { Box } from "@orchest/design-system";
 import { RefManager, makeRequest } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
-import EnvironmentsView from "../views/EnvironmentsView";
+import { siteMap, generatePathFromRoute } from "@/Routes";
 import { useInterval } from "@/hooks/use-interval";
 
 const buildFailMessage = `Some environment builds of this project have failed. 
@@ -26,6 +27,7 @@ export interface IBuildPendingDialogProps {
 }
 
 const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
+  const history = useHistory();
   const [gateInterval, setGateInterval] = React.useState(null);
   const [state, setState] = React.useState(null);
 
@@ -157,7 +159,11 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
       type: "projectSet",
       payload: props.project_uuid,
     });
-    orchest.loadView(EnvironmentsView);
+    history.push(
+      generatePathFromRoute(siteMap.environments.path, {
+        projectId: props.project_uuid,
+      })
+    );
     close();
   };
 

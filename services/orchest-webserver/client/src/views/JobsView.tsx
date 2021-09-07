@@ -19,7 +19,7 @@ const JobsView: React.FC<IJobsViewProps> = (props) => {
 
   return (
     <Layout>
-      <ProjectBasedView project_uuid={props.project_uuid} childView={JobList} />
+      <ProjectBasedView projectId={props.projectId} childView={JobList} />
     </Layout>
   );
 };

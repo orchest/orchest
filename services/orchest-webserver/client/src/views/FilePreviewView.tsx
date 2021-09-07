@@ -1,4 +1,5 @@
-import * as React from "react";
+import React, { useState } from "react";
+import { useHistory, useLocation, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/python/python";
 import "codemirror/mode/shell/shell";
@@ -20,7 +21,8 @@ import {
   getPipelineStepChildren,
   setWithRetry,
 } from "@/utils/webserver-utils";
-import PipelineView from "@/pipeline-view/PipelineView";
+import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { useLocationState } from "@/hooks/useCustomLocation";
 
 const MODE_MAPPING = {
   py: "text/x-python",
@@ -30,6 +32,13 @@ const MODE_MAPPING = {
 
 const FilePreviewView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
+  const history = useHistory<{ isReadOnly: boolean }>();
+  const { projectId, pipelineId, stepId } = useParams<{
+    projectId: string;
+    pipelineId: string;
+    stepId: string;
+  }>();
+  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
 
   const [state, setState] = React.useState({
     notebookHtml: undefined,
@@ -52,14 +61,18 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const loadPipelineView = () => {
-    orchest.loadView(PipelineView, {
-      queryArgs: {
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        project_uuid: props.queryArgs.project_uuid,
-        read_only: props.queryArgs.read_only,
+    history.push({
+      pathname: generatePathFromRoute(siteMap.pipeline.path, {
+        projectId,
+        pipelineId,
+      }),
+      state: { isReadOnly },
+      // TODO: check why PipelineView needs jobId and runId
+      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
+      search: toQueryString({
         job_uuid: props.queryArgs.job_uuid,
         run_uuid: props.queryArgs.run_uuid,
-      },
+      }),
     });
   };
 
@@ -70,17 +83,15 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         loadingFile: true,
       }));
 
+      // TODO: why are job_uuid and run_uuid are needed here?
       let pipelineURL = props.queryArgs.job_uuid
         ? getPipelineJSONEndpoint(
-            props.queryArgs.pipeline_uuid,
-            props.queryArgs.project_uuid,
+            pipelineId,
+            projectId,
             props.queryArgs.job_uuid,
             props.queryArgs.run_uuid
           )
-        : getPipelineJSONEndpoint(
-            props.queryArgs.pipeline_uuid,
-            props.queryArgs.project_uuid
-          );
+        : getPipelineJSONEndpoint(pipelineId, projectId);
 
       let fetchPipelinePromise = makeCancelable(
         makeRequest("GET", pipelineURL),
@@ -93,14 +104,8 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
 
           setState((prevState) => ({
             ...prevState,
-            parentSteps: getPipelineStepParents(
-              props.queryArgs.step_uuid,
-              pipelineJSON
-            ),
-            childSteps: getPipelineStepChildren(
-              props.queryArgs.step_uuid,
-              pipelineJSON
-            ),
+            parentSteps: getPipelineStepParents(stepId, pipelineJSON),
+            childSteps: getPipelineStepChildren(stepId, pipelineJSON),
           }));
 
           resolve(undefined);
@@ -142,7 +147,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
 
   const fetchFile = () =>
     new Promise((resolve, reject) => {
-      let fileURL = `/async/file-viewer/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}/${props.queryArgs.step_uuid}`;
+      let fileURL = `/async/file-viewer/${projectId}/${pipelineId}/${stepId}`;
       if (props.queryArgs.run_uuid) {
         fileURL += "?pipeline_run_uuid=" + props.queryArgs.run_uuid;
         fileURL += "&job_uuid=" + props.queryArgs.job_uuid;
@@ -167,11 +172,14 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         });
     });
 
-  const stepNavigate = (stepUUID: string) => {
-    let propClone = JSON.parse(JSON.stringify(props));
-    propClone.queryArgs.step_uuid = stepUUID;
-
-    orchest.loadView(FilePreviewView, propClone);
+  const stepNavigate = (newStepId: string) => {
+    history.push(
+      generatePathFromRoute(siteMap.filePreview.path, {
+        projectId,
+        pipelineId,
+        stepId: newStepId,
+      })
+    );
   };
 
   const renderNavStep = (steps) => {
@@ -281,7 +289,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
       notebookHtml: undefined,
     }));
     loadFile();
-  }, [props.queryArgs.step_uuid, props.queryArgs.pipeline_uuid]);
+  }, [stepId, pipelineId]);
 
   let parentStepElements = renderNavStep(state.parentSteps);
   let childStepElements = renderNavStep(state.childSteps);

@@ -54,8 +54,8 @@ const reducer = (state: IOrchestState, action: TOrchestAction) => {
       return { ...state, view: action.payload };
     case "clearView":
       return { ...state, view: null };
-    case "setLoadViewSpec":
-      return { ...state, loadViewSpec: action.payload };
+    // case "setLoadViewSpec":
+    //   return { ...state, loadViewSpec: action.payload };
     default:
       console.log(action);
       throw new Error();

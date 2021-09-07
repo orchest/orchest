@@ -1,10 +1,10 @@
-import * as React from "react";
+import React from "react";
+import { useHistory, useParams } from "react-router-dom";
 import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   PromiseManager,
   makeCancelable,
   makeRequest,
-  uuidv4,
   collapseDoubleDots,
 } from "@orchest/lib-utils";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
@@ -13,13 +13,18 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import PipelinesView from "@/views/PipelinesView";
+import { generatePathFromRoute, siteMap } from "@/Routes";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
 const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
+  const history = useHistory();
+  const { projectId, pipelineId } = useParams<{
+    projectId: string;
+    pipelineId: string;
+  }>();
   const { state, dispatch, get } = useOrchest();
 
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
@@ -68,12 +73,16 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
     conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
-      orchest.loadView(PipelinesView);
+      history.push(
+        generatePathFromRoute(siteMap.pipelines.path, {
+          projectId,
+        })
+      );
     }
   }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
-    checkGate(props.queryArgs.project_uuid)
+    checkGate(projectId)
       .then(() => {
         setHasEnvironmentCheckCompleted(true);
         conditionalRenderingOfJupyterLab();
@@ -82,19 +91,25 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
       .catch((result) => {
         if (result.reason === "gate-failed") {
           orchest.requestBuild(
-            props.queryArgs.project_uuid,
+            projectId,
             result.data,
             "JupyterLab",
             () => {
               // force view reload
-              orchest.loadView(JupyterLabView, {
-                ...props,
-                key: uuidv4(),
-              });
+              history.push(
+                generatePathFromRoute(siteMap.jupyterLab.path, {
+                  projectId,
+                  pipelineId,
+                })
+              );
             },
             () => {
               // back to pipelines view
-              orchest.loadView(PipelinesView);
+              history.push(
+                generatePathFromRoute(siteMap.pipelines.path, {
+                  projectId: projectId,
+                })
+              );
             }
           );
         }
@@ -124,10 +139,7 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
   );
 
   const fetchPipeline = () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      props.queryArgs.pipeline_uuid,
-      props.queryArgs.project_uuid
-    );
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(pipelineId, projectId);
 
     let fetchPipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
@@ -138,37 +150,36 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
     let cwdFetchPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/async/file-picker-tree/pipeline-cwd/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
+        `/async/file-picker-tree/pipeline-cwd/${projectId}/${pipelineId}`
       ),
       promiseManager
     );
 
-    Promise.all(
-      // @ts-ignore
-      [cwdFetchPromise.promise, fetchPipelinePromise.promise]
-    ).then(([fetchCwdResult, fetchPipelinePromiseResult]) => {
-      // relativeToAbsolutePath expects trailing / for directories
-      let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
-      setPipelineCwd(cwd);
+    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise]).then(
+      ([fetchCwdResult, fetchPipelinePromiseResult]) => {
+        // relativeToAbsolutePath expects trailing / for directories
+        let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
+        setPipelineCwd(cwd);
 
-      let result = JSON.parse(fetchPipelinePromiseResult);
-      if (result.success) {
-        let pipeline = JSON.parse(result.pipeline_json);
-        verifyKernelsCallback(pipeline);
+        let result = JSON.parse(fetchPipelinePromiseResult);
+        if (result.success) {
+          let pipeline = JSON.parse(result.pipeline_json);
+          verifyKernelsCallback(pipeline);
 
-        dispatch({
-          type: "pipelineSet",
-          payload: {
-            pipeline_uuid: props.queryArgs.pipeline_uuid,
-            project_uuid: props.queryArgs.project_uuid,
-            pipelineName: pipeline.name,
-          },
-        });
-      } else {
-        console.error("Could not load pipeline.json");
-        console.error(result);
+          dispatch({
+            type: "pipelineSet",
+            payload: {
+              pipeline_uuid: pipelineId,
+              project_uuid: projectId,
+              pipelineName: pipeline.name,
+            },
+          });
+        } else {
+          console.error("Could not load pipeline.json");
+          console.error(result);
+        }
       }
-    });
+    );
   };
 
   const conditionalRenderingOfJupyterLab = () => {

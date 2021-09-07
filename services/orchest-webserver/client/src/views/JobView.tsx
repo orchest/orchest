@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import { PieChart } from "react-minimal-pie-chart";
 import {
   Box,
@@ -37,6 +38,7 @@ import EnvVarList from "@/components/EnvVarList";
 import PipelineView from "@/pipeline-view/PipelineView";
 import EditJobView from "@/views/EditJobView";
 import JobsView from "@/views/JobsView";
+import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
 
 type TSharedStatus = Extract<
   TStatus,
@@ -162,6 +164,8 @@ const JobStatus: React.FC<IJobStatusProps> = ({
 
 const JobView: React.FC<TViewProps> = (props) => {
   const orchest = window.orchest;
+
+  const history = useHistory<{ isReadOnly: boolean }>();
 
   const { dispatch } = useOrchest();
   const [state, setState] = React.useState({
@@ -296,14 +300,18 @@ const JobView: React.FC<TViewProps> = (props) => {
       return;
     }
 
-    orchest.loadView(PipelineView, {
-      queryArgs: {
+    history.push({
+      pathname: generatePathFromRoute(siteMap.pipeline.path, {
+        projectId: pipelineRun.project_uuid,
+        pipelineId: pipelineRun.pipeline_uuid,
+      }),
+      state: { isReadOnly: true },
+      // TODO: check why PipelineView needs jobId and runId
+      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
+      search: toQueryString({
         job_uuid: pipelineRun.job_uuid,
         run_uuid: pipelineRun.uuid,
-        pipeline_uuid: pipelineRun.pipeline_uuid,
-        project_uuid: pipelineRun.project_uuid,
-        read_only: "true",
-      },
+      }),
     });
   };
 
@@ -396,11 +404,12 @@ const JobView: React.FC<TViewProps> = (props) => {
   };
 
   const editJob = () => {
-    orchest.loadView(EditJobView, {
-      queryArgs: {
-        job_uuid: state.job.uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.job.path, {
+        projectId: state.job.project_uuid,
+        jobId: state.job.uuid,
+      })
+    );
   };
 
   const returnToJobs = () => {
@@ -408,7 +417,11 @@ const JobView: React.FC<TViewProps> = (props) => {
       type: "projectSet",
       payload: state.job.project_uuid,
     });
-    orchest.loadView(JobsView);
+    history.push({
+      pathname: generatePathFromRoute(siteMap.jobs.path, {
+        projectId: state.job.project_uuid,
+      }),
+    });
   };
 
   const detailRows = (pipelineRuns) => {
@@ -464,11 +477,12 @@ const JobView: React.FC<TViewProps> = (props) => {
           .then((response) => {
             let job = JSON.parse(response);
 
-            orchest.loadView(EditJobView, {
-              queryArgs: {
-                job_uuid: job.uuid,
-              },
-            });
+            history.push(
+              generatePathFromRoute(siteMap.job.path, {
+                projectId: state.job.project_uuid,
+                jobId: state.job.uuid,
+              })
+            );
           })
           .catch((response) => {
             if (!response.isCanceled) {

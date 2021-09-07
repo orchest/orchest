@@ -1,5 +1,6 @@
-import * as React from "react";
-import ProjectsView from "./ProjectsView";
+import React from "react";
+import { useHistory, useParams, Link } from "react-router-dom";
+
 import {
   makeRequest,
   makeCancelable,
@@ -16,12 +17,12 @@ import {
   OverflowListener,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
-import PipelinesView from "@/views/PipelinesView";
-import JobsView from "@/views/JobsView";
-import EnvironmentsView from "@/views/EnvironmentsView";
+import { generatePathFromRoute, siteMap } from "@/Routes";
 
 const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
+  const history = useHistory();
+  const { projectId } = useParams<{ projectId: string }>();
 
   const context = useOrchest();
   const [state, setState] = React.useState({
@@ -41,7 +42,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
   const fetchSettings = () => {
     let projectPromise = makeCancelable(
-      makeRequest("GET", "/async/projects/" + props.queryArgs.project_uuid),
+      makeRequest("GET", "/async/projects/" + projectId),
       promiseManager
     );
 
@@ -62,7 +63,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToProjects = () => {
-    orchest.loadView(ProjectsView);
+    history.push(siteMap.projects.path);
   };
 
   const saveGeneralForm = (e) => {
@@ -86,7 +87,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     }
 
     // perform PUT to update
-    makeRequest("PUT", "/async/projects/" + props.queryArgs.project_uuid, {
+    makeRequest("PUT", "/async/projects/" + projectId, {
       type: "json",
       content: { env_variables: envVariables },
     })
@@ -143,15 +144,6 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const onClickProjectEntity = (view, projectUUID, e) => {
-    e.preventDefault();
-    context.dispatch({
-      type: "projectSet",
-      payload: projectUUID,
-    });
-    orchest.loadView(view);
-  };
-
   React.useEffect(() => {
     fetchSettings();
     attachResizeListener();
@@ -193,62 +185,50 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   <div className="column">
                     <br />
                     <h3>
-                      <button
+                      <Link
+                        to={generatePathFromRoute(siteMap.pipelines.path, {
+                          projectId,
+                        })}
                         className="text-button"
-                        onClick={(e) =>
-                          onClickProjectEntity(
-                            PipelinesView,
-                            props.queryArgs.project_uuid,
-                            e
-                          )
-                        }
                       >
                         {state.pipeline_count +
                           " " +
                           (state.pipeline_count == 1
                             ? "pipeline"
                             : "pipelines")}
-                      </button>
+                      </Link>
                     </h3>
                   </div>
                   <div className="column">
                     <br />
                     <h3>
-                      <button
+                      <Link
+                        to={generatePathFromRoute(siteMap.jobs.path, {
+                          projectId,
+                        })}
                         className="text-button"
-                        onClick={(e) =>
-                          onClickProjectEntity(
-                            JobsView,
-                            props.queryArgs.project_uuid,
-                            e
-                          )
-                        }
                       >
                         {state.job_count +
                           " " +
                           (state.job_count == 1 ? "job" : "jobs")}
-                      </button>
+                      </Link>
                     </h3>
                   </div>
                   <div className="column">
                     <br />
                     <h3>
-                      <button
+                      <Link
+                        to={generatePathFromRoute(siteMap.environments.path, {
+                          projectId,
+                        })}
                         className="text-button"
-                        onClick={(e) =>
-                          onClickProjectEntity(
-                            EnvironmentsView,
-                            props.queryArgs.project_uuid,
-                            e
-                          )
-                        }
                       >
                         {state.environment_count +
                           " " +
                           (state.environment_count == 1
                             ? "environment"
                             : "environments")}
-                      </button>
+                      </Link>
                     </h3>
                   </div>
                   <div className="clear"></div>

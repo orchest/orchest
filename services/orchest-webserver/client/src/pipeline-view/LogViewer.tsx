@@ -8,12 +8,12 @@ const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
 export interface ILogViewerProps {
   sio: Record<"on" | "off" | "emit", any>;
-  step_uuid?: string;
-  pipeline_uuid: string;
-  project_uuid: string;
-  job_uuid: string;
-  run_uuid: string;
-  service_name?: string;
+  stepId?: string;
+  pipelineId: string;
+  projectId: string;
+  jobId: string;
+  runId: string;
+  serviceName?: string;
 }
 
 const LogViewer: React.FC<ILogViewerProps> = (props) => {
@@ -79,20 +79,20 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
     let data = {
       action: "fetch-logs",
       session_uuid: sessionUuid,
-      pipeline_uuid: props.pipeline_uuid,
-      project_uuid: props.project_uuid,
+      pipeline_uuid: props.pipelineId,
+      project_uuid: props.projectId,
     };
 
     // LogViewer supports either a step_uuid or a service_name, never both.
-    if (props.step_uuid) {
-      data["step_uuid"] = props.step_uuid;
-    } else if (props.service_name) {
-      data["service_name"] = props.service_name;
+    if (props.stepId) {
+      data["step_uuid"] = props.stepId;
+    } else if (props.serviceName) {
+      data["service_name"] = props.serviceName;
     }
 
-    if (props.run_uuid && props.job_uuid) {
-      data["pipeline_run_uuid"] = props.run_uuid;
-      data["job_uuid"] = props.job_uuid;
+    if (props.runId && props.jobId) {
+      data["pipeline_run_uuid"] = props.runId;
+      data["job_uuid"] = props.jobId;
     }
 
     props.sio.emit("pty-log-manager", data);

@@ -152,11 +152,11 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
             1: (
               <PipelineDetailsLogs
                 sio={props.sio}
-                project_uuid={props.project_uuid}
-                job_uuid={props.job_uuid}
-                run_uuid={props.run_uuid}
-                step_uuid={props.step.uuid}
-                pipeline_uuid={props.pipeline.uuid}
+                projectId={props.project_uuid}
+                jobId={props.job_uuid}
+                runId={props.run_uuid}
+                stepId={props.step.uuid}
+                pipelineId={props.pipeline.uuid}
               />
             ),
           }[subViewIndex]

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useHistory } from "react-router-dom";
 import {
   makeRequest,
   makeCancelable,
@@ -13,14 +14,14 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import { useInterval } from "@/hooks/use-interval";
-import EnvironmentEditView from "../views/EnvironmentEditView";
-import ProjectsView from "@/views/ProjectsView";
+import { generatePathFromRoute, siteMap } from "@/Routes";
 
 export interface IEnvironmentListProps {
   project_uuid: string;
 }
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
+  const history = useHistory();
   const [
     environmentBuildsInterval,
     setEnvironmentBuildsInterval,
@@ -108,7 +109,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       })
       .catch((err) => {
         if (err && err.status == 404) {
-          orchest.loadView(ProjectsView);
+          history.push(siteMap.projects.path);
         }
 
         console.log("Error fetching Environments", err);
@@ -117,20 +118,21 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
   const onClickListItem = (row, idx, e) => {
     let environment = state.environments[idx];
-    orchest.loadView(EnvironmentEditView, {
-      queryArgs: {
-        project_uuid: props.project_uuid,
-        environment_uuid: environment.uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.environment.path, {
+        projectId: props.project_uuid,
+        environmentId: environment.uuid,
+      })
+    );
   };
 
   const onCreateClick = () => {
-    orchest.loadView(EnvironmentEditView, {
-      queryArgs: {
-        project_uuid: props.project_uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.environment.path, {
+        projectId: props.project_uuid,
+        // environmentId: environment.uuid, // TODO: handle new environment case
+      })
+    );
   };
 
   const _removeEnvironment = (

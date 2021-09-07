@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import parser from "cron-parser";
 import _ from "lodash";
 import {
@@ -33,9 +34,11 @@ import ParamTree from "@/components/ParamTree";
 import EnvVarList from "@/components/EnvVarList";
 import JobView from "@/views/JobView";
 import JobsView from "@/views/JobsView";
+import { generatePathFromRoute, siteMap } from "@/Routes";
 
 const EditJobView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
+  const history = useHistory();
 
   const context = useOrchest();
 
@@ -516,11 +519,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
       putJobRequest.promise
         .then(() => {
-          orchest.loadView(JobView, {
-            queryArgs: {
-              job_uuid: state.job.uuid,
-            },
-          });
+          history.push(
+            generatePathFromRoute(siteMap.job.path, {
+              projectId: state.job.project_uuid,
+              jobId: state.job.uuid,
+            })
+          );
         })
         .catch((error) => {
           console.error(error);
@@ -561,11 +565,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const cancel = () => {
-    orchest.loadView(JobsView, {
-      queryArgs: {
-        project_uuid: state.job.project_uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.jobs.path, {
+        projectId: state.job.project_uuid,
+      })
+    );
   };
 
   const onPipelineRunsSelectionChanged = (selectedRows, rows) => {
@@ -712,11 +716,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     if (state.runJobCompleted) {
       setState((prevState) => ({ ...prevState, runJobCompleted: false }));
-      orchest.loadView(JobsView, {
-        queryArgs: {
-          project_uuid: state.job.project_uuid,
-        },
-      });
+      history.push(
+        generatePathFromRoute(siteMap.jobs.path, {
+          projectId: state.job.project_uuid,
+        })
+      );
     }
   }, [state.runJobCompleted]);
 

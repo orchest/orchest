@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import { m, AnimatePresence } from "framer-motion";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
@@ -26,6 +27,7 @@ import {
   ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT,
 } from "./OnboardingDialogCarousel";
 import { useOnboardingDialog } from "./use-onboarding-dialog";
+import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
 
 const CodeHeader = styled("header", { include: "box", textAlign: "right" });
 const CodeHeading = styled("h1", {
@@ -82,7 +84,7 @@ const IconListItem = styled("li", {
 });
 
 export const OnboardingDialog: React.FC = () => {
-  const { orchest } = window;
+  const history = useHistory();
 
   const {
     isOnboardingDialogOpen,
@@ -101,13 +103,17 @@ export const OnboardingDialog: React.FC = () => {
 
   const onOpen = () => setIsOnboardingDialogOpen(true);
 
-  const onClose = ({ loadQuickstart }: { loadQuickstart?: boolean } = {}) => {
+  const onClose = (loadQuickstart = false) => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide([0, 0]);
-      loadQuickstart &&
-        orchest.loadView(PipelineView, {
-          queryArgs: quickstart,
-        });
+      if (loadQuickstart) {
+        history.push(
+          generatePathFromRoute(siteMap.pipeline.path, {
+            projectId: quickstart.project_uuid,
+            pipelineId: quickstart.pipeline_uuid,
+          })
+        );
+      }
     });
   };
 
@@ -249,8 +255,7 @@ export const OnboardingDialog: React.FC = () => {
                           ? "Open Quickstart Pipeline"
                           : "Get Started",
                         classNames: ["mdc-button--raised", "themed-secondary"],
-                        onClick: () =>
-                          onClose({ loadQuickstart: hasQuickstart }),
+                        onClick: () => onClose(hasQuickstart),
                         "data-test-id": hasQuickstart
                           ? "onboarding-complete-with-quickstart"
                           : "onboarding-complete-without-quickstart",

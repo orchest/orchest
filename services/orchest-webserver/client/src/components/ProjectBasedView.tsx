@@ -1,30 +1,32 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import ProjectsView from "@/views/ProjectsView";
+import { siteMap } from "@/Routes";
 
 export interface IProjectBasedViewProps {
-  project_uuid?: string;
+  projectId?: string;
   childView?: any;
 }
 
 const ProjectBasedView: React.FC<IProjectBasedViewProps> = (props) => {
-  const { orchest } = window;
+  const history = useHistory();
+
+  const goToProjects = () => history.push(siteMap.projects.path);
+  const message =
+    "It looks like you don't have any projects yet! To get started using Orchest create your first project.";
 
   const TagName = props.childView;
 
   return (
     <div className="view-page">
-      {props.project_uuid ? (
-        <TagName project_uuid={props.project_uuid} key={props.project_uuid} />
+      {props.projectId ? (
+        <TagName projectId={props.projectId} key={props.projectId} />
       ) : (
         <div>
-          <p className="push-down">
-            It looks like you don't have any projects yet! To get started using
-            Orchest create your first project.
-          </p>
+          <p className="push-down">{message}</p>
           <MDCButtonReact
             classNames={["mdc-button--raised", "themed-secondary"]}
-            onClick={() => orchest.loadView(ProjectsView)}
+            onClick={goToProjects}
             label="Create your first project!"
             icon="add"
             submitButton

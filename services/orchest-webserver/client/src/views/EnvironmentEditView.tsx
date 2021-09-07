@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
 import { uuidv4 } from "@orchest/lib-utils";
@@ -24,11 +25,13 @@ import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import EnvironmentsView from "@/views/EnvironmentsView";
+import { generatePathFromRoute, siteMap } from "@/Routes";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
+  const history = useHistory();
 
   const context = useOrchest();
 
@@ -181,7 +184,11 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
       type: "projectSet",
       payload: props.queryArgs.project_uuid,
     });
-    orchest.loadView(EnvironmentsView);
+    history.push(
+      generatePathFromRoute(siteMap.environments.path, {
+        projectId: state.environment.project_uuid,
+      })
+    );
   };
 
   const onChangeName = (value) => {

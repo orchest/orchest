@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
@@ -41,7 +42,7 @@ import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
-import PipelineView from "@/pipeline-view/PipelineView";
+import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -49,6 +50,11 @@ export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
 
 const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   const orchest = window.orchest;
+  const history = useHistory();
+  const { projectId, pipelineId } = useParams<{
+    projectId: string;
+    pipelineId: string;
+  }>();
   const context = useOrchest();
 
   const { dispatch, get } = useOrchest();
@@ -129,8 +135,8 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        project_uuid: props.queryArgs.project_uuid,
+        pipeline_uuid: pipelineId,
+        project_uuid: projectId,
         pipelineName: pipelineName,
       },
     });
@@ -227,8 +233,8 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
   const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      props.queryArgs.pipeline_uuid,
-      props.queryArgs.project_uuid,
+      pipelineId,
+      projectId,
       props.queryArgs.job_uuid,
       props.queryArgs.run_uuid
     );
@@ -238,7 +244,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       promiseManager
     );
 
-    // @ts-ignore
     pipelinePromise.promise
       .then((response) => {
         let result = JSON.parse(response);
@@ -289,14 +294,10 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     if (!props.queryArgs.job_uuid) {
       // get pipeline path
       let cancelableRequest = makeCancelable(
-        makeRequest(
-          "GET",
-          `/async/pipelines/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
-        ),
+        makeRequest("GET", `/async/pipelines/${projectId}/${pipelineId}`),
         promiseManager
       );
 
-      // @ts-ignore
       cancelableRequest.promise.then((response) => {
         let pipeline = JSON.parse(response);
 
@@ -309,11 +310,10 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
       // get project environment variables
       let cancelableProjectRequest = makeCancelable(
-        makeRequest("GET", `/async/projects/${props.queryArgs.project_uuid}`),
+        makeRequest("GET", `/async/projects/${projectId}`),
         promiseManager
       );
 
-      // @ts-ignore
       cancelableProjectRequest.promise
         .then((response) => {
           let project = JSON.parse(response);
@@ -345,12 +345,11 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       );
 
       Promise.all([
-        // @ts-ignore
         cancelableJobPromise.promise.then((response) => {
           let job = JSON.parse(response);
           return job.pipeline_run_spec.run_config.pipeline_path;
         }),
-        // @ts-ignore
+
         cancelableRunPromise.promise.then((response) => {
           let run = JSON.parse(response);
           return envVariablesDictToArray(run["env_variables"]);
@@ -369,14 +368,18 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   };
 
   const closeSettings = () =>
-    orchest.loadView(PipelineView, {
-      queryArgs: {
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        project_uuid: props.queryArgs.project_uuid,
-        read_only: props.queryArgs.read_only,
+    history.push({
+      pathname: generatePathFromRoute(siteMap.pipeline.path, {
+        projectId: projectId,
+        pipelineId: pipelineId,
+      }),
+      state: { isReadOnly: props.queryArgs.read_only === "true" },
+      // TODO: check why PipelineView needs jobId and runId
+      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
+      search: toQueryString({
         job_uuid: props.queryArgs.job_uuid,
         run_uuid: props.queryArgs.run_uuid,
-      },
+      }),
     });
 
   const onChangeName = (value) => {
@@ -590,11 +593,10 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     let formData = new FormData();
     formData.append("pipeline_json", JSON.stringify(pipelineJson));
 
-    makeRequest(
-      "POST",
-      `/async/pipelines/json/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
-      { type: "FormData", content: formData }
-    )
+    makeRequest("POST", `/async/pipelines/json/${projectId}/${pipelineId}`, {
+      type: "FormData",
+      content: formData,
+    })
       .then((response: string) => {
         let result = JSON.parse(response);
         if (result.success) {
@@ -620,14 +622,10 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
         console.error(response);
       });
 
-    makeRequest(
-      "PUT",
-      `/async/pipelines/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
-      {
-        type: "json",
-        content: { env_variables: envVariables },
-      }
-    ).catch((response) => {
+    makeRequest("PUT", `/async/pipelines/${projectId}/${pipelineId}`, {
+      type: "json",
+      content: { env_variables: envVariables },
+    }).catch((response) => {
       console.error(response);
     });
   };
@@ -643,12 +641,11 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       let restartPromise = makeCancelable(
         makeRequest(
           "PUT",
-          `/catch/api-proxy/api/sessions/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
+          `/catch/api-proxy/api/sessions/${projectId}/${pipelineId}`
         ),
         promiseManager
       );
 
-      // @ts-ignore
       restartPromise.promise
         .then(() => {
           setState((prevState) => ({
@@ -684,8 +681,6 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     }
   };
 
-  const sortService = (serviceA, serviceB) => serviceA.order - serviceB.order;
-
   return (
     <OrchestSessionsConsumer>
       <Layout>
@@ -697,10 +692,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
               <div className="push-down">
                 <MDCTabBarReact
                   selectedIndex={state.selectedTabIndex}
-                  ref={
-                    // @ts-ignore
-                    refManager.nrefs.tabBar
-                  }
+                  ref={refManager.nrefs.tabBar}
                   items={["Configuration", "Environment variables", "Services"]}
                   icons={["list", "view_comfy", "miscellaneous_services"]}
                   onChange={onSelectSubview}
@@ -970,7 +962,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                               (serviceName) =>
                                 state.pipelineJson.services[serviceName]
                             )
-                            .sort(sortService)
+                            .sort((a, b) => a.order - b.order)
                             .map((service) => [
                               service.name,
                               service.scope
@@ -983,7 +975,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 })
                                 .sort()
                                 .join(", "),
-                              <div className="consume-click">
+                              <div className="consume-click" key={service.name}>
                                 <MDCIconButtonToggleReact
                                   icon="delete"
                                   disabled={
@@ -1008,7 +1000,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                               (serviceName) =>
                                 state.pipelineJson.services[serviceName]
                             )
-                            .sort(sortService)
+                            .sort((a, b) => a.order - b.order)
                             .map((service, i) => (
                               <ServiceForm
                                 key={["ServiceForm", i].join("-")}
@@ -1016,8 +1008,8 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 disabled={props.queryArgs.read_only === "true"}
                                 updateService={onChangeService}
                                 nameChangeService={nameChangeService}
-                                pipeline_uuid={props.queryArgs.pipeline_uuid}
-                                project_uuid={props.queryArgs.project_uuid}
+                                pipeline_uuid={pipelineId}
+                                project_uuid={projectId}
                                 run_uuid={props.queryArgs.run_uuid}
                               />
                             ))}

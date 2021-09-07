@@ -1,25 +1,27 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
+
 import {
   MDCButtonReact,
   MDCDataTableReact,
   MDCDialogReact,
-  MDCTextFieldReact,
   MDCIconButtonToggleReact,
   MDCLinearProgressReact,
+  MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
-  makeRequest,
-  makeCancelable,
   PromiseManager,
   RefManager,
+  makeCancelable,
+  makeRequest,
   validURL,
 } from "@orchest/lib-utils";
-import type { TViewProps } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
-import { BackgroundTaskPoller } from "@/utils/webserver-utils";
+
 import { Layout } from "@/components/Layout";
-import ProjectSettingsView from "@/views/ProjectSettingsView";
-import PipelinesView from "@/views/PipelinesView";
+import { useOrchest } from "@/hooks/orchest";
+import { generatePathFromRoute, siteMap } from "@/Routes";
+import type { TViewProps } from "@/types";
+import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 
 const ERROR_MAPPING = {
   "project move failed": "failed to move project because the directory exists.",
@@ -27,8 +29,19 @@ const ERROR_MAPPING = {
     "project name contains illegal character(s).",
 } as const;
 
+type Project = {
+  path: string;
+  uuid: string;
+  pipeline_count: number;
+  session_count: number;
+  job_count: number;
+  environment_count: number;
+};
+
 const ProjectsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
+
+  const history = useHistory();
 
   const context = useOrchest();
 
@@ -138,39 +151,33 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       });
   };
 
-  const processListData = (projects) => {
-    let listData = [];
-
-    for (let project of projects) {
-      listData.push([
-        <span className="mdc-icon-table-wrapper">
-          {project.path}{" "}
-          <span className="consume-click">
-            <MDCIconButtonToggleReact
-              icon="edit"
-              onClick={() => {
-                onEditProjectName(project.uuid, project.path);
-              }}
-            />
-          </span>
-        </span>,
-        <span>{project.pipeline_count}</span>,
-        <span>{project.session_count}</span>,
-        <span>{project.job_count}</span>,
-        <span>{project.environment_count}</span>,
+  const processListData = (projects: Project[]) => {
+    return projects.map((project) => [
+      <span key="toggle-row" className="mdc-icon-table-wrapper">
+        {project.path}{" "}
         <span className="consume-click">
           <MDCIconButtonToggleReact
-            icon={"settings"}
+            icon="edit"
             onClick={() => {
-              openSettings(project);
+              onEditProjectName(project.uuid, project.path);
             }}
-            data-test-id={`settings-button-${project.path}`}
           />
-        </span>,
-      ]);
-    }
-
-    return listData;
+        </span>
+      </span>,
+      <span key="pipeline-count">{project.pipeline_count}</span>,
+      <span key="session-count">{project.session_count}</span>,
+      <span key="job-count">{project.job_count}</span>,
+      <span key="env-count">{project.environment_count}</span>,
+      <span key="setting" className="consume-click">
+        <MDCIconButtonToggleReact
+          icon={"settings"}
+          onClick={() => {
+            openSettings(project);
+          }}
+          data-test-id={`settings-button-${project.path}`}
+        />
+      </span>,
+    ]);
   };
 
   const fetchList = (fetchListAndSetProject?: string) => {
@@ -181,8 +188,8 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     );
 
     fetchListPromise.promise
-      .then((response) => {
-        let projects = JSON.parse(response);
+      .then((response: string) => {
+        let projects: Project[] = JSON.parse(response);
 
         setState((prevState) => ({
           ...prevState,
@@ -196,7 +203,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         if (
           context.state.project_uuid !== undefined &&
           projects.filter(
-            (project) => project.uuid == context.state.project_uuid
+            (project) => project.uuid === context.state.project_uuid
           ).length == 0
         ) {
           context.dispatch({
@@ -213,11 +220,12 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const openSettings = (project) => {
-    orchest.loadView(ProjectSettingsView, {
-      queryArgs: {
-        project_uuid: project.uuid,
-      },
-    });
+    history.push(
+      generatePathFromRoute(siteMap.project.path, {
+        projectId: project.uuid,
+        // pipelineId, // TODO: how to get pipeline uuid?
+      })
+    );
   };
 
   const onClickListItem = (row, idx, e) => {
@@ -226,7 +234,11 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       type: "projectSet",
       payload: project.uuid,
     });
-    orchest.loadView(PipelinesView);
+    history.push(
+      generatePathFromRoute(siteMap.pipelines.path, {
+        projectId: project.uuid,
+      })
+    );
   };
 
   const onDeleteClick = () => {
@@ -540,8 +552,8 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     <p>
                       <i className="material-icons">warning</i> The import URL
                       was pre-filled. Make sure you trust the{" "}
-                      <span className="code">git</span> repository you're
-                      importing.
+                      <span className="code">git</span>
+                      {" repository you're importing."}
                     </p>
                   </div>
                 )}

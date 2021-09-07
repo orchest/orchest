@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import {
   makeRequest,
   makeCancelable,
@@ -17,14 +18,14 @@ import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
 import PipelineView from "../pipeline-view/PipelineView";
-import ProjectsView from "@/views/ProjectsView";
+import { siteMap, generatePathFromRoute } from "../Routes";
 
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";
 
 const PipelineList: React.FC<any> = (props) => {
   const { orchest } = window;
-
+  const history = useHistory<{ isReadOnly: boolean }>();
   const context = useOrchest();
 
   const [state, setState] = React.useState({
@@ -99,28 +100,19 @@ const PipelineList: React.FC<any> = (props) => {
       })
       .catch((e) => {
         if (e && e.status == 404) {
-          // @ts-ignore
-          orchest.loadView(ProjectsView);
+          history.push(siteMap.projects.path);
         }
       });
   };
 
-  const openPipeline = (pipeline, readOnly) => {
-    // load pipeline view
-    let pipelineProps = {
-      queryArgs: {
-        pipeline_uuid: pipeline.uuid,
-        project_uuid: props.project_uuid,
-      },
-    };
-
-    if (readOnly) {
-      // @ts-ignore
-      pipelineProps.queryArgs.read_only = "true";
-    }
-
-    // @ts-ignore
-    orchest.loadView(PipelineView, pipelineProps);
+  const openPipeline = (pipeline, isReadOnly: boolean) => {
+    history.push(
+      generatePathFromRoute(siteMap.pipeline.path, {
+        projectId: props.project_uuid,
+        pipelineId: pipeline.uuid,
+      }),
+      { isReadOnly } // TODO: PipelineView should take isReadOnly from useLocation
+    );
   };
 
   const onClickListItem = (row, idx, e) => {

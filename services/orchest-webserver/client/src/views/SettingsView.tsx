@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+import { useHistory } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
@@ -12,12 +13,11 @@ import {
 import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import UpdateView from "@/views/UpdateView";
-import ManageUsersView from "@/views/ManageUsersView";
-import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
+import { siteMap } from "@/Routes";
 
 const SettingsView: React.FC<TViewProps> = () => {
   const { orchest } = window;
+  const history = useHistory();
 
   const context = useOrchest();
 
@@ -35,7 +35,7 @@ const SettingsView: React.FC<TViewProps> = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const updateView = () => {
-    orchest.loadView(UpdateView);
+    history.push(siteMap.update.path);
   };
 
   const getVersion = () => {
@@ -73,7 +73,7 @@ const SettingsView: React.FC<TViewProps> = () => {
   };
 
   const onClickManageUsers = () => {
-    orchest.loadView(ManageUsersView);
+    history.push(siteMap.manageUsers.path);
   };
 
   const configToVisibleConfig = (configJSON) => {
@@ -242,7 +242,7 @@ const SettingsView: React.FC<TViewProps> = () => {
   };
 
   const loadConfigureJupyterLab = () => {
-    orchest.loadView(ConfigureJupyterLabView);
+    history.push(siteMap.configureJupyterLab.path);
   };
 
   React.useEffect(() => {
