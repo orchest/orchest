@@ -58,7 +58,7 @@ export interface IOrchestSession extends IOrchestSessionUuid {
 export interface LoadViewSpec {
   // From window.onpopstate.
   TagName: React.FunctionComponent;
-  dynamicProps: object;
+  dynamicProps: Record<string, unknown>;
   isOnPopState: boolean;
   onCancelled?: () => void;
 }
@@ -72,14 +72,8 @@ export interface IOrchestState
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
-  view:
-    | "pipeline"
-    | "jupyter"
-    | "jobs"
-    | "environments"
-    | "pipelines"
-    | ({} & string);
-  pipelineSaveStatus: "saved" | "saving" | ({} & string);
+  pipelineSaveStatus: "saved" | "saving";
+  projects: Project[];
   sessions?: IOrchestSession[] | [];
   sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;
@@ -109,9 +103,11 @@ export type TOrchestAction =
       type: "projectSet";
       payload: IOrchestState["project_uuid"];
     }
-  | { type: "setView"; payload: IOrchestState["view"] }
+  | {
+      type: "projectsSet";
+      payload: Project[];
+    }
   | { type: "setLoadViewSpec"; payload: LoadViewSpec }
-  | { type: "clearView" }
   | {
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];
@@ -168,4 +164,23 @@ export type TViewProps = {
 
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
+};
+
+export type Project = {
+  path: string;
+  uuid: string;
+  pipeline_count: number;
+  session_count: number;
+  job_count: number;
+  environment_count: number;
+};
+
+export type Environment = {
+  base_image: string;
+  gpu_support: boolean;
+  language: string;
+  name: string;
+  project_uuid: string;
+  setup_script: string;
+  uuid: string;
 };

@@ -44,16 +44,11 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
   React.useEffect(() => {
     // mount
     checkEnvironmentGate();
-    dispatch({
-      type: "setView",
-      payload: "jupyter",
-    });
-    // dismount
+    // unmount
     return () => {
       orchest.jupyter.hide();
       promiseManager.cancelCancelablePromises();
       setVerifyKernelsInterval(null);
-      dispatch({ type: "clearView" });
     };
   }, []);
 

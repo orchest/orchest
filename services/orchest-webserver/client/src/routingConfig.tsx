@@ -20,11 +20,9 @@ import UpdateView from "./views/UpdateView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import ManageUsersView from "./views/ManageUsersView";
 
-const Foo = () => <div>Foo</div>;
-
 type RouteName =
   | "projects"
-  | "project"
+  | "projectSettings"
   | "pipelines"
   | "pipeline"
   | "jupyterLab"
@@ -62,7 +60,7 @@ export const orderedRoutes: {
     component: ProjectsView,
   },
   {
-    name: "project",
+    name: "projectSettings",
     path: "/projects/:projectId/settings",
     component: ProjectSettingsView,
   },

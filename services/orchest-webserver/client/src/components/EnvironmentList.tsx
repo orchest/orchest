@@ -130,7 +130,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     history.push(
       generatePathFromRoute(siteMap.environment.path, {
         projectId: props.projectId,
-        // environmentId: environment.uuid, // TODO: handle new environment case
+        environmentId: "create",
       })
     );
   };
@@ -321,7 +321,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       promiseManager.cancelCancelablePromises();
       setEnvironmentBuildsInterval(null);
     };
-  }, []);
+  }, [props.projectId]);
 
   return (
     <div className={"environments-page"}>

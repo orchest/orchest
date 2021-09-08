@@ -2250,10 +2250,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
 
     return () => {
-      dispatch({
-        type: "clearView",
-      });
-
       disconnectSocketIO();
 
       $(document).off("mouseup.initializePipeline");

@@ -411,7 +411,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     fetchProjectDirSize();
 
     return () => promiseManager.cancelCancelablePromises();
-  }, []);
+  }, [props.projectId]);
 
   const pipelineOptions =
     state.pipelines?.map(({ uuid, name }) => [uuid, name]) || [];

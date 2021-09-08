@@ -1,8 +1,7 @@
-import React from "react";
-import { NavLink, useParams } from "react-router-dom";
+import React, { useRef } from "react";
+import { NavLink } from "react-router-dom";
 import { MDCDrawer } from "@material/drawer";
 import { useOrchest } from "@/hooks/orchest";
-// import { getViewDrawerParentViewName } from "../utils/webserver-utils";
 
 import { generatePathFromRoute, siteMap } from "../routingConfig";
 
@@ -44,12 +43,17 @@ const rootMenuItems = [
 
 type ItemData = { label: string; icon: string; path: string };
 
-const MenuItem: React.FC<{ item: ItemData; id: string }> = ({ item, id }) => {
+const MenuItem: React.FC<{ item: ItemData; id: string; exact?: boolean }> = ({
+  item,
+  id,
+  exact = false,
+}) => {
   return (
     <NavLink
       to={item.path}
       className="mdc-list-item"
       activeClassName="mdc-list-item--selected"
+      exact={exact}
       data-test-id={id}
     >
       <span className="mdc-list-item__ripple" />
@@ -68,43 +72,15 @@ const MainDrawer: React.FC = () => {
   const context = useOrchest();
   const projectId = context.state.project_uuid;
 
-  const { projectId: foo } = useParams<{ projectId: string }>();
-  // TODO: why foo is empty?
-  console.log(`🤞`);
-  console.log(foo);
-  console.log(projectId);
-  console.log(context.state.project_uuid);
-
   const projectMenuItems = getProjectMenuItems(projectId);
 
-  const drawerRef = React.useRef(null);
-  // const [drawer, setDrawer] = React.useState(null);
-  // const drawerIsMounted = drawerRef && drawer != null;
-
-  // const setDrawerSelectedElement = (viewName) => {
-  //   if (drawerIsMounted) {
-  //     // resolve mapped parent view
-  //     const rootViewName = getViewDrawerParentViewName(viewName);
-
-  //     const selectedView = drawer?.list?.listElements
-  //       ?.map((listElement, i) => ({
-  //         index: i,
-  //         view: listElement.attributes.getNamedItem("data-react-view")?.value,
-  //       }))
-  //       ?.find((listElement) => listElement.view === rootViewName);
-
-  //     drawer.list.selectedIndex =
-  //       selectedView !== undefined ? selectedView.index : -1;
-  //   }
-  // };
-
-  // React.useEffect(() => {
-  //   setDrawerSelectedElement(props.selectedElement);
-  // }, [props?.selectedElement]);
+  const drawerRef = useRef(null);
+  const macDrawerRef = useRef(null);
 
   React.useEffect(() => {
     if (drawerRef.current) {
-      // drawer.open = context.state.drawerIsOpen;
+      if (macDrawerRef.current)
+        macDrawerRef.current.open = context.state.drawerIsOpen;
 
       if (
         context.state?.config?.CLOUD === true &&
@@ -129,7 +105,7 @@ const MainDrawer: React.FC = () => {
         document.body.focus();
       });
 
-      // setDrawer(initMDCDrawer);
+      macDrawerRef.current = initMDCDrawer;
     }
   }, []);
 
@@ -144,7 +120,9 @@ const MainDrawer: React.FC = () => {
           <hr role="separator" className="mdc-list-divider" />
           {rootMenuItems.map((item) => {
             const id = getItemKey(item);
-            return <MenuItem key={id} id={id} item={item} />;
+            // these items are at the root level, we need to set exact to true
+            // otherwise, when path is /projects/12345, "Projects" will still be in active state.
+            return <MenuItem key={id} id={id} item={item} exact />;
           })}
         </nav>
       </div>

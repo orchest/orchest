@@ -1,4 +1,6 @@
-import * as React from "react";
+import React from "react";
+import { useParams } from "react-router-dom";
+
 import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
@@ -9,14 +11,8 @@ import ProjectBasedView, {
 
 export interface IJobsViewProps extends TViewProps, IProjectBasedViewProps {}
 
-const JobsView: React.FC<IJobsViewProps> = ({ projectId }) => {
-  const { dispatch } = useOrchest();
-
-  React.useEffect(() => {
-    dispatch({ type: "setView", payload: "jobs" });
-    return () => dispatch({ type: "clearView" });
-  }, []);
-
+const JobsView: React.FC<IJobsViewProps> = () => {
+  const { projectId } = useParams<{ projectId: string }>();
   return (
     <Layout>
       <ProjectBasedView projectId={projectId}>

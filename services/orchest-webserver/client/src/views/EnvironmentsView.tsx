@@ -13,13 +13,7 @@ export interface IEnvironmentsViewProps
     IProjectBasedViewProps {}
 
 const EnvironmentsView: React.FC<IEnvironmentsViewProps> = () => {
-  const { dispatch } = useOrchest();
   const { projectId } = useParams<{ projectId: string }>();
-
-  React.useEffect(() => {
-    dispatch({ type: "setView", payload: "environments" });
-    return () => dispatch({ type: "clearView" });
-  }, []);
 
   return (
     <Layout>

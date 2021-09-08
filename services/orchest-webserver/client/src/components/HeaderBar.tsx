@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useHistory } from "react-router-dom";
+import { useHistory, useRouteMatch } from "react-router-dom";
 
 import {
   MDCButtonReact,
@@ -11,6 +11,7 @@ import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
 import { siteMap, generatePathFromRoute } from "@/Routes";
+import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;
@@ -19,11 +20,15 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   const history = useHistory();
   const { state, dispatch, get } = useOrchest();
 
-  const isProjectSelectorVisible = [
-    "jobs",
-    "environments",
-    "pipelines",
-  ].includes(state?.view);
+  const matchProjectRoot = useMatchProjectRoot();
+  const matchPipeline = useRouteMatch({
+    path: siteMap.pipeline.path,
+    exact: true,
+  });
+  const matchJupyter = useRouteMatch({
+    path: siteMap.jupyterLab.path,
+    exact: true,
+  });
 
   const goToHome = () => {
     history.push(siteMap.projects.path);
@@ -34,7 +39,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   };
 
   const showPipeline = () => {
-    dispatch({ type: "setView", payload: "pipeline" });
+    // dispatch({ type: "setView", payload: "pipeline" });
     history.push(
       generatePathFromRoute(siteMap.pipeline.path, {
         projectId: state.project_uuid,
@@ -44,7 +49,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   };
 
   const showJupyter = () => {
-    dispatch({ type: "setView", payload: "jupyter" });
+    // dispatch({ type: "setView", payload: "jupyter" });
 
     history.push(
       generatePathFromRoute(siteMap.jupyterLab.path, {
@@ -76,14 +81,14 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
           src="/image/logo.svg"
           data-test-id="orchest-logo"
         />
-        {isProjectSelectorVisible && <ProjectSelector />}
+        {!!matchProjectRoot && <ProjectSelector />}
       </div>
 
       {state.pipelineName && (
         <div className="pipeline-header-component">
           <div className="pipeline-name">
             <div className="pipelineStatusIndicator">
-              {state.pipelineSaveStatus == "saved" ? (
+              {state.pipelineSaveStatus === "saved" ? (
                 <i title="Pipeline saved" className="material-icons">
                   check_circle
                 </i>
@@ -105,7 +110,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
           />
         )}
 
-        {state.pipelineName && state.view == "jupyter" && (
+        {state.pipelineName && matchJupyter && (
           <MDCButtonReact
             classNames={["mdc-button--outlined"]}
             onClick={showPipeline}
@@ -114,18 +119,16 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
           />
         )}
 
-        {state.pipelineName &&
-          !state.pipelineIsReadOnly &&
-          state.view == "pipeline" && (
-            <MDCButtonReact
-              disabled={get.currentSession?.status !== "RUNNING"}
-              classNames={["mdc-button--outlined"]}
-              onClick={showJupyter}
-              icon="science"
-              label="Switch to JupyterLab"
-              data-test-id="switch-to-jupyterlab"
-            />
-          )}
+        {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
+          <MDCButtonReact
+            disabled={get.currentSession?.status !== "RUNNING"}
+            classNames={["mdc-button--outlined"]}
+            onClick={showJupyter}
+            icon="science"
+            label="Switch to JupyterLab"
+            data-test-id="switch-to-jupyterlab"
+          />
+        )}
 
         {state?.user_config.AUTH_ENABLED && (
           <MDCIconButtonToggleReact

@@ -20,7 +20,7 @@ import {
 import { Layout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
 import { generatePathFromRoute, siteMap } from "@/Routes";
-import type { TViewProps } from "@/types";
+import type { TViewProps, Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 
 const ERROR_MAPPING = {
@@ -28,15 +28,6 @@ const ERROR_MAPPING = {
   "project name contains illegal character":
     "project name contains illegal character(s).",
 } as const;
-
-type Project = {
-  path: string;
-  uuid: string;
-  pipeline_count: number;
-  session_count: number;
-  job_count: number;
-  environment_count: number;
-};
 
 const ProjectsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
@@ -191,6 +182,11 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       .then((response: string) => {
         let projects: Project[] = JSON.parse(response);
 
+        context.dispatch({
+          type: "projectsSet",
+          payload: projects,
+        });
+
         setState((prevState) => ({
           ...prevState,
           fetchListAndSetProject,
@@ -201,10 +197,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
 
         // Verify selected project UUID
         if (
-          context.state.project_uuid !== undefined &&
-          projects.filter(
+          !context.state.project_uuid ||
+          !projects.some(
             (project) => project.uuid === context.state.project_uuid
-          ).length == 0
+          )
         ) {
           context.dispatch({
             type: "projectSet",
@@ -219,9 +215,9 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       .catch(console.log);
   };
 
-  const openSettings = (project) => {
+  const openSettings = (project: Project) => {
     history.push(
-      generatePathFromRoute(siteMap.project.path, {
+      generatePathFromRoute(siteMap.projectSettings.path, {
         projectId: project.uuid,
         // pipelineId, // TODO: how to get pipeline uuid?
       })
