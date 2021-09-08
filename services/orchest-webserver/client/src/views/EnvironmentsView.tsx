@@ -23,7 +23,9 @@ const EnvironmentsView: React.FC<IEnvironmentsViewProps> = () => {
 
   return (
     <Layout>
-      <ProjectBasedView projectId={projectId} childView={EnvironmentList} />
+      <ProjectBasedView projectId={projectId}>
+        <EnvironmentList projectId={projectId} />
+      </ProjectBasedView>
     </Layout>
   );
 };

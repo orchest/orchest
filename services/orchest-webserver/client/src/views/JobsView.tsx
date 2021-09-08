@@ -9,7 +9,7 @@ import ProjectBasedView, {
 
 export interface IJobsViewProps extends TViewProps, IProjectBasedViewProps {}
 
-const JobsView: React.FC<IJobsViewProps> = (props) => {
+const JobsView: React.FC<IJobsViewProps> = ({ projectId }) => {
   const { dispatch } = useOrchest();
 
   React.useEffect(() => {
@@ -19,7 +19,9 @@ const JobsView: React.FC<IJobsViewProps> = (props) => {
 
   return (
     <Layout>
-      <ProjectBasedView projectId={props.projectId} childView={JobList} />
+      <ProjectBasedView projectId={projectId}>
+        <JobList projectId={projectId}></JobList>
+      </ProjectBasedView>
     </Layout>
   );
 };

@@ -21,7 +21,7 @@ import Jupyter from "./jupyter/Jupyter";
 import { Routes } from "@/Routes";
 
 import {
-  nameToComponent,
+  // nameToComponent,
   // componentName,
   // generateRoute,
   // decodeRoute,
@@ -344,7 +344,7 @@ const App = () => {
     <Router>
       <HeaderBar />
       <div className="app-container" data-test-id="app">
-        <MainDrawer selectedElement={state.activeViewName} />
+        <MainDrawer />
         <main className="main-content" id="main-content">
           <Routes />
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />

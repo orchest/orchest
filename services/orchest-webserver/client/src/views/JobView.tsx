@@ -35,9 +35,6 @@ import ParamTree from "@/components/ParamTree";
 import ParameterEditor from "@/components/ParameterEditor";
 import SearchableTable from "@/components/SearchableTable";
 import EnvVarList from "@/components/EnvVarList";
-import PipelineView from "@/pipeline-view/PipelineView";
-import EditJobView from "@/views/EditJobView";
-import JobsView from "@/views/JobsView";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
 
 type TSharedStatus = Extract<

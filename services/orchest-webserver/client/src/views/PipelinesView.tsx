@@ -24,7 +24,9 @@ const PipelinesView: React.FC<IPipelinesViewProps> = () => {
   return (
     <OrchestSessionsConsumer>
       <Layout>
-        <ProjectBasedView projectId={projectId} childView={PipelineList} />
+        <ProjectBasedView projectId={projectId}>
+          <PipelineList projectId={projectId} key={projectId} />
+        </ProjectBasedView>
       </Layout>
     </OrchestSessionsConsumer>
   );

@@ -26,9 +26,6 @@ import {
 } from "@orchest/lib-utils";
 
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
-import EditJobView from "@/views/EditJobView";
-import JobView from "@/views/JobView";
-import ProjectsView from "@/views/ProjectsView";
 
 import { siteMap, generatePathFromRoute } from "../Routes";
 
@@ -36,7 +33,7 @@ import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
 
 export interface IJobListProps {
-  project_uuid: string;
+  projectId: string;
 }
 
 const JobList: React.FC<IJobListProps> = (props) => {
@@ -71,7 +68,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     let fetchListPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/jobs/?project_uuid=${props.project_uuid}`
+        `/catch/api-proxy/api/jobs/?project_uuid=${props.projectId}`
       ),
       promiseManager
     );
@@ -92,7 +89,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const fetchProjectDirSize = () => {
     let fetchProjectDirSizePromise = makeCancelable(
-      makeRequest("GET", `/async/projects/${props.project_uuid}`),
+      makeRequest("GET", `/async/projects/${props.projectId}`),
       promiseManager
     );
 
@@ -210,13 +207,13 @@ const JobList: React.FC<IJobListProps> = (props) => {
     const pipeline_name =
       rerun?.pipeline_name ||
       state.pipelines.find((pipeline) => pipeline.uuid === pipeline_uuid)?.name;
-    const project_uuid = rerun?.project_uuid || props.project_uuid;
+    const project_uuid = rerun?.project_uuid || props.projectId;
 
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
     setIsCreateDialogLoading(true);
 
-    checkGate(props.project_uuid)
+    checkGate(props.projectId)
       .then(() => {
         let postJobPromise = makeCancelable(
           makeRequest("POST", "/catch/api-proxy/api/jobs/", {
@@ -276,7 +273,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
             setIsCreateDialogLoading(false);
 
             orchest.requestBuild(
-              props.project_uuid,
+              props.projectId,
               result.data,
               "CreateJob",
               () => {
@@ -304,7 +301,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
     history.push(
       generatePathFromRoute(siteMap.job.path, {
-        projectId: props.project_uuid,
+        projectId: props.projectId,
         jobId: job.uuid,
       }),
       {
@@ -354,39 +351,41 @@ const JobList: React.FC<IJobListProps> = (props) => {
   };
 
   const jobListToTableData = (jobs) => {
-    let rows = [];
-    for (let x = 0; x < jobs.length; x++) {
+    let rows = jobs.map((job) => {
       // keep only jobs that are related to a project!
-      rows.push([
+      return [
         <span
           className="mdc-icon-table-wrapper"
-          data-test-id={`job-${jobs[x].name}`}
+          key={`job-${job.name}`}
+          data-test-id={`job-${job.name}`}
         >
-          {jobs[x].name}{" "}
+          {job.name}{" "}
           <span className="consume-click">
             <MDCIconButtonToggleReact
               icon="edit"
               onClick={() => {
-                onEditJobNameClick(jobs[x].uuid, jobs[x].name);
+                onEditJobNameClick(job.uuid, job.name);
               }}
             />
           </span>
         </span>,
-        jobs[x].pipeline_name,
-        formatServerDateTime(jobs[x].created_time),
+        job.pipeline_name,
+        formatServerDateTime(job.created_time),
         <StatusInline
+          key={`${job.name}-status`}
           css={{ verticalAlign: "bottom" }}
-          status={jobs[x].status}
+          status={job.status}
         />,
-      ]);
-    }
+      ];
+    });
+
     return rows;
   };
 
   React.useEffect(() => {
     // retrieve pipelines once on component render
     let pipelinePromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${props.project_uuid}`),
+      makeRequest("GET", `/async/pipelines/${props.projectId}`),
       promiseManager
     );
 

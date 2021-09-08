@@ -5,22 +5,22 @@ import { siteMap } from "@/Routes";
 
 export interface IProjectBasedViewProps {
   projectId?: string;
-  childView?: any;
 }
 
-const ProjectBasedView: React.FC<IProjectBasedViewProps> = (props) => {
+const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
+  projectId,
+  children,
+}) => {
   const history = useHistory();
 
   const goToProjects = () => history.push(siteMap.projects.path);
   const message =
     "It looks like you don't have any projects yet! To get started using Orchest create your first project.";
 
-  const TagName = props.childView;
-
   return (
     <div className="view-page">
-      {props.projectId ? (
-        <TagName projectId={props.projectId} key={props.projectId} />
+      {projectId ? (
+        children
       ) : (
         <div>
           <p className="push-down">{message}</p>

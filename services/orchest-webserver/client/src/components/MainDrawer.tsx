@@ -4,11 +4,7 @@ import { MDCDrawer } from "@material/drawer";
 import { useOrchest } from "@/hooks/orchest";
 // import { getViewDrawerParentViewName } from "../utils/webserver-utils";
 
-import { generatePathFromRoute, siteMap } from "../Routes";
-
-export interface IMainDrawerProps {
-  selectedElement: string;
-}
+import { generatePathFromRoute, siteMap } from "../routingConfig";
 
 const getProjectMenuItems = (projectId: string) => [
   {
@@ -68,9 +64,16 @@ const MenuItem: React.FC<{ item: ItemData; id: string }> = ({ item, id }) => {
 const getItemKey = (item: { label: string; icon: string; path: string }) =>
   `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
 
-const MainDrawer: React.FC<IMainDrawerProps> = () => {
+const MainDrawer: React.FC = () => {
   const context = useOrchest();
-  const { projectId } = useParams<{ projectId: string }>();
+  const projectId = context.state.project_uuid;
+
+  const { projectId: foo } = useParams<{ projectId: string }>();
+  // TODO: why foo is empty?
+  console.log(`🤞`);
+  console.log(foo);
+  console.log(projectId);
+  console.log(context.state.project_uuid);
 
   const projectMenuItems = getProjectMenuItems(projectId);
 

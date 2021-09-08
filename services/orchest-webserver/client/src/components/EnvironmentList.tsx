@@ -17,7 +17,7 @@ import { useInterval } from "@/hooks/use-interval";
 import { generatePathFromRoute, siteMap } from "@/Routes";
 
 export interface IEnvironmentListProps {
-  project_uuid: string;
+  projectId: string;
 }
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
@@ -43,7 +43,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     let environmentBuildsRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${props.project_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${props.projectId}`
       ),
       promiseManager
     );
@@ -80,7 +80,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const fetchEnvironments = () => {
     // fetch data sources
     let environmentsPromise = makeCancelable(
-      makeRequest("GET", `/store/environments/` + props.project_uuid),
+      makeRequest("GET", `/store/environments/` + props.projectId),
       promiseManager
     );
 
@@ -120,7 +120,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     let environment = state.environments[idx];
     history.push(
       generatePathFromRoute(siteMap.environment.path, {
-        projectId: props.project_uuid,
+        projectId: props.projectId,
         environmentId: environment.uuid,
       })
     );
@@ -129,7 +129,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const onCreateClick = () => {
     history.push(
       generatePathFromRoute(siteMap.environment.path, {
-        projectId: props.project_uuid,
+        projectId: props.projectId,
         // environmentId: environment.uuid, // TODO: handle new environment case
       })
     );
@@ -284,7 +284,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
     for (let environment of environments) {
       let environmentBuild =
-        environmentBuilds[props.project_uuid + "-" + environment.uuid];
+        environmentBuilds[props.projectId + "-" + environment.uuid];
 
       listData.push([
         <span>{environment.name}</span>,
