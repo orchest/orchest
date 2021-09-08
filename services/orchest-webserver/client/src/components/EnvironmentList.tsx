@@ -49,7 +49,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     );
 
     environmentBuildsRequestPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         try {
           let environmentBuilds = JSON.parse(response).environment_builds;
           updateStateForEnvironmentBuilds(environmentBuilds);
@@ -85,7 +85,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     );
 
     environmentsPromise.promise
-      .then((result) => {
+      .then((result: string) => {
         try {
           let environments = JSON.parse(result);
 

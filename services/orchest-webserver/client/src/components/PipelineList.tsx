@@ -83,7 +83,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
     );
 
     fetchListPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let data = JSON.parse(response);
         setState((prevState) => ({
           ...prevState,
@@ -122,7 +122,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
       .then(() => {
         openPipeline(pipeline, false);
       })
-      .catch((result) => {
+      .catch(() => {
         openPipeline(pipeline, true);
       });
   };

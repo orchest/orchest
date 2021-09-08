@@ -2,6 +2,6 @@ build/
 coverage/
 venv/
 .venvs/
-*.json
+# *.json
 npm_modules/
 dist/

@@ -74,7 +74,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     );
 
     fetchListPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let result = JSON.parse(response);
 
         setState((prevState) => ({
@@ -94,7 +94,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     );
 
     fetchProjectDirSizePromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let result = JSON.parse(response);
 
         setState((prevState) => ({
@@ -235,7 +235,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
         );
 
         postJobPromise.promise
-          .then((response) => {
+          .then((response: string) => {
             let job = JSON.parse(response);
             history.push(
               generatePathFromRoute(siteMap.job.path, {
@@ -390,7 +390,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     );
 
     pipelinePromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let result = JSON.parse(response);
 
         setState((prevState) => ({

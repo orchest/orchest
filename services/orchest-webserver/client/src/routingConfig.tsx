@@ -94,7 +94,6 @@ export const orderedRoutes: {
     path: "/projects/:projectId/pipelines/:pipelineId/logs",
     component: LogsView,
   },
-  // --------finish line
   {
     name: "environments",
     path: "/projects/:projectId/environments",
@@ -105,6 +104,7 @@ export const orderedRoutes: {
     path: "/projects/:projectId/environments/:environmentId",
     component: EnvironmentEditView,
   },
+  // --------finish line
   {
     name: "jobs",
     path: "/projects/:projectId/jobs",
@@ -172,7 +172,7 @@ const snakeCase = (str: string) =>
     .toLowerCase();
 
 export const toQueryString = <T extends string>(
-  query: Record<T, string | number | boolean>
+  query: Record<T, string | number | boolean | undefined | null>
 ) => {
   const isObject =
     typeof query === "object" &&
@@ -181,8 +181,12 @@ export const toQueryString = <T extends string>(
     !Array.isArray(query);
   return isObject
     ? Object.entries(query)
-        .reduce((str, [key, value]) => {
-          return `${str}${snakeCase(key)}=${value}&`;
+        .reduce((str, entry) => {
+          const [key, value] = entry as [
+            string,
+            string | number | boolean | undefined | null
+          ];
+          return value ? `${str}${snakeCase(key)}=${value.toString()}&` : str;
         }, "?")
         .slice(0, -1)
     : "";

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import { useHistory, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
@@ -28,7 +28,7 @@ import {
   MDCIconButtonToggleReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
@@ -43,6 +43,7 @@ import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { useLocationQuery, useLocationState } from "@/hooks/useCustomLocation";
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -55,6 +56,12 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     projectId: string;
     pipelineId: string;
   }>();
+  const [jobId, runId, initialTab] = useLocationQuery([
+    "job_uuid",
+    "run_uuid",
+    "initial_tab",
+  ]);
+  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
   const context = useOrchest();
 
   const { dispatch, get } = useOrchest();
@@ -81,7 +88,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   }
 
   const [overflowListener] = React.useState(new OverflowListener());
-  const [promiseManager] = React.useState(new PromiseManager());
+  const promiseManagerRef = useRef(new PromiseManager<string>());
   const [refManager] = React.useState(new RefManager());
 
   const fetchPipelineData = () => {
@@ -90,16 +97,16 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   };
 
   const handleInitialTab = () => {
-    const tabMapping = {
+    const tabMapping: Record<string, number> = {
       configuration: 0,
       "environment-variables": 1,
       services: 2,
     };
 
-    if (props.queryArgs.initial_tab) {
+    if (initialTab) {
       setState((prevProps) => ({
         ...prevProps,
-        selectedTabIndex: tabMapping[props.queryArgs.initial_tab],
+        selectedTabIndex: tabMapping[initialTab],
       }));
     }
   };
@@ -108,7 +115,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     return (
       state.pipelineJson &&
       state.envVariables &&
-      (props.queryArgs.read_only === "true" || state.projectEnvVariables)
+      (isReadOnly || state.projectEnvVariables)
     );
   };
 
@@ -116,7 +123,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   React.useEffect(() => {
     fetchPipelineData();
     handleInitialTab();
-    return () => promiseManager.cancelCancelablePromises();
+    return () => promiseManagerRef.current.cancelCancelablePromises();
   }, []);
 
   // Fetch pipeline data when query args change
@@ -131,7 +138,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     }
   }, [state]);
 
-  const setHeaderComponent = (pipelineName) =>
+  const setHeaderComponent = (pipelineName: string) =>
     dispatch({
       type: "pipelineSet",
       payload: {
@@ -235,37 +242,44 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineId,
       projectId,
-      props.queryArgs.job_uuid,
-      props.queryArgs.run_uuid
+      jobId,
+      runId
     );
 
     let pipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
-      promiseManager
+      promiseManagerRef.current
     );
 
     pipelinePromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
+      .then((response: string) => {
+        let result: {
+          pipeline_json: string;
+          success: boolean;
+        } = JSON.parse(response);
+
+        // TODO: remove logs
+        console.log("🥁", "pipeline");
+        console.log(result);
 
         if (result.success) {
-          let pipelineJson = JSON.parse(result["pipeline_json"]);
+          let pipelineJson: PipelineJson = JSON.parse(result["pipeline_json"]);
 
           // as settings are optional, populate defaults if no values exist
-          if (pipelineJson?.settings === undefined) {
+          if (pipelineJson.settings === undefined) {
             pipelineJson.settings = {};
           }
-          if (pipelineJson?.settings.auto_eviction === undefined) {
+          if (pipelineJson.settings.auto_eviction === undefined) {
             pipelineJson.settings.auto_eviction = false;
           }
-          if (pipelineJson?.settings.data_passing_memory_size === undefined) {
+          if (pipelineJson.settings.data_passing_memory_size === undefined) {
             pipelineJson.settings.data_passing_memory_size =
               state.dataPassingMemorySize;
           }
-          if (pipelineJson?.parameters === undefined) {
+          if (pipelineJson.parameters === undefined) {
             pipelineJson.parameters = {};
           }
-          if (pipelineJson?.services === undefined) {
+          if (pipelineJson.services === undefined) {
             pipelineJson.services = {};
           }
 
@@ -291,14 +305,17 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
   };
 
   const fetchPipelineMetadata = () => {
-    if (!props.queryArgs.job_uuid) {
+    if (!jobId) {
       // get pipeline path
-      let cancelableRequest = makeCancelable(
-        makeRequest("GET", `/async/pipelines/${projectId}/${pipelineId}`),
-        promiseManager
+      let cancelableRequest = makeCancelable<string>(
+        makeRequest(
+          "GET",
+          `/async/pipelines/${projectId}/${pipelineId}`
+        ) as Promise<string>,
+        promiseManagerRef.current
       );
 
-      cancelableRequest.promise.then((response) => {
+      cancelableRequest.promise.then((response: string) => {
         let pipeline = JSON.parse(response);
 
         setState((prevState) => ({
@@ -309,9 +326,9 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
       });
 
       // get project environment variables
-      let cancelableProjectRequest = makeCancelable(
-        makeRequest("GET", `/async/projects/${projectId}`),
-        promiseManager
+      let cancelableProjectRequest = makeCancelable<string>(
+        makeRequest("GET", `/async/projects/${projectId}`) as Promise<string>,
+        promiseManagerRef.current
       );
 
       cancelableProjectRequest.promise
@@ -329,19 +346,18 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
           console.error(error);
         });
     } else {
-      let cancelableJobPromise = makeCancelable(
-        makeRequest(
-          "GET",
-          `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
-        ),
-        promiseManager
+      let cancelableJobPromise = makeCancelable<string>(
+        makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`) as Promise<
+          string
+        >,
+        promiseManagerRef.current
       );
-      let cancelableRunPromise = makeCancelable(
+      let cancelableRunPromise = makeCancelable<string>(
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}/${props.queryArgs.run_uuid}`
-        ),
-        promiseManager
+          `/catch/api-proxy/api/jobs/${jobId}/${runId}`
+        ) as Promise<string>,
+        promiseManagerRef.current
       );
 
       Promise.all([
@@ -373,16 +389,16 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
         projectId: projectId,
         pipelineId: pipelineId,
       }),
-      state: { isReadOnly: props.queryArgs.read_only === "true" },
+      state: { isReadOnly },
       // TODO: check why PipelineView needs jobId and runId
       // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
       search: toQueryString({
-        job_uuid: props.queryArgs.job_uuid,
-        run_uuid: props.queryArgs.run_uuid,
+        job_uuid: jobId,
+        run_uuid: runId,
       }),
     });
 
-  const onChangeName = (value) => {
+  const onChangeName = (value: string) => {
     setState((prevState) => ({
       ...prevState,
       pipelineJson: {
@@ -554,7 +570,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
     return true;
   };
 
-  const saveGeneralForm = (e) => {
+  const saveGeneralForm = (e: MouseEvent) => {
     e.preventDefault();
 
     // Remove order property from services
@@ -643,7 +659,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
           "PUT",
           `/catch/api-proxy/api/sessions/${projectId}/${pipelineId}`
         ),
-        promiseManager
+        promiseManagerRef.current
       );
 
       restartPromise.promise
@@ -719,7 +735,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 value={state.pipelineJson?.name}
                                 onChange={onChangeName}
                                 label="Pipeline name"
-                                disabled={props.queryArgs.read_only === "true"}
+                                disabled={isReadOnly}
                                 classNames={["push-down"]}
                                 data-test-id="pipeline-settings-configuration-pipeline-name"
                               />
@@ -754,8 +770,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   mode: "application/json",
                                   theme: "jupyter",
                                   lineNumbers: true,
-                                  readOnly:
-                                    props.queryArgs.read_only === "true",
+                                  readOnly: isReadOnly,
                                 }}
                                 onBeforeChange={onChangePipelineParameters}
                               />
@@ -780,7 +795,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                               <h3>Data passing</h3>
                             </div>
                             <div className="column">
-                              {props.queryArgs.read_only !== "true" && (
+                              {!isReadOnly && (
                                 <p className="push-up">
                                   <i>
                                     For these changes to take effect you have to
@@ -797,9 +812,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   }
                                   onChange={onChangeEviction}
                                   label="Automatic memory eviction"
-                                  disabled={
-                                    props.queryArgs.read_only === "true"
-                                  }
+                                  disabled={isReadOnly}
                                   classNames={["push-down", "push-up"]}
                                   data-test-id="pipeline-settings-configuration-memory-eviction"
                                 />
@@ -815,7 +828,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                 />
                               </div>
 
-                              {props.queryArgs.read_only !== "true" && (
+                              {!isReadOnly && (
                                 <p className="push-down">
                                   Change the size of the memory server for data
                                   passing. For units use KB, MB, or GB, e.g.{" "}
@@ -828,9 +841,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                                   value={state.dataPassingMemorySize}
                                   onChange={onChangeDataPassingMemorySize}
                                   label="Data passing memory size"
-                                  disabled={
-                                    props.queryArgs.read_only === "true"
-                                  }
+                                  disabled={isReadOnly}
                                   data-test-id="pipeline-settings-configuration-memory-size"
                                 />
                               </div>
@@ -853,7 +864,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                           </div>
                         </form>
 
-                        {props.queryArgs.read_only !== "true" && (
+                        {!isReadOnly && (
                           <div className="columns">
                             <div className="column">
                               <h3>Actions</h3>
@@ -892,58 +903,47 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                     ),
                     1: (
                       <div>
-                        {(() => {
-                          if (props.queryArgs.read_only === "true") {
-                            return (
-                              <>
-                                <EnvVarList
-                                  value={state.envVariables}
-                                  readOnly={true}
-                                  data-test-id="pipeline-read-only"
-                                />
-                              </>
-                            );
-                          } else {
-                            return (
-                              <>
-                                <h3 className="push-down">
-                                  Project environment variables
-                                </h3>
-                                <EnvVarList
-                                  value={state.projectEnvVariables}
-                                  readOnly={true}
-                                  data-test-id="project-read-only"
-                                />
+                        {isReadOnly ? (
+                          <EnvVarList
+                            value={state.envVariables}
+                            readOnly={true}
+                            data-test-id="pipeline-read-only"
+                          />
+                        ) : (
+                          <>
+                            <h3 className="push-down">
+                              Project environment variables
+                            </h3>
+                            <EnvVarList
+                              value={state.projectEnvVariables}
+                              readOnly={true}
+                              data-test-id="project-read-only"
+                            />
 
-                                <h3 className="push-down">
-                                  Pipeline environment variables
-                                </h3>
-                                <p className="push-down">
-                                  Pipeline environment variables take precedence
-                                  over project environment variables.
-                                </p>
-                                <EnvVarList
-                                  value={state.envVariables}
-                                  onAdd={addEnvVariablePair}
-                                  onChange={(e, idx, type) =>
-                                    onEnvVariablesChange(e, idx, type)
-                                  }
-                                  onDelete={(idx) =>
-                                    onEnvVariablesDeletion(idx)
-                                  }
-                                  data-test-id="pipeline"
-                                />
-                                <p className="push-up">
-                                  <i>
-                                    Note: restarting the session is required to
-                                    update environment variables in Jupyter
-                                    kernels.
-                                  </i>
-                                </p>
-                              </>
-                            );
-                          }
-                        })()}
+                            <h3 className="push-down">
+                              Pipeline environment variables
+                            </h3>
+                            <p className="push-down">
+                              Pipeline environment variables take precedence
+                              over project environment variables.
+                            </p>
+                            <EnvVarList
+                              value={state.envVariables}
+                              onAdd={addEnvVariablePair}
+                              onChange={(e, idx, type) =>
+                                onEnvVariablesChange(e, idx, type)
+                              }
+                              onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                              data-test-id="pipeline"
+                            />
+                            <p className="push-up">
+                              <i>
+                                Note: restarting the session is required to
+                                update environment variables in Jupyter kernels.
+                              </i>
+                            </p>
+                          </>
+                        )}
                       </div>
                     ),
                     2: (
@@ -978,9 +978,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                               <div className="consume-click" key={service.name}>
                                 <MDCIconButtonToggleReact
                                   icon="delete"
-                                  disabled={
-                                    props.queryArgs.read_only === "true"
-                                  }
+                                  disabled={isReadOnly}
                                   onClick={() => {
                                     orchest.confirm(
                                       "Warning",
@@ -1005,12 +1003,12 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                               <ServiceForm
                                 key={["ServiceForm", i].join("-")}
                                 service={service}
-                                disabled={props.queryArgs.read_only === "true"}
+                                disabled={isReadOnly}
                                 updateService={onChangeService}
                                 nameChangeService={nameChangeService}
                                 pipeline_uuid={pipelineId}
                                 project_uuid={projectId}
-                                run_uuid={props.queryArgs.run_uuid}
+                                run_uuid={runId}
                               />
                             ))}
                           data-test-id="pipeline-services"
@@ -1033,7 +1031,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                           </AlertDescription>
                         </Alert>
 
-                        {props.queryArgs.read_only !== "true" && (
+                        {!isReadOnly && (
                           <ServiceTemplatesDialog
                             onSelection={(template) =>
                               addServiceFromTemplate(template)
@@ -1054,7 +1052,7 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
                   data-test-id="pipeline-settings-close"
                 />
               </div>
-              {props.queryArgs.read_only !== "true" && (
+              {!isReadOnly && (
                 <div className="bottom-buttons observe-overflow">
                   <MDCButtonReact
                     label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}

@@ -43,20 +43,15 @@ const EnvironmentEditView: React.FC = () => {
     environmentId === "create"
   );
 
-  const [environment, setEnvironment] = React.useState<Environment>(
-    isNewEnvironment
-      ? {
-          uuid: "new",
-          name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,
-          gpu_support: context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
-          project_uuid: projectId,
-          base_image: context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
-          language: context.state?.config?.ENVIRONMENT_DEFAULTS.language,
-          setup_script:
-            context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
-        }
-      : undefined
-  );
+  const [environment, setEnvironment] = React.useState<Environment>({
+    uuid: "new",
+    name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,
+    gpu_support: context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
+    project_uuid: projectId,
+    base_image: context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
+    language: context.state?.config?.ENVIRONMENT_DEFAULTS.language,
+    setup_script: context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
+  });
 
   const [state, setState] = React.useState({
     addCustomBaseImageDialog: null,
@@ -86,6 +81,7 @@ const EnvironmentEditView: React.FC = () => {
       promiseManager
     );
 
+    // @ts-ignore
     cancelableRequest.promise
       .then((response: string) => {
         let fetchedEnvironment: Environment = JSON.parse(response);
@@ -99,7 +95,7 @@ const EnvironmentEditView: React.FC = () => {
               : [...DEFAULT_BASE_IMAGES],
         }));
       })
-
+      // @ts-ignore
       .catch((error) => {
         console.error(error);
       });
@@ -111,8 +107,13 @@ const EnvironmentEditView: React.FC = () => {
     // Enterprise Gateway team.
     orchest.jupyter.unload();
 
-    return makeCancelable(
+    return makeCancelable<Environment>(
       new Promise((resolve, reject) => {
+        if (!environment) {
+          reject();
+          return;
+        }
+
         let method = isNewEnvironment ? "POST" : "PUT";
         let endpoint = `/store/environments/${projectId}/${environment.uuid}`;
 
@@ -133,7 +134,7 @@ const EnvironmentEditView: React.FC = () => {
               payload: false,
             });
 
-            resolve(undefined);
+            resolve(result);
           })
           .catch((error) => {
             console.log(error);
@@ -152,7 +153,7 @@ const EnvironmentEditView: React.FC = () => {
     ).promise;
   };
 
-  const onSave = (e) => {
+  const onSave = (e: MouseEvent) => {
     const validEnvironmentName = (name: string) => {
       if (!name) {
         return false;
@@ -339,17 +340,24 @@ const EnvironmentEditView: React.FC = () => {
         promiseManager
       );
 
+      // @ts-ignore
       buildPromise.promise
-        .then((response) => {
+        .then((response: string) => {
           try {
             let environmentBuild = JSON.parse(response)[
               "environment_builds"
             ][0];
+
+            // TODO: remove logs
+            console.log(`🥁`);
+            console.log(environmentBuild);
+
             onUpdateBuild(environmentBuild);
           } catch (error) {
             console.error(error);
           }
         })
+        // @ts-ignore
         .catch((e) => {
           if (!e.isCanceled) {
             setState((prevState) => ({
@@ -627,7 +635,7 @@ const EnvironmentEditView: React.FC = () => {
                         }}
                       />
                     </div>
-                    {environment && environment.uuid !== "new" && (
+                    {environment && !isNewEnvironment && (
                       <ImageBuildLog
                         buildFetchHash={state.buildFetchHash}
                         buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectId}/${environment.uuid}`}
@@ -659,8 +667,8 @@ const EnvironmentEditView: React.FC = () => {
                 data-test-id="environments-save"
               />
 
-              {state.subviewIndex == 1 &&
-                environment.uuid != "new" &&
+              {state.subviewIndex === 1 &&
+                !isNewEnvironment &&
                 (!state.building ? (
                   <MDCButtonReact
                     disabled={state.buildRequestInProgress}

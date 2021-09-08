@@ -394,16 +394,16 @@ export function cleanServerDateTime(dateTimeString) {
 export function getPipelineJSONEndpoint(
   pipeline_uuid: string,
   project_uuid: string,
-  job_uuid?: string,
-  pipeline_run_uuid?: string
+  job_uuid?: string | null,
+  pipeline_run_uuid?: string | null
 ) {
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
-  if (job_uuid !== undefined) {
+  if (job_uuid) {
     pipelineURL += `?job_uuid=${job_uuid}`;
   }
 
-  if (pipeline_run_uuid !== undefined) {
+  if (pipeline_run_uuid) {
     pipelineURL += `&pipeline_run_uuid=${pipeline_run_uuid}`;
   }
   return pipelineURL;

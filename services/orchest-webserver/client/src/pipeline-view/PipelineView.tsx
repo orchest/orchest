@@ -336,25 +336,19 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return { ...state.pipelineJson, steps };
   };
 
-  const openSettings = (initial_tab) => {
-    let queryArgs = {
-      project_uuid: projectId,
-      pipeline_uuid: pipelineId,
-      read_only: props.queryArgs.read_only,
-      job_uuid: jobId, // TODO: why settings need job_uuid and run_uuid???
-      run_uuid: runId,
-    };
-
-    if (initial_tab) {
-      queryArgs.initial_tab = initial_tab;
-    }
-
-    history.push(
-      generatePathFromRoute(siteMap.pipelineSettings.path, {
+  const openSettings = (initialTab: string | undefined) => {
+    history.push({
+      pathname: generatePathFromRoute(siteMap.pipelineSettings.path, {
         projectId: projectId,
         pipelineId: pipelineId,
-      })
-    );
+      }),
+      state: { isReadOnly },
+      search: toQueryString({
+        job_uuid: jobId,
+        run_uuid: runId,
+        initial_tab: initialTab,
+      }),
+    });
   };
 
   const openLogs = () => {
@@ -388,7 +382,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     if (!orchestState.sessionsIsLoading) {
       // If session doesn't exist and first load
       if (
-        props.queryArgs.read_only !== "true" &&
+        !isReadOnly &&
         state.shouldAutoStart === true &&
         typeof session === "undefined"
       ) {
@@ -1021,7 +1015,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     // initialize all listeners related to viewing/navigating the pipeline
     initializePipelineNavigationListeners();
 
-    if (props.queryArgs.read_only !== "true") {
+    if (!isReadOnly) {
       // initialize all listeners related to editing the pipeline
       initializePipelineEditListeners();
     }
@@ -1036,7 +1030,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       runId
     );
 
-    if (props.queryArgs.read_only !== "true") {
+    if (!isReadOnly) {
       // fetch pipeline cwd
       let cwdFetchPromise = makeCancelable(
         makeRequest(
@@ -1076,7 +1070,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
           dispatch({
             type: "pipelineUpdateReadOnlyState",
-            payload: props.queryArgs.read_only === "true",
+            payload: isReadOnly,
           });
 
           dispatch({
@@ -1220,7 +1214,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const onDoubleClickStepHandler = (stepUUID: string) => {
-    if (props.queryArgs.read_only === "true") {
+    if (isReadOnly) {
       onOpenFilePreviewView(stepUUID);
     } else {
       openNotebook(stepUUID);
@@ -1904,9 +1898,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  // TODO: remove comment
-  console.log(servicesAvailable());
-
   useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.key === " " && !state.eventVars.draggingPipeline) {
@@ -2186,8 +2177,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   }, [state.currentOngoingSaves]);
 
+  // TODO: clean up this
   React.useEffect(() => {
-    if (props.queryArgs && props.queryArgs.read_only !== "true") {
+    if (props.queryArgs && !isReadOnly) {
       setState({ shouldAutoStart: true });
     } else {
       setState({ shouldAutoStart: false });
@@ -2195,11 +2187,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   }, [props]);
 
   React.useEffect(() => {
-    dispatch({
-      type: "setView",
-      payload: "pipeline",
-    });
-
     if (!projectId) {
       history.push(siteMap.projects.path);
       return;
@@ -2223,8 +2210,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       }
     }
 
-    const isNonPipelineRun =
-      !hasActiveRun && props.queryArgs.read_only === "true";
+    const isNonPipelineRun = !hasActiveRun && isReadOnly;
     if (isNonPipelineRun) {
       // for non pipelineRun - read only check gate
       let checkGatePromise = checkGate(projectId);
@@ -2245,7 +2231,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     initializeResizeHandlers();
 
     // Edit mode fetches latest interactive run
-    if (queryArgs.read_only !== "true") {
+    if (!isReadOnly) {
       fetchActivePipelineRuns();
     }
 
@@ -2293,7 +2279,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             onMouseLeave={disableHotkeys}
             onMouseOver={onMouseOverPipelineView}
           >
-            {jobId && props.queryArgs.read_only == "true" && (
+            {jobId && isReadOnly && (
               <div className="pipeline-actions top-left">
                 <MDCButtonReact
                   classNames={["mdc-button--outlined"]}
@@ -2316,53 +2302,43 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 <MDCButtonReact onClick={zoomIn} icon="add" />
               </div>
 
-              {props.queryArgs.read_only !== "true" ? (
-                <>
-                  {!state.pipelineRunning &&
-                    state.eventVars.selectedSteps.length > 0 &&
-                    !state.eventVars.stepSelector.active && (
-                      <div className="selection-buttons">
-                        <MDCButtonReact
-                          classNames={[
-                            "mdc-button--raised",
-                            "themed-secondary",
-                          ]}
-                          onClick={runSelectedSteps}
-                          label="Run selected steps"
-                          data-test-id="interactive-run-run-selected-steps"
-                        />
-                        {selectedStepsHasIncoming && (
-                          <MDCButtonReact
-                            classNames={[
-                              "mdc-button--raised",
-                              "themed-secondary",
-                            ]}
-                            onClick={onRunIncoming}
-                            label="Run incoming steps"
-                            data-test-id="interactive-run-run-incoming-steps"
-                          />
-                        )}
-                      </div>
-                    )}
-
-                  {state.pipelineRunning && (
-                    <div className="selection-buttons">
+              {!isReadOnly &&
+                !state.pipelineRunning &&
+                state.eventVars.selectedSteps.length > 0 &&
+                !state.eventVars.stepSelector.active && (
+                  <div className="selection-buttons">
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      onClick={runSelectedSteps}
+                      label="Run selected steps"
+                      data-test-id="interactive-run-run-selected-steps"
+                    />
+                    {selectedStepsHasIncoming && (
                       <MDCButtonReact
-                        classNames={["mdc-button--raised"]}
-                        onClick={cancelRun}
-                        icon="close"
-                        disabled={state.waitingOnCancel}
-                        label="Cancel run"
-                        data-test-id="interactive-run-cancel"
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        onClick={onRunIncoming}
+                        label="Run incoming steps"
+                        data-test-id="interactive-run-run-incoming-steps"
                       />
-                    </div>
-                  )}
-                </>
-              ) : null}
+                    )}
+                  </div>
+                )}
+              {!isReadOnly && state.pipelineRunning && (
+                <div className="selection-buttons">
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={cancelRun}
+                    icon="close"
+                    disabled={state.waitingOnCancel}
+                    label="Cancel run"
+                    data-test-id="interactive-run-cancel"
+                  />
+                </div>
+              )}
             </div>
 
             <div className={"pipeline-actions top-right"}>
-              {props.queryArgs.read_only !== "true" && (
+              {!isReadOnly && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
                   onClick={newStep}
@@ -2372,7 +2348,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 />
               )}
 
-              {props.queryArgs.read_only === "true" && (
+              {isReadOnly && (
                 <MDCButtonReact
                   label={"Read only"}
                   disabled={true}
@@ -2398,7 +2374,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={() => openSettings(undefined)}
+                onClick={() => openSettings()}
                 label={"Settings"}
                 icon="tune"
                 data-test-id="pipeline-settings"
@@ -2412,11 +2388,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   <div className="edit-button-holder">
                     <MDCButtonReact
                       icon="tune"
-                      label={
-                        (props.queryArgs.read_only !== "true"
-                          ? "Edit"
-                          : "View") + " services"
-                      }
+                      label={`${!isReadOnly ? "Edit" : "View"} services`}
                       onClick={() => openSettings("services")}
                     />
                   </div>
@@ -2478,24 +2450,23 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               job_uuid={jobId}
               run_uuid={runId}
               sio={state.sio}
-              readOnly={props.queryArgs.read_only === "true"}
+              readOnly={isReadOnly}
               step={state.steps[state.eventVars.openedStep]}
               saveHash={state.saveHash}
             />
           )}
 
-          {state.eventVars.openedMultistep &&
-            props.queryArgs.read_only !== "true" && (
-              <div className={"pipeline-actions bottom-right"}>
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  label={"Delete"}
-                  onClick={onDeleteMultistep}
-                  icon={"delete"}
-                  data-test-id="step-delete-multi"
-                />
-              </div>
-            )}
+          {state.eventVars.openedMultistep && !isReadOnly && (
+            <div className={"pipeline-actions bottom-right"}>
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                label={"Delete"}
+                onClick={onDeleteMultistep}
+                icon={"delete"}
+                data-test-id="step-delete-multi"
+              />
+            </div>
+          )}
         </div>
       </Layout>
     </OrchestSessionsConsumer>

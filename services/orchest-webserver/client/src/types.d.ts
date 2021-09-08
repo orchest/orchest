@@ -184,3 +184,30 @@ export type Environment = {
   setup_script: string;
   uuid: string;
 };
+
+export type Step = Record<
+  string,
+  {
+    environment: string;
+    file_path: string;
+    incoming_connections: string[];
+    kernel: { display_name: string; name: string };
+    meta_data: { hidden: boolean; position: [number, number] };
+    parameters: Record<string, any>;
+    title: string;
+    uuid: string;
+  }
+>;
+
+export type PipelineJson = {
+  name: string;
+  parameters: Record<string, any>;
+  settings: {
+    auto_eviction?: boolean;
+    data_passing_memory_size?: string;
+  };
+  steps: Step;
+  uuid: string;
+  version: string;
+  services?: Record<string, any>;
+};

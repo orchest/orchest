@@ -1,7 +1,6 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import type { TViewProps } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
 import ProjectBasedView, {

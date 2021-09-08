@@ -43,6 +43,7 @@
     "xterm-for-react": "^1.0.4"
   },
   "devDependencies": {
+    "@types/jest": "^27.0.1",
     "@types/jquery": "^3.5.6",
     "@types/lodash": "^4.14.172",
     "@types/node": "15.0.1",
