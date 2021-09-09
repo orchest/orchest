@@ -20,6 +20,7 @@ import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { Layout } from "@/components/Layout";
 import ProjectSettingsView from "@/views/ProjectSettingsView";
 import PipelinesView from "@/views/PipelinesView";
+import ExamplesView from "./ExamplesView";
 
 const ERROR_MAPPING = {
   "project move failed": "failed to move project because the directory exists.",
@@ -316,6 +317,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       ...prevState,
       createModal: true,
     }));
+  };
+
+  const goToExamples = () => {
+    orchest.loadView(ExamplesView);
   };
 
   const onSubmitModal = () => {
@@ -724,11 +729,18 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                     data-test-id="add-project"
                   />
                   <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
+                    classNames={["mdc-button--raised", "push-right"]}
                     icon="input"
                     label="Import project"
                     onClick={onImport}
                     data-test-id="import-project"
+                  />
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    icon="lightbulb"
+                    label="Explore Examples"
+                    onClick={goToExamples}
+                    data-test-id="explore-examples"
                   />
                 </div>
                 <div className={"pipeline-actions push-down"}>
