@@ -61,10 +61,10 @@ class Config:
         ),
         "github": "https://github.com/orchest/orchest",
         "website": "https://www.orchest.io",
-        "public_examples_repo": "https://github.com/orchest/metadata-test-repo",
+        "public_examples_repo": "https://github.com/orchest/public-examples",
         "public_examples_json": (
-            "https://raw.githubusercontent.com/orchest/"
-            "metadata-test-repo/main/public_examples_data.json"
+            "https://raw.githubusercontent.com/orchest/public-examples/main/"
+            "public_examples_data.json"
         ),
     }
 
