@@ -41,6 +41,7 @@ from app.utils import (
     get_pipeline_path,
     get_project_directory,
     get_project_snapshot_size,
+    get_public_examples_json,
     get_repo_tag,
     get_session_counts,
     get_user_conf,
@@ -140,6 +141,10 @@ def register_views(app, db):
         json_string = json.dumps({"success": False, "reason": reason})
 
         return json_string, 404, {"content-type": "application/json"}
+
+    @app.route("/async/public-examples", methods=["GET"])
+    def public_examples():
+        return get_public_examples_json()
 
     @app.route("/async/server-config", methods=["GET"])
     def server_config():

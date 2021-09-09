@@ -30,7 +30,12 @@ from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import get_repo_tag, get_user_conf, migrate_user_config
+from app.utils import (
+    fetch_public_examples_json_to_disk,
+    get_repo_tag,
+    get_user_conf,
+    migrate_user_config,
+)
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -153,6 +158,18 @@ def create_app():
             analytics.send_heartbeat_signal,
             "interval",
             minutes=app.config["TELEMETRY_INTERVAL"],
+            args=[app],
+        )
+
+    if app.config["POLL_PUBLIC_EXAMPLES_JSON"]:
+        # Fetch now.
+        fetch_public_examples_json_to_disk(app)
+
+        # And every hour.
+        scheduler.add_job(
+            fetch_public_examples_json_to_disk,
+            "interval",
+            minutes=app.config["PUBLIC_EXAMPLES_JSON_POLL_INTERVAL"],
             args=[app],
         )
 

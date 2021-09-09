@@ -23,6 +23,8 @@ export interface IOrchestConfig {
     readthedocs: string;
     slack: string;
     website: string;
+    public_examples_repo: string;
+    public_examples_json: string;
   };
   PIPELINE_PARAMETERS_RESERVED_KEY: string;
   TELEMETRY_DISABLED: boolean;

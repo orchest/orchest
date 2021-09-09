@@ -47,6 +47,10 @@ class Config:
     POSTHOG_API_KEY = "c3l6aU4waEhweEhBQnQ0UHRyT0FxRm1iX25wLXYwanRDNElIanZCZ1pwMA=="
     POSTHOG_HOST = "https://analytics.orchest.io"
 
+    POLL_PUBLIC_EXAMPLES_JSON = True
+    PUBLIC_EXAMPLES_JSON_PATH = "public_examples_data.json"
+    PUBLIC_EXAMPLES_JSON_POLL_INTERVAL = 60
+
     # TODO: point readthedocs to stable instead of latest once stable
     #  is up
     ORCHEST_WEB_URLS = {
@@ -57,6 +61,11 @@ class Config:
         ),
         "github": "https://github.com/orchest/orchest",
         "website": "https://www.orchest.io",
+        "public_examples_repo": "https://github.com/orchest/metadata-test-repo",
+        "public_examples_json": (
+            "https://raw.githubusercontent.com/orchest/"
+            "metadata-test-repo/main/public_examples_data.json"
+        ),
     }
 
     ENVIRONMENT_DEFAULTS = {
@@ -177,6 +186,7 @@ class TestingConfig(Config):
     # This config is used by the tests.
     TESTING = True
     TELEMETRY_DISABLED = True
+    POLL_PUBLIC_EXAMPLES_JSON = False
 
     # No file logging.
     LOGGING_CONFIG = {
