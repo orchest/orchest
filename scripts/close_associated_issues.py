@@ -23,6 +23,7 @@ def close_issue(conn: client.HTTPSConnection, issue_number: str) -> bool:
         },
     )
     r = conn.getresponse()
+    r.read()  # NOTE: make sure to read the response!
     return r.status == 200
 
 
