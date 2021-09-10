@@ -1,12 +1,7 @@
 import React from "react";
 import { Redirect, Route, Switch } from "react-router-dom";
 
-import {
-  siteMap,
-  orderedRoutes,
-  generatePathFromRoute,
-  toQueryString,
-} from "./routingConfig";
+import { siteMap, orderedRoutes, toQueryString } from "./routingConfig";
 import { TViewProps } from "./types";
 
 const Routes = () => {
@@ -35,4 +30,4 @@ const Routes = () => {
   );
 };
 
-export { siteMap, Routes, generatePathFromRoute, toQueryString };
+export { siteMap, Routes, toQueryString };

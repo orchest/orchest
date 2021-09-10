@@ -20,7 +20,7 @@ import {
   getPipelineStepChildren,
   setWithRetry,
 } from "@/utils/webserver-utils";
-import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -37,7 +37,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
 
   // data from route
   const {
-    history,
+    navigateTo,
     projectUuid,
     pipelineUuid,
     isReadOnly,
@@ -68,16 +68,9 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const loadPipelineView = () => {
-    history.push({
-      pathname: generatePathFromRoute(siteMap.pipeline.path, {
-        projectUuid,
-        pipelineUuid,
-      }),
+    navigateTo(siteMap.pipeline.path, {
+      query: { projectUuid, pipelineUuid, jobUuid, runUuid },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-      }),
     });
   };
 
@@ -172,17 +165,15 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
     });
 
   const stepNavigate = (newStepUuid: string) => {
-    history.push({
-      pathname: generatePathFromRoute(siteMap.filePreview.path, {
-        projectUuid: projectUuid,
-        pipelineUuid: pipelineUuid,
+    navigateTo(siteMap.filePreview.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
         stepUuid: newStepUuid,
-      }),
+        jobUuid,
+        runUuid,
+      },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-      }),
     });
   };
 

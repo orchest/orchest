@@ -12,7 +12,7 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { generatePathFromRoute, siteMap } from "@/Routes";
+import { siteMap } from "@/Routes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
@@ -26,7 +26,7 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   // data from route
-  const { history, projectUuid, pipelineUuid } = useCustomRoute();
+  const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
@@ -40,8 +40,8 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
   ] = React.useState(false);
 
   const session = get.session({
-    pipeline_uuid: pipelineUuid,
-    project_uuid: projectUuid,
+    pipelineUuid,
+    projectUuid,
   });
   const orchest = window.orchest;
   const [promiseManager] = React.useState(new PromiseManager());
@@ -65,7 +65,7 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
     ) {
       dispatch({
         type: "sessionToggle",
-        payload: { pipeline_uuid: pipelineUuid, project_uuid: projectUuid },
+        payload: { pipelineUuid, projectUuid },
       });
     }
   }, [session, state.sessionsIsLoading]);
@@ -76,11 +76,9 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
     conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
-      history.push(
-        generatePathFromRoute(siteMap.pipelines.path, {
-          projectUuid,
-        })
-      );
+      navigateTo(siteMap.pipelines.path, {
+        query: { projectUuid },
+      });
     }
   }, [session, hasEnvironmentCheckCompleted]);
 
@@ -99,20 +97,15 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
             "JupyterLab",
             () => {
               // force view reload
-              history.push(
-                generatePathFromRoute(siteMap.jupyterLab.path, {
-                  projectUuid,
-                  pipelineUuid,
-                })
-              );
+              navigateTo(siteMap.jupyterLab.path, {
+                query: { projectUuid, pipelineUuid },
+              });
             },
             () => {
               // back to pipelines view
-              history.push(
-                generatePathFromRoute(siteMap.pipelines.path, {
-                  projectUuid: projectUuid,
-                })
-              );
+              navigateTo(siteMap.pipelines.path, {
+                query: { projectUuid },
+              });
             }
           );
         }
@@ -175,8 +168,8 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
           dispatch({
             type: "pipelineSet",
             payload: {
-              pipeline_uuid: pipelineUuid,
-              project_uuid: projectUuid,
+              pipelineUuid,
+              projectUuid,
               pipelineName: pipeline.name,
             },
           });

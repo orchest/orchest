@@ -35,7 +35,7 @@ import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
 
 import { useHotKey } from "./hooks/useHotKey";
 
-import { siteMap, generatePathFromRoute, toQueryString } from "../Routes";
+import { siteMap } from "../Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -61,7 +61,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     jobUuid,
     runUuid,
     isReadOnly: isReadOnlyFromQueryString,
-    history,
+    navigateTo,
   } = useCustomRoute();
 
   const [isReadOnly, setIsReadOnly] = useState(!!isReadOnlyFromQueryString);
@@ -345,31 +345,27 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   };
 
   const openSettings = (initialTab: string | undefined) => {
-    history.push({
-      pathname: generatePathFromRoute(siteMap.pipelineSettings.path, {
-        projectUuid: projectUuid,
-        pipelineUuid: pipelineUuid,
-      }),
+    navigateTo(siteMap.pipelineSettings.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
+        initialTab,
+      },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-        initial_tab: initialTab,
-      }),
     });
   };
 
   const openLogs = () => {
-    history.push({
-      pathname: generatePathFromRoute(siteMap.logs.path, {
-        projectUuid: projectUuid,
-        pipelineUuid: pipelineUuid,
-      }),
+    navigateTo(siteMap.logs.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
+      },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-      }),
     });
   };
 
@@ -1388,9 +1384,11 @@ const PipelineView: React.FC<TViewProps> = (props) => {
         "Please start the session before opening the Notebook in Jupyter."
       );
     } else if (session.status === "RUNNING") {
-      history.push(siteMap.jupyterLab.path, {
-        projectUuid: projectUuid,
-        pipelineUuid: pipelineUuid,
+      navigateTo(siteMap.jupyterLab.path, {
+        query: {
+          projectUuid,
+          pipelineUuid,
+        },
       });
 
       orchest.jupyter.navigateTo(
@@ -1412,17 +1410,15 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   };
 
   const onOpenFilePreviewView = (stepUuid: string) => {
-    history.push({
-      pathname: generatePathFromRoute(siteMap.filePreview.path, {
+    navigateTo(siteMap.filePreview.path, {
+      query: {
         projectUuid,
         pipelineUuid,
         stepUuid,
-      }),
+        jobUuid,
+        runUuid,
+      },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-      }),
     });
   };
 
@@ -2077,12 +2073,12 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToJob = () => {
-    history.push(
-      generatePathFromRoute(siteMap.job.path, {
+    navigateTo(siteMap.job.path, {
+      query: {
         projectUuid,
         jobUuid,
-      })
-    );
+      },
+    });
   };
 
   let connections_list = {};

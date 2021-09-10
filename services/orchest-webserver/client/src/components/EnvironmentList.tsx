@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useHistory } from "react-router-dom";
+
 import {
   makeRequest,
   makeCancelable,
@@ -14,14 +14,15 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import { useInterval } from "@/hooks/use-interval";
-import { generatePathFromRoute, siteMap } from "@/Routes";
+import { siteMap } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export interface IEnvironmentListProps {
   projectUuid: string;
 }
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
-  const history = useHistory();
+  const { navigateTo } = useCustomRoute();
   const [
     environmentBuildsInterval,
     setEnvironmentBuildsInterval,
@@ -109,7 +110,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       })
       .catch((err) => {
         if (err && err.status == 404) {
-          history.push(siteMap.projects.path);
+          navigateTo(siteMap.projects.path);
         }
 
         console.log("Error fetching Environments", err);
@@ -118,21 +119,21 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
   const onClickListItem = (row, idx, e) => {
     let environment = state.environments[idx];
-    history.push(
-      generatePathFromRoute(siteMap.environment.path, {
+    navigateTo(siteMap.environment.path, {
+      query: {
         projectUuid: props.projectUuid,
         environmentUuid: environment.uuid,
-      })
-    );
+      },
+    });
   };
 
   const onCreateClick = () => {
-    history.push(
-      generatePathFromRoute(siteMap.environment.path, {
+    navigateTo(siteMap.environment.path, {
+      query: {
         projectUuid: props.projectUuid,
-        environmentUuid: "create",
-      })
-    );
+        environmentUuid: "create", // TODO: check how current implementation of create environment
+      },
+    });
   };
 
   const _removeEnvironment = (
@@ -166,21 +167,17 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       });
   };
 
-  const removeEnvironment = (
-    project_uuid,
-    environment_uuid,
-    environmentName
-  ) => {
+  const removeEnvironment = (projectUuid, environmentUuid, environmentName) => {
     // Do not allow environment deletions if a session is ongoing.
     makeRequest(
       "GET",
-      `/catch/api-proxy/api/sessions/?project_uuid=${project_uuid}`
+      `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
     ).then((response: string) => {
       let data = JSON.parse(response);
       if (data.sessions.length > 0) {
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/environment-builds/most-recent/${project_uuid}/${environment_uuid}`
+          `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
         ).then((response: string) => {
           let data = JSON.parse(response);
           if (data.environment_builds.some((x) => x.status == "SUCCESS"))
@@ -189,7 +186,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
               "Environments cannot be deleted with a running interactive session."
             );
           else {
-            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+            _removeEnvironment(projectUuid, environmentUuid, environmentName);
           }
         });
       } else {
@@ -197,7 +194,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         // specifically on remove.
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+          `/catch/api-proxy/api/environment-images/in-use/${projectUuid}/${environmentUuid}`
         ).then((response: string) => {
           let data = JSON.parse(response);
           if (data.in_use) {
@@ -209,14 +206,14 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                 "Are you sure you want to delete it? This will abort all jobs that are using it.",
               () => {
                 _removeEnvironment(
-                  project_uuid,
-                  environment_uuid,
+                  projectUuid,
+                  environmentUuid,
                   environmentName
                 );
               }
             );
           } else {
-            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+            _removeEnvironment(projectUuid, environmentUuid, environmentName);
           }
         });
       }

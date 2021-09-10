@@ -1,7 +1,8 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import { siteMap } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export interface IProjectBasedViewProps {
   projectUuid?: string;
@@ -11,9 +12,9 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
   projectUuid,
   children,
 }) => {
-  const history = useHistory();
+  const { navigateTo } = useCustomRoute();
 
-  const goToProjects = () => history.push(siteMap.projects.path);
+  const goToProjects = () => navigateTo(siteMap.projects.path);
   const message =
     "It looks like you don't have any projects yet! To get started using Orchest create your first project.";
 

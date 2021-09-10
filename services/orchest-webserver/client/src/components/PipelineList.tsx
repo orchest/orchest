@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import {
   makeRequest,
   makeCancelable,
@@ -16,14 +16,15 @@ import {
 } from "@orchest/lib-mdc";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
-import { siteMap, generatePathFromRoute } from "../Routes";
+import { siteMap } from "../Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";
 
 const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { orchest } = window;
-  const history = useHistory<{ isReadOnly: boolean }>();
+  const { navigateTo } = useCustomRoute();
 
   const [state, setState] = React.useState({
     loading: true,
@@ -65,8 +66,8 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       </span>,
       <SessionToggleButton
         key={pipeline.uuid}
-        project_uuid={projectUuid}
-        pipeline_uuid={pipeline.uuid}
+        projectUuid={projectUuid}
+        pipelineUuid={pipeline.uuid}
         switch={true}
         className="consume-click"
       />,
@@ -99,19 +100,19 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       })
       .catch((e) => {
         if (e && e.status == 404) {
-          history.push(siteMap.projects.path);
+          navigateTo(siteMap.projects.path);
         }
       });
   };
 
   const openPipeline = (pipeline, isReadOnly: boolean) => {
-    history.push(
-      generatePathFromRoute(siteMap.pipeline.path, {
+    navigateTo(siteMap.pipeline.path, {
+      query: {
         projectUuid,
         pipelineUuid: pipeline.uuid,
-      }),
-      { isReadOnly }
-    );
+      },
+      state: { isReadOnly },
+    });
   };
 
   const onClickListItem = (row, idx, e) => {

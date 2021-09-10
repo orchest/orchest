@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import {
   Box,
   Dialog,
@@ -27,17 +27,18 @@ import {
 
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 
-import { siteMap, generatePathFromRoute } from "../Routes";
+import { siteMap } from "../Routes";
 
 import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export interface IJobListProps {
   projectUuid: string;
 }
 
 const JobList: React.FC<IJobListProps> = (props) => {
-  const history = useHistory<{ isDraft: boolean }>();
+  const { navigateTo } = useCustomRoute();
   const [state, setState] = React.useState({
     isDeleting: false,
     jobs: undefined,
@@ -237,12 +238,12 @@ const JobList: React.FC<IJobListProps> = (props) => {
         postJobPromise.promise
           .then((response: string) => {
             let job = JSON.parse(response);
-            history.push(
-              generatePathFromRoute(siteMap.jobEdit.path, {
+            navigateTo(siteMap.editJob.path, {
+              query: {
                 projectUuid,
                 jobUuid: job.uuid,
-              })
-            );
+              },
+            });
           })
           .catch((response) => {
             if (!response.isCanceled) {
@@ -294,14 +295,14 @@ const JobList: React.FC<IJobListProps> = (props) => {
   const onRowClick = (row, idx, event) => {
     let job = state.jobs[idx];
 
-    history.push(
-      generatePathFromRoute(
-        job.status === "DRAFT" ? siteMap.jobEdit.path : siteMap.job.path,
-        {
+    navigateTo(
+      job.status === "DRAFT" ? siteMap.editJob.path : siteMap.job.path,
+      {
+        query: {
           projectUuid: props.projectUuid,
           jobUuid: job.uuid,
-        }
-      )
+        },
+      }
     );
   };
 
@@ -395,7 +396,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
       })
       .catch((e) => {
         if (e && e.status == 404) {
-          history.push(siteMap.projects.path);
+          navigateTo(siteMap.projects.path);
         }
         console.log(e);
       });

@@ -34,13 +34,11 @@ export interface IOrchestUserConfig {
 }
 
 export interface IOrchestSessionUuid {
-  project_uuid: string;
-  pipeline_uuid: string;
+  projectUuid: string;
+  pipelineUuid: string;
 }
 
 export interface IOrchestSession extends IOrchestSessionUuid {
-  project_uuid: string;
-  pipeline_uuid: string;
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
   jupyter_server_ip?: string;
   notebook_server_info?: {
@@ -64,7 +62,7 @@ export interface LoadViewSpec {
 }
 
 export interface IOrchestState
-  extends Pick<IOrchestSession, "project_uuid" | "pipeline_uuid"> {
+  extends Pick<IOrchestSession, "projectUuid" | "pipelineUuid"> {
   alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
@@ -92,7 +90,7 @@ export type TOrchestAction =
   | {
       type: "pipelineSet";
       payload: Partial<
-        Pick<IOrchestState, "pipeline_uuid" | "project_uuid" | "pipelineName">
+        Pick<IOrchestState, "pipelineUuid" | "projectUuid" | "pipelineName">
       >;
     }
   | {
@@ -101,7 +99,7 @@ export type TOrchestAction =
     }
   | {
       type: "projectSet";
-      payload: IOrchestState["project_uuid"];
+      payload: IOrchestState["projectUuid"];
     }
   | {
       type: "projectsSet";
@@ -131,7 +129,7 @@ export type TOrchestAction =
 export interface IOrchestGet {
   currentSession: IOrchestSession;
   session: (
-    session: Pick<IOrchestSession, "pipeline_uuid" | "project_uuid">
+    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
   ) => IOrchestSession;
 }
 

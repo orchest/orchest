@@ -43,7 +43,7 @@ const Dialogs = (_, ref) => {
       ...prevDialogs,
       <BuildPendingDialog
         key={uuid}
-        project_uuid={project_uuid}
+        projectUuid={project_uuid}
         environmentValidationData={environmentValidationData}
         requestedFromView={requestedFromView}
         onBuildComplete={() => {

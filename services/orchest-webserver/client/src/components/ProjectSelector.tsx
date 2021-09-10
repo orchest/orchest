@@ -1,6 +1,6 @@
 // @ts-check
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
@@ -8,16 +8,17 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
-import { generatePathFromRoute, siteMap } from "@/routingConfig";
+import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
 import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export type TProjectSelectorRef = any;
 export type TProjectSelectorProps = any;
 
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
-  const history = useHistory();
+  const { navigateTo } = useCustomRoute();
   const match = useMatchProjectRoot();
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -30,7 +31,11 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     if (projectUuid) {
       dispatch({ type: "projectSet", payload: projectUuid });
       const path = match ? match.path : siteMap.pipeline.path;
-      history.push(generatePathFromRoute(path, { projectUuid }));
+      // TODO: HM: remove console.log
+      console.log("🥁", match);
+      navigateTo(path, {
+        query: { projectUuid },
+      });
     }
   };
 
@@ -72,7 +77,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
         // validate the currently selected project, if its invalid
         // it will be set to undefined
         let projectUuid = validateProjectUuid(
-          state.project_uuid,
+          state.projectUuid,
           fetchedProjects
         );
 
@@ -93,7 +98,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
 
   React.useEffect(() => {
     const isExistingProject = validateProjectUuid(
-      state.project_uuid,
+      state.projectUuid,
       state.projects
     );
     // We only fetch projects again if the given project is not part of the current projects on FE
@@ -102,7 +107,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, [state.project_uuid, state.projects]);
+  }, [state.projectUuid, state.projects]);
 
   const selectItems = listProcess(state.projects);
 
@@ -114,7 +119,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
       classNames={["project-selector", "fullwidth"]}
       options={selectItems}
       onChange={onChangeProject}
-      value={state?.project_uuid}
+      value={state?.projectUuid}
       data-test-id="project-selector"
     />
   ) : (

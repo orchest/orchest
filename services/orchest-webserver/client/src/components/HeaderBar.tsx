@@ -1,5 +1,5 @@
-import * as React from "react";
-import { useHistory, useRouteMatch } from "react-router-dom";
+import React from "react";
+import { useRouteMatch } from "react-router-dom";
 
 import {
   MDCButtonReact,
@@ -10,14 +10,16 @@ import { useOrchest } from "@/hooks/orchest";
 import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
-import { siteMap, generatePathFromRoute } from "@/Routes";
+import { siteMap } from "@/Routes";
 import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;
 
 export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
-  const history = useHistory();
+  const { navigateTo } = useCustomRoute();
+
   const { state, dispatch, get } = useOrchest();
 
   const matchProjectRoot = useMatchProjectRoot();
@@ -31,29 +33,29 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   });
 
   const goToHome = () => {
-    history.push(siteMap.projects.path);
+    navigateTo(siteMap.projects.path);
   };
 
   const showHelp = () => {
-    history.push(siteMap.help.path);
+    navigateTo(siteMap.help.path);
   };
 
   const showPipeline = () => {
-    history.push(
-      generatePathFromRoute(siteMap.pipeline.path, {
-        projectUuid: state.project_uuid,
-        pipelineUuid: state.pipeline_uuid,
-      })
-    );
+    navigateTo(siteMap.pipeline.path, {
+      query: {
+        projectUuid: state.projectUuid,
+        pipelineUuid: state.pipelineUuid,
+      },
+    });
   };
 
   const showJupyter = () => {
-    history.push(
-      generatePathFromRoute(siteMap.jupyterLab.path, {
-        projectUuid: state.project_uuid,
-        pipelineUuid: state.pipeline_uuid,
-      })
-    );
+    navigateTo(siteMap.jupyterLab.path, {
+      query: {
+        projectUuid: state.projectUuid,
+        pipelineUuid: state.pipelineUuid,
+      },
+    });
   };
 
   const logoutHandler = () => {
@@ -102,8 +104,8 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
       <div className="header-bar-actions">
         {state.pipelineName && !state.pipelineIsReadOnly && (
           <SessionToggleButton
-            pipeline_uuid={state.pipeline_uuid}
-            project_uuid={state.project_uuid}
+            pipelineUuid={state.pipelineUuid}
+            projectUuid={state.projectUuid}
           />
         )}
 

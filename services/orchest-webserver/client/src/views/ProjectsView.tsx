@@ -19,11 +19,11 @@ import {
 
 import { Layout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
-import { generatePathFromRoute, siteMap } from "@/Routes";
+import { siteMap } from "@/Routes";
 import type { TViewProps, Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { useLocationQuery } from "@/hooks/useCustomRoute";
+import { useCustomRoute, useLocationQuery } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 
 const ERROR_MAPPING = {
@@ -38,13 +38,13 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
-  const history = useHistory();
   const context = useOrchest();
+  const { navigateTo } = useCustomRoute();
 
   const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
   const [importUrl, setImportUrl] = React.useState(
     importUrlFromQuerystring !== "null" // is this query string is not given
-      ? window.decodeURIComponent(importUrlFromQuerystring)
+      ? window.decodeURIComponent(importUrlFromQuerystring as string)
       : ""
   );
 
@@ -209,9 +209,9 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
 
         // Verify selected project UUID
         if (
-          !context.state.project_uuid ||
+          !context.state.projectUuid ||
           !projects.some(
-            (project) => project.uuid === context.state.project_uuid
+            (project) => project.uuid === context.state.projectUuid
           )
         ) {
           context.dispatch({
@@ -228,11 +228,9 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const openSettings = (project: Project) => {
-    history.push(
-      generatePathFromRoute(siteMap.projectSettings.path, {
-        projectUuid: project.uuid,
-      })
-    );
+    navigateTo(siteMap.projectSettings.path, {
+      query: { projectUuid: project.uuid },
+    });
   };
 
   const onClickListItem = (row, idx, e) => {
@@ -241,11 +239,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       type: "projectSet",
       payload: project.uuid,
     });
-    history.push(
-      generatePathFromRoute(siteMap.pipelines.path, {
-        projectUuid: project.uuid,
-      })
-    );
+
+    navigateTo(siteMap.pipelines.path, {
+      query: { projectUuid: project.uuid },
+    });
   };
 
   const onDeleteClick = () => {
@@ -302,8 +299,8 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     }
   };
 
-  const deleteProjectRequest = (project_uuid) => {
-    if (context.state.project_uuid == project_uuid) {
+  const deleteProjectRequest = (projectUuid) => {
+    if (context.state.projectUuid === projectUuid) {
       context.dispatch({
         type: "projectSet",
         payload: null,
@@ -313,7 +310,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     let deletePromise = makeRequest("DELETE", "/async/projects", {
       type: "json",
       content: {
-        project_uuid: project_uuid,
+        project_uuid: projectUuid,
       },
     });
 

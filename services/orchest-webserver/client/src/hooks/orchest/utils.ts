@@ -5,7 +5,7 @@ import type {
 } from "@/types";
 
 export const isSession = (a: IOrchestSessionUuid, b: IOrchestSessionUuid) =>
-  a?.project_uuid === b?.project_uuid && a?.pipeline_uuid === b?.pipeline_uuid;
+  a?.projectUuid === b?.projectUuid && a?.pipelineUuid === b?.pipelineUuid;
 
 export const isCurrentSession = (
   session: IOrchestSession,

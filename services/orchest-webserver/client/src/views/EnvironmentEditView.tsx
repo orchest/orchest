@@ -22,7 +22,7 @@ import {
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
-import { generatePathFromRoute, siteMap } from "@/Routes";
+import { siteMap } from "@/Routes";
 import type { Environment, TViewProps } from "@/types";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -36,7 +36,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   // data from route
-  const { projectUuid, environmentUuid, history } = useCustomRoute();
+  const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
   // local states
   const [isNewEnvironment, setIsNewEnvironment] = React.useState(
@@ -188,9 +188,9 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
       type: "projectSet",
       payload: projectUuid,
     });
-    history.push(
-      generatePathFromRoute(siteMap.environments.path, { projectUuid })
-    );
+    navigateTo(siteMap.environments.path, {
+      query: { projectUuid },
+    });
   };
 
   const onChangeName = (value: string) => {

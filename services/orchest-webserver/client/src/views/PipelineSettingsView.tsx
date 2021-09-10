@@ -45,7 +45,7 @@ import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
-import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -68,7 +68,7 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
 
   // data from route
   const {
-    history,
+    navigateTo,
     projectUuid,
     pipelineUuid,
     jobUuid,
@@ -94,8 +94,8 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
   });
 
   const session = get.session({
-    pipeline_uuid: pipelineUuid,
-    project_uuid: projectUuid,
+    pipelineUuid,
+    projectUuid,
   });
   if (!session && !context.state.unsavedChanges && state.servicesChanged) {
     setState((prevState) => ({
@@ -138,9 +138,9 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
     dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: pipelineUuid,
-        project_uuid: projectUuid,
-        pipelineName: pipelineName,
+        pipelineUuid,
+        projectUuid,
+        pipelineName,
       },
     });
 
@@ -372,18 +372,17 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
     }
   };
 
-  const closeSettings = () =>
-    history.push({
-      pathname: generatePathFromRoute(siteMap.pipeline.path, {
-        projectUuid: projectUuid,
-        pipelineUuid: pipelineUuid,
-      }),
+  const closeSettings = () => {
+    navigateTo(siteMap.pipeline.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
+      },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-      }),
     });
+  };
 
   const onChangeName = (value: string) => {
     setState((prevState) => ({

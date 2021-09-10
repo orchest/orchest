@@ -17,7 +17,7 @@ import {
   OverflowListener,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
-import { generatePathFromRoute, siteMap } from "@/Routes";
+import { siteMap, toQueryString } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const ProjectSettingsView: React.FC<TViewProps> = (props) => {
@@ -26,7 +26,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   const context = useOrchest();
 
   // data from route
-  const { history, projectUuid } = useCustomRoute();
+  const { navigateTo, projectUuid } = useCustomRoute();
 
   // local states
   const [state, setState] = React.useState({
@@ -67,7 +67,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToProjects = () => {
-    history.push(siteMap.projects.path);
+    navigateTo(siteMap.projects.path);
   };
 
   const saveGeneralForm = (e) => {
@@ -159,6 +159,17 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     attachResizeListener();
   }, [props, state]);
 
+  const paths = React.useMemo(
+    () =>
+      ["pipelines", "jobs", "environments"].reduce((all, curr) => {
+        return {
+          ...all,
+          [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
+        };
+      }, {}) as Record<"pipelines" | "jobs" | "environments", string>,
+    [projectUuid]
+  );
+
   return (
     <Layout>
       <div className={"view-page view-project-settings"}>
@@ -189,12 +200,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   <div className="column">
                     <br />
                     <h3>
-                      <Link
-                        to={generatePathFromRoute(siteMap.pipelines.path, {
-                          projectUuid,
-                        })}
-                        className="text-button"
-                      >
+                      <Link to={paths.pipelines} className="text-button">
                         {state.pipeline_count +
                           " " +
                           (state.pipeline_count == 1
@@ -206,12 +212,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   <div className="column">
                     <br />
                     <h3>
-                      <Link
-                        to={generatePathFromRoute(siteMap.jobs.path, {
-                          projectUuid,
-                        })}
-                        className="text-button"
-                      >
+                      <Link to={paths.jobs} className="text-button">
                         {state.job_count +
                           " " +
                           (state.job_count == 1 ? "job" : "jobs")}
@@ -221,12 +222,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   <div className="column">
                     <br />
                     <h3>
-                      <Link
-                        to={generatePathFromRoute(siteMap.environments.path, {
-                          projectUuid,
-                        })}
-                        className="text-button"
-                      >
+                      <Link to={paths.environments} className="text-button">
                         {state.environment_count +
                           " " +
                           (state.environment_count == 1

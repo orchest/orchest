@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import io from "socket.io-client";
 
 import {
@@ -26,7 +26,7 @@ import {
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/pipeline-view/LogViewer";
-import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { siteMap, toQueryString } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
@@ -46,7 +46,7 @@ const LogsView: React.FC<TViewProps> = (props) => {
     jobUuid,
     runUuid,
     isReadOnly,
-    history,
+    navigateTo,
   } = useCustomRoute();
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -60,7 +60,7 @@ const LogsView: React.FC<TViewProps> = (props) => {
 
   // Conditional fetch session
   let session = !jobUuid
-    ? get.session({ pipeline_uuid: pipelineUuid, project_uuid: projectUuid })
+    ? get.session({ pipelineUuid, projectUuid })
     : undefined;
 
   React.useEffect(() => {
@@ -161,13 +161,13 @@ const LogsView: React.FC<TViewProps> = (props) => {
     return sortedStepKeys.map((stepUUID) => pipelineSteps[stepUUID]);
   };
 
-  const setHeaderComponent = (pipelineName) => {
+  const setHeaderComponent = (pipelineName: string) => {
     dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: pipelineUuid,
-        project_uuid: projectUuid,
-        pipelineName: pipelineName,
+        pipelineUuid,
+        projectUuid,
+        pipelineName,
       },
     });
   };
@@ -268,16 +268,14 @@ const LogsView: React.FC<TViewProps> = (props) => {
   };
 
   const close = () => {
-    history.push({
-      pathname: generatePathFromRoute(siteMap.pipeline.path, {
-        projectUuid: projectUuid,
-        pipelineUuid: pipelineUuid,
-      }),
+    navigateTo(siteMap.pipeline.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
+      },
       state: { isReadOnly },
-      search: toQueryString({
-        job_uuid: jobUuid,
-        run_uuid: runUuid,
-      }),
     });
   };
 

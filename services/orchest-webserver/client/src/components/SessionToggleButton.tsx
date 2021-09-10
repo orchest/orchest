@@ -6,8 +6,8 @@ import type { IOrchestSession } from "@/types";
 export type TSessionToggleButtonRef = HTMLButtonElement;
 export interface ISessionToggleButtonProps
   extends React.HTMLAttributes<TSessionToggleButtonRef> {
-  pipeline_uuid: IOrchestSession["pipeline_uuid"];
-  project_uuid: IOrchestSession["project_uuid"];
+  pipelineUuid: IOrchestSession["pipelineUuid"];
+  projectUuid: IOrchestSession["projectUuid"];
   switch?: boolean;
 }
 
@@ -18,10 +18,10 @@ const SessionToggleButton = React.forwardRef<
   const [isLoading, setIsLoading] = React.useState(true);
   const { state, dispatch, get } = useOrchest();
 
-  const { pipeline_uuid, project_uuid } = props;
+  const { pipelineUuid, projectUuid } = props;
   const session = get.session({
-    pipeline_uuid,
-    project_uuid,
+    pipelineUuid,
+    projectUuid,
   });
 
   const sharedProps = {
@@ -38,7 +38,7 @@ const SessionToggleButton = React.forwardRef<
     e.preventDefault();
     dispatch({
       type: "sessionToggle",
-      payload: { pipeline_uuid, project_uuid },
+      payload: { pipelineUuid, projectUuid },
     });
   };
 

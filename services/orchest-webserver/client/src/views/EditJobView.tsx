@@ -30,7 +30,7 @@ import DateTimeInput from "@/components/DateTimeInput";
 import SearchableTable from "@/components/SearchableTable";
 import ParamTree from "@/components/ParamTree";
 import EnvVarList from "@/components/EnvVarList";
-import { generatePathFromRoute, siteMap } from "@/Routes";
+import { siteMap } from "@/Routes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
@@ -41,7 +41,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   // data from route
-  const { projectUuid, jobUuid, history } = useCustomRoute();
+  const { projectUuid, jobUuid, navigateTo } = useCustomRoute();
 
   // local states
   const [job, setJob] = useState<Job>();
@@ -511,12 +511,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
       putJobRequest.promise
         .then(() => {
-          history.push(
-            generatePathFromRoute(siteMap.job.path, {
+          navigateTo(siteMap.job.path, {
+            query: {
               projectUuid,
               jobUuid: job.uuid,
-            })
-          );
+            },
+          });
         })
         .catch((error) => {
           console.error(error);
@@ -557,11 +557,9 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const cancel = () => {
-    history.push(
-      generatePathFromRoute(siteMap.jobs.path, {
-        projectUuid,
-      })
-    );
+    navigateTo(siteMap.jobs.path, {
+      query: { projectUuid },
+    });
   };
 
   const onPipelineRunsSelectionChanged = (selectedRows, rows) => {
@@ -693,11 +691,9 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     if (state.runJobCompleted) {
       setState((prevState) => ({ ...prevState, runJobCompleted: false }));
-      history.push(
-        generatePathFromRoute(siteMap.jobs.path, {
-          projectUuid,
-        })
-      );
+      navigateTo(siteMap.jobs.path, {
+        query: { projectUuid },
+      });
     }
   }, [state.runJobCompleted]);
 

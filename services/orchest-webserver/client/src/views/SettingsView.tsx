@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
@@ -15,12 +15,13 @@ import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { siteMap } from "@/Routes";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const SettingsView: React.FC<TViewProps> = () => {
   const { orchest } = window;
   useSendAnalyticEvent("view load", { name: siteMap.settings.path });
 
-  const history = useHistory();
+  const { navigateTo } = useCustomRoute();
   const context = useOrchest();
 
   const [state, setState] = React.useState({
@@ -37,7 +38,7 @@ const SettingsView: React.FC<TViewProps> = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const updateView = () => {
-    history.push(siteMap.update.path);
+    navigateTo(siteMap.update.path);
   };
 
   const getVersion = () => {
@@ -75,7 +76,7 @@ const SettingsView: React.FC<TViewProps> = () => {
   };
 
   const onClickManageUsers = () => {
-    history.push(siteMap.manageUsers.path);
+    navigateTo(siteMap.manageUsers.path);
   };
 
   const configToVisibleConfig = (configJSON) => {
@@ -244,7 +245,7 @@ const SettingsView: React.FC<TViewProps> = () => {
   };
 
   const loadConfigureJupyterLab = () => {
-    history.push(siteMap.configureJupyterLab.path);
+    navigateTo(siteMap.configureJupyterLab.path);
   };
 
   React.useEffect(() => {

@@ -34,7 +34,7 @@ type RouteName =
   | "jobs"
   | "job"
   | "pipelineReadonly"
-  | "jobEdit"
+  | "editJob"
   | "fileManager"
   | "settings"
   | "configureJupyterLab"
@@ -64,8 +64,6 @@ interface StaticContext {
 // to add new route, you would also need to add the route name to RouteName.
 // NOTE: the order of the routes matters, react-router loads the first route that matches the given path
 
-/* eslint-disable react/display-name */
-
 export const orderedRoutes: {
   name: RouteName;
   path: string;
@@ -80,73 +78,73 @@ export const orderedRoutes: {
   },
   {
     name: "projectSettings",
-    path: "/projects/:projectUuid/settings",
+    path: "/project-settings",
     title: getTitle("Project Settings"),
     component: ProjectSettingsView,
   },
   {
     name: "pipelines",
-    path: "/projects/:projectUuid/pipelines",
+    path: "/pipelines",
     title: getTitle("Pipelines"),
     component: PipelinesView,
   },
   {
     name: "pipeline",
-    path: "/projects/:projectUuid/pipelines/:pipelineUuid",
+    path: "/pipeline",
     title: getTitle("Pipeline"),
     component: PipelineView,
   },
   {
     name: "jupyterLab",
-    path: "/projects/:projectUuid/pipelines/:pipelineUuid/jupyter-lab",
+    path: "/jupyter-lab",
     title: getTitle("JupyterLab"),
     component: JupyterLabView,
   },
   {
     name: "pipelineSettings",
-    path: "/projects/:projectUuid/pipelines/:pipelineUuid/settings",
+    path: "/pipeline-settings",
     title: getTitle("Pipeline Settings"),
     component: PipelineSettingsView,
   },
   {
     name: "filePreview",
-    path: "/projects/:projectUuid/pipelines/:pipelineUuid/steps/:stepUuid/file",
+    path: "/file-preview",
     title: getTitle("Step File Preview"),
     component: FilePreviewView,
   },
   {
     name: "logs",
-    path: "/projects/:projectUuid/pipelines/:pipelineUuid/logs",
+    path: "/logs",
     title: getTitle("Logs"),
     component: LogsView,
   },
   {
     name: "environments",
-    path: "/projects/:projectUuid/environments",
+    path: "/environments",
     title: getTitle("Environments"),
     component: EnvironmentsView,
   },
   {
     name: "environment",
-    path: "/projects/:projectUuid/environments/:environmentUuid",
+    path: "/environment",
     title: getTitle("Environment"),
     component: EnvironmentEditView,
   },
   {
     name: "jobs",
-    path: "/projects/:projectUuid/jobs",
+    path: "/jobs",
     title: getTitle("Jobs"),
     component: JobsView,
   },
   {
     name: "job",
-    path: "/projects/:projectUuid/jobs/:jobUuid",
+    path: "/job",
     title: getTitle("Job"),
     component: JobView,
   },
   {
-    name: "jobEdit",
-    path: "/projects/:projectUuid/jobs/:jobUuid/edit",
+    name: "editJob",
+    path: "/edit-job",
     title: getTitle("Edit Job"),
     component: EditJobView,
   },
@@ -164,19 +162,19 @@ export const orderedRoutes: {
   },
   {
     name: "configureJupyterLab",
-    path: "/settings/configure-jupyter-lab",
+    path: "/configure-jupyter-lab",
     title: getTitle("Configure JupyterLab"),
     component: ConfigureJupyterLabView,
   },
   {
     name: "update",
-    path: "/settings/update",
+    path: "/update",
     title: getTitle("Update"),
     component: UpdateView,
   },
   {
     name: "manageUsers",
-    path: "/settings/manage-users",
+    path: "/manage-users",
     title: getTitle("Manage Users"),
     component: ManageUsersView,
   },
@@ -195,8 +193,6 @@ export const orderedRoutes: {
   //   component: NotFound,
   // },
 ];
-
-/* eslint-enable react/display-name */
 
 export const siteMap = orderedRoutes.reduce<Record<RouteName, RouteData>>(
   (all, curr, i) => ({

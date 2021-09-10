@@ -35,7 +35,7 @@ const reducer = (state: IOrchestState, action: TOrchestAction) => {
     case "pipelineUpdateReadOnlyState":
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
-      return { ...state, project_uuid: action.payload };
+      return { ...state, projectUuid: action.payload };
     case "projectsSet":
       return { ...state, projects: action.payload };
     case "sessionToggle":
@@ -68,8 +68,8 @@ const initialState: IOrchestState = {
   pipelineName: null,
   pipelineIsReadOnly: false,
   pipelineSaveStatus: "saved",
-  pipeline_uuid: undefined,
-  project_uuid: undefined,
+  pipelineUuid: undefined,
+  projectUuid: undefined,
   projects: [],
   sessions: [],
   sessionsIsLoading: true,
@@ -93,7 +93,7 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   const orchest = window.orchest;
 
   const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
-  const [project_uuid, setProject_uuid] = useLocalStorage(
+  const [projectUuid, setProjectUuid] = useLocalStorage(
     "selected_project_uuid",
     undefined
   );
@@ -101,7 +101,7 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   const [state, dispatch] = React.useReducer(reducer, {
     ...initialState,
     drawerIsOpen,
-    project_uuid,
+    projectUuid,
     config,
     user_config,
   });
@@ -135,8 +135,8 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
     setDrawerIsOpen(state?.drawerIsOpen);
   }, [state.drawerIsOpen]);
   React.useEffect(() => {
-    setProject_uuid(state?.project_uuid);
-  }, [state.project_uuid]);
+    setProjectUuid(state?.projectUuid);
+  }, [state.projectUuid]);
 
   /**
    * Handle Alerts

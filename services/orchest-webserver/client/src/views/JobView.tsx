@@ -29,7 +29,7 @@ import ParamTree from "@/components/ParamTree";
 import ParameterEditor from "@/components/ParameterEditor";
 import SearchableTable from "@/components/SearchableTable";
 import EnvVarList from "@/components/EnvVarList";
-import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { siteMap, toQueryString } from "@/Routes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
@@ -162,7 +162,7 @@ const JobView: React.FC<TViewProps> = (props) => {
   const { dispatch } = useOrchest();
 
   // data from route
-  const { history, projectUuid, jobUuid } = useCustomRoute();
+  const { navigateTo, projectUuid, jobUuid } = useCustomRoute();
 
   // data states
   const [job, setJob] = useState<Job>();
@@ -301,16 +301,14 @@ const JobView: React.FC<TViewProps> = (props) => {
       return;
     }
 
-    history.push({
-      pathname: generatePathFromRoute(siteMap.pipeline.path, {
+    navigateTo(siteMap.pipeline.path, {
+      query: {
         projectUuid: pipelineRun.project_uuid,
         pipelineUuid: pipelineRun.pipeline_uuid,
-      }),
+        jobUuid: pipelineRun.job_uuid,
+        runUuid: pipelineRun.uuid,
+      },
       state: { isReadOnly: true },
-      search: toQueryString({
-        job_uuid: pipelineRun.job_uuid,
-        run_uuid: pipelineRun.uuid,
-      }),
     });
   };
 
@@ -400,12 +398,12 @@ const JobView: React.FC<TViewProps> = (props) => {
   };
 
   const editJob = () => {
-    history.push(
-      generatePathFromRoute(siteMap.jobEdit.path, {
+    navigateTo(siteMap.editJob.path, {
+      query: {
         projectUuid,
         jobUuid: job.uuid,
-      })
-    );
+      },
+    });
   };
 
   const returnToJobs = () => {
@@ -413,10 +411,11 @@ const JobView: React.FC<TViewProps> = (props) => {
       type: "projectSet",
       payload: job.project_uuid,
     });
-    history.push({
-      pathname: generatePathFromRoute(siteMap.jobs.path, {
+
+    navigateTo(siteMap.jobs.path, {
+      query: {
         projectUuid: job.project_uuid,
-      }),
+      },
     });
   };
 
@@ -471,12 +470,12 @@ const JobView: React.FC<TViewProps> = (props) => {
             let job: Job = JSON.parse(response);
 
             // we need to re-navigate to ensure the URL is with correct job uuid
-            history.push(
-              generatePathFromRoute(siteMap.job.path, {
+            navigateTo(siteMap.job.path, {
+              query: {
                 projectUuid: job.project_uuid,
                 jobUuid: job.uuid,
-              })
-            );
+              },
+            });
           })
           .catch((response) => {
             if (!response.isCanceled) {

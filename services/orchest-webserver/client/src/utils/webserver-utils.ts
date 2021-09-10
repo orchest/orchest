@@ -6,26 +6,6 @@ import { format, parseISO } from "date-fns";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
 
-import type { IQueryArgs } from "@/types";
-// import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
-// import EditJobView from "@/views/EditJobView";
-// import EnvironmentEditView from "@/views/EnvironmentEditView";
-// import EnvironmentsView from "@/views/EnvironmentsView";
-// import FileManagerView from "@/views/FileManagerView";
-// import FilePreviewView from "@/views/FilePreviewView";
-// import HelpView from "@/views/HelpView";
-// import JobsView from "@/views/JobsView";
-// import JobView from "@/views/JobView";
-// import JupyterLabView from "@/views/JupyterLabView";
-// import LogsView from "@/pipeline-view/LogsView";
-// import ManageUsersView from "@/views/ManageUsersView";
-// import PipelineSettingsView from "@/views/PipelineSettingsView";
-// import PipelinesView from "@/views/PipelinesView";
-// import PipelineView from "@/pipeline-view/PipelineView";
-// import ProjectSettingsView from "@/views/ProjectSettingsView";
-// import ProjectsView from "@/views/ProjectsView";
-// import SettingsView from "@/views/SettingsView";
-// import UpdateView from "@/views/UpdateView";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 
 const ajv = new Ajv({
@@ -33,82 +13,6 @@ const ajv = new Ajv({
 });
 
 const pipelineValidator = ajv.compile(pipelineSchema);
-
-// function getComponentObject() {
-//   // This {str: Class} mapping is required for name
-//   // resolution after Class name obfuscation performed
-//   // by the JS minifier.
-//   return {
-//     ConfigureJupyterLabView,
-//     EditJobView,
-//     EnvironmentEditView,
-//     EnvironmentsView,
-//     FileManagerView,
-//     FilePreviewView,
-//     HelpView,
-//     JobsView,
-//     JobView,
-//     JupyterLabView,
-//     LogsView,
-//     ManageUsersView,
-//     PipelineSettingsView,
-//     PipelinesView,
-//     PipelineView,
-//     ProjectSettingsView,
-//     ProjectsView,
-//     SettingsView,
-//     UpdateView,
-//   };
-// }
-
-// export function getViewDrawerParentViewName(viewName) {
-//   /* This function describes the parent->child relation
-//      between child views and root views listed
-//      in the drawer menu.
-
-//      This is used for example for selecting the right
-//      drawer item when a child view is loaded.
-//   */
-
-//   let viewHierarchy = {
-//     ConfigureJupyterLabView: SettingsView,
-//     EditJobView: JobsView,
-//     EnvironmentEditView: EnvironmentsView,
-//     EnvironmentsView: EnvironmentsView,
-//     FileManagerView: FileManagerView,
-//     FilePreviewView: PipelinesView,
-//     HelpView: HelpView,
-//     JobsView: JobsView,
-//     JobView: JobsView,
-//     JupyterLabView: PipelinesView,
-//     ManageUsersView: SettingsView,
-//     PipelineSettingsView: PipelinesView,
-//     PipelinesView: PipelinesView,
-//     LogsView: PipelinesView,
-//     ProjectSettingsView: ProjectsView,
-//     ProjectsView: ProjectsView,
-//     SettingsView: SettingsView,
-//     UpdateView: SettingsView,
-//   };
-//   return componentName(viewHierarchy[viewName]);
-// }
-
-// export function nameToComponent(viewName) {
-//   return getComponentObject()[viewName];
-// }
-
-// export function componentName(CustomComponent: React.FunctionComponent) {
-//   let viewComponents = getComponentObject();
-//   for (let viewName of Object.keys(viewComponents)) {
-//     if (viewComponents[viewName] === CustomComponent) {
-//       return viewName;
-//     }
-//   }
-//   if (process.env.NODE_ENV === "development") {
-//     console.log("Was not able to get componentName for " + CustomComponent);
-//   }
-//   return "";
-// }
 
 export function isValidEnvironmentVariableName(name) {
   return /^[0-9a-zA-Z\-_]+$/gm.test(name);
@@ -537,57 +441,6 @@ export function viewNameToURIPathComponent(viewName) {
   // strip 'View' at the end
   viewName = viewName.slice(0, viewName.length - 4);
   return dashify(viewName);
-}
-
-// export function generateRoute(TagName: React.FunctionComponent, dynamicProps) {
-//   // returns: [pathname, search]
-//   let search = queryArgPropsToQueryArgs(
-//     dynamicProps ? dynamicProps.queryArgs : {}
-//   );
-//   let pathname = "/" + viewNameToURIPathComponent(componentName(TagName));
-//   return [pathname, search];
-// }
-
-// export function decodeRoute(pathname, search) {
-//   // note: pathname includes '/' prefix
-//   // note: search includes '?' prefix
-//   // returns: [TagName, props]
-//   let TagName = nameToComponent(
-//     URIPathComponentToViewName(pathname.split("/")[1])
-//   );
-
-//   let queryArgProps = queryArgsToQueryArgProps(search);
-
-//   return [TagName, { queryArgs: queryArgProps }];
-// }
-
-export function queryArgPropsToQueryArgs(queryArgProps: IQueryArgs) {
-  // note: only string based query args are supported
-  if (!queryArgProps || Object.keys(queryArgProps).length == 0) {
-    return "";
-  }
-
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(queryArgProps)) {
-    if (value !== undefined) {
-      searchParams.append(key, String(value));
-    }
-  }
-  return "?" + searchParams.toString();
-}
-
-export function queryArgsToQueryArgProps(search: string): IQueryArgs {
-  // note: only string based query args are supported
-  // note: search includes '?' prefix
-  let searchParams = new URLSearchParams(search);
-  let queryArgProps = {};
-
-  // @ts-ignore
-  for (let [key, value] of searchParams.entries()) {
-    queryArgProps[key] = value;
-  }
-
-  return queryArgProps;
 }
 
 export function pascalCaseToCapitalized(viewName) {

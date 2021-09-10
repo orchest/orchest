@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
+
 import { m, AnimatePresence } from "framer-motion";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
@@ -16,7 +16,6 @@ import {
   IconCrossSolid,
   Text,
 } from "@orchest/design-system";
-import PipelineView from "@/pipeline-view/PipelineView";
 import { PipelineDiagram } from "./assets";
 import {
   useOnboardingDialogCarousel,
@@ -27,7 +26,8 @@ import {
   ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT,
 } from "./OnboardingDialogCarousel";
 import { useOnboardingDialog } from "./use-onboarding-dialog";
-import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { siteMap } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const CodeHeader = styled("header", { include: "box", textAlign: "right" });
 const CodeHeading = styled("h1", {
@@ -84,7 +84,7 @@ const IconListItem = styled("li", {
 });
 
 export const OnboardingDialog: React.FC = () => {
-  const history = useHistory();
+  const { navigateTo } = useCustomRoute();
 
   const {
     isOnboardingDialogOpen,
@@ -107,12 +107,12 @@ export const OnboardingDialog: React.FC = () => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide([0, 0]);
       if (loadQuickstart) {
-        history.push(
-          generatePathFromRoute(siteMap.pipeline.path, {
+        navigateTo(siteMap.pipeline.path, {
+          query: {
             projectUuid: quickstart.project_uuid,
             pipelineUuid: quickstart.pipeline_uuid,
-          })
-        );
+          },
+        });
       }
     });
   };

@@ -1,4 +1,5 @@
-import { useLocation, useParams, useHistory } from "react-router-dom";
+import { toQueryString } from "@/routingConfig";
+import { useLocation, useHistory } from "react-router-dom";
 import { useSendAnalyticEvent } from "./useSendAnalyticEvent";
 
 // NOTE: if the parameter is safe to expose to user (i.e. component can read it from the URL), use useLocationQuery
@@ -21,10 +22,20 @@ const useLocationState = <T>(stateNames: string[]) => {
 // console.log(foo); // '123'
 // console.log(bar); // 'abc'
 // NOTE: the returned value is ALWAYS a string
-const useLocationQuery = (queryStrings: string[]): (string | null)[] => {
+const useLocationQuery = (
+  queryStrings: string[]
+): (string | boolean | null | undefined)[] => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
-  return queryStrings.map((str) => query.get(str));
+  return queryStrings.map((str) => {
+    const value = query.get(str);
+    if (value === "undefined") return undefined;
+    if (value === "null") return null;
+    if (value === "true") return true;
+    if (value === "false") return false;
+    // NOTE: we don't handle numbers!
+    return value;
+  });
 };
 
 // these are common use cases that are all over the place
@@ -36,33 +47,48 @@ const useCustomRoute = () => {
   useSendAnalyticEvent("view load", { name: location.pathname });
 
   const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
-  const [jobUuidFromQueryString, runUuid, initialTab] = useLocationQuery([
+  const valueArray = useLocationQuery([
     "job_uuid",
     "run_uuid",
     "initial_tab",
+    "project_uuid",
+    "pipeline_uuid",
+    "environment_uuid",
+    "step_uuid",
   ]);
-  const {
+
+  const [
+    jobUuid,
+    runUuid,
+    initialTab,
     projectUuid,
     pipelineUuid,
     environmentUuid,
     stepUuid,
-    jobUuid,
-  } = useParams<{
-    projectUuid: string;
-    pipelineUuid: string;
-    jobUuid: string;
-    environmentUuid: string;
-    stepUuid: string;
-  }>();
+  ] = valueArray as (string | undefined | null)[]; // asserting all values are string
+
+  type NavigateParams = {
+    query?: Record<string, string | number | boolean>;
+    state?: Record<string, string | number | boolean | undefined | null>;
+  };
+
+  const navigateTo = (path: string, params?: NavigateParams) => {
+    const { query = null, state = {} } = params || {};
+    history.push({
+      pathname: path,
+      search: toQueryString(query),
+      state,
+    });
+  };
 
   return {
-    history,
+    navigateTo,
     isReadOnly,
     projectUuid,
     pipelineUuid,
     environmentUuid,
     stepUuid,
-    jobUuid: jobUuid || jobUuidFromQueryString, // we prioritize jobUuid from route parameters
+    jobUuid,
     runUuid,
     initialTab,
   };

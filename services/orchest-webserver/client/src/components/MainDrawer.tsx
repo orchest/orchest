@@ -70,7 +70,7 @@ const getItemKey = (item: { label: string; icon: string; path: string }) =>
 
 const MainDrawer: React.FC = () => {
   const context = useOrchest();
-  const projectUuid = context.state.project_uuid;
+  const projectUuid = context.state.projectUuid;
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
 
