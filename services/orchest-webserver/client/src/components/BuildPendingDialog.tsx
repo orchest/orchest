@@ -161,7 +161,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
     });
     history.push(
       generatePathFromRoute(siteMap.environments.path, {
-        projectId: props.project_uuid,
+        projectUuid: props.project_uuid,
       })
     );
     close();

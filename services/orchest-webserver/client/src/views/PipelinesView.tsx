@@ -13,12 +13,12 @@ export interface IPipelinesViewProps
     IProjectBasedViewProps {}
 
 const PipelinesView: React.FC<IPipelinesViewProps> = () => {
-  const { projectId } = useCustomRoute();
+  const { projectUuid } = useCustomRoute();
   return (
     <OrchestSessionsConsumer>
       <Layout>
-        <ProjectBasedView projectId={projectId}>
-          <PipelineList projectId={projectId} key={projectId} />
+        <ProjectBasedView projectUuid={projectUuid}>
+          <PipelineList projectUuid={projectUuid} key={projectUuid} />
         </ProjectBasedView>
       </Layout>
     </OrchestSessionsConsumer>

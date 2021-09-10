@@ -17,7 +17,7 @@ import { useInterval } from "@/hooks/use-interval";
 import { generatePathFromRoute, siteMap } from "@/Routes";
 
 export interface IEnvironmentListProps {
-  projectId: string;
+  projectUuid: string;
 }
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
@@ -43,7 +43,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     let environmentBuildsRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${props.projectId}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${props.projectUuid}`
       ),
       promiseManager
     );
@@ -80,7 +80,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const fetchEnvironments = () => {
     // fetch data sources
     let environmentsPromise = makeCancelable(
-      makeRequest("GET", `/store/environments/` + props.projectId),
+      makeRequest("GET", `/store/environments/` + props.projectUuid),
       promiseManager
     );
 
@@ -120,8 +120,8 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     let environment = state.environments[idx];
     history.push(
       generatePathFromRoute(siteMap.environment.path, {
-        projectId: props.projectId,
-        environmentId: environment.uuid,
+        projectUuid: props.projectUuid,
+        environmentUuid: environment.uuid,
       })
     );
   };
@@ -129,8 +129,8 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const onCreateClick = () => {
     history.push(
       generatePathFromRoute(siteMap.environment.path, {
-        projectId: props.projectId,
-        environmentId: "create",
+        projectUuid: props.projectUuid,
+        environmentUuid: "create",
       })
     );
   };
@@ -284,7 +284,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
     for (let environment of environments) {
       let environmentBuild =
-        environmentBuilds[props.projectId + "-" + environment.uuid];
+        environmentBuilds[props.projectUuid + "-" + environment.uuid];
 
       listData.push([
         <span>{environment.name}</span>,
@@ -321,7 +321,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       promiseManager.cancelCancelablePromises();
       setEnvironmentBuildsInterval(null);
     };
-  }, [props.projectId]);
+  }, [props.projectUuid]);
 
   return (
     <div className={"environments-page"}>

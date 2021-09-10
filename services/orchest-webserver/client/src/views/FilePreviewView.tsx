@@ -38,12 +38,12 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
   // data from route
   const {
     history,
-    projectId,
-    pipelineId,
+    projectUuid,
+    pipelineUuid,
     isReadOnly,
-    stepId,
-    jobId,
-    runId,
+    stepUuid,
+    jobUuid,
+    runUuid,
   } = useCustomRoute();
 
   // local states
@@ -70,13 +70,13 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
   const loadPipelineView = () => {
     history.push({
       pathname: generatePathFromRoute(siteMap.pipeline.path, {
-        projectId,
-        pipelineId,
+        projectUuid,
+        pipelineUuid,
       }),
       state: { isReadOnly },
       search: toQueryString({
-        job_uuid: jobId,
-        run_uuid: runId,
+        job_uuid: jobUuid,
+        run_uuid: runUuid,
       }),
     });
   };
@@ -88,9 +88,9 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         loadingFile: true,
       }));
 
-      let pipelineURL = jobId
-        ? getPipelineJSONEndpoint(pipelineId, projectId, jobId, runId)
-        : getPipelineJSONEndpoint(pipelineId, projectId);
+      let pipelineURL = jobUuid
+        ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
+        : getPipelineJSONEndpoint(pipelineUuid, projectUuid);
 
       let fetchPipelinePromise = makeCancelable(
         makeRequest("GET", pipelineURL),
@@ -103,8 +103,8 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
 
           setState((prevState) => ({
             ...prevState,
-            parentSteps: getPipelineStepParents(stepId, pipelineJSON),
-            childSteps: getPipelineStepChildren(stepId, pipelineJSON),
+            parentSteps: getPipelineStepParents(stepUuid, pipelineJSON),
+            childSteps: getPipelineStepChildren(stepUuid, pipelineJSON),
           }));
 
           resolve(undefined);
@@ -146,10 +146,10 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
 
   const fetchFile = () =>
     new Promise((resolve, reject) => {
-      let fileURL = `/async/file-viewer/${projectId}/${pipelineId}/${stepId}`;
-      if (runId) {
-        fileURL += "?pipeline_run_uuid=" + runId;
-        fileURL += "&job_uuid=" + jobId;
+      let fileURL = `/async/file-viewer/${projectUuid}/${pipelineUuid}/${stepUuid}`;
+      if (runUuid) {
+        fileURL += "?pipeline_run_uuid=" + runUuid;
+        fileURL += "&job_uuid=" + jobUuid;
       }
 
       let fetchFilePromise = makeCancelable(
@@ -171,17 +171,17 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         });
     });
 
-  const stepNavigate = (newStepId: string) => {
+  const stepNavigate = (newStepUuid: string) => {
     history.push({
       pathname: generatePathFromRoute(siteMap.filePreview.path, {
-        projectId: projectId,
-        pipelineId: pipelineId,
-        stepId: newStepId,
+        projectUuid: projectUuid,
+        pipelineUuid: pipelineUuid,
+        stepUuid: newStepUuid,
       }),
       state: { isReadOnly },
       search: toQueryString({
-        job_uuid: jobId,
-        run_uuid: runId,
+        job_uuid: jobUuid,
+        run_uuid: runUuid,
       }),
     });
   };
@@ -293,7 +293,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
       notebookHtml: undefined,
     }));
     loadFile();
-  }, [stepId, pipelineId]);
+  }, [stepUuid, pipelineUuid]);
 
   let parentStepElements = renderNavStep(state.parentSteps);
   let childStepElements = renderNavStep(state.childSteps);

@@ -41,8 +41,8 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   const showPipeline = () => {
     history.push(
       generatePathFromRoute(siteMap.pipeline.path, {
-        projectId: state.project_uuid,
-        pipelineId: state.pipeline_uuid,
+        projectUuid: state.project_uuid,
+        pipelineUuid: state.pipeline_uuid,
       })
     );
   };
@@ -50,8 +50,8 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   const showJupyter = () => {
     history.push(
       generatePathFromRoute(siteMap.jupyterLab.path, {
-        projectId: state.project_uuid,
-        pipelineId: state.pipeline_uuid,
+        projectUuid: state.project_uuid,
+        pipelineUuid: state.pipeline_uuid,
       })
     );
   };

@@ -33,7 +33,7 @@ import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
 
 export interface IJobListProps {
-  projectId: string;
+  projectUuid: string;
 }
 
 const JobList: React.FC<IJobListProps> = (props) => {
@@ -68,7 +68,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     let fetchListPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/jobs/?project_uuid=${props.projectId}`
+        `/catch/api-proxy/api/jobs/?project_uuid=${props.projectUuid}`
       ),
       promiseManager
     );
@@ -89,7 +89,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const fetchProjectDirSize = () => {
     let fetchProjectDirSizePromise = makeCancelable(
-      makeRequest("GET", `/async/projects/${props.projectId}`),
+      makeRequest("GET", `/async/projects/${props.projectUuid}`),
       promiseManager
     );
 
@@ -184,7 +184,10 @@ const JobList: React.FC<IJobListProps> = (props) => {
   };
 
   const onSubmitModal = (
-    rerun?: Record<"pipelineId" | "pipelineName" | "projectId" | "name", string>
+    rerun?: Record<
+      "pipelineUuid" | "pipelineName" | "projectUuid" | "name",
+      string
+    >
   ) => {
     if (!rerun) {
       if (refManager.refs.formJobName.mdc.value.length == 0) {
@@ -199,26 +202,26 @@ const JobList: React.FC<IJobListProps> = (props) => {
     }
 
     const name = rerun?.name || refManager.refs.formJobName.mdc.value;
-    const pipelineId =
-      rerun?.pipelineId || refManager.refs.formPipeline.mdc.value;
+    const pipelineUuid =
+      rerun?.pipelineUuid || refManager.refs.formPipeline.mdc.value;
     const pipelineName =
       rerun?.pipelineName ||
-      state.pipelines.find((pipeline) => pipeline.uuid === pipelineId)?.name;
-    const projectId = rerun?.projectId || props.projectId;
+      state.pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)?.name;
+    const projectUuid = rerun?.projectUuid || props.projectUuid;
 
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
     setIsCreateDialogLoading(true);
 
-    checkGate(props.projectId)
+    checkGate(props.projectUuid)
       .then(() => {
         let postJobPromise = makeCancelable(
           makeRequest("POST", "/catch/api-proxy/api/jobs/", {
             type: "json",
             content: {
-              pipeline_uuid: pipelineId,
+              pipeline_uuid: pipelineUuid,
               pipeline_name: pipelineName,
-              project_uuid: projectId,
+              project_uuid: projectUuid,
               name,
               draft: true,
               pipeline_run_spec: {
@@ -236,8 +239,8 @@ const JobList: React.FC<IJobListProps> = (props) => {
             let job = JSON.parse(response);
             history.push(
               generatePathFromRoute(siteMap.jobEdit.path, {
-                projectId,
-                jobId: job.uuid,
+                projectUuid,
+                jobUuid: job.uuid,
               })
             );
           })
@@ -270,7 +273,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
             setIsCreateDialogLoading(false);
 
             orchest.requestBuild(
-              props.projectId,
+              props.projectUuid,
               result.data,
               "CreateJob",
               () => {
@@ -278,8 +281,8 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 onSubmitModal({
                   name,
                   pipelineName,
-                  pipelineId,
-                  projectId,
+                  pipelineUuid,
+                  projectUuid,
                 });
               }
             );
@@ -295,8 +298,8 @@ const JobList: React.FC<IJobListProps> = (props) => {
       generatePathFromRoute(
         job.status === "DRAFT" ? siteMap.jobEdit.path : siteMap.job.path,
         {
-          projectId: props.projectId,
-          jobId: job.uuid,
+          projectUuid: props.projectUuid,
+          jobUuid: job.uuid,
         }
       )
     );
@@ -377,7 +380,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
   React.useEffect(() => {
     // retrieve pipelines once on component render
     let pipelinePromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${props.projectId}`),
+      makeRequest("GET", `/async/pipelines/${props.projectUuid}`),
       promiseManager
     );
 
@@ -403,7 +406,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     fetchProjectDirSize();
 
     return () => promiseManager.cancelCancelablePromises();
-  }, [props.projectId]);
+  }, [props.projectUuid]);
 
   const pipelineOptions =
     state.pipelines?.map(({ uuid, name }) => [uuid, name]) || [];

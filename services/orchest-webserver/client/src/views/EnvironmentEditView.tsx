@@ -36,17 +36,17 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   // data from route
-  const { projectId, environmentId, history } = useCustomRoute();
+  const { projectUuid, environmentUuid, history } = useCustomRoute();
 
   // local states
   const [isNewEnvironment, setIsNewEnvironment] = React.useState(
-    environmentId === "create"
+    environmentUuid === "create"
   );
   const [environment, setEnvironment] = React.useState<Environment>({
     uuid: "new",
     name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,
     gpu_support: context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
-    project_uuid: projectId,
+    project_uuid: projectUuid,
     base_image: context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
     language: context.state?.config?.ENVIRONMENT_DEFAULTS.language,
     setup_script: context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
@@ -73,7 +73,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     // only fetch existing environment
     if (isNewEnvironment) return;
 
-    let endpoint = `/store/environments/${projectId}/${environmentId}`;
+    let endpoint = `/store/environments/${projectUuid}/${environmentUuid}`;
 
     let cancelableRequest = makeCancelable(
       makeRequest("GET", endpoint),
@@ -114,7 +114,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
         }
 
         let method = isNewEnvironment ? "POST" : "PUT";
-        let endpoint = `/store/environments/${projectId}/${environment.uuid}`;
+        let endpoint = `/store/environments/${projectUuid}/${environment.uuid}`;
 
         makeRequest(method, endpoint, {
           type: "json",
@@ -186,10 +186,10 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   const returnToEnvironments = () => {
     context.dispatch({
       type: "projectSet",
-      payload: projectId,
+      payload: projectUuid,
     });
     history.push(
-      generatePathFromRoute(siteMap.environments.path, { projectId })
+      generatePathFromRoute(siteMap.environments.path, { projectUuid })
     );
   };
 
@@ -331,7 +331,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
             environment_build_requests: [
               {
                 environment_uuid: environment.uuid,
-                project_uuid: projectId,
+                project_uuid: projectUuid,
               },
             ],
           },
@@ -633,14 +633,14 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                     {environment && !isNewEnvironment && (
                       <ImageBuildLog
                         buildFetchHash={state.buildFetchHash}
-                        buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectId}/${environment.uuid}`}
+                        buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
                         buildsKey="environment_builds"
                         socketIONamespace={
                           context.state?.config[
                             "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"
                           ]
                         }
-                        streamIdentity={projectId + "-" + environment.uuid}
+                        streamIdentity={projectUuid + "-" + environment.uuid}
                         onUpdateBuild={onUpdateBuild}
                         onBuildStart={onBuildStart}
                         ignoreIncomingLogs={state.ignoreIncomingLogs}

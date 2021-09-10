@@ -109,8 +109,8 @@ export const OnboardingDialog: React.FC = () => {
       if (loadQuickstart) {
         history.push(
           generatePathFromRoute(siteMap.pipeline.path, {
-            projectId: quickstart.project_uuid,
-            pipelineId: quickstart.pipeline_uuid,
+            projectUuid: quickstart.project_uuid,
+            pipelineUuid: quickstart.pipeline_uuid,
           })
         );
       }

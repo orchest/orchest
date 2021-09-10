@@ -26,7 +26,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   const context = useOrchest();
 
   // data from route
-  const { history, projectId } = useCustomRoute();
+  const { history, projectUuid } = useCustomRoute();
 
   // local states
   const [state, setState] = React.useState({
@@ -46,7 +46,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
   const fetchSettings = () => {
     let projectPromise = makeCancelable(
-      makeRequest("GET", "/async/projects/" + projectId),
+      makeRequest("GET", "/async/projects/" + projectUuid),
       promiseManager
     );
 
@@ -91,7 +91,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     }
 
     // perform PUT to update
-    makeRequest("PUT", "/async/projects/" + projectId, {
+    makeRequest("PUT", "/async/projects/" + projectUuid, {
       type: "json",
       content: { env_variables: envVariables },
     })
@@ -191,7 +191,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                     <h3>
                       <Link
                         to={generatePathFromRoute(siteMap.pipelines.path, {
-                          projectId,
+                          projectUuid,
                         })}
                         className="text-button"
                       >
@@ -208,7 +208,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                     <h3>
                       <Link
                         to={generatePathFromRoute(siteMap.jobs.path, {
-                          projectId,
+                          projectUuid,
                         })}
                         className="text-button"
                       >
@@ -223,7 +223,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                     <h3>
                       <Link
                         to={generatePathFromRoute(siteMap.environments.path, {
-                          projectId,
+                          projectUuid,
                         })}
                         className="text-button"
                       >

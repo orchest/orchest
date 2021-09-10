@@ -56,10 +56,10 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   const {
-    projectId,
-    pipelineId,
-    jobId,
-    runId,
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
     isReadOnly: isReadOnlyFromQueryString,
     history,
   } = useCustomRoute();
@@ -72,8 +72,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   }, [isReadOnly]);
 
   const session = get.session({
-    project_uuid: projectId,
-    pipeline_uuid: pipelineId,
+    project_uuid: projectUuid,
+    pipeline_uuid: pipelineUuid,
   });
 
   const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
@@ -160,9 +160,10 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     saveHash: undefined,
   };
 
-  if (runId && jobId) {
-    initialState.runUUID = runId;
-    initialState.runStatusEndpoint = "/catch/api-proxy/api/jobs/" + jobId + "/";
+  if (runUuid && jobUuid) {
+    initialState.runUUID = runUuid;
+    initialState.runStatusEndpoint =
+      "/catch/api-proxy/api/jobs/" + jobUuid + "/";
   }
 
   const [state, _setState] = React.useState(initialState);
@@ -186,7 +187,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     let pipelineRunsPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/runs/?project_uuid=${projectId}&pipeline_uuid=${pipelineId}`
+        `/catch/api-proxy/api/runs/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
       ),
       state.promiseManager
     );
@@ -250,7 +251,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
         let savePromise = makeCancelable(
           makeRequest(
             "POST",
-            `/async/pipelines/json/${projectId}/${pipelineId}`,
+            `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
             { type: "FormData", content: formData }
           ),
           state.promiseManager
@@ -346,13 +347,13 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   const openSettings = (initialTab: string | undefined) => {
     history.push({
       pathname: generatePathFromRoute(siteMap.pipelineSettings.path, {
-        projectId: projectId,
-        pipelineId: pipelineId,
+        projectUuid: projectUuid,
+        pipelineUuid: pipelineUuid,
       }),
       state: { isReadOnly },
       search: toQueryString({
-        job_uuid: jobId,
-        run_uuid: runId,
+        job_uuid: jobUuid,
+        run_uuid: runUuid,
         initial_tab: initialTab,
       }),
     });
@@ -361,13 +362,13 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   const openLogs = () => {
     history.push({
       pathname: generatePathFromRoute(siteMap.logs.path, {
-        projectId: projectId,
-        pipelineId: pipelineId,
+        projectUuid: projectUuid,
+        pipelineUuid: pipelineUuid,
       }),
       state: { isReadOnly },
       search: toQueryString({
-        job_uuid: jobId,
-        run_uuid: runId,
+        job_uuid: jobUuid,
+        run_uuid: runUuid,
       }),
     });
   };
@@ -392,7 +393,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       if (shouldAutoStart && !session) {
         dispatch({
           type: "sessionToggle",
-          payload: { pipeline_uuid: pipelineId, project_uuid: projectId },
+          payload: { pipeline_uuid: pipelineUuid, project_uuid: projectUuid },
         });
         setShouldAutoStart(false);
         return;
@@ -1028,10 +1029,10 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   const fetchPipelineAndInitialize = () => {
     let promises = [];
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineId,
-      projectId,
-      jobId,
-      runId
+      pipelineUuid,
+      projectUuid,
+      jobUuid,
+      runUuid
     );
 
     if (!isReadOnly) {
@@ -1039,7 +1040,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       let cwdFetchPromise = makeCancelable(
         makeRequest(
           "GET",
-          `/async/file-picker-tree/pipeline-cwd/${projectId}/${pipelineId}`
+          `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
         ),
         state.promiseManager
       );
@@ -1080,8 +1081,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
           dispatch({
             type: "pipelineSet",
             payload: {
-              pipeline_uuid: pipelineId,
-              project_uuid: projectId,
+              pipeline_uuid: pipelineUuid,
+              project_uuid: projectUuid,
               pipelineName: pipelineJson.name,
             },
           });
@@ -1092,7 +1093,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       })
       .catch((error) => {
         if (!error.isCanceled) {
-          if (jobId) {
+          if (jobUuid) {
             // This case is hit when a user tries to load a pipeline that belongs
             // to a run that has not started yet. The project files are only
             // copied when the run starts. Before start, the pipeline.json thus
@@ -1132,7 +1133,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   const newStep = () => {
     deselectSteps();
 
-    let environmentsEndpoint = `/store/environments/${projectId}`;
+    let environmentsEndpoint = `/store/environments/${projectUuid}`;
     let fetchEnvironmentsPromise = makeCancelable(
       makeRequest("GET", environmentsEndpoint),
       state.promiseManager
@@ -1388,8 +1389,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       );
     } else if (session.status === "RUNNING") {
       history.push(siteMap.jupyterLab.path, {
-        projectId: projectId,
-        pipelineId: pipelineId,
+        projectUuid: projectUuid,
+        pipelineUuid: pipelineUuid,
       });
 
       orchest.jupyter.navigateTo(
@@ -1410,17 +1411,17 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     }
   };
 
-  const onOpenFilePreviewView = (stepId: string) => {
+  const onOpenFilePreviewView = (stepUuid: string) => {
     history.push({
       pathname: generatePathFromRoute(siteMap.filePreview.path, {
-        projectId,
-        pipelineId,
-        stepId,
+        projectUuid,
+        pipelineUuid,
+        stepUuid,
       }),
       state: { isReadOnly },
       search: toQueryString({
-        job_uuid: jobId,
-        run_uuid: runId,
+        job_uuid: jobUuid,
+        run_uuid: runUuid,
       }),
     });
   };
@@ -1664,7 +1665,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     // store pipeline.json
     let data = {
       uuids: uuids,
-      project_uuid: projectId,
+      project_uuid: projectUuid,
       run_type: type,
       pipeline_definition: getPipelineJSON(),
     };
@@ -1886,8 +1887,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
 
   const servicesAvailable = () => {
     if (
-      (!jobId && session && session.status == "RUNNING") ||
-      (jobId && state.pipelineJson && state.pipelineRunning)
+      (!jobUuid && session && session.status == "RUNNING") ||
+      (jobUuid && state.pipelineJson && state.pipelineRunning)
     ) {
       let services = getServices();
       if (services !== undefined) {
@@ -2026,7 +2027,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
 
   const getServices = () => {
     let services;
-    if (!jobId) {
+    if (!jobUuid) {
       if (session && session.user_services) {
         services = session.user_services;
       }
@@ -2035,7 +2036,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     }
 
     // Filter services based on scope
-    let scope = jobId ? "noninteractive" : "interactive";
+    let scope = jobUuid ? "noninteractive" : "interactive";
     return filterServices(services, scope);
   };
 
@@ -2047,7 +2048,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     for (let serviceName in services) {
       let service = services[serviceName];
 
-      let urls = getServiceURLs(service, projectId, pipelineId, runId);
+      let urls = getServiceURLs(service, projectUuid, pipelineUuid, runUuid);
 
       let formatUrl = (url) => {
         return "Port " + url.split("/")[3].split("_").slice(-1)[0];
@@ -2078,8 +2079,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   const returnToJob = () => {
     history.push(
       generatePathFromRoute(siteMap.job.path, {
-        projectId,
-        jobId,
+        projectUuid,
+        jobUuid,
       })
     );
   };
@@ -2183,7 +2184,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
-    const hasActiveRun = runId && jobId;
+    const hasActiveRun = runUuid && jobUuid;
     if (hasActiveRun) {
       try {
         pollPipelineStepStatuses();
@@ -2196,14 +2197,14 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     const isNonPipelineRun = !hasActiveRun && isReadOnly;
     if (isNonPipelineRun) {
       // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate(projectId);
+      let checkGatePromise = checkGate(projectUuid);
       checkGatePromise
         .then(() => {
           setIsReadOnly(false);
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
-            orchest.requestBuild(projectId, result.data, "Pipeline", () => {
+            orchest.requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
             });
           }
@@ -2253,7 +2254,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
             onMouseLeave={disableHotkeys}
             onMouseOver={onMouseOverPipelineView}
           >
-            {jobId && isReadOnly && (
+            {jobUuid && isReadOnly && (
               <div className="pipeline-actions top-left">
                 <MDCButtonReact
                   classNames={["mdc-button--outlined"]}
@@ -2420,9 +2421,9 @@ const PipelineView: React.FC<TViewProps> = (props) => {
               defaultViewIndex={state.defaultDetailViewIndex}
               pipeline={state.pipelineJson}
               pipelineCwd={state.pipelineCwd}
-              project_uuid={projectId}
-              job_uuid={jobId}
-              run_uuid={runId}
+              project_uuid={projectUuid}
+              job_uuid={jobUuid}
+              run_uuid={runUuid}
               sio={state.sio}
               readOnly={isReadOnly}
               step={state.steps[state.eventVars.openedStep]}

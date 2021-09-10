@@ -26,22 +26,22 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     return projects.map((project) => [project.uuid, project.path]);
   };
 
-  const onChangeProject = (projectId: string) => {
-    if (projectId) {
-      dispatch({ type: "projectSet", payload: projectId });
+  const onChangeProject = (projectUuid: string) => {
+    if (projectUuid) {
+      dispatch({ type: "projectSet", payload: projectUuid });
       const path = match ? match.path : siteMap.pipeline.path;
-      history.push(generatePathFromRoute(path, { projectId }));
+      history.push(generatePathFromRoute(path, { projectUuid }));
     }
   };
 
   // check whether given project is part of projects
-  const validateProjectId = (
-    projectId: string | undefined,
+  const validateProjectUuid = (
+    projectUuid: string | undefined,
     projectsToValidate: Project[]
   ): string | undefined => {
     let foundProjectUUID =
-      projectId !== undefined
-        ? projectsToValidate.some((project) => project.uuid == projectId)
+      projectUuid !== undefined
+        ? projectsToValidate.some((project) => project.uuid == projectUuid)
         : false;
 
     if (!foundProjectUUID) {
@@ -51,7 +51,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
       });
     }
 
-    return foundProjectUUID ? projectId : undefined;
+    return foundProjectUUID ? projectUuid : undefined;
   };
 
   const fetchProjects = () => {
@@ -71,13 +71,16 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
 
         // validate the currently selected project, if its invalid
         // it will be set to undefined
-        let projectId = validateProjectId(state.project_uuid, fetchedProjects);
+        let projectUuid = validateProjectUuid(
+          state.project_uuid,
+          fetchedProjects
+        );
 
         // either there was no selected project or the selection
         // was invalid, set the selection to the first project if possible
-        if (projectId === undefined && fetchedProjects.length > 0) {
-          projectId = fetchedProjects[0].uuid;
-          onChangeProject(projectId);
+        if (projectUuid === undefined && fetchedProjects.length > 0) {
+          projectUuid = fetchedProjects[0].uuid;
+          onChangeProject(projectUuid);
         }
 
         // setSelectItems(listProcess(projectsRes));
@@ -89,7 +92,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   };
 
   React.useEffect(() => {
-    const isExistingProject = validateProjectId(
+    const isExistingProject = validateProjectUuid(
       state.project_uuid,
       state.projects
     );

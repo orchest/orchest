@@ -162,7 +162,7 @@ const JobView: React.FC<TViewProps> = (props) => {
   const { dispatch } = useOrchest();
 
   // data from route
-  const { history, projectId, jobId } = useCustomRoute();
+  const { history, projectUuid, jobUuid } = useCustomRoute();
 
   // data states
   const [job, setJob] = useState<Job>();
@@ -192,7 +192,7 @@ const JobView: React.FC<TViewProps> = (props) => {
   };
 
   const fetchJob = () => {
-    makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`).then(
+    makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`).then(
       (response: string) => {
         try {
           let job: Job = JSON.parse(response);
@@ -303,8 +303,8 @@ const JobView: React.FC<TViewProps> = (props) => {
 
     history.push({
       pathname: generatePathFromRoute(siteMap.pipeline.path, {
-        projectId: pipelineRun.project_uuid,
-        pipelineId: pipelineRun.pipeline_uuid,
+        projectUuid: pipelineRun.project_uuid,
+        pipelineUuid: pipelineRun.pipeline_uuid,
       }),
       state: { isReadOnly: true },
       search: toQueryString({
@@ -402,8 +402,8 @@ const JobView: React.FC<TViewProps> = (props) => {
   const editJob = () => {
     history.push(
       generatePathFromRoute(siteMap.jobEdit.path, {
-        projectId,
-        jobId: job.uuid,
+        projectUuid,
+        jobUuid: job.uuid,
       })
     );
   };
@@ -415,7 +415,7 @@ const JobView: React.FC<TViewProps> = (props) => {
     });
     history.push({
       pathname: generatePathFromRoute(siteMap.jobs.path, {
-        projectId: job.project_uuid,
+        projectUuid: job.project_uuid,
       }),
     });
   };
@@ -473,8 +473,8 @@ const JobView: React.FC<TViewProps> = (props) => {
             // we need to re-navigate to ensure the URL is with correct job uuid
             history.push(
               generatePathFromRoute(siteMap.job.path, {
-                projectId: job.project_uuid,
-                jobId: job.uuid,
+                projectUuid: job.project_uuid,
+                jobUuid: job.uuid,
               })
             );
           })

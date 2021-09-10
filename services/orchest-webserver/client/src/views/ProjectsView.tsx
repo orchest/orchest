@@ -230,7 +230,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const openSettings = (project: Project) => {
     history.push(
       generatePathFromRoute(siteMap.projectSettings.path, {
-        projectId: project.uuid,
+        projectUuid: project.uuid,
       })
     );
   };
@@ -243,7 +243,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     });
     history.push(
       generatePathFromRoute(siteMap.pipelines.path, {
-        projectId: project.uuid,
+        projectUuid: project.uuid,
       })
     );
   };

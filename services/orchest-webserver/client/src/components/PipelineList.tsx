@@ -21,7 +21,7 @@ import { siteMap, generatePathFromRoute } from "../Routes";
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";
 
-const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
+const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { orchest } = window;
   const history = useHistory<{ isReadOnly: boolean }>();
 
@@ -65,7 +65,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
       </span>,
       <SessionToggleButton
         key={pipeline.uuid}
-        project_uuid={projectId}
+        project_uuid={projectUuid}
         pipeline_uuid={pipeline.uuid}
         switch={true}
         className="consume-click"
@@ -78,7 +78,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
   const fetchList = (onComplete) => {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${projectId}`),
+      makeRequest("GET", `/async/pipelines/${projectUuid}`),
       promiseManager
     );
 
@@ -107,8 +107,8 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
   const openPipeline = (pipeline, isReadOnly: boolean) => {
     history.push(
       generatePathFromRoute(siteMap.pipeline.path, {
-        projectId,
-        pipelineId: pipeline.uuid,
+        projectUuid,
+        pipelineUuid: pipeline.uuid,
       }),
       { isReadOnly }
     );
@@ -117,7 +117,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
   const onClickListItem = (row, idx, e) => {
     let pipeline = state.pipelines[idx];
 
-    let checkGatePromise = checkGate(projectId);
+    let checkGatePromise = checkGate(projectUuid);
     checkGatePromise
       .then(() => {
         openPipeline(pipeline, false);
@@ -165,7 +165,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
             // sessions, runs, jobs
             makeRequest(
               "DELETE",
-              `/async/pipelines/delete/${projectId}/${pipeline_uuid}`
+              `/async/pipelines/delete/${projectUuid}/${pipeline_uuid}`
             )
               .then((_) => {
                 // reload list once removal succeeds
@@ -219,7 +219,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
 
     makeRequest(
       "PUT",
-      `/async/pipelines/${projectId}/${state.editPipelinePathUUID}`,
+      `/async/pipelines/${projectUuid}/${state.editPipelinePathUUID}`,
       {
         type: "json",
         content: {
@@ -319,7 +319,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
     }));
 
     let createPipelinePromise = makeCancelable(
-      makeRequest("POST", `/async/pipelines/create/${projectId}`, {
+      makeRequest("POST", `/async/pipelines/create/${projectUuid}`, {
         type: "json",
         content: {
           name: pipelineName,

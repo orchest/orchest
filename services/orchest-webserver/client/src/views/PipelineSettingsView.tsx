@@ -69,10 +69,10 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
   // data from route
   const {
     history,
-    projectId,
-    pipelineId,
-    jobId,
-    runId,
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
     initialTab,
     isReadOnly,
   } = useCustomRoute();
@@ -94,8 +94,8 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
   });
 
   const session = get.session({
-    pipeline_uuid: pipelineId,
-    project_uuid: projectId,
+    pipeline_uuid: pipelineUuid,
+    project_uuid: projectUuid,
   });
   if (!session && !context.state.unsavedChanges && state.servicesChanged) {
     setState((prevState) => ({
@@ -138,8 +138,8 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
     dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: pipelineId,
-        project_uuid: projectId,
+        pipeline_uuid: pipelineUuid,
+        project_uuid: projectUuid,
         pipelineName: pipelineName,
       },
     });
@@ -233,10 +233,10 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
 
   const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineId,
-      projectId,
-      jobId,
-      runId
+      pipelineUuid,
+      projectUuid,
+      jobUuid,
+      runUuid
     );
 
     let pipelinePromise = makeCancelable(
@@ -294,12 +294,12 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
   };
 
   const fetchPipelineMetadata = () => {
-    if (!jobId) {
+    if (!jobUuid) {
       // get pipeline path
       let cancelableRequest = makeCancelable<string>(
         makeRequest(
           "GET",
-          `/async/pipelines/${projectId}/${pipelineId}`
+          `/async/pipelines/${projectUuid}/${pipelineUuid}`
         ) as Promise<string>,
         promiseManagerRef.current
       );
@@ -316,7 +316,7 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
 
       // get project environment variables
       let cancelableProjectRequest = makeCancelable<string>(
-        makeRequest("GET", `/async/projects/${projectId}`) as Promise<string>,
+        makeRequest("GET", `/async/projects/${projectUuid}`) as Promise<string>,
         promiseManagerRef.current
       );
 
@@ -336,7 +336,7 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
         });
     } else {
       let cancelableJobPromise = makeCancelable<string>(
-        makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`) as Promise<
+        makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`) as Promise<
           string
         >,
         promiseManagerRef.current
@@ -344,7 +344,7 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
       let cancelableRunPromise = makeCancelable<string>(
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/jobs/${jobId}/${runId}`
+          `/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`
         ) as Promise<string>,
         promiseManagerRef.current
       );
@@ -375,13 +375,13 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
   const closeSettings = () =>
     history.push({
       pathname: generatePathFromRoute(siteMap.pipeline.path, {
-        projectId: projectId,
-        pipelineId: pipelineId,
+        projectUuid: projectUuid,
+        pipelineUuid: pipelineUuid,
       }),
       state: { isReadOnly },
       search: toQueryString({
-        job_uuid: jobId,
-        run_uuid: runId,
+        job_uuid: jobUuid,
+        run_uuid: runUuid,
       }),
     });
 
@@ -596,10 +596,14 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
     let formData = new FormData();
     formData.append("pipeline_json", JSON.stringify(pipelineJson));
 
-    makeRequest("POST", `/async/pipelines/json/${projectId}/${pipelineId}`, {
-      type: "FormData",
-      content: formData,
-    })
+    makeRequest(
+      "POST",
+      `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
+      {
+        type: "FormData",
+        content: formData,
+      }
+    )
       .then((response: string) => {
         let result = JSON.parse(response);
         if (result.success) {
@@ -625,7 +629,7 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
         console.error(response);
       });
 
-    makeRequest("PUT", `/async/pipelines/${projectId}/${pipelineId}`, {
+    makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
       type: "json",
       content: { env_variables: envVariables },
     }).catch((response) => {
@@ -644,7 +648,7 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
       let restartPromise = makeCancelable(
         makeRequest(
           "PUT",
-          `/catch/api-proxy/api/sessions/${projectId}/${pipelineId}`
+          `/catch/api-proxy/api/sessions/${projectUuid}/${pipelineUuid}`
         ),
         promiseManagerRef.current
       );
@@ -988,9 +992,9 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
                             disabled={isReadOnly}
                             updateService={onChangeService}
                             nameChangeService={nameChangeService}
-                            pipeline_uuid={pipelineId}
-                            project_uuid={projectId}
-                            run_uuid={runId}
+                            pipeline_uuid={pipelineUuid}
+                            project_uuid={projectUuid}
+                            run_uuid={runUuid}
                           />
                         ))}
                       data-test-id="pipeline-services"

@@ -41,7 +41,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   // data from route
-  const { projectId, jobId, history } = useCustomRoute();
+  const { projectUuid, jobUuid, history } = useCustomRoute();
 
   // local states
   const [job, setJob] = useState<Job>();
@@ -64,7 +64,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
   const fetchJob = () => {
     let fetchJobPromise = makeCancelable(
-      makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`),
+      makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`),
       promiseManager
     );
 
@@ -106,7 +106,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         "GET",
         getPipelineJSONEndpoint(
           fetchedJob.pipeline_uuid,
-          projectId,
+          projectUuid,
           fetchedJob.uuid
         )
       ),
@@ -513,8 +513,8 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         .then(() => {
           history.push(
             generatePathFromRoute(siteMap.job.path, {
-              projectId,
-              jobId: job.uuid,
+              projectUuid,
+              jobUuid: job.uuid,
             })
           );
         })
@@ -559,7 +559,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   const cancel = () => {
     history.push(
       generatePathFromRoute(siteMap.jobs.path, {
-        projectId,
+        projectUuid,
       })
     );
   };
@@ -695,7 +695,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       setState((prevState) => ({ ...prevState, runJobCompleted: false }));
       history.push(
         generatePathFromRoute(siteMap.jobs.path, {
-          projectId,
+          projectUuid,
         })
       );
     }

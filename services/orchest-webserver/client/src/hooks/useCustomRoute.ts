@@ -36,28 +36,34 @@ const useCustomRoute = () => {
   useSendAnalyticEvent("view load", { name: location.pathname });
 
   const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
-  const [jobIdFromQueryString, runId, initialTab] = useLocationQuery([
+  const [jobUuidFromQueryString, runUuid, initialTab] = useLocationQuery([
     "job_uuid",
     "run_uuid",
     "initial_tab",
   ]);
-  const { projectId, pipelineId, environmentId, stepId, jobId } = useParams<{
-    projectId: string;
-    pipelineId: string;
-    jobId: string;
-    environmentId: string;
-    stepId: string;
+  const {
+    projectUuid,
+    pipelineUuid,
+    environmentUuid,
+    stepUuid,
+    jobUuid,
+  } = useParams<{
+    projectUuid: string;
+    pipelineUuid: string;
+    jobUuid: string;
+    environmentUuid: string;
+    stepUuid: string;
   }>();
 
   return {
     history,
     isReadOnly,
-    projectId,
-    pipelineId,
-    environmentId,
-    stepId,
-    jobId: jobId || jobIdFromQueryString, // we prioritize jobId from route parameters
-    runId,
+    projectUuid,
+    pipelineUuid,
+    environmentUuid,
+    stepUuid,
+    jobUuid: jobUuid || jobUuidFromQueryString, // we prioritize jobUuid from route parameters
+    runUuid,
     initialTab,
   };
 };

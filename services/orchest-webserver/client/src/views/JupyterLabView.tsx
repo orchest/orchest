@@ -26,7 +26,7 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
 
   // data from route
-  const { history, projectId, pipelineId } = useCustomRoute();
+  const { history, projectUuid, pipelineUuid } = useCustomRoute();
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
@@ -40,8 +40,8 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
   ] = React.useState(false);
 
   const session = get.session({
-    pipeline_uuid: pipelineId,
-    project_uuid: projectId,
+    pipeline_uuid: pipelineUuid,
+    project_uuid: projectUuid,
   });
   const orchest = window.orchest;
   const [promiseManager] = React.useState(new PromiseManager());
@@ -65,7 +65,7 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
     ) {
       dispatch({
         type: "sessionToggle",
-        payload: { pipeline_uuid: pipelineId, project_uuid: projectId },
+        payload: { pipeline_uuid: pipelineUuid, project_uuid: projectUuid },
       });
     }
   }, [session, state.sessionsIsLoading]);
@@ -78,14 +78,14 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
     if (session?.status === "STOPPING") {
       history.push(
         generatePathFromRoute(siteMap.pipelines.path, {
-          projectId,
+          projectUuid,
         })
       );
     }
   }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
-    checkGate(projectId)
+    checkGate(projectUuid)
       .then(() => {
         setHasEnvironmentCheckCompleted(true);
         conditionalRenderingOfJupyterLab();
@@ -94,15 +94,15 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
       .catch((result) => {
         if (result.reason === "gate-failed") {
           orchest.requestBuild(
-            projectId,
+            projectUuid,
             result.data,
             "JupyterLab",
             () => {
               // force view reload
               history.push(
                 generatePathFromRoute(siteMap.jupyterLab.path, {
-                  projectId,
-                  pipelineId,
+                  projectUuid,
+                  pipelineUuid,
                 })
               );
             },
@@ -110,7 +110,7 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
               // back to pipelines view
               history.push(
                 generatePathFromRoute(siteMap.pipelines.path, {
-                  projectId: projectId,
+                  projectUuid: projectUuid,
                 })
               );
             }
@@ -142,7 +142,10 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
   );
 
   const fetchPipeline = () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(pipelineId, projectId);
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+      pipelineUuid,
+      projectUuid
+    );
 
     let fetchPipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
@@ -153,7 +156,7 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
     let cwdFetchPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/async/file-picker-tree/pipeline-cwd/${projectId}/${pipelineId}`
+        `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
       ),
       promiseManager
     );
@@ -172,8 +175,8 @@ const JupyterLabView: React.FC<TViewProps> = (props) => {
           dispatch({
             type: "pipelineSet",
             payload: {
-              pipeline_uuid: pipelineId,
-              project_uuid: projectId,
+              pipeline_uuid: pipelineUuid,
+              project_uuid: projectUuid,
               pipelineName: pipeline.name,
             },
           });

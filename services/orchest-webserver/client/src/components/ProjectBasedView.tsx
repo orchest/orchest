@@ -4,11 +4,11 @@ import { MDCButtonReact } from "@orchest/lib-mdc";
 import { siteMap } from "@/Routes";
 
 export interface IProjectBasedViewProps {
-  projectId?: string;
+  projectUuid?: string;
 }
 
 const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
-  projectId,
+  projectUuid,
   children,
 }) => {
   const history = useHistory();
@@ -19,7 +19,7 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
 
   return (
     <div className="view-page">
-      {projectId ? (
+      {projectUuid ? (
         children
       ) : (
         <div>

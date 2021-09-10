@@ -8,12 +8,12 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const EnvironmentsView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
-  const { projectId } = useCustomRoute();
+  const { projectUuid } = useCustomRoute();
 
   return (
     <Layout>
-      <ProjectBasedView projectId={projectId}>
-        <EnvironmentList projectId={projectId} />
+      <ProjectBasedView projectUuid={projectUuid}>
+        <EnvironmentList projectUuid={projectUuid} />
       </ProjectBasedView>
     </Layout>
   );

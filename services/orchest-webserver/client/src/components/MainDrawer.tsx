@@ -5,21 +5,21 @@ import { useOrchest } from "@/hooks/orchest";
 
 import { generatePathFromRoute, siteMap } from "../routingConfig";
 
-const getProjectMenuItems = (projectId: string) => [
+const getProjectMenuItems = (projectUuid: string) => [
   {
     label: "Pipelines",
     icon: "device_hub",
-    path: generatePathFromRoute(siteMap.pipelines.path, { projectId }),
+    path: generatePathFromRoute(siteMap.pipelines.path, { projectUuid }),
   },
   {
     label: "Jobs",
     icon: "pending_actions",
-    path: generatePathFromRoute(siteMap.jobs.path, { projectId }),
+    path: generatePathFromRoute(siteMap.jobs.path, { projectUuid }),
   },
   {
     label: "Environments",
     icon: "view_comfy",
-    path: generatePathFromRoute(siteMap.environments.path, { projectId }),
+    path: generatePathFromRoute(siteMap.environments.path, { projectUuid }),
   },
 ];
 
@@ -70,9 +70,9 @@ const getItemKey = (item: { label: string; icon: string; path: string }) =>
 
 const MainDrawer: React.FC = () => {
   const context = useOrchest();
-  const projectId = context.state.project_uuid;
+  const projectUuid = context.state.project_uuid;
 
-  const projectMenuItems = getProjectMenuItems(projectId);
+  const projectMenuItems = getProjectMenuItems(projectUuid);
 
   const drawerRef = useRef(null);
   const macDrawerRef = useRef(null);

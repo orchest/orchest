@@ -9,12 +9,12 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const JobsView: React.FC<TViewProps> = (props) => {
   useDocumentTitle(props.title);
-  const { projectId } = useCustomRoute();
+  const { projectUuid } = useCustomRoute();
 
   return (
     <Layout>
-      <ProjectBasedView projectId={projectId}>
-        <JobList projectId={projectId}></JobList>
+      <ProjectBasedView projectUuid={projectUuid}>
+        <JobList projectUuid={projectUuid}></JobList>
       </ProjectBasedView>
     </Layout>
   );
