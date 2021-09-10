@@ -1,5 +1,5 @@
 import React from "react";
-import { Redirect, Route, Switch, useParams } from "react-router-dom";
+import { Redirect, Route, Switch } from "react-router-dom";
 
 import {
   siteMap,
@@ -15,15 +15,17 @@ const Routes = () => {
         <Redirect to={siteMap.projects.path} />
       </Route>
       {orderedRoutes.map((route) => {
-        const { name, path, component } = route;
+        const { name, path, component, render } = route;
         const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback
-        return (
+        return component ? (
           <Route
             exact={shouldBeExact}
             key={name}
             path={path}
             component={component}
           />
+        ) : (
+          <Route exact={shouldBeExact} key={name} path={path} render={render} />
         );
       })}
     </Switch>

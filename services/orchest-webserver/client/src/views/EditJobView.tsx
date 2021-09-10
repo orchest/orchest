@@ -1,5 +1,5 @@
-import React from "react";
-import { useHistory } from "react-router-dom";
+import React, { useState } from "react";
+import { useHistory, useParams } from "react-router-dom";
 import parser from "cron-parser";
 import _ from "lodash";
 import {
@@ -22,38 +22,40 @@ import {
   envVariablesDictToArray,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
-import type { TViewProps } from "@/types";
+import type { Job, PipelineJson, TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
-import { DescriptionList } from "@/components/DescriptionList";
 import ParameterEditor from "@/components/ParameterEditor";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import DateTimeInput from "@/components/DateTimeInput";
 import SearchableTable from "@/components/SearchableTable";
 import ParamTree from "@/components/ParamTree";
 import EnvVarList from "@/components/EnvVarList";
-import JobView from "@/views/JobView";
-import JobsView from "@/views/JobsView";
 import { generatePathFromRoute, siteMap } from "@/Routes";
 
 const EditJobView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
-  const history = useHistory();
-
   const context = useOrchest();
 
+  // data from route
+  const history = useHistory<{ isReadOnly: boolean }>();
+  const { projectId, jobId } = useParams<{
+    projectId: string;
+    jobId: string;
+  }>();
+
+  const [job, setJob] = useState<Job>();
+  const [pipeline, setPipeline] = useState<PipelineJson>();
+
   const [state, setState] = React.useState({
-    job: undefined,
     envVariables: null,
     selectedTabIndex: 0,
-    shouldFetchPipeline: false,
     generatedPipelineRuns: [],
     generatedPipelineRunRows: [],
     selectedIndices: [],
     scheduleOption: "now",
     runJobLoading: false,
     runJobCompleted: false,
-    pipeline: undefined,
     cronString: undefined,
     strategyJSON: {},
   });
@@ -63,74 +65,73 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
   const fetchJob = () => {
     let fetchJobPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
-      ),
+      makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`),
       promiseManager
     );
 
-    fetchJobPromise.promise.then((response) => {
+    fetchJobPromise.promise.then((response: string) => {
       try {
-        let job = JSON.parse(response);
+        let fetchedJob: Job = JSON.parse(response);
+        setJob(fetchedJob);
+
+        if (fetchedJob.pipeline_uuid && fetchedJob.uuid) {
+          fetchPipeline(fetchedJob);
+        }
 
         setState((prevState) => ({
           ...prevState,
-          job,
-          cronString: job.schedule === null ? "* * * * *" : job.schedule,
-          scheduleOption: job.schedule === null ? "now" : "cron",
-          envVariables: envVariablesDictToArray(job["env_variables"]),
+          cronString: fetchedJob.schedule || "* * * * *",
+          scheduleOption: fetchedJob.schedule === null ? "now" : "cron",
+          envVariables: envVariablesDictToArray(fetchedJob.env_variables),
+          strategyJSON:
+            fetchedJob.status !== "DRAFT"
+              ? fetchedJob.strategy_json
+              : prevState.strategyJSON,
         }));
 
-        if (job.status !== "DRAFT") {
-          setState((prevState) => ({
-            ...prevState,
-            strategyJSON: job.strategy_json,
-          }));
-        } else {
+        if (fetchedJob.status === "DRAFT") {
           context.dispatch({
             type: "setUnsavedChanges",
             payload: true,
           });
         }
-
-        setState((prevState) => ({ ...prevState, shouldFetchPipeline: true }));
       } catch (error) {
         console.error(error);
       }
     });
   };
 
-  const fetchPipeline = () => {
+  const fetchPipeline = (fetchedJob: Job) => {
     let fetchPipelinePromise = makeCancelable(
       makeRequest(
         "GET",
         getPipelineJSONEndpoint(
-          state.job.pipeline_uuid,
-          state.job.project_uuid,
-          state.job.uuid
+          fetchedJob.pipeline_uuid,
+          projectId,
+          fetchedJob.uuid
         )
       ),
       promiseManager
     );
 
-    fetchPipelinePromise.promise.then((response) => {
-      let result = JSON.parse(response);
+    fetchPipelinePromise.promise.then((response: string) => {
+      let result: {
+        pipeline_json: string;
+        success: boolean;
+      } = JSON.parse(response);
       if (result.success) {
-        let pipeline = JSON.parse(result["pipeline_json"]);
+        let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
 
-        let strategyJSON;
+        setPipeline(fetchedPipeline);
 
         // Do not generate another strategy_json if it has been defined
         // already.
-        if (
-          state.job.status === "DRAFT" &&
-          Object.keys(state.job.strategy_json).length === 0
-        ) {
-          strategyJSON = generateStrategyJson(pipeline);
-        } else {
-          strategyJSON = state.job.strategy_json;
-        }
+
+        let strategyJSON =
+          fetchedJob.status === "DRAFT" &&
+          Object.keys(fetchedJob.strategy_json).length === 0
+            ? generateStrategyJson(fetchedPipeline)
+            : fetchedJob.strategy_json;
 
         let [
           generatedPipelineRuns,
@@ -141,17 +142,16 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         // Account for the fact that a job might have a list of
         // parameters already defined, i.e. when editing a non draft
         // job or when duplicating a job.
-        if (state.job.parameters.length > 0) {
+        if (fetchedJob.parameters.length > 0) {
           // Determine selection based on strategyJSON
           selectedIndices = parseParameters(
-            state.job.parameters,
+            fetchedJob.parameters,
             generatedPipelineRuns
           );
         }
 
         setState((prevState) => ({
           ...prevState,
-          pipeline,
           strategyJSON,
           generatedPipelineRuns,
           generatedPipelineRunRows,
@@ -251,11 +251,8 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     }));
   };
 
-  const handleJobNameChange = (name) => {
-    setState((prevState) => ({
-      ...prevState,
-      job: { ...prevState.job, name: name },
-    }));
+  const handleJobNameChange = (name: string) => {
+    setJob((prev) => ({ ...prev, name }));
   };
 
   const generateWithStrategy = (strategyJSON) => {
@@ -397,6 +394,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     }
 
     let jobPUTData = {
+      name: job.name,
       confirm_draft: true,
       strategy_json: state.strategyJSON,
       parameters: generateJobParameters(
@@ -430,7 +428,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     // Update orchest-api through PUT.
     // Note: confirm_draft will trigger the start the job.
     let putJobPromise = makeCancelable(
-      makeRequest("PUT", "/catch/api-proxy/api/jobs/" + state.job.uuid, {
+      makeRequest("PUT", "/catch/api-proxy/api/jobs/" + job.uuid, {
         type: "json",
         content: jobPUTData,
       }),
@@ -493,21 +491,16 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         return;
       }
 
-      // saving changes
-      setState((prevState) => ({
-        ...prevState,
-      }));
-
       context.dispatch({
         type: "setUnsavedChanges",
         payload: false,
       });
 
       let putJobRequest = makeCancelable(
-        makeRequest("PUT", `/catch/api-proxy/api/jobs/${state.job.uuid}`, {
+        makeRequest("PUT", `/catch/api-proxy/api/jobs/${job.uuid}`, {
           type: "json",
           content: {
-            name: state.job.name,
+            name: job.name,
             cron_schedule: cronSchedule,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
@@ -521,8 +514,8 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         .then(() => {
           history.push(
             generatePathFromRoute(siteMap.job.path, {
-              projectId: state.job.project_uuid,
-              jobId: state.job.uuid,
+              projectId,
+              jobId: job.uuid,
             })
           );
         })
@@ -567,7 +560,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   const cancel = () => {
     history.push(
       generatePathFromRoute(siteMap.jobs.path, {
-        projectId: state.job.project_uuid,
+        projectId,
       })
     );
   };
@@ -686,10 +679,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
       detailElements.push(
         <div className="pipeline-run-detail">
-          <ParamTree
-            pipelineName={state.pipeline.name}
-            strategyJSON={strategyJSON}
-          />
+          <ParamTree pipelineName={pipeline.name} strategyJSON={strategyJSON} />
         </div>
       );
     }
@@ -702,23 +692,11 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   }, []);
 
   React.useEffect(() => {
-    if (
-      state.shouldFetchPipeline &&
-      state.job?.pipeline_uuid &&
-      state.job?.project_uuid &&
-      state.job?.uuid
-    ) {
-      fetchPipeline();
-      setState((prevState) => ({ ...prevState, shouldFetchPipeline: false }));
-    }
-  }, [state.shouldFetchPipeline, state.job]);
-
-  React.useEffect(() => {
     if (state.runJobCompleted) {
       setState((prevState) => ({ ...prevState, runJobCompleted: false }));
       history.push(
         generatePathFromRoute(siteMap.jobs.path, {
-          projectId: state.job.project_uuid,
+          projectId,
         })
       );
     }
@@ -728,19 +706,19 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     <Layout>
       <div className="view-page job-view">
         <h2>Edit job</h2>
-        {state.job && state.pipeline ? (
+        {job && pipeline ? (
           <React.Fragment>
             <div className="columns">
               <div className="column">
                 <MDCTextFieldReact
                   label="Job name"
-                  value={state.job.name}
+                  value={job.name}
                   onChange={handleJobNameChange}
                 />
               </div>
               <div className="column">
                 <p>Pipeline</p>
-                <span className="largeText">{state.pipeline.name}</span>
+                <span className="largeText">{pipeline.name}</span>
               </div>
             </div>
 
@@ -767,7 +745,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                 {
                   0: (
                     <div className="tab-view">
-                      {state.job.status === "DRAFT" && (
+                      {job.status === "DRAFT" && (
                         <div>
                           <div className="push-down">
                             <MDCRadioReact
@@ -815,7 +793,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                         </div>
                       )}
 
-                      {state.job.status === "DRAFT" && (
+                      {job.status === "DRAFT" && (
                         <div className="push-down">
                           <MDCRadioReact
                             label="Cron job"
@@ -846,7 +824,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   1: (
                     <div className="tab-view">
                       <ParameterEditor
-                        pipelineName={state.pipeline.name}
+                        pipelineName={pipeline.name}
                         onParameterChange={(strategyJSON) => {
                           let [
                             generatedPipelineRuns,
@@ -908,7 +886,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
             </div>
 
             <div className="buttons">
-              {state.job.status === "DRAFT" && (
+              {job.status === "DRAFT" && (
                 <MDCButtonReact
                   disabled={state.runJobLoading}
                   classNames={["mdc-button--raised", "themed-secondary"]}
@@ -918,7 +896,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                   data-test-id="job-run"
                 />
               )}
-              {state.job.status !== "DRAFT" && (
+              {job.status !== "DRAFT" && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={putJobChanges}

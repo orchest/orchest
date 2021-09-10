@@ -13,7 +13,7 @@ import {
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
 
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
@@ -23,7 +23,7 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
-import { useLocationQuery } from "@/hooks/useCustomLocation";
+import { useLocationQuery, useLocationState } from "@/hooks/useCustomLocation";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -39,6 +39,7 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
   }>();
 
   const [jobId, runId] = useLocationQuery(["job_uuid", "run_uuid"]);
+  const [isReadOnly] = useLocationState(["isReadOnly"]);
 
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -50,7 +51,9 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
   const [job, setJob] = React.useState(undefined);
 
   // Conditional fetch session
-  let session = !jobId ? get.session(props.queryArgs) : undefined;
+  let session = !jobId
+    ? get.session({ pipeline_uuid: pipelineId, project_uuid: projectId })
+    : undefined;
 
   React.useEffect(() => {
     connectSocketIO();
@@ -216,15 +219,18 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
     );
 
     pipelinePromise.promise.then((response) => {
-      let result = JSON.parse(response);
+      let result: {
+        pipeline_json: string;
+        success: boolean;
+      } = JSON.parse(response);
 
       if (result.success) {
-        let pipelineJson = JSON.parse(result["pipeline_json"]);
-        setPipelineJson(pipelineJson);
+        let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
+        setPipelineJson(fetchedPipeline);
 
-        let sortedSteps = topologicalSort(pipelineJson.steps);
+        let sortedSteps = topologicalSort(fetchedPipeline.steps);
         setSortedSteps(sortedSteps);
-        setHeaderComponent(pipelineJson.name);
+        setHeaderComponent(fetchedPipeline.name);
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -259,9 +265,7 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
         projectId: projectId,
         pipelineId: pipelineId,
       }),
-      state: { isReadOnly: props.queryArgs.read_only === "true" },
-      // TODO: check why PipelineView needs jobId and runId
-      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
+      state: { isReadOnly },
       search: toQueryString({
         job_uuid: jobId,
         run_uuid: runId,

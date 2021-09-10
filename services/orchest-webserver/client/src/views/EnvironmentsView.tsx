@@ -23,8 +23,4 @@ const EnvironmentsView: React.FC<IEnvironmentsViewProps> = () => {
   );
 };
 
-EnvironmentsView.defaultProps = {
-  queryArgs: {},
-};
-
 export default EnvironmentsView;

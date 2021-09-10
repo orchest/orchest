@@ -376,11 +376,14 @@ export function getScrollLineHeight() {
   return fontSize ? window.parseInt(fontSize) : undefined;
 }
 
-export function formatServerDateTime(serverDateTimeString) {
+export function formatServerDateTime(
+  serverDateTimeString: string | null | undefined
+) {
+  if (!serverDateTimeString) return "";
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
-export function serverTimeToDate(serverDateTimeString) {
+export function serverTimeToDate(serverDateTimeString: string) {
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
   return parseISO(serverDateTimeString + "Z");
 }
@@ -512,14 +515,12 @@ export function envVariablesArrayToDict(envVariables) {
 }
 
 // Sorted by key.
-export function envVariablesDictToArray(envVariables) {
-  let result = new Array(Object.keys(envVariables).length).fill(null);
-  Object.keys(envVariables).map((name, idx) => {
-    result[idx] = { name: name, value: envVariables[name] };
-  });
-  result.sort((a, b) => a["name"].localeCompare(b["name"]));
-
-  return result;
+export function envVariablesDictToArray<T>(envVariables: Record<string, T>) {
+  return Object.keys(envVariables)
+    .map((name) => {
+      return { name, value: envVariables[name] };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /*

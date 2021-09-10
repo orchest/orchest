@@ -37,7 +37,10 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
     setHasEnvironmentCheckCompleted,
   ] = React.useState(false);
 
-  const session = get.session(props.queryArgs);
+  const session = get.session({
+    pipeline_uuid: pipelineId,
+    project_uuid: projectId,
+  });
   const orchest = window.orchest;
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -58,7 +61,10 @@ const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
       !state.sessionsIsLoading &&
       (typeof session === "undefined" || !session?.status)
     ) {
-      dispatch({ type: "sessionToggle", payload: props.queryArgs });
+      dispatch({
+        type: "sessionToggle",
+        payload: { pipeline_uuid: pipelineId, project_uuid: projectId },
+      });
     }
   }, [session, state.sessionsIsLoading]);
 

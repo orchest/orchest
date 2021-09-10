@@ -36,16 +36,14 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
 
   const context = useOrchest();
 
+  const [importUrl, setImportUrl] = React.useState("");
+  const [projectName, setProjectName] = React.useState("");
+  const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
+
   const [state, setState] = React.useState({
-    createModal: false,
     showImportModal: false,
     isDeleting: false,
     loading: true,
-    // import dialog
-    import_url: "",
-    import_project_name: "",
-    // create dialog
-    create_project_name: "",
     projects: null,
     listData: null,
     importResult: undefined,
@@ -320,15 +318,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const onCreateClick = () => {
-    setState((prevState) => ({
-      ...prevState,
-      createModal: true,
-    }));
+    setIsShowingCreateModal(true);
   };
 
-  const onSubmitModal = () => {
-    let projectName = state.create_project_name;
-
+  const onClickCreateProject = () => {
     if (!validateProjectNameAndAlert(projectName)) {
       return;
     }
@@ -353,16 +346,10 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         }
       })
       .finally(() => {
-        setState((prevState) => ({
-          ...prevState,
-          create_project_name: "",
-        }));
+        setProjectName("");
       });
 
-    setState((prevState) => ({
-      ...prevState,
-      createModal: false,
-    }));
+    setIsShowingCreateModal(false);
   };
 
   const validProjectName = (projectName) => {
@@ -397,10 +384,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const onSubmitImport = () => {
-    let gitURL = state.import_url;
-    let gitProjectName = state.import_project_name;
-
-    if (!validURL(gitURL) || !gitURL.startsWith("https://")) {
+    if (!validURL(importUrl) || !importUrl.startsWith("https://")) {
       orchest.alert(
         "Error",
         "Please make sure you enter a valid HTTPS git-repo URL."
@@ -409,10 +393,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     }
 
     // Note: can have empty project name for import (uses inferred repo name by git)
-    if (
-      gitProjectName.length > 0 &&
-      !validateProjectNameAndAlert(gitProjectName)
-    ) {
+    if (projectName.length > 0 && !validateProjectNameAndAlert(projectName)) {
       return;
     }
 
@@ -423,11 +404,11 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       },
     }));
 
-    let jsonData = { url: gitURL };
+    let jsonData = { url: importUrl };
 
     // only add project_name if use entered a value in the form
-    if (gitProjectName.length > 0) {
-      (jsonData as any).project_name = gitProjectName;
+    if (projectName.length > 0) {
+      (jsonData as any).project_name = projectName;
     }
 
     makeRequest("POST", `/async/projects/import-git`, {
@@ -448,11 +429,8 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         }));
 
         if (result.status == "SUCCESS") {
-          setState((prevState) => ({
-            ...prevState,
-            import_project_name: "",
-            import_url: "",
-          }));
+          setImportUrl("");
+          setProjectName("");
         }
 
         fetchList(result.status === "SUCCESS" ? result.result : undefined);
@@ -465,10 +443,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const onCloseCreateProjectModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      createModal: false,
-    }));
+    setIsShowingCreateModal(false);
   };
 
   const onCancelImport = () => {
@@ -476,11 +451,11 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const onCloseImportProjectModal = () => {
+    setImportUrl("");
+    setProjectName("");
     setState((prevState) => ({
       ...prevState,
       showImportModal: false,
-      import_project_name: "",
-      import_url: "",
     }));
   };
 
@@ -490,12 +465,6 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
       importResult: undefined,
       showImportModal: true,
     }));
-  };
-
-  const handleChange = (key: string, value: string) => {
-    let updateObj = {};
-    updateObj[key] = value;
-    setState((prevState) => ({ ...prevState, ...updateObj }));
   };
 
   React.useEffect(() => {
@@ -543,7 +512,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                 className="project-import-modal"
                 data-test-id="import-project-dialog"
               >
-                {props.queryArgs && props.queryArgs.import_url !== undefined && (
+                {props.queryArgs && importUrl && (
                   <div className="push-down warning">
                     <p>
                       <i className="material-icons">warning</i> The import URL
@@ -560,18 +529,16 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                 <MDCTextFieldReact
                   classNames={["fullwidth push-down"]}
                   label="Git repository URL"
-                  value={state.import_url}
-                  onChange={(value) => handleChange("import_url", value)}
+                  value={importUrl}
+                  onChange={setImportUrl}
                   data-test-id="project-url-textfield"
                 />
 
                 <MDCTextFieldReact
                   classNames={["fullwidth"]}
                   label="Project name (optional)"
-                  value={state.import_project_name}
-                  onChange={(value: string) =>
-                    handleChange("import_project_name", value)
-                  }
+                  value={projectName}
+                  onChange={setProjectName}
                   data-test-id="project-name-textfield"
                 />
 
@@ -671,7 +638,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         )}
 
         {(() => {
-          if (state.createModal) {
+          if (isShowingCreateModal) {
             return (
               <MDCDialogReact
                 title="Create a new project"
@@ -681,10 +648,8 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                   <MDCTextFieldReact
                     classNames={["fullwidth"]}
                     label="Project name"
-                    value={state.create_project_name}
-                    onChange={(value: string) =>
-                      handleChange("create_project_name", value)
-                    }
+                    value={projectName}
+                    onChange={setProjectName}
                     data-test-id="project-name-textfield"
                   />
                 }
@@ -701,7 +666,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                       classNames={["mdc-button--raised", "themed-secondary"]}
                       label="Create project"
                       submitButton
-                      onClick={onSubmitModal}
+                      onClick={onClickCreateProject}
                       data-test-id="create-project"
                     />
                   </React.Fragment>

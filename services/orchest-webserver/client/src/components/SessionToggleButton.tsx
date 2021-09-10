@@ -1,7 +1,7 @@
 import * as React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
-import { IOrchestSession } from "@/types";
+import type { IOrchestSession } from "@/types";
 
 export type TSessionToggleButtonRef = HTMLButtonElement;
 export interface ISessionToggleButtonProps
@@ -47,7 +47,7 @@ const SessionToggleButton = React.forwardRef<
   ]);
 
   return (
-    <React.Fragment>
+    <>
       {props.switch ? (
         <MDCSwitchReact
           ref={ref as any}
@@ -75,7 +75,7 @@ const SessionToggleButton = React.forwardRef<
           data-test-id="session-toggle-button"
         />
       )}
-    </React.Fragment>
+    </>
   );
 });
 

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useHistory, useLocation, useParams } from "react-router-dom";
+import React from "react";
+import { useHistory, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/python/python";
 import "codemirror/mode/shell/shell";
@@ -22,7 +22,7 @@ import {
   setWithRetry,
 } from "@/utils/webserver-utils";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
-import { useLocationState } from "@/hooks/useCustomLocation";
+import { useLocationState, useLocationQuery } from "@/hooks/useCustomLocation";
 
 const MODE_MAPPING = {
   py: "text/x-python",
@@ -39,6 +39,7 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
     stepId: string;
   }>();
   const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
+  const [jobId, runId] = useLocationQuery(["job_uuid", "run_uuid"]);
 
   const [state, setState] = React.useState({
     notebookHtml: undefined,
@@ -70,8 +71,8 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
       // TODO: check why PipelineView needs jobId and runId
       // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
       search: toQueryString({
-        job_uuid: props.queryArgs.job_uuid,
-        run_uuid: props.queryArgs.run_uuid,
+        job_uuid: jobId,
+        run_uuid: runId,
       }),
     });
   };
@@ -84,13 +85,8 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
       }));
 
       // TODO: why are job_uuid and run_uuid are needed here?
-      let pipelineURL = props.queryArgs.job_uuid
-        ? getPipelineJSONEndpoint(
-            pipelineId,
-            projectId,
-            props.queryArgs.job_uuid,
-            props.queryArgs.run_uuid
-          )
+      let pipelineURL = jobId
+        ? getPipelineJSONEndpoint(pipelineId, projectId, jobId, runId)
         : getPipelineJSONEndpoint(pipelineId, projectId);
 
       let fetchPipelinePromise = makeCancelable(
@@ -148,9 +144,9 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
   const fetchFile = () =>
     new Promise((resolve, reject) => {
       let fileURL = `/async/file-viewer/${projectId}/${pipelineId}/${stepId}`;
-      if (props.queryArgs.run_uuid) {
-        fileURL += "?pipeline_run_uuid=" + props.queryArgs.run_uuid;
-        fileURL += "&job_uuid=" + props.queryArgs.job_uuid;
+      if (runId) {
+        fileURL += "?pipeline_run_uuid=" + runId;
+        fileURL += "&job_uuid=" + jobId;
       }
 
       let fetchFilePromise = makeCancelable(
@@ -173,13 +169,18 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
     });
 
   const stepNavigate = (newStepId: string) => {
-    history.push(
-      generatePathFromRoute(siteMap.filePreview.path, {
-        projectId,
-        pipelineId,
+    history.push({
+      pathname: generatePathFromRoute(siteMap.filePreview.path, {
+        projectId: projectId,
+        pipelineId: pipelineId,
         stepId: newStepId,
-      })
-    );
+      }),
+      state: { isReadOnly },
+      search: toQueryString({
+        job_uuid: jobId,
+        run_uuid: runId,
+      }),
+    });
   };
 
   const renderNavStep = (steps) => {

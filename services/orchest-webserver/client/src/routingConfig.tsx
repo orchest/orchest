@@ -1,24 +1,26 @@
 import React from "react";
+import { RouteComponentProps } from "react-router-dom";
 
+import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
+import EditJobView from "./views/EditJobView";
 import EnvironmentEditView from "./views/EnvironmentEditView";
 import EnvironmentsView from "./views/EnvironmentsView";
+import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
+import HelpView from "./views/HelpView";
 import JobView from "./views/JobView";
 import JobsView from "./views/JobsView";
 import JupyterLabView from "./views/JupyterLabView";
 import LogsView from "./pipeline-view/LogsView";
+import ManageUsersView from "./views/ManageUsersView";
 import { NotFound } from "./views/NotFound";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import PipelinesView from "./views/PipelinesView";
-import ProjectsView from "./views/ProjectsView";
 import ProjectSettingsView from "./views/ProjectSettingsView";
-import HelpView from "./views/HelpView";
-import FileManagerView from "./views/FileManagerView";
+import ProjectsView from "./views/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import UpdateView from "./views/UpdateView";
-import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
-import ManageUsersView from "./views/ManageUsersView";
 
 type RouteName =
   | "projects"
@@ -33,6 +35,8 @@ type RouteName =
   | "environment"
   | "jobs"
   | "job"
+  | "pipelineReadonly"
+  | "jobEdit"
   | "fileManager"
   | "settings"
   | "configureJupyterLab"
@@ -52,7 +56,8 @@ type RouteData = {
 export const orderedRoutes: {
   name: RouteName;
   path: string;
-  component: React.FunctionComponent;
+  component?: React.FunctionComponent;
+  render?: () => React.ReactNode;
 }[] = [
   {
     name: "projects",
@@ -104,7 +109,6 @@ export const orderedRoutes: {
     path: "/projects/:projectId/environments/:environmentId",
     component: EnvironmentEditView,
   },
-  // --------finish line
   {
     name: "jobs",
     path: "/projects/:projectId/jobs",
@@ -114,6 +118,11 @@ export const orderedRoutes: {
     name: "job",
     path: "/projects/:projectId/jobs/:jobId",
     component: JobView,
+  },
+  {
+    name: "jobEdit",
+    path: "/projects/:projectId/jobs/:jobId/edit",
+    component: EditJobView,
   },
   {
     name: "fileManager",
@@ -180,28 +189,26 @@ export const toQueryString = <T extends string>(
     typeof query !== "function" &&
     !Array.isArray(query);
   return isObject
-    ? Object.entries(query)
+    ? Object.entries<string | number | boolean | undefined | null>(query)
         .reduce((str, entry) => {
-          const [key, value] = entry as [
-            string,
-            string | number | boolean | undefined | null
-          ];
-          return value ? `${str}${snakeCase(key)}=${value.toString()}&` : str;
+          const [key, value] = entry;
+          return value // we don't pass along null or undefined since it doesn't mean much to the receiver
+            ? `${str}${snakeCase(key)}=${value.toString().toLowerCase()}&`
+            : str;
         }, "?")
-        .slice(0, -1)
+        .slice(0, -1) // remove the trailing '&' or '?'.
     : "";
 };
 
 export const generatePathFromRoute = <T extends string>(
   route: string,
-  pathParams: Record<T, string | number | boolean | undefined>
+  pathParams: Record<T, string | number | boolean | null | undefined>
 ) => {
-  // replace the route params with the given object key value pairs
-  return Object.entries(pathParams).reduce(
-    (str, param: [string, string | number | boolean | undefined]) => {
-      const [key, value] = param;
-      return str.replace(`:${key}`, value ? value.toString() : "");
-    },
-    route
-  );
+  // replace the route params with the given object key-value pairs
+  return Object.entries<string | number | boolean | null | undefined>(
+    pathParams
+  ).reduce((str, param) => {
+    const [key, value] = param;
+    return str.replace(`:${key}`, value !== undefined ? value.toString() : "");
+  }, route);
 };

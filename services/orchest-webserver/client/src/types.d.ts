@@ -185,6 +185,46 @@ export type Environment = {
   uuid: string;
 };
 
+export type Job = {
+  created_time: string;
+  env_variables: Record<string, string>;
+  last_scheduled_time: string;
+  name: string;
+  next_scheduled_time: string;
+  parameters: Record<string, unknown>[];
+  pipeline_definition: {
+    name: string;
+    parameters: Record<string, unknown>;
+    settings: {
+      auto_eviction: boolean;
+      data_passing_memory_size: string;
+    };
+    uuid: string;
+    steps: Record<string, Step>;
+    version: string;
+  };
+  pipeline_name: string;
+  pipeline_run_spec: {
+    run_config: {
+      host_user_dir: string;
+      pipeline_path: string;
+      project_dir: string;
+    };
+    scheduled_start: null;
+    uuids: string[];
+    project_uuid: string | null;
+    run_type: string;
+  };
+  pipeline_runs: [];
+  pipeline_uuid: string;
+  project_uuid: string;
+  schedule: string;
+  status: "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+  strategy_json: Record<string, unknown>;
+  total_scheduled_executions: number;
+  uuid: string;
+};
+
 export type Step = Record<
   string,
   {

@@ -52,7 +52,11 @@ type IPipelineViewProps = TViewPropsWithRequiredQueryArgs<
 
 const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const { $, orchest } = window;
-  const { get, state: orchestState, dispatch } = useOrchest();
+  const {
+    get,
+    state: { sessionsIsLoading },
+    dispatch,
+  } = useOrchest();
 
   const history = useHistory();
   const { projectId, pipelineId } = useParams<{
@@ -64,9 +68,17 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     "isReadOnly",
   ]);
 
-  const [isReadOnly, setIsReadOnly] = useState(isReadOnlyFromQueryString);
+  const [isReadOnly, setIsReadOnly] = useState(!!isReadOnlyFromQueryString);
+  const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
 
-  const session = get.session(props.queryArgs);
+  useEffect(() => {
+    setShouldAutoStart(!isReadOnly);
+  }, [isReadOnly]);
+
+  const session = get.session({
+    project_uuid: projectId,
+    pipeline_uuid: pipelineId,
+  });
 
   const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
     "ctrl+a, command+a",
@@ -147,7 +159,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     stepExecutionState: {},
     steps: {},
     defaultDetailViewIndex: 0,
-    shouldAutoStart: false,
     // The save hash is used to propagate a save's side-effects
     // to components.
     saveHash: undefined,
@@ -357,6 +368,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         projectId: projectId,
         pipelineId: pipelineId,
       }),
+      state: { isReadOnly },
       search: toQueryString({
         job_uuid: jobId,
         run_uuid: runId,
@@ -378,24 +390,20 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const handleSession = () => {
-    if (!orchestState.sessionsIsLoading) {
+  React.useEffect(() => {
+    if (!sessionsIsLoading) {
       // If session doesn't exist and first load
-      if (
-        !isReadOnly &&
-        state.shouldAutoStart === true &&
-        typeof session === "undefined"
-      ) {
+      if (shouldAutoStart && !session) {
         dispatch({
           type: "sessionToggle",
-          payload: props.queryArgs,
+          payload: { pipeline_uuid: pipelineId, project_uuid: projectId },
         });
-        setState({ shouldAutoStart: false });
+        setShouldAutoStart(false);
         return;
       }
 
-      if (session?.status == "RUNNING" && state.shouldAutoStart === true) {
-        setState({ shouldAutoStart: false });
+      if (session?.status == "RUNNING" && shouldAutoStart) {
+        setShouldAutoStart(false);
       }
 
       if (session?.status === "STOPPING") {
@@ -406,7 +414,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         updateJupyterInstance();
       }
     }
-  };
+  }, [session, sessionsIsLoading, shouldAutoStart]);
 
   const initializeResizeHandlers = () => {
     $(window).resize(() => {
@@ -1098,14 +1106,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             orchest.alert(
               "Error",
               "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-              () => {
-                history.push(
-                  generatePathFromRoute(siteMap.job.path, {
-                    projectId: projectId,
-                    jobId: jobId,
-                  })
-                );
-              }
+              returnToJob
             );
           } else {
             console.error("Could not load pipeline.json");
@@ -1413,14 +1414,19 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const onOpenFilePreviewView = (step_uuid: string) => {
-    history.push(
-      generatePathFromRoute(siteMap.filePreview.path, {
-        projectId: projectId,
-        pipelineId: pipelineId,
-        stepId: step_uuid,
-      })
-    );
+  const onOpenFilePreviewView = (stepId: string) => {
+    history.push({
+      pathname: generatePathFromRoute(siteMap.filePreview.path, {
+        projectId,
+        pipelineId,
+        stepId,
+      }),
+      state: { isReadOnly },
+      search: toQueryString({
+        job_uuid: jobId,
+        run_uuid: runId,
+      }),
+    });
   };
 
   const onOpenNotebook = () => {
@@ -1484,7 +1490,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             // make sure stale opened files are reloaded in active
             // Jupyter instance
 
-            orchest.jupyter.reloadFilesFromDisk();
+            if (orchest.jupyter) orchest.jupyter.reloadFilesFromDisk();
 
             setState({
               pipelineRunning: false,
@@ -1899,6 +1905,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   useEffect(() => {
+    fetchPipelineAndInitialize();
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.key === " " && !state.eventVars.draggingPipeline) {
         state.eventVars.keysDown[32] = true;
@@ -2072,11 +2079,13 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return <div>{serviceLinks}</div>;
   };
 
-  const returnToJob = (jobId: string) => {
-    history.push(siteMap.job.path, {
-      projectId: projectId,
-      jobId,
-    });
+  const returnToJob = () => {
+    history.push(
+      generatePathFromRoute(siteMap.job.path, {
+        projectId,
+        jobId,
+      })
+    );
   };
 
   let connections_list = {};
@@ -2177,29 +2186,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   }, [state.currentOngoingSaves]);
 
-  // TODO: clean up this
   React.useEffect(() => {
-    if (props.queryArgs && !isReadOnly) {
-      setState({ shouldAutoStart: true });
-    } else {
-      setState({ shouldAutoStart: false });
-    }
-  }, [props]);
-
-  React.useEffect(() => {
-    if (!projectId) {
-      history.push(siteMap.projects.path);
-      return;
-    }
-    if (!pipelineId) {
-      history.push(
-        generatePathFromRoute(siteMap.pipelines.path, {
-          projectId: projectId,
-        })
-      );
-      return;
-    }
-
     const hasActiveRun = runId && jobId;
     if (hasActiveRun) {
       try {
@@ -2261,15 +2248,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   }, [state.eventVars.scaleFactor, state.pipelineOffset]);
 
-  React.useEffect(() => {
-    // fetch pipeline when uuid changed
-    fetchPipelineAndInitialize();
-  }, [pipelineId]);
-
-  React.useEffect(() => {
-    handleSession();
-  }, [session, state.sessionsIsLoading, props, state.shouldAutoStart]);
-
   return (
     <OrchestSessionsConsumer>
       <Layout>
@@ -2285,7 +2263,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   classNames={["mdc-button--outlined"]}
                   label="Back to job"
                   icon="arrow_back"
-                  onClick={() => returnToJob(jobId)}
+                  onClick={returnToJob}
                   data-test-id="pipeline-back-to-job"
                 />
               </div>

@@ -24,7 +24,7 @@ import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { generatePathFromRoute, siteMap } from "@/Routes";
-import { Environment } from "@/types";
+import type { Environment } from "@/types";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 

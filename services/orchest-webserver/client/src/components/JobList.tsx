@@ -184,10 +184,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
   };
 
   const onSubmitModal = (
-    rerun?: Record<
-      "pipeline_uuid" | "pipeline_name" | "project_uuid" | "name",
-      string
-    >
+    rerun?: Record<"pipelineId" | "pipelineName" | "projectId" | "name", string>
   ) => {
     if (!rerun) {
       if (refManager.refs.formJobName.mdc.value.length == 0) {
@@ -202,12 +199,12 @@ const JobList: React.FC<IJobListProps> = (props) => {
     }
 
     const name = rerun?.name || refManager.refs.formJobName.mdc.value;
-    const pipeline_uuid =
-      rerun?.pipeline_uuid || refManager.refs.formPipeline.mdc.value;
-    const pipeline_name =
-      rerun?.pipeline_name ||
-      state.pipelines.find((pipeline) => pipeline.uuid === pipeline_uuid)?.name;
-    const project_uuid = rerun?.project_uuid || props.projectId;
+    const pipelineId =
+      rerun?.pipelineId || refManager.refs.formPipeline.mdc.value;
+    const pipelineName =
+      rerun?.pipelineName ||
+      state.pipelines.find((pipeline) => pipeline.uuid === pipelineId)?.name;
+    const projectId = rerun?.projectId || props.projectId;
 
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
@@ -219,9 +216,9 @@ const JobList: React.FC<IJobListProps> = (props) => {
           makeRequest("POST", "/catch/api-proxy/api/jobs/", {
             type: "json",
             content: {
-              pipeline_uuid,
-              pipeline_name,
-              project_uuid,
+              pipeline_uuid: pipelineId,
+              pipeline_name: pipelineName,
+              project_uuid: projectId,
               name,
               draft: true,
               pipeline_run_spec: {
@@ -238,8 +235,8 @@ const JobList: React.FC<IJobListProps> = (props) => {
           .then((response: string) => {
             let job = JSON.parse(response);
             history.push(
-              generatePathFromRoute(siteMap.job.path, {
-                projectId: project_uuid,
+              generatePathFromRoute(siteMap.jobEdit.path, {
+                projectId,
                 jobId: job.uuid,
               })
             );
@@ -280,9 +277,9 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 setIsCreateDialogOpen(true);
                 onSubmitModal({
                   name,
-                  pipeline_name,
-                  pipeline_uuid,
-                  project_uuid,
+                  pipelineName,
+                  pipelineId,
+                  projectId,
                 });
               }
             );
@@ -293,20 +290,15 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const onRowClick = (row, idx, event) => {
     let job = state.jobs[idx];
-    // const ViewToLoad = job.status === "DRAFT" ? EditJobView : JobView;
-
-    // TODO: can we combine JobView and EditJobView?
-    // JobView should be able to determine the job status, without us passing the query string
-    // otherwise, user might accidentally change the query string and mess around jobs
 
     history.push(
-      generatePathFromRoute(siteMap.job.path, {
-        projectId: props.projectId,
-        jobId: job.uuid,
-      }),
-      {
-        isDraft: job.status === "DRAFT",
-      } // TODO: JobView should use useLocation to get state.isDraft
+      generatePathFromRoute(
+        job.status === "DRAFT" ? siteMap.jobEdit.path : siteMap.job.path,
+        {
+          projectId: props.projectId,
+          jobId: job.uuid,
+        }
+      )
     );
   };
 
@@ -423,23 +415,21 @@ const JobList: React.FC<IJobListProps> = (props) => {
           title="Edit job name"
           onClose={onCloseEditJobNameModal}
           content={
-            <React.Fragment>
-              <MDCTextFieldReact
-                classNames={["fullwidth push-down"]}
-                value={state.editJobName}
-                label="Job name"
-                onChange={(value) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    editJobName: value,
-                  }));
-                }}
-                data-test-id="job-edit-name-textfield"
-              />
-            </React.Fragment>
+            <MDCTextFieldReact
+              classNames={["fullwidth push-down"]}
+              value={state.editJobName}
+              label="Job name"
+              onChange={(value) => {
+                setState((prevState) => ({
+                  ...prevState,
+                  editJobName: value,
+                }));
+              }}
+              data-test-id="job-edit-name-textfield"
+            />
           }
           actions={
-            <React.Fragment>
+            <>
               <MDCButtonReact
                 icon="close"
                 label="Cancel"
@@ -454,7 +444,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 submitButton
                 onClick={onSubmitEditJobNameModal}
               />
-            </React.Fragment>
+            </>
           }
         />
       )}
@@ -462,7 +452,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
       <h2>Jobs</h2>
 
       {state.jobs && state.pipelines ? (
-        <React.Fragment>
+        <>
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={(open) => setIsCreateDialogOpen(open)}
@@ -500,7 +490,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                       <p>Copying pipeline directory...</p>
                     </Box>
                   ) : (
-                    <React.Fragment>
+                    <>
                       {state.projectSnapshotSize > 50 && (
                         <div className="warning push-down">
                           <i className="material-icons">warning</i> Snapshot
@@ -530,7 +520,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                         }
                         options={pipelineOptions}
                       />
-                    </React.Fragment>
+                    </>
                   )}
                 </form>
               </DialogBody>
@@ -571,7 +561,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
             rows={jobListToTableData(state.jobs)}
             headers={["Job", "Pipeline", "Snapshot date", "Status"]}
           />
-        </React.Fragment>
+        </>
       ) : (
         <MDCLinearProgressReact />
       )}
