@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 
-import { BrowserRouter as Router } from "react-router-dom";
+import { BrowserRouter as Router, Prompt } from "react-router-dom";
 
 import { useOrchest } from "@/hooks/orchest";
 
@@ -65,11 +65,6 @@ const App = () => {
     }
   }, [config]);
 
-  // TODO:
-  // [] unsaved changes
-  // [] alert modal
-  // [] confirm modal
-
   const alert = (title, content, onClose) => {
     // Analytics call
     sendEvent("alert show", { title: title, content: content });
@@ -77,7 +72,12 @@ const App = () => {
     dialogsRef.current.alert(title, content, onClose);
   };
 
-  const confirm = (title, content, onConfirm, onCancel?) => {
+  const confirm = (
+    title: string,
+    content: string,
+    onConfirm: () => void,
+    onCancel?
+  ) => {
     // Analytics call
     sendEvent("confirm show", { title: title, content: content });
 
@@ -118,7 +118,23 @@ const App = () => {
   };
 
   return (
-    <Router>
+    <Router
+      getUserConfirmation={(message, callback) => {
+        // use Prompt component to intercept route changes
+        // handle the blocking event here
+        if (message === "unsavedChanges") {
+          window.orchest.confirm(
+            "Warning",
+            "There are unsaved changes. Are you sure you want to navigate away?",
+            () => {
+              context.dispatch({ type: "setUnsavedChanges", payload: false });
+              callback(true);
+            }
+          );
+        }
+      }}
+    >
+      <Prompt when={context.state.unsavedChanges} message="unsavedChanges" />
       <HeaderBar />
       <div className="app-container" data-test-id="app">
         <MainDrawer />
