@@ -192,7 +192,6 @@ const JobView: React.FC<TViewProps> = (props) => {
   };
 
   const fetchJob = () => {
-    console.log("🤡", jobId);
     makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`).then(
       (response: string) => {
         try {
@@ -308,8 +307,6 @@ const JobView: React.FC<TViewProps> = (props) => {
         pipelineId: pipelineRun.pipeline_uuid,
       }),
       state: { isReadOnly: true },
-      // TODO: check why PipelineView needs jobId and runId
-      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
       search: toQueryString({
         job_uuid: pipelineRun.job_uuid,
         run_uuid: pipelineRun.uuid,

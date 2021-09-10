@@ -74,8 +74,6 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         pipelineId,
       }),
       state: { isReadOnly },
-      // TODO: check why PipelineView needs jobId and runId
-      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
       search: toQueryString({
         job_uuid: jobId,
         run_uuid: runId,
@@ -90,7 +88,6 @@ const FilePreviewView: React.FC<TViewProps> = (props) => {
         loadingFile: true,
       }));
 
-      // TODO: why are job_uuid and run_uuid are needed here?
       let pipelineURL = jobId
         ? getPipelineJSONEndpoint(pipelineId, projectId, jobId, runId)
         : getPipelineJSONEndpoint(pipelineId, projectId);

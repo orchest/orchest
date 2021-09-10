@@ -1,5 +1,4 @@
 import React from "react";
-import { RouteComponentProps } from "react-router-dom";
 
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import EditJobView from "./views/EditJobView";
@@ -13,7 +12,6 @@ import JobsView from "./views/JobsView";
 import JupyterLabView from "./views/JupyterLabView";
 import LogsView from "./pipeline-view/LogsView";
 import ManageUsersView from "./views/ManageUsersView";
-import { NotFound } from "./views/NotFound";
 import PipelineSettingsView from "./views/PipelineSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import PipelinesView from "./views/PipelinesView";

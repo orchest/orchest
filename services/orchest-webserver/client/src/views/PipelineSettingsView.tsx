@@ -127,12 +127,6 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
     return () => promiseManagerRef.current.cancelCancelablePromises();
   }, []);
 
-  // Fetch pipeline data when query args change
-  // TODO: check dev branch when this queryArgs is updated
-  // React.useEffect(() => {
-  //   fetchPipelineData();
-  // }, [props.queryArgs]);
-
   // If the component has loaded, attach the resize listener
   React.useEffect(() => {
     if (hasLoaded()) {
@@ -256,10 +250,6 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
           pipeline_json: string;
           success: boolean;
         } = JSON.parse(response);
-
-        // TODO: remove logs
-        console.log("🥁", "pipeline");
-        console.log(result);
 
         if (result.success) {
           let pipelineJson: PipelineJson = JSON.parse(result["pipeline_json"]);
@@ -389,8 +379,6 @@ const PipelineSettingsView: React.FC<TViewProps> = (props) => {
         pipelineId: pipelineId,
       }),
       state: { isReadOnly },
-      // TODO: check why PipelineView needs jobId and runId
-      // they are needed in PipelineDetails, and making http calls, e.g. getPipelineJSONEndpoint
       search: toQueryString({
         job_uuid: jobId,
         run_uuid: runId,

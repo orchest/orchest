@@ -347,10 +347,6 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
               "environment_builds"
             ][0];
 
-            // TODO: remove logs
-            console.log(`🥁`);
-            console.log(environmentBuild);
-
             onUpdateBuild(environmentBuild);
           } catch (error) {
             console.error(error);

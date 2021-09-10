@@ -110,7 +110,7 @@ const PipelineList: React.FC<{ projectId: string }> = ({ projectId }) => {
         projectId,
         pipelineId: pipeline.uuid,
       }),
-      { isReadOnly } // TODO: PipelineView should take isReadOnly from useLocation
+      { isReadOnly }
     );
   };
 

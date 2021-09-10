@@ -229,7 +229,6 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     history.push(
       generatePathFromRoute(siteMap.projectSettings.path, {
         projectId: project.uuid,
-        // pipelineId, // TODO: how to get pipeline uuid?
       })
     );
   };
