@@ -1,4 +1,5 @@
 import { useLocation, useParams, useHistory } from "react-router-dom";
+import { useSendAnalyticEvent } from "./useSendAnalyticEvent";
 
 // NOTE: if the parameter is safe to expose to user (i.e. component can read it from the URL), use useLocationQuery
 // For the data that we want to persist and we don't want to expose, use useLocationState
@@ -31,6 +32,9 @@ const useLocationQuery = (queryStrings: string[]): (string | null)[] => {
 // better make use of useLocationQuery and useLocationState
 const useCustomRoute = () => {
   const history = useHistory();
+  const location = useLocation();
+  useSendAnalyticEvent("view load", { name: location.pathname });
+
   const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
   const [jobIdFromQueryString, runId, initialTab] = useLocationQuery([
     "job_uuid",

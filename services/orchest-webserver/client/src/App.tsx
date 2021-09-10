@@ -1,5 +1,4 @@
 import React, { useRef } from "react";
-import { makeRequest } from "@orchest/lib-utils";
 
 import { BrowserRouter as Router } from "react-router-dom";
 
@@ -13,6 +12,7 @@ import Jupyter from "./jupyter/Jupyter";
 import { Routes } from "@/Routes";
 
 import { loadIntercom } from "./utils/webserver-utils";
+import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
 
 import $ from "jquery";
 
@@ -39,6 +39,8 @@ window.$ = $;
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
 
+  const sendEvent = useSendAnalyticEvent();
+
   const context = useOrchest();
 
   const jupyterRef = useRef(null);
@@ -63,22 +65,8 @@ const App = () => {
     }
   }, [config]);
 
-  const sendEvent = function (event, properties) {
-    if (!context.state.config["TELEMETRY_DISABLED"]) {
-      makeRequest("POST", "/analytics", {
-        type: "json",
-        content: {
-          event: event,
-          properties: properties,
-        },
-      });
-    }
-  };
-
   // TODO:
   // [] unsaved changes
-  // [x]] document.title
-  // [] send analytic events
   // [] alert modal
   // [] confirm modal
 
