@@ -2,7 +2,7 @@ import React from "react";
 import { useOrchest } from "./orchest";
 import { makeRequest } from "@orchest/lib-utils";
 
-// use this hook as a side effect, it will fire when the component mounts
+// use this hook as a side effect by specifying the parameters, it will fire when the component mounts
 // useSendAnalyticEvent('view load', { name: 'projectsView' });
 // in this case, this hook doesn't return anything
 // you can also use this hook as a factory, by leaving out the parameters
@@ -37,7 +37,7 @@ const useSendAnalyticEvent = (
     if (event) {
       send(event, props);
     }
-  }, [event, props]);
+  }, []);
   return event ? undefined : send;
 };
 

@@ -14,11 +14,13 @@ import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { siteMap } from "@/Routes";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 
 const SettingsView: React.FC<TViewProps> = () => {
   const { orchest } = window;
-  const history = useHistory();
+  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
 
+  const history = useHistory();
   const context = useOrchest();
 
   const [state, setState] = React.useState({

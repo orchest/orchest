@@ -13,6 +13,8 @@ import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -21,6 +23,7 @@ const ConfigureJupyterLabView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
   const context = useOrchest();
   useDocumentTitle(props.title);
+  useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
 
   // local states
   const [state, setState] = React.useState({

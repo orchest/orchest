@@ -24,6 +24,7 @@ import type { TViewProps, Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useLocationQuery } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 
 const ERROR_MAPPING = {
   "project move failed": "failed to move project because the directory exists.",
@@ -35,6 +36,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
   useDocumentTitle(props.title);
+  useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
   const history = useHistory();
   const context = useOrchest();
