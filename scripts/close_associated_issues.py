@@ -23,7 +23,12 @@ def close_issue(conn: client.HTTPSConnection, issue_number: str) -> bool:
         },
     )
     r = conn.getresponse()
-    r.read()  # NOTE: make sure to read the response!
+
+    # NOTE: the whole response must have been read before a new
+    # request can be send to the server. Since we want to reuse
+    # the connection, we need to read the response.
+    r.read()
+
     return r.status == 200
 
 
