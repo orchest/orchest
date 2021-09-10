@@ -31,7 +31,7 @@ from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
 from app.utils import (
-    fetch_public_examples_json_to_disk,
+    fetch_orchest_examples_json_to_disk,
     get_repo_tag,
     get_user_conf,
     migrate_user_config,
@@ -161,15 +161,15 @@ def create_app():
             args=[app],
         )
 
-    if app.config["POLL_PUBLIC_EXAMPLES_JSON"]:
+    if app.config["POLL_ORCHEST_EXAMPLES_JSON"]:
         # Fetch now.
-        fetch_public_examples_json_to_disk(app)
+        fetch_orchest_examples_json_to_disk(app)
 
         # And every hour.
         scheduler.add_job(
-            fetch_public_examples_json_to_disk,
+            fetch_orchest_examples_json_to_disk,
             "interval",
-            minutes=app.config["PUBLIC_EXAMPLES_JSON_POLL_INTERVAL"],
+            minutes=app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"],
             args=[app],
         )
 
