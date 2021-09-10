@@ -245,6 +245,6 @@ export const generatePathFromRoute = <T extends string>(
     pathParams
   ).reduce((str, param) => {
     const [key, value] = param;
-    return str.replace(`:${key}`, value !== undefined ? value.toString() : "");
+    return str.replace(`:${key}`, !!value ? value.toString() : "");
   }, route);
 };
