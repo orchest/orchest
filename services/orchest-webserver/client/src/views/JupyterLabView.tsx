@@ -1,5 +1,4 @@
 import React from "react";
-import { useHistory, useParams } from "react-router-dom";
 import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   PromiseManager,
@@ -7,26 +6,29 @@ import {
   makeRequest,
   collapseDoubleDots,
 } from "@orchest/lib-utils";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { TViewProps, TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useInterval } from "@/hooks/use-interval";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { generatePathFromRoute, siteMap } from "@/Routes";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const JupyterLabView: React.FC<IJupyterLabViewProps> = (props) => {
-  const history = useHistory();
-  const { projectId, pipelineId } = useParams<{
-    projectId: string;
-    pipelineId: string;
-  }>();
+const JupyterLabView: React.FC<TViewProps> = (props) => {
+  // global states
   const { state, dispatch, get } = useOrchest();
+  useDocumentTitle(props.title);
 
+  // data from route
+  const { history, projectId, pipelineId } = useCustomRoute();
+
+  // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
     1000
   );

@@ -7,6 +7,7 @@ import {
   generatePathFromRoute,
   toQueryString,
 } from "./routingConfig";
+import { TViewProps } from "./types";
 
 const Routes = () => {
   return (
@@ -15,19 +16,21 @@ const Routes = () => {
         <Redirect to={siteMap.projects.path} />
       </Route>
       {orderedRoutes.map((route) => {
-        const { name, path, component, render } = route;
-        const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback
-        return component ? (
+        const { name, path, component, title } = route;
+        const Component: React.FC<TViewProps> = component;
+        const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback, it cannot be exact
+        return (
           <Route
             exact={shouldBeExact}
             key={name}
             path={path}
-            component={component}
+            render={(props) => <Component {...props} title={title} />}
           />
-        ) : (
-          <Route exact={shouldBeExact} key={name} path={path} render={render} />
         );
       })}
+      <Route path="*">
+        <Redirect to={siteMap.projects.path} />
+      </Route>
     </Switch>
   );
 };

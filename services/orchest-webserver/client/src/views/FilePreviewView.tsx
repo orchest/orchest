@@ -1,5 +1,4 @@
 import React from "react";
-import { useHistory, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/python/python";
 import "codemirror/mode/shell/shell";
@@ -22,7 +21,8 @@ import {
   setWithRetry,
 } from "@/utils/webserver-utils";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
-import { useLocationState, useLocationQuery } from "@/hooks/useCustomLocation";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const MODE_MAPPING = {
   py: "text/x-python",
@@ -31,16 +31,22 @@ const MODE_MAPPING = {
 } as const;
 
 const FilePreviewView: React.FC<TViewProps> = (props) => {
+  // global states
   const { orchest } = window;
-  const history = useHistory<{ isReadOnly: boolean }>();
-  const { projectId, pipelineId, stepId } = useParams<{
-    projectId: string;
-    pipelineId: string;
-    stepId: string;
-  }>();
-  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
-  const [jobId, runId] = useLocationQuery(["job_uuid", "run_uuid"]);
+  useDocumentTitle(props.title);
 
+  // data from route
+  const {
+    history,
+    projectId,
+    pipelineId,
+    isReadOnly,
+    stepId,
+    jobId,
+    runId,
+  } = useCustomRoute();
+
+  // local states
   const [state, setState] = React.useState({
     notebookHtml: undefined,
     fileDescription: undefined,

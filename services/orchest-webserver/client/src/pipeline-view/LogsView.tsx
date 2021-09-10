@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory, useParams } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import io from "socket.io-client";
 
 import {
@@ -13,7 +13,11 @@ import {
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
 
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  TViewProps,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
@@ -23,23 +27,27 @@ import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
-import { useLocationQuery, useLocationState } from "@/hooks/useCustomLocation";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const LogsView: React.FC<ILogsViewProps> = (props) => {
-  const history = useHistory<{ isReadOnly: boolean }>();
+const LogsView: React.FC<TViewProps> = (props) => {
+  // global states
   const { dispatch, get } = useOrchest();
+  useDocumentTitle(props.title);
 
-  const { projectId, pipelineId } = useParams<{
-    projectId: string;
-    pipelineId: string;
-  }>();
-
-  const [jobId, runId] = useLocationQuery(["job_uuid", "run_uuid"]);
-  const [isReadOnly] = useLocationState(["isReadOnly"]);
+  // data from route
+  const {
+    projectId,
+    pipelineId,
+    jobId,
+    runId,
+    isReadOnly,
+    history,
+  } = useCustomRoute();
 
   const [promiseManager] = React.useState(new PromiseManager());
 

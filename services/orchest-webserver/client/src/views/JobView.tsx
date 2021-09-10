@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
 import { PieChart } from "react-minimal-pie-chart";
 import { Box, Flex, Text } from "@orchest/design-system";
 import cronstrue from "cronstrue";
@@ -31,6 +30,8 @@ import ParameterEditor from "@/components/ParameterEditor";
 import SearchableTable from "@/components/SearchableTable";
 import EnvVarList from "@/components/EnvVarList";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 type TSharedStatus = Extract<
   TStatus,
@@ -155,15 +156,13 @@ const JobStatus: React.FC<IJobStatusProps> = ({
 };
 
 const JobView: React.FC<TViewProps> = (props) => {
+  // global states
   const orchest = window.orchest;
+  useDocumentTitle(props.title);
   const { dispatch } = useOrchest();
 
   // data from route
-  const history = useHistory<{ isReadOnly: boolean }>();
-  const { projectId, jobId } = useParams<{
-    projectId: string;
-    jobId: string;
-  }>();
+  const { history, projectId, jobId } = useCustomRoute();
 
   // data states
   const [job, setJob] = useState<Job>();
@@ -193,6 +192,7 @@ const JobView: React.FC<TViewProps> = (props) => {
   };
 
   const fetchJob = () => {
+    console.log("🤡", jobId);
     makeRequest("GET", `/catch/api-proxy/api/jobs/${jobId}`).then(
       (response: string) => {
         try {

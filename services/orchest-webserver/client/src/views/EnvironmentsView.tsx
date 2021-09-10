@@ -1,18 +1,14 @@
 import React from "react";
-import { useParams } from "react-router-dom";
 import type { TViewProps } from "@/types";
 import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
-import ProjectBasedView, {
-  IProjectBasedViewProps,
-} from "@/components/ProjectBasedView";
+import ProjectBasedView from "@/components/ProjectBasedView";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
-export interface IEnvironmentsViewProps
-  extends TViewProps,
-    IProjectBasedViewProps {}
-
-const EnvironmentsView: React.FC<IEnvironmentsViewProps> = () => {
-  const { projectId } = useParams<{ projectId: string }>();
+const EnvironmentsView: React.FC<TViewProps> = (props) => {
+  useDocumentTitle(props.title);
+  const { projectId } = useCustomRoute();
 
   return (
     <Layout>

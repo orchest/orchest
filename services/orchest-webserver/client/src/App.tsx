@@ -10,24 +10,9 @@ import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
 import Jupyter from "./jupyter/Jupyter";
 
-// import PipelineSettingsView from "./views/PipelineSettingsView";
-// import PipelineView from "./pipeline-view/PipelineView";
-// import ProjectsView from "./views/ProjectsView";
-// import JupyterLabView from "./views/JupyterLabView";
-// import EnvironmentsView from "./views/EnvironmentsView";
-// import PipelinesView from "./views/PipelinesView";
-// import JobsView from "./views/JobsView";
-
 import { Routes } from "@/Routes";
 
-import {
-  // nameToComponent,
-  // componentName,
-  // generateRoute,
-  // decodeRoute,
-  // pascalCaseToCapitalized,
-  loadIntercom,
-} from "./utils/webserver-utils";
+import { loadIntercom } from "./utils/webserver-utils";
 
 import $ from "jquery";
 
@@ -53,29 +38,11 @@ window.$ = $;
 
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
-  // const [view, setView] = React.useState(null);
-  // TODO: remove this state
-  const [state, setState] = React.useState<{
-    activeViewName: string;
-    ViewComponent: React.FunctionComponent;
-    dynamicProps: Record<string, unknown>;
-  }>({
-    activeViewName: "",
-    dynamicProps: null,
-    ViewComponent: null,
-  });
 
   const context = useOrchest();
 
   const jupyterRef = useRef(null);
   const dialogsRef = useRef(null);
-
-  // const KEEP_PIPELINE_VIEWS = [
-  //   PipelineView,
-  //   PipelineSettingsView,
-  //   JupyterLabView,
-  // ];
-  // const INJECT_PROJECT_UUID_VIEWS = [EnvironmentsView, PipelinesView, JobsView];
 
   // load server side config populated by flask template
   const { config } = context.state;
@@ -108,153 +75,12 @@ const App = () => {
     }
   };
 
-  // window.onpopstate = (event) => {
-  //   if (event.state !== null) {
-  //     context.dispatch({
-  //       type: "setLoadViewSpec",
-  //       payload: {
-  //         TagName: nameToComponent(event.state.viewName),
-  //         dynamicProps: event.state.dynamicProps,
-  //         isOnPopState: true,
-  //       },
-  //     });
-  //   }
-  // };
-
   // TODO:
   // [] unsaved changes
-  // [] document.title
+  // [x]] document.title
   // [] send analytic events
   // [] alert modal
   // [] confirm modal
-
-  // React.useEffect(() => {
-  //   if (context.state.loadViewSpec === undefined) return;
-
-  //   const {
-  //     TagName,
-  //     dynamicProps,
-  //     isOnPopState,
-  //     onCancelled,
-  //   } = context.state.loadViewSpec;
-
-  //   const conditionalBody = () => {
-  //     if (!isOnPopState) {
-  //       // This public loadView sets the state through the
-  //       // history API.
-
-  //       let [pathname, search] = generateRoute(TagName, dynamicProps);
-
-  //       // Because pushState objects need to be serialized,
-  //       // we need to store the string representation of the TagName.
-  //       let viewName = componentName(TagName);
-  //       window.history.pushState(
-  //         {
-  //           viewName,
-  //           dynamicProps,
-  //         },
-  //         "",
-  //         pathname + search
-  //       );
-
-  //       /* `title` argument for pushState was deprecated,
-  //       document.title should be used instead. */
-  //       window.document.title =
-  //         pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
-  //     }
-
-  //     _loadView(TagName, dynamicProps);
-  //   };
-
-  //   if (!context.state.unsavedChanges) {
-  //     conditionalBody();
-  //   } else {
-  //     confirm(
-  //       "Warning",
-  //       "There are unsaved changes. Are you sure you want to navigate away?",
-  //       () => {
-  //         context.dispatch({ type: "setUnsavedChanges", payload: false });
-  //         conditionalBody();
-  //       },
-  //       onCancelled
-  //     );
-  //   }
-  // }, [context?.state.loadViewSpec]);
-
-  // const _loadView = (ViewComponent: React.FunctionComponent, dynamicProps) => {
-  //   let viewName = componentName(ViewComponent);
-
-  //   // Analytics call
-  //   sendEvent("view load", { name: viewName });
-
-  //   if (config["CLOUD"] === true && window.Intercom !== undefined) {
-  //     window.Intercom("update");
-  //   }
-
-  //   if (KEEP_PIPELINE_VIEWS.indexOf(ViewComponent) === -1) {
-  //     context.dispatch({ type: "pipelineClear" });
-  //   }
-
-  //   // select menu if menu tag is selected
-  //   setState((prevState) => ({
-  //     ...prevState,
-  //     ViewComponent,
-  //     dynamicProps,
-  //     activeViewName: viewName,
-  //   }));
-  // };
-
-  // const _generateView = (
-  //   ViewComponent: React.FunctionComponent<{ project_uuid: string }>,
-  //   dynamicProps: Record<string, unknown>
-  // ) => {
-  //   return (
-  //     <ViewComponent
-  //       {...dynamicProps}
-  //       {...(INJECT_PROJECT_UUID_VIEWS.indexOf(ViewComponent) !== -1 && {
-  //         project_uuid: context.state.project_uuid,
-  //       })}
-  //     />
-  //   );
-  // };
-
-  // const loadView = (
-  //   TagName: React.FunctionComponent,
-  //   dynamicProps = {},
-  //   onCancelled?: () => void
-  // ) => {
-  //   context.dispatch({
-  //     type: "setLoadViewSpec",
-  //     payload: {
-  //       TagName,
-  //       dynamicProps,
-  //       isOnPopState: false,
-  //       onCancelled,
-  //     },
-  //   });
-  // };
-
-  // const loadDefaultView = () => {
-  //   // if request view doesn't load, load default route
-  //   loadView(ProjectsView);
-  // };
-
-  // const initializeFirstView = () => {
-  //   // handle default
-  //   if (location.pathname == "/") {
-  //     loadDefaultView();
-  //   } else {
-  //     try {
-  //       let [TagName, dynamicProps] = decodeRoute(
-  //         location.pathname,
-  //         location.search
-  //       );
-  //       loadView(TagName, dynamicProps);
-  //     } catch (error) {
-  //       loadDefaultView();
-  //     }
-  //   }
-  // };
 
   const alert = (title, content, onClose) => {
     // Analytics call
@@ -291,54 +117,17 @@ const App = () => {
     );
   };
 
-  // const getProject = () => {
-  //   return new Promise((resolve, reject) => {
-  //     // Use this to get the currently selected project outside
-  //     // of a view that consumes it as props.
-  //     // E.g. in the pipeline view that loads the selected project's
-  //     // pipeline when no query arguments are passed.
-  //     if (context.state.project_uuid) {
-  //       resolve(context.state.project_uuid);
-  //     } else {
-  //       // No project selected yet, fetch from server
-  //       makeRequest(
-  //         "GET",
-  //         "/async/projects?skip_discovery=true&session_counts=false"
-  //       )
-  //         .then((result) => {
-  //           let projects = JSON.parse(result as string);
-  //           if (projects.length == 0) {
-  //             resolve(undefined);
-  //           } else {
-  //             resolve(projects[0].uuid);
-  //           }
-  //         })
-  //         .catch(() => {
-  //           reject();
-  //         });
-  //     }
-  //   });
-  // };
-
   React.useEffect(() => {
     setJupyter(new Jupyter(jupyterRef.current));
-    // initializeFirstView();
   }, []);
 
   window.orchest = {
     config,
-    // loadView,
     alert,
     confirm,
     requestBuild,
-    // getProject,
     jupyter,
   };
-
-  // React.useEffect(() => {
-  //   if (state.ViewComponent)
-  //     setView(_generateView(state.ViewComponent, state.dynamicProps));
-  // }, [state, context?.state?.project_uuid]);
 
   return (
     <Router>

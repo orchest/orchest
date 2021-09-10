@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
 import parser from "cron-parser";
 import _ from "lodash";
 import {
@@ -32,21 +31,21 @@ import SearchableTable from "@/components/SearchableTable";
 import ParamTree from "@/components/ParamTree";
 import EnvVarList from "@/components/EnvVarList";
 import { generatePathFromRoute, siteMap } from "@/Routes";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const EditJobView: React.FC<TViewProps> = (props) => {
+  // global states
   const { orchest } = window;
   const context = useOrchest();
+  useDocumentTitle(props.title);
 
   // data from route
-  const history = useHistory<{ isReadOnly: boolean }>();
-  const { projectId, jobId } = useParams<{
-    projectId: string;
-    jobId: string;
-  }>();
+  const { projectId, jobId, history } = useCustomRoute();
 
+  // local states
   const [job, setJob] = useState<Job>();
   const [pipeline, setPipeline] = useState<PipelineJson>();
-
   const [state, setState] = React.useState({
     envVariables: null,
     selectedTabIndex: 0,

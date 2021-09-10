@@ -1,6 +1,5 @@
 // @ts-nocheck
 import React, { useRef, useEffect, useState } from "react";
-import { useParams, useHistory } from "react-router-dom";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -15,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
   checkGate,
@@ -37,7 +36,8 @@ import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
 import { useHotKey } from "./hooks/useHotKey";
 
 import { siteMap, generatePathFromRoute, toQueryString } from "../Routes";
-import { useLocationQuery, useLocationState } from "@/hooks/useCustomLocation";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -46,27 +46,23 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
-type IPipelineViewProps = TViewPropsWithRequiredQueryArgs<
-  "pipeline_uuid" | "project_uuid"
->;
-
-const PipelineView: React.FC<IPipelineViewProps> = (props) => {
+const PipelineView: React.FC<TViewProps> = (props) => {
   const { $, orchest } = window;
   const {
     get,
     state: { sessionsIsLoading },
     dispatch,
   } = useOrchest();
+  useDocumentTitle(props.title);
 
-  const history = useHistory();
-  const { projectId, pipelineId } = useParams<{
-    projectId: string;
-    pipelineId: string;
-  }>();
-  const [jobId, runId] = useLocationQuery(["job_uuid", "run_uuid"]);
-  const [isReadOnlyFromQueryString] = useLocationState<[boolean]>([
-    "isReadOnly",
-  ]);
+  const {
+    projectId,
+    pipelineId,
+    jobId,
+    runId,
+    isReadOnly: isReadOnlyFromQueryString,
+    history,
+  } = useCustomRoute();
 
   const [isReadOnly, setIsReadOnly] = useState(!!isReadOnlyFromQueryString);
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);

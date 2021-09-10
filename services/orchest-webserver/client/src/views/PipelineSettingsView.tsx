@@ -1,5 +1,4 @@
 import React, { useRef, useState } from "react";
-import { useHistory, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
@@ -28,7 +27,11 @@ import {
   MDCIconButtonToggleReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  TViewProps,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
@@ -43,7 +46,8 @@ import EnvVarList from "@/components/EnvVarList";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import { generatePathFromRoute, siteMap, toQueryString } from "@/Routes";
-import { useLocationQuery, useLocationState } from "@/hooks/useCustomLocation";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -55,28 +59,27 @@ const tabMapping: Record<string, number> = {
   services: 2,
 };
 
-const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
+const PipelineSettingsView: React.FC<TViewProps> = (props) => {
   // global states
   const orchest = window.orchest;
-  const { dispatch, get } = useOrchest();
-  const history = useHistory();
   const context = useOrchest();
+  const { dispatch, get } = useOrchest();
+  useDocumentTitle(props.title);
 
-  // route states
-  const { projectId, pipelineId } = useParams<{
-    projectId: string;
-    pipelineId: string;
-  }>();
-  const [jobId, runId, initialTab] = useLocationQuery([
-    "job_uuid",
-    "run_uuid",
-    "initial_tab",
-  ]);
-  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
+  // data from route
+  const {
+    history,
+    projectId,
+    pipelineId,
+    jobId,
+    runId,
+    initialTab,
+    isReadOnly,
+  } = useCustomRoute();
 
   // local states
   const [selectedTabIndex, setSelectedTabIndex] = useState<number>(
-    tabMapping[initialTab]
+    tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
 
   const [state, setState] = React.useState({
@@ -126,9 +129,9 @@ const PipelineSettingsView: React.FC<IPipelineSettingsView> = (props) => {
 
   // Fetch pipeline data when query args change
   // TODO: check dev branch when this queryArgs is updated
-  React.useEffect(() => {
-    fetchPipelineData();
-  }, [props.queryArgs]);
+  // React.useEffect(() => {
+  //   fetchPipelineData();
+  // }, [props.queryArgs]);
 
   // If the component has loaded, attach the resize listener
   React.useEffect(() => {

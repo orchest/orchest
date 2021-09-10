@@ -1,6 +1,14 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
-const NotFound = () => {
+
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { TViewProps } from "@/types";
+
+// TODO: Currently this component is not used, we need a proper Page Not Found page
+// atm, wrong path will simply redirect back to ProjectsView
+
+const NotFound: React.FC<TViewProps> = (props) => {
+  useDocumentTitle(props.title);
   let location = useLocation();
 
   return (

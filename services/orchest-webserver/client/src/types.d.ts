@@ -159,7 +159,7 @@ export interface IQueryArgs
 }
 
 export type TViewProps = {
-  queryArgs?: IQueryArgs;
+  title: string;
 };
 
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {

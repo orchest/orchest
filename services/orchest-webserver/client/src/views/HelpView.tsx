@@ -3,9 +3,11 @@ import { MDCButtonReact } from "@orchest/lib-mdc";
 import type { TViewProps } from "@/types";
 import { Layout, useLayout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
-const HelpView: React.FC<TViewProps> = () => {
+const HelpView: React.FC<TViewProps> = (props) => {
   const { state } = useOrchest();
+  useDocumentTitle(props.title);
   const { setIsOnboardingDialogOpen } = useLayout();
 
   return (

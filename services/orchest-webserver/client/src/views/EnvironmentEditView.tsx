@@ -1,5 +1,4 @@
 import React from "react";
-import { useHistory, useParams } from "react-router-dom";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
 import { uuidv4 } from "@orchest/lib-utils";
@@ -24,25 +23,25 @@ import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { generatePathFromRoute, siteMap } from "@/Routes";
-import type { Environment } from "@/types";
+import type { Environment, TViewProps } from "@/types";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const EnvironmentEditView: React.FC = () => {
+const EnvironmentEditView: React.FC<TViewProps> = (props) => {
+  // global states
   const { orchest } = window;
-  const history = useHistory();
-
-  const { projectId, environmentId } = useParams<{
-    projectId: string;
-    environmentId: string;
-  }>();
-
   const context = useOrchest();
+  useDocumentTitle(props.title);
 
+  // data from route
+  const { projectId, environmentId, history } = useCustomRoute();
+
+  // local states
   const [isNewEnvironment, setIsNewEnvironment] = React.useState(
     environmentId === "create"
   );
-
   const [environment, setEnvironment] = React.useState<Environment>({
     uuid: "new",
     name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useParams, useHistory } from "react-router-dom";
+import { useHistory } from "react-router-dom";
 import {
   MDCButtonReact,
   MDCDialogReact,

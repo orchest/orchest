@@ -1,5 +1,5 @@
 import React from "react";
-import { useHistory, useParams, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 import {
   makeRequest,
@@ -18,13 +18,17 @@ import {
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import { generatePathFromRoute, siteMap } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const ProjectSettingsView: React.FC<TViewProps> = (props) => {
+  // global states
   const { orchest } = window;
-  const history = useHistory();
-  const { projectId } = useParams<{ projectId: string }>();
-
   const context = useOrchest();
+
+  // data from route
+  const { history, projectId } = useCustomRoute();
+
+  // local states
   const [state, setState] = React.useState({
     envVariables: null,
     pipeline_count: null,

@@ -22,6 +22,8 @@ import { useOrchest } from "@/hooks/orchest";
 import { generatePathFromRoute, siteMap } from "@/Routes";
 import type { TViewProps, Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useLocationQuery } from "@/hooks/useCustomRoute";
 
 const ERROR_MAPPING = {
   "project move failed": "failed to move project because the directory exists.",
@@ -32,11 +34,20 @@ const ERROR_MAPPING = {
 const ProjectsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
 
-  const history = useHistory();
+  useDocumentTitle(props.title);
 
+  const history = useHistory();
   const context = useOrchest();
 
-  const [importUrl, setImportUrl] = React.useState("");
+  const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
+  const [importUrl, setImportUrl] = React.useState(
+    importUrlFromQuerystring !== "null" // is this query string is not given
+      ? window.decodeURIComponent(importUrlFromQuerystring)
+      : ""
+  );
+
+  const hasPrefilledImportUrl = importUrlFromQuerystring && importUrl;
+
   const [projectName, setProjectName] = React.useState("");
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
@@ -68,10 +79,11 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   };
 
   const conditionalShowImportFromURL = () => {
-    if (props?.queryArgs?.import_url) {
+    // if user loads the app with a pre-filled import_url in their query string
+    // we prompt them directly with the import modal
+    if (hasPrefilledImportUrl) {
       setState((prevState) => ({
         ...prevState,
-        import_url: props.queryArgs.import_url,
         showImportModal: true,
       }));
     }
@@ -478,10 +490,6 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   }, []);
 
   React.useEffect(() => {
-    conditionalShowImportFromURL();
-  }, [props?.queryArgs]);
-
-  React.useEffect(() => {
     if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
       const createdProject = state.projects.filter((proj) => {
         return proj.path == state.fetchListAndSetProject;
@@ -512,7 +520,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
                 className="project-import-modal"
                 data-test-id="import-project-dialog"
               >
-                {props.queryArgs && importUrl && (
+                {hasPrefilledImportUrl && (
                   <div className="push-down warning">
                     <p>
                       <i className="material-icons">warning</i> The import URL

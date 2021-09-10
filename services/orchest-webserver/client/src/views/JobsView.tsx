@@ -1,18 +1,16 @@
 import React from "react";
-import { useParams } from "react-router-dom";
 
 import type { TViewProps } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import JobList from "@/components/JobList";
-import ProjectBasedView, {
-  IProjectBasedViewProps,
-} from "@/components/ProjectBasedView";
+import ProjectBasedView from "@/components/ProjectBasedView";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
-export interface IJobsViewProps extends TViewProps, IProjectBasedViewProps {}
+const JobsView: React.FC<TViewProps> = (props) => {
+  useDocumentTitle(props.title);
+  const { projectId } = useCustomRoute();
 
-const JobsView: React.FC<IJobsViewProps> = () => {
-  const { projectId } = useParams<{ projectId: string }>();
   return (
     <Layout>
       <ProjectBasedView projectId={projectId}>

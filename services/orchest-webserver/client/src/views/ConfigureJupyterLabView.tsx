@@ -12,14 +12,17 @@ import type { TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
-  const context = useOrchest();
-
+const ConfigureJupyterLabView: React.FC<TViewProps> = (props) => {
+  // global
   const { orchest } = window;
+  const context = useOrchest();
+  useDocumentTitle(props.title);
 
+  // local states
   const [state, setState] = React.useState({
     building: false,
     sessionKillStatus: undefined,
