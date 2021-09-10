@@ -39,7 +39,6 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   };
 
   const showPipeline = () => {
-    // dispatch({ type: "setView", payload: "pipeline" });
     history.push(
       generatePathFromRoute(siteMap.pipeline.path, {
         projectId: state.project_uuid,
@@ -49,8 +48,6 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   };
 
   const showJupyter = () => {
-    // dispatch({ type: "setView", payload: "jupyter" });
-
     history.push(
       generatePathFromRoute(siteMap.jupyterLab.path, {
         projectId: state.project_uuid,
