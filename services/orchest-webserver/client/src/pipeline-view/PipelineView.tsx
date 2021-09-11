@@ -389,7 +389,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       if (shouldAutoStart && !session) {
         dispatch({
           type: "sessionToggle",
-          payload: { pipeline_uuid: pipelineUuid, project_uuid: projectUuid },
+          payload: { pipelineUuid, projectUuid },
         });
         setShouldAutoStart(false);
         return;
@@ -1077,8 +1077,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
           dispatch({
             type: "pipelineSet",
             payload: {
-              pipeline_uuid: pipelineUuid,
-              project_uuid: projectUuid,
+              pipelineUuid,
+              projectUuid,
               pipelineName: pipelineJson.name,
             },
           });

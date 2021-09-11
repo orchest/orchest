@@ -3,23 +3,23 @@ import { NavLink } from "react-router-dom";
 import { MDCDrawer } from "@material/drawer";
 import { useOrchest } from "@/hooks/orchest";
 
-import { generatePathFromRoute, siteMap } from "../routingConfig";
+import { siteMap, toQueryString } from "../routingConfig";
 
 const getProjectMenuItems = (projectUuid: string) => [
   {
     label: "Pipelines",
     icon: "device_hub",
-    path: generatePathFromRoute(siteMap.pipelines.path, { projectUuid }),
+    path: `${siteMap.pipelines.path}${toQueryString({ projectUuid })}`,
   },
   {
     label: "Jobs",
     icon: "pending_actions",
-    path: generatePathFromRoute(siteMap.jobs.path, { projectUuid }),
+    path: `${siteMap.jobs.path}${toQueryString({ projectUuid })}`,
   },
   {
     label: "Environments",
     icon: "view_comfy",
-    path: generatePathFromRoute(siteMap.environments.path, { projectUuid }),
+    path: `${siteMap.environments.path}${toQueryString({ projectUuid })}`,
   },
 ];
 

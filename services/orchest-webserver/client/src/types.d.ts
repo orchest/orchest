@@ -62,7 +62,10 @@ export interface LoadViewSpec {
 }
 
 export interface IOrchestState
-  extends Pick<IOrchestSession, "projectUuid" | "pipelineUuid"> {
+  extends Pick<
+    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
+    "projectUuid" | "pipelineUuid"
+  > {
   alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;

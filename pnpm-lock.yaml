@@ -181,6 +181,7 @@ importers:
       "@types/jquery": ^3.5.6
       "@types/lodash": ^4.14.172
       "@types/node": 15.0.1
+      "@types/pascalcase": ^1.0.0
       "@types/react": 17.0.3
       "@types/react-router-dom": ^5.1.8
       "@typescript-eslint/eslint-plugin": ^4.29.3
@@ -251,6 +252,7 @@ importers:
       "@types/jquery": 3.5.6
       "@types/lodash": 4.14.172
       "@types/node": 15.0.1
+      "@types/pascalcase": 1.0.0
       "@types/react": 17.0.3
       "@types/react-router-dom": 5.1.8
       "@typescript-eslint/eslint-plugin": 4.29.3_1ea599bb64abb47a0875539fc56b49b9
@@ -1927,6 +1929,13 @@ packages:
     resolution:
       {
         integrity: sha512-//oorEZjL6sbPcKUaCdIGlIUeH26mgzimjBB77G6XRgnDl/L5wOnpyBGRe/Mmf5CVW3PwEBE1NjiMZ/ssFh4wA==,
+      }
+    dev: true
+
+  /@types/pascalcase/1.0.0:
+    resolution:
+      {
+        integrity: sha512-GUljFjs6pnZuxxmStKR1uDWIcGQSVdmUedFfreyJGU0owXW096kvYxf+6T/e1I6r3N8gNrqk3PETHqZwlR2xVg==,
       }
     dev: true
 

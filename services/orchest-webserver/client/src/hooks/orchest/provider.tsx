@@ -93,15 +93,10 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   const orchest = window.orchest;
 
   const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
-  const [projectUuid, setProjectUuid] = useLocalStorage(
-    "selected_project_uuid",
-    undefined
-  );
 
   const [state, dispatch] = React.useReducer(reducer, {
     ...initialState,
     drawerIsOpen,
-    projectUuid,
     config,
     user_config,
   });
@@ -134,9 +129,6 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   React.useEffect(() => {
     setDrawerIsOpen(state?.drawerIsOpen);
   }, [state.drawerIsOpen]);
-  React.useEffect(() => {
-    setProjectUuid(state?.projectUuid);
-  }, [state.projectUuid]);
 
   /**
    * Handle Alerts

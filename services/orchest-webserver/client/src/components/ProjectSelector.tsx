@@ -19,6 +19,7 @@ export type TProjectSelectorProps = any;
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
   const { navigateTo } = useCustomRoute();
+  // ProjectSelector only appears when user is at the project root, i.e. Pipelines, Jobs and Environments
   const match = useMatchProjectRoot();
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -30,12 +31,8 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const onChangeProject = (projectUuid: string) => {
     if (projectUuid) {
       dispatch({ type: "projectSet", payload: projectUuid });
-      const path = match ? match.path : siteMap.pipeline.path;
-      // TODO: HM: remove console.log
-      console.log("🥁", match);
-      navigateTo(path, {
-        query: { projectUuid },
-      });
+      const path = match ? match.path : siteMap.pipelines.path;
+      navigateTo(path, { query: { projectUuid } });
     }
   };
 
@@ -44,19 +41,19 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     projectUuid: string | undefined,
     projectsToValidate: Project[]
   ): string | undefined => {
-    let foundProjectUUID =
+    let foundProjectUuid =
       projectUuid !== undefined
         ? projectsToValidate.some((project) => project.uuid == projectUuid)
         : false;
 
-    if (!foundProjectUUID) {
+    if (!foundProjectUuid) {
       dispatch({
         type: "projectSet",
         payload: undefined,
       });
     }
 
-    return foundProjectUUID ? projectUuid : undefined;
+    return foundProjectUuid ? projectUuid : undefined;
   };
 
   const fetchProjects = () => {
@@ -76,7 +73,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
 
         // validate the currently selected project, if its invalid
         // it will be set to undefined
-        let projectUuid = validateProjectUuid(
+        const projectUuid = validateProjectUuid(
           state.projectUuid,
           fetchedProjects
         );
@@ -84,12 +81,10 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
         // either there was no selected project or the selection
         // was invalid, set the selection to the first project if possible
         if (projectUuid === undefined && fetchedProjects.length > 0) {
-          projectUuid = fetchedProjects[0].uuid;
-          onChangeProject(projectUuid);
+          onChangeProject(fetchedProjects[0].uuid);
         }
 
         // setSelectItems(listProcess(projectsRes));
-        // setProjects(projectsRes);
         // Needs to be here in case the request is cancelled, will otherwise
         // result in an uncaught error that can throw off cypress.
       })
