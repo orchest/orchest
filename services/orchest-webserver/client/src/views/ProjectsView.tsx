@@ -42,13 +42,15 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const { navigateTo } = useCustomRoute();
 
   const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
-  const [importUrl, setImportUrl] = React.useState(
-    importUrlFromQuerystring !== "null" // is this query string is not given
+
+  const hasPrefilledImportUrl =
+    importUrlFromQuerystring && typeof importUrlFromQuerystring === "string";
+
+  const [importUrl, setImportUrl] = React.useState<string>(
+    hasPrefilledImportUrl
       ? window.decodeURIComponent(importUrlFromQuerystring as string)
       : ""
   );
-
-  const hasPrefilledImportUrl = importUrlFromQuerystring && importUrl;
 
   const [projectName, setProjectName] = React.useState("");
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
