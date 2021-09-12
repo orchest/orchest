@@ -36,6 +36,9 @@ def get_issues_from_pr_body(body: str) -> list[str]:
     pattern = r"Fixes: (#\d+(?:\, )?)*"
     match = re.search(pattern, body)
 
+    if match is None:
+        return []
+
     issue_numbers = match.group(0).lstrip("Fixes: ").split(", ")
     return [num.lstrip("#") for num in issue_numbers]
 
@@ -46,7 +49,11 @@ def main():
     args = parser.parse_args()
 
     issue_numbers = get_issues_from_pr_body(args.body)
-    print("Found issues to close:", ", ".join(issue_numbers))
+    if issue_numbers:
+        print("Found issues to close:", ", ".join(issue_numbers))
+    else:
+        print("Did not find any issues to close.")
+        sys.exit(0)
 
     conn = client.HTTPSConnection("api.github.com")
     could_close = [close_issue(conn, issue_number) for issue_number in issue_numbers]
