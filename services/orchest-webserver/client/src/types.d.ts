@@ -1,4 +1,5 @@
 import React from "react";
+import { TStatus } from "./components/Status";
 
 export interface IOrchestConfig {
   CLOUD: boolean;
@@ -183,6 +184,17 @@ export type Environment = {
   name: string;
   project_uuid: string;
   setup_script: string;
+  uuid: string;
+};
+
+export type EnvironmentBuild = {
+  environment_uuid: string;
+  finished_time: string;
+  project_path: string;
+  project_uuid: string;
+  requested_time: string;
+  started_time: string;
+  status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
   uuid: string;
 };
 

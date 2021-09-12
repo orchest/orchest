@@ -23,7 +23,7 @@ import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { siteMap } from "@/Routes";
-import type { Environment, TViewProps } from "@/types";
+import type { EnvironmentBuild, Environment, TViewProps } from "@/types";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
@@ -343,7 +343,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
       buildPromise.promise
         .then((response: string) => {
           try {
-            let environmentBuild = JSON.parse(response)[
+            let environmentBuild: EnvironmentBuild = JSON.parse(response)[
               "environment_builds"
             ][0];
 

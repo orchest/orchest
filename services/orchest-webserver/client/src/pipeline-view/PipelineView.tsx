@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { TViewProps } from "@/types";
+import type { PipelineJson, TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
   checkGate,
@@ -58,8 +58,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   const {
     projectUuid,
     pipelineUuid,
-    jobUuid,
-    runUuid,
+    jobUuid: jobUuidFromRoute,
+    runUuid: runUuidFromRoute,
     isReadOnly: isReadOnlyFromQueryString,
     navigateTo,
   } = useCustomRoute();
@@ -72,8 +72,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   }, [isReadOnly]);
 
   const session = get.session({
-    project_uuid: projectUuid,
-    pipeline_uuid: pipelineUuid,
+    projectUuid,
+    pipelineUuid,
   });
 
   const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
@@ -149,8 +149,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     runStatusEndpoint: "/catch/api-proxy/api/runs/",
     pipelineRunning: false,
     waitingOnCancel: false,
-    runUUID: undefined,
-    pendingRunUUIDs: undefined,
+    runUuid: undefined,
+    pendingRunUuids: undefined,
     pendingRunType: undefined,
     stepExecutionState: {},
     steps: {},
@@ -158,12 +158,13 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     // The save hash is used to propagate a save's side-effects
     // to components.
     saveHash: undefined,
+    pipelineJson: undefined,
   };
 
-  if (runUuid && jobUuid) {
-    initialState.runUUID = runUuid;
+  if (runUuidFromRoute && jobUuidFromRoute) {
+    initialState.runUuid = runUuidFromRoute;
     initialState.runStatusEndpoint =
-      "/catch/api-proxy/api/jobs/" + jobUuid + "/";
+      "/catch/api-proxy/api/jobs/" + jobUuidFromRoute + "/";
   }
 
   const [state, _setState] = React.useState(initialState);
@@ -203,7 +204,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
             let run = data["runs"][0];
 
             setState({
-              runUUID: run.uuid,
+              runUuid: run.uuid,
             });
           }
         } catch (e) {
@@ -217,7 +218,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       });
   };
 
-  const savePipeline = (callback) => {
+  const savePipeline = (callback?: () => void) => {
     if (!isReadOnly) {
       let pipelineJSON = encodeJSON();
 
@@ -283,11 +284,12 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const encodeJSON = () => {
+  const encodeJSON = (): PipelineJson => {
+    if (!state.pipelineJson) return;
     // generate JSON representation using the internal state of React components
     // describing the pipeline
 
-    let pipelineJSON = _.cloneDeep(state.pipelineJson);
+    let pipelineJSON: PipelineJson = _.cloneDeep(state.pipelineJson);
     pipelineJSON["steps"] = {};
 
     for (let key in state.steps) {
@@ -344,13 +346,13 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     return { ...state.pipelineJson, steps };
   };
 
-  const openSettings = (initialTab: string | undefined) => {
+  const openSettings = (initialTab?: string) => {
     navigateTo(siteMap.pipelineSettings.path, {
       query: {
         projectUuid,
         pipelineUuid,
-        jobUuid,
-        runUuid,
+        jobUuid: jobUuidFromRoute,
+        runUuid: runUuidFromRoute,
         initialTab,
       },
       state: { isReadOnly },
@@ -362,8 +364,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       query: {
         projectUuid,
         pipelineUuid,
-        jobUuid,
-        runUuid,
+        jobUuid: jobUuidFromRoute,
+        runUuid: runUuidFromRoute,
       },
       state: { isReadOnly },
     });
@@ -1027,8 +1029,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineUuid,
       projectUuid,
-      jobUuid,
-      runUuid
+      jobUuidFromRoute,
+      runUuidFromRoute
     );
 
     if (!isReadOnly) {
@@ -1089,7 +1091,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       })
       .catch((error) => {
         if (!error.isCanceled) {
-          if (jobUuid) {
+          if (jobUuidFromRoute) {
             // This case is hit when a user tries to load a pipeline that belongs
             // to a run that has not started yet. The project files are only
             // copied when the run starts. Before start, the pipeline.json thus
@@ -1415,8 +1417,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
         projectUuid,
         pipelineUuid,
         stepUuid,
-        jobUuid,
-        runUuid,
+        jobUuid: jobUuidFromRoute,
+        runUuid: runUuidFromRoute,
       },
       state: { isReadOnly },
     });
@@ -1461,9 +1463,9 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   };
 
   const pollPipelineStepStatuses = () => {
-    if (state.runUUID) {
+    if (state.runUuid) {
       let pollPromise = makeCancelable(
-        makeRequest("GET", state.runStatusEndpoint + state.runUUID),
+        makeRequest("GET", state.runStatusEndpoint + state.runUuid),
         state.promiseManager
       );
 
@@ -1637,20 +1639,20 @@ const PipelineView: React.FC<TViewProps> = (props) => {
       return;
     }
 
-    ((runUUID) => {
-      makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUUID}`)
-        .then(() => {
-          setState({
-            waitingOnCancel: true,
-          });
-        })
-        .catch((response) => {
-          orchest.alert(
-            "Error",
-            `Could not cancel pipeline run for runUUID ${runUUID}`
-          );
+    const { runUuid } = state;
+
+    makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUuid}`)
+      .then(() => {
+        setState({
+          waitingOnCancel: true,
         });
-    })(state.runUUID);
+      })
+      .catch((response) => {
+        orchest.alert(
+          "Error",
+          `Could not cancel pipeline run for runUuid ${runUuid}`
+        );
+      });
   };
 
   const _runStepUUIDs = (uuids, type) => {
@@ -1680,8 +1682,9 @@ const PipelineView: React.FC<TViewProps> = (props) => {
 
         parseRunStatuses(result);
 
+        console.log("🚕 get runUuid in the state");
         setState({
-          runUUID: result.uuid,
+          runUuid: result.uuid,
         });
 
         startStatusInterval();
@@ -1726,7 +1729,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     }
 
     setState({
-      pendingRunUUIDs: uuids,
+      pendingRunUuids: uuids,
       pendingRunType: type,
       saveHash: uuidv4(),
     });
@@ -1883,8 +1886,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
 
   const servicesAvailable = () => {
     if (
-      (!jobUuid && session && session.status == "RUNNING") ||
-      (jobUuid && state.pipelineJson && state.pipelineRunning)
+      (!jobUuidFromRoute && session && session.status == "RUNNING") ||
+      (jobUuidFromRoute && state.pipelineJson && state.pipelineRunning)
     ) {
       let services = getServices();
       if (services !== undefined) {
@@ -2023,7 +2026,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
 
   const getServices = () => {
     let services;
-    if (!jobUuid) {
+    if (!jobUuidFromRoute) {
       if (session && session.user_services) {
         services = session.user_services;
       }
@@ -2032,7 +2035,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     }
 
     // Filter services based on scope
-    let scope = jobUuid ? "noninteractive" : "interactive";
+    let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(services, scope);
   };
 
@@ -2044,7 +2047,12 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     for (let serviceName in services) {
       let service = services[serviceName];
 
-      let urls = getServiceURLs(service, projectUuid, pipelineUuid, runUuid);
+      let urls = getServiceURLs(
+        service,
+        projectUuid,
+        pipelineUuid,
+        runUuidFromRoute
+      );
 
       let formatUrl = (url) => {
         return "Port " + url.split("/")[3].split("_").slice(-1)[0];
@@ -2076,7 +2084,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     navigateTo(siteMap.job.path, {
       query: {
         projectUuid,
-        jobUuid,
+        jobUuid: jobUuidFromRoute,
       },
     });
   };
@@ -2146,18 +2154,18 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     pollPipelineStepStatuses();
     startStatusInterval();
-  }, [state.runUUID]);
+  }, [state.runUuid]);
 
   React.useEffect(() => {
     if (state.saveHash !== undefined) {
       if (
-        state.pendingRunUUIDs !== undefined &&
+        state.pendingRunUuids !== undefined &&
         state.pendingRunType !== undefined
       ) {
-        let uuids = state.pendingRunUUIDs;
+        let uuids = state.pendingRunUuids;
         let runType = state.pendingRunType;
         setState({
-          pendingRunUUIDs: undefined,
+          pendingRunUuids: undefined,
           pendingRunType: undefined,
         });
         savePipeline(() => {
@@ -2167,7 +2175,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
         savePipeline();
       }
     }
-  }, [state.saveHash, state.pendingRunUUIDs, state.pendingRunType]);
+  }, [state.saveHash, state.pendingRunUuids, state.pendingRunType]);
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
@@ -2180,7 +2188,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
-    const hasActiveRun = runUuid && jobUuid;
+    const hasActiveRun = runUuidFromRoute && jobUuidFromRoute;
     if (hasActiveRun) {
       try {
         pollPipelineStepStatuses();
@@ -2250,7 +2258,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
             onMouseLeave={disableHotkeys}
             onMouseOver={onMouseOverPipelineView}
           >
-            {jobUuid && isReadOnly && (
+            {jobUuidFromRoute && isReadOnly && (
               <div className="pipeline-actions top-left">
                 <MDCButtonReact
                   classNames={["mdc-button--outlined"]}
@@ -2418,8 +2426,8 @@ const PipelineView: React.FC<TViewProps> = (props) => {
               pipeline={state.pipelineJson}
               pipelineCwd={state.pipelineCwd}
               project_uuid={projectUuid}
-              job_uuid={jobUuid}
-              run_uuid={runUuid}
+              job_uuid={jobUuidFromRoute}
+              run_uuid={runUuidFromRoute}
               sio={state.sio}
               readOnly={isReadOnly}
               step={state.steps[state.eventVars.openedStep]}

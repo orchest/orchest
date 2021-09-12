@@ -98,17 +98,19 @@ export function filterServices(services, scope) {
   return servicesCopy;
 }
 
-export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
+export function getServiceURLs(
+  service,
+  projectUuid: string,
+  pipelineUuid: string,
+  runUuid: string
+) {
   let urls = [];
 
   if (service.ports === undefined) {
     return urls;
   }
 
-  let serviceUUID = pipeline_uuid;
-  if (run_uuid !== undefined) {
-    serviceUUID = run_uuid;
-  }
+  let serviceUuid = runUuid || pipelineUuid;
 
   let pbpPrefix = "";
   if (service.preserve_base_path) {
@@ -123,9 +125,9 @@ export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
         "service-" +
         service.name +
         "-" +
-        project_uuid.split("-")[0] +
+        projectUuid.split("-")[0] +
         "-" +
-        serviceUUID.split("-")[0] +
+        serviceUuid.split("-")[0] +
         "_" +
         port +
         "/"
