@@ -401,6 +401,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         state.selectedIndices
       ),
       env_variables: envVariables,
+      name: state.job.name,
     };
 
     if (state.scheduleOption === "scheduled") {
