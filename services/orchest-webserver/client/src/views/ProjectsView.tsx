@@ -210,6 +210,7 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
         }));
 
         // Verify selected project UUID
+        // TODO: do we still need this?
         if (
           !context.state.projectUuid ||
           !projects.some(
@@ -237,10 +238,6 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
 
   const onClickListItem = (row, idx, e) => {
     let project = state.projects[idx];
-    context.dispatch({
-      type: "projectSet",
-      payload: project.uuid,
-    });
 
     navigateTo(siteMap.pipelines.path, {
       query: { projectUuid: project.uuid },

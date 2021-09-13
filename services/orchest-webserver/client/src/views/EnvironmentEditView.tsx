@@ -184,10 +184,6 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToEnvironments = () => {
-    context.dispatch({
-      type: "projectSet",
-      payload: projectUuid,
-    });
     navigateTo(siteMap.environments.path, {
       query: { projectUuid },
     });

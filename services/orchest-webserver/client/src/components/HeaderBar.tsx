@@ -11,7 +11,6 @@ import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
 import { siteMap } from "@/Routes";
-import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
@@ -22,7 +21,6 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
 
   const { state, dispatch, get } = useOrchest();
 
-  const matchProjectRoot = useMatchProjectRoot();
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
     exact: true,
@@ -80,7 +78,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
           src="/image/logo.svg"
           data-test-id="orchest-logo"
         />
-        {!!matchProjectRoot && <ProjectSelector />}
+        <ProjectSelector />
       </div>
 
       {state.pipelineName && (

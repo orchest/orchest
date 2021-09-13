@@ -157,10 +157,6 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
   };
 
   const onViewBuildStatus = () => {
-    dispatch({
-      type: "projectSet",
-      payload: props.projectUuid,
-    });
     navigateTo(siteMap.environments.path, {
       query: { projectUuid: props.projectUuid },
     });

@@ -1,5 +1,7 @@
-import { toQueryString } from "@/routingConfig";
+import React from "react";
 import { useLocation, useHistory } from "react-router-dom";
+
+import { toQueryString } from "@/routingConfig";
 import { useSendAnalyticEvent } from "./useSendAnalyticEvent";
 
 // NOTE: if the parameter is safe to expose to user (i.e. component can read it from the URL), use useLocationQuery
@@ -36,6 +38,42 @@ const useLocationQuery = (
     // NOTE: we don't handle numbers!
     return value;
   });
+};
+
+const useHistoryListener = <T>({
+  forward,
+  backward,
+  onPush,
+}: {
+  forward?: (history) => void;
+  backward?: (history) => void;
+  onPush?: (history) => void;
+}) => {
+  const history = useHistory<T>();
+  const locationKeysRef = React.useRef([]);
+  React.useEffect(() => {
+    const removeListener = history.listen((location) => {
+      if (history.action === "PUSH") {
+        locationKeysRef.current = [location.key];
+        onPush && onPush(history);
+      }
+      if (history.action === "POP") {
+        const isForward = locationKeysRef.current[1] === location.key;
+        if (isForward) {
+          forward && forward(history);
+        } else {
+          backward && backward(history);
+        }
+
+        // update location keys
+        locationKeysRef.current =
+          locationKeysRef.current[1] === location.key
+            ? locationKeysRef.current.slice(1)
+            : [location.key, ...locationKeysRef.current];
+      }
+    });
+    return removeListener;
+  }, []);
 };
 
 // these are common use cases that are all over the place
@@ -94,4 +132,9 @@ const useCustomRoute = () => {
   };
 };
 
-export { useLocationState, useLocationQuery, useCustomRoute };
+export {
+  useLocationState,
+  useLocationQuery,
+  useHistoryListener,
+  useCustomRoute,
+};

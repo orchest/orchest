@@ -34,6 +34,18 @@ import { siteMap } from "@/Routes";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
+type EditJobState = {
+  selectedTabIndex: number;
+  generatedPipelineRuns: any[];
+  generatedPipelineRunRows: any[];
+  selectedIndices: number[];
+  scheduleOption: "now" | "cron" | "scheduled";
+  runJobLoading: boolean;
+  runJobCompleted: boolean;
+  cronString: string | undefined;
+  strategyJSON: Record<string, any>;
+};
+
 const EditJobView: React.FC<TViewProps> = (props) => {
   // global states
   const { orchest } = window;
@@ -46,8 +58,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   // local states
   const [job, setJob] = useState<Job>();
   const [pipeline, setPipeline] = useState<PipelineJson>();
-  const [state, setState] = React.useState({
-    envVariables: null,
+  const [envVariables, setEnvVariables] = useState<
+    { name: string; value: string }[]
+  >([]);
+  const [state, setState] = React.useState<EditJobState>({
     selectedTabIndex: 0,
     generatedPipelineRuns: [],
     generatedPipelineRunRows: [],
@@ -76,12 +90,12 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         if (fetchedJob.pipeline_uuid && fetchedJob.uuid) {
           fetchPipeline(fetchedJob);
         }
+        setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
 
         setState((prevState) => ({
           ...prevState,
           cronString: fetchedJob.schedule || "* * * * *",
           scheduleOption: fetchedJob.schedule === null ? "now" : "cron",
-          envVariables: envVariablesDictToArray(fetchedJob.env_variables),
           strategyJSON:
             fetchedJob.status !== "DRAFT"
               ? fetchedJob.strategy_json
@@ -101,6 +115,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const fetchPipeline = (fetchedJob: Job) => {
+    if (!projectUuid) return;
     let fetchPipelinePromise = makeCancelable(
       makeRequest(
         "GET",
@@ -162,17 +177,23 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const findParameterization = (parameterization, parameters) => {
+  const findParameterization = (
+    parameterization: Record<string, any>,
+    parameters: Record<string, any>
+  ) => {
     let JSONstring = JSON.stringify(parameterization);
     for (let x = 0; x < parameters.length; x++) {
-      if (JSON.stringify(parameters[x]) == JSONstring) {
+      if (JSON.stringify(parameters[x]) === JSONstring) {
         return x;
       }
     }
     return -1;
   };
 
-  const parseParameters = (parameters, generatedPipelineRuns) => {
+  const parseParameters = (
+    parameters: Record<string, any>,
+    generatedPipelineRuns: Record<string, any>
+  ) => {
     let _parameters = _.cloneDeep(parameters);
     let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
 
@@ -196,7 +217,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     return selectedIndices;
   };
 
-  const generateParameterLists = (parameters) => {
+  const generateParameterLists = (parameters: Record<string, any>) => {
     let parameterLists = {};
 
     for (const paramKey in parameters) {
@@ -243,7 +264,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     return strategyJSON;
   };
 
-  const onSelectSubview = (index) => {
+  const onSelectSubview = (index: number) => {
     setState((prevState) => ({
       ...prevState,
       selectedTabIndex: index,
@@ -251,7 +272,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const handleJobNameChange = (name: string) => {
-    setJob((prev) => ({ ...prev, name }));
+    setJob((prev) => (prev ? { ...prev, name } : prev));
   };
 
   const generateWithStrategy = (strategyJSON) => {
@@ -335,7 +356,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
     // Valid cron string.
     try {
-      parser.parseExpression(state.cronString);
+      parser.parseExpression(state.cronString || "");
     } catch (err) {
       return {
         pass: false,
@@ -345,7 +366,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     }
 
     // Valid environment variables
-    for (let envPair of state.envVariables) {
+    for (let envPair of envVariables) {
       if (!isValidEnvironmentVariableName(envPair.name)) {
         return {
           pass: false,
@@ -372,6 +393,8 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const runJob = () => {
+    if (!job) return;
+
     setState((prevState) => ({
       ...prevState,
       runJobLoading: true,
@@ -381,9 +404,9 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       payload: false,
     });
 
-    let envVariables = envVariablesArrayToDict(state.envVariables);
+    let updatedEnvVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (envVariables === undefined) {
+    if (!updatedEnvVariables) {
       setState((prevState) => ({
         ...prevState,
         runJobLoading: false,
@@ -400,7 +423,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         state.generatedPipelineRuns,
         state.selectedIndices
       ),
-      env_variables: envVariables,
+      env_variables: updatedEnvVariables,
     };
 
     if (state.scheduleOption === "scheduled") {
@@ -446,7 +469,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
           payload: false,
         });
       })
-      .catch((response) => {
+      .catch((response: any) => {
         if (!response.isCanceled) {
           try {
             let result = JSON.parse(response.body);
@@ -468,6 +491,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const putJobChanges = () => {
+    if (!job || !projectUuid) return;
     /* This function should only be called
      *  for jobs with a cron schedule. As those
      *  are the only ones that are allowed to be changed
@@ -483,9 +507,9 @@ const EditJobView: React.FC<TViewProps> = (props) => {
       );
 
       let cronSchedule = state.cronString;
-      let envVariables = envVariablesArrayToDict(state.envVariables);
+      let updatedEnvVariables = envVariablesArrayToDict(envVariables);
       // Do not go through if env variables are not correctly defined.
-      if (envVariables === undefined) {
+      if (updatedEnvVariables === undefined) {
         onSelectSubview(2);
         return;
       }
@@ -503,7 +527,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
             cron_schedule: cronSchedule,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
-            env_variables: envVariables,
+            env_variables: updatedEnvVariables,
           },
         }),
         promiseManager
@@ -543,8 +567,8 @@ const EditJobView: React.FC<TViewProps> = (props) => {
           let stepUUID = keySplit[0];
           let parameterKey = keySplit.slice(1).join("#");
 
-          if (selectedRunParameters[stepUUID] === undefined)
-            selectedRunParameters[stepUUID] = {};
+          selectedRunParameters[stepUUID] =
+            selectedRunParameters[stepUUID] || {};
 
           selectedRunParameters[stepUUID][parameterKey] = runParameters[key];
         }
@@ -557,9 +581,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   };
 
   const cancel = () => {
-    navigateTo(siteMap.jobs.path, {
-      query: { projectUuid },
-    });
+    if (projectUuid)
+      navigateTo(siteMap.jobs.path, {
+        query: { projectUuid },
+      });
   };
 
   const onPipelineRunsSelectionChanged = (selectedRows, rows) => {
@@ -575,11 +600,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
         console.error("row should always be in generatedPipelineRunRows");
       }
 
-      if (selectedRows.indexOf(rows[x]) !== -1) {
-        selectedIndices[index] = 1;
-      } else {
-        selectedIndices[index] = 0;
-      }
+      selectedIndices[index] = selectedRows.indexOf(rows[x]) !== -1 ? 1 : 0;
     }
 
     setState((prevState) => ({
@@ -606,10 +627,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
     return strategyJSON;
   };
 
-  const setCronSchedule = (cronString) => {
+  const setCronSchedule = (cronString: string) => {
     setState((prevState) => ({
       ...prevState,
-      cronString: cronString,
+      cronString,
       scheduleOption: "cron",
     }));
 
@@ -622,49 +643,44 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   const addEnvVariablePair = (e) => {
     e.preventDefault();
 
-    const envVariables = state.envVariables.slice();
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables.concat([
-        {
-          name: null,
-          value: null,
-        },
-      ]),
-    }));
+    setEnvVariables((envVariables) => [
+      ...envVariables,
+      { name: null, value: null },
+    ]);
+
     context.dispatch({
       type: "setUnsavedChanges",
       payload: true,
     });
   };
 
-  const onEnvVariablesChange = (value, idx, type) => {
-    const envVariables = state.envVariables.slice();
-    envVariables[idx][type] = value;
+  const onEnvVariablesChange = (value, idx: number, type) => {
+    setEnvVariables((prev) => {
+      const copiedEnvVariables = [...prev];
+      copiedEnvVariables[idx][type] = value;
+      return copiedEnvVariables;
+    });
 
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables,
-    }));
     context.dispatch({
       type: "setUnsavedChanges",
       payload: true,
     });
   };
 
-  const onEnvVariablesDeletion = (idx) => {
-    const envVariables = state.envVariables.slice();
-    envVariables.splice(idx, 1);
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables,
-    }));
+  const onEnvVariablesDeletion = (idx: number) => {
+    setEnvVariables((prev) => {
+      const copiedEnvVariables = [...prev];
+      copiedEnvVariables.splice(idx, 1);
+      return copiedEnvVariables;
+    });
+
     context.dispatch({
       type: "setUnsavedChanges",
       payload: true,
     });
   };
 
+  // @ts-ignore
   const detailRows = (pipelineParameters, strategyJSON) => {
     let detailElements = [];
 
@@ -676,7 +692,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
 
       detailElements.push(
         <div className="pipeline-run-detail">
-          <ParamTree pipelineName={pipeline.name} strategyJSON={strategyJSON} />
+          <ParamTree
+            pipelineName={pipeline?.name || ""}
+            strategyJSON={strategyJSON}
+          />
         </div>
       );
     }
@@ -691,9 +710,10 @@ const EditJobView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     if (state.runJobCompleted) {
       setState((prevState) => ({ ...prevState, runJobCompleted: false }));
-      navigateTo(siteMap.jobs.path, {
-        query: { projectUuid },
-      });
+      if (projectUuid)
+        navigateTo(siteMap.jobs.path, {
+          query: { projectUuid },
+        });
     }
   }, [state.runJobCompleted]);
 
@@ -746,7 +766,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                             <MDCRadioReact
                               label="Now"
                               value="now"
-                              name="time"
+                              name="now"
                               checked={state.scheduleOption === "now"}
                               onChange={(e) => {
                                 setState((prevState) => ({
@@ -850,7 +870,7 @@ const EditJobView: React.FC<TViewProps> = (props) => {
                         here.
                       </p>
                       <EnvVarList
-                        value={state.envVariables}
+                        value={envVariables}
                         onAdd={addEnvVariablePair}
                         onChange={(e, idx, type) =>
                           onEnvVariablesChange(e, idx, type)

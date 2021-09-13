@@ -407,11 +407,6 @@ const JobView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToJobs = () => {
-    dispatch({
-      type: "projectSet",
-      payload: job.project_uuid,
-    });
-
     navigateTo(siteMap.jobs.path, {
       query: {
         projectUuid: job.project_uuid,

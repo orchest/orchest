@@ -14,46 +14,43 @@ import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export type TProjectSelectorRef = any;
-export type TProjectSelectorProps = any;
+
+[siteMap];
 
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
-  const { navigateTo } = useCustomRoute();
-  // ProjectSelector only appears when user is at the project root, i.e. Pipelines, Jobs and Environments
-  const match = useMatchProjectRoot();
+  const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
+  const matchProjectRoot = useMatchProjectRoot();
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const listProcess = (projects: Project[]) => {
-    return projects.map((project) => [project.uuid, project.path]);
-  };
-
-  const onChangeProject = (projectUuid: string) => {
-    if (projectUuid) {
-      dispatch({ type: "projectSet", payload: projectUuid });
-      const path = match ? match.path : siteMap.pipelines.path;
-      navigateTo(path, { query: { projectUuid } });
+  const onChangeProject = (uuid: string) => {
+    if (uuid) {
+      const path = matchProjectRoot
+        ? matchProjectRoot.path
+        : siteMap.pipelines.path;
+      navigateTo(path, { query: { projectUuid: uuid } });
     }
   };
 
   // check whether given project is part of projects
   const validateProjectUuid = (
-    projectUuid: string | undefined,
-    projectsToValidate: Project[]
+    uuidToValidate: string | undefined,
+    projects: Project[]
   ): string | undefined => {
-    let foundProjectUuid =
-      projectUuid !== undefined
-        ? projectsToValidate.some((project) => project.uuid == projectUuid)
+    let isValid =
+      uuidToValidate !== undefined
+        ? projects.some((project) => project.uuid == uuidToValidate)
         : false;
 
-    if (!foundProjectUuid) {
+    if (!isValid) {
       dispatch({
         type: "projectSet",
         payload: undefined,
       });
     }
 
-    return foundProjectUuid ? projectUuid : undefined;
+    return isValid ? uuidToValidate : undefined;
   };
 
   const fetchProjects = () => {
@@ -71,26 +68,20 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
           payload: fetchedProjects,
         });
 
-        // validate the currently selected project, if its invalid
-        // it will be set to undefined
-        const projectUuid = validateProjectUuid(
-          state.projectUuid,
-          fetchedProjects
-        );
-
-        // either there was no selected project or the selection
-        // was invalid, set the selection to the first project if possible
-        if (projectUuid === undefined && fetchedProjects.length > 0) {
+        // Select the first one from the given projects, ONLY if user is at the project root
+        if (matchProjectRoot && fetchedProjects.length > 0) {
           onChangeProject(fetchedProjects[0].uuid);
         }
-
-        // setSelectItems(listProcess(projectsRes));
-        // Needs to be here in case the request is cancelled, will otherwise
-        // result in an uncaught error that can throw off cypress.
       })
       .catch((error) => console.log(error));
   };
 
+  // sync state.projectUuid and the route param projectUuid
+  React.useEffect(() => {
+    dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+  }, [projectUuidFromRoute]);
+  // whenever state.projectUuid is changed, fetch proejcts when necessary
+  // so we don't need to do this in other places, just in this component
   React.useEffect(() => {
     const isExistingProject = validateProjectUuid(
       state.projectUuid,
@@ -102,10 +93,15 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, [state.projectUuid, state.projects]);
+  }, [state.projectUuid]);
 
-  const selectItems = listProcess(state.projects);
+  const selectItems = state.projects.map((project) => [
+    project.uuid,
+    project.path,
+  ]);
 
+  // ProjectSelector only appears when user is at the project root, i.e. Pipelines, Jobs and Environments
+  if (!matchProjectRoot) return null;
   return state.projects ? (
     <MDCSelectReact
       ref={ref}
@@ -114,7 +110,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
       classNames={["project-selector", "fullwidth"]}
       options={selectItems}
       onChange={onChangeProject}
-      value={state?.projectUuid}
+      value={state.projectUuid}
       data-test-id="project-selector"
     />
   ) : (

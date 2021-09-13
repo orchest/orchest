@@ -1,0 +1,23 @@
+name: Close PR linked issues
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  close_issues:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Close linked issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/close_associated_issues.py "${{ github.event.pull_request.body }}"
