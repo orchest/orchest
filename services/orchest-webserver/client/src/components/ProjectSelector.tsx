@@ -35,13 +35,12 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
 
   // check whether given project is part of projects
   const validateProjectUuid = (
-    uuidToValidate: string | undefined,
+    uuidToValidate: string | undefined | null,
     projects: Project[]
   ): string | undefined => {
-    let isValid =
-      uuidToValidate !== undefined
-        ? projects.some((project) => project.uuid == uuidToValidate)
-        : false;
+    let isValid = uuidToValidate
+      ? projects.some((project) => project.uuid == uuidToValidate)
+      : false;
 
     if (!isValid) {
       dispatch({
@@ -68,10 +67,13 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
           payload: fetchedProjects,
         });
 
-        // Select the first one from the given projects, ONLY if user is at the project root
-        if (matchProjectRoot && fetchedProjects.length > 0) {
-          onChangeProject(fetchedProjects[0].uuid);
-        }
+        // Select the first one from the given projects
+        const newProjectUuid =
+          fetchedProjects.length > 0 ? fetchedProjects[0].uuid : null;
+
+        dispatch({ type: "projectSet", payload: newProjectUuid });
+        // navigate ONLY if user is at the project root
+        if (matchProjectRoot) onChangeProject(newProjectUuid);
       })
       .catch((error) => console.log(error));
   };
@@ -83,6 +85,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   // whenever state.projectUuid is changed, fetch proejcts when necessary
   // so we don't need to do this in other places, just in this component
   React.useEffect(() => {
+    console.log(`🥁 updated?: ${state.projectUuid}`);
     const isExistingProject = validateProjectUuid(
       state.projectUuid,
       state.projects
