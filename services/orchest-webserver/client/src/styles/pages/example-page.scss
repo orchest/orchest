@@ -1,0 +1,98 @@
+$examples-view-common-padding: var(--space-7);
+
+.view-page.examples-view {
+  .heading-section {
+    padding-top: $examples-view-common-padding;
+    padding-bottom: $examples-view-common-padding;
+    padding-left: var(--space-3);
+  }
+  .examples-view-title {
+    padding-bottom: var(--space-2);
+  }
+  .examples-view-subtitle {
+    padding-bottom: var(--space-5);
+  }
+  .example-view-tabs-container {
+    padding-left: var(--space-3);
+  }
+}
+
+.example-card {
+  border: 1px solid var(--colors-gray200);
+  border-radius: var(--radii-md);
+  box-shadow: var(--shadows-md);
+  width: 440px;
+  height: 320px;
+  padding: $examples-view-common-padding;
+  margin-top: var(--space-8);
+  margin-right: var(--space-8);
+  display: flex;
+  flex-direction: column;
+}
+
+.example-card-title {
+  max-width: 100%;
+  min-height: var(--space-6);
+  margin: var(--space-8) 0 var(--space-2);
+  font-size: var(--fontSizes-xl);
+}
+
+.example-card-author {
+  color: var(--colors-gray500);
+  font-weight: var(--fontWeights-bold);
+  margin-bottom: var(--space-2);
+}
+
+.example-card-description {
+  font-size: var(--fontSizes-sm);
+  color: var(--colors-gray700);
+  overflow-y: hidden;
+  flex: 1;
+}
+
+.example-tags-container {
+  display: flex;
+}
+
+.example-tag {
+  text-transform: uppercase;
+  margin-right: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--fontSizes-xxs);
+  font-weight: var(--fontWeights-bold);
+  color: var(--colors-gray700);
+  background-color: var(--colors-gray200);
+  border-radius: var(--radii-xs);
+}
+
+.example-card-button-container {
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+  position: relative;
+  margin-top: calc(var(--space-8) * -1);
+  background-color: white;
+  // add gradient to cover exceeding text
+  &::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--space-8) * -1);
+    width: 100%;
+    height: var(--space-8);
+    background-image: linear-gradient(
+      rgba(255, 255, 255, 0),
+      rgb(255, 255, 255, 100)
+    );
+  }
+}
+
+.example-import-button {
+  background-color: white;
+  border: 1px solid var(--colors-gray300);
+  padding: 0 var(--space-4);
+  color: var(--colors-blue400) !important; // TODO: unify color config
+  margin-top: var(--space-1);
+  &:hover {
+    border: none;
+  }
+}

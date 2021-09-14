@@ -32,6 +32,8 @@
 @import "ansi";
 @import "themes/jupyter";
 
+@import "./pages/example-page.scss";
+
 $mdcComponentPadding: 16px;
 $codeSize: 14px;
 $defaultFontSize: 15px;
@@ -492,10 +494,6 @@ a.button {
       text-align: center;
     }
   }
-}
-
-// TODO: add example specific styling, or remove it
-.examples-view {
 }
 
 p > i.material-icons.float-left {

@@ -258,7 +258,7 @@ export function arraysEqual(a, b) {
 
 // used in orchest-webserver only
 export function makeRequest(method, url, body?, onprogressCallback?, timeout?) {
-  return new Promise(function (resolve, reject) {
+  return new Promise<string>(function (resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open(method, url);
 

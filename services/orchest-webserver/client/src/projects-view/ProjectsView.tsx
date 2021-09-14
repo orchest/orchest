@@ -21,7 +21,6 @@ import { useOrchest } from "@/hooks/orchest";
 import { siteMap } from "@/Routes";
 import type { TViewProps, Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
-import ExamplesView from "./ExamplesView";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useCustomRoute, useLocationQuery } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";

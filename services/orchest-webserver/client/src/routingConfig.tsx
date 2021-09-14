@@ -16,10 +16,10 @@ import PipelineSettingsView from "./views/PipelineSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import PipelinesView from "./views/PipelinesView";
 import ProjectSettingsView from "./views/ProjectSettingsView";
-import ProjectsView from "./views/ProjectsView";
+import ProjectsView from "./projects-view/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import UpdateView from "./views/UpdateView";
-import ExamplesView from "./views/ExamplesView";
+import ExamplesView from "./projects-view/ExamplesView";
 
 type RouteName =
   | "projects"
