@@ -16,7 +16,7 @@ interface SearchableTableProps<T> {
   onSelectionChanged?: (selectedRows: T[], allRows: T[]) => void;
 }
 
-const SearchableTable = <T extends string | number | Object>(
+const SearchableTable = <T extends string | number | Record<string, unknown>>(
   props: SearchableTableProps<T>,
   ref: React.MutableRefObject<ForwardedSearchableTableProps>
 ) => {

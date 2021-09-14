@@ -34,7 +34,7 @@ const ImageBuild: React.FC<any> = (props) => {
     );
 
     buildRequestPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let builds = JSON.parse(response)[props.buildsKey];
         if (builds.length > 0) {
           props.onUpdateBuild(builds[0]);

@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -8,8 +8,9 @@ import { Box } from "@orchest/design-system";
 import { RefManager, makeRequest } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
-import EnvironmentsView from "../views/EnvironmentsView";
+import { siteMap } from "@/Routes";
 import { useInterval } from "@/hooks/use-interval";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const buildFailMessage = `Some environment builds of this project have failed. 
   You can try building them again, 
@@ -18,7 +19,7 @@ const buildFailMessage = `Some environment builds of this project have failed.
 
 export interface IBuildPendingDialogProps {
   environmentValidationData: any;
-  project_uuid: string;
+  projectUuid: string;
   requestedFromView: string;
   onBuildComplete: any;
   onCancel: any;
@@ -26,10 +27,14 @@ export interface IBuildPendingDialogProps {
 }
 
 const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
+  const { navigateTo } = useCustomRoute();
+
   const [gateInterval, setGateInterval] = React.useState(null);
   const [state, setState] = React.useState(null);
+  const [environmentsToBeBuilt, setEnvironmentsToBeBuilt] = React.useState<
+    string[]
+  >([]);
 
-  const orchest = window.orchest;
   const { dispatch } = useOrchest();
   const [refManager] = React.useState(new RefManager());
 
@@ -46,13 +51,14 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
         break;
     }
 
-    let environmentsToBeBuilt = [];
+    let inactiveEnvironments: string[] = [];
     let buildHasFailed = false;
     let environmentsBuilding = 0;
     let building = false;
+
     for (let x = 0; x < data.actions.length; x++) {
       if (data.actions[x] == "BUILD" || data.actions[x] == "RETRY") {
-        environmentsToBeBuilt.push(data.fail[x]);
+        inactiveEnvironments.push(data.fail[x]);
 
         if (data.actions[x] == "RETRY") {
           buildHasFailed = true;
@@ -66,7 +72,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
     let message = "";
     if (buildHasFailed) {
       message = buildFailMessage;
-    } else if (environmentsToBeBuilt.length > 0) {
+    } else if (inactiveEnvironments.length > 0) {
       message =
         `Not all environments of this project have been built. Would you like to build them?` +
         messageSuffix;
@@ -75,16 +81,15 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
         `Some environments of this project are still building. Please wait until the build is complete.` +
         messageSuffix;
     }
-
+    setEnvironmentsToBeBuilt(inactiveEnvironments);
     setState((prevState) => ({
       ...prevState,
       building,
       buildHasFailed,
-      environmentsToBeBuilt,
       message,
       environmentsBuilding,
-      showBuildStatus: environmentsToBeBuilt.length == 0,
-      allowBuild: environmentsToBeBuilt.length > 0,
+      showBuildStatus: inactiveEnvironments.length == 0,
+      allowBuild: inactiveEnvironments.length > 0,
     }));
 
     if (environmentsBuilding > 0) {
@@ -103,7 +108,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
   };
 
   const gateCheckWrapper = () => {
-    checkGate(props.project_uuid)
+    checkGate(props.projectUuid)
       .then(() => {
         setState((prevState) => ({
           ...prevState,
@@ -130,18 +135,17 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
       building: true,
     }));
 
-    let environment_build_requests = [];
-    for (let environmentUUID of state.environmentsToBeBuilt) {
-      environment_build_requests.push({
-        environment_uuid: environmentUUID,
-        project_uuid: props.project_uuid,
-      });
-    }
+    let environment_build_requests = environmentsToBeBuilt.map(
+      (environmentUuid) => ({
+        environment_uuid: environmentUuid,
+        project_uuid: props.projectUuid,
+      })
+    );
 
     makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
       type: "json",
       content: {
-        environment_build_requests: environment_build_requests,
+        environment_build_requests,
       },
     })
       .then(() => {
@@ -153,11 +157,10 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
   };
 
   const onViewBuildStatus = () => {
-    dispatch({
-      type: "projectSet",
-      payload: props.project_uuid,
+    navigateTo(siteMap.environments.path, {
+      query: { projectUuid: props.projectUuid },
     });
-    orchest.loadView(EnvironmentsView);
+
     close();
   };
 
