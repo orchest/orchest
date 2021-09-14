@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { PipelineJson, TViewProps } from "@/types";
+import type { PipelineJson } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
   checkGate,
@@ -37,7 +37,6 @@ import { useHotKey } from "./hooks/useHotKey";
 
 import { siteMap } from "../Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -46,14 +45,13 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
-const PipelineView: React.FC<TViewProps> = (props) => {
+const PipelineView: React.FC = () => {
   const { $, orchest } = window;
   const {
     get,
     state: { sessionsIsLoading },
     dispatch,
   } = useOrchest();
-  useDocumentTitle(props.title);
 
   const {
     projectUuid,
@@ -64,7 +62,7 @@ const PipelineView: React.FC<TViewProps> = (props) => {
     navigateTo,
   } = useCustomRoute();
 
-  const [isReadOnly, setIsReadOnly] = useState(!!isReadOnlyFromQueryString);
+  const [isReadOnly, setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
 
   useEffect(() => {

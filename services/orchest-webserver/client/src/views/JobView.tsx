@@ -13,8 +13,7 @@ import {
   makeCancelable,
   RefManager,
 } from "@orchest/lib-utils";
-import type { Job, PipelineJson, TViewProps } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
+import type { Job, PipelineJson } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
 import {
   checkGate,
@@ -29,8 +28,8 @@ import ParamTree from "@/components/ParamTree";
 import ParameterEditor from "@/components/ParameterEditor";
 import SearchableTable from "@/components/SearchableTable";
 import EnvVarList from "@/components/EnvVarList";
-import { siteMap, toQueryString } from "@/Routes";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { siteMap } from "@/Routes";
+
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 type TSharedStatus = Extract<
@@ -155,11 +154,9 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   );
 };
 
-const JobView: React.FC<TViewProps> = (props) => {
+const JobView: React.FC = () => {
   // global states
   const orchest = window.orchest;
-  useDocumentTitle(props.title);
-  const { dispatch } = useOrchest();
 
   // data from route
   const { navigateTo, projectUuid, jobUuid } = useCustomRoute();

@@ -2,7 +2,6 @@ import React from "react";
 import { Redirect, Route, Switch } from "react-router-dom";
 
 import { siteMap, orderedRoutes, toQueryString } from "./routingConfig";
-import { TViewProps } from "./types";
 
 const Routes = () => {
   return (
@@ -12,14 +11,17 @@ const Routes = () => {
       </Route>
       {orderedRoutes.map((route) => {
         const { name, path, component, title } = route;
-        const Component: React.FC<TViewProps> = component;
         const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback, it cannot be exact
         return (
           <Route
             exact={shouldBeExact}
             key={name}
             path={path}
-            render={(props) => <Component {...props} title={title} />}
+            render={() => {
+              window.document.title = title;
+              const Component = component;
+              return <Component />;
+            }}
           />
         );
       })}

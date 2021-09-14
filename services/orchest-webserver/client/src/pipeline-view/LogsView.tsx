@@ -13,11 +13,7 @@ import {
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
 
-import type {
-  PipelineJson,
-  TViewProps,
-  TViewPropsWithRequiredQueryArgs,
-} from "@/types";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
@@ -26,18 +22,16 @@ import {
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/pipeline-view/LogViewer";
-import { siteMap, toQueryString } from "@/Routes";
+import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const LogsView: React.FC<TViewProps> = (props) => {
+const LogsView: React.FC = () => {
   // global states
   const { dispatch, get } = useOrchest();
-  useDocumentTitle(props.title);
 
   // data from route
   const {
@@ -80,9 +74,9 @@ const LogsView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     // Preselect first step, or service (if no step exists)
     if (
-      pipelineJson != undefined &&
-      pipelineJson != undefined &&
-      selectedLog == undefined
+      pipelineJson !== undefined &&
+      pipelineJson !== undefined &&
+      !selectedLog
     ) {
       if (sortedSteps.length > 0) {
         setSelectedLog(sortedSteps[0].uuid);
@@ -258,15 +252,6 @@ const LogsView: React.FC<TViewProps> = (props) => {
     );
   };
 
-  const hasLoaded = () => {
-    return (
-      pipelineJson &&
-      sortedSteps !== undefined &&
-      sio &&
-      (jobUuid === undefined || job)
-    );
-  };
-
   const close = () => {
     navigateTo(siteMap.pipeline.path, {
       query: {
@@ -295,7 +280,9 @@ const LogsView: React.FC<TViewProps> = (props) => {
 
   let rootView = undefined;
 
-  if (hasLoaded()) {
+  const hasLoaded =
+    pipelineJson && sortedSteps !== undefined && sio && (!jobUuid || job);
+  if (hasLoaded) {
     let steps = [];
 
     for (let step of sortedSteps) {

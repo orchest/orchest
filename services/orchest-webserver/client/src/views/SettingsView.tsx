@@ -10,14 +10,13 @@ import {
   PromiseManager,
   makeCancelable,
 } from "@orchest/lib-utils";
-import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { siteMap } from "@/Routes";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
-const SettingsView: React.FC<TViewProps> = () => {
+const SettingsView: React.FC = () => {
   const { orchest } = window;
   useSendAnalyticEvent("view load", { name: siteMap.settings.path });
 

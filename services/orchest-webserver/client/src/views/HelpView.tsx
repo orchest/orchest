@@ -1,15 +1,14 @@
 import * as React from "react";
+
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { TViewProps } from "@/types";
 import { Layout, useLayout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 
-const HelpView: React.FC<TViewProps> = (props) => {
+const HelpView: React.FC = () => {
   const { state } = useOrchest();
-  useDocumentTitle(props.title);
+
   useSendAnalyticEvent("view load", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useLayout();
 

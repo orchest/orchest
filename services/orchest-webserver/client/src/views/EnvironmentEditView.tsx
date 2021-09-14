@@ -23,17 +23,16 @@ import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { siteMap } from "@/Routes";
-import type { EnvironmentBuild, Environment, TViewProps } from "@/types";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import type { EnvironmentBuild, Environment } from "@/types";
+
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const EnvironmentEditView: React.FC<TViewProps> = (props) => {
+const EnvironmentEditView: React.FC = () => {
   // global states
   const { orchest } = window;
   const context = useOrchest();
-  useDocumentTitle(props.title);
 
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();

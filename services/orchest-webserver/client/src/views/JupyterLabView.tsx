@@ -6,24 +6,23 @@ import {
   makeRequest,
   collapseDoubleDots,
 } from "@orchest/lib-utils";
-import type { TViewProps, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useInterval } from "@/hooks/use-interval";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { siteMap } from "@/Routes";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const JupyterLabView: React.FC<TViewProps> = (props) => {
+const JupyterLabView: React.FC = () => {
   // global states
   const { state, dispatch, get } = useOrchest();
-  useDocumentTitle(props.title);
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();

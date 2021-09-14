@@ -1,5 +1,4 @@
 import React from "react";
-import { useHistory } from "react-router-dom";
 
 import {
   MDCButtonReact,
@@ -20,9 +19,9 @@ import {
 import { Layout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
 import { siteMap } from "@/Routes";
-import type { TViewProps, Project } from "@/types";
+import type { Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 import { useCustomRoute, useLocationQuery } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 
@@ -32,10 +31,9 @@ const ERROR_MAPPING = {
     "project name contains illegal character(s).",
 } as const;
 
-const ProjectsView: React.FC<TViewProps> = (props) => {
+const ProjectsView: React.FC = () => {
   const { orchest } = window;
 
-  useDocumentTitle(props.title);
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
   const context = useOrchest();
