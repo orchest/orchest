@@ -1,5 +1,7 @@
-import * as React from "react";
+import React from "react";
 import useSWR from "swr";
+import pascalcase from "pascalcase";
+
 import { fetcher } from "@/utils/fetcher";
 import { useOrchest } from "./context";
 import { isSession } from "./utils";
@@ -8,6 +10,26 @@ import type { IOrchestSessionUuid, IOrchestSession } from "@/types";
 type TSessionStatus = IOrchestSession["status"];
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
+
+const lowerCaseFirstLetter = (str: string) =>
+  str.charAt(0).toLowerCase() + str.slice(1);
+
+const convertKeyToCamelCase = <T extends unknown>(data: T, keys?: string[]) => {
+  if (!data) return data;
+  if (keys) {
+    for (const key of keys) {
+      data[lowerCaseFirstLetter(pascalcase(key))] = data[key];
+    }
+    return data as T;
+  }
+  return Object.entries(data).reduce((newData, curr) => {
+    const [key, value] = curr;
+    return {
+      ...newData,
+      [lowerCaseFirstLetter(pascalcase(key))]: value,
+    };
+  }, {}) as T;
+};
 
 /* Matchers
   =========================================== */
@@ -23,8 +45,8 @@ const isWorking = (status: TSessionStatus) =>
 /* Fetchers
   =========================================== */
 
-const stopSession = ({ pipeline_uuid, project_uuid }: IOrchestSessionUuid) =>
-  fetcher([ENDPOINT, project_uuid, "/", pipeline_uuid].join(""), {
+const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
+  fetcher([ENDPOINT, projectUuid, "/", pipelineUuid].join(""), {
     method: "DELETE",
   });
 
@@ -42,9 +64,16 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
    * Note: the endpoint does **not** return `STOPPED` sessions. This is handled
    * in a later side-effect.
    */
-  const { data, mutate, error } = useSWR(ENDPOINT, fetcher, {
+  const { data, mutate, error } = useSWR<{
+    sessions: (IOrchestSession & {
+      project_uuid: string;
+      pipeline_uuid: string;
+    })[];
+    status: TSessionStatus;
+  }>(ENDPOINT, fetcher, {
     refreshInterval: _sessionsIsPolling ? 1000 : 0,
   });
+
   const isLoading = !data && !error;
   const isLoaded = !isLoading;
 
@@ -56,11 +85,20 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
    * SYNC
    *
    * Push SWR changes to Orchest Context when at least one session exists
+   * NOTE: we need to convert project_uuid and pipeline_uuid to camelcase because they were used everywhere
    */
   React.useEffect(() => {
+    const sessions =
+      data?.sessions.map((session) =>
+        convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
+      ) || [];
+
     dispatch({
       type: "_sessionsSet",
-      payload: { sessions: data?.sessions || [], sessionsIsLoading: isLoading },
+      payload: {
+        sessions: sessions as IOrchestSession[],
+        sessionsIsLoading: isLoading,
+      },
     });
   }, [data, isLoading]);
 
@@ -68,18 +106,23 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
    * TOGGLE
    */
   React.useEffect(() => {
-    /* If the session doesn't exist in the cache, use the toggle payload */
-    const session =
-      (isLoaded &&
-        data?.sessions?.find((dataSession) =>
-          isSession(dataSession, state?._sessionsToggle)
-        )) ||
-      state?._sessionsToggle;
+    const foundSession =
+      isLoaded &&
+      data?.sessions?.find((dataSession) =>
+        isSession(dataSession, state?._sessionsToggle)
+      );
 
-    if (!session) {
+    // no cashed session from useSWR, nor previous session in the memory
+    if (!foundSession && !state._sessionsToggle) {
       dispatch({ type: "_sessionsToggleClear" });
       return;
     }
+
+    /* use the cashed session from useSWR or create a temporary one out of previous one */
+    const session = convertKeyToCamelCase<IOrchestSession>(foundSession, [
+      "project_uuid",
+      "pipeline_uuid",
+    ]) || { ...state._sessionsToggle, status: null };
 
     /**
      * Any session-specific cache mutations must be made with this helper to
@@ -105,7 +148,7 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
     /**
      * LAUNCH
      */
-    if (isLaunchable(session.status)) {
+    if (!session.status) {
       mutateSession({ status: "LAUNCHING" }, false);
 
       fetcher(ENDPOINT, {
@@ -114,8 +157,8 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
           "Content-Type": "application/json;charset=UTF-8",
         },
         body: JSON.stringify({
-          pipeline_uuid: session.pipeline_uuid,
-          project_uuid: session.project_uuid,
+          pipeline_uuid: session.pipelineUuid,
+          project_uuid: session.projectUuid,
         }),
       })
         .then((sessionDetails) => mutateSession(sessionDetails))
@@ -197,7 +240,12 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
     Promise.all(
       data?.sessions
         .filter((sessionData) => isStoppable(sessionData.status))
-        .map((sessionData) => stopSession(sessionData))
+        .map((sessionData) => {
+          stopSession({
+            projectUuid: sessionData.pipeline_uuid,
+            pipelineUuid: sessionData.pipeline_uuid,
+          });
+        })
     )
       .then(() => {
         mutate();

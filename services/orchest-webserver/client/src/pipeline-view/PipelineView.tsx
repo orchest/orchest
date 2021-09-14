@@ -1,5 +1,5 @@
 // @ts-nocheck
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import io from "socket.io-client";
 import _ from "lodash";
 
@@ -14,7 +14,7 @@ import {
   activeElementIsInput,
 } from "@orchest/lib-utils";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { PipelineJson, TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
   checkGate,
@@ -27,20 +27,17 @@ import {
 } from "@/utils/webserver-utils";
 
 import { Layout } from "@/components/Layout";
-import PipelineSettingsView from "@/views/PipelineSettingsView";
-import FilePreviewView from "@/views/FilePreviewView";
-import JobView from "@/views/JobView";
-import JupyterLabView from "@/views/JupyterLabView";
-import PipelinesView from "@/views/PipelinesView";
-import ProjectsView from "@/views/ProjectsView";
 
-import LogsView from "./LogsView";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep from "./PipelineStep";
 import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
 
 import { useHotKey } from "./hooks/useHotKey";
+
+import { siteMap } from "../Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -49,27 +46,35 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
-type IPipelineViewProps = TViewPropsWithRequiredQueryArgs<
-  "pipeline_uuid" | "project_uuid"
->;
-
-// utility functions that don't need to reside in the component
-
-const areQueryArgsValid = (queryArgs: {
-  pipeline_uuid?: string;
-  project_uuid?: string;
-  [key: string]: any;
-}) => {
-  return (
-    queryArgs.pipeline_uuid !== undefined &&
-    queryArgs.project_uuid !== undefined
-  );
-};
-
-const PipelineView: React.FC<IPipelineViewProps> = (props) => {
+const PipelineView: React.FC<TViewProps> = (props) => {
   const { $, orchest } = window;
-  const { get, state: orchestState, dispatch } = useOrchest();
-  const session = get.session(props.queryArgs);
+  const {
+    get,
+    state: { sessionsIsLoading },
+    dispatch,
+  } = useOrchest();
+  useDocumentTitle(props.title);
+
+  const {
+    projectUuid,
+    pipelineUuid,
+    jobUuid: jobUuidFromRoute,
+    runUuid: runUuidFromRoute,
+    isReadOnly: isReadOnlyFromQueryString,
+    navigateTo,
+  } = useCustomRoute();
+
+  const [isReadOnly, setIsReadOnly] = useState(!!isReadOnlyFromQueryString);
+  const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
+
+  useEffect(() => {
+    setShouldAutoStart(!isReadOnly);
+  }, [isReadOnly]);
+
+  const session = get.session({
+    projectUuid,
+    pipelineUuid,
+  });
 
   const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
     "ctrl+a, command+a",
@@ -144,22 +149,22 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     runStatusEndpoint: "/catch/api-proxy/api/runs/",
     pipelineRunning: false,
     waitingOnCancel: false,
-    runUUID: undefined,
-    pendingRunUUIDs: undefined,
+    runUuid: undefined,
+    pendingRunUuids: undefined,
     pendingRunType: undefined,
     stepExecutionState: {},
     steps: {},
     defaultDetailViewIndex: 0,
-    shouldAutoStart: false,
     // The save hash is used to propagate a save's side-effects
     // to components.
     saveHash: undefined,
+    pipelineJson: undefined,
   };
 
-  if (props.queryArgs.run_uuid && props.queryArgs.job_uuid) {
-    initialState.runUUID = props.queryArgs.run_uuid;
+  if (runUuidFromRoute && jobUuidFromRoute) {
+    initialState.runUuid = runUuidFromRoute;
     initialState.runStatusEndpoint =
-      "/catch/api-proxy/api/jobs/" + props.queryArgs.job_uuid + "/";
+      "/catch/api-proxy/api/jobs/" + jobUuidFromRoute + "/";
   }
 
   const [state, _setState] = React.useState(initialState);
@@ -179,19 +184,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const loadViewInEdit = () => {
-    let newProps: Record<string, any> = { ...props };
-    newProps.queryArgs.read_only = "false";
-    newProps.key = uuidv4();
-    // open in non-read only
-    orchest.loadView(PipelineView, newProps);
-  };
-
   const fetchActivePipelineRuns = () => {
     let pipelineRunsPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/runs/?project_uuid=${props.queryArgs.project_uuid}&pipeline_uuid=${props.queryArgs.pipeline_uuid}`
+        `/catch/api-proxy/api/runs/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
       ),
       state.promiseManager
     );
@@ -207,7 +204,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             let run = data["runs"][0];
 
             setState({
-              runUUID: run.uuid,
+              runUuid: run.uuid,
             });
           }
         } catch (e) {
@@ -221,8 +218,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       });
   };
 
-  const savePipeline = (callback) => {
-    if (props.queryArgs.read_only !== "true") {
+  const savePipeline = (callback?: () => void) => {
+    if (!isReadOnly) {
       let pipelineJSON = encodeJSON();
 
       // validate pipelineJSON
@@ -255,7 +252,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         let savePromise = makeCancelable(
           makeRequest(
             "POST",
-            `/async/pipelines/json/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`,
+            `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
             { type: "FormData", content: formData }
           ),
           state.promiseManager
@@ -287,11 +284,12 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     });
   };
 
-  const encodeJSON = () => {
+  const encodeJSON = (): PipelineJson => {
+    if (!state.pipelineJson) return;
     // generate JSON representation using the internal state of React components
     // describing the pipeline
 
-    let pipelineJSON = _.cloneDeep(state.pipelineJson);
+    let pipelineJSON: PipelineJson = _.cloneDeep(state.pipelineJson);
     pipelineJSON["steps"] = {};
 
     for (let key in state.steps) {
@@ -348,33 +346,28 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return { ...state.pipelineJson, steps };
   };
 
-  const openSettings = (initial_tab) => {
-    let queryArgs = {
-      project_uuid: props.queryArgs.project_uuid,
-      pipeline_uuid: props.queryArgs.pipeline_uuid,
-      read_only: props.queryArgs.read_only,
-      job_uuid: props.queryArgs.job_uuid,
-      run_uuid: props.queryArgs.run_uuid,
-    };
-
-    if (initial_tab) {
-      queryArgs.initial_tab = initial_tab;
-    }
-
-    orchest.loadView(PipelineSettingsView, {
-      queryArgs,
+  const openSettings = (initialTab?: string) => {
+    navigateTo(siteMap.pipelineSettings.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid: jobUuidFromRoute,
+        runUuid: runUuidFromRoute,
+        initialTab,
+      },
+      state: { isReadOnly },
     });
   };
 
   const openLogs = () => {
-    orchest.loadView(LogsView, {
-      queryArgs: {
-        project_uuid: props.queryArgs.project_uuid,
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        read_only: props.queryArgs.read_only,
-        job_uuid: props.queryArgs.job_uuid,
-        run_uuid: props.queryArgs.run_uuid,
+    navigateTo(siteMap.logs.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid: jobUuidFromRoute,
+        runUuid: runUuidFromRoute,
       },
+      state: { isReadOnly },
     });
   };
 
@@ -392,60 +385,20 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const loadDefaultPipeline = () => {
-    // Fetch this project's pipeline
-    orchest.getProject().then((selectedProject) => {
-      if (selectedProject !== undefined) {
-        // initialize REST call for pipelines
-        let fetchPipelinesPromise = makeCancelable(
-          makeRequest("GET", `/async/pipelines/${selectedProject}`),
-          state.promiseManager
-        );
-
-        fetchPipelinesPromise.promise
-          .then((response) => {
-            let data = JSON.parse(response);
-
-            if (data.result.length > 0) {
-              orchest.loadView(PipelineView, {
-                queryArgs: {
-                  pipeline_uuid: data.result[0].uuid,
-                  project_uuid: selectedProject,
-                },
-                key: uuidv4(),
-              });
-            } else {
-              orchest.loadView(PipelinesView);
-            }
-          })
-          .catch((e) => {
-            console.error(e);
-            orchest.loadView(ProjectsView);
-          });
-      } else {
-        orchest.loadView(PipelinesView);
-      }
-    });
-  };
-
-  const handleSession = () => {
-    if (!orchestState.sessionsIsLoading) {
+  React.useEffect(() => {
+    if (!sessionsIsLoading) {
       // If session doesn't exist and first load
-      if (
-        props.queryArgs.read_only !== "true" &&
-        state.shouldAutoStart === true &&
-        typeof session === "undefined"
-      ) {
+      if (shouldAutoStart && !session) {
         dispatch({
           type: "sessionToggle",
-          payload: props.queryArgs,
+          payload: { pipelineUuid, projectUuid },
         });
-        setState({ shouldAutoStart: false });
+        setShouldAutoStart(false);
         return;
       }
 
-      if (session?.status == "RUNNING" && state.shouldAutoStart === true) {
-        setState({ shouldAutoStart: false });
+      if (session?.status == "RUNNING" && shouldAutoStart) {
+        setShouldAutoStart(false);
       }
 
       if (session?.status === "STOPPING") {
@@ -456,7 +409,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         updateJupyterInstance();
       }
     }
-  };
+  }, [session, sessionsIsLoading, shouldAutoStart]);
 
   const initializeResizeHandlers = () => {
     $(window).resize(() => {
@@ -1065,7 +1018,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     // initialize all listeners related to viewing/navigating the pipeline
     initializePipelineNavigationListeners();
 
-    if (props.queryArgs.read_only !== "true") {
+    if (!isReadOnly) {
       // initialize all listeners related to editing the pipeline
       initializePipelineEditListeners();
     }
@@ -1074,18 +1027,18 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const fetchPipelineAndInitialize = () => {
     let promises = [];
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      props.queryArgs.pipeline_uuid,
-      props.queryArgs.project_uuid,
-      props.queryArgs.job_uuid,
-      props.queryArgs.run_uuid
+      pipelineUuid,
+      projectUuid,
+      jobUuidFromRoute,
+      runUuidFromRoute
     );
 
-    if (props.queryArgs.read_only !== "true") {
+    if (!isReadOnly) {
       // fetch pipeline cwd
       let cwdFetchPromise = makeCancelable(
         makeRequest(
           "GET",
-          `/async/file-picker-tree/pipeline-cwd/${props.queryArgs.project_uuid}/${props.queryArgs.pipeline_uuid}`
+          `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
         ),
         state.promiseManager
       );
@@ -1120,14 +1073,14 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
           dispatch({
             type: "pipelineUpdateReadOnlyState",
-            payload: props.queryArgs.read_only === "true",
+            payload: isReadOnly,
           });
 
           dispatch({
             type: "pipelineSet",
             payload: {
-              pipeline_uuid: props.queryArgs.pipeline_uuid,
-              project_uuid: props.queryArgs.project_uuid,
+              pipelineUuid,
+              projectUuid,
               pipelineName: pipelineJson.name,
             },
           });
@@ -1138,7 +1091,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       })
       .catch((error) => {
         if (!error.isCanceled) {
-          if (props.queryArgs.job_uuid) {
+          if (jobUuidFromRoute) {
             // This case is hit when a user tries to load a pipeline that belongs
             // to a run that has not started yet. The project files are only
             // copied when the run starts. Before start, the pipeline.json thus
@@ -1148,13 +1101,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             orchest.alert(
               "Error",
               "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-              () => {
-                orchest.loadView(JobView, {
-                  queryArgs: {
-                    job_uuid: props.queryArgs.job_uuid,
-                  },
-                });
-              }
+              returnToJob
             );
           } else {
             console.error("Could not load pipeline.json");
@@ -1184,7 +1131,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   const newStep = () => {
     deselectSteps();
 
-    let environmentsEndpoint = `/store/environments/${props.queryArgs.project_uuid}`;
+    let environmentsEndpoint = `/store/environments/${projectUuid}`;
     let fetchEnvironmentsPromise = makeCancelable(
       makeRequest("GET", environmentsEndpoint),
       state.promiseManager
@@ -1263,7 +1210,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const onDoubleClickStepHandler = (stepUUID: string) => {
-    if (props.queryArgs.read_only === "true") {
+    if (isReadOnly) {
       onOpenFilePreviewView(stepUUID);
     } else {
       openNotebook(stepUUID);
@@ -1439,10 +1386,10 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         "Please start the session before opening the Notebook in Jupyter."
       );
     } else if (session.status === "RUNNING") {
-      orchest.loadView(JupyterLabView, {
-        queryArgs: {
-          pipeline_uuid: props.queryArgs.pipeline_uuid,
-          project_uuid: props.queryArgs.project_uuid,
+      navigateTo(siteMap.jupyterLab.path, {
+        query: {
+          projectUuid,
+          pipelineUuid,
         },
       });
 
@@ -1464,16 +1411,16 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   };
 
-  const onOpenFilePreviewView = (step_uuid) => {
-    orchest.loadView(FilePreviewView, {
-      queryArgs: {
-        project_uuid: props.queryArgs.project_uuid,
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        job_uuid: props.queryArgs.job_uuid,
-        run_uuid: props.queryArgs.run_uuid,
-        step_uuid: step_uuid,
-        read_only: props.queryArgs.read_only,
+  const onOpenFilePreviewView = (stepUuid: string) => {
+    navigateTo(siteMap.filePreview.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        stepUuid,
+        jobUuid: jobUuidFromRoute,
+        runUuid: runUuidFromRoute,
       },
+      state: { isReadOnly },
     });
   };
 
@@ -1516,9 +1463,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   const pollPipelineStepStatuses = () => {
-    if (state.runUUID) {
+    if (state.runUuid) {
       let pollPromise = makeCancelable(
-        makeRequest("GET", state.runStatusEndpoint + state.runUUID),
+        makeRequest("GET", state.runStatusEndpoint + state.runUuid),
         state.promiseManager
       );
 
@@ -1538,7 +1485,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             // make sure stale opened files are reloaded in active
             // Jupyter instance
 
-            orchest.jupyter.reloadFilesFromDisk();
+            if (orchest.jupyter) orchest.jupyter.reloadFilesFromDisk();
 
             setState({
               pipelineRunning: false,
@@ -1692,20 +1639,20 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
       return;
     }
 
-    ((runUUID) => {
-      makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUUID}`)
-        .then(() => {
-          setState({
-            waitingOnCancel: true,
-          });
-        })
-        .catch((response) => {
-          orchest.alert(
-            "Error",
-            `Could not cancel pipeline run for runUUID ${runUUID}`
-          );
+    const { runUuid } = state;
+
+    makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUuid}`)
+      .then(() => {
+        setState({
+          waitingOnCancel: true,
         });
-    })(state.runUUID);
+      })
+      .catch((response) => {
+        orchest.alert(
+          "Error",
+          `Could not cancel pipeline run for runUuid ${runUuid}`
+        );
+      });
   };
 
   const _runStepUUIDs = (uuids, type) => {
@@ -1716,7 +1663,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     // store pipeline.json
     let data = {
       uuids: uuids,
-      project_uuid: props.queryArgs.project_uuid,
+      project_uuid: projectUuid,
       run_type: type,
       pipeline_definition: getPipelineJSON(),
     };
@@ -1735,8 +1682,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
         parseRunStatuses(result);
 
+        console.log("🚕 get runUuid in the state");
         setState({
-          runUUID: result.uuid,
+          runUuid: result.uuid,
         });
 
         startStatusInterval();
@@ -1781,7 +1729,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
 
     setState({
-      pendingRunUUIDs: uuids,
+      pendingRunUuids: uuids,
       pendingRunType: type,
       saveHash: uuidv4(),
     });
@@ -1938,8 +1886,8 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   const servicesAvailable = () => {
     if (
-      (!props.queryArgs.job_uuid && session && session.status == "RUNNING") ||
-      (props.queryArgs.job_uuid && state.pipelineJson && state.pipelineRunning)
+      (!jobUuidFromRoute && session && session.status == "RUNNING") ||
+      (jobUuidFromRoute && state.pipelineJson && state.pipelineRunning)
     ) {
       let services = getServices();
       if (services !== undefined) {
@@ -1953,6 +1901,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   };
 
   useEffect(() => {
+    fetchPipelineAndInitialize();
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.key === " " && !state.eventVars.draggingPipeline) {
         state.eventVars.keysDown[32] = true;
@@ -2077,7 +2026,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
   const getServices = () => {
     let services;
-    if (!props.queryArgs.job_uuid) {
+    if (!jobUuidFromRoute) {
       if (session && session.user_services) {
         services = session.user_services;
       }
@@ -2086,10 +2035,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
 
     // Filter services based on scope
-    let scope = props.queryArgs.job_uuid ? "noninteractive" : "interactive";
+    let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(services, scope);
   };
 
+  // How to show services?
   const generateServiceEndpoints = () => {
     let serviceLinks = [];
     let services = getServices();
@@ -2099,9 +2049,9 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
       let urls = getServiceURLs(
         service,
-        props.queryArgs.project_uuid,
-        props.queryArgs.pipeline_uuid,
-        props.queryArgs.run_uuid
+        projectUuid,
+        pipelineUuid,
+        runUuidFromRoute
       );
 
       let formatUrl = (url) => {
@@ -2130,10 +2080,11 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     return <div>{serviceLinks}</div>;
   };
 
-  const returnToJob = (job_uuid: string) => {
-    orchest.loadView(JobView, {
-      queryArgs: {
-        job_uuid,
+  const returnToJob = () => {
+    navigateTo(siteMap.job.path, {
+      query: {
+        projectUuid,
+        jobUuid: jobUuidFromRoute,
       },
     });
   };
@@ -2203,18 +2154,18 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   React.useEffect(() => {
     pollPipelineStepStatuses();
     startStatusInterval();
-  }, [state.runUUID]);
+  }, [state.runUuid]);
 
   React.useEffect(() => {
     if (state.saveHash !== undefined) {
       if (
-        state.pendingRunUUIDs !== undefined &&
+        state.pendingRunUuids !== undefined &&
         state.pendingRunType !== undefined
       ) {
-        let uuids = state.pendingRunUUIDs;
+        let uuids = state.pendingRunUuids;
         let runType = state.pendingRunType;
         setState({
-          pendingRunUUIDs: undefined,
+          pendingRunUuids: undefined,
           pendingRunType: undefined,
         });
         savePipeline(() => {
@@ -2224,7 +2175,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
         savePipeline();
       }
     }
-  }, [state.saveHash, state.pendingRunUUIDs, state.pendingRunType]);
+  }, [state.saveHash, state.pendingRunUuids, state.pendingRunType]);
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
@@ -2237,71 +2188,42 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
-    if (props.queryArgs && props.queryArgs.read_only !== "true") {
-      setState({ shouldAutoStart: true });
-    } else {
-      setState({ shouldAutoStart: false });
+    const hasActiveRun = runUuidFromRoute && jobUuidFromRoute;
+    if (hasActiveRun) {
+      try {
+        pollPipelineStepStatuses();
+        startStatusInterval();
+      } catch (e) {
+        console.log("could not start pipeline status updates: " + e);
+      }
     }
-  }, [props]);
 
-  React.useEffect(() => {
-    dispatch({
-      type: "setView",
-      payload: "pipeline",
-    });
+    const isNonPipelineRun = !hasActiveRun && isReadOnly;
+    if (isNonPipelineRun) {
+      // for non pipelineRun - read only check gate
+      let checkGatePromise = checkGate(projectUuid);
+      checkGatePromise
+        .then(() => {
+          setIsReadOnly(false);
+        })
+        .catch((result) => {
+          if (result.reason === "gate-failed") {
+            orchest.requestBuild(projectUuid, result.data, "Pipeline", () => {
+              setIsReadOnly(false);
+            });
+          }
+        });
+    }
 
-    const { queryArgs } = props;
+    connectSocketIO();
+    initializeResizeHandlers();
 
-    if (areQueryArgsValid(queryArgs)) {
-      const hasActiveRun = queryArgs.run_uuid && queryArgs.job_uuid;
-      if (hasActiveRun) {
-        try {
-          pollPipelineStepStatuses();
-          startStatusInterval();
-        } catch (e) {
-          console.log("could not start pipeline status updates: " + e);
-        }
-      }
-
-      const isNonPipelineRun =
-        !hasActiveRun && props.queryArgs.read_only === "true";
-      if (isNonPipelineRun) {
-        // for non pipelineRun - read only check gate
-        let checkGatePromise = checkGate(queryArgs.project_uuid);
-        checkGatePromise
-          .then(() => {
-            loadViewInEdit();
-          })
-          .catch((result) => {
-            if (result.reason === "gate-failed") {
-              orchest.requestBuild(
-                props.queryArgs.project_uuid,
-                result.data,
-                "Pipeline",
-                () => {
-                  loadViewInEdit();
-                }
-              );
-            }
-          });
-      }
-
-      connectSocketIO();
-      initializeResizeHandlers();
-
-      // Edit mode fetches latest interactive run
-      if (queryArgs.read_only !== "true") {
-        fetchActivePipelineRuns();
-      }
-    } else {
-      loadDefaultPipeline();
+    // Edit mode fetches latest interactive run
+    if (!isReadOnly) {
+      fetchActivePipelineRuns();
     }
 
     return () => {
-      dispatch({
-        type: "clearView",
-      });
-
       disconnectSocketIO();
 
       $(document).off("mouseup.initializePipeline");
@@ -2327,15 +2249,6 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
     }
   }, [state.eventVars.scaleFactor, state.pipelineOffset]);
 
-  React.useEffect(() => {
-    // fetch pipeline when uuid changed
-    fetchPipelineAndInitialize();
-  }, [props.queryArgs.pipeline_uuid]);
-
-  React.useEffect(() => {
-    handleSession();
-  }, [session, state.sessionsIsLoading, props, state.shouldAutoStart]);
-
   return (
     <OrchestSessionsConsumer>
       <Layout>
@@ -2345,13 +2258,13 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
             onMouseLeave={disableHotkeys}
             onMouseOver={onMouseOverPipelineView}
           >
-            {props.queryArgs.job_uuid && props.queryArgs.read_only == "true" && (
+            {jobUuidFromRoute && isReadOnly && (
               <div className="pipeline-actions top-left">
                 <MDCButtonReact
                   classNames={["mdc-button--outlined"]}
                   label="Back to job"
                   icon="arrow_back"
-                  onClick={() => returnToJob(props.queryArgs.job_uuid)}
+                  onClick={returnToJob}
                   data-test-id="pipeline-back-to-job"
                 />
               </div>
@@ -2368,53 +2281,43 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 <MDCButtonReact onClick={zoomIn} icon="add" />
               </div>
 
-              {props.queryArgs.read_only !== "true" ? (
-                <>
-                  {!state.pipelineRunning &&
-                    state.eventVars.selectedSteps.length > 0 &&
-                    !state.eventVars.stepSelector.active && (
-                      <div className="selection-buttons">
-                        <MDCButtonReact
-                          classNames={[
-                            "mdc-button--raised",
-                            "themed-secondary",
-                          ]}
-                          onClick={runSelectedSteps}
-                          label="Run selected steps"
-                          data-test-id="interactive-run-run-selected-steps"
-                        />
-                        {selectedStepsHasIncoming && (
-                          <MDCButtonReact
-                            classNames={[
-                              "mdc-button--raised",
-                              "themed-secondary",
-                            ]}
-                            onClick={onRunIncoming}
-                            label="Run incoming steps"
-                            data-test-id="interactive-run-run-incoming-steps"
-                          />
-                        )}
-                      </div>
-                    )}
-
-                  {state.pipelineRunning && (
-                    <div className="selection-buttons">
+              {!isReadOnly &&
+                !state.pipelineRunning &&
+                state.eventVars.selectedSteps.length > 0 &&
+                !state.eventVars.stepSelector.active && (
+                  <div className="selection-buttons">
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      onClick={runSelectedSteps}
+                      label="Run selected steps"
+                      data-test-id="interactive-run-run-selected-steps"
+                    />
+                    {selectedStepsHasIncoming && (
                       <MDCButtonReact
-                        classNames={["mdc-button--raised"]}
-                        onClick={cancelRun}
-                        icon="close"
-                        disabled={state.waitingOnCancel}
-                        label="Cancel run"
-                        data-test-id="interactive-run-cancel"
+                        classNames={["mdc-button--raised", "themed-secondary"]}
+                        onClick={onRunIncoming}
+                        label="Run incoming steps"
+                        data-test-id="interactive-run-run-incoming-steps"
                       />
-                    </div>
-                  )}
-                </>
-              ) : null}
+                    )}
+                  </div>
+                )}
+              {!isReadOnly && state.pipelineRunning && (
+                <div className="selection-buttons">
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    onClick={cancelRun}
+                    icon="close"
+                    disabled={state.waitingOnCancel}
+                    label="Cancel run"
+                    data-test-id="interactive-run-cancel"
+                  />
+                </div>
+              )}
             </div>
 
             <div className={"pipeline-actions top-right"}>
-              {props.queryArgs.read_only !== "true" && (
+              {!isReadOnly && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised"]}
                   onClick={newStep}
@@ -2424,7 +2327,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                 />
               )}
 
-              {props.queryArgs.read_only === "true" && (
+              {isReadOnly && (
                 <MDCButtonReact
                   label={"Read only"}
                   disabled={true}
@@ -2450,7 +2353,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                onClick={() => openSettings(undefined)}
+                onClick={() => openSettings()}
                 label={"Settings"}
                 icon="tune"
                 data-test-id="pipeline-settings"
@@ -2464,11 +2367,7 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
                   <div className="edit-button-holder">
                     <MDCButtonReact
                       icon="tune"
-                      label={
-                        (props.queryArgs.read_only !== "true"
-                          ? "Edit"
-                          : "View") + " services"
-                      }
+                      label={`${!isReadOnly ? "Edit" : "View"} services`}
                       onClick={() => openSettings("services")}
                     />
                   </div>
@@ -2526,28 +2425,27 @@ const PipelineView: React.FC<IPipelineViewProps> = (props) => {
               defaultViewIndex={state.defaultDetailViewIndex}
               pipeline={state.pipelineJson}
               pipelineCwd={state.pipelineCwd}
-              project_uuid={props.queryArgs.project_uuid}
-              job_uuid={props.queryArgs.job_uuid}
-              run_uuid={props.queryArgs.run_uuid}
+              project_uuid={projectUuid}
+              job_uuid={jobUuidFromRoute}
+              run_uuid={runUuidFromRoute}
               sio={state.sio}
-              readOnly={props.queryArgs.read_only === "true"}
+              readOnly={isReadOnly}
               step={state.steps[state.eventVars.openedStep]}
               saveHash={state.saveHash}
             />
           )}
 
-          {state.eventVars.openedMultistep &&
-            props.queryArgs.read_only !== "true" && (
-              <div className={"pipeline-actions bottom-right"}>
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  label={"Delete"}
-                  onClick={onDeleteMultistep}
-                  icon={"delete"}
-                  data-test-id="step-delete-multi"
-                />
-              </div>
-            )}
+          {state.eventVars.openedMultistep && !isReadOnly && (
+            <div className={"pipeline-actions bottom-right"}>
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                label={"Delete"}
+                onClick={onDeleteMultistep}
+                icon={"delete"}
+                data-test-id="step-delete-multi"
+              />
+            </div>
+          )}
         </div>
       </Layout>
     </OrchestSessionsConsumer>

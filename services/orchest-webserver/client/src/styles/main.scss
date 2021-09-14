@@ -838,6 +838,7 @@ iframe.fullsize {
   cursor: pointer;
 }
 
+a.text-button,
 button.text-button {
   border: 0;
   border-bottom: 1px dotted #c6cbd1;
@@ -892,6 +893,7 @@ button.text-button {
   .top-labels {
     font-size: 14px;
 
+    a.text-button,
     button.text-button {
       font-size: 16px;
     }

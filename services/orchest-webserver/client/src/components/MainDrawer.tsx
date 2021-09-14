@@ -1,62 +1,86 @@
-// @ts-check
-import React from "react";
+import React, { useRef } from "react";
+import { NavLink } from "react-router-dom";
 import { MDCDrawer } from "@material/drawer";
 import { useOrchest } from "@/hooks/orchest";
-import {
-  getViewDrawerParentViewName,
-  nameToComponent,
-} from "../utils/webserver-utils";
 
-export interface IMainDrawerProps {
-  selectedElement: string;
-}
+import { siteMap, toQueryString } from "../routingConfig";
 
-const items = [
-  [
-    { label: "Pipelines", icon: "device_hub", view: "PipelinesView" },
-    { label: "Jobs", icon: "pending_actions", view: "JobsView" },
-    { label: "Environments", icon: "view_comfy", view: "EnvironmentsView" },
-  ],
-  [
-    { label: "Projects", icon: "format_list_bulleted", view: "ProjectsView" },
-    { label: "File manager", icon: "folder_open", view: "FileManagerView" },
-    { label: "Settings", icon: "settings", view: "SettingsView" },
-  ],
+const getProjectMenuItems = (projectUuid: string) => [
+  {
+    label: "Pipelines",
+    icon: "device_hub",
+    path: `${siteMap.pipelines.path}${toQueryString({ projectUuid })}`,
+  },
+  {
+    label: "Jobs",
+    icon: "pending_actions",
+    path: `${siteMap.jobs.path}${toQueryString({ projectUuid })}`,
+  },
+  {
+    label: "Environments",
+    icon: "view_comfy",
+    path: `${siteMap.environments.path}${toQueryString({ projectUuid })}`,
+  },
+];
+
+const rootMenuItems = [
+  {
+    label: "Projects",
+    icon: "format_list_bulleted",
+    path: siteMap.projects.path,
+  },
+  {
+    label: "File manager",
+    icon: "folder_open",
+    path: siteMap.fileManager.path,
+  },
+  {
+    label: "Settings",
+    icon: "settings",
+    path: siteMap.settings.path,
+  },
 ] as const;
 
-const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
+type ItemData = { label: string; icon: string; path: string };
+
+const MenuItem: React.FC<{ item: ItemData; id: string; exact?: boolean }> = ({
+  item,
+  id,
+  exact = false,
+}) => {
+  return (
+    <NavLink
+      to={item.path}
+      className="mdc-list-item"
+      activeClassName="mdc-list-item--selected"
+      exact={exact}
+      data-test-id={id}
+    >
+      <span className="mdc-list-item__ripple" />
+      <i className="material-icons mdc-list-item__graphic" aria-hidden="true">
+        {item.icon}
+      </i>
+      <span className="mdc-list-item__text">{item.label}</span>
+    </NavLink>
+  );
+};
+
+const getItemKey = (item: { label: string; icon: string; path: string }) =>
+  `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
+
+const MainDrawer: React.FC = () => {
   const context = useOrchest();
+  const projectUuid = context.state.projectUuid;
 
-  const drawerRef = React.useRef(null);
-  const [drawer, setDrawer] = React.useState(null);
-  const drawerIsMounted = drawerRef && drawer != null;
+  const projectMenuItems = getProjectMenuItems(projectUuid);
 
-  const { orchest } = window;
-
-  const setDrawerSelectedElement = (viewName) => {
-    if (drawerIsMounted) {
-      // resolve mapped parent view
-      const rootViewName = getViewDrawerParentViewName(viewName);
-
-      const selectedView = drawer?.list?.listElements
-        ?.map((listElement, i) => ({
-          index: i,
-          view: listElement.attributes.getNamedItem("data-react-view")?.value,
-        }))
-        ?.find((listElement) => listElement.view === rootViewName);
-
-      drawer.list.selectedIndex =
-        selectedView !== undefined ? selectedView.index : -1;
-    }
-  };
+  const drawerRef = useRef(null);
+  const macDrawerRef = useRef(null);
 
   React.useEffect(() => {
-    setDrawerSelectedElement(props.selectedElement);
-  }, [props?.selectedElement]);
-
-  React.useEffect(() => {
-    if (drawerIsMounted) {
-      drawer.open = context.state.drawerIsOpen;
+    if (drawerRef.current) {
+      if (macDrawerRef.current)
+        macDrawerRef.current.open = context.state.drawerIsOpen;
 
       if (
         context.state?.config?.CLOUD === true &&
@@ -81,7 +105,7 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
         document.body.focus();
       });
 
-      setDrawer(initMDCDrawer);
+      macDrawerRef.current = initMDCDrawer;
     }
   }, []);
 
@@ -89,48 +113,17 @@ const MainDrawer: React.FC<IMainDrawerProps> = (props) => {
     <aside className="mdc-drawer mdc-drawer--dismissible" ref={drawerRef}>
       <div className="mdc-drawer__content">
         <nav className="mdc-list">
-          {items
-            .map((group) =>
-              group.map((item) => {
-                return (
-                  <a
-                    key={item.view}
-                    className="mdc-list-item"
-                    data-react-view={item.view}
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      orchest.loadView(nameToComponent(item.view));
-                    }}
-                    data-test-id={`menu-${item.label
-                      .toLowerCase()
-                      .replace(/[\W]/g, "-")}`}
-                  >
-                    <span className="mdc-list-item__ripple" />
-                    <i
-                      className="material-icons mdc-list-item__graphic"
-                      aria-hidden="true"
-                    >
-                      {item.icon}
-                    </i>
-                    <span className="mdc-list-item__text">{item.label}</span>
-                  </a>
-                );
-              })
-            )
-            .reduce(
-              (acc, cv, i) =>
-                acc === null ? (
-                  cv
-                ) : (
-                  <React.Fragment key={`mainDrawerGroup-${i}`}>
-                    {acc}
-                    <hr role="separator" className="mdc-list-divider" />
-                    {cv}
-                  </React.Fragment>
-                ),
-              null
-            )}
+          {projectMenuItems.map((item) => {
+            const id = getItemKey(item);
+            return <MenuItem key={id} id={id} item={item} />;
+          })}
+          <hr role="separator" className="mdc-list-divider" />
+          {rootMenuItems.map((item) => {
+            const id = getItemKey(item);
+            // these items are at the root level, we need to set exact to true
+            // otherwise, when path is /projects/12345, "Projects" will still be in active state.
+            return <MenuItem key={id} id={id} item={item} exact />;
+          })}
         </nav>
       </div>
     </aside>

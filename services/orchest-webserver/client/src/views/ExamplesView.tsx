@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 
-import ProjectsView from "./ProjectsView";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/routingConfig";
 
 const ExampleCard = () => {};
 
 const ExamplesView = () => {
   const [selectedTab, setSelectedTab] = useState<number>(0);
+  const { navigateTo } = useCustomRoute();
   const goToProjects = () => {
-    window.orchest.loadView(ProjectsView);
+    navigateTo(siteMap.projects.path);
   };
   const changeTabByIndex = (index: number) => {
     setSelectedTab(index);

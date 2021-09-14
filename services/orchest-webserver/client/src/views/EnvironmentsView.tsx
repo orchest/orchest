@@ -1,36 +1,22 @@
-import * as React from "react";
+import React from "react";
 import type { TViewProps } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
-import ProjectBasedView, {
-  IProjectBasedViewProps,
-} from "@/components/ProjectBasedView";
+import ProjectBasedView from "@/components/ProjectBasedView";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
-export interface IEnvironmentsViewProps
-  extends TViewProps,
-    IProjectBasedViewProps {}
-
-const EnvironmentsView: React.FC<IEnvironmentsViewProps> = (props) => {
-  const { dispatch } = useOrchest();
-
-  React.useEffect(() => {
-    dispatch({ type: "setView", payload: "environments" });
-    return () => dispatch({ type: "clearView" });
-  }, []);
+const EnvironmentsView: React.FC<TViewProps> = (props) => {
+  useDocumentTitle(props.title);
+  const { projectUuid } = useCustomRoute();
 
   return (
     <Layout>
-      <ProjectBasedView
-        project_uuid={props.project_uuid}
-        childView={EnvironmentList}
-      />
+      <ProjectBasedView projectUuid={projectUuid}>
+        <EnvironmentList projectUuid={projectUuid} />
+      </ProjectBasedView>
     </Layout>
   );
-};
-
-EnvironmentsView.defaultProps = {
-  queryArgs: {},
 };
 
 export default EnvironmentsView;

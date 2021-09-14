@@ -1,5 +1,5 @@
-import * as React from "react";
-import PipelineView from "./PipelineView";
+import React from "react";
+
 import io from "socket.io-client";
 
 import {
@@ -13,7 +13,11 @@ import {
   MDCDrawerReact,
 } from "@orchest/lib-mdc";
 
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  TViewProps,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import {
   getPipelineJSONEndpoint,
   createOutgoingConnections,
@@ -22,14 +26,29 @@ import {
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/pipeline-view/LogViewer";
+import { siteMap, toQueryString } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
-const LogsView: React.FC<ILogsViewProps> = (props) => {
-  const orchest = window.orchest;
+const LogsView: React.FC<TViewProps> = (props) => {
+  // global states
   const { dispatch, get } = useOrchest();
+  useDocumentTitle(props.title);
+
+  // data from route
+  const {
+    projectUuid,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+    isReadOnly,
+    navigateTo,
+  } = useCustomRoute();
+
   const [promiseManager] = React.useState(new PromiseManager());
 
   const [selectedLog, setSelectedLog] = React.useState(undefined);
@@ -40,16 +59,15 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
   const [job, setJob] = React.useState(undefined);
 
   // Conditional fetch session
-  let session;
-  if (!props.queryArgs.job_uuid) {
-    session = get.session(props.queryArgs);
-  }
+  let session = !jobUuid
+    ? get.session({ pipelineUuid, projectUuid })
+    : undefined;
 
   React.useEffect(() => {
     connectSocketIO();
     fetchPipeline();
 
-    if (props.queryArgs.job_uuid) {
+    if (jobUuid) {
       fetchJob();
     }
 
@@ -143,13 +161,13 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
     return sortedStepKeys.map((stepUUID) => pipelineSteps[stepUUID]);
   };
 
-  const setHeaderComponent = (pipelineName) => {
+  const setHeaderComponent = (pipelineName: string) => {
     dispatch({
       type: "pipelineSet",
       payload: {
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        project_uuid: props.queryArgs.project_uuid,
-        pipelineName: pipelineName,
+        pipelineUuid,
+        projectUuid,
+        pipelineName,
       },
     });
   };
@@ -159,11 +177,7 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
 
     // If there is no job_uuid use the session for
     // fetch the services
-    if (
-      props.queryArgs.job_uuid == undefined &&
-      session &&
-      session.user_services
-    ) {
+    if (jobUuid == undefined && session && session.user_services) {
       services = session.user_services;
     }
     // if there is a job_uuid use the job pipeline to
@@ -172,7 +186,7 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
       services = job.pipeline_definition.services;
     }
 
-    let scope = props.queryArgs.job_uuid ? "noninteractive" : "interactive";
+    let scope = jobUuid ? "noninteractive" : "interactive";
     return filterServices(services, scope);
   };
 
@@ -201,10 +215,10 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
 
   const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      props.queryArgs.pipeline_uuid,
-      props.queryArgs.project_uuid,
-      props.queryArgs.job_uuid,
-      props.queryArgs.run_uuid
+      pipelineUuid,
+      projectUuid,
+      jobUuid,
+      runUuid
     );
 
     let pipelinePromise = makeCancelable(
@@ -213,15 +227,18 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
     );
 
     pipelinePromise.promise.then((response) => {
-      let result = JSON.parse(response);
+      let result: {
+        pipeline_json: string;
+        success: boolean;
+      } = JSON.parse(response);
 
       if (result.success) {
-        let pipelineJson = JSON.parse(result["pipeline_json"]);
-        setPipelineJson(pipelineJson);
+        let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
+        setPipelineJson(fetchedPipeline);
 
-        let sortedSteps = topologicalSort(pipelineJson.steps);
+        let sortedSteps = topologicalSort(fetchedPipeline.steps);
         setSortedSteps(sortedSteps);
-        setHeaderComponent(pipelineJson.name);
+        setHeaderComponent(fetchedPipeline.name);
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);
@@ -230,16 +247,15 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
   };
 
   const fetchJob = () => {
-    makeRequest(
-      "GET",
-      `/catch/api-proxy/api/jobs/${props.queryArgs.job_uuid}`
-    ).then((response: string) => {
-      try {
-        setJob(JSON.parse(response));
-      } catch (error) {
-        console.error("Failed to fetch job.", error);
+    makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`).then(
+      (response: string) => {
+        try {
+          setJob(JSON.parse(response));
+        } catch (error) {
+          console.error("Failed to fetch job.", error);
+        }
       }
-    });
+    );
   };
 
   const hasLoaded = () => {
@@ -247,19 +263,19 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
       pipelineJson &&
       sortedSteps !== undefined &&
       sio &&
-      (props.queryArgs.job_uuid === undefined || job)
+      (jobUuid === undefined || job)
     );
   };
 
   const close = () => {
-    orchest.loadView(PipelineView, {
-      queryArgs: {
-        pipeline_uuid: props.queryArgs.pipeline_uuid,
-        project_uuid: props.queryArgs.project_uuid,
-        read_only: props.queryArgs.read_only,
-        job_uuid: props.queryArgs.job_uuid,
-        run_uuid: props.queryArgs.run_uuid,
+    navigateTo(siteMap.pipeline.path, {
+      query: {
+        projectUuid,
+        pipelineUuid,
+        jobUuid,
+        runUuid,
       },
+      state: { isReadOnly },
     });
   };
 
@@ -298,9 +314,9 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
 
     let dynamicLogViewerProps = {};
     if (logType == "step") {
-      dynamicLogViewerProps["step_uuid"] = selectedLog;
+      dynamicLogViewerProps["stepUuid"] = selectedLog;
     } else if (logType == "service") {
-      dynamicLogViewerProps["service_name"] = selectedLog;
+      dynamicLogViewerProps["serviceName"] = selectedLog;
     }
 
     let services = generateServiceItems();
@@ -354,10 +370,10 @@ const LogsView: React.FC<ILogsViewProps> = (props) => {
             <LogViewer
               key={selectedLog}
               sio={sio}
-              pipeline_uuid={props.queryArgs.pipeline_uuid}
-              project_uuid={props.queryArgs.project_uuid}
-              job_uuid={props.queryArgs.job_uuid}
-              run_uuid={props.queryArgs.run_uuid}
+              pipelineUuid={pipelineUuid}
+              projectUuid={projectUuid}
+              jobUuid={jobUuid}
+              runUuid={runUuid}
               {...dynamicLogViewerProps}
             />
           )}

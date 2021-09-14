@@ -21,6 +21,7 @@ describe("file system interactions", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.exec(`rm -rf ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
     // Need to force a reload to discover.
+    cy.reload(true);
     cy.visit("/projects");
     cy.findAllByTestId("projects-table-row").should("have.length", 0);
   });

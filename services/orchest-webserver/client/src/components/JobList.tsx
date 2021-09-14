@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+
 import {
   Box,
   Dialog,
@@ -25,18 +26,19 @@ import {
 } from "@orchest/lib-utils";
 
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
-import EditJobView from "@/views/EditJobView";
-import JobView from "@/views/JobView";
-import ProjectsView from "@/views/ProjectsView";
+
+import { siteMap } from "../Routes";
 
 import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export interface IJobListProps {
-  project_uuid: string;
+  projectUuid: string;
 }
 
 const JobList: React.FC<IJobListProps> = (props) => {
+  const { navigateTo } = useCustomRoute();
   const [state, setState] = React.useState({
     isDeleting: false,
     jobs: undefined,
@@ -67,13 +69,13 @@ const JobList: React.FC<IJobListProps> = (props) => {
     let fetchListPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/jobs/?project_uuid=${props.project_uuid}`
+        `/catch/api-proxy/api/jobs/?project_uuid=${props.projectUuid}`
       ),
       promiseManager
     );
 
     fetchListPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let result = JSON.parse(response);
 
         setState((prevState) => ({
@@ -88,12 +90,12 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const fetchProjectDirSize = () => {
     let fetchProjectDirSizePromise = makeCancelable(
-      makeRequest("GET", `/async/projects/${props.project_uuid}`),
+      makeRequest("GET", `/async/projects/${props.projectUuid}`),
       promiseManager
     );
 
     fetchProjectDirSizePromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let result = JSON.parse(response);
 
         setState((prevState) => ({
@@ -184,7 +186,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const onSubmitModal = (
     rerun?: Record<
-      "pipeline_uuid" | "pipeline_name" | "project_uuid" | "name",
+      "pipelineUuid" | "pipelineName" | "projectUuid" | "name",
       string
     >
   ) => {
@@ -201,26 +203,26 @@ const JobList: React.FC<IJobListProps> = (props) => {
     }
 
     const name = rerun?.name || refManager.refs.formJobName.mdc.value;
-    const pipeline_uuid =
-      rerun?.pipeline_uuid || refManager.refs.formPipeline.mdc.value;
-    const pipeline_name =
-      rerun?.pipeline_name ||
-      state.pipelines.find((pipeline) => pipeline.uuid === pipeline_uuid)?.name;
-    const project_uuid = rerun?.project_uuid || props.project_uuid;
+    const pipelineUuid =
+      rerun?.pipelineUuid || refManager.refs.formPipeline.mdc.value;
+    const pipelineName =
+      rerun?.pipelineName ||
+      state.pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)?.name;
+    const projectUuid = rerun?.projectUuid || props.projectUuid;
 
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
     setIsCreateDialogLoading(true);
 
-    checkGate(props.project_uuid)
+    checkGate(props.projectUuid)
       .then(() => {
         let postJobPromise = makeCancelable(
           makeRequest("POST", "/catch/api-proxy/api/jobs/", {
             type: "json",
             content: {
-              pipeline_uuid,
-              pipeline_name,
-              project_uuid,
+              pipeline_uuid: pipelineUuid,
+              pipeline_name: pipelineName,
+              project_uuid: projectUuid,
               name,
               draft: true,
               pipeline_run_spec: {
@@ -234,12 +236,12 @@ const JobList: React.FC<IJobListProps> = (props) => {
         );
 
         postJobPromise.promise
-          .then((response) => {
+          .then((response: string) => {
             let job = JSON.parse(response);
-
-            orchest.loadView(EditJobView, {
-              queryArgs: {
-                job_uuid: job.uuid,
+            navigateTo(siteMap.editJob.path, {
+              query: {
+                projectUuid,
+                jobUuid: job.uuid,
               },
             });
           })
@@ -272,16 +274,16 @@ const JobList: React.FC<IJobListProps> = (props) => {
             setIsCreateDialogLoading(false);
 
             orchest.requestBuild(
-              props.project_uuid,
+              props.projectUuid,
               result.data,
               "CreateJob",
               () => {
                 setIsCreateDialogOpen(true);
                 onSubmitModal({
                   name,
-                  pipeline_name,
-                  pipeline_uuid,
-                  project_uuid,
+                  pipelineName,
+                  pipelineUuid,
+                  projectUuid,
                 });
               }
             );
@@ -292,13 +294,16 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
   const onRowClick = (row, idx, event) => {
     let job = state.jobs[idx];
-    const ViewToLoad = job.status === "DRAFT" ? EditJobView : JobView;
 
-    orchest.loadView(ViewToLoad, {
-      queryArgs: {
-        job_uuid: job.uuid,
-      },
-    });
+    navigateTo(
+      job.status === "DRAFT" ? siteMap.editJob.path : siteMap.job.path,
+      {
+        query: {
+          projectUuid: props.projectUuid,
+          jobUuid: job.uuid,
+        },
+      }
+    );
   };
 
   const onEditJobNameClick = (jobUUID, jobName) => {
@@ -342,44 +347,46 @@ const JobList: React.FC<IJobListProps> = (props) => {
   };
 
   const jobListToTableData = (jobs) => {
-    let rows = [];
-    for (let x = 0; x < jobs.length; x++) {
+    let rows = jobs.map((job) => {
       // keep only jobs that are related to a project!
-      rows.push([
+      return [
         <span
           className="mdc-icon-table-wrapper"
-          data-test-id={`job-${jobs[x].name}`}
+          key={`job-${job.name}`}
+          data-test-id={`job-${job.name}`}
         >
-          {jobs[x].name}{" "}
+          {job.name}{" "}
           <span className="consume-click">
             <MDCIconButtonToggleReact
               icon="edit"
               onClick={() => {
-                onEditJobNameClick(jobs[x].uuid, jobs[x].name);
+                onEditJobNameClick(job.uuid, job.name);
               }}
             />
           </span>
         </span>,
-        jobs[x].pipeline_name,
-        formatServerDateTime(jobs[x].created_time),
+        job.pipeline_name,
+        formatServerDateTime(job.created_time),
         <StatusInline
+          key={`${job.name}-status`}
           css={{ verticalAlign: "bottom" }}
-          status={jobs[x].status}
+          status={job.status}
         />,
-      ]);
-    }
+      ];
+    });
+
     return rows;
   };
 
   React.useEffect(() => {
     // retrieve pipelines once on component render
     let pipelinePromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${props.project_uuid}`),
+      makeRequest("GET", `/async/pipelines/${props.projectUuid}`),
       promiseManager
     );
 
     pipelinePromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let result = JSON.parse(response);
 
         setState((prevState) => ({
@@ -389,7 +396,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
       })
       .catch((e) => {
         if (e && e.status == 404) {
-          orchest.loadView(ProjectsView);
+          navigateTo(siteMap.projects.path);
         }
         console.log(e);
       });
@@ -400,7 +407,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
     fetchProjectDirSize();
 
     return () => promiseManager.cancelCancelablePromises();
-  }, []);
+  }, [props.projectUuid]);
 
   const pipelineOptions =
     state.pipelines?.map(({ uuid, name }) => [uuid, name]) || [];
@@ -412,23 +419,21 @@ const JobList: React.FC<IJobListProps> = (props) => {
           title="Edit job name"
           onClose={onCloseEditJobNameModal}
           content={
-            <React.Fragment>
-              <MDCTextFieldReact
-                classNames={["fullwidth push-down"]}
-                value={state.editJobName}
-                label="Job name"
-                onChange={(value) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    editJobName: value,
-                  }));
-                }}
-                data-test-id="job-edit-name-textfield"
-              />
-            </React.Fragment>
+            <MDCTextFieldReact
+              classNames={["fullwidth push-down"]}
+              value={state.editJobName}
+              label="Job name"
+              onChange={(value) => {
+                setState((prevState) => ({
+                  ...prevState,
+                  editJobName: value,
+                }));
+              }}
+              data-test-id="job-edit-name-textfield"
+            />
           }
           actions={
-            <React.Fragment>
+            <>
               <MDCButtonReact
                 icon="close"
                 label="Cancel"
@@ -443,7 +448,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 submitButton
                 onClick={onSubmitEditJobNameModal}
               />
-            </React.Fragment>
+            </>
           }
         />
       )}
@@ -451,7 +456,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
       <h2>Jobs</h2>
 
       {state.jobs && state.pipelines ? (
-        <React.Fragment>
+        <>
           <Dialog
             open={isCreateDialogOpen}
             onOpenChange={(open) => setIsCreateDialogOpen(open)}
@@ -489,7 +494,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                       <p>Copying pipeline directory...</p>
                     </Box>
                   ) : (
-                    <React.Fragment>
+                    <>
                       {state.projectSnapshotSize > 50 && (
                         <div className="warning push-down">
                           <i className="material-icons">warning</i> Snapshot
@@ -519,7 +524,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                         }
                         options={pipelineOptions}
                       />
-                    </React.Fragment>
+                    </>
                   )}
                 </form>
               </DialogBody>
@@ -560,7 +565,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
             rows={jobListToTableData(state.jobs)}
             headers={["Job", "Pipeline", "Snapshot date", "Status"]}
           />
-        </React.Fragment>
+        </>
       ) : (
         <MDCLinearProgressReact />
       )}

@@ -1,4 +1,5 @@
-import * as React from "react";
+import React from "react";
+
 import {
   makeRequest,
   makeCancelable,
@@ -13,19 +14,17 @@ import {
   MDCDialogReact,
   MDCDataTableReact,
 } from "@orchest/lib-mdc";
-import { useOrchest } from "@/hooks/orchest";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
-import PipelineView from "../pipeline-view/PipelineView";
-import ProjectsView from "@/views/ProjectsView";
+import { siteMap } from "../Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";
 
-const PipelineList: React.FC<any> = (props) => {
+const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { orchest } = window;
-
-  const context = useOrchest();
+  const { navigateTo } = useCustomRoute();
 
   const [state, setState] = React.useState({
     loading: true,
@@ -45,32 +44,33 @@ const PipelineList: React.FC<any> = (props) => {
   const [refManager] = React.useState(new RefManager());
 
   const processListData = (pipelines) => {
-    let listData = [];
-
-    for (let pipeline of pipelines) {
-      // @TODO Get the current Project on the Pipelines page
-      listData.push([
-        <span data-test-id={`pipeline-${pipeline.name}`}>{pipeline.name}</span>,
-        <span className="mdc-icon-table-wrapper">
-          {pipeline.path}{" "}
-          <span className="consume-click">
-            <MDCIconButtonToggleReact
-              icon="edit"
-              onClick={() => {
-                onEditClick(pipeline.uuid, pipeline.path);
-              }}
-              data-test-id="pipeline-edit-path"
-            />
-          </span>
-        </span>,
-        <SessionToggleButton
-          project_uuid={context.state.project_uuid}
-          pipeline_uuid={pipeline.uuid}
-          switch={true}
-          className="consume-click"
-        />,
-      ]);
-    }
+    let listData = pipelines.map((pipeline) => [
+      <span
+        key={`pipeline-${pipeline.name}`}
+        data-test-id={`pipeline-${pipeline.name}`}
+      >
+        {pipeline.name}
+      </span>,
+      <span key="pipeline-edit-path" className="mdc-icon-table-wrapper">
+        {pipeline.path}{" "}
+        <span className="consume-click">
+          <MDCIconButtonToggleReact
+            icon="edit"
+            onClick={() => {
+              onEditClick(pipeline.uuid, pipeline.path);
+            }}
+            data-test-id="pipeline-edit-path"
+          />
+        </span>
+      </span>,
+      <SessionToggleButton
+        key={pipeline.uuid}
+        projectUuid={projectUuid}
+        pipelineUuid={pipeline.uuid}
+        switch={true}
+        className="consume-click"
+      />,
+    ]);
 
     return listData;
   };
@@ -78,12 +78,12 @@ const PipelineList: React.FC<any> = (props) => {
   const fetchList = (onComplete) => {
     // initialize REST call for pipelines
     let fetchListPromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${props.project_uuid}`),
+      makeRequest("GET", `/async/pipelines/${projectUuid}`),
       promiseManager
     );
 
     fetchListPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         let data = JSON.parse(response);
         setState((prevState) => ({
           ...prevState,
@@ -99,39 +99,30 @@ const PipelineList: React.FC<any> = (props) => {
       })
       .catch((e) => {
         if (e && e.status == 404) {
-          // @ts-ignore
-          orchest.loadView(ProjectsView);
+          navigateTo(siteMap.projects.path);
         }
       });
   };
 
-  const openPipeline = (pipeline, readOnly) => {
-    // load pipeline view
-    let pipelineProps = {
-      queryArgs: {
-        pipeline_uuid: pipeline.uuid,
-        project_uuid: props.project_uuid,
+  const openPipeline = (pipeline, isReadOnly: boolean) => {
+    navigateTo(siteMap.pipeline.path, {
+      query: {
+        projectUuid,
+        pipelineUuid: pipeline.uuid,
       },
-    };
-
-    if (readOnly) {
-      // @ts-ignore
-      pipelineProps.queryArgs.read_only = "true";
-    }
-
-    // @ts-ignore
-    orchest.loadView(PipelineView, pipelineProps);
+      state: { isReadOnly },
+    });
   };
 
   const onClickListItem = (row, idx, e) => {
     let pipeline = state.pipelines[idx];
 
-    let checkGatePromise = checkGate(props.project_uuid);
+    let checkGatePromise = checkGate(projectUuid);
     checkGatePromise
       .then(() => {
         openPipeline(pipeline, false);
       })
-      .catch((result) => {
+      .catch(() => {
         openPipeline(pipeline, true);
       });
   };
@@ -174,7 +165,7 @@ const PipelineList: React.FC<any> = (props) => {
             // sessions, runs, jobs
             makeRequest(
               "DELETE",
-              `/async/pipelines/delete/${props.project_uuid}/${pipeline_uuid}`
+              `/async/pipelines/delete/${projectUuid}/${pipeline_uuid}`
             )
               .then((_) => {
                 // reload list once removal succeeds
@@ -228,7 +219,7 @@ const PipelineList: React.FC<any> = (props) => {
 
     makeRequest(
       "PUT",
-      `/async/pipelines/${props.project_uuid}/${state.editPipelinePathUUID}`,
+      `/async/pipelines/${projectUuid}/${state.editPipelinePathUUID}`,
       {
         type: "json",
         content: {
@@ -328,7 +319,7 @@ const PipelineList: React.FC<any> = (props) => {
     }));
 
     let createPipelinePromise = makeCancelable(
-      makeRequest("POST", `/async/pipelines/create/${props.project_uuid}`, {
+      makeRequest("POST", `/async/pipelines/create/${projectUuid}`, {
         type: "json",
         content: {
           name: pipelineName,

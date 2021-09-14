@@ -6,26 +6,6 @@ import { format, parseISO } from "date-fns";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
 
-import type { IQueryArgs } from "@/types";
-import ConfigureJupyterLabView from "@/views/ConfigureJupyterLabView";
-import EditJobView from "@/views/EditJobView";
-import EnvironmentEditView from "@/views/EnvironmentEditView";
-import EnvironmentsView from "@/views/EnvironmentsView";
-import FileManagerView from "@/views/FileManagerView";
-import FilePreviewView from "@/views/FilePreviewView";
-import HelpView from "@/views/HelpView";
-import JobsView from "@/views/JobsView";
-import JobView from "@/views/JobView";
-import JupyterLabView from "@/views/JupyterLabView";
-import LogsView from "@/pipeline-view/LogsView";
-import ManageUsersView from "@/views/ManageUsersView";
-import PipelineSettingsView from "@/views/PipelineSettingsView";
-import PipelinesView from "@/views/PipelinesView";
-import PipelineView from "@/pipeline-view/PipelineView";
-import ProjectSettingsView from "@/views/ProjectSettingsView";
-import ProjectsView from "@/views/ProjectsView";
-import SettingsView from "@/views/SettingsView";
-import UpdateView from "@/views/UpdateView";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 
 const ajv = new Ajv({
@@ -33,82 +13,6 @@ const ajv = new Ajv({
 });
 
 const pipelineValidator = ajv.compile(pipelineSchema);
-
-function getComponentObject() {
-  // This {str: Class} mapping is required for name
-  // resolution after Class name obfuscation performed
-  // by the JS minifier.
-  return {
-    ConfigureJupyterLabView,
-    EditJobView,
-    EnvironmentEditView,
-    EnvironmentsView,
-    FileManagerView,
-    FilePreviewView,
-    HelpView,
-    JobsView,
-    JobView,
-    JupyterLabView,
-    LogsView,
-    ManageUsersView,
-    PipelineSettingsView,
-    PipelinesView,
-    PipelineView,
-    ProjectSettingsView,
-    ProjectsView,
-    SettingsView,
-    UpdateView,
-  };
-}
-
-export function getViewDrawerParentViewName(viewName) {
-  /* This function describes the parent->child relation
-     between child views and root views listed
-     in the drawer menu.
-
-     This is used for example for selecting the right
-     drawer item when a child view is loaded.
-  */
-
-  let viewHierarchy = {
-    ConfigureJupyterLabView: SettingsView,
-    EditJobView: JobsView,
-    EnvironmentEditView: EnvironmentsView,
-    EnvironmentsView: EnvironmentsView,
-    FileManagerView: FileManagerView,
-    FilePreviewView: PipelinesView,
-    HelpView: HelpView,
-    JobsView: JobsView,
-    JobView: JobsView,
-    JupyterLabView: PipelinesView,
-    ManageUsersView: SettingsView,
-    PipelineSettingsView: PipelinesView,
-    PipelinesView: PipelinesView,
-    LogsView: PipelinesView,
-    ProjectSettingsView: ProjectsView,
-    ProjectsView: ProjectsView,
-    SettingsView: SettingsView,
-    UpdateView: SettingsView,
-  };
-  return componentName(viewHierarchy[viewName]);
-}
-
-export function nameToComponent(viewName) {
-  return getComponentObject()[viewName];
-}
-
-export function componentName(CustomComponent: React.FunctionComponent) {
-  let viewComponents = getComponentObject();
-  for (let viewName of Object.keys(viewComponents)) {
-    if (viewComponents[viewName] === CustomComponent) {
-      return viewName;
-    }
-  }
-  if (process.env.NODE_ENV === "development") {
-    console.log("Was not able to get componentName for " + CustomComponent);
-  }
-  return "";
-}
 
 export function isValidEnvironmentVariableName(name) {
   return /^[0-9a-zA-Z\-_]+$/gm.test(name);
@@ -194,17 +98,19 @@ export function filterServices(services, scope) {
   return servicesCopy;
 }
 
-export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
+export function getServiceURLs(
+  service,
+  projectUuid: string,
+  pipelineUuid: string,
+  runUuid: string
+) {
   let urls = [];
 
   if (service.ports === undefined) {
     return urls;
   }
 
-  let serviceUUID = pipeline_uuid;
-  if (run_uuid !== undefined) {
-    serviceUUID = run_uuid;
-  }
+  let serviceUuid = runUuid || pipelineUuid;
 
   let pbpPrefix = "";
   if (service.preserve_base_path) {
@@ -219,9 +125,9 @@ export function getServiceURLs(service, project_uuid, pipeline_uuid, run_uuid) {
         "service-" +
         service.name +
         "-" +
-        project_uuid.split("-")[0] +
+        projectUuid.split("-")[0] +
         "-" +
-        serviceUUID.split("-")[0] +
+        serviceUuid.split("-")[0] +
         "_" +
         port +
         "/"
@@ -376,11 +282,14 @@ export function getScrollLineHeight() {
   return fontSize ? window.parseInt(fontSize) : undefined;
 }
 
-export function formatServerDateTime(serverDateTimeString) {
+export function formatServerDateTime(
+  serverDateTimeString: string | null | undefined
+) {
+  if (!serverDateTimeString) return "";
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
-export function serverTimeToDate(serverDateTimeString) {
+export function serverTimeToDate(serverDateTimeString: string) {
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
   return parseISO(serverDateTimeString + "Z");
 }
@@ -392,24 +301,24 @@ export function cleanServerDateTime(dateTimeString) {
 }
 
 export function getPipelineJSONEndpoint(
-  pipeline_uuid,
-  project_uuid,
-  job_uuid?,
-  pipeline_run_uuid?
+  pipeline_uuid: string,
+  project_uuid: string,
+  job_uuid?: string | null,
+  pipeline_run_uuid?: string | null
 ) {
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
-  if (job_uuid !== undefined) {
+  if (job_uuid) {
     pipelineURL += `?job_uuid=${job_uuid}`;
   }
 
-  if (pipeline_run_uuid !== undefined) {
+  if (pipeline_run_uuid) {
     pipelineURL += `&pipeline_run_uuid=${pipeline_run_uuid}`;
   }
   return pipelineURL;
 }
 
-export function getPipelineStepParents(stepUUID, pipelineJSON) {
+export function getPipelineStepParents(stepUUID: string, pipelineJSON) {
   let incomingConnections = [];
   for (let [_, step] of Object.entries(pipelineJSON.steps)) {
     if ((step as any).uuid == stepUUID) {
@@ -418,12 +327,9 @@ export function getPipelineStepParents(stepUUID, pipelineJSON) {
     }
   }
 
-  let parentSteps = [];
-  for (let parentStepUUID of incomingConnections) {
-    parentSteps.push(pipelineJSON.steps[parentStepUUID]);
-  }
-
-  return parentSteps;
+  return incomingConnections.map(
+    (parentStepUUID) => pipelineJSON.steps[parentStepUUID]
+  );
 }
 
 export function getPipelineStepChildren(stepUUID, pipelineJSON) {
@@ -515,14 +421,12 @@ export function envVariablesArrayToDict(envVariables) {
 }
 
 // Sorted by key.
-export function envVariablesDictToArray(envVariables) {
-  let result = new Array(Object.keys(envVariables).length).fill(null);
-  Object.keys(envVariables).map((name, idx) => {
-    result[idx] = { name: name, value: envVariables[name] };
-  });
-  result.sort((a, b) => a["name"].localeCompare(b["name"]));
-
-  return result;
+export function envVariablesDictToArray<T>(envVariables: Record<string, T>) {
+  return Object.keys(envVariables)
+    .map((name) => {
+      return { name, value: envVariables[name] };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /*
@@ -539,57 +443,6 @@ export function viewNameToURIPathComponent(viewName) {
   // strip 'View' at the end
   viewName = viewName.slice(0, viewName.length - 4);
   return dashify(viewName);
-}
-
-export function generateRoute(TagName: React.FunctionComponent, dynamicProps) {
-  // returns: [pathname, search]
-  let search = queryArgPropsToQueryArgs(
-    dynamicProps ? dynamicProps.queryArgs : {}
-  );
-  let pathname = "/" + viewNameToURIPathComponent(componentName(TagName));
-  return [pathname, search];
-}
-
-export function decodeRoute(pathname, search) {
-  // note: pathname includes '/' prefix
-  // note: search includes '?' prefix
-  // returns: [TagName, props]
-  let TagName = nameToComponent(
-    URIPathComponentToViewName(pathname.split("/")[1])
-  );
-
-  let queryArgProps = queryArgsToQueryArgProps(search);
-
-  return [TagName, { queryArgs: queryArgProps }];
-}
-
-export function queryArgPropsToQueryArgs(queryArgProps: IQueryArgs) {
-  // note: only string based query args are supported
-  if (!queryArgProps || Object.keys(queryArgProps).length == 0) {
-    return "";
-  }
-
-  const searchParams = new URLSearchParams();
-  for (const [key, value] of Object.entries(queryArgProps)) {
-    if (value !== undefined) {
-      searchParams.append(key, String(value));
-    }
-  }
-  return "?" + searchParams.toString();
-}
-
-export function queryArgsToQueryArgProps(search: string): IQueryArgs {
-  // note: only string based query args are supported
-  // note: search includes '?' prefix
-  let searchParams = new URLSearchParams(search);
-  let queryArgProps = {};
-
-  // @ts-ignore
-  for (let [key, value] of searchParams.entries()) {
-    queryArgProps[key] = value;
-  }
-
-  return queryArgProps;
 }
 
 export function pascalCaseToCapitalized(viewName) {

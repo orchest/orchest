@@ -76,7 +76,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 
 Now that you have installed Orchest, get started with our
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
-check out [pipelines](https://github.com/orchest/awesome-orchest-pipelines) made by your fellow
+check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
 users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
 explaining some of Orchest's core concepts.
 

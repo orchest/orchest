@@ -1,4 +1,5 @@
 import React from "react";
+import { TStatus } from "./components/Status";
 
 export interface IOrchestConfig {
   CLOUD: boolean;
@@ -36,13 +37,11 @@ export interface IOrchestUserConfig {
 }
 
 export interface IOrchestSessionUuid {
-  project_uuid: string;
-  pipeline_uuid: string;
+  projectUuid: string;
+  pipelineUuid: string;
 }
 
 export interface IOrchestSession extends IOrchestSessionUuid {
-  project_uuid: string;
-  pipeline_uuid: string;
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
   jupyter_server_ip?: string;
   notebook_server_info?: {
@@ -57,31 +56,19 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
-export interface LoadViewSpec {
-  // From window.onpopstate.
-  TagName: React.FunctionComponent;
-  dynamicProps: object;
-  isOnPopState: boolean;
-  onCancelled?: () => void;
-}
-
 export interface IOrchestState
-  extends Pick<IOrchestSession, "project_uuid" | "pipeline_uuid"> {
+  extends Pick<
+    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
+    "projectUuid" | "pipelineUuid"
+  > {
   alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
-  loadViewSpec?: LoadViewSpec;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
-  view:
-    | "pipeline"
-    | "jupyter"
-    | "jobs"
-    | "environments"
-    | "pipelines"
-    | ({} & string);
-  pipelineSaveStatus: "saved" | "saving" | ({} & string);
+  pipelineSaveStatus: "saved" | "saving";
+  projects: Project[];
   sessions?: IOrchestSession[] | [];
   sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;
@@ -100,7 +87,7 @@ export type TOrchestAction =
   | {
       type: "pipelineSet";
       payload: Partial<
-        Pick<IOrchestState, "pipeline_uuid" | "project_uuid" | "pipelineName">
+        Pick<IOrchestState, "pipelineUuid" | "projectUuid" | "pipelineName">
       >;
     }
   | {
@@ -109,11 +96,12 @@ export type TOrchestAction =
     }
   | {
       type: "projectSet";
-      payload: IOrchestState["project_uuid"];
+      payload: IOrchestState["projectUuid"];
     }
-  | { type: "setView"; payload: IOrchestState["view"] }
-  | { type: "setLoadViewSpec"; payload: LoadViewSpec }
-  | { type: "clearView" }
+  | {
+      type: "projectsSet";
+      payload: Project[];
+    }
   | {
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];
@@ -137,7 +125,7 @@ export type TOrchestAction =
 export interface IOrchestGet {
   currentSession: IOrchestSession;
   session: (
-    session: Pick<IOrchestSession, "pipeline_uuid" | "project_uuid">
+    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
   ) => IOrchestSession;
 }
 
@@ -165,9 +153,106 @@ export interface IQueryArgs
 }
 
 export type TViewProps = {
-  queryArgs?: IQueryArgs;
+  title: string;
 };
 
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
+};
+
+export type Project = {
+  path: string;
+  uuid: string;
+  pipeline_count: number;
+  session_count: number;
+  job_count: number;
+  environment_count: number;
+};
+
+export type Environment = {
+  base_image: string;
+  gpu_support: boolean;
+  language: string;
+  name: string;
+  project_uuid: string;
+  setup_script: string;
+  uuid: string;
+};
+
+export type EnvironmentBuild = {
+  environment_uuid: string;
+  finished_time: string;
+  project_path: string;
+  project_uuid: string;
+  requested_time: string;
+  started_time: string;
+  status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
+  uuid: string;
+};
+
+export type Job = {
+  created_time: string;
+  env_variables: Record<string, string>;
+  last_scheduled_time: string;
+  name: string;
+  next_scheduled_time: string;
+  parameters: Record<string, unknown>[];
+  pipeline_definition: {
+    name: string;
+    parameters: Record<string, unknown>;
+    settings: {
+      auto_eviction: boolean;
+      data_passing_memory_size: string;
+    };
+    uuid: string;
+    steps: Record<string, Step>;
+    version: string;
+  };
+  pipeline_name: string;
+  pipeline_run_spec: {
+    run_config: {
+      host_user_dir: string;
+      pipeline_path: string;
+      project_dir: string;
+    };
+    scheduled_start: null;
+    uuids: string[];
+    project_uuid: string | null;
+    run_type: string;
+  };
+  pipeline_runs: [];
+  pipeline_uuid: string;
+  project_uuid: string;
+  schedule: string;
+  status: "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+  strategy_json: Record<string, unknown>;
+  total_scheduled_executions: number;
+  uuid: string;
+};
+
+export type Step = Record<
+  string,
+  {
+    environment: string;
+    file_path: string;
+    incoming_connections: string[];
+    kernel: { display_name: string; name: string };
+    meta_data: { hidden: boolean; position: [number, number] };
+    parameters: Record<string, any>;
+    title: string;
+    uuid: string;
+  }
+>;
+
+export type PipelineJson = {
+  name: string;
+  parameters: Record<string, any>;
+  settings: {
+    auto_eviction?: boolean;
+    data_passing_memory_size?: string;
+  };
+  steps: Step;
+  uuid: string;
+  version: string;
+  services?: Record<string, any>;
 };

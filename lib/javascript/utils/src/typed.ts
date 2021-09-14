@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // used in orchest-webserver and mdc-components only
 export function uuidv4() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -7,33 +9,61 @@ export function uuidv4() {
   });
 }
 
+type CancelablePromise = {
+  cancel: () => void;
+  promise: Promise<string>;
+};
+
 // used in orchest-webserver only
-export function makeCancelable(promise, promiseManager) {
+export class PromiseManager<T> {
+  cancelablePromises: CancelablePromise<T>[];
+
+  constructor() {
+    this.cancelablePromises = [];
+  }
+
+  appendCancelablePromise(cancelablePromise: CancelablePromise<T>) {
+    this.cancelablePromises.push(cancelablePromise);
+  }
+
+  cancelCancelablePromises() {
+    for (let cancelablePromise of this.cancelablePromises) {
+      cancelablePromise.cancel();
+    }
+  }
+
+  clearCancelablePromise(cancelablePromise: CancelablePromise<T>) {
+    let index = this.cancelablePromises.indexOf(cancelablePromise);
+    this.cancelablePromises.splice(index, 1);
+  }
+}
+
+// used in orchest-webserver only
+export function makeCancelable<T>(
+  promise: Promise<T>,
+  promiseManager: PromiseManager<T>
+) {
   let hasCanceled_ = false;
 
-  let cancelablePromise = {
+  let cancelablePromise: CancelablePromise<T> = {
     cancel() {
       hasCanceled_ = true;
     },
-    promise: undefined,
+    promise: new Promise<T>((resolve, reject) => {
+      promise.then(
+        (val) => {
+          hasCanceled_ ? reject({ isCanceled: true }) : resolve(val);
+
+          promiseManager.clearCancelablePromise(cancelablePromise);
+        },
+        (error) => {
+          hasCanceled_ ? reject({ isCanceled: true }) : reject(error);
+
+          promiseManager.clearCancelablePromise(cancelablePromise);
+        }
+      );
+    }),
   };
-
-  const wrappedPromise = new Promise((resolve, reject) => {
-    promise.then(
-      (val) => {
-        hasCanceled_ ? reject({ isCanceled: true }) : resolve(val);
-
-        promiseManager.clearCancelablePromise(cancelablePromise);
-      },
-      (error) => {
-        hasCanceled_ ? reject({ isCanceled: true }) : reject(error);
-
-        promiseManager.clearCancelablePromise(cancelablePromise);
-      }
-    );
-  });
-
-  cancelablePromise.promise = wrappedPromise;
 
   promiseManager.appendCancelablePromise(cancelablePromise);
 
