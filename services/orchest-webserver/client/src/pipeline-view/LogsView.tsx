@@ -280,7 +280,8 @@ const LogsView: React.FC = () => {
 
   let rootView = undefined;
 
-  const hasLoaded = pipelineJson && !!sortedSteps && sio && (!jobUuid || job);
+  const hasLoaded =
+    pipelineJson && sortedSteps !== undefined && sio && (!jobUuid || job);
   if (hasLoaded) {
     let steps = [];
 

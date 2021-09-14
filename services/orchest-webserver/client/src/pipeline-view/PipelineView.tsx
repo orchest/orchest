@@ -62,7 +62,7 @@ const PipelineView: React.FC = () => {
     navigateTo,
   } = useCustomRoute();
 
-  const [isReadOnly, setIsReadOnly] = useState(!!isReadOnlyFromQueryString);
+  const [isReadOnly, setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
 
   useEffect(() => {
