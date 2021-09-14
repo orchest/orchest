@@ -22,7 +22,7 @@ const findRouteMatch = (paths: string[]) => {
 };
 
 const useMatchProjectRoot = () => {
-  const [match, setMatch] = React.useState(null);
+  const [match, setMatch] = React.useState(findRouteMatch(projectRootPaths));
   const findRootMatch = () => {
     const found = findRouteMatch(projectRootPaths);
     setMatch(found);

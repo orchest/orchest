@@ -42,13 +42,6 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
       ? projects.some((project) => project.uuid == uuidToValidate)
       : false;
 
-    if (!isValid) {
-      dispatch({
-        type: "projectSet",
-        payload: undefined,
-      });
-    }
-
     return isValid ? uuidToValidate : undefined;
   };
 
@@ -72,6 +65,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
           fetchedProjects.length > 0 ? fetchedProjects[0].uuid : null;
 
         dispatch({ type: "projectSet", payload: newProjectUuid });
+
         // navigate ONLY if user is at the project root
         if (matchProjectRoot) onChangeProject(newProjectUuid);
       })
@@ -82,28 +76,26 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   React.useEffect(() => {
     dispatch({ type: "projectSet", payload: projectUuidFromRoute });
   }, [projectUuidFromRoute]);
-  // whenever state.projectUuid is changed, fetch proejcts when necessary
-  // so we don't need to do this in other places, just in this component
   React.useEffect(() => {
-    console.log(`🥁 updated?: ${state.projectUuid}`);
-    const isExistingProject = validateProjectUuid(
-      state.projectUuid,
+    // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
+    const isSwitchingToProjectRoot = matchProjectRoot && !projectUuidFromRoute;
+    // in case that project is deleted
+    const invalidProjectUuid = !validateProjectUuid(
+      projectUuidFromRoute,
       state.projects
     );
-    // We only fetch projects again if the given project is not part of the current projects on FE
-    if (!isExistingProject) fetchProjects();
+    if (isSwitchingToProjectRoot || invalidProjectUuid) fetchProjects();
 
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, [state.projectUuid]);
+  }, [projectUuidFromRoute, matchProjectRoot]);
 
   const selectItems = state.projects.map((project) => [
     project.uuid,
     project.path,
   ]);
 
-  // ProjectSelector only appears when user is at the project root, i.e. Pipelines, Jobs and Environments
   if (!matchProjectRoot) return null;
   return state.projects ? (
     <MDCSelectReact
