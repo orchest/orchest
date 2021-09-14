@@ -49,16 +49,7 @@ type RouteData = {
   order: number;
 };
 
-//       window.document.title =
-//         pascalCaseToCapitalized(viewName.replace("View", "")) + " · Orchest";
-
 const getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
-
-// this type is part of react-router, which is the dependency of react-router-dom
-// we simply declare the type here, without install @types/react-router
-interface StaticContext {
-  statusCode?: number;
-}
 
 // this is the central place where we maintain all the FE routes
 // to add new route, you would also need to add the route name to RouteName.
