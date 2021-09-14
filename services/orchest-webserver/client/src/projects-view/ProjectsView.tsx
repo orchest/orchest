@@ -21,7 +21,6 @@ import { useOrchest } from "@/hooks/orchest";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTaskPoller } from "@/utils/webserver-utils";
-
 import { useCustomRoute, useLocationQuery } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 
@@ -326,6 +325,10 @@ const ProjectsView: React.FC = () => {
 
   const onCreateClick = () => {
     setIsShowingCreateModal(true);
+  };
+
+  const goToExamples = () => {
+    navigateTo(siteMap.examples.path);
   };
 
   const onClickCreateProject = () => {
@@ -700,11 +703,18 @@ const ProjectsView: React.FC = () => {
                     data-test-id="add-project"
                   />
                   <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
+                    classNames={["mdc-button--raised", "push-right"]}
                     icon="input"
                     label="Import project"
                     onClick={onImport}
                     data-test-id="import-project"
+                  />
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised"]}
+                    icon="lightbulb"
+                    label="Explore Examples"
+                    onClick={goToExamples}
+                    data-test-id="explore-examples"
                   />
                 </div>
                 <div className={"pipeline-actions push-down"}>

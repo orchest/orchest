@@ -7,7 +7,6 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
@@ -20,7 +19,7 @@ import {
 import { siteMap, toQueryString } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
-const ProjectSettingsView: React.FC<TViewProps> = (props) => {
+const ProjectSettingsView: React.FC = () => {
   // global states
   const { orchest } = window;
   const context = useOrchest();
@@ -157,7 +156,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
   React.useEffect(() => {
     attachResizeListener();
-  }, [props, state]);
+  }, [state]);
 
   const paths = React.useMemo(
     () =>
