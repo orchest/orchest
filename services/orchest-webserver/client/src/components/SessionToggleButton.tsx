@@ -1,13 +1,12 @@
 import * as React from "react";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
-import type { IOrchestSession } from "@/types";
 
 export type TSessionToggleButtonRef = HTMLButtonElement;
 export interface ISessionToggleButtonProps
   extends React.HTMLAttributes<TSessionToggleButtonRef> {
-  pipelineUuid: IOrchestSession["pipelineUuid"];
-  projectUuid: IOrchestSession["projectUuid"];
+  pipelineUuid: string;
+  projectUuid: string;
   switch?: boolean;
 }
 

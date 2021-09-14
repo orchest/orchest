@@ -44,7 +44,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const [refManager] = React.useState(new RefManager());
 
   const processListData = (pipelines) => {
-    // @TODO Get the current Project on the Pipelines page
     let listData = pipelines.map((pipeline) => [
       <span
         key={`pipeline-${pipeline.name}`}
