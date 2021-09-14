@@ -415,25 +415,21 @@ const SettingsView: React.FC<TViewProps> = () => {
                       progress={state.hostInfo.disk_info.used_pcent / 100}
                     />
 
-                    <div className="disk-size-info">
+                    <div className="disk-size-info push-up-half">
                       <span>
-                        {state.hostInfo.disk_info.used_gbs.toFixed(2) +
-                          " GB used"}
+                        {state.hostInfo.disk_info.used_GB + "GB used"}
                       </span>
                       <span className="float-right">
-                        {state.hostInfo.disk_info.avail_gbs.toFixed(2) +
-                          " GB free"}
+                        {state.hostInfo.disk_info.avail_GB + "GB free"}
                       </span>
                     </div>
                   </React.Fragment>
                 );
               } else {
                 return (
-                  <React.Fragment>
-                    <MDCLinearProgressReact
-                      classNames={["push-down", "disk-size-info"]}
-                    />
-                  </React.Fragment>
+                  <MDCLinearProgressReact
+                    classNames={["push-down", "disk-size-info"]}
+                  />
                 );
               }
             })()}
