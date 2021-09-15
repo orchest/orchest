@@ -224,9 +224,10 @@ export type BackgroundTask = {
 
 export class BackgroundTaskPoller {
   private END_STATUSES: ["SUCCESS", "FAILURE"];
-  private POLL_FREQUENCY: number;
   private taskCallbacks: Record<string, (task: BackgroundTask) => void>;
   private activeTasks: Record<string, boolean>;
+
+  public POLL_FREQUENCY: number;
 
   constructor() {
     this.END_STATUSES = ["SUCCESS", "FAILURE"];
