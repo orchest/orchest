@@ -1682,7 +1682,6 @@ const PipelineView: React.FC<TViewProps> = (props) => {
 
         parseRunStatuses(result);
 
-        console.log("🚕 get runUuid in the state");
         setState({
           runUuid: result.uuid,
         });

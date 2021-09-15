@@ -13,23 +13,17 @@ import {
   RefManager,
   makeCancelable,
   makeRequest,
-  validURL,
 } from "@orchest/lib-utils";
 
 import { Layout } from "@/components/Layout";
 import { useOrchest } from "@/hooks/orchest";
 import { siteMap } from "@/Routes";
 import type { TViewProps, Project } from "@/types";
-import { BackgroundTaskPoller } from "@/utils/webserver-utils";
+import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
-import { useCustomRoute, useLocationQuery } from "@/hooks/useCustomRoute";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-
-const ERROR_MAPPING = {
-  "project move failed": "failed to move project because the directory exists.",
-  "project name contains illegal character":
-    "project name contains illegal character(s).",
-} as const;
+import { ImportDialog } from "./ImportDialog";
 
 const ProjectsView: React.FC<TViewProps> = (props) => {
   const { orchest } = window;
@@ -40,22 +34,12 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const context = useOrchest();
   const { navigateTo } = useCustomRoute();
 
-  const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
-
-  const hasPrefilledImportUrl =
-    importUrlFromQuerystring && typeof importUrlFromQuerystring === "string";
-
-  const [importUrl, setImportUrl] = React.useState<string>(
-    hasPrefilledImportUrl
-      ? window.decodeURIComponent(importUrlFromQuerystring as string)
-      : ""
-  );
-
   const [projectName, setProjectName] = React.useState("");
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
+  const [isImporting, setIsImporting] = React.useState(false);
+
   const [state, setState] = React.useState({
-    showImportModal: false,
     isDeleting: false,
     loading: true,
     projects: null,
@@ -72,25 +56,6 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   const [refManager] = React.useState(new RefManager());
   const [backgroundTaskPoller] = React.useState(new BackgroundTaskPoller());
   backgroundTaskPoller.POLL_FREQUENCY = 1000;
-
-  const getMappedErrorMessage = (key) => {
-    if (ERROR_MAPPING[key] !== undefined) {
-      return ERROR_MAPPING[key];
-    } else {
-      return "undefined error. Please try again.";
-    }
-  };
-
-  const conditionalShowImportFromURL = () => {
-    // if user loads the app with a pre-filled import_url in their query string
-    // we prompt them directly with the import modal
-    if (hasPrefilledImportUrl) {
-      setState((prevState) => ({
-        ...prevState,
-        showImportModal: true,
-      }));
-    }
-  };
 
   const onEditProjectName = (projectUUID, projectPath) => {
     setState((prevState) => ({
@@ -395,61 +360,6 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     return projectNameValidation.valid;
   };
 
-  const onSubmitImport = () => {
-    if (!validURL(importUrl) || !importUrl.startsWith("https://")) {
-      orchest.alert(
-        "Error",
-        "Please make sure you enter a valid HTTPS git-repo URL."
-      );
-      return;
-    }
-
-    // Note: can have empty project name for import (uses inferred repo name by git)
-    if (projectName.length > 0 && !validateProjectNameAndAlert(projectName)) {
-      return;
-    }
-
-    setState((prevState) => ({
-      ...prevState,
-      importResult: {
-        status: "PENDING",
-      },
-    }));
-
-    let jsonData = { url: importUrl };
-
-    // only add project_name if use entered a value in the form
-    if (projectName.length > 0) {
-      (jsonData as any).project_name = projectName;
-    }
-
-    makeRequest("POST", `/async/projects/import-git`, {
-      type: "json",
-      content: jsonData,
-    }).then((response: string) => {
-      let data = JSON.parse(response);
-
-      backgroundTaskPoller.startPollingBackgroundTask(data.uuid, (result) => {
-        setState((prevState) => ({
-          ...prevState,
-          importResult: result,
-
-          // This way the modal will not be reopened if it was closed
-          // by the user.
-          showImportModal:
-            prevState.showImportModal && result.status != "SUCCESS",
-        }));
-
-        if (result.status == "SUCCESS") {
-          setImportUrl("");
-          setProjectName("");
-        }
-
-        fetchList(result.status === "SUCCESS" ? result.result : undefined);
-      });
-    });
-  };
-
   const onCancelModal = () => {
     refManager.refs.createProjectDialog.close();
   };
@@ -458,30 +368,16 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
     setIsShowingCreateModal(false);
   };
 
-  const onCancelImport = () => {
-    refManager.refs.importProjectDialog.close();
-  };
-
-  const onCloseImportProjectModal = () => {
-    setImportUrl("");
-    setProjectName("");
-    setState((prevState) => ({
-      ...prevState,
-      showImportModal: false,
-    }));
-  };
-
   const onImport = () => {
-    setState((prevState) => ({
-      ...prevState,
-      importResult: undefined,
-      showImportModal: true,
-    }));
+    setIsImporting(true);
+  };
+
+  const onImportComplete = (result: BackgroundTask) => {
+    if (result.status === "SUCCESS") fetchList(result.result);
   };
 
   React.useEffect(() => {
     fetchList();
-    conditionalShowImportFromURL();
 
     return () => {
       promiseManager.cancelCancelablePromises();
@@ -510,98 +406,12 @@ const ProjectsView: React.FC<TViewProps> = (props) => {
   return (
     <Layout>
       <div className={"view-page projects-view"}>
-        {state.showImportModal && (
-          <MDCDialogReact
-            title="Import a project"
-            onClose={onCloseImportProjectModal}
-            ref={refManager.nrefs.importProjectDialog}
-            content={
-              <div
-                className="project-import-modal"
-                data-test-id="import-project-dialog"
-              >
-                {hasPrefilledImportUrl && (
-                  <div className="push-down warning">
-                    <p>
-                      <i className="material-icons">warning</i> The import URL
-                      was pre-filled. Make sure you trust the{" "}
-                      <span className="code">git</span>
-                      {" repository you're importing."}
-                    </p>
-                  </div>
-                )}
-                <p className="push-down">
-                  Import a <span className="code">git</span> repository by
-                  specifying the <span className="code">HTTPS</span> URL below:
-                </p>
-                <MDCTextFieldReact
-                  classNames={["fullwidth push-down"]}
-                  label="Git repository URL"
-                  value={importUrl}
-                  onChange={setImportUrl}
-                  data-test-id="project-url-textfield"
-                />
-
-                <MDCTextFieldReact
-                  classNames={["fullwidth"]}
-                  label="Project name (optional)"
-                  value={projectName}
-                  onChange={setProjectName}
-                  data-test-id="project-name-textfield"
-                />
-
-                {(() => {
-                  if (state.importResult) {
-                    let result;
-
-                    if (state.importResult.status === "PENDING") {
-                      result = <MDCLinearProgressReact />;
-                    } else if (state.importResult.status === "FAILURE") {
-                      result = (
-                        <p>
-                          <i className="material-icons float-left">error</i>{" "}
-                          Import failed:{" "}
-                          {getMappedErrorMessage(state.importResult.result)}
-                        </p>
-                      );
-                    }
-
-                    return <div className="push-up">{result}</div>;
-                  }
-                })()}
-                <p className="push-up">
-                  To import <b>private </b>
-                  <span className="code">git</span> repositories upload them
-                  directly through the File Manager into the{" "}
-                  <span className="code">projects/</span> directory.
-                </p>
-              </div>
-            }
-            actions={
-              <React.Fragment>
-                <MDCButtonReact
-                  icon="close"
-                  label="Close"
-                  classNames={["push-right"]}
-                  onClick={onCancelImport}
-                />
-                <MDCButtonReact
-                  icon="input"
-                  // So that the button is disabled when in a states
-                  // that requires so (currently ["PENDING"]).
-                  disabled={["PENDING"].includes(
-                    state.importResult !== undefined
-                      ? state.importResult.status
-                      : undefined
-                  )}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  label="Import"
-                  submitButton
-                  onClick={onSubmitImport}
-                  data-test-id="import-project-ok"
-                />
-              </React.Fragment>
-            }
+        {isImporting && (
+          <ImportDialog
+            projectName={projectName}
+            setProjectName={setProjectName}
+            onImportComplete={onImportComplete}
+            setShouldOpen={setIsImporting}
           />
         )}
 

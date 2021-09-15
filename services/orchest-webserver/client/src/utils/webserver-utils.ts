@@ -212,11 +212,21 @@ export class OverflowListener {
   }
 }
 
+export type CreateProjectError =
+  | "project move failed"
+  | "project name contains illegal character";
+
+export type BackgroundTask = {
+  uuid: string;
+  status: "SUCCESS" | "FAILURE" | "PENDING";
+  result: CreateProjectError | string | null;
+};
+
 export class BackgroundTaskPoller {
-  END_STATUSES: ["SUCCESS", "FAILURE"];
-  POLL_FREQUENCY: number;
-  taskCallbacks: any;
-  activeTasks: any;
+  private END_STATUSES: ["SUCCESS", "FAILURE"];
+  private POLL_FREQUENCY: number;
+  private taskCallbacks: Record<string, (task: BackgroundTask) => void>;
+  private activeTasks: Record<string, boolean>;
 
   constructor() {
     this.END_STATUSES = ["SUCCESS", "FAILURE"];
@@ -226,43 +236,46 @@ export class BackgroundTaskPoller {
     this.activeTasks = {};
   }
 
-  startPollingBackgroundTask(taskUUID, onComplete) {
+  startPollingBackgroundTask(
+    taskUuid: string,
+    onComplete: (task: BackgroundTask) => void
+  ) {
     // default to no-op callback
     if (!onComplete) {
-      onComplete = () => {};
+      onComplete = () => {}; // eslint-disable-line @typescript-eslint/no-empty-function
     }
 
-    this.activeTasks[taskUUID] = true;
-    this.taskCallbacks[taskUUID] = onComplete;
-    this.executeDelayedRequest(taskUUID);
+    this.activeTasks[taskUuid] = true;
+    this.taskCallbacks[taskUuid] = onComplete;
+    this.executeDelayedRequest(taskUuid);
   }
 
-  executeDelayedRequest(taskUUID) {
+  executeDelayedRequest(taskUuid: string) {
     setTimeout(() => {
-      if (this.activeTasks[taskUUID]) {
-        this.requestStatus(taskUUID);
+      if (this.activeTasks[taskUuid]) {
+        this.requestStatus(taskUuid);
       }
     }, this.POLL_FREQUENCY);
   }
 
-  removeTask(taskUUID) {
-    delete this.activeTasks[taskUUID];
+  removeTask(taskUuid: string) {
+    delete this.activeTasks[taskUuid];
   }
 
   removeAllTasks() {
     this.activeTasks = {};
   }
 
-  requestStatus(taskUUID) {
-    makeRequest("GET", `/async/background-tasks/${taskUUID}`).then(
+  requestStatus(taskUuid: string) {
+    makeRequest("GET", `/async/background-tasks/${taskUuid}`).then(
       (response: string) => {
         try {
-          let data = JSON.parse(response);
+          let data: BackgroundTask = JSON.parse(response);
           if (this.END_STATUSES.indexOf(data.status) !== -1) {
-            this.taskCallbacks[taskUUID](data);
-            this.removeTask(taskUUID);
+            this.taskCallbacks[taskUuid](data);
+            this.removeTask(taskUuid);
           } else {
-            this.executeDelayedRequest(taskUUID);
+            this.executeDelayedRequest(taskUuid);
           }
         } catch (error) {
           console.error(error);

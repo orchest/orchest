@@ -66,7 +66,7 @@ const useAsync = <T>(initialState?: T) => {
   const { data, error, status } = state as State<T>;
 
   const run = useCallback(
-    (promise: Promise<T | unknown>) => {
+    (promise: Promise<T>) => {
       dispatch({ type: "PENDING" });
       promise.then(
         (data) => {
