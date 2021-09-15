@@ -5,7 +5,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { makeRequest, validURL } from "@orchest/lib-utils";
 
 const validProjectName = (
-  projectName: string
+  projectName = ""
 ): { valid: boolean; reason?: string } => {
   const headsUpText = "Please make sure you enter a valid project name. ";
   if (projectName.match("[^A-Za-z0-9_.-]")) {
@@ -42,7 +42,7 @@ const validateImportData = ({
 };
 
 const useImportProject = (
-  projectName: string,
+  projectName = "",
   importUrl: string,
   onComplete: (result: BackgroundTask) => void
 ) => {
@@ -64,6 +64,9 @@ const useImportProject = (
         }
       );
     }
+    return () => {
+      backgroundTaskPollerRef.current.removeAllTasks();
+    };
   }, [fetchStatus, data]);
 
   const startImport = () => {

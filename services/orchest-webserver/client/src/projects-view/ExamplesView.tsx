@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
-import { makeRequest } from "@orchest/lib-utils";
 
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { useOrchest } from "@/hooks/orchest";
-import { useAsync } from "@/hooks/useAsync";
+
+import { ImportDialog } from "./ImportDialog";
 
 type ExampleData = {
   uuid: string;
@@ -34,7 +34,7 @@ const data: [ExampleData[], ExampleData[]] = [
 ];
 
 type ExampleCardProps = ExampleData & {
-  importFromUrl: (url: string) => void;
+  startImport: (url: string) => void;
 };
 
 const ExampleCard: React.FC<ExampleCardProps> = ({
@@ -43,9 +43,9 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
   tags,
   author,
   url,
-  importFromUrl,
+  startImport,
 }) => {
-  const importExample = () => importFromUrl(url);
+  const importExample = () => startImport(url);
   return (
     <div className="example-card">
       <div className="example-tags-container">
@@ -73,12 +73,11 @@ const pageHeaderText = `Don't start from scratch, use a template!`;
 const pageHeaderSubtitle = `Use examples contributed by the community to kickstart your Orchest pipelines.`;
 
 const ExamplesView: React.FC = () => {
+  const [isImporting, setIsImporting] = React.useState(false);
   const [selectedTab, setSelectedTab] = useState<number>(0);
   const { navigateTo } = useCustomRoute();
 
   const { state, dispatch } = useOrchest();
-  const { run, setError } = useAsync();
-  const [importedExamples, setImportedExamples] = useState<string[]>([]);
 
   const goToProjects = () => {
     navigateTo(siteMap.projects.path);
@@ -87,24 +86,24 @@ const ExamplesView: React.FC = () => {
     setSelectedTab(index);
   };
 
-  const importFromUrl = (url: string) => {
-    run(
-      makeRequest("POST", "/async/projects/import-git", {
-        type: "json",
-        content: { url },
-      })
-        .then((result) => {
-          let response = JSON.parse(result);
-          setImportedExamples((prev) => [...prev, response.url]);
-        })
-        .catch((err) => {
-          setError(err);
-        })
-    );
+  const [exampleUrl, setExampleUrl] = React.useState<string>();
+  const [projectName, setProjectName] = React.useState<string>();
+
+  const startImport = (url: string) => {
+    setExampleUrl(url);
+    setIsImporting(true);
   };
 
   return (
     <div className="view-page examples-view">
+      {isImporting && (
+        <ImportDialog
+          projectName={projectName}
+          setProjectName={setProjectName}
+          initialImportUrl={exampleUrl}
+          setShouldOpen={setIsImporting}
+        />
+      )}
       <div className="push-down">
         <MDCButtonReact
           label="Back to projects"
@@ -128,7 +127,7 @@ const ExamplesView: React.FC = () => {
             <ExampleCard
               key={item.uuid}
               {...item}
-              importFromUrl={importFromUrl}
+              startImport={startImport}
             ></ExampleCard>
           );
         })}

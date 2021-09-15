@@ -34,7 +34,7 @@ const ProjectsView: React.FC = () => {
   const context = useOrchest();
   const { navigateTo } = useCustomRoute();
 
-  const [projectName, setProjectName] = React.useState("");
+  const [projectName, setProjectName] = React.useState<string>();
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
   const [isImporting, setIsImporting] = React.useState(false);

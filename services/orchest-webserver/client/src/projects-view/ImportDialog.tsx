@@ -64,13 +64,21 @@ const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
 const ImportDialog: React.FC<{
   projectName: string;
   setProjectName: React.Dispatch<React.SetStateAction<string>>;
-  onImportComplete: (backgroundTaskResult: BackgroundTask) => void;
+  initialImportUrl?: string;
+  onImportComplete?: (backgroundTaskResult: BackgroundTask) => void;
   setShouldOpen: React.Dispatch<React.SetStateAction<boolean>>;
-}> = ({ projectName, setProjectName, onImportComplete, setShouldOpen }) => {
+}> = ({
+  projectName,
+  setProjectName,
+  initialImportUrl,
+  onImportComplete,
+  setShouldOpen,
+}) => {
   const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
 
   const hasPrefilledImportUrl =
-    importUrlFromQuerystring && typeof importUrlFromQuerystring === "string";
+    initialImportUrl ||
+    (importUrlFromQuerystring && typeof importUrlFromQuerystring === "string");
 
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
@@ -80,7 +88,8 @@ const ImportDialog: React.FC<{
 
   const [importUrl, setImportUrl] = React.useState<string>(
     hasPrefilledImportUrl
-      ? window.decodeURIComponent(importUrlFromQuerystring as string)
+      ? initialImportUrl ||
+          window.decodeURIComponent(importUrlFromQuerystring as string)
       : ""
   );
 
@@ -91,13 +100,20 @@ const ImportDialog: React.FC<{
       if (result.status === "SUCCESS") {
         setImportUrl("");
         setProjectName("");
-        onImportComplete(result);
+        if (onImportComplete) onImportComplete(result);
+
+        // unmount this dialog as the last state update
         setShouldOpen(false);
       }
     }
   );
 
   const onClose = () => setShouldOpen(false);
+
+  // if the URL is not from Orchest, we warn the user
+  const shouldShowWarning =
+    hasPrefilledImportUrl &&
+    !/^https:\/\/github.com\/orchest\//.test(importUrl.toLowerCase());
 
   return (
     <MDCDialogReact
@@ -108,7 +124,7 @@ const ImportDialog: React.FC<{
           className="project-import-modal"
           data-test-id="import-project-dialog"
         >
-          {hasPrefilledImportUrl && <PrefilledWarning />}
+          {shouldShowWarning && <PrefilledWarning />}
           <p className="push-down">
             Import a <span className="code">git</span> repository by specifying
             the <span className="code">HTTPS</span> URL below:
