@@ -252,3 +252,13 @@ export type PipelineJson = {
   version: string;
   services?: Record<string, any>;
 };
+
+export type Example = {
+  description: string; // 280 characters
+  forks_count: number;
+  owner: "orchest" | string;
+  stargazers_count: number;
+  tags: string[];
+  title: string;
+  url: string;
+};

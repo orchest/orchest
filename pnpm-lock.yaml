@@ -188,6 +188,7 @@ importers:
       "@typescript-eslint/parser": ^4.29.3
       "@vitejs/plugin-react-refresh": 1.3.3
       ajv: ^8.6.0
+      classnames: ^2.3.1
       codemirror: ^5.55.0
       cron-parser: ^3.3.0
       cronstrue: ^1.108.0
@@ -209,6 +210,7 @@ importers:
       react: ^16.13.1
       react-codemirror2: ^7.2.1
       react-dom: ^16.13.1
+      react-github-btn: ^1.2.1
       react-minimal-pie-chart: 8.2.0
       react-router-dom: ^5.3.0
       sass: 1.32.8
@@ -225,6 +227,7 @@ importers:
       "@orchest/lib-mdc": link:../../../lib/javascript/mdc
       "@orchest/lib-utils": link:../../../lib/javascript/utils
       ajv: 8.6.0
+      classnames: 2.3.1
       codemirror: 5.60.0
       cron-parser: 3.3.0
       cronstrue: 1.111.0
@@ -240,6 +243,7 @@ importers:
       react: 16.13.1
       react-codemirror2: 7.2.1_codemirror@5.60.0+react@16.13.1
       react-dom: 16.13.1_react@16.13.1
+      react-github-btn: 1.2.1
       react-minimal-pie-chart: 8.2.0_react-dom@16.13.1+react@16.13.1
       react-router-dom: 5.3.0_react@16.13.1
       socket.io-client: 2.4.0
@@ -2887,6 +2891,13 @@ packages:
       }
     dev: false
 
+  /classnames/2.3.1:
+    resolution:
+      {
+        integrity: sha512-OlQdbZ7gLfGarSqxesMesDa5uz7KFbID8Kpq/SxIoNGDqY8lSYs0D+hhtBXhcdB3rcbXArFr7vlHheLk1voeNA==,
+      }
+    dev: false
+
   /clean-stack/2.2.0:
     resolution:
       {
@@ -4406,6 +4417,13 @@ packages:
     dependencies:
       assert-plus: 1.0.0
     dev: true
+
+  /github-buttons/2.19.0:
+    resolution:
+      {
+        integrity: sha512-N483U9QbYIS0lZKLxye2XXMHZ4ISJ9OcYJd1ChtJxYsF475xeKF2zC2Ko51SCiQmi0RnLvk25ocJDq+hOpZLfw==,
+      }
+    dev: false
 
   /glob-parent/5.1.2:
     resolution:
@@ -6508,6 +6526,15 @@ packages:
       prop-types: 15.7.2
       react: 16.13.1
       scheduler: 0.19.1
+
+  /react-github-btn/1.2.1:
+    resolution:
+      {
+        integrity: sha512-/gXD01mHAOhW0xYuNJFDn08OGjaMXOjcg6GCKVPdHvQcWzswH4aT85DLDAAJ6Zhw/71veSIH4Kx1BTBfy69SsA==,
+      }
+    dependencies:
+      github-buttons: 2.19.0
+    dev: false
 
   /react-is/16.13.1:
     resolution:

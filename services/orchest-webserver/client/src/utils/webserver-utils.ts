@@ -223,7 +223,7 @@ export type BackgroundTask = {
 };
 
 export class BackgroundTaskPoller {
-  private END_STATUSES: ["SUCCESS", "FAILURE"];
+  private END_STATUSES: string[];
   private taskCallbacks: Record<string, (task: BackgroundTask) => void>;
   private activeTasks: Record<string, boolean>;
 
@@ -272,7 +272,7 @@ export class BackgroundTaskPoller {
       (response: string) => {
         try {
           let data: BackgroundTask = JSON.parse(response);
-          if (this.END_STATUSES.indexOf(data.status) !== -1) {
+          if (this.END_STATUSES.includes(data.status)) {
             this.taskCallbacks[taskUuid](data);
             this.removeTask(taskUuid);
           } else {

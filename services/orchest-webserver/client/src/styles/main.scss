@@ -32,6 +32,8 @@
 @import "ansi";
 @import "themes/jupyter";
 
+@import "./utils.scss";
+
 @import "./pages/example-page.scss";
 
 $mdcComponentPadding: 16px;
