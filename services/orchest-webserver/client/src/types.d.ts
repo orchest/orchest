@@ -152,10 +152,6 @@ export interface IQueryArgs
   read_only?: "true" | "false";
 }
 
-export type TViewProps = {
-  title: string;
-};
-
 export type TViewPropsWithRequiredQueryArgs<K extends keyof IQueryArgs> = {
   queryArgs?: Omit<IQueryArgs, K> & Required<Pick<IQueryArgs, K>>;
 };

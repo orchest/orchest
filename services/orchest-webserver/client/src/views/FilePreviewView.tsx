@@ -12,7 +12,6 @@ import {
   makeCancelable,
 } from "@orchest/lib-utils";
 
-import type { TViewProps } from "@/types";
 import { Layout } from "@/components/Layout";
 import {
   getPipelineJSONEndpoint,
@@ -22,7 +21,6 @@ import {
 } from "@/utils/webserver-utils";
 import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 const MODE_MAPPING = {
   py: "text/x-python",
@@ -30,10 +28,9 @@ const MODE_MAPPING = {
   r: "text/x-rsrc",
 } as const;
 
-const FilePreviewView: React.FC<TViewProps> = (props) => {
+const FilePreviewView: React.FC = () => {
   // global states
   const { orchest } = window;
-  useDocumentTitle(props.title);
 
   // data from route
   const {

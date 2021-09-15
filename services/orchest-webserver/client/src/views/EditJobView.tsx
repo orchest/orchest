@@ -21,7 +21,7 @@ import {
   envVariablesDictToArray,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
-import type { Job, PipelineJson, TViewProps } from "@/types";
+import type { Job, PipelineJson } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
@@ -31,7 +31,7 @@ import SearchableTable from "@/components/SearchableTable";
 import ParamTree from "@/components/ParamTree";
 import EnvVarList from "@/components/EnvVarList";
 import { siteMap } from "@/Routes";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 type EditJobState = {
@@ -46,11 +46,10 @@ type EditJobState = {
   strategyJSON: Record<string, any>;
 };
 
-const EditJobView: React.FC<TViewProps> = (props) => {
+const EditJobView: React.FC = () => {
   // global states
   const { orchest } = window;
   const context = useOrchest();
-  useDocumentTitle(props.title);
 
   // data from route
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();

@@ -27,11 +27,7 @@ import {
   MDCIconButtonToggleReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import type {
-  PipelineJson,
-  TViewProps,
-  TViewPropsWithRequiredQueryArgs,
-} from "@/types";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
 import {
   getPipelineJSONEndpoint,
@@ -47,7 +43,6 @@ import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -59,12 +54,11 @@ const tabMapping: Record<string, number> = {
   services: 2,
 };
 
-const PipelineSettingsView: React.FC<TViewProps> = (props) => {
+const PipelineSettingsView: React.FC = () => {
   // global states
   const orchest = window.orchest;
   const context = useOrchest();
   const { dispatch, get } = useOrchest();
-  useDocumentTitle(props.title);
 
   // data from route
   const {

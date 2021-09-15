@@ -1,12 +1,11 @@
-import * as React from "react";
-import type { TViewProps } from "@/types";
+import React from "react";
+
 import { Layout } from "@/components/Layout";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 
-const ManageUsersView: React.FC<TViewProps> = (props) => {
-  useDocumentTitle(props.title);
+const ManageUsersView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.manageUsers.path });
 
   return (
