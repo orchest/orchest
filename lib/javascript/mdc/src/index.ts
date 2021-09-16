@@ -1,4 +1,5 @@
 export * from "./MDCButtonReact";
+export * from "./MDCCardReact";
 export * from "./MDCCheckboxReact";
 export * from "./MDCCircularProgressReact";
 export * from "./MDCDataTableReact";

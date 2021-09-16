@@ -1,5 +1,5 @@
 import React from "react";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import { MDCButtonReact, MDCCardReact } from "@orchest/lib-mdc";
 
 const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
   style = {},
@@ -12,7 +12,7 @@ const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
     );
   };
   return (
-    <div className="contribute-card" style={style}>
+    <MDCCardReact className="contribute-card" style={style}>
       <h4 className="contribute-card-title">Contribute your own example!</h4>
       <div className="contribute-card-description">
         <p>
@@ -29,7 +29,7 @@ const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
           onClick={onClick}
         />
       </div>
-    </div>
+    </MDCCardReact>
   );
 };
 

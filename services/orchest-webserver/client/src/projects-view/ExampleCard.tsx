@@ -2,7 +2,11 @@ import React from "react";
 import classNames from "classnames";
 import GitHubButton from "react-github-btn";
 
-import { MDCButtonReact, MDCTooltipReact } from "@orchest/lib-mdc";
+import {
+  MDCButtonReact,
+  MDCTooltipReact,
+  MDCCardReact,
+} from "@orchest/lib-mdc";
 import { Example } from "@/types";
 
 type ExampleCardProps = Example & {
@@ -28,7 +32,7 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
   const extraTagTooltipId = `tag-${url}`;
 
   return (
-    <div className="example-card">
+    <MDCCardReact className="example-card">
       <div className="example-tags-container">
         {shownTags.map((tag) => (
           <span key={tag} className="example-tag truncate" title={tag}>
@@ -90,7 +94,7 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
           onClick={importExample}
         />
       </div>
-    </div>
+    </MDCCardReact>
   );
 };
 
