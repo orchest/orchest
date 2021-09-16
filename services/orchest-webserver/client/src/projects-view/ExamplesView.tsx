@@ -21,6 +21,9 @@ enum EXAMPLES_TAB {
   "COMMUNITY" = 1,
 }
 
+const isCuratedByOrchest = (owner: string) =>
+  ["orchest", "orchest-example"].includes(owner.toLowerCase());
+
 const ExamplesView: React.FC = () => {
   const [isImporting, setIsImporting] = React.useState(false);
   const [selectedTab, setSelectedTab] = React.useState<EXAMPLES_TAB>(
@@ -37,9 +40,10 @@ const ExamplesView: React.FC = () => {
   // the index of this array represents the tab index of MDCTabBarReact
   const examples = React.useMemo<[Example[], Example[]]>(() => {
     if (!data) return [[], []];
+
     return data.reduce(
       (categorized, example) => {
-        const tabIndex = example.owner === "orchest" ? 0 : 1;
+        const tabIndex = isCuratedByOrchest(example.owner) ? 0 : 1;
         categorized[tabIndex].push(example);
         return categorized;
       },
