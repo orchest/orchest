@@ -62,7 +62,7 @@ const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
 };
 
 const getProjectNameFromUrl = (importUrl: string) => {
-  const matchGithubRepoName = importUrl.match(/\/([a-z\-]+)$/);
+  const matchGithubRepoName = importUrl.match(/\/([^\/]+)$/);
   return matchGithubRepoName ? matchGithubRepoName[1] : "";
 };
 
@@ -153,10 +153,7 @@ const ImportDialog: React.FC<{
       title="Import a project"
       onClose={onClose}
       content={
-        <div
-          className="project-import-modal"
-          data-test-id="import-project-dialog"
-        >
+        <div data-test-id="import-project-dialog">
           {shouldShowWarning && <PrefilledWarning />}
           <p className="push-down">
             Import a <span className="code">git</span> repository by specifying
