@@ -51,13 +51,95 @@ a.button {
   text-decoration: none;
 }
 
-a {
-  color: vars.$secondary;
+.login-holder {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
 }
 
-.cloud-login-suggestion {
-  padding-top: 40px;
-  max-width: 300px;
+.main-login-view {
+  flex: 1;
+  position: relative;
+
+  .login-form {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+    display: flex;
+
+    img.logo {
+      max-width: 100%;
+      margin-bottom: $generalPadding * 2;
+    }
+
+    .box {
+      padding: $generalPadding * 3 $generalPadding * 2;
+      box-shadow: 0 15px 30px 8px rgba(0, 0, 0, 0.08);
+      display: inline-block;
+      text-align: center;
+      border-radius: 6px;
+
+      .mdc-text-field {
+        margin-bottom: $generalPadding;
+      }
+
+      h2 {
+        margin-bottom: $generalPadding * 2;
+        font-weight: 600;
+        font-size: 1.4rem;
+      }
+    }
+  }
+
+  .utility-links {
+    position: absolute;
+    bottom: $generalPadding * 4;
+    width: 100%;
+
+    text-align: center;
+
+    color: #707070;
+    a {
+      color: #707070;
+    }
+  }
+}
+
+.cloud-login-helper {
+  background: #000;
+  color: #fff;
+  flex: 1;
+  display: flex;
+  align-items: center;
+
+  p {
+    margin-bottom: $generalPadding;
+  }
+
+  .text-holder {
+    padding: 20%;
+    h1 {
+      font-weight: 600;
+    }
+    h1,
+    img {
+      padding-bottom: $generalPadding * 2;
+    }
+    img {
+      max-width: 100%;
+    }
+  }
+
+  a {
+    color: #fff;
+  }
+}
+
+a {
+  color: vars.$secondary;
 }
 
 b,
@@ -111,32 +193,27 @@ h3 {
   }
 }
 
-.login-form {
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  display: flex;
-
-  img.logo {
-    width: 100%;
-    max-width: 200px;
-    margin-bottom: $generalPadding;
+button.themed-secondary {
+  &:not(:disabled) {
+    background-color: theme.$secondary;
   }
 
-  .box {
-    padding: $generalPadding * 2;
-    box-shadow: 0 2px 12px -1px rgba(0, 0, 0, 0.15);
-    display: inline-block;
-    text-align: center;
-    border-radius: 6px;
+  &:disabled {
+    background: rgba(0, 0, 0, 0.12);
+  }
+}
 
-    .mdc-text-field {
-      margin-bottom: $generalPadding;
-    }
-
-    h2 {
-      margin: $generalPadding 0;
-    }
+@media screen and (max-width: 700px), screen and (max-height: 700px) {
+  .login-holder {
+    flex-direction: column;
+  }
+  .login-form {
+    padding: $generalPadding * 2 $generalPadding;
+  }
+  .main-login-view .utility-links {
+    position: relative;
+    bottom: auto;
+    margin-top: $generalPadding * 4;
+    margin-bottom: $generalPadding * 2;
   }
 }
