@@ -127,8 +127,18 @@ def register_views(app):
 
     def handle_login(redirect_type="client"):
 
+        # Returns a shallow mutable copy of the immutable
+        # multi dict.
+        request_args = request.args.copy()
+        redirect_url = request_args.pop("redirect_url", "/")
+        query_args = "&".join(
+            [arg + "=" + value for arg, value in request_args.items()]
+        )
+        if query_args:
+            redirect_url += "?" + query_args
+
         if is_authenticated(request):
-            return redirect_response("/", redirect_type)
+            return redirect_response(redirect_url, redirect_type)
 
         if request.method == "POST":
 
@@ -157,16 +167,6 @@ def register_views(app):
 
                     db.session.add(token)
                     db.session.commit()
-
-                    # Returns a shallow mutable copy of the immutable
-                    # multi dict.
-                    request_args = request.args.copy()
-                    redirect_url = request_args.pop("redirect_url", "/")
-                    query_args = "&".join(
-                        [arg + "=" + value for arg, value in request_args.items()]
-                    )
-                    if query_args:
-                        redirect_url += "?" + query_args
 
                     resp = redirect_response(redirect_url, redirect_type)
                     resp.set_cookie("auth_token", token.token)
