@@ -8,19 +8,19 @@ import {
 } from "@orchest/lib-mdc";
 import { useLocationQuery } from "@/hooks/useCustomRoute";
 
-import type {
-  BackgroundTask,
-  CreateProjectError,
-} from "@/utils/webserver-utils";
+import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
 
 import { useImportProject } from "./hooks/useImportProject";
+import { makeRequest } from "../../../../../lib/javascript/utils/src";
+import { Project } from "@/types";
+import { useOrchest } from "@/hooks/orchest";
 
 const PrefilledWarning = () => {
   return (
     <div className="push-down warning">
       <p>
-        <i className="material-icons">warning</i> The import URL was pre-filled.
-        Make sure you trust the <span className="code">git</span>
+        <i className="material-icons">warning</i> The import URL was not from
+        Orchest. Make sure you trust the <span className="code">git</span>
         {" repository you're importing."}
       </p>
     </div>
@@ -61,20 +61,28 @@ const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
   ) : null;
 };
 
+const getProjectNameFromUrl = (importUrl: string) => {
+  const matchGithubRepoName = importUrl.match(/\/([a-z\-]+)$/);
+  return matchGithubRepoName ? matchGithubRepoName[1] : "";
+};
+
 const ImportDialog: React.FC<{
   projectName: string;
   setProjectName: React.Dispatch<React.SetStateAction<string>>;
   initialImportUrl?: string;
   onImportComplete?: (backgroundTaskResult: BackgroundTask) => void;
-  setShouldOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  open: () => void;
+  close: () => void;
 }> = ({
   projectName,
   setProjectName,
   initialImportUrl,
   onImportComplete,
-  setShouldOpen,
+  open,
+  close,
 }) => {
   const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
+  const { dispatch } = useOrchest();
 
   const hasPrefilledImportUrl =
     initialImportUrl ||
@@ -83,37 +91,62 @@ const ImportDialog: React.FC<{
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
   React.useEffect(() => {
-    if (hasPrefilledImportUrl) setShouldOpen(true);
+    if (hasPrefilledImportUrl) open();
   }, []);
 
-  const [importUrl, setImportUrl] = React.useState<string>(
+  const [importUrl, _setImportUrl] = React.useState<string>(
     hasPrefilledImportUrl
       ? initialImportUrl ||
           window.decodeURIComponent(importUrlFromQuerystring as string)
       : ""
   );
 
+  const setImportUrl = (url: string) => _setImportUrl(url.trim().toLowerCase());
+
   const { startImport, importResult } = useImportProject(
     projectName,
     importUrl,
-    (result) => {
+    async (result) => {
       if (result.status === "SUCCESS") {
         setImportUrl("");
         setProjectName("");
-        if (onImportComplete) onImportComplete(result);
+        close();
 
-        // unmount this dialog as the last state update
-        setShouldOpen(false);
+        if (onImportComplete) {
+          // currently result.result is project.path (projectName)
+          // Ideally we'd like to have project_uuid, then we don't need to fetch the projects again.
+          // TODO: change the BE so we can get project_uuid as result.result
+          const response = await makeRequest("GET", "/async/projects");
+
+          let projects: Project[] = JSON.parse(response);
+
+          dispatch({
+            type: "projectsSet",
+            payload: projects,
+          });
+
+          const finalProjectName =
+            projectName || getProjectNameFromUrl(importUrl);
+
+          setProjectName(finalProjectName);
+
+          const foundByName = projects.find(
+            (project) => project.path === finalProjectName
+          ) as Project;
+
+          // use result as the payload to pass along projectUuid
+          onImportComplete({ ...result, result: foundByName.uuid });
+        }
       }
     }
   );
 
-  const onClose = () => setShouldOpen(false);
+  const onClose = () => close();
 
   // if the URL is not from Orchest, we warn the user
   const shouldShowWarning =
     hasPrefilledImportUrl &&
-    !/^https:\/\/github.com\/orchest\//.test(importUrl.toLowerCase());
+    !/^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl);
 
   return (
     <MDCDialogReact

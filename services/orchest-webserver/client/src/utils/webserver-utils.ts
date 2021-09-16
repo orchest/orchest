@@ -514,7 +514,3 @@ export function loadIntercom(
     created_at: INTERCOM_DEFAULT_SIGNUP_DATE, // Signup date as a Unix timestamp
   });
 }
-
-/*
- End of routing functions.
-*/

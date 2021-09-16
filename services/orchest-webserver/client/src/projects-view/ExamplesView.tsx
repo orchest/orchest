@@ -12,6 +12,8 @@ import { ExampleCard } from "./ExampleCard";
 import { ContributeCard } from "./ContributeCard";
 import { CommunityWarning } from "./CommunityWarning";
 import { useTransition } from "@/hooks/useTransition";
+import { BackgroundTask } from "@/utils/webserver-utils";
+import { ImportSuccessDialog } from "./ImportSuccessDialog";
 
 const pageHeaderText = `Don't start from scratch, use a template!`;
 const pageHeaderSubtitle = `Use examples contributed by the community to kickstart your Orchest pipelines.`;
@@ -24,19 +26,27 @@ enum EXAMPLES_TAB {
 const isCuratedByOrchest = (owner: string) =>
   ["orchest", "orchest-example"].includes(owner.toLowerCase());
 
+type ImportingState = "READY" | "IMPORTING" | "DONE";
+
 const ExamplesView: React.FC = () => {
-  const [isImporting, setIsImporting] = React.useState(false);
+  // global states
+  const { navigateTo } = useCustomRoute();
+  const { data } = useFetchExamples();
+  // local states
+  const [exampleUrl, setExampleUrl] = React.useState<string>();
+  const [projectName, setProjectName] = React.useState<string>();
+  const [projectUuid, setProjectUuid] = React.useState<string>();
+  const [importingState, setImportingState] = React.useState<ImportingState>(
+    "READY"
+  );
   const [selectedTab, setSelectedTab] = React.useState<EXAMPLES_TAB>(
     EXAMPLES_TAB.ORCHEST
   );
-  const { navigateTo } = useCustomRoute();
-  const { data } = useFetchExamples();
   const {
     shouldRender: shouldShowCommunityWithTransition,
     mountedStyle,
     unmountedStyle,
   } = useTransition(selectedTab === EXAMPLES_TAB.COMMUNITY);
-
   // the index of this array represents the tab index of MDCTabBarReact
   const examples = React.useMemo<[Example[], Example[]]>(() => {
     if (!data) return [[], []];
@@ -55,26 +65,45 @@ const ExamplesView: React.FC = () => {
     navigateTo(siteMap.projects.path);
   };
 
+  const goToSelectedProject = () => {
+    navigateTo(siteMap.pipelines.path, { query: { projectUuid } });
+  };
+
   const changeTabByIndex = (index: EXAMPLES_TAB) => {
     setSelectedTab(index);
   };
 
-  const [exampleUrl, setExampleUrl] = React.useState<string>();
-  const [projectName, setProjectName] = React.useState<string>();
-
   const startImport = (url: string) => {
     setExampleUrl(url);
-    setIsImporting(true);
+    setImportingState("IMPORTING");
   };
+
+  const onImportComplete = (result: BackgroundTask) => {
+    if (result.status === "SUCCESS") {
+      setImportingState("DONE");
+      setProjectUuid(result.result);
+    }
+  };
+
+  const closeDialog = () => setImportingState("READY");
 
   return (
     <div className="view-page examples-view">
-      {isImporting && (
+      {importingState === "IMPORTING" && (
         <ImportDialog
           projectName={projectName}
           setProjectName={setProjectName}
           initialImportUrl={exampleUrl}
-          setShouldOpen={setIsImporting}
+          open={() => setImportingState("IMPORTING")}
+          close={closeDialog}
+          onImportComplete={onImportComplete}
+        />
+      )}
+      {importingState === "DONE" && (
+        <ImportSuccessDialog
+          projectName={projectName}
+          close={closeDialog}
+          goToPipelines={goToSelectedProject}
         />
       )}
       <div className="push-down">

@@ -411,7 +411,8 @@ const ProjectsView: React.FC = () => {
             projectName={projectName}
             setProjectName={setProjectName}
             onImportComplete={onImportComplete}
-            setShouldOpen={setIsImporting}
+            open={() => setIsImporting(true)}
+            close={() => setIsImporting(false)}
           />
         )}
 
