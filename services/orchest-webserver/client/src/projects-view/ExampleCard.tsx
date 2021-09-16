@@ -25,6 +25,7 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
   const restNumber = Math.max(tags.length - MAX_TAG_NUMBER, 0);
   const shownTags = restNumber > 0 ? tags.slice(0, MAX_TAG_NUMBER) : tags;
   const extraTags = restNumber > 0 ? tags.slice(MAX_TAG_NUMBER) : [];
+  const extraTagTooltipId = `tag-${url}`;
 
   return (
     <div className="example-card">
@@ -38,10 +39,10 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
           <>
             <span
               className="example-tag__extra"
-              aria-describedby={"tooltip-example-extra-tags"}
+              aria-describedby={extraTagTooltipId}
             >{`+${restNumber}`}</span>
             <MDCTooltipReact
-              tooltipID="tooltip-example-extra-tags"
+              tooltipID={extraTagTooltipId}
               tooltip={extraTags.map((extraTag) => (
                 <div key={extraTag} className="example-tag__tooltip">
                   {extraTag.toUpperCase()}
