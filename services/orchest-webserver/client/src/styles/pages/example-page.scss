@@ -47,7 +47,6 @@ $tag-max-width: 8rem;
 }
 
 .example-card {
-  // border: 1px solid var(--colors-gray200);
   border-radius: var(--radii-md);
   width: $card-width;
   height: $card-height;
@@ -166,7 +165,6 @@ $tag-max-width: 8rem;
 
 .contribute-card {
   @extend .example-card;
-  // border: 1px solid var(--colors-secondary);
   background-color: var(--colors-primary);
 }
 
