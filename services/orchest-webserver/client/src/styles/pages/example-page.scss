@@ -62,6 +62,17 @@ $tag-max-width: 8rem;
   min-height: var(--space-6);
   margin: var(--space-6) 0 var(--space-2);
   font-size: var(--fontSizes-xl);
+  display: flex;
+  align-items: center;
+  .example-card-title_link {
+    margin-left: var(--space-2);
+    color: var(--colors-gray800);
+    display: flex;
+    text-decoration: none;
+  }
+  .example-card-title_link-icon {
+    font-size: var(--fontSizes-base);
+  }
 }
 
 .example-card-owner {

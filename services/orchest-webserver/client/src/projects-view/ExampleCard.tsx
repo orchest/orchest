@@ -56,7 +56,20 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
           </>
         )}
       </div>
-      <h4 className="example-card-title truncate">{title}</h4>
+      <h4 className="example-card-title truncate">
+        <span>{title}</span>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="example-card-title_link"
+          title="open in new tab"
+        >
+          <i className="material-icons example-card-title_link-icon">
+            open_in_new
+          </i>
+        </a>
+      </h4>
       <div className="example-card-owner">
         by
         <span
