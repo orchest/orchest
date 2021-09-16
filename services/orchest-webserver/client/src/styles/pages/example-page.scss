@@ -6,12 +6,12 @@ $examples-view-common-padding: var(--space-7);
     padding-left: var(--space-3);
     display: flex;
     align-items: flex-start;
-    min-height: 10rem;
     .examples-view-heading-section_main {
       flex: 1;
     }
     .examples-view-heading-section_warning {
       width: 24rem;
+      border-radius: var(--radii-md);
       padding: var(--space-6) var(--space-8);
       margin-left: var(--space-6);
       background-color: var(--colors-gray100);
@@ -37,7 +37,7 @@ $examples-view-common-padding: var(--space-7);
   }
 }
 
-$card-width: 30rem;
+$card-width: 28rem;
 $card-height: 20rem;
 $tag-max-width: 8rem;
 
@@ -88,9 +88,8 @@ $tag-max-width: 8rem;
   align-items: center;
 }
 
-@mixin tag-style {
+@mixin common-tag-style {
   text-transform: uppercase;
-  margin-right: var(--space-4);
   font-size: var(--fontSizes-2xs);
   font-weight: var(--fontWeights-bold);
   color: var(--colors-gray700);
@@ -99,14 +98,18 @@ $tag-max-width: 8rem;
 }
 
 .example-tag {
-  @include tag-style;
+  @include common-tag-style;
+  margin-right: var(--space-4);
   border-radius: var(--radii-xs);
   padding: var(--space-2) var(--space-4);
   background-color: var(--colors-gray200);
   position: relative;
+  min-width: 5rem;
+  text-align: center;
 
   &__extra {
-    @include tag-style;
+    @include common-tag-style;
+    margin-right: 0;
     background-color: var(--colors-white);
     border: 1px solid var(--colors-gray400);
     border-radius: var(--radii-rounded);
@@ -133,6 +136,7 @@ $tag-max-width: 8rem;
   margin-top: calc(var(--space-8) * -1);
   padding-top: var(--space-1);
   background-color: white;
+  // TODO: create a mixin
   // add gradient to cover exceeding text
   &::before {
     content: "";
@@ -157,7 +161,7 @@ $tag-max-width: 8rem;
   padding: 0 var(--space-4);
   color: var(--colors-primary);
   &:hover {
-    border: none;
+    border: 1px solid transparent; // we still need border to prevent jumping
   }
 }
 
@@ -168,9 +172,9 @@ $tag-max-width: 8rem;
 
 .contribute-card-title {
   color: white;
-  width: 70%;
+  width: 60%;
   margin-bottom: var(--space-4);
-  font-size: var(--fontSizes-3xl);
+  font-size: var(--fontSizes-2xl);
 }
 
 .contribute-card-description {

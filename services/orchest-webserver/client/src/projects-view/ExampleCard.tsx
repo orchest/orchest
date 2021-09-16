@@ -30,7 +30,7 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
     <div className="example-card">
       <div className="example-tags-container">
         {shownTags.map((tag) => (
-          <span key={tag} className="example-tag truncate">
+          <span key={tag} className="example-tag truncate" title={tag}>
             {tag}
           </span>
         ))}
