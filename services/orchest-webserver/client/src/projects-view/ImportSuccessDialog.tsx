@@ -9,7 +9,7 @@ const ImportSuccessDialog: React.FC<{
 }> = ({ projectName, goToPipelines, close }) => {
   return (
     <MDCDialogReact
-      title="Import Complete"
+      title="Import complete"
       onClose={close}
       content={
         <div className="project-import-modal">
@@ -23,7 +23,7 @@ const ImportSuccessDialog: React.FC<{
         <>
           <MDCButtonReact
             classNames={["push-right"]}
-            label="Continue"
+            label="Continue browsing"
             onClick={close}
           />
           <MDCButtonReact
