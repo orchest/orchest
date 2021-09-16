@@ -161,7 +161,7 @@ $tag-max-width: 8rem;
 }
 
 .github-start-button-container {
-  transform: translate(0, var(--space-2));
+  transform: translate(0, var(--space-1));
 }
 
 .example-import-button.mdc-button:not(:disabled) {
@@ -208,4 +208,9 @@ $tag-max-width: 8rem;
   background-color: white;
   padding: 0 var(--space-4);
   margin-top: var(--space-1);
+}
+
+// TODO: move to MUI
+.mdc-dialog .mdc-dialog__surface {
+  max-width: 30rem !important;
 }

@@ -141,7 +141,11 @@ const ImportDialog: React.FC<{
     }
   );
 
-  const onClose = () => close();
+  const onClose = () => {
+    setImportUrl("");
+    setProjectName("");
+    close();
+  };
 
   // if the URL is not from Orchest, we warn the user
   const shouldShowWarning =
