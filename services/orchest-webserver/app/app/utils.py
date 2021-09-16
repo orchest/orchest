@@ -878,6 +878,8 @@ _DEFAULT_ORCHEST_EXAMPLES_JSON = {
 
 
 def get_orchest_examples_json() -> dict:
+    """Get orchest examples references, ordered by stars."""
+
     path = current_app.config["ORCHEST_EXAMPLES_JSON_PATH"]
     if not os.path.exists(path):
         current_app.logger.warning("Could not find public examples json.")
@@ -888,4 +890,5 @@ def get_orchest_examples_json() -> dict:
             if "creation_time" not in data or "entries" not in data:
                 current_app.logger.error(f"Malformed public examples json : {data}.")
                 return _DEFAULT_ORCHEST_EXAMPLES_JSON
+            data["entries"].sort(key=lambda x: -x.get("stargazers_count", -1))
             return data
