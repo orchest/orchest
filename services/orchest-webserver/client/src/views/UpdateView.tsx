@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   checkHeartbeat,
@@ -6,12 +6,14 @@ import {
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
-import type { TViewProps } from "@/types";
 import { Layout } from "@/components/Layout";
 import { useInterval } from "@/hooks/use-interval";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
 
-const UpdateView: React.FC<TViewProps> = () => {
+const UpdateView: React.FC = () => {
   const { orchest } = window;
+  useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,

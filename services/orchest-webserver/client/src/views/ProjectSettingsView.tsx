@@ -1,12 +1,12 @@
-import * as React from "react";
-import ProjectsView from "./ProjectsView";
+import React from "react";
+import { Link } from "react-router-dom";
+
 import {
   makeRequest,
   makeCancelable,
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
@@ -16,14 +16,18 @@ import {
   OverflowListener,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
-import PipelinesView from "@/views/PipelinesView";
-import JobsView from "@/views/JobsView";
-import EnvironmentsView from "@/views/EnvironmentsView";
+import { siteMap, toQueryString } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
-const ProjectSettingsView: React.FC<TViewProps> = (props) => {
+const ProjectSettingsView: React.FC = () => {
+  // global states
   const { orchest } = window;
-
   const context = useOrchest();
+
+  // data from route
+  const { navigateTo, projectUuid } = useCustomRoute();
+
+  // local states
   const [state, setState] = React.useState({
     envVariables: null,
     pipeline_count: null,
@@ -41,7 +45,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
   const fetchSettings = () => {
     let projectPromise = makeCancelable(
-      makeRequest("GET", "/async/projects/" + props.queryArgs.project_uuid),
+      makeRequest("GET", "/async/projects/" + projectUuid),
       promiseManager
     );
 
@@ -62,7 +66,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToProjects = () => {
-    orchest.loadView(ProjectsView);
+    navigateTo(siteMap.projects.path);
   };
 
   const saveGeneralForm = (e) => {
@@ -86,7 +90,7 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     }
 
     // perform PUT to update
-    makeRequest("PUT", "/async/projects/" + props.queryArgs.project_uuid, {
+    makeRequest("PUT", "/async/projects/" + projectUuid, {
       type: "json",
       content: { env_variables: envVariables },
     })
@@ -143,15 +147,6 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const onClickProjectEntity = (view, projectUUID, e) => {
-    e.preventDefault();
-    context.dispatch({
-      type: "projectSet",
-      payload: projectUUID,
-    });
-    orchest.loadView(view);
-  };
-
   React.useEffect(() => {
     fetchSettings();
     attachResizeListener();
@@ -161,7 +156,18 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
 
   React.useEffect(() => {
     attachResizeListener();
-  }, [props, state]);
+  }, [state]);
+
+  const paths = React.useMemo(
+    () =>
+      ["pipelines", "jobs", "environments"].reduce((all, curr) => {
+        return {
+          ...all,
+          [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
+        };
+      }, {}) as Record<"pipelines" | "jobs" | "environments", string>,
+    [projectUuid]
+  );
 
   return (
     <Layout>
@@ -193,62 +199,35 @@ const ProjectSettingsView: React.FC<TViewProps> = (props) => {
                   <div className="column">
                     <br />
                     <h3>
-                      <button
-                        className="text-button"
-                        onClick={(e) =>
-                          onClickProjectEntity(
-                            PipelinesView,
-                            props.queryArgs.project_uuid,
-                            e
-                          )
-                        }
-                      >
+                      <Link to={paths.pipelines} className="text-button">
                         {state.pipeline_count +
                           " " +
                           (state.pipeline_count == 1
                             ? "pipeline"
                             : "pipelines")}
-                      </button>
+                      </Link>
                     </h3>
                   </div>
                   <div className="column">
                     <br />
                     <h3>
-                      <button
-                        className="text-button"
-                        onClick={(e) =>
-                          onClickProjectEntity(
-                            JobsView,
-                            props.queryArgs.project_uuid,
-                            e
-                          )
-                        }
-                      >
+                      <Link to={paths.jobs} className="text-button">
                         {state.job_count +
                           " " +
                           (state.job_count == 1 ? "job" : "jobs")}
-                      </button>
+                      </Link>
                     </h3>
                   </div>
                   <div className="column">
                     <br />
                     <h3>
-                      <button
-                        className="text-button"
-                        onClick={(e) =>
-                          onClickProjectEntity(
-                            EnvironmentsView,
-                            props.queryArgs.project_uuid,
-                            e
-                          )
-                        }
-                      >
+                      <Link to={paths.environments} className="text-button">
                         {state.environment_count +
                           " " +
                           (state.environment_count == 1
                             ? "environment"
                             : "environments")}
-                      </button>
+                      </Link>
                     </h3>
                   </div>
                   <div className="clear"></div>

@@ -1,4 +1,4 @@
-import * as React from "react";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
 import { uuidv4 } from "@orchest/lib-utils";
@@ -19,36 +19,42 @@ import {
   LANGUAGE_MAP,
   DEFAULT_BASE_IMAGES,
 } from "@orchest/lib-utils";
-import type { TViewProps } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
-import EnvironmentsView from "@/views/EnvironmentsView";
+import { siteMap } from "@/Routes";
+import type { EnvironmentBuild, Environment } from "@/types";
+
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const EnvironmentEditView: React.FC<TViewProps> = (props) => {
+const EnvironmentEditView: React.FC = () => {
+  // global states
   const { orchest } = window;
-
   const context = useOrchest();
+
+  // data from route
+  const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
+
+  // local states
+  const [isNewEnvironment, setIsNewEnvironment] = React.useState(
+    environmentUuid === "create"
+  );
+  const [environment, setEnvironment] = React.useState<Environment>({
+    uuid: "new",
+    name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,
+    gpu_support: context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
+    project_uuid: projectUuid,
+    base_image: context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
+    language: context.state?.config?.ENVIRONMENT_DEFAULTS.language,
+    setup_script: context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
+  });
 
   const [state, setState] = React.useState({
     addCustomBaseImageDialog: null,
     subviewIndex: 0,
     baseImages: [...DEFAULT_BASE_IMAGES],
-    newEnvironment: props.queryArgs.environment_uuid === undefined,
-    environment: !props.queryArgs.environment_uuid
-      ? {
-          uuid: "new",
-          name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,
-          gpu_support: context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
-          project_uuid: props.queryArgs.project_uuid,
-          base_image: context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
-          language: context.state?.config?.ENVIRONMENT_DEFAULTS.language,
-          setup_script:
-            context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
-        }
-      : undefined,
     ignoreIncomingLogs: false,
     building: false,
     buildRequestInProgress: false,
@@ -63,27 +69,31 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const fetchEnvironment = () => {
-    let endpoint = `/store/environments/${props.queryArgs.project_uuid}/${props.queryArgs.environment_uuid}`;
+    // only fetch existing environment
+    if (isNewEnvironment) return;
+
+    let endpoint = `/store/environments/${projectUuid}/${environmentUuid}`;
 
     let cancelableRequest = makeCancelable(
       makeRequest("GET", endpoint),
       promiseManager
     );
 
+    // @ts-ignore
     cancelableRequest.promise
-      .then((response) => {
-        let environment = JSON.parse(response);
+      .then((response: string) => {
+        let fetchedEnvironment: Environment = JSON.parse(response);
 
+        setEnvironment(fetchedEnvironment);
         setState((prevState) => ({
           ...prevState,
-          environment: environment,
           baseImages:
-            DEFAULT_BASE_IMAGES.indexOf(environment.base_image) == -1
-              ? DEFAULT_BASE_IMAGES.concat(environment.base_image)
+            DEFAULT_BASE_IMAGES.indexOf(fetchedEnvironment.base_image) == -1
+              ? DEFAULT_BASE_IMAGES.concat(fetchedEnvironment.base_image)
               : [...DEFAULT_BASE_IMAGES],
         }));
       })
-
+      // @ts-ignore
       .catch((error) => {
         console.error(error);
       });
@@ -95,38 +105,34 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     // Enterprise Gateway team.
     orchest.jupyter.unload();
 
-    return makeCancelable(
+    return makeCancelable<Environment>(
       new Promise((resolve, reject) => {
-        let method = "POST";
-        let endpoint = `/store/environments/${state.environment.project_uuid}/${state.environment.uuid}`;
-
-        if (state.newEnvironment === false) {
-          method = "PUT";
+        if (!environment) {
+          reject();
+          return;
         }
+
+        let method = isNewEnvironment ? "POST" : "PUT";
+        let endpoint = `/store/environments/${projectUuid}/${environment.uuid}`;
 
         makeRequest(method, endpoint, {
           type: "json",
-          content: {
-            environment: state.environment,
-          },
+          content: { environment },
         })
           .then((response: string) => {
-            let result = JSON.parse(response);
+            let result: Environment = JSON.parse(response);
 
-            state.environment.uuid = result.uuid;
+            environment.uuid = result.uuid;
 
-            setState((prevState) => ({
-              ...prevState,
-              environment: state.environment,
-              newEnvironment: false,
-            }));
+            setEnvironment((prev) => ({ ...prev, uuid: result.uuid }));
+            setIsNewEnvironment(false);
 
             context.dispatch({
               type: "setUnsavedChanges",
               payload: false,
             });
 
-            resolve(undefined);
+            resolve(result);
           })
           .catch((error) => {
             console.log(error);
@@ -145,8 +151,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     ).promise;
   };
 
-  const onSave = (e) => {
-    const validEnvironmentName = (name) => {
+  const onSave = (e: MouseEvent) => {
+    const validEnvironmentName = (name: string) => {
       if (!name) {
         return false;
       }
@@ -165,7 +171,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
       return true;
     };
 
-    if (!validEnvironmentName(state.environment.name)) {
+    if (!validEnvironmentName(environment.name)) {
       orchest.alert(
         "Error",
         'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
@@ -177,21 +183,13 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   };
 
   const returnToEnvironments = () => {
-    context.dispatch({
-      type: "projectSet",
-      payload: props.queryArgs.project_uuid,
+    navigateTo(siteMap.environments.path, {
+      query: { projectUuid },
     });
-    orchest.loadView(EnvironmentsView);
   };
 
-  const onChangeName = (value) => {
-    setState((prevState) => ({
-      ...prevState,
-      environment: {
-        ...prevState.environment,
-        name: value,
-      },
-    }));
+  const onChangeName = (value: string) => {
+    setEnvironment((prev) => ({ ...prev, name: value }));
 
     context.dispatch({
       type: "setUnsavedChanges",
@@ -199,14 +197,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const onChangeBaseImage = (value) => {
-    setState((prevState) => ({
-      ...prevState,
-      environment: {
-        ...prevState.environment,
-        base_image: value,
-      },
-    }));
+  const onChangeBaseImage = (value: string) => {
+    setEnvironment((prev) => ({ ...prev, base_image: value }));
 
     context.dispatch({
       type: "setUnsavedChanges",
@@ -214,14 +206,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const onChangeLanguage = (value) => {
-    setState((prevState) => ({
-      ...prevState,
-      environment: {
-        ...prevState.environment,
-        language: value,
-      },
-    }));
+  const onChangeLanguage = (value: string) => {
+    setEnvironment((prev) => ({ ...prev, language: value }));
 
     context.dispatch({
       type: "setUnsavedChanges",
@@ -229,14 +215,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     });
   };
 
-  const onGPUChange = (is_checked) => {
-    setState((prevState) => ({
-      ...prevState,
-      environment: {
-        ...prevState.environment,
-        gpu_support: is_checked,
-      },
-    }));
+  const onGPUChange = (isChecked: boolean) => {
+    setEnvironment((prev) => ({ ...prev, gpu_support: isChecked }));
 
     context.dispatch({
       type: "setUnsavedChanges",
@@ -255,19 +235,22 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
     }));
 
   const submitAddCustomBaseImage = () => {
-    setState((prevState) => ({
-      ...prevState,
-      customBaseImageName: "",
-      baseImages:
-        prevState.baseImages.indexOf(prevState.customBaseImageName) == -1
-          ? prevState.baseImages.concat(prevState.customBaseImageName)
-          : prevState.baseImages,
-      environment: {
-        ...prevState.environment,
+    setState((prevState) => {
+      setEnvironment((prev) => ({
+        ...prev,
         base_image: prevState.customBaseImageName,
-      },
-      addCustomBaseImageDialog: undefined,
-    }));
+      }));
+
+      return {
+        ...prevState,
+        customBaseImageName: "",
+        baseImages:
+          prevState.baseImages.indexOf(prevState.customBaseImageName) == -1
+            ? prevState.baseImages.concat(prevState.customBaseImageName)
+            : prevState.baseImages,
+        addCustomBaseImageDialog: undefined,
+      };
+    });
 
     context.dispatch({
       type: "setUnsavedChanges",
@@ -342,8 +325,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
           content: {
             environment_build_requests: [
               {
-                environment_uuid: state.environment.uuid,
-                project_uuid: state.environment.project_uuid,
+                environment_uuid: environment.uuid,
+                project_uuid: projectUuid,
               },
             ],
           },
@@ -351,17 +334,20 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
         promiseManager
       );
 
+      // @ts-ignore
       buildPromise.promise
-        .then((response) => {
+        .then((response: string) => {
           try {
-            let environmentBuild = JSON.parse(response)[
+            let environmentBuild: EnvironmentBuild = JSON.parse(response)[
               "environment_builds"
             ][0];
+
             onUpdateBuild(environmentBuild);
           } catch (error) {
             console.error(error);
           }
         })
+        // @ts-ignore
         .catch((e) => {
           if (!e.isCanceled) {
             setState((prevState) => ({
@@ -435,9 +421,10 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   React.useEffect(() => {
     context.dispatch({
       type: "setUnsavedChanges",
-      payload: !props.queryArgs.environment_uuid,
+      payload: isNewEnvironment,
     });
-    if (props.queryArgs.environment_uuid) fetchEnvironment();
+
+    if (!isNewEnvironment) fetchEnvironment();
 
     return () => promiseManager.cancelCancelablePromises();
   }, []);
@@ -445,7 +432,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
   return (
     <Layout>
       <div className={"view-page edit-environment"}>
-        {!state.environment ? (
+        {!environment ? (
           <MDCLinearProgressReact />
         ) : (
           <>
@@ -479,7 +466,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                         classNames={["fullwidth", "push-down-7"]}
                         label="Environment name"
                         onChange={onChangeName}
-                        value={state.environment.name}
+                        value={environment.name}
                         data-test-id="environments-env-name"
                       />
 
@@ -489,7 +476,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                           classNames={["fullwidth"]}
                           label="Base image"
                           onChange={onChangeBaseImage}
-                          value={state.environment.base_image}
+                          value={environment.base_image}
                           options={state.baseImages.map((el) => [el])}
                         />
                         <MDCButtonReact
@@ -514,7 +501,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                           ["r", LANGUAGE_MAP["r"]],
                           ["julia", LANGUAGE_MAP["julia"]],
                         ]}
-                        value={state.environment.language}
+                        value={environment.language}
                       />
                       <div className="form-helper-text push-down-7">
                         The language determines for which kernel language this
@@ -536,12 +523,12 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                         onChange={onGPUChange}
                         label="GPU support"
                         classNames={["push-down-7"]}
-                        value={state.environment.gpu_support}
+                        value={environment.gpu_support}
                         ref={refManager.nrefs.environmentGPUSupport}
                       />
 
                       {(() => {
-                        if (state.environment.gpu_support === true) {
+                        if (environment.gpu_support === true) {
                           let enabledBlock = (
                             <p className="push-down-7">
                               If enabled, the environment will request GPU
@@ -618,7 +605,7 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                     </div>
                     <div className="push-down-7">
                       <CodeMirror
-                        value={state.environment.setup_script}
+                        value={environment.setup_script}
                         options={{
                           mode: "application/x-sh",
                           theme: "jupyter",
@@ -626,11 +613,9 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                           viewportMargin: Infinity,
                         }}
                         onBeforeChange={(editor, data, value) => {
-                          state.environment.setup_script = value;
-
-                          setState((prevState) => ({
-                            ...prevState,
-                            environment: state.environment,
+                          setEnvironment((prev) => ({
+                            ...prev,
+                            setup_script: value,
                           }));
 
                           context.dispatch({
@@ -640,21 +625,17 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                         }}
                       />
                     </div>
-                    {state.environment && state.environment.uuid !== "new" && (
+                    {environment && !isNewEnvironment && (
                       <ImageBuildLog
                         buildFetchHash={state.buildFetchHash}
-                        buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${props.queryArgs.project_uuid}/${state.environment.uuid}`}
+                        buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
                         buildsKey="environment_builds"
                         socketIONamespace={
                           context.state?.config[
                             "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"
                           ]
                         }
-                        streamIdentity={
-                          state.environment.project_uuid +
-                          "-" +
-                          state.environment.uuid
-                        }
+                        streamIdentity={projectUuid + "-" + environment.uuid}
                         onUpdateBuild={onUpdateBuild}
                         onBuildStart={onBuildStart}
                         ignoreIncomingLogs={state.ignoreIncomingLogs}
@@ -676,8 +657,8 @@ const EnvironmentEditView: React.FC<TViewProps> = (props) => {
                 data-test-id="environments-save"
               />
 
-              {state.subviewIndex == 1 &&
-                state.environment.uuid != "new" &&
+              {state.subviewIndex === 1 &&
+                !isNewEnvironment &&
                 (!state.building ? (
                   <MDCButtonReact
                     disabled={state.buildRequestInProgress}

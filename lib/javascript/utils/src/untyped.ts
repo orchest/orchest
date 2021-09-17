@@ -34,27 +34,3 @@ export class RefManager {
     });
   }
 }
-
-// used in orchest-webserver only
-export class PromiseManager {
-  cancelablePromises: any[];
-
-  constructor() {
-    this.cancelablePromises = [];
-  }
-
-  appendCancelablePromise(cancelablePromise) {
-    this.cancelablePromises.push(cancelablePromise);
-  }
-
-  cancelCancelablePromises() {
-    for (let cancelablePromise of this.cancelablePromises) {
-      cancelablePromise.cancel();
-    }
-  }
-
-  clearCancelablePromise(cancelablePromise) {
-    let index = this.cancelablePromises.indexOf(cancelablePromise);
-    this.cancelablePromises.splice(index, 1);
-  }
-}

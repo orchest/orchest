@@ -115,6 +115,7 @@ export const stitches = createCss({
     },
     fontSizes: {
       base: "1rem",
+      "2xs": "0.625rem",
       xs: "0.75rem",
       sm: "0.875rem",
       lg: "1.125rem",
@@ -136,11 +137,15 @@ export const stitches = createCss({
       "5xl": "1",
     },
     radii: {
+      xs: "0.125rem",
       sm: "0.25rem",
       md: "0.375rem",
       rounded: "9999px",
     },
     shadows: {
+      base: "0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);",
+      md:
+        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);",
       "2xl": "0 25px 50px -12px rgba(0,0,0,0.25)",
     },
   },

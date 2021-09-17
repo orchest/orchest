@@ -4,11 +4,13 @@ import os
 import re
 import subprocess
 import uuid
+from datetime import datetime
 from typing import Optional
 from urllib.parse import unquote
 
 import requests
 from flask import Response, current_app
+from flask.app import Flask
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import is_services_definition_valid
@@ -849,3 +851,44 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
         )
     )
     return new_path_abs.startswith(project_path)
+
+
+def fetch_orchest_examples_json_to_disk(app: Flask) -> None:
+    # Coarse but we need to make sure no error happens when intializing
+    # the app when depending on an external resource.
+    try:
+        url = app.config["ORCHEST_WEB_URLS"]["orchest_examples_json"]
+        resp = requests.get(url, timeout=5)
+
+        code = resp.status_code
+        if code == 200:
+            data = resp.json()
+            with open(app.config["ORCHEST_EXAMPLES_JSON_PATH"], "w") as f:
+                json.dump(data, f)
+        else:
+            app.logger.error(f"Could not fetch public examples json: {code}.")
+    except Exception as e:
+        app.logger.error(f"Error in public json fetch: {e}.")
+
+
+_DEFAULT_ORCHEST_EXAMPLES_JSON = {
+    "creation_time": datetime.utcnow().isoformat(),
+    "entries": [],
+}
+
+
+def get_orchest_examples_json() -> dict:
+    """Get orchest examples references, ordered by stars."""
+
+    path = current_app.config["ORCHEST_EXAMPLES_JSON_PATH"]
+    if not os.path.exists(path):
+        current_app.logger.warning("Could not find public examples json.")
+        return _DEFAULT_ORCHEST_EXAMPLES_JSON
+    else:
+        with open(current_app.config["ORCHEST_EXAMPLES_JSON_PATH"]) as f:
+            data = json.load(f)
+            if "creation_time" not in data or "entries" not in data:
+                current_app.logger.error(f"Malformed public examples json : {data}.")
+                return _DEFAULT_ORCHEST_EXAMPLES_JSON
+            data["entries"].sort(key=lambda x: -x.get("stargazers_count", -1))
+            return data

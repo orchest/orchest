@@ -8,7 +8,7 @@ docker>=4.3.0
 six>=1.13.0
 Flask==1.1.1
 Flask-Cors==3.0.9
-flask-restx==0.2.0
+flask-restx==0.5.1
 Flask-SQLAlchemy==2.4.1
 flask-migrate==2.5.3
 flask-script==2.0.6

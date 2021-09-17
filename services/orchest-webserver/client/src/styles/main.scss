@@ -21,6 +21,10 @@
 
 @use "../../../../../node_modules/@material/icon-button";
 
+@use "../../../../../node_modules/@material/dialog";
+
+@include dialog.core-styles;
+
 // end of @material
 // =============================================================================
 
@@ -31,6 +35,10 @@
 @import "scrollbar";
 @import "ansi";
 @import "themes/jupyter";
+
+@import "./utils.scss";
+
+@import "./pages/example-page.scss";
 
 $mdcComponentPadding: 16px;
 $codeSize: 14px;
@@ -588,7 +596,6 @@ p > i.material-icons.float-left {
 .mdc-dialog .mdc-dialog__surface {
   border-radius: var(--radii-md);
   box-shadow: var(--shadows-2xl);
-  max-width: var(--sizes-sm);
 }
 
 .mdc-dialog {
@@ -843,6 +850,7 @@ iframe.fullsize {
   cursor: pointer;
 }
 
+a.text-button,
 button.text-button {
   border: 0;
   border-bottom: 1px dotted #c6cbd1;
@@ -897,6 +905,7 @@ button.text-button {
   .top-labels {
     font-size: 14px;
 
+    a.text-button,
     button.text-button {
       font-size: 16px;
     }

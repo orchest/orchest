@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import {
   makeRequest,
   makeCancelable,
@@ -13,14 +14,15 @@ import {
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import { useInterval } from "@/hooks/use-interval";
-import EnvironmentEditView from "../views/EnvironmentEditView";
-import ProjectsView from "@/views/ProjectsView";
+import { siteMap } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export interface IEnvironmentListProps {
-  project_uuid: string;
+  projectUuid: string;
 }
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
+  const { navigateTo } = useCustomRoute();
   const [
     environmentBuildsInterval,
     setEnvironmentBuildsInterval,
@@ -42,13 +44,13 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
     let environmentBuildsRequestPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${props.project_uuid}`
+        `/catch/api-proxy/api/environment-builds/most-recent/${props.projectUuid}`
       ),
       promiseManager
     );
 
     environmentBuildsRequestPromise.promise
-      .then((response) => {
+      .then((response: string) => {
         try {
           let environmentBuilds = JSON.parse(response).environment_builds;
           updateStateForEnvironmentBuilds(environmentBuilds);
@@ -79,12 +81,12 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const fetchEnvironments = () => {
     // fetch data sources
     let environmentsPromise = makeCancelable(
-      makeRequest("GET", `/store/environments/` + props.project_uuid),
+      makeRequest("GET", `/store/environments/` + props.projectUuid),
       promiseManager
     );
 
     environmentsPromise.promise
-      .then((result) => {
+      .then((result: string) => {
         try {
           let environments = JSON.parse(result);
 
@@ -108,7 +110,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       })
       .catch((err) => {
         if (err && err.status == 404) {
-          orchest.loadView(ProjectsView);
+          navigateTo(siteMap.projects.path);
         }
 
         console.log("Error fetching Environments", err);
@@ -117,18 +119,19 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
   const onClickListItem = (row, idx, e) => {
     let environment = state.environments[idx];
-    orchest.loadView(EnvironmentEditView, {
-      queryArgs: {
-        project_uuid: props.project_uuid,
-        environment_uuid: environment.uuid,
+    navigateTo(siteMap.environment.path, {
+      query: {
+        projectUuid: props.projectUuid,
+        environmentUuid: environment.uuid,
       },
     });
   };
 
   const onCreateClick = () => {
-    orchest.loadView(EnvironmentEditView, {
-      queryArgs: {
-        project_uuid: props.project_uuid,
+    navigateTo(siteMap.environment.path, {
+      query: {
+        projectUuid: props.projectUuid,
+        environmentUuid: "create", // TODO: check how current implementation of create environment
       },
     });
   };
@@ -164,21 +167,17 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       });
   };
 
-  const removeEnvironment = (
-    project_uuid,
-    environment_uuid,
-    environmentName
-  ) => {
+  const removeEnvironment = (projectUuid, environmentUuid, environmentName) => {
     // Do not allow environment deletions if a session is ongoing.
     makeRequest(
       "GET",
-      `/catch/api-proxy/api/sessions/?project_uuid=${project_uuid}`
+      `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
     ).then((response: string) => {
       let data = JSON.parse(response);
       if (data.sessions.length > 0) {
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/environment-builds/most-recent/${project_uuid}/${environment_uuid}`
+          `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
         ).then((response: string) => {
           let data = JSON.parse(response);
           if (data.environment_builds.some((x) => x.status == "SUCCESS"))
@@ -187,7 +186,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
               "Environments cannot be deleted with a running interactive session."
             );
           else {
-            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+            _removeEnvironment(projectUuid, environmentUuid, environmentName);
           }
         });
       } else {
@@ -195,7 +194,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         // specifically on remove.
         makeRequest(
           "GET",
-          `/catch/api-proxy/api/environment-images/in-use/${project_uuid}/${environment_uuid}`
+          `/catch/api-proxy/api/environment-images/in-use/${projectUuid}/${environmentUuid}`
         ).then((response: string) => {
           let data = JSON.parse(response);
           if (data.in_use) {
@@ -207,14 +206,14 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
                 "Are you sure you want to delete it? This will abort all jobs that are using it.",
               () => {
                 _removeEnvironment(
-                  project_uuid,
-                  environment_uuid,
+                  projectUuid,
+                  environmentUuid,
                   environmentName
                 );
               }
             );
           } else {
-            _removeEnvironment(project_uuid, environment_uuid, environmentName);
+            _removeEnvironment(projectUuid, environmentUuid, environmentName);
           }
         });
       }
@@ -282,7 +281,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
     for (let environment of environments) {
       let environmentBuild =
-        environmentBuilds[props.project_uuid + "-" + environment.uuid];
+        environmentBuilds[props.projectUuid + "-" + environment.uuid];
 
       listData.push([
         <span>{environment.name}</span>,
@@ -319,7 +318,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       promiseManager.cancelCancelablePromises();
       setEnvironmentBuildsInterval(null);
     };
-  }, []);
+  }, [props.projectUuid]);
 
   return (
     <div className={"environments-page"}>

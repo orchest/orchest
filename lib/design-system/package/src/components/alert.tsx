@@ -24,7 +24,7 @@ interface IAlertContext {
   getDescriptionProps: () => { id: string };
 }
 
-const AlertContext = React.createContext<IAlertContext>(null);
+const AlertContext = React.createContext<IAlertContext>({} as IAlertContext);
 const useAlertContext = () => React.useContext(AlertContext);
 
 /* Alert (Root)
@@ -70,7 +70,7 @@ export const Alert = React.forwardRef<IAlertRef, IAlertProps>((props, ref) => {
   const [descriptionIndex, setDescriptionIndex] = React.useState(0);
   const [descriptionLength, setDescriptionLength] = React.useState(1);
 
-  const cycleDescriptionIndex = (direction) =>
+  const cycleDescriptionIndex = (direction: "forwards" | "backwards") =>
     descriptionLength > 1 &&
     setDescriptionIndex(
       (prevIndex) =>

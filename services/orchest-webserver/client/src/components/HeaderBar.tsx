@@ -1,49 +1,57 @@
-import * as React from "react";
+import React from "react";
+import { useRouteMatch } from "react-router-dom";
+
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
-import PipelineView from "../pipeline-view/PipelineView";
-import JupyterLabView from "../views/JupyterLabView";
 import ProjectSelector from "./ProjectSelector";
-import HelpView from "../views/HelpView";
 import SessionToggleButton from "./SessionToggleButton";
-import ProjectsView from "@/views/ProjectsView";
+
+import { siteMap } from "@/Routes";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;
 
-export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
-  const orchest = window.orchest;
+export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
+  const { navigateTo } = useCustomRoute();
 
   const { state, dispatch, get } = useOrchest();
 
-  const isProjectSelectorVisible = [
-    "jobs",
-    "environments",
-    "pipelines",
-  ].includes(state?.view);
+  const matchPipeline = useRouteMatch({
+    path: siteMap.pipeline.path,
+    exact: true,
+  });
+  const matchJupyter = useRouteMatch({
+    path: siteMap.jupyterLab.path,
+    exact: true,
+  });
+
+  const goToHome = () => {
+    navigateTo(siteMap.projects.path);
+  };
+
+  const showHelp = () => {
+    navigateTo(siteMap.help.path);
+  };
 
   const showPipeline = () => {
-    dispatch({ type: "setView", payload: "pipeline" });
-
-    orchest.loadView(PipelineView, {
-      queryArgs: {
-        pipeline_uuid: state.pipeline_uuid,
-        project_uuid: state.project_uuid,
+    navigateTo(siteMap.pipeline.path, {
+      query: {
+        projectUuid: state.projectUuid,
+        pipelineUuid: state.pipelineUuid,
       },
     });
   };
 
   const showJupyter = () => {
-    dispatch({ type: "setView", payload: "jupyter" });
-
-    orchest.loadView(JupyterLabView, {
-      queryArgs: {
-        pipeline_uuid: state.pipeline_uuid,
-        project_uuid: state.project_uuid,
+    navigateTo(siteMap.jupyterLab.path, {
+      query: {
+        projectUuid: state.projectUuid,
+        pipelineUuid: state.pipelineUuid,
       },
     });
   };
@@ -66,20 +74,18 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         </button>
         <img
           className="pointer logo"
-          onClick={() => {
-            orchest.loadView(ProjectsView);
-          }}
+          onClick={goToHome}
           src="/image/logo.svg"
           data-test-id="orchest-logo"
         />
-        {isProjectSelectorVisible && <ProjectSelector />}
+        <ProjectSelector />
       </div>
 
       {state.pipelineName && (
         <div className="pipeline-header-component">
           <div className="pipeline-name">
             <div className="pipelineStatusIndicator">
-              {state.pipelineSaveStatus == "saved" ? (
+              {state.pipelineSaveStatus === "saved" ? (
                 <i title="Pipeline saved" className="material-icons">
                   check_circle
                 </i>
@@ -96,12 +102,12 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
       <div className="header-bar-actions">
         {state.pipelineName && !state.pipelineIsReadOnly && (
           <SessionToggleButton
-            pipeline_uuid={state.pipeline_uuid}
-            project_uuid={state.project_uuid}
+            pipelineUuid={state.pipelineUuid}
+            projectUuid={state.projectUuid}
           />
         )}
 
-        {state.pipelineName && state.view == "jupyter" && (
+        {state.pipelineName && matchJupyter && (
           <MDCButtonReact
             classNames={["mdc-button--outlined"]}
             onClick={showPipeline}
@@ -110,18 +116,16 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
           />
         )}
 
-        {state.pipelineName &&
-          !state.pipelineIsReadOnly &&
-          state.view == "pipeline" && (
-            <MDCButtonReact
-              disabled={get.currentSession?.status !== "RUNNING"}
-              classNames={["mdc-button--outlined"]}
-              onClick={showJupyter}
-              icon="science"
-              label="Switch to JupyterLab"
-              data-test-id="switch-to-jupyterlab"
-            />
-          )}
+        {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
+          <MDCButtonReact
+            disabled={get.currentSession?.status !== "RUNNING"}
+            classNames={["mdc-button--outlined"]}
+            onClick={showJupyter}
+            icon="science"
+            label="Switch to JupyterLab"
+            data-test-id="switch-to-jupyterlab"
+          />
+        )}
 
         {state?.user_config.AUTH_ENABLED && (
           <MDCIconButtonToggleReact
@@ -134,11 +138,11 @@ export const HeaderBar = React.forwardRef<THeaderBarRef>((_, ref) => {
         <MDCIconButtonToggleReact
           icon="help"
           tooltipText="Help"
-          onClick={() => orchest.loadView(HelpView)}
+          onClick={showHelp}
         />
       </div>
     </header>
   );
-});
+};
 
-export default HeaderBar;
+export default React.forwardRef(HeaderBar);

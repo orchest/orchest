@@ -13,6 +13,8 @@ import type {
 } from "@/types";
 
 const reducer = (state: IOrchestState, action: TOrchestAction) => {
+  if (process.env.NODE_ENV === "development")
+    console.log("(Dev Mode) useOrchest: action ", action);
   switch (action.type) {
     case "alert":
       return { ...state, alert: action.payload };
@@ -33,11 +35,13 @@ const reducer = (state: IOrchestState, action: TOrchestAction) => {
     case "pipelineUpdateReadOnlyState":
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
-      return { ...state, project_uuid: action.payload };
+      return { ...state, projectUuid: action.payload };
+    case "projectsSet":
+      return { ...state, projects: action.payload };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
     case "_sessionsToggleClear":
-      return { ...state, _sessionToggle: null };
+      return { ...state, _sessionsToggle: null };
     case "_sessionsSet":
       return { ...state, ...action.payload };
     case "_sessionsPollingStart":
@@ -50,19 +54,13 @@ const reducer = (state: IOrchestState, action: TOrchestAction) => {
       return { ...state, sessionsKillAllInProgress: false };
     case "setUnsavedChanges":
       return { ...state, unsavedChanges: action.payload };
-    case "setView":
-      return { ...state, view: action.payload };
-    case "clearView":
-      return { ...state, view: null };
-    case "setLoadViewSpec":
-      return { ...state, loadViewSpec: action.payload };
     default:
       console.log(action);
       throw new Error();
   }
 };
 
-const initialState = {
+const initialState: IOrchestState = {
   config: null,
   user_config: null,
   isLoading: true,
@@ -70,15 +68,16 @@ const initialState = {
   pipelineName: null,
   pipelineIsReadOnly: false,
   pipelineSaveStatus: "saved",
-  pipeline_uuid: undefined,
-  project_uuid: undefined,
+  pipelineUuid: undefined,
+  projectUuid: undefined,
+  projects: [],
   sessions: [],
   sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
   unsavedChanges: false,
-  view: "pipeline",
   _sessionsToFetch: [],
   _sessionsToggle: null,
+  drawerIsOpen: true,
 };
 
 export interface IOrchestProviderProps {
@@ -94,15 +93,10 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   const orchest = window.orchest;
 
   const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
-  const [project_uuid, setProject_uuid] = useLocalStorage(
-    "selected_project_uuid",
-    undefined
-  );
 
   const [state, dispatch] = React.useReducer(reducer, {
     ...initialState,
     drawerIsOpen,
-    project_uuid,
     config,
     user_config,
   });
@@ -135,9 +129,6 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   React.useEffect(() => {
     setDrawerIsOpen(state?.drawerIsOpen);
   }, [state.drawerIsOpen]);
-  React.useEffect(() => {
-    setProject_uuid(state?.project_uuid);
-  }, [state.project_uuid]);
 
   /**
    * Handle Alerts

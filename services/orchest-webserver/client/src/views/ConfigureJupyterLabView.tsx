@@ -8,18 +8,23 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import type { TViewProps } from "@/types";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { Layout } from "@/components/Layout";
 import ImageBuildLog from "@/components/ImageBuildLog";
 
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
+
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const ConfigureJupyterLabView: React.FC<TViewProps> = () => {
+const ConfigureJupyterLabView: React.FC = () => {
+  // global
+  const { orchest } = window;
   const context = useOrchest();
 
-  const { orchest } = window;
+  useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
 
+  // local states
   const [state, setState] = React.useState({
     building: false,
     sessionKillStatus: undefined,

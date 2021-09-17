@@ -36,8 +36,11 @@ browser version, run-times have been observed to be between 15 and 30 minutes.
 
     scripts/run_integration_tests.sh
 
+.. tip::
+   You can add ``-g`` if you want to open Cypress GUI. Use ``--help`` to see more options.
+
 .. warning::
-    Running the integration tests implies losing all content of the "data" and
+    Running any integration tests implies losing all content of the "data" and
     "userdir/projects" directories, along with all built environments (the script will
     warn you before proceeding).
 

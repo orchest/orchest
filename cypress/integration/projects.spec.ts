@@ -37,18 +37,6 @@ describe("projects", () => {
         "not.exist"
       );
     });
-
-    // Changing view is a workaround for closing the modal.
-    it("imports a project, closes the modal", () => {
-      cy.importProject(QUICKSTART_URL, SAMPLE_PROJECT_NAMES.P1);
-      // Close the modal.
-      cy.triggerESC();
-      // 30 seconds to import the project.
-      cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW, { timeout: 30000 }).should(
-        "have.length.at.least",
-        1
-      );
-    });
   });
 
   context("should have no projects after running", () => {

@@ -1,5 +1,6 @@
 // @ts-check
 import React from "react";
+
 import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
@@ -7,53 +8,41 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import { useOrchest } from "@/hooks/orchest";
+import { siteMap } from "@/routingConfig";
+import type { Project } from "@/types";
+import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export type TProjectSelectorRef = any;
-export type TProjectSelectorProps = any;
 
-const ProjectSelector = React.forwardRef<
-  TProjectSelectorRef,
-  TProjectSelectorProps
->((_, ref) => {
+[siteMap];
+
+const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
-  const [selectItems, setSelectItems] = React.useState(null);
-  const [projects, setProjects] = React.useState(null);
+  const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
+  const matchProjectRoot = useMatchProjectRoot();
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const listProcess = (projects) => {
-    let options = [];
-
-    for (let project of projects) {
-      options.push([project.uuid, project.path]);
-    }
-
-    return options;
-  };
-
-  const onChangeProject = (project_uuid) => {
-    if (project_uuid) {
-      dispatch({ type: "projectSet", payload: project_uuid });
+  const onChangeProject = (uuid: string) => {
+    if (uuid) {
+      const path = matchProjectRoot
+        ? matchProjectRoot.path
+        : siteMap.pipelines.path;
+      navigateTo(path, { query: { projectUuid: uuid } });
     }
   };
 
-  // check whether selected project is valid
-  const validatePreSelectedProject = (project_uuid, projectsToValidate) => {
-    let foundProjectUUID = false;
+  // check whether given project is part of projects
+  const validateProjectUuid = (
+    uuidToValidate: string | undefined | null,
+    projects: Project[]
+  ): string | undefined => {
+    let isValid = uuidToValidate
+      ? projects.some((project) => project.uuid == uuidToValidate)
+      : false;
 
-    for (let project of projectsToValidate) {
-      if (project.uuid === project_uuid) {
-        foundProjectUUID = true;
-        break;
-      }
-    }
-
-    if (!foundProjectUUID) {
-      // selected project doesn't exist anymore
-      project_uuid = undefined;
-    }
-
-    onChangeProject(project_uuid);
+    return isValid ? uuidToValidate : undefined;
   };
 
   const fetchProjects = () => {
@@ -62,43 +51,53 @@ const ProjectSelector = React.forwardRef<
       promiseManager
     );
 
-    // @ts-ignore
     fetchProjectsPromise.promise
-      .then((response) => {
-        let projectsRes = JSON.parse(response);
+      .then((response: string) => {
+        let fetchedProjects: Project[] = JSON.parse(response);
 
-        // validate the currently selected project, if its invalid
-        // it will be set to undefined
-        let project_uuid = state.project_uuid;
-        if (project_uuid !== undefined) {
-          validatePreSelectedProject(project_uuid, projectsRes);
-        }
+        dispatch({
+          type: "projectsSet",
+          payload: fetchedProjects,
+        });
 
-        // either there was no selected project or the selection
-        // was invalid, set the selection to the first project if possible
-        project_uuid = state.project_uuid;
-        if (project_uuid === undefined && projectsRes.length > 0) {
-          project_uuid = projectsRes[0].uuid;
-          onChangeProject(project_uuid);
-        }
+        // Select the first one from the given projects
+        const newProjectUuid =
+          fetchedProjects.length > 0 ? fetchedProjects[0].uuid : null;
 
-        setSelectItems(listProcess(projectsRes));
-        setProjects(projectsRes);
-        // Needs to be here in case the request is cancelled, will otherwise
-        // result in an uncaught error that can throw off cypress.
+        dispatch({ type: "projectSet", payload: newProjectUuid });
+
+        // navigate ONLY if user is at the project root
+        if (matchProjectRoot) onChangeProject(newProjectUuid);
       })
       .catch((error) => console.log(error));
   };
 
+  // sync state.projectUuid and the route param projectUuid
   React.useEffect(() => {
-    fetchProjects();
+    dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+  }, [projectUuidFromRoute]);
+  React.useEffect(() => {
+    // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
+    const isSwitchingToProjectRoot = matchProjectRoot && !projectUuidFromRoute;
+    // in case that project is deleted
+    const invalidProjectUuid = !validateProjectUuid(
+      projectUuidFromRoute,
+      state.projects
+    );
+    if (isSwitchingToProjectRoot || invalidProjectUuid) fetchProjects();
 
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, [state.project_uuid]);
+  }, [projectUuidFromRoute, matchProjectRoot]);
 
-  return projects ? (
+  const selectItems = state.projects.map((project) => [
+    project.uuid,
+    project.path,
+  ]);
+
+  if (!matchProjectRoot) return null;
+  return state.projects ? (
     <MDCSelectReact
       ref={ref}
       label="Project"
@@ -106,12 +105,12 @@ const ProjectSelector = React.forwardRef<
       classNames={["project-selector", "fullwidth"]}
       options={selectItems}
       onChange={onChangeProject}
-      value={state?.project_uuid}
+      value={state.projectUuid}
       data-test-id="project-selector"
     />
   ) : (
     <MDCLinearProgressReact ref={ref} />
   );
-});
+};
 
-export default ProjectSelector;
+export default React.forwardRef(ProjectSelector);
