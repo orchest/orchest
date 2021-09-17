@@ -19,7 +19,7 @@ const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
           Help others get started by sharing your Orchest pipelines. The best
           pipelines will get featured.
         </p>
-        <p>Start sharing simply by uploading your project to Github.</p>
+        <p>Start sharing simply by uploading your project to GitHub.</p>
       </div>
       <div className="contribute-button-container">
         <MDCButtonReact
