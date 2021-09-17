@@ -1680,7 +1680,6 @@ const PipelineView: React.FC = () => {
 
         parseRunStatuses(result);
 
-        console.log("🚕 get runUuid in the state");
         setState({
           runUuid: result.uuid,
         });

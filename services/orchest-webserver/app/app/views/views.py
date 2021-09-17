@@ -36,6 +36,7 @@ from app.utils import (
     get_environment_directory,
     get_environments,
     get_job_counts,
+    get_orchest_examples_json,
     get_pipeline_directory,
     get_pipeline_json,
     get_pipeline_path,
@@ -140,6 +141,10 @@ def register_views(app, db):
         json_string = json.dumps({"success": False, "reason": reason})
 
         return json_string, 404, {"content-type": "application/json"}
+
+    @app.route("/async/orchest-examples", methods=["GET"])
+    def orchest_examples():
+        return get_orchest_examples_json()
 
     @app.route("/async/server-config", methods=["GET"])
     def server_config():

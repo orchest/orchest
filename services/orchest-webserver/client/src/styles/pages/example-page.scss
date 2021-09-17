@@ -1,0 +1,211 @@
+$examples-view-common-padding: var(--space-7);
+
+.view-page.examples-view {
+  .examples-view-heading-section {
+    padding-top: $examples-view-common-padding;
+    padding-left: var(--space-3);
+    display: flex;
+    align-items: flex-start;
+    .examples-view-heading-section_main {
+      flex: 1;
+    }
+    .examples-view-heading-section_warning {
+      width: 24rem;
+      border-radius: var(--radii-md);
+      padding: var(--space-6) var(--space-8);
+      margin-left: var(--space-6);
+      background-color: var(--colors-gray100);
+      display: flex;
+
+      i {
+        color: var(--colors-gray600);
+      }
+
+      .examples-view-heading-section_warning-text {
+        margin-left: var(--space-4);
+      }
+    }
+  }
+  .examples-view-title {
+    padding-bottom: var(--space-2);
+  }
+  .examples-view-subtitle {
+    padding-bottom: var(--space-5);
+  }
+  .example-view-tabs-container {
+    padding-left: var(--space-3);
+  }
+}
+
+$card-width: 28rem;
+$card-height: 20rem;
+$tag-max-width: 8rem;
+
+.example-cards-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.example-card {
+  border-radius: var(--radii-md);
+  width: $card-width;
+  height: $card-height;
+  padding: $examples-view-common-padding;
+  margin-top: var(--space-8);
+  margin-right: var(--space-8);
+  display: flex;
+  flex-direction: column;
+}
+
+.example-card-title {
+  max-width: 100%;
+  min-height: var(--space-6);
+  margin: var(--space-6) 0 var(--space-2);
+  font-size: var(--fontSizes-xl);
+  display: flex;
+  align-items: center;
+  .example-card-title_link {
+    margin-left: var(--space-2);
+    color: var(--colors-gray800);
+    display: flex;
+    text-decoration: none;
+  }
+  .example-card-title_link-icon {
+    font-size: var(--fontSizes-base);
+  }
+}
+
+.example-card-owner {
+  color: var(--colors-gray500);
+  font-weight: var(--fontWeights-bold);
+  margin-bottom: var(--space-2);
+}
+
+.example-card-owner-name {
+  padding-left: var(--space-1);
+}
+
+.example-card-description {
+  font-size: var(--fontSizes-sm);
+  color: var(--colors-gray700);
+  overflow-y: hidden;
+  flex: 1;
+}
+
+.example-tags-container {
+  display: flex;
+  align-items: center;
+}
+
+@mixin common-tag-style {
+  text-transform: uppercase;
+  font-size: var(--fontSizes-2xs);
+  font-weight: var(--fontWeights-bold);
+  color: var(--colors-gray700);
+  max-width: $tag-max-width;
+  display: inline-block;
+}
+
+.example-tag {
+  @include common-tag-style;
+  margin-right: var(--space-4);
+  border-radius: var(--radii-xs);
+  padding: var(--space-2) var(--space-4);
+  background-color: var(--colors-gray200);
+  position: relative;
+  min-width: 5rem;
+  text-align: center;
+
+  &__extra {
+    @include common-tag-style;
+    margin-right: 0;
+    background-color: var(--colors-white);
+    border: 1px solid var(--colors-gray400);
+    border-radius: var(--radii-rounded);
+    padding: var(--space-2);
+  }
+  // TODO: should move this tweaking to the design system
+  &__tooltip {
+    margin: 0 var(--space-3);
+    font-size: var(--fontSizes-2xs);
+    &:first-of-type {
+      margin-top: var(--space-3);
+    }
+    &:last-of-type {
+      margin-bottom: var(--space-3);
+    }
+  }
+}
+
+.example-card-button-container {
+  display: flex;
+  width: 100%;
+  align-items: flex-end;
+  position: relative;
+  margin-top: calc(var(--space-8) * -1);
+  padding-top: var(--space-1);
+  background-color: white;
+  // TODO: create a mixin
+  // add gradient to cover exceeding text
+  &::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--space-8) * -1);
+    width: 100%;
+    height: var(--space-8);
+    background-image: linear-gradient(
+      rgba(255, 255, 255, 0),
+      rgb(255, 255, 255, 100)
+    );
+  }
+}
+
+.github-start-button-container {
+  transform: translate(0, var(--space-1));
+}
+
+.example-import-button.mdc-button:not(:disabled) {
+  background-color: white;
+  border: 1px solid var(--colors-gray300);
+  padding: 0 var(--space-4);
+  color: var(--colors-primary);
+  &:hover {
+    border: 1px solid transparent; // we still need border to prevent jumping
+  }
+}
+
+.contribute-card {
+  @extend .example-card;
+  background-color: var(--colors-primary);
+}
+
+.contribute-card-title {
+  color: white;
+  width: 60%;
+  margin-bottom: var(--space-4);
+  font-size: var(--fontSizes-2xl);
+}
+
+.contribute-card-description {
+  flex: 1;
+  color: white;
+  p {
+    font-size: var(--fontSizes-base);
+    margin-bottom: var(--space-4);
+  }
+}
+
+.contribute-button-container {
+  @extend .example-card-button-container;
+  background-color: transparent;
+  justify-content: flex-end;
+  &::before {
+    content: none;
+  }
+}
+
+.contribute-button.mdc-button:not(:disabled) {
+  background-color: white;
+  padding: 0 var(--space-4);
+  margin-top: var(--space-1);
+}

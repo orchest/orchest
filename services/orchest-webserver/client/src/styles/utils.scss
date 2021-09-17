@@ -1,0 +1,14 @@
+.capitalized {
+  text-transform: capitalize;
+  display: inline-block;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bold {
+  font-weight: var(--fontWeights-bold);
+}

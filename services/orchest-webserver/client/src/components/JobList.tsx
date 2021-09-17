@@ -25,13 +25,12 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/routingConfig";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
-
-import { siteMap } from "../Routes";
 
 import SearchableTable from "./SearchableTable";
 import { StatusInline } from "./Status";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 export interface IJobListProps {
   projectUuid: string;

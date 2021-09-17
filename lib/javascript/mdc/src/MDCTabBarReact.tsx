@@ -50,10 +50,15 @@ export class MDCTabBarReact extends React.Component<any, any> {
     for (let key in this.props.items) {
       let item = this.props.items[key];
 
-      let icon = undefined;
-      if (this.props.icons) {
-        icon = this.props.icons[key];
-      }
+      let iconCode: string = this.props.icons ? this.props.icons[key] : "";
+
+      // TODO: for now we only have Orchest logo as a custom img, the 2px padding is a temporary workaround
+      const icon =
+        iconCode.charAt(0) === "/" ? (
+          <img src={iconCode} style={{ padding: "2px" }} />
+        ) : (
+          iconCode
+        );
 
       this.buttons.push(
         <button
@@ -67,18 +72,11 @@ export class MDCTabBarReact extends React.Component<any, any> {
           }
         >
           <span className="mdc-tab__content">
-            {(() => {
-              if (icon) {
-                return (
-                  <span
-                    className="mdc-tab__icon material-icons"
-                    aria-hidden="true"
-                  >
-                    {icon}
-                  </span>
-                );
-              }
-            })()}
+            {icon && (
+              <span className="mdc-tab__icon material-icons" aria-hidden="true">
+                {icon}
+              </span>
+            )}
             <span className="mdc-tab__text-label">{item}</span>
           </span>
           <span

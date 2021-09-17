@@ -316,7 +316,7 @@ const LogsView: React.FC = () => {
             Step logs
           </div>
           {sortedSteps.length == 0 && (
-            <i className="note">There are steps defined.</i>
+            <i className="note">There are no steps defined.</i>
           )}
           <MDCDrawerReact
             items={steps}

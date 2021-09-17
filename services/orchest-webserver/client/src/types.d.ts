@@ -24,6 +24,8 @@ export interface IOrchestConfig {
     readthedocs: string;
     slack: string;
     website: string;
+    orchest_examples_repo: string;
+    orchest_examples_json: string;
   };
   PIPELINE_PARAMETERS_RESERVED_KEY: string;
   TELEMETRY_DISABLED: boolean;
@@ -54,14 +56,6 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
-export interface LoadViewSpec {
-  // From window.onpopstate.
-  TagName: React.FunctionComponent;
-  dynamicProps: Record<string, unknown>;
-  isOnPopState: boolean;
-  onCancelled?: () => void;
-}
-
 export interface IOrchestState
   extends Pick<
     Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
@@ -70,7 +64,6 @@ export interface IOrchestState
   alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
-  loadViewSpec?: LoadViewSpec;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
@@ -109,7 +102,6 @@ export type TOrchestAction =
       type: "projectsSet";
       payload: Project[];
     }
-  | { type: "setLoadViewSpec"; payload: LoadViewSpec }
   | {
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];
@@ -259,4 +251,14 @@ export type PipelineJson = {
   uuid: string;
   version: string;
   services?: Record<string, any>;
+};
+
+export type Example = {
+  description: string; // 280 characters
+  forks_count: number;
+  owner: "orchest" | string;
+  stargazers_count: number;
+  tags: string[];
+  title: string;
+  url: string;
 };

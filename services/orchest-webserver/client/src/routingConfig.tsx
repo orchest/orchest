@@ -16,12 +16,14 @@ import PipelineSettingsView from "./views/PipelineSettingsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import PipelinesView from "./views/PipelinesView";
 import ProjectSettingsView from "./views/ProjectSettingsView";
-import ProjectsView from "./views/ProjectsView";
+import ProjectsView from "./projects-view/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import UpdateView from "./views/UpdateView";
+import ExamplesView from "./projects-view/ExamplesView";
 
 type RouteName =
   | "projects"
+  | "examples"
   | "projectSettings"
   | "pipelines"
   | "pipeline"
@@ -66,6 +68,12 @@ export const orderedRoutes: {
     path: "/projects",
     title: getTitle("Projects"),
     component: ProjectsView,
+  },
+  {
+    name: "examples",
+    path: "/examples",
+    title: getTitle("Examples"),
+    component: ExamplesView,
   },
   {
     name: "projectSettings",
