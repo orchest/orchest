@@ -15,6 +15,8 @@ export class MDCDialogReact extends React.Component<any> {
   }
   componentDidMount() {
     this.mdc = new MDCDialog(this.refManager.refs.dialog);
+
+    if (this.props.disableClose) this.disableClose();
     this.mdc.open();
 
     this.mdc.listen("MDCDialog:closed", () => {
@@ -27,6 +29,11 @@ export class MDCDialogReact extends React.Component<any> {
         this.props.onOpened();
       }
     });
+  }
+
+  disableClose() {
+    this.mdc.escapeKeyAction = "";
+    this.mdc.scrimClickAction = "";
   }
 
   close() {

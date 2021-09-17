@@ -11,7 +11,7 @@ import { useLocationQuery } from "@/hooks/useCustomRoute";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
 
 import { useImportProject } from "./hooks/useImportProject";
-import { makeRequest } from "../../../../../lib/javascript/utils/src";
+import { makeRequest } from "@orchest/lib-utils";
 import { Project } from "@/types";
 import { useOrchest } from "@/hooks/orchest";
 
@@ -156,6 +156,7 @@ const ImportDialog: React.FC<{
     <MDCDialogReact
       title="Import a project"
       onClose={onClose}
+      disableClose
       content={
         <div data-test-id="import-project-dialog">
           {shouldShowWarning && <PrefilledWarning />}
