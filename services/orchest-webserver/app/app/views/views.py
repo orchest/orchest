@@ -1,5 +1,6 @@
 import json
 import os
+import subprocess
 import uuid
 
 import docker
@@ -266,6 +267,33 @@ def register_views(app, db):
                 app.logger.debug(e)
 
         return current_config
+
+    @app.route("/async/host-info", methods=["GET"])
+    def host_info():
+        disk_info = subprocess.getoutput(
+            "df -BGB /config --output=size,avail,pcent | sed -n '2{p;q}'"
+        )
+        disk_info
+
+        # Incoming data is in GB (-BGB)
+        size, avail, pcent = disk_info.strip().split()
+        # Remove the "GB"
+        avail = int(avail[:-2])
+        # Account for the 5% reserved root space, so that used + avail
+        # add up to the total disk size the user would see in a file
+        # explorer.
+        used = int(size[:-2]) - avail
+        pcent = float(pcent.replace("%", ""))
+
+        host_info = {
+            "disk_info": {
+                "used_GB": used,
+                "avail_GB": avail,
+                "used_pcent": pcent,
+            }
+        }
+
+        return host_info
 
     @app.route("/async/jupyter-setup-script", methods=["GET", "POST"])
     def jupyter_setup_script():

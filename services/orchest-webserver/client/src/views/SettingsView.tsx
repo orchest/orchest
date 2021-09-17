@@ -31,6 +31,7 @@ const SettingsView: React.FC = () => {
     // the full JSON config object
     configJSON: undefined,
     version: undefined,
+    hostInfo: undefined,
     requiresRestart: false,
   });
 
@@ -44,6 +45,19 @@ const SettingsView: React.FC = () => {
     makeRequest("GET", "/async/version").then((data) => {
       setState((prevState) => ({ ...prevState, version: data }));
     });
+  };
+
+  const getHostInfo = () => {
+    makeRequest("GET", "/async/host-info")
+      .then((data: string) => {
+        try {
+          let parsed_data = JSON.parse(data);
+          setState((prevState) => ({ ...prevState, hostInfo: parsed_data }));
+        } catch (error) {
+          console.warn("Received invalid host-info JSON from the server.");
+        }
+      })
+      .catch(console.error);
   };
 
   const REQUIRES_RESTART_ON_CHANGE = ["MAX_JOB_RUNS_PARALLELISM"];
@@ -250,6 +264,7 @@ const SettingsView: React.FC = () => {
   React.useEffect(() => {
     checkOrchestStatus();
     getConfig();
+    getHostInfo();
     getVersion();
   }, []);
 
@@ -358,26 +373,10 @@ const SettingsView: React.FC = () => {
           </div>
         </div>
 
-        <h3>JupyterLab configuration</h3>
+        <h3>System status</h3>
         <div className="columns">
           <div className="column">
-            <p>Configure JupyterLab by installing server extensions.</p>
-          </div>
-          <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              label="Configure JupyterLab"
-              icon="tune"
-              onClick={loadConfigureJupyterLab}
-            />
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Version information</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Find out Orchest's version.</p>
+            <p>Version information.</p>
           </div>
           <div className="column">
             {(() => {
@@ -400,6 +399,57 @@ const SettingsView: React.FC = () => {
                 );
               }
             })()}
+          </div>
+          <div className="clear"></div>
+        </div>
+        <div className="columns">
+          <div className="column">
+            <p>Disk usage.</p>
+          </div>
+          <div className="column">
+            {(() => {
+              if (state.hostInfo !== undefined) {
+                return (
+                  <React.Fragment>
+                    <MDCLinearProgressReact
+                      classNames={["disk-size-info"]}
+                      progress={state.hostInfo.disk_info.used_pcent / 100}
+                    />
+
+                    <div className="disk-size-info push-up-half">
+                      <span>
+                        {state.hostInfo.disk_info.used_GB + "GB used"}
+                      </span>
+                      <span className="float-right">
+                        {state.hostInfo.disk_info.avail_GB + "GB free"}
+                      </span>
+                    </div>
+                  </React.Fragment>
+                );
+              } else {
+                return (
+                  <MDCLinearProgressReact
+                    classNames={["push-down", "disk-size-info"]}
+                  />
+                );
+              }
+            })()}
+          </div>
+        </div>
+        <div className="clear"></div>
+
+        <h3>JupyterLab configuration</h3>
+        <div className="columns">
+          <div className="column">
+            <p>Configure JupyterLab by installing server extensions.</p>
+          </div>
+          <div className="column">
+            <MDCButtonReact
+              classNames={["mdc-button--outlined"]}
+              label="Configure JupyterLab"
+              icon="tune"
+              onClick={loadConfigureJupyterLab}
+            />
           </div>
           <div className="clear"></div>
         </div>
