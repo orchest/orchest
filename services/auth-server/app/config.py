@@ -34,6 +34,9 @@ class Config:
 
     CLOUD = os.environ.get("CLOUD") == "true"
     CLOUD_URL = "https://cloud.orchest.io"
+    GITHUB_URL = "https://github.com/orchest/orchest"
+    DOCUMENTATION_URL = "https://www.orchest.io/docs"
+    VIDEOS_URL = "https://www.orchest.io/video-tutorials"
 
     STATIC_DIR = os.path.join(dir_path, "..", "client", "dist")
 

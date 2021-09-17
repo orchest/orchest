@@ -32,6 +32,9 @@ export default class App extends React.Component {
             <Login
               cloud={this.state.config.CLOUD}
               cloudURL={this.state.config.CLOUD_URL}
+              githubURL={this.state.config.GITHUB_URL}
+              documentationURL={this.state.config.DOCUMENTATION_URL}
+              videosURL={this.state.config.VIDEOS_URL}
               queryArgs={this.props.queryArgs}
             />
           );

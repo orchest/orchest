@@ -13,6 +13,16 @@ from app.utils import get_user_conf
 
 
 def register_views(app):
+    @app.after_request
+    def add_header(r):
+        """
+        Disable cache for all auth server requests
+        """
+        r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        r.headers["Pragma"] = "no-cache"
+        r.headers["Expires"] = "0"
+        r.headers["Cache-Control"] = "public, max-age=0"
+        return r
 
     # NOTE! This is an unprotected route for config for client
     # side initialization.
@@ -22,26 +32,11 @@ def register_views(app):
             {
                 "CLOUD": app.config.get("CLOUD"),
                 "CLOUD_URL": app.config.get("CLOUD_URL"),
+                "GITHUB_URL": app.config.get("GITHUB_URL"),
+                "DOCUMENTATION_URL": app.config.get("DOCUMENTATION_URL"),
+                "VIDEOS_URL": app.config.get("VIDEOS_URL"),
             }
         )
-
-    # static file serving
-    @app.route("/login", defaults={"path": ""}, methods=["GET"])
-    @app.route("/login/<path:path>", methods=["GET"])
-    def login_static(path):
-        # in Debug mode proxy to CLIENT_DEV_SERVER_URL
-        if os.environ.get("FLASK_ENV") == "development":
-            # Dev mode requires trailing slash
-            if path == "" and not request.url.endswith("/"):
-                request.url = request.url + "/"
-
-            return _proxy(request, app.config["CLIENT_DEV_SERVER_URL"] + "/")
-        else:
-            file_path = os.path.join(app.config["STATIC_DIR"], path)
-            if os.path.isfile(file_path):
-                return send_from_directory(app.config["STATIC_DIR"], path)
-            else:
-                return send_from_directory(app.config["STATIC_DIR"], "index.html")
 
     def is_authenticated(request):
 
@@ -77,6 +72,40 @@ def register_views(app):
             else:
                 return False
 
+    def serve_static_or_dev(path, request):
+        # in Debug mode proxy to CLIENT_DEV_SERVER_URL
+        if os.environ.get("FLASK_ENV") == "development":
+            # Dev mode requires trailing slash
+            if path == "" and not request.url.endswith("/"):
+                request.url = request.url + "/"
+
+            return _proxy(request, app.config["CLIENT_DEV_SERVER_URL"] + "/")
+        else:
+            file_path = os.path.join(app.config["STATIC_DIR"], path)
+            if os.path.isfile(file_path):
+                return send_from_directory(app.config["STATIC_DIR"], path)
+            else:
+                return send_from_directory(app.config["STATIC_DIR"], "index.html")
+
+    # static file serving
+    @app.route("/login", defaults={"path": ""}, methods=["GET"])
+    @app.route("/login/<path:path>", methods=["GET"])
+    def login_static(path):
+
+        # Automatically redirect to root if request is authenticated
+        if is_authenticated(request) and path == "":
+            return handle_login(redirect_type="server")
+
+        return serve_static_or_dev(path, request)
+
+    @app.route("/login/admin", methods=["GET"])
+    def login_admin():
+
+        if not is_authenticated(request):
+            return "", 401
+
+        return serve_static_or_dev("/admin", request)
+
     @app.route("/auth", methods=["GET"])
     def index():
         # validate authentication through token
@@ -108,10 +137,18 @@ def register_views(app):
 
     def handle_login(redirect_type="client"):
 
-        config_data = get_user_conf()
+        # Returns a shallow mutable copy of the immutable
+        # multi dict.
+        request_args = request.args.copy()
+        redirect_url = request_args.pop("redirect_url", "/")
+        query_args = "&".join(
+            [arg + "=" + value for arg, value in request_args.items()]
+        )
+        if query_args:
+            redirect_url += "?" + query_args
 
-        if not config_data["AUTH_ENABLED"]:
-            return redirect_response("/", redirect_type)
+        if is_authenticated(request):
+            return redirect_response(redirect_url, redirect_type)
 
         if request.method == "POST":
 
@@ -140,16 +177,6 @@ def register_views(app):
 
                     db.session.add(token)
                     db.session.commit()
-
-                    # Returns a shallow mutable copy of the immutable
-                    # multi dict.
-                    request_args = request.args.copy()
-                    redirect_url = request_args.pop("redirect_url", "/")
-                    query_args = "&".join(
-                        [arg + "=" + value for arg, value in request_args.items()]
-                    )
-                    if query_args:
-                        redirect_url += "?" + query_args
 
                     resp = redirect_response(redirect_url, redirect_type)
                     resp.set_cookie("auth_token", token.token)
