@@ -34,7 +34,7 @@ export const templates: IServiceTemplates = {
         "/data": "/data",
       },
       entrypoint: "bash",
-      command: "-c 'umask 002 && tensorboard --logdir /data --bind_all'",
+      command: "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
       image: "tensorflow/tensorflow",
       name: "tensorboard",
       ports: [6006],
