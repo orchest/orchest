@@ -85,7 +85,11 @@ const ExamplesView: React.FC = () => {
     }
   };
 
-  const closeDialog = () => setImportingState("READY");
+  const closeDialog = () => {
+    setImportingState("READY");
+    setProjectName("");
+    setExampleUrl("");
+  };
 
   return (
     <div className="view-page examples-view">

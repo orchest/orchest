@@ -209,8 +209,3 @@ $tag-max-width: 8rem;
   padding: 0 var(--space-4);
   margin-top: var(--space-1);
 }
-
-// TODO: move to MUI
-.mdc-dialog .mdc-dialog__surface {
-  max-width: 30rem !important;
-}
