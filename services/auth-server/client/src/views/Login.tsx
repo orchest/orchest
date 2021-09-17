@@ -48,44 +48,81 @@ export default class Login extends React.Component {
 
   render() {
     return (
-      <div className="login-form">
-        <div className="box">
-          <img src="image/logo.png" className="logo" />
-          <form method="post" onSubmit={this.submitLogin.bind(this)}>
-            <MDCTextFieldReact
-              label="Username"
-              value={this.state.username}
-              onChange={this.handleInput.bind(this, "username")}
-              name="username"
-            />
-            <br />
-            <MDCTextFieldReact
-              label="Password"
-              value={this.state.password}
-              onChange={this.handleInput.bind(this, "password")}
-              inputType="password"
-              name="password"
-            />
-            <br />
-            <MDCButtonReact
-              submitButton
-              classNames={["mdc-button--raised"]}
-              label="Login"
-            />
-            {(() => {
-              if (this.state.loginFailure) {
-                return (
-                  <div className="error push-up">{this.state.loginFailure}</div>
-                );
-              }
-            })()}
-          </form>
-          {this.props.cloud && (
-            <div className="cloud-login-suggestion">
-              You can also log in using the <br />
-              <a href={this.props.cloudURL}>Orchest Cloud dashboard</a>.
+      <div className="login-holder">
+        {this.props.cloud && (
+          <div className="cloud-login-helper">
+            <div className="text-holder">
+              <img src="image/logo-white.png" width="200px" />
+              <h1>You have been added to a private Orchest instance</h1>
+              <p>
+                You can login with the username and password provided by the
+                instance owner.
+              </p>
+              <p>
+                To access the Orchest Cloud dashboard please{" "}
+                <a href={this.props.cloudURL}>login here</a>.
+              </p>
             </div>
-          )}
+          </div>
+        )}
+        <div className="main-login-view">
+          <div className="login-form">
+            <div className="box">
+              {this.props.cloud ? (
+                <h2>
+                  Login to your
+                  <br />
+                  Orchest Instance
+                </h2>
+              ) : (
+                <img src="image/logo.png" width="200px" className="logo" />
+              )}
+              <form method="post" onSubmit={this.submitLogin.bind(this)}>
+                <MDCTextFieldReact
+                  label="Username"
+                  value={this.state.username}
+                  onChange={this.handleInput.bind(this, "username")}
+                  name="username"
+                />
+                <br />
+                <MDCTextFieldReact
+                  label="Password"
+                  value={this.state.password}
+                  onChange={this.handleInput.bind(this, "password")}
+                  inputType="password"
+                  name="password"
+                />
+                <br />
+                <MDCButtonReact
+                  submitButton
+                  classNames={["mdc-button--raised", "themed-secondary"]}
+                  label="Login"
+                />
+                {(() => {
+                  if (this.state.loginFailure) {
+                    return (
+                      <div className="error push-up">
+                        {this.state.loginFailure}
+                      </div>
+                    );
+                  }
+                })()}
+              </form>
+            </div>
+            <div className="utility-links">
+              <a target="_blank" href={this.props.documentationURL}>
+                Documentation
+              </a>
+              <span> - </span>
+              <a target="_blank" href={this.props.githubURL}>
+                GitHub
+              </a>
+              <span> - </span>
+              <a target="_blank" href={this.props.videosURL}>
+                Video tutorials
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
