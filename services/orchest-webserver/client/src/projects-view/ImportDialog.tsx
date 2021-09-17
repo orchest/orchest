@@ -84,6 +84,8 @@ const ImportDialog: React.FC<{
   const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
   const { dispatch } = useOrchest();
 
+  const [isCloseVisible, setIsCloseVisible] = React.useState(true);
+
   const hasPrefilledImportUrl =
     initialImportUrl ||
     (importUrlFromQuerystring && typeof importUrlFromQuerystring === "string");
@@ -103,7 +105,7 @@ const ImportDialog: React.FC<{
 
   const setImportUrl = (url: string) => _setImportUrl(url.trim().toLowerCase());
 
-  const { startImport, importResult } = useImportProject(
+  const { startImport: fireImportRequest, importResult } = useImportProject(
     projectName,
     importUrl,
     async (result) => {
@@ -140,6 +142,16 @@ const ImportDialog: React.FC<{
       }
     }
   );
+  React.useEffect(() => {
+    if (importResult && importResult.status !== "PENDING") {
+      setIsCloseVisible(true);
+    }
+  }, [importResult]);
+
+  const startImport = () => {
+    setIsCloseVisible(false);
+    fireImportRequest();
+  };
 
   const onClose = () => {
     setImportUrl("");
@@ -192,12 +204,14 @@ const ImportDialog: React.FC<{
       }
       actions={
         <>
-          <MDCButtonReact
-            icon="close"
-            label="Close"
-            classNames={["push-right"]}
-            onClick={onClose}
-          />
+          {isCloseVisible && (
+            <MDCButtonReact
+              icon="close"
+              label="Close"
+              classNames={["push-right"]}
+              onClick={onClose}
+            />
+          )}
           <MDCButtonReact
             icon="input"
             // So that the button is disabled when in a states
