@@ -1,0 +1,16 @@
+{
+  "name": "github-linear-sync",
+  "version": "1.0.0",
+  "description": "Sync github issues to linear",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@actions/core": "^1.5.0",
+    "@actions/github": "^5.0.0",
+    "@linear/sdk": "^1.19.0"
+  }
+}

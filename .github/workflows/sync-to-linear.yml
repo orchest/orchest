@@ -1,0 +1,22 @@
+# NOTE: This event will only trigger a workflow run if
+# the workflow file is on the default branch.
+on:
+  issues:
+    types: [opened, edited, closed, reopened]
+
+jobs:
+  hello_world_job:
+    runs-on: ubuntu-latest
+    name: Sync GitHub issue to Linear
+    steps:
+      # To use this repository's private action,
+      # you must check out the repository
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Sync issue
+        # Uses an action in the root directory
+        uses: ./.github/custom-actions/github-linear-sync/
+        env:
+          LINEAR_KEY: ${{ secrets.LINEAR_KEY }}
+          LINEAR_TEAM_ID: ${{ secrets.LINEAR_TEAM_ID }}
