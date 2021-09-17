@@ -14,6 +14,17 @@ from app.utils import get_user_conf
 
 def register_views(app):
 
+    @app.after_request
+    def add_header(r):
+        """
+        Disable cache for all auth server requests
+        """
+        r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        r.headers["Pragma"] = "no-cache"
+        r.headers["Expires"] = "0"
+        r.headers['Cache-Control'] = 'public, max-age=0'
+        return r
+
     # NOTE! This is an unprotected route for config for client
     # side initialization.
     @app.route("/login/server-config", methods=["GET"])
