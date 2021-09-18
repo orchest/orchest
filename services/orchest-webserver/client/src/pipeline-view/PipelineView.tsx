@@ -69,8 +69,8 @@ const PipelineView: React.FC = () => {
       payload: readOnly,
     });
     _setIsReadOnly(readOnly);
-  }
-  
+  };
+
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
 
   useEffect(() => {
