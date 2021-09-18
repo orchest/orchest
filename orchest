@@ -5,7 +5,8 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 IDENTIFIED_USERNAME="$(whoami)"
 
 # Check whether `docker` command requires sudo
-if ! docker ps >/dev/null 2>/dev/null ; then
+docker ps &>/dev/null
+if [ $? -ne 0 ]; then
     # Automatically prepending with `sudo` makes sure this script does
     # not have to be run using `sudo`, which would overwrite the `$IDENTIFIED_USERNAME`
     # variable and thereby writing the `HOST_CONFIG_DIR` to the wrong
@@ -56,7 +57,7 @@ fi
 # however for certain features such as 'orchest run' we need the
 # ctl container to be launched within the network.
 OPTIONAL_NETWORK="--network=orchest"
-[ -z "$(docker network ls --filter="name=orchest" -q)" ] && OPTIONAL_NETWORK=""
+[ -z "$($SUDO_PREFIX docker network ls --filter="name=orchest" -q)" ] && OPTIONAL_NETWORK=""
 
 $SUDO_PREFIX docker run \
     --rm \
