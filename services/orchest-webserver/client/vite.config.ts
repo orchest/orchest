@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [reactRefresh(), vitePluginDesignSystem()],
   server: {
     host: "0.0.0.0",
+    hmr: false,
   },
   resolve: {
     alias: [
