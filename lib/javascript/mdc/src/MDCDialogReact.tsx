@@ -1,11 +1,26 @@
-import * as React from "react";
+import React from "react";
 import { MDCDialog } from "@material/dialog";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
-export class MDCDialogReact extends React.Component<any> {
+
+type ActionsCallback = (prop: {
+  setAllowClose: (value: boolean) => void;
+}) => React.ReactNode;
+export class MDCDialogReact extends React.Component<{
+  actions: React.ReactNode | ActionsCallback;
+  onClose?: () => void;
+  onOpened?: () => void;
+  title: string;
+  content: React.ReactNode;
+}> {
   refManager: RefManager;
   mdc: MDCDialog;
+
+  setAllowClose = (allowClose: boolean) => {
+    this.mdc.escapeKeyAction = allowClose ? "close" : "";
+    this.mdc.scrimClickAction = allowClose ? "close" : "";
+  };
 
   constructor() {
     // @ts-ignore
@@ -16,7 +31,6 @@ export class MDCDialogReact extends React.Component<any> {
   componentDidMount() {
     this.mdc = new MDCDialog(this.refManager.refs.dialog);
 
-    if (this.props.disableClose) this.disableClose();
     this.mdc.open();
 
     this.mdc.listen("MDCDialog:closed", () => {
@@ -31,17 +45,18 @@ export class MDCDialogReact extends React.Component<any> {
     });
   }
 
-  disableClose() {
-    this.mdc.escapeKeyAction = "";
-    this.mdc.scrimClickAction = "";
-  }
-
   close() {
     this.mdc.close();
   }
 
   render() {
     let id_uuid = uuidv4();
+
+    const actions = React.isValidElement(this.props.actions)
+      ? this.props.actions // render the given React elements
+      : (this.props.actions as ActionsCallback)({
+          setAllowClose: this.setAllowClose,
+        }); // allows to call setAllowClose function when needed
 
     return (
       <div
@@ -71,9 +86,7 @@ export class MDCDialogReact extends React.Component<any> {
               >
                 {this.props.content}
               </div>
-              <footer className="mdc-dialog__actions">
-                {this.props.actions}
-              </footer>
+              <footer className="mdc-dialog__actions">{actions}</footer>
             </form>
           </div>
         </div>
