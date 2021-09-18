@@ -2202,11 +2202,19 @@ const PipelineView: React.FC = () => {
       checkGatePromise
         .then(() => {
           setIsReadOnly(false);
+          dispatch({
+            type: "pipelineUpdateReadOnlyState",
+            payload: false,
+          });
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
             orchest.requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
+              dispatch({
+                type: "pipelineUpdateReadOnlyState",
+                payload: false,
+              });
             });
           }
         });
