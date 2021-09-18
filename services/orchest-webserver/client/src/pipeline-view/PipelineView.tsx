@@ -62,7 +62,15 @@ const PipelineView: React.FC = () => {
     navigateTo,
   } = useCustomRoute();
 
-  const [isReadOnly, setIsReadOnly] = useState(isReadOnlyFromQueryString);
+  const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
+  const setIsReadOnly = (readOnly) => {
+    dispatch({
+      type: "pipelineUpdateReadOnlyState",
+      payload: readOnly,
+    });
+    _setIsReadOnly(readOnly);
+  }
+  
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
 
   useEffect(() => {
@@ -2202,19 +2210,11 @@ const PipelineView: React.FC = () => {
       checkGatePromise
         .then(() => {
           setIsReadOnly(false);
-          dispatch({
-            type: "pipelineUpdateReadOnlyState",
-            payload: false,
-          });
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
             orchest.requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
-              dispatch({
-                type: "pipelineUpdateReadOnlyState",
-                payload: false,
-              });
             });
           }
         });
