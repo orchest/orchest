@@ -39,7 +39,7 @@ fi
 
 # create config dir if it doesn't exist
 mkdir -p "${HOST_CONFIG_DIR}"
-$SUDO_PREFIX chown $IDENTIFIED_USERNAME "${HOST_CONFIG_DIR}"
+$SUDO_PREFIX chown "${IDENTIFIED_USERNAME}" "${HOST_CONFIG_DIR}"
 
 # The -it flags are needed to be able to safely prompt for secrets
 # (password and tokens) when adding a new user. The -i is actually
