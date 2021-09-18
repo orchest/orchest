@@ -45,7 +45,7 @@ if __name__ == "__main__":
         user = User(
             uuid=str(uuid.uuid4()),
             username=username,
-            password_hash=generate_password_hash(password.encode()),
+            password_hash=generate_password_hash(password),
             is_admin=args.is_admin,
         )
 
@@ -54,7 +54,7 @@ if __name__ == "__main__":
                 print("Token cannot be empty.")
                 exit(1)
             else:
-                user.token_hash = (generate_password_hash(token.encode()),)
+                user.token_hash = (generate_password_hash(token),)
 
         db.session.add(user)
         db.session.commit()
