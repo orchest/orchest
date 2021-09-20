@@ -8,7 +8,7 @@ __pycache__/
 
 .vscode/
 
-# Build artifacts 
+# Build artifacts
 #  These files are only present during the build process, but we'll add them to
 #  .gitignore to avoid confusion
 services/*/.dockerignore
@@ -153,3 +153,7 @@ debug-dump.tar.gz
 # Cypress output
 cypress/videos
 cypress/screenshots
+
+# ----- Don't ignore -------
+# Compiled custom GitHub Action
+!.github/custom-actions/github-linear-sync/dist/
