@@ -31,3 +31,40 @@
   position: fixed !important;
   top: auto !important;
 }
+
+/* Color tweaking, this is not yet possible in conf.py so !important
+overrides like below are unfortunately required. */
+:root {
+  --blue: #4381ff;
+  --light-blue: #79a5ff;
+}
+
+a {
+  color: var(--blue);
+}
+
+a:hover {
+  color: var(--blue) !important;
+}
+
+.vp-sidebar a.current {
+  border-left-color: var(--blue) !important;
+}
+
+.vp-sidebar .toctree-l1.current a {
+  border-left-color: var(--light-blue);
+}
+
+.vp-sidebar a.current {
+  color: var(--blue) !important;
+}
+
+.nav-item > a:not(.external).router-link-active,
+.nav-item > a:not(.external):hover {
+  border-bottom-color: var(--blue);
+}
+
+.admonition.hint,
+.admonition.tip {
+  border-color: var(--blue) !important;
+}
