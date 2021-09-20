@@ -1,0 +1,7 @@
+name: "Sync to Linear"
+description: "Sync GH issues to Linear"
+runs:
+  # Have to stick with node12 still.
+  # https://github.com/actions/runner/issues/772
+  using: "node12"
+  main: "dist/index.js"
