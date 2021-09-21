@@ -7,8 +7,24 @@ To pass data between the different pipeline steps, across different languages, w
 `Apache Arrow <https://github.com/apache/arrow>`_ project. The :ref:`Orchest SDK` provides a
 convenience wrapper of the project to be used within Orchest.
 
-See the :ref:`data passing quickstart<sdk-quickstart-data-passing>` of the SDK to get started
+See the :ref:`data passing quickstart <sdk-quickstart-data-passing>` of the SDK to get started
 directly.
+
+Python example
+--------------
+
+.. code-block:: python
+
+   import orchest
+
+   # Get data from incoming steps.
+   input_data = orchest.get_inputs()
+
+   # Create new data that you would like to pass to next steps.
+   data = "Hello, World!"
+
+   # Output the data.
+   orchest.output(data, name="some-data")
 
 Memory data passing
 -------------------
