@@ -104,12 +104,45 @@ service = Model(
             required=False,
             description=("If the base path should be preserved when proxying."),
         ),
+        "requires_authentication": fields.Boolean(
+            required=True,
+            description=(
+                "Can be set to False to expose the service "
+                "without authentication requirements."
+            ),
+        ),
     },
 )
 
 # Needs to be defined here, see
 # https://flask-restx.readthedocs.io/en/latest/marshalling.html#wildcard-field
 service_wildcard = fields.Wildcard(fields.Nested(service))
+
+service_description = Model(
+    "ServiceDescription",
+    {
+        "service": service_wildcard,
+        "project_uuid": fields.String(required=True, description="Project UUID"),
+        "pipeline_uuid": fields.String(required=True, description="Pipeline UUID."),
+        "job_uuid": fields.String(
+            required=False,
+            description="If the service is NONINTERACTIVE, the job_uuid.",
+        ),
+        "run_uuid": fields.String(
+            required=False,
+            description="If the service is NONINTERACTIVE, the run_uuid.",
+        ),
+        "type": fields.String(
+            required=True,
+            description="Type of the service. Either INTERACTIVE or NONINTERACTIVE.",
+        ),
+    },
+)
+
+# Needs to be defined here, see
+# https://flask-restx.readthedocs.io/en/latest/marshalling.html#wildcard-field
+service_description_wildcard = fields.Wildcard(fields.Nested(service_description))
+service_descriptions = Model("Services", {"*": service_description_wildcard})
 
 services = Model("Services", {"*": service_wildcard})
 

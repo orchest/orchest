@@ -8,6 +8,7 @@ from app.apis.namespace_jupyter_builds import api as ns_jupyter_builds
 from app.apis.namespace_pipelines import api as ns_pipelines
 from app.apis.namespace_projects import api as ns_projects
 from app.apis.namespace_runs import api as ns_runs
+from app.apis.namespace_services import api as ns_services
 from app.apis.namespace_sessions import api as ns_sessions
 from app.apis.namespace_validations import api as ns_validations
 
@@ -28,4 +29,5 @@ api.add_namespace(ns_pipelines)
 api.add_namespace(ns_projects)
 api.add_namespace(ns_runs)
 api.add_namespace(ns_sessions)
+api.add_namespace(ns_services)
 api.add_namespace(ns_validations)

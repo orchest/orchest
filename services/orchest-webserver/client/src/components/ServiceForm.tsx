@@ -364,7 +364,7 @@ const ServiceForm: React.FC<any> = (props) => {
 
             <div className="columns inner-padded">
               <div className="column">
-                <h3>
+                <h3 className="push-down">
                   Ports{" "}
                   <i
                     className="material-icons inline-icon push-left"
@@ -400,29 +400,6 @@ const ServiceForm: React.FC<any> = (props) => {
                   <MultiSelectInput />
                   <MultiSelectError />
                 </MultiSelect>
-
-                <h3 className="push-up push-down">
-                  Preserve base path{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-preserve-base-path"
-                  >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-preserve-base-path"
-                  tooltip="When you preserve the base path the first component of the path https://<hostname>/1/2/... will be passed to the service when the request is proxied by Orchest."
-                />
-
-                <MDCCheckboxReact
-                  onChange={(isChecked) => {
-                    handleServiceChange("preserve_base_path", isChecked);
-                  }}
-                  disabled={props.disabled}
-                  label="Preserve base path"
-                  value={props.service?.preserve_base_path === true}
-                />
               </div>
               <div className="column">
                 <h3 className="push-down">
@@ -449,6 +426,58 @@ const ServiceForm: React.FC<any> = (props) => {
                       <a href={url}>{url}</a>
                     </div>
                   ))}
+              </div>
+              <div className="clear"></div>
+            </div>
+
+            <div className="columns inner-padded push-down">
+              <div className="column">
+                <h3 className="push-up push-down">
+                  Preserve base path{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-preserve-base-path"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-preserve-base-path"
+                  tooltip="When you preserve the base path the first component of the path https://<hostname>/1/2/... will be passed to the service when the request is proxied by Orchest."
+                />
+
+                <MDCCheckboxReact
+                  onChange={(isChecked) => {
+                    handleServiceChange("preserve_base_path", isChecked);
+                  }}
+                  disabled={props.disabled}
+                  label="Preserve base path"
+                  value={props.service?.preserve_base_path === true}
+                />
+              </div>
+              <div className="column">
+                <h3 className="push-up push-down">
+                  Authentication required{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-require-authentication"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-require-authentication"
+                  tooltip="Require authentication for the exposed service endpoints."
+                />
+
+                <MDCCheckboxReact
+                  onChange={(isChecked) => {
+                    handleServiceChange("requires_authentication", isChecked);
+                  }}
+                  disabled={props.disabled}
+                  label="Authentication required"
+                  value={props.service?.requires_authentication !== false}
+                />
               </div>
               <div className="clear"></div>
             </div>

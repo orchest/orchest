@@ -59,37 +59,47 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
           type: "projectsSet",
           payload: fetchedProjects,
         });
-
-        // Select the first one from the given projects
-        const newProjectUuid =
-          fetchedProjects.length > 0 ? fetchedProjects[0].uuid : null;
-
-        dispatch({ type: "projectSet", payload: newProjectUuid });
-
-        // navigate ONLY if user is at the project root
-        if (matchProjectRoot) onChangeProject(newProjectUuid);
       })
       .catch((error) => console.log(error));
   };
 
   // sync state.projectUuid and the route param projectUuid
   React.useEffect(() => {
-    dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+    if (projectUuidFromRoute) {
+      dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+    }
   }, [projectUuidFromRoute]);
+
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
-    const isSwitchingToProjectRoot = matchProjectRoot && !projectUuidFromRoute;
     // in case that project is deleted
-    const invalidProjectUuid = !validateProjectUuid(
-      projectUuidFromRoute,
-      state.projects
-    );
-    if (isSwitchingToProjectRoot || invalidProjectUuid) fetchProjects();
+    if (matchProjectRoot) fetchProjects();
 
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, [projectUuidFromRoute, matchProjectRoot]);
+  }, [matchProjectRoot]);
+
+  React.useEffect(() => {
+    if (state.hasLoadedProjects && matchProjectRoot) {
+      const invalidProjectUuid = !validateProjectUuid(
+        projectUuidFromRoute,
+        state.projects
+      );
+
+      if (invalidProjectUuid) {
+        // Select the first one from the given projects
+        let newProjectUuid =
+          state.projects.length > 0 ? state.projects[0].uuid : undefined;
+
+        // navigate ONLY if user is at the project root and
+        // we're switching projects (because of detecting an
+        // invalidProjectUuid)
+        dispatch({ type: "projectSet", payload: newProjectUuid });
+        onChangeProject(newProjectUuid);
+      }
+    }
+  }, [state.hasLoadedProjects, projectUuidFromRoute]);
 
   const selectItems = state.projects.map((project) => [
     project.uuid,

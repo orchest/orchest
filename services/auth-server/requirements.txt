@@ -6,4 +6,5 @@ eventlet==0.30.2
 SQLAlchemy-Utils==0.37.4
 psycopg2-binary==2.8.6
 greenlet==0.4.17
+requests==2.26.0
 -e ../../lib/python/orchest-internals
