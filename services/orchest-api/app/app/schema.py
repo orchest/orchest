@@ -105,7 +105,7 @@ service = Model(
             description=("If the base path should be preserved when proxying."),
         ),
         "requires_authentication": fields.Boolean(
-            required=True,
+            required=False,
             description=(
                 "Can be set to False to expose the service "
                 "without authentication requirements."
