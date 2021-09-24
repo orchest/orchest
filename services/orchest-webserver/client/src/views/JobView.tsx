@@ -1,35 +1,35 @@
-import React, { useState } from "react";
-import { PieChart } from "react-minimal-pie-chart";
 import { Box, Flex, Text } from "@orchest/design-system";
-import cronstrue from "cronstrue";
+import type { Job, PipelineJson } from "@/types";
 import {
   MDCButtonReact,
-  MDCTabBarReact,
   MDCLinearProgressReact,
+  MDCTabBarReact,
 } from "@orchest/lib-mdc";
 import {
-  makeRequest,
   PromiseManager,
-  makeCancelable,
   RefManager,
+  makeCancelable,
+  makeRequest,
 } from "@orchest/lib-utils";
-import type { Job, PipelineJson } from "@/types";
-import { commaSeparatedString } from "@/utils/text";
+import React, { useState } from "react";
+import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
 import {
   checkGate,
+  envVariablesDictToArray,
   formatServerDateTime,
   getPipelineJSONEndpoint,
-  envVariablesDictToArray,
 } from "@/utils/webserver-utils";
-import { Layout } from "@/components/Layout";
+
 import { DescriptionList } from "@/components/DescriptionList";
-import { StatusInline, StatusGroup, TStatus } from "@/components/Status";
+import EnvVarList from "@/components/EnvVarList";
+import { Layout } from "@/components/Layout";
 import ParamTree from "@/components/ParamTree";
 import ParameterEditor from "@/components/ParameterEditor";
+import { PieChart } from "react-minimal-pie-chart";
 import SearchableTable from "@/components/SearchableTable";
-import EnvVarList from "@/components/EnvVarList";
+import { commaSeparatedString } from "@/utils/text";
+import cronstrue from "cronstrue";
 import { siteMap } from "@/Routes";
-
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 type TSharedStatus = Extract<
@@ -462,7 +462,7 @@ const JobView: React.FC = () => {
             let job: Job = JSON.parse(response);
 
             // we need to re-navigate to ensure the URL is with correct job uuid
-            navigateTo(siteMap.job.path, {
+            navigateTo(siteMap.editJob.path, {
               query: {
                 projectUuid: job.project_uuid,
                 jobUuid: job.uuid,
