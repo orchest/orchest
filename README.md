@@ -118,3 +118,4 @@ for more details.
 <a href="https://github.com/MWeltevrede"><img src="https://avatars.githubusercontent.com/u/31962715?v=4" title="MWeltevrede" width="50" height="50"></a>
 <a href="https://github.com/kingabzpro"><img src="https://avatars.githubusercontent.com/u/36753484?v=4" title="Abid" width="50" height="50"></a>
 <a href="https://github.com/iannbing"><img src="https://avatars.githubusercontent.com/u/627607?v=4" title="iannbing" width="50" height="50"></a>
+<a href="https://github.com/andtheWings"><img src="https://avatars.githubusercontent.com/u/5892089?v=4" title="andtheWings" width="50" height="50"></a>

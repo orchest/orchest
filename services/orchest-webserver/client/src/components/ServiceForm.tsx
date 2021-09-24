@@ -1,17 +1,15 @@
 import * as React from "react";
-import _ from "lodash";
+
 import { Box, styled } from "@orchest/design-system";
 import {
-  MDCTextFieldReact,
-  MDCCheckboxReact,
   MDCButtonReact,
+  MDCCheckboxReact,
   MDCDialogReact,
-  MDCSelectReact,
   MDCLinearProgressReact,
+  MDCSelectReact,
+  MDCTextFieldReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import { getServiceURLs } from "../utils/webserver-utils";
-import EnvVarList from "@/components/EnvVarList";
 import {
   MultiSelect,
   MultiSelectError,
@@ -19,10 +17,14 @@ import {
   MultiSelectLabel,
 } from "./MultiSelect";
 import {
+  PromiseManager,
   makeCancelable,
   makeRequest,
-  PromiseManager,
 } from "@orchest/lib-utils";
+
+import EnvVarList from "@/components/EnvVarList";
+import _ from "lodash";
+import { getServiceURLs } from "../utils/webserver-utils";
 
 const ServiceForm: React.FC<any> = (props) => {
   const environmentPrefix = "environment@";
@@ -364,7 +366,7 @@ const ServiceForm: React.FC<any> = (props) => {
 
             <div className="columns inner-padded">
               <div className="column">
-                <h3>
+                <h3 className="push-down">
                   Ports{" "}
                   <i
                     className="material-icons inline-icon push-left"
@@ -400,7 +402,38 @@ const ServiceForm: React.FC<any> = (props) => {
                   <MultiSelectInput />
                   <MultiSelectError />
                 </MultiSelect>
+              </div>
+              <div className="column">
+                <h3 className="push-down">
+                  URLs{" "}
+                  <i
+                    className="material-icons inline-icon push-left"
+                    aria-describedby="tooltip-urls"
+                  >
+                    info
+                  </i>
+                </h3>
+                <MDCTooltipReact
+                  tooltipID="tooltip-urls"
+                  tooltip="The URLs that will be directly available to communicate with the service. These are all proxied by Orchest."
+                />
+                {props.service.ports &&
+                  getServiceURLs(
+                    props.service,
+                    props.project_uuid,
+                    props.pipeline_uuid,
+                    props.run_uuid
+                  ).map((url) => (
+                    <div key={url}>
+                      <a href={url}>{url}</a>
+                    </div>
+                  ))}
+              </div>
+              <div className="clear"></div>
+            </div>
 
+            <div className="columns inner-padded push-down">
+              <div className="column">
                 <h3 className="push-up push-down">
                   Preserve base path{" "}
                   <i
@@ -425,30 +458,28 @@ const ServiceForm: React.FC<any> = (props) => {
                 />
               </div>
               <div className="column">
-                <h3 className="push-down">
-                  URLs{" "}
+                <h3 className="push-up push-down">
+                  Authentication required{" "}
                   <i
                     className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-urls"
+                    aria-describedby="tooltip-require-authentication"
                   >
                     info
                   </i>
                 </h3>
                 <MDCTooltipReact
-                  tooltipID="tooltip-urls"
-                  tooltip="The URLs that will be available to communicate with the service. These are all proxied by Orchest."
+                  tooltipID="tooltip-require-authentication"
+                  tooltip="Require authentication for the exposed service endpoints."
                 />
-                {props.service.ports &&
-                  getServiceURLs(
-                    props.service,
-                    props.project_uuid,
-                    props.pipeline_uuid,
-                    props.run_uuid
-                  ).map((url) => (
-                    <div key={url}>
-                      <a href={url}>{url}</a>
-                    </div>
-                  ))}
+
+                <MDCCheckboxReact
+                  onChange={(isChecked) => {
+                    handleServiceChange("requires_authentication", isChecked);
+                  }}
+                  disabled={props.disabled}
+                  label="Authentication required"
+                  value={props.service?.requires_authentication !== false}
+                />
               </div>
               <div className="clear"></div>
             </div>

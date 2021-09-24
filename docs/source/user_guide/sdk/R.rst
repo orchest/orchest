@@ -36,7 +36,7 @@ passing, for example, you would do the following:
  python_path <- system("which python", intern=TRUE);
  use_python(python_path);
  orchest <- import("orchest");
- orchest$output(2, name="Test");
+ orchest$transfer$output(2, name="Test");
 
 In a child step you will be able to retrieve the output:
 
@@ -46,5 +46,5 @@ In a child step you will be able to retrieve the output:
  python_path <- system("which python", intern=TRUE);
  use_python(python_path);
  orchest <- import("orchest")
- step_inputs = orchest$get_inputs()
+ step_inputs = orchest$transfer$get_inputs()
  step_inputs$Test

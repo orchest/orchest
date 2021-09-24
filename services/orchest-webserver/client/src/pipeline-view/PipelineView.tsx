@@ -2347,14 +2347,12 @@ const PipelineView: React.FC = () => {
                 icon="view_headline"
               />
 
-              {servicesAvailable() && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={showServices}
-                  label={"Services"}
-                  icon="settings"
-                />
-              )}
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                onClick={showServices}
+                label={"Services"}
+                icon="settings"
+              />
 
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
@@ -2364,10 +2362,14 @@ const PipelineView: React.FC = () => {
                 data-test-id="pipeline-settings"
               />
 
-              {state.eventVars.showServices && servicesAvailable() && (
+              {state.eventVars.showServices && (
                 <div className="services-status">
                   <h3>Running services</h3>
-                  {generateServiceEndpoints()}
+                  {servicesAvailable() ? (
+                    generateServiceEndpoints()
+                  ) : (
+                    <i>No services are running.</i>
+                  )}
 
                   <div className="edit-button-holder">
                     <MDCButtonReact

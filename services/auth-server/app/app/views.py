@@ -3,13 +3,19 @@ import os
 import secrets
 import uuid
 
+import requests
 from flask import jsonify, redirect, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from _orchest.internals.utils import _proxy
 from app.connections import db
 from app.models import Token, User
-from app.utils import get_user_conf
+from app.utils import get_auth_cache, get_user_conf, set_auth_cache
+
+# This auth_cache is shared between requests
+# within the same Flask process
+_auth_cache = {}
+_auth_cache_age = 3  # in seconds
 
 
 def register_views(app):
@@ -248,3 +254,77 @@ def register_views(app):
             data_json["users"].append({"username": user.username})
 
         return jsonify(data_json), 200
+
+    @app.route("/auth/service", methods=["GET"])
+    def auth_service():
+        global _auth_cache, _auth_cache_age
+
+        # Bypass definition based authentication if the request
+        # is authenticated
+        if is_authenticated(request):
+            return "", 200
+
+        # request URI
+        original_uri = request.headers.get("X-Original-URI")
+
+        if original_uri is None:
+            return "", 401
+
+        try:
+            # expected uri:
+            # /pbp-service-[service-name]-
+            # [pipeline_uuid_prefix]-[session_uuid_prefix]_[port]/...
+            components = original_uri.split("/")[1].split("_")[-2].split("-")
+            session_uuid_prefix = components[-1]
+            project_uuid_prefix = components[-2]
+        except Exception:
+            app.logger.error("Failed to parse X-Original-URI: %s" % original_uri)
+            return "", 401
+
+        auth_check = get_auth_cache(
+            project_uuid_prefix, session_uuid_prefix, _auth_cache, _auth_cache_age
+        )
+        if auth_check["status"] == "available":
+            if auth_check["requires_authentication"] is False:
+                return "", 200
+            else:
+                return "", 401
+        else:
+            # No cache available, fetch from orchest-api
+            base_url = "http://%s/api/services/" % (app.config["ORCHEST_API_ADDRESS"])
+            service_url = "%s?project_uuid_prefix=%s&session_uuid_prefix=%s" % (
+                base_url,
+                project_uuid_prefix,
+                session_uuid_prefix,
+            )
+
+            try:
+                r = requests.get(service_url)
+                services = r.json().get("services", [])
+
+                # No service is found for given filter
+                if len(services) == 0:
+                    raise Exception("No services found")
+
+                if len(services) > 1:
+                    raise Exception(
+                        "Filtered /api/services endpoint "
+                        "should always return a single service"
+                    )
+
+                # Always check first service that is returned,
+                # should be unique
+                if services[0]["service"]["requires_authentication"] is False:
+                    set_auth_cache(
+                        project_uuid_prefix, session_uuid_prefix, False, _auth_cache
+                    )
+                    return "", 200
+                else:
+                    set_auth_cache(
+                        project_uuid_prefix, session_uuid_prefix, True, _auth_cache
+                    )
+                    raise Exception("'requires_authentication' is not set to False")
+
+            except Exception as e:
+                app.logger.error(e)
+                return "", 401

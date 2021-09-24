@@ -168,7 +168,6 @@ const ImportDialog: React.FC<{
     <MDCDialogReact
       title="Import a project"
       onClose={onClose}
-      disableClose
       content={
         <div data-test-id="import-project-dialog">
           {shouldShowWarning && <PrefilledWarning />}
@@ -202,7 +201,7 @@ const ImportDialog: React.FC<{
           </p>
         </div>
       }
-      actions={
+      actions={({ setAllowClose }) => (
         <>
           {isCloseVisible && (
             <MDCButtonReact
@@ -222,11 +221,14 @@ const ImportDialog: React.FC<{
             classNames={["mdc-button--raised", "themed-secondary"]}
             label="Import"
             submitButton
-            onClick={startImport}
+            onClick={() => {
+              setAllowClose(false);
+              startImport();
+            }}
             data-test-id="import-project-ok"
           />
         </>
-      }
+      )}
     />
   );
 };
