@@ -327,7 +327,7 @@ def register_views(app):
                 r = requests.get(service_url)
                 services = r.json().get("services", [])
 
-                # No service is found forr given filter
+                # No service is found for given filter
                 if len(services) == 0:
                     raise Exception("No services found")
 
