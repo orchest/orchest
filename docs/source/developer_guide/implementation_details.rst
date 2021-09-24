@@ -228,6 +228,9 @@ Full JSON Schema:
               },
               "preserve_base_path": {
                 "type": "boolean"
+              },
+              "requires_authentication": {
+                "type": "boolean"
               }
             },
             "required": [

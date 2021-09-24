@@ -183,7 +183,7 @@ const ProjectsView: React.FC = () => {
         ) {
           context.dispatch({
             type: "projectSet",
-            payload: projects.length > 0 ? projects[0].uuid : null,
+            payload: projects.length > 0 ? projects[0].uuid : undefined,
           });
         }
 
@@ -266,7 +266,7 @@ const ProjectsView: React.FC = () => {
     if (context.state.projectUuid === projectUuid) {
       context.dispatch({
         type: "projectSet",
-        payload: null,
+        payload: undefined,
       });
     }
 

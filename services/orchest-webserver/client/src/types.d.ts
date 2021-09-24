@@ -69,6 +69,7 @@ export interface IOrchestState
   pipelineIsReadOnly: boolean;
   pipelineSaveStatus: "saved" | "saving";
   projects: Project[];
+  hasLoadedProjects: boolean;
   sessions?: IOrchestSession[] | [];
   sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;

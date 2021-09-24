@@ -1,6 +1,8 @@
 import os
 import subprocess
 
+from _orchest.internals import config as _config
+
 
 def get_dev_server_url():
     if os.environ.get("HOST_OS") == "darwin":
@@ -33,6 +35,7 @@ class Config:
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
     CLOUD = os.environ.get("CLOUD") == "true"
+    ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
     CLOUD_URL = "https://cloud.orchest.io"
     GITHUB_URL = "https://github.com/orchest/orchest"
     DOCUMENTATION_URL = "https://www.orchest.io/docs"
