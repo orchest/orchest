@@ -1,17 +1,15 @@
 import * as React from "react";
-import _ from "lodash";
+
 import { Box, styled } from "@orchest/design-system";
 import {
-  MDCTextFieldReact,
-  MDCCheckboxReact,
   MDCButtonReact,
+  MDCCheckboxReact,
   MDCDialogReact,
-  MDCSelectReact,
   MDCLinearProgressReact,
+  MDCSelectReact,
+  MDCTextFieldReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import { getServiceURLs } from "../utils/webserver-utils";
-import EnvVarList from "@/components/EnvVarList";
 import {
   MultiSelect,
   MultiSelectError,
@@ -19,10 +17,14 @@ import {
   MultiSelectLabel,
 } from "./MultiSelect";
 import {
+  PromiseManager,
   makeCancelable,
   makeRequest,
-  PromiseManager,
 } from "@orchest/lib-utils";
+
+import EnvVarList from "@/components/EnvVarList";
+import _ from "lodash";
+import { getServiceURLs } from "../utils/webserver-utils";
 
 const ServiceForm: React.FC<any> = (props) => {
   const environmentPrefix = "environment@";
@@ -413,7 +415,7 @@ const ServiceForm: React.FC<any> = (props) => {
                 </h3>
                 <MDCTooltipReact
                   tooltipID="tooltip-urls"
-                  tooltip="The URLs that will be available to communicate with the service. These are all proxied by Orchest."
+                  tooltip="The URLs that will be directly available to communicate with the service. These are all proxied by Orchest."
                 />
                 {props.service.ports &&
                   getServiceURLs(

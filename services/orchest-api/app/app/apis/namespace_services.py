@@ -1,5 +1,3 @@
-from itertools import chain
-
 from flask import request
 from flask_restx import Namespace, Resource
 
@@ -29,25 +27,20 @@ class ServiceList(Resource):
         # Similarly it's only the first path component of the UUID
         # of the session UUID.
 
-        project_uuid_prefix_filter = None
-        if "project_uuid_prefix" in request.args:
-            project_uuid_prefix_filter = request.args["project_uuid_prefix"]
-
-        session_uuid_prefix_filter = None
-        if "session_uuid_prefix" in request.args:
-            session_uuid_prefix_filter = request.args["session_uuid_prefix"]
+        project_uuid_prefix_filter = request.args.get("project_uuid_prefix")
+        session_uuid_prefix_filter = request.args.get("session_uuid_prefix")
 
         # Get services of the InteractiveSessions
         query = models.InteractiveSession.query
 
-        if project_uuid_prefix_filter:
+        if project_uuid_prefix_filter is not None:
             query = query.filter(
                 models.InteractiveSession.project_uuid.startswith(
                     project_uuid_prefix_filter
                 )
             )
 
-        if session_uuid_prefix_filter:
+        if session_uuid_prefix_filter is not None:
             query = query.filter(
                 models.InteractiveSession.pipeline_uuid.startswith(
                     session_uuid_prefix_filter
@@ -55,19 +48,17 @@ class ServiceList(Resource):
             )
 
         sessions = query.all()
-        session_services = [
-            [
-                {
-                    "service": service,
-                    "type": "INTERACTIVE",
-                    "project_uuid": session.project_uuid,
-                    "pipeline_uuid": session.pipeline_uuid,
-                }
-                for service in session.user_services.values()
-            ]
-            for session in sessions
-        ]
-        session_services = list(chain(*session_services))
+        session_services = []
+        for session in sessions:
+            for service in session.user_services.values():
+                session_services.append(
+                    {
+                        "service": service,
+                        "type": "INTERACTIVE",
+                        "project_uuid": session.project_uuid,
+                        "pipeline_uuid": session.pipeline_uuid,
+                    }
+                )
 
         # Get services of the Job runs
         query_runs = models.NonInteractivePipelineRun.query.with_entities(
@@ -75,12 +66,12 @@ class ServiceList(Resource):
             models.NonInteractivePipelineRun.uuid,
         )
 
-        if project_uuid_prefix_filter:
+        if project_uuid_prefix_filter is not None:
             query_runs = query_runs.join(models.Job).filter(
                 models.Job.project_uuid.startswith(project_uuid_prefix_filter)
             )
 
-        if session_uuid_prefix_filter:
+        if session_uuid_prefix_filter is not None:
             query_runs = query_runs.filter(
                 models.NonInteractivePipelineRun.uuid.startswith(
                     session_uuid_prefix_filter
@@ -89,7 +80,7 @@ class ServiceList(Resource):
 
         active_pipeline_runs = query_runs.filter_by(status="STARTED").all()
 
-        job_ids = set([run.job_uuid for run in active_pipeline_runs])
+        job_ids = {run.job_uuid for run in active_pipeline_runs}
 
         jobs_lookup = {}
         jobs_definitions = (
@@ -107,24 +98,21 @@ class ServiceList(Resource):
             jobs_lookup[job.uuid] = job
 
         # This is a list of lists of services
-        run_services = [
-            [
-                {
-                    "service": service,
-                    "type": "NONINTERACTIVE",
-                    "project_uuid": jobs_lookup[run.job_uuid].project_uuid,
-                    "pipeline_uuid": jobs_lookup[run.job_uuid].pipeline_uuid,
-                    "job_uuid": run.job_uuid,
-                    "run_uuid": run.uuid,
-                }
-                for service in jobs_lookup[run.job_uuid]
-                .pipeline_definition["services"]
-                .values()
-            ]
-            for run in active_pipeline_runs
-            if "services" in jobs_lookup[run.job_uuid].pipeline_definition
-        ]
-        run_services = list(chain(*run_services))
+        run_services = []
+        for run in active_pipeline_runs:
+            pipeline_def = jobs_lookup[run.job_uuid].pipeline_definition
+            if "services" in pipeline_def:
+                for service in pipeline_def["services"].values():
+                    run_services.append(
+                        {
+                            "service": service,
+                            "type": "NONINTERACTIVE",
+                            "project_uuid": jobs_lookup[run.job_uuid].project_uuid,
+                            "pipeline_uuid": jobs_lookup[run.job_uuid].pipeline_uuid,
+                            "job_uuid": run.job_uuid,
+                            "run_uuid": run.uuid,
+                        }
+                    )
 
         # Combine services
         all_services = session_services + run_services
