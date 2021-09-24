@@ -320,11 +320,11 @@ def register_views(app):
                     )
                     return "", 200
                 else:
+                    set_auth_cache(
+                        project_uuid_prefix, session_uuid_prefix, True, _auth_cache
+                    )
                     raise Exception("'requires_authentication' is not set to False")
 
             except Exception as e:
-                set_auth_cache(
-                    project_uuid_prefix, session_uuid_prefix, True, _auth_cache
-                )
                 app.logger.error(e)
                 return "", 401

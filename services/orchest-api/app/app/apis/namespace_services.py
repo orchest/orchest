@@ -72,6 +72,8 @@ class ServiceList(Resource):
             )
 
         if session_uuid_prefix_filter is not None:
+            # The session UUID for a service is the run UUID in
+            # case of a NONINTERACTIVE service.
             query_runs = query_runs.filter(
                 models.NonInteractivePipelineRun.uuid.startswith(
                     session_uuid_prefix_filter
