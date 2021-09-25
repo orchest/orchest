@@ -19,5 +19,6 @@ jobs:
       - name: Close linked issues
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
-          python scripts/close_associated_issues.py "${{ github.event.pull_request.body }}"
+          python scripts/close_associated_issues.py

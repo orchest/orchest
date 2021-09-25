@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 import os
 import re
 import sys
@@ -44,11 +43,14 @@ def get_issues_from_pr_body(body: str) -> list[str]:
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("body", help="The body of the PR object")
-    args = parser.parse_args()
+    pr_body = os.environ.get("PR_BODY")
+    if pr_body is None:
+        print("Could not read PR body.")
+        sys.exit(1)
+    else:
+        print(f"{pr_body}\n\n")
 
-    issue_numbers = get_issues_from_pr_body(args.body)
+    issue_numbers = get_issues_from_pr_body(pr_body)
     if issue_numbers:
         print("Found issues to close:", ", ".join(issue_numbers))
     else:
