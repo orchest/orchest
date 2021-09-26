@@ -91,7 +91,7 @@ JupyterLab* (making sure you have the step selected) and paste in the following 
    # The "/data" directory is a special directory managed by Orchest
    # to allow data to be persisted and shared across pipelines and
    # even projects.
-   print("Dowloading California housing data...")
+   print("Downloading California housing data...")
    data = datasets.fetch_california_housing(data_home="/data")
 
    # Convert the data into a DataFrame.
@@ -112,7 +112,7 @@ below.
     that gets bind mounted in the respective Docker container running your code.  This allows you to
     access the data from any pipeline, even from pipelines in different projects. Data should be
     stored in ``/data`` not only for sharing purposes, but also to make sure that :ref:`jobs
-    <jobs>` do not unnecessarily copy the data when creating the snapshot for reprodicibility
+    <jobs>` do not unnecessarily copy the data when creating the snapshot for reproducibility
     reasons.
 
     Secondly, line ``19`` showcases the usage of the :ref:`Orchest SDK <orchest sdk>` to :ref:`pass data
