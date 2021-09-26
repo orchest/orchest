@@ -4,6 +4,8 @@
   "testFiles": "**/*.spec.{ts,tsx}",
   "chromeWebSecurity": false,
   "video": true,
+  "viewportWidth": 1920,
+  "viewportHeight": 1080,
   "videoCompression": false,
   "videoUploadOnPasses": false,
   "defaultCommandTimeout": 10000,
