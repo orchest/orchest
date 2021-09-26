@@ -67,9 +67,6 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 git clone https://github.com/orchest/orchest.git && cd orchest
 ./orchest install
 
-# Verify the installation.
-./orchest version --ext
-
 # Start Orchest.
 ./orchest start
 ```
