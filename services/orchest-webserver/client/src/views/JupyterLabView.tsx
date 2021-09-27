@@ -1,20 +1,20 @@
-import React from "react";
-import { MDCLinearProgressReact } from "@orchest/lib-mdc";
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
   PromiseManager,
+  collapseDoubleDots,
   makeCancelable,
   makeRequest,
-  collapseDoubleDots,
 } from "@orchest/lib-utils";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
-import { useInterval } from "@/hooks/use-interval";
-import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+
 import { Layout } from "@/components/Layout";
+import { MDCLinearProgressReact } from "@orchest/lib-mdc";
+import React from "react";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate } from "@/utils/webserver-utils";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { siteMap } from "@/Routes";
-
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useInterval } from "@/hooks/use-interval";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -50,7 +50,9 @@ const JupyterLabView: React.FC = () => {
     checkEnvironmentGate();
     // unmount
     return () => {
-      orchest.jupyter.hide();
+      if (orchest.jupyter) {
+        orchest.jupyter.hide();
+      }
       promiseManager.cancelCancelablePromises();
       setVerifyKernelsInterval(null);
     };
@@ -181,10 +183,12 @@ const JupyterLabView: React.FC = () => {
   };
 
   const conditionalRenderingOfJupyterLab = () => {
-    if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-      orchest.jupyter.show();
-    } else {
-      orchest.jupyter.hide();
+    if (orchest.jupyter) {
+      if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
+        orchest.jupyter.show();
+      } else {
+        orchest.jupyter.hide();
+      }
     }
   };
 
