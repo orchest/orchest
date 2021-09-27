@@ -1,42 +1,38 @@
-// @ts-nocheck
-import React, { useRef, useEffect, useState } from "react";
-import io from "socket.io-client";
-import _ from "lodash";
-
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
-  uuidv4,
-  intersectRect,
-  collapseDoubleDots,
-  makeRequest,
-  makeCancelable,
   PromiseManager,
   RefManager,
   activeElementIsInput,
+  collapseDoubleDots,
+  intersectRect,
+  makeCancelable,
+  makeRequest,
+  uuidv4,
 } from "@orchest/lib-utils";
-import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { PipelineJson } from "@/types";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+// @ts-nocheck
+import React, { useEffect, useRef, useState } from "react";
+import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
 import {
   checkGate,
-  getScrollLineHeight,
-  getPipelineJSONEndpoint,
-  serverTimeToDate,
-  getServiceURLs,
   filterServices,
+  getPipelineJSONEndpoint,
+  getScrollLineHeight,
+  getServiceURLs,
+  serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
 
 import { Layout } from "@/components/Layout";
-
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
+import type { PipelineJson } from "@/types";
 import PipelineStep from "./PipelineStep";
-import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
-
-import { useHotKey } from "./hooks/useHotKey";
-
+import _ from "lodash";
+import io from "socket.io-client";
 import { siteMap } from "../Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHotKey } from "./hooks/useHotKey";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -44,6 +40,52 @@ const CANVAS_VIEW_MULTIPLE = 3;
 const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
+
+export interface IPipelineStepState {
+  uuid: any;
+  incoming_connections: any;
+  outgoing_connections?: any;
+  file_path: string;
+  title: any;
+  meta_data: any;
+  parameters: any;
+  environment: string;
+  kernel: {
+    display_name: string;
+    name: string;
+  };
+}
+
+export interface IPipelineViewState {
+  eventVars: any;
+  // rendering state
+  pipelineOrigin: number[];
+  pipelineStepsHolderOffsetLeft: number;
+  pipelineStepsHolderOffsetTop: number;
+  pipelineOffset: [number, number];
+  // misc. state
+  sio: any;
+  currentOngoingSaves: number;
+  initializedPipeline: boolean;
+  promiseManager: any;
+  refManager: any;
+  runStatusEndpoint: string;
+  pipelineRunning: boolean;
+  waitingOnCancel: boolean;
+  runUuid?: string;
+  pendingRunUuids?: string[];
+  pendingRunType?: string;
+  stepExecutionState: {};
+  steps: {
+    [key: string]: IPipelineStepState;
+  };
+  pipelineCwd?: string;
+  defaultDetailViewIndex: number;
+  // The save hash is used to propagate a save's side-effects
+  // to components.
+  saveHash?: string;
+  pipelineJson: any;
+}
 
 const PipelineView: React.FC = () => {
   const { $, orchest } = window;
@@ -105,7 +147,7 @@ const PipelineView: React.FC = () => {
     saveIndicatorTimeout: undefined,
   });
 
-  let initialState = {
+  let initialState: IPipelineViewState = {
     // eventVars are variables that are updated immediately because
     // they are part of a parent object that's passed by reference
     // and never updated. This make it possible to implement
@@ -160,6 +202,7 @@ const PipelineView: React.FC = () => {
     pendingRunType: undefined,
     stepExecutionState: {},
     steps: {},
+    pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
     // The save hash is used to propagate a save's side-effects
     // to components.
@@ -467,7 +510,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const createConnection = (outgoingJEl, incomingJEl) => {
+  const createConnection = (outgoingJEl, incomingJEl?) => {
     let newConnection = {
       startNode: outgoingJEl,
       endNode: incomingJEl,
@@ -476,6 +519,7 @@ const PipelineView: React.FC = () => {
       startNodeUUID: outgoingJEl.parents(".pipeline-step").attr("data-uuid"),
       pipelineViewEl: state.refManager.refs.pipelineStepsHolder,
       selected: false,
+      endNodeUUID: undefined,
     };
 
     if (incomingJEl) {
@@ -1777,9 +1821,16 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const onSaveDetails = (stepChanges, uuid) => {
+  const onSaveDetails = (stepChanges, uuid, replace) => {
     // Mutate step with changes
-    _.merge(state.steps[uuid], stepChanges);
+    if (replace) {
+      // Replace works on the top level keys that are provided
+      for (let key of Object.keys(stepChanges)) {
+        state.steps[uuid][key] = stepChanges[key];
+      }
+    } else {
+      _.merge(state.steps[uuid], stepChanges);
+    }
 
     setState({
       steps: state.steps,

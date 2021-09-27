@@ -1,18 +1,21 @@
-import * as React from "react";
-import _ from "lodash";
-import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/javascript/javascript";
+
+import * as React from "react";
+
+import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import {
+  PromiseManager,
+  RefManager,
+  collapseDoubleDots,
   extensionFromFilename,
   kernelNameToLanguage,
   makeCancelable,
   makeRequest,
-  PromiseManager,
-  RefManager,
-  collapseDoubleDots,
 } from "@orchest/lib-utils";
-import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+
+import { Controlled as CodeMirror } from "react-codemirror2";
 import ProjectFilePicker from "../components/ProjectFilePicker";
+import _ from "lodash";
 
 const ConnectionItem = ({
   connection: { name, uuid },
@@ -122,7 +125,8 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
     try {
       props.onSave(
         { parameters: JSON.parse(updatedParameterJSON) },
-        props.step.uuid
+        props.step.uuid,
+        true
       );
     } catch (err) {
       // console.log("JSON did not parse")
