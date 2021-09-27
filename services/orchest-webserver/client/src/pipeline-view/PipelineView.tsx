@@ -41,6 +41,52 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
+export interface IPipelineStepState {
+  uuid: any;
+  incoming_connections: any;
+  outgoing_connections?: any;
+  file_path: string;
+  title: any;
+  meta_data: any;
+  parameters: any;
+  environment: string;
+  kernel: {
+    display_name: string;
+    name: string;
+  };
+}
+
+export interface IPipelineViewState {
+  eventVars: any;
+  // rendering state
+  pipelineOrigin: number[];
+  pipelineStepsHolderOffsetLeft: number;
+  pipelineStepsHolderOffsetTop: number;
+  pipelineOffset: [number, number];
+  // misc. state
+  sio: any;
+  currentOngoingSaves: number;
+  initializedPipeline: boolean;
+  promiseManager: any;
+  refManager: any;
+  runStatusEndpoint: string;
+  pipelineRunning: boolean;
+  waitingOnCancel: boolean;
+  runUuid?: string;
+  pendingRunUuids?: string[];
+  pendingRunType?: string;
+  stepExecutionState: {};
+  steps: {
+    [key: string]: IPipelineStepState;
+  };
+  pipelineCwd?: string;
+  defaultDetailViewIndex: number;
+  // The save hash is used to propagate a save's side-effects
+  // to components.
+  saveHash?: string;
+  pipelineJson: any;
+}
+
 const PipelineView: React.FC = () => {
   const { $, orchest } = window;
   const {
@@ -101,7 +147,7 @@ const PipelineView: React.FC = () => {
     saveIndicatorTimeout: undefined,
   });
 
-  let initialState = {
+  let initialState: IPipelineViewState = {
     // eventVars are variables that are updated immediately because
     // they are part of a parent object that's passed by reference
     // and never updated. This make it possible to implement
@@ -156,6 +202,7 @@ const PipelineView: React.FC = () => {
     pendingRunType: undefined,
     stepExecutionState: {},
     steps: {},
+    pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
     // The save hash is used to propagate a save's side-effects
     // to components.
@@ -463,7 +510,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const createConnection = (outgoingJEl, incomingJEl) => {
+  const createConnection = (outgoingJEl, incomingJEl?) => {
     let newConnection = {
       startNode: outgoingJEl,
       endNode: incomingJEl,
@@ -472,6 +519,7 @@ const PipelineView: React.FC = () => {
       startNodeUUID: outgoingJEl.parents(".pipeline-step").attr("data-uuid"),
       pipelineViewEl: state.refManager.refs.pipelineStepsHolder,
       selected: false,
+      endNodeUUID: undefined,
     };
 
     if (incomingJEl) {
