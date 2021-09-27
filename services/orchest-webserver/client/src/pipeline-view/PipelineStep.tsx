@@ -1,10 +1,14 @@
 import * as React from "react";
+
 import { RefManager } from "@orchest/lib-utils";
 
 export type TPipelineStepRef = any;
 export interface IPipelineStepProps {
   selected?: boolean;
   step?: any;
+  onConnect: (sourcePipelineStepUUID: any, targetPipelineStepUUID: any) => void;
+  onClick: any;
+  onDoubleClick: any;
   executionState?: {
     finished_time: number;
     server_time: number;

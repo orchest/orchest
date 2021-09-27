@@ -29,9 +29,6 @@ Simply follow the steps below to install Orchest or signup for the free-of-charg
    git clone https://github.com/orchest/orchest.git && cd orchest
    ./orchest install
 
-   # Verify the installation.
-   ./orchest version --ext
-
    # Start Orchest.
    ./orchest start
 
@@ -87,9 +84,6 @@ You can expect the build to finish in roughly 15 minutes.
    # Finish the Orchest installation by pulling additionally required
    # images, e.g. postgres, and installing the Orchest Docker network.
    ./orchest install
-
-   # Verify the installation.
-   ./orchest version --ext
 
    # Start Orchest.
    ./orchest start
