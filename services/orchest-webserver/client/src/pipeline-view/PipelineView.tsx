@@ -1,42 +1,38 @@
-// @ts-nocheck
-import React, { useRef, useEffect, useState } from "react";
-import io from "socket.io-client";
-import _ from "lodash";
-
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
-  uuidv4,
-  intersectRect,
-  collapseDoubleDots,
-  makeRequest,
-  makeCancelable,
   PromiseManager,
   RefManager,
   activeElementIsInput,
+  collapseDoubleDots,
+  intersectRect,
+  makeCancelable,
+  makeRequest,
+  uuidv4,
 } from "@orchest/lib-utils";
-import { MDCButtonReact } from "@orchest/lib-mdc";
-import type { PipelineJson } from "@/types";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+// @ts-nocheck
+import React, { useEffect, useRef, useState } from "react";
+import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
 import {
   checkGate,
-  getScrollLineHeight,
-  getPipelineJSONEndpoint,
-  serverTimeToDate,
-  getServiceURLs,
   filterServices,
+  getPipelineJSONEndpoint,
+  getScrollLineHeight,
+  getServiceURLs,
+  serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
 
 import { Layout } from "@/components/Layout";
-
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
+import type { PipelineJson } from "@/types";
 import PipelineStep from "./PipelineStep";
-import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
-
-import { useHotKey } from "./hooks/useHotKey";
-
+import _ from "lodash";
+import io from "socket.io-client";
 import { siteMap } from "../Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHotKey } from "./hooks/useHotKey";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -1777,9 +1773,16 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const onSaveDetails = (stepChanges, uuid) => {
+  const onSaveDetails = (stepChanges, uuid, replace) => {
     // Mutate step with changes
-    _.merge(state.steps[uuid], stepChanges);
+    if (replace) {
+      // Replace works on the top level keys that are provided
+      for (let key of Object.keys(stepChanges)) {
+        state.steps[uuid][key] = stepChanges[key];
+      }
+    } else {
+      _.merge(state.steps[uuid], stepChanges);
+    }
 
     setState({
       steps: state.steps,

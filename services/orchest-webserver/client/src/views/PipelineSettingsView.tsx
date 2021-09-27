@@ -1,46 +1,47 @@
-import React, { useRef, useState } from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import _ from "lodash";
 import "codemirror/mode/javascript/javascript";
+
 import {
-  Box,
   Alert,
-  AlertHeader,
   AlertDescription,
+  AlertHeader,
+  Box,
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-
-import {
-  makeRequest,
-  PromiseManager,
-  makeCancelable,
-  RefManager,
-} from "@orchest/lib-utils";
 import {
   MDCButtonReact,
-  MDCTextFieldReact,
   MDCCheckboxReact,
-  MDCTabBarReact,
   MDCDataTableReact,
-  MDCLinearProgressReact,
   MDCIconButtonToggleReact,
+  MDCLinearProgressReact,
+  MDCTabBarReact,
+  MDCTextFieldReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
-import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
-  getPipelineJSONEndpoint,
+  OverflowListener,
   envVariablesArrayToDict,
   envVariablesDictToArray,
-  OverflowListener,
-  validatePipeline,
+  getPipelineJSONEndpoint,
   isValidEnvironmentVariableName,
+  validatePipeline,
 } from "@/utils/webserver-utils";
-import { Layout } from "@/components/Layout";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import {
+  PromiseManager,
+  RefManager,
+  makeCancelable,
+  makeRequest,
+} from "@orchest/lib-utils";
+import React, { useRef, useState } from "react";
+
+import { Controlled as CodeMirror } from "react-codemirror2";
 import EnvVarList from "@/components/EnvVarList";
+import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
+import _ from "lodash";
 import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
@@ -85,16 +86,22 @@ const PipelineSettingsView: React.FC = () => {
     envVariables: [],
     projectEnvVariables: [],
     servicesChanged: false,
+    environmentVariablesChanged: false,
   });
 
   const session = get.session({
     pipelineUuid,
     projectUuid,
   });
-  if (!session && !context.state.unsavedChanges && state.servicesChanged) {
+  if (
+    !session &&
+    !context.state.unsavedChanges &&
+    (state.servicesChanged || state.environmentVariablesChanged)
+  ) {
     setState((prevState) => ({
       ...prevState,
       servicesChanged: false,
+      environmentVariablesChanged: false,
     }));
   }
 
@@ -496,7 +503,7 @@ const PipelineSettingsView: React.FC = () => {
       const envVariables = prevState.envVariables.slice();
       envVariables[idx][type] = value;
 
-      return { ...prevState, envVariables };
+      return { ...prevState, envVariables, environmentVariablesChanged: true };
     });
     context.dispatch({
       type: "setUnsavedChanges",
@@ -882,6 +889,13 @@ const PipelineSettingsView: React.FC = () => {
                 )}
                 {selectedTabIndex === 1 && (
                   <div>
+                    {state.environmentVariablesChanged && session && (
+                      <div className="warning push-down">
+                        <i className="material-icons">warning</i>
+                        Note: changes to environment variables require a session
+                        restart to take effect.
+                      </div>
+                    )}
                     {isReadOnly ? (
                       <EnvVarList
                         value={state.envVariables}
@@ -915,12 +929,6 @@ const PipelineSettingsView: React.FC = () => {
                           onDelete={(idx) => onEnvVariablesDeletion(idx)}
                           data-test-id="pipeline"
                         />
-                        <p className="push-up">
-                          <i>
-                            Note: restarting the session is required to update
-                            environment variables in Jupyter kernels.
-                          </i>
-                        </p>
                       </>
                     )}
                   </div>
