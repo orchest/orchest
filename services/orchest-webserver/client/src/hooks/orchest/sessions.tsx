@@ -1,11 +1,11 @@
-import React from "react";
-import useSWR from "swr";
-import pascalcase from "pascalcase";
+import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 
+import React from "react";
 import { fetcher } from "@/utils/fetcher";
-import { useOrchest } from "./context";
 import { isSession } from "./utils";
-import type { IOrchestSessionUuid, IOrchestSession } from "@/types";
+import pascalcase from "pascalcase";
+import { useOrchest } from "./context";
+import useSWR from "swr";
 
 type TSessionStatus = IOrchestSession["status"];
 
@@ -242,7 +242,7 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
         .filter((sessionData) => isStoppable(sessionData.status))
         .map((sessionData) => {
           stopSession({
-            projectUuid: sessionData.pipeline_uuid,
+            projectUuid: sessionData.project_uuid,
             pipelineUuid: sessionData.pipeline_uuid,
           });
         })
