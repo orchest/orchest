@@ -5,7 +5,9 @@ class Jupyter {
   iframe: any;
   baseAddress: string;
   reloadOnShow: boolean;
+  showCheckInterval: any;
   pendingKernelChanges: any;
+  iframeHasLoaded: boolean;
 
   constructor(jupyterHolderJEl) {
     // @ts-ignore
@@ -13,6 +15,8 @@ class Jupyter {
     this.iframe = undefined;
     this.baseAddress = "";
     this.reloadOnShow = false;
+    this.iframeHasLoaded = false;
+    this.showCheckInterval = undefined;
     this.pendingKernelChanges = {};
 
     this.initializeJupyter();
@@ -27,10 +31,12 @@ class Jupyter {
     this.baseAddress = baseAddress;
   }
 
-  show() {
+  _unhide() {
     // this method should only be called directly from main.js
     this.jupyterHolder.removeClass("hidden");
+  }
 
+  show() {
     if (this.reloadOnShow) {
       this.reloadOnShow = false;
       this._reloadFilesFromDisk();
@@ -40,21 +46,31 @@ class Jupyter {
     if (
       this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
     ) {
-      this.setJupyterAddress(this.baseAddress + "/lab");
+      this._setJupyterAddress(this.baseAddress + "/lab");
     }
 
     this.fixJupyterRenderingGlitch();
+
+    clearInterval(this.showCheckInterval);
+    this.showCheckInterval = setInterval(() => {
+      if (this.iframeHasLoaded) {
+        this._unhide();
+        clearInterval(this.showCheckInterval);
+      }
+    }, 10);
   }
 
   hide() {
     this.jupyterHolder.addClass("hidden");
+    clearInterval(this.showCheckInterval);
   }
 
   unload() {
-    this.iframe.contentWindow.location.replace("about:blank");
+    this._setJupyterAddress("about:blank");
   }
 
-  setJupyterAddress(url) {
+  _setJupyterAddress(url) {
+    this.iframeHasLoaded = false;
     this.iframe.contentWindow.location.replace(url);
   }
 
@@ -140,6 +156,7 @@ class Jupyter {
 
   fixJupyterRenderingGlitch() {
     if (this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly()) {
+      this.iframeHasLoaded = false;
       this.iframe.contentWindow.location.reload();
     }
   }
@@ -265,8 +282,14 @@ class Jupyter {
     );
   }
 
+  _loadIframe() {
+    this.iframeHasLoaded = true;
+  }
+
   initializeJupyter() {
     this.iframe = document.createElement("iframe");
+    this.iframeHasLoaded = false;
+    this.iframe.onload = this._loadIframe.bind(this);
 
     // @ts-ignore
     $(this.iframe).attr("width", "100%");

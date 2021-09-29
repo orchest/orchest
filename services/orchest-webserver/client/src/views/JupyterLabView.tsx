@@ -213,14 +213,12 @@ const JupyterLabView: React.FC = () => {
     <OrchestSessionsConsumer>
       <Layout>
         <div className="view-page jupyter no-padding">
-          {session?.status !== "RUNNING" && hasEnvironmentCheckCompleted && (
-            <div className="lab-loader">
-              <div>
-                <h2>Setting up JupyterLab…</h2>
-                <MDCLinearProgressReact />
-              </div>
+          <div className="lab-loader">
+            <div>
+              <h2>Setting up JupyterLab…</h2>
+              <MDCLinearProgressReact />
             </div>
-          )}
+          </div>
         </div>
       </Layout>
     </OrchestSessionsConsumer>

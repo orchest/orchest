@@ -1,20 +1,20 @@
 import * as React from "react";
-import { uuidv4 } from "@orchest/lib-utils";
-import { OrchestContext } from "./context";
-import { OrchestSessionsProvider } from "./sessions";
-import { isSession, isCurrentSession } from "./utils";
-import { useLocalStorage } from "../local-storage";
+
 import type {
-  TOrchestAction,
+  IOrchestConfig,
   IOrchestGet,
   IOrchestState,
-  IOrchestConfig,
   IOrchestUserConfig,
+  TOrchestAction,
 } from "@/types";
+import { isCurrentSession, isSession } from "./utils";
+
+import { OrchestContext } from "./context";
+import { OrchestSessionsProvider } from "./sessions";
+import { useLocalStorage } from "../local-storage";
+import { uuidv4 } from "@orchest/lib-utils";
 
 const reducer = (state: IOrchestState, action: TOrchestAction) => {
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useOrchest: action ", action);
   switch (action.type) {
     case "alert":
       return { ...state, alert: action.payload };
@@ -150,9 +150,6 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
         }
       : null;
   }, [state.unsavedChanges]);
-
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useOrchest: state updated", state);
 
   return (
     <OrchestContext.Provider
