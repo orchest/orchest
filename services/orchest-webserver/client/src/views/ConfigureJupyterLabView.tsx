@@ -1,19 +1,21 @@
-import * as React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
-import {
-  uuidv4,
-  makeRequest,
-  makeCancelable,
-  PromiseManager,
-} from "@orchest/lib-utils";
+
+import * as React from "react";
+
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
-import ImageBuildLog from "@/components/ImageBuildLog";
+import {
+  PromiseManager,
+  makeCancelable,
+  makeRequest,
+  uuidv4,
+} from "@orchest/lib-utils";
 
-import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { Controlled as CodeMirror } from "react-codemirror2";
+import ImageBuildLog from "@/components/ImageBuildLog";
+import { Layout } from "@/components/Layout";
 import { siteMap } from "@/routingConfig";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -54,7 +56,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   };
 
   const buildImage = () => {
-    orchest.jupyter.unload();
+    window.orchest.jupyter.unload();
 
     setState((prevState) => ({
       ...prevState,

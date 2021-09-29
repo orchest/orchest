@@ -451,7 +451,7 @@ const PipelineView: React.FC = () => {
       }
 
       if (session?.status === "STOPPING") {
-        orchest.jupyter.unload();
+        window.orchest.jupyter.unload();
       }
 
       if (session?.notebook_server_info) {
@@ -1174,7 +1174,7 @@ const PipelineView: React.FC = () => {
 
     if (base_url) {
       let baseAddress = "//" + window.location.host + base_url;
-      orchest.jupyter.updateJupyterInstance(baseAddress);
+      window.orchest.jupyter.updateJupyterInstance(baseAddress);
     }
   };
 
@@ -1443,7 +1443,7 @@ const PipelineView: React.FC = () => {
         },
       });
 
-      orchest.jupyter.navigateTo(
+      window.orchest.jupyter.navigateTo(
         collapseDoubleDots(
           state.pipelineCwd + state.steps[stepUUID].file_path
         ).slice(1)
@@ -1535,7 +1535,8 @@ const PipelineView: React.FC = () => {
             // make sure stale opened files are reloaded in active
             // Jupyter instance
 
-            if (orchest.jupyter) orchest.jupyter.reloadFilesFromDisk();
+            if (window.orchest.jupyter)
+              window.orchest.jupyter.reloadFilesFromDisk();
 
             setState({
               pipelineRunning: false,

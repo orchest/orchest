@@ -147,7 +147,7 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
     if (updatedEnvironmentUUID !== "" && props.step["file_path"] !== "") {
       let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
 
-      orchest.jupyter.setNotebookKernel(
+      window.orchest.jupyter.setNotebookKernel(
         collapseDoubleDots(props.pipelineCwd + props.step["file_path"]).slice(
           1
         ),

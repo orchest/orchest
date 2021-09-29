@@ -1,31 +1,32 @@
-import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
 import "codemirror/mode/shell/shell";
-import { uuidv4 } from "@orchest/lib-utils";
+
+import {
+  DEFAULT_BASE_IMAGES,
+  LANGUAGE_MAP,
+  PromiseManager,
+  RefManager,
+  makeCancelable,
+  makeRequest,
+} from "@orchest/lib-utils";
+import type { Environment, EnvironmentBuild } from "@/types";
 import {
   MDCButtonReact,
-  MDCTextFieldReact,
-  MDCSelectReact,
   MDCCheckboxReact,
-  MDCTabBarReact,
   MDCDialogReact,
   MDCLinearProgressReact,
+  MDCSelectReact,
+  MDCTabBarReact,
+  MDCTextFieldReact,
 } from "@orchest/lib-mdc";
-import {
-  makeRequest,
-  PromiseManager,
-  makeCancelable,
-  RefManager,
-  LANGUAGE_MAP,
-  DEFAULT_BASE_IMAGES,
-} from "@orchest/lib-utils";
-import { useOrchest } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
-import ImageBuildLog from "@/components/ImageBuildLog";
-import { siteMap } from "@/Routes";
-import type { EnvironmentBuild, Environment } from "@/types";
 
+import { Controlled as CodeMirror } from "react-codemirror2";
+import ImageBuildLog from "@/components/ImageBuildLog";
+import { Layout } from "@/components/Layout";
+import React from "react";
+import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useOrchest } from "@/hooks/orchest";
+import { uuidv4 } from "@orchest/lib-utils";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -103,7 +104,7 @@ const EnvironmentEditView: React.FC = () => {
     // Saving an environment will invalidate the Jupyter <iframe>
     // TODO: perhaps this can be fixed with coordination between JLab +
     // Enterprise Gateway team.
-    orchest.jupyter.unload();
+    window.orchest.jupyter.unload();
 
     return makeCancelable<Environment>(
       new Promise((resolve, reject) => {
