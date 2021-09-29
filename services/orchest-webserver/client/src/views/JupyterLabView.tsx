@@ -50,8 +50,8 @@ const JupyterLabView: React.FC = () => {
     checkEnvironmentGate();
     // unmount
     return () => {
-      if (orchest.jupyter) {
-        orchest.jupyter.hide();
+      if (window.orchest.jupyter) {
+        window.orchest.jupyter.hide();
       }
       promiseManager.cancelCancelablePromises();
       setVerifyKernelsInterval(null);
@@ -84,13 +84,22 @@ const JupyterLabView: React.FC = () => {
   }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
-    checkGate(projectUuid)
+    let gateCancelablePromise = makeCancelable(
+      checkGate(projectUuid),
+      promiseManager
+    );
+
+    gateCancelablePromise.promise
       .then(() => {
         setHasEnvironmentCheckCompleted(true);
         conditionalRenderingOfJupyterLab();
         fetchPipeline();
       })
       .catch((result) => {
+        if (result.isCanceled) {
+          // Do nothing when the promise is canceled
+          return;
+        }
         if (result.reason === "gate-failed") {
           orchest.requestBuild(
             projectUuid,
@@ -117,12 +126,12 @@ const JupyterLabView: React.FC = () => {
 
   useInterval(
     () => {
-      if (orchest.jupyter.isJupyterLoaded()) {
+      if (window.orchest.jupyter.isJupyterLoaded()) {
         for (let stepUUID in pipeline.steps) {
           let step = pipeline.steps[stepUUID];
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
-            orchest.jupyter.setNotebookKernel(
+            window.orchest.jupyter.setNotebookKernel(
               collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
               `orchest-kernel-${step.environment}`
             );
@@ -183,11 +192,11 @@ const JupyterLabView: React.FC = () => {
   };
 
   const conditionalRenderingOfJupyterLab = () => {
-    if (orchest.jupyter) {
+    if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-        orchest.jupyter.show();
+        window.orchest.jupyter.show();
       } else {
-        orchest.jupyter.hide();
+        window.orchest.jupyter.hide();
       }
     }
   };
@@ -196,7 +205,7 @@ const JupyterLabView: React.FC = () => {
     if (session?.notebook_server_info) {
       let baseAddress =
         "//" + window.location.host + session.notebook_server_info?.base_url;
-      orchest.jupyter.updateJupyterInstance(baseAddress);
+      window.orchest.jupyter.updateJupyterInstance(baseAddress);
     }
   };
 
