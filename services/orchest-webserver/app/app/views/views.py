@@ -271,25 +271,37 @@ def register_views(app, db):
     @app.route("/async/host-info", methods=["GET"])
     def host_info():
         disk_info = subprocess.getoutput(
-            "df -BGB /config --output=size,avail,pcent | sed -n '2{p;q}'"
+            "df -BKB /config --output=size,avail,itotal,fstype | sed -n '2{p;q}'"
         )
         disk_info
 
-        # Incoming data is in GB (-BGB)
-        size, avail, pcent = disk_info.strip().split()
-        # Remove the "GB"
-        avail = int(avail[:-2])
+        # Incoming data is in kB (-BKB)
+        size, avail, total_inodes, fstype = disk_info.strip().split()
+
+        # Remove the "B"
+        total_inodes = int(total_inodes[:-1])
+        # ext4.
+        inode_size = {
+            "ext4": 256,
+            "small": 128,
+            "floppy": 128,
+            "hurd": 128,
+        }.get(fstype, 256)
+        total_inodes_size = total_inodes * inode_size * 1e-9
+
+        # Remove the "kB"
+        avail = int(avail[:-2]) * 1e-6
         # Account for the 5% reserved root space, so that used + avail
         # add up to the total disk size the user would see in a file
-        # explorer.
-        used = int(size[:-2]) - avail
-        pcent = float(pcent.replace("%", ""))
+        # explorer. Moreover, account for inodes.
+        total = int(size[:-2]) * 1e-6 + total_inodes_size
+        used = total - avail
 
         host_info = {
             "disk_info": {
-                "used_GB": used,
-                "avail_GB": avail,
-                "used_pcent": pcent,
+                "used_GB": int(used),
+                "avail_GB": int(avail),
+                "used_pcent": (used / total) * 100,
             }
         }
 
