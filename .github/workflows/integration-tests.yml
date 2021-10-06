@@ -3,11 +3,16 @@ name: Integration tests
 on:
   push:
     branches:
-      - master
       - dev
   pull_request:
     branches:
       - master
+
+# Pending or running workflows for the same branch will be cancelled,
+# always keep the latest.
+concurrency:
+  group: integration-tests-${{ github.head_ref }}
+  cancel-in-progress: true
 
 jobs:
   integration-tests:
