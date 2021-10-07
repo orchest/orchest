@@ -1,12 +1,13 @@
+import { LazyMotion, domMax } from "framer-motion";
+
+import App from "./App";
+import { DesignSystemProvider } from "@orchest/design-system";
+import { OrchestProvider } from "./hooks/orchest";
 // @ts-check
 import React from "react";
 import ReactDOM from "react-dom";
-import { domMax, LazyMotion } from "framer-motion";
-import App from "./App";
-import { DesignSystemProvider } from "@orchest/design-system";
+import { getCssString } from "@orchest/design-system";
 import { makeRequest } from "@orchest/lib-utils";
-import "./styles/main.scss";
-import { OrchestProvider } from "./hooks/orchest";
 
 declare global {
   interface Document {
@@ -20,6 +21,11 @@ declare global {
     Intercom: any;
   }
 }
+
+// Load Stitches CSS
+let style = document.createElement("style");
+style.innerHTML = getCssString();
+window.document.head.appendChild(style);
 
 // Load after fonts are ready, required by MDC
 window.addEventListener("load", () => {

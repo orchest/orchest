@@ -1,18 +1,36 @@
 @use "vars";
 
-@use "../../../../../node_modules/@material/theme" with (
+@use "@material/theme" with (
   $primary: vars.$primary,
   $secondary: vars.$secondary,
   $on-primary: vars.$on-primary,
   $on-secondary: vars.$on-secondary,
 );
 
-@use "../../../../../node_modules/@material/typography" with (
+@use "@material/typography" with (
     $font-family: ("Inter", sans-serif)
 );
 
+@use "@material/checkbox";
+@use "@material/circular-progress";
+@use "@material/data-table";
+@use "@material/dialog";
+@use "@material/drawer";
+@use "@material/form-field";
+@use "@material/icon-button";
+@use "@material/linear-progress";
+@use "@material/list";
+@use "@material/radio";
+@use "@material/ripple";
+@use "@material/select";
+@use "@material/switch";
+@use "@material/tab-bar";
+@use "@material/textfield";
+@use "@material/theme";
+@use "@material/tooltip";
+@use "@material/typography";
+
 @import "fonts";
-@import "material-components-web/material-components-web";
 
 input:-webkit-autofill::first-line {
   font-size: 17px;

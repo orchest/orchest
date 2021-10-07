@@ -7,6 +7,7 @@
     <title>Orchest</title>
   </head>
   <body>
+    <link href="{{CSS_PATH}}" rel="stylesheet" />
     <div id="root" data-test-id="root"></div>
     <!-- 
       polyfill `global` for react-codemirror2
@@ -16,7 +17,7 @@
       var global = window;
     </script>
     <!-- main bundle -->
-    <script type="module" src="/src/main.tsx"></script>
+    <script src="{{JS_PATH}}"></script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
   </body>
 </html>
