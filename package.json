@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@testing-library/cypress": "7.0.6",
-    "cypress": "8.3.0",
+    "cypress": "8.5.0",
     "cypress-localstorage-commands": "1.4.5",
     "deep-equal": "2.0.5",
     "syncpack": "5.7.11",
