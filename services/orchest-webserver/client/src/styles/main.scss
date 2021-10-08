@@ -1,5 +1,6 @@
 @use "vars";
 @use "sass:math";
+
 // =============================================================================
 // start of @material
 //
@@ -15,24 +16,48 @@
     $font-family: ("Inter", sans-serif)
 );
 
-@use "@material/checkbox";
-@use "@material/circular-progress";
-@use "@material/data-table";
-@use "@material/dialog";
-@use "@material/drawer";
-@use "@material/form-field";
-@use "@material/icon-button";
-@use "@material/linear-progress";
-@use "@material/list";
-@use "@material/radio";
-@use "@material/ripple";
-@use "@material/select";
-@use "@material/switch";
-@use "@material/tab-bar";
-@use "@material/textfield";
-@use "@material/tooltip";
+// Use used packages
+@use '@material/button/mdc-button';
+@use '@material/card/mdc-card';
+@use '@material/checkbox/mdc-checkbox';
+@use '@material/chips/deprecated/mdc-chips';
+@use '@material/circular-progress/mdc-circular-progress';
+// Select's styles must be emitted before datatable's due to equal specificity.
+@use '@material/select/mdc-select';
+@use '@material/data-table/mdc-data-table';
+@use '@material/dialog/mdc-dialog';
+@use '@material/drawer/mdc-drawer';
+@use '@material/elevation/mdc-elevation';
+@use '@material/fab/mdc-fab';
+@use '@material/floating-label/mdc-floating-label';
+@use '@material/form-field/mdc-form-field';
+@use '@material/icon-button/mdc-icon-button';
+@use '@material/image-list/mdc-image-list';
+@use '@material/layout-grid/mdc-layout-grid';
+@use '@material/line-ripple/mdc-line-ripple';
+@use '@material/linear-progress/mdc-linear-progress';
+@use '@material/list/mdc-list';
+@use '@material/menu/mdc-menu';
+@use '@material/menu-surface/mdc-menu-surface';
+@use '@material/notched-outline/mdc-notched-outline';
+@use '@material/radio/mdc-radio';
+@use '@material/ripple/mdc-ripple';
+@use '@material/segmented-button/styles' as segmented-button-styles;
+@use '@material/slider/styles' as slider-styles;
+@use '@material/snackbar/mdc-snackbar';
+@use '@material/switch/styles';
+@use '@material/tab/mdc-tab';
+@use '@material/tab-bar/mdc-tab-bar';
+@use '@material/tab-indicator/mdc-tab-indicator';
+@use '@material/tab-scroller/mdc-tab-scroller';
+@use '@material/textfield/mdc-text-field';
+@use '@material/theme/mdc-theme';
+@use '@material/tooltip/styles' as tooltip-styles;
+@use '@material/top-app-bar/mdc-top-app-bar';
+@use '@material/typography/mdc-typography';
 
-@include dialog.core-styles;
+// Used mixins
+@use '@material/icon-button';
 
 // end of @material
 // =============================================================================
@@ -93,7 +118,7 @@ p {
   float: right;
 }
 
-.mdc-drawer .mdc-list-item {
+.mdc-drawer .mdc-deprecated-list-item {
   font-weight: 400;
 }
 
@@ -326,7 +351,7 @@ a.button {
         font-weight: 500;
       }
 
-      .mdc-list-divider {
+      .mdc-deprecated-list-divider {
         margin: var(--space-5) 0;
       }
 
@@ -360,11 +385,11 @@ a.button {
           padding: 0;
           height: auto;
 
-          .mdc-list-item__graphic {
+          .mdc-deprecated-list-item__graphic {
             margin-right: 12px;
           }
 
-          .mdc-list-item {
+          .mdc-deprecated-list-item {
             height: 56px;
           }
         }
@@ -1215,7 +1240,7 @@ strong {
 .dropdown-file-picker {
   position: relative;
 
-  .mdc-list-item {
+  .mdc-deprecated-list-item {
     .material-icons {
       margin-right: math.div($mdcComponentPadding, 2);
       font-size: 1.3rem;
@@ -1829,7 +1854,7 @@ span.code {
 }
 
 .pipelines-view {
-  .mdc-list-item {
+  .mdc-deprecated-list-item {
     .material-icons {
       font-size: 20px;
       margin-left: 10px;

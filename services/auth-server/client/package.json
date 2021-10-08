@@ -5,9 +5,8 @@
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "build": "vite build",
-    "dev": "vite",
-    "serve": "vite preview",
+    "build": "./build.sh",
+    "dev": "./build.sh --watch",
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -15,8 +14,8 @@
     "@orchest/lib-utils": "workspace:*",
     "@material/animation": "^13.0.0",
     "@material/auto-init": "^13.0.0",
-    "@material/banner": "^13.0.0",
     "@material/base": "^13.0.0",
+    "@material/banner": "^13.0.0",
     "@material/button": "^13.0.0",
     "@material/card": "^13.0.0",
     "@material/checkbox": "^13.0.0",
@@ -65,9 +64,8 @@
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "@vitejs/plugin-react-refresh": "1.3.3",
-    "sass-bin": "1.42.1-alpha.3",
-    "typescript": "4.3.2",
-    "vite": "2.3.7"
+    "sass-bin": "1.42.1-alpha.5",
+    "esbuild": "0.13.4",
+    "typescript": "4.3.2"
   }
 }

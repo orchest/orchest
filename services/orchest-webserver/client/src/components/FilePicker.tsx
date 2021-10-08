@@ -1,10 +1,12 @@
 import * as React from "react";
-import { MDCTextFieldReact } from "@orchest/lib-mdc";
+
 import {
+  RefManager,
   absoluteToRelativePath,
   collapseDoubleDots,
-  RefManager,
 } from "@orchest/lib-utils";
+
+import { MDCTextFieldReact } from "@orchest/lib-mdc";
 
 /**
  * @typedef {{
@@ -115,7 +117,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
     nodes.push(
       <li
         key="create"
-        className="mdc-list-item"
+        className="mdc-deprecated-list-item"
         onClick={onCreateFile}
         data-test-id="file-picker-new-file"
       >
@@ -125,7 +127,11 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
 
     if (node.root !== true) {
       nodes.push(
-        <li key=".." className="mdc-list-item" onClick={onNavigateUp}>
+        <li
+          key=".."
+          className="mdc-deprecated-list-item"
+          onClick={onNavigateUp}
+        >
           ..
         </li>
       );
@@ -135,7 +141,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
       nodes.push(
         <li
           key={childNode.name}
-          className="mdc-list-item"
+          className="mdc-deprecated-list-item"
           onClick={() => onSelectListItem(childNode)}
         >
           {childNode.type == "directory" && (

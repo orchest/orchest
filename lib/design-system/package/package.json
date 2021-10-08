@@ -12,9 +12,7 @@
   "sideEffects": false,
   "scripts": {
     "build": "concurrently -n w: npm:*:build",
-    "cjs:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs",
-    "cjs:watch": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.cjs --format=cjs --watch --log-level=error",
-    "esm:build": "esbuild src/index.ts --bundle --external:react --external:react-dom --outfile=dist/index.js --format=esm",
+    "esm:build": "esbuild src/index.ts --bundle --target=es6 --external:react --external:react-dom --outfile=dist/index.js --format=esm",
     "postbuild": "ts-node -r tsconfig-paths/register src/scripts/post-build.ts",
     "prepublishOnly": "pnpm run build && pnpm run postbuild",
     "ts:build": "tsc --emitDeclarationOnly --outDir dist",
@@ -28,11 +26,11 @@
     "@radix-ui/react-dialog": "0.0.17",
     "@radix-ui/react-id": "0.0.6",
     "@radix-ui/react-polymorphic": "0.0.11",
-    "@stitches/react": "0.2.0",
+    "@stitches/react": "0.2.5",
     "stitches-mixins": "0.2.1"
   },
   "devDependencies": {
-    "@stitches/core": "0.2.0",
+    "@stitches/core": "0.2.5",
     "@types/node": "15.0.1",
     "@types/react": "17.0.3",
     "concurrently": "6.0.2",

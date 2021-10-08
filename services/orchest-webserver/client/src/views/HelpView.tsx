@@ -1,10 +1,11 @@
 import * as React from "react";
 
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import { Layout, useLayout } from "@/components/Layout";
+
+import { MDCButtonReact } from "@orchest/lib-mdc";
+import { siteMap } from "@/routingConfig";
 import { useOrchest } from "@/hooks/orchest";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/routingConfig";
 
 const HelpView: React.FC = () => {
   const { state } = useOrchest();
@@ -23,7 +24,7 @@ const HelpView: React.FC = () => {
 
         <div className="mdc-list">
           <a
-            className="mdc-list-item"
+            className="mdc-deprecated-list-item"
             href={
               state.config.ORCHEST_WEB_URLS.readthedocs +
               "/getting_started/quickstart.html"
@@ -31,65 +32,69 @@ const HelpView: React.FC = () => {
             target="_blank"
             rel="noreferrer"
           >
-            <i className="mdc-list-item__graphic" aria-hidden="true">
+            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
               <img src="/image/readthedocs.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">Quickstart</span>
+            <span className="mdc-deprecated-list-item__text">Quickstart</span>
           </a>
           <a
-            className="mdc-list-item"
+            className="mdc-deprecated-list-item"
             href={state.config.ORCHEST_WEB_URLS.readthedocs}
             target="_blank"
             rel="noreferrer"
           >
-            <i className="mdc-list-item__graphic" aria-hidden="true">
+            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
               <img src="/image/readthedocs.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">Documentation</span>
+            <span className="mdc-deprecated-list-item__text">
+              Documentation
+            </span>
           </a>
           <a
-            className="mdc-list-item"
+            className="mdc-deprecated-list-item"
             href={state.config.ORCHEST_WEB_URLS.website + "/video-tutorials"}
             target="_blank"
             rel="noreferrer"
           >
-            <i className="mdc-list-item__graphic" aria-hidden="true">
+            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
               <img src="/image/favicon.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">Video tutorials</span>
+            <span className="mdc-deprecated-list-item__text">
+              Video tutorials
+            </span>
           </a>
           <a
-            className="mdc-list-item"
+            className="mdc-deprecated-list-item"
             href={state.config.ORCHEST_WEB_URLS.slack}
             target="_blank"
             rel="noreferrer"
           >
-            <i className="mdc-list-item__graphic" aria-hidden="true">
+            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
               <img src="/image/slack.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">Slack</span>
+            <span className="mdc-deprecated-list-item__text">Slack</span>
           </a>
           <a
-            className="mdc-list-item"
+            className="mdc-deprecated-list-item"
             href={state.config.ORCHEST_WEB_URLS.github}
             target="_blank"
             rel="noreferrer"
           >
-            <i className="mdc-list-item__graphic" aria-hidden="true">
+            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
               <img src="/image/github.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">GitHub</span>
+            <span className="mdc-deprecated-list-item__text">GitHub</span>
           </a>
           <a
-            className="mdc-list-item"
+            className="mdc-deprecated-list-item"
             href={state.config.ORCHEST_WEB_URLS.website}
             target="_blank"
             rel="noreferrer"
           >
-            <i className="mdc-list-item__graphic" aria-hidden="true">
+            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
               <img src="/image/favicon.png" width="100%" />
             </i>
-            <span className="mdc-list-item__text">Website</span>
+            <span className="mdc-deprecated-list-item__text">Website</span>
           </a>
         </div>
         <h2 className="push-up">Introduction</h2>

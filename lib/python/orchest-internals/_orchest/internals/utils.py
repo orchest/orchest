@@ -4,12 +4,10 @@ import re
 import time
 import uuid
 from typing import Any, Dict
-from urllib.parse import unquote
 
 import docker
 import requests
 from docker.types import DeviceRequest
-from flask import Response
 
 
 def get_mount(source, target, form="docker-sdk"):
@@ -51,33 +49,6 @@ def run_orchest_ctl(client, command):
             "HOST_OS": os.environ.get("HOST_OS"),
         },
     )
-
-
-def _proxy(request, new_host):
-
-    resp = requests.request(
-        method=request.method,
-        url=unquote(request.url.replace(request.host_url, new_host)),
-        headers={key: value for (key, value) in request.headers if key != "Host"},
-        data=request.get_data(),
-        cookies=request.cookies,
-        allow_redirects=False,
-    )
-
-    excluded_headers = [
-        "content-encoding",
-        "content-length",
-        "transfer-encoding",
-        "connection",
-    ]
-    headers = [
-        (name, value)
-        for (name, value) in resp.raw.headers.items()
-        if name.lower() not in excluded_headers
-    ]
-
-    response = Response(resp.content, resp.status_code, headers)
-    return response
 
 
 def get_device_requests(environment_uuid, project_uuid, form="docker-sdk"):

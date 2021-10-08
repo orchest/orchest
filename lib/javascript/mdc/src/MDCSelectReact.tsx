@@ -1,6 +1,8 @@
 import * as React from "react";
+
+import { RefManager, arraysEqual, uuidv4 } from "@orchest/lib-utils";
+
 import { MDCSelect } from "@material/select";
-import { arraysEqual, RefManager, uuidv4 } from "@orchest/lib-utils";
 
 // used only in orchest-webserver
 export class MDCSelectReact extends React.Component<any> {
@@ -72,13 +74,13 @@ export class MDCSelectReact extends React.Component<any> {
       return (
         <li
           key={key}
-          className="mdc-list-item"
+          className="mdc-deprecated-list-item"
           aria-selected="false"
           data-value={item[0]}
           role="option"
         >
-          <span className="mdc-list-item__ripple" />
-          <span className="mdc-list-item__text">{item[1]}</span>
+          <span className="mdc-deprecated-list-item__ripple" />
+          <span className="mdc-deprecated-list-item__text">{item[1]}</span>
         </li>
       );
     });
@@ -162,7 +164,7 @@ export class MDCSelectReact extends React.Component<any> {
         </div>
 
         <div className="mdc-select__menu mdc-menu mdc-menu-surface mdc-menu-surface--fullwidth">
-          <ul className="mdc-list">{listItems}</ul>
+          <ul className="mdc-deprecated-list">{listItems}</ul>
         </div>
       </div>
     );
