@@ -24,7 +24,7 @@ describe("interactive runs", () => {
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
     });
 
@@ -233,7 +233,7 @@ describe("interactive runs", () => {
       cy.findByTestId(`pipeline-${PIPELINES.DATA_PASSING.name}`).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
     });
 

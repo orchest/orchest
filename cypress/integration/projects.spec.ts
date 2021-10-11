@@ -33,7 +33,7 @@ describe("projects", () => {
     it("imports a project", () => {
       cy.importProject(QUICKSTART_URL, SAMPLE_PROJECT_NAMES.P1);
       // 30 seconds to import the project.
-      cy.findByTestId(TEST_ID.IMPORT_PROJECT_DIALOG, { timeout: 30000 }).should(
+      cy.findByTestId(TEST_ID.IMPORT_PROJECT_DIALOG, { timeout: 60000 }).should(
         "not.exist"
       );
     });

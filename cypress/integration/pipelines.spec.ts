@@ -133,7 +133,7 @@ describe("pipelines", () => {
       // Expect a running session.
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
@@ -143,7 +143,7 @@ describe("pipelines", () => {
       // Expect a stopped session.
       cy.findAllByTestId(
         TEST_ID.SESSION_TOGGLE_BUTTON
-      ).contains("Start session", { timeout: 30000 });
+      ).contains("Start session", { timeout: 60000 });
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
         .should("be.disabled");
@@ -152,7 +152,7 @@ describe("pipelines", () => {
       // Expect a running session again.
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
@@ -192,7 +192,7 @@ describe("pipelines", () => {
         // Expect a running session.
         cy.findAllByTestId(
           TEST_ID.SESSION_TOGGLE_BUTTON
-        ).contains("Stop session", { timeout: 30000 });
+        ).contains("Stop session", { timeout: 60000 });
       });
       it("tests getting into Jupyterlab", () => {
         cy.findByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB).click();

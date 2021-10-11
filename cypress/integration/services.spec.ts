@@ -46,7 +46,7 @@ describe("services", () => {
         cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
         cy.findAllByTestId(
           TEST_ID.SESSION_TOGGLE_BUTTON
-        ).contains("Stop session", { timeout: 30000 });
+        ).contains("Stop session", { timeout: 60000 });
       });
       it("tests for services connectivity in interactive runs", () => {
         cy.get(
@@ -110,7 +110,7 @@ describe("services", () => {
     cy.goToMenu("pipelines");
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Stop session", {
-      timeout: 30000,
+      timeout: 60000,
     });
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_TAB_SERVICES).click();
@@ -134,11 +134,11 @@ describe("services", () => {
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
       "Start session",
-      { timeout: 30000 }
+      { timeout: 60000 }
     );
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Stop session", {
-      timeout: 30000,
+      timeout: 60000,
     });
 
     // Verify that the service was able to touch the files through the
@@ -316,11 +316,11 @@ describe("services", () => {
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
       cy.findAllByTestId(
         TEST_ID.SESSION_TOGGLE_BUTTON
-      ).contains("Start session", { timeout: 30000 });
+      ).contains("Start session", { timeout: 60000 });
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
 
       let expectedFileContent = expectedValues.map(String).join(",") + "\n";
