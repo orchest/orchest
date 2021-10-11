@@ -5,7 +5,9 @@
   "author": "Orchest B.V.",
   "license": "AGPL-3.0-only",
   "scripts": {
-    "ts:check": "tsc -p tsconfig.json --noEmit"
+    "ts:check": "tsc -p tsconfig.json --noEmit",
+    "cy:open": "cypress open",
+    "cy:run": "cypress run"
   },
   "devDependencies": {
     "cypress": "8.5.0",
