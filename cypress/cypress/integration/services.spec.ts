@@ -31,7 +31,7 @@ describe("services", () => {
     beforeEach(() => {
       // Copy the pipeline.
       cy.exec(
-        `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} userdir/projects/`
+        `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} ../userdir/projects/`
       );
       // To trigger the project discovery.
       cy.goToMenu("projects");

@@ -88,7 +88,9 @@ describe("jobs", () => {
   context("requires the dump-env-params pipeline ", () => {
     beforeEach(() => {
       // Copy the pipeline.
-      cy.exec(`cp -r ${PROJECTS.DUMP_ENV_PARAMS.get_path()} userdir/projects/`);
+      cy.exec(
+        `cp -r ${PROJECTS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/`
+      );
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
@@ -336,7 +338,7 @@ describe("jobs", () => {
   context("requires the data-passing pipeline ", () => {
     beforeEach(() => {
       // Copy the pipeline.
-      cy.exec(`cp -r ${PROJECTS.DATA_PASSING.get_path()} userdir/projects/`);
+      cy.exec(`cp -r ${PROJECTS.DATA_PASSING.get_path()} ../userdir/projects/`);
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);

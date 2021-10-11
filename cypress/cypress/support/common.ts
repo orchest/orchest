@@ -165,9 +165,9 @@ export enum TEST_ID {
 }
 
 export const LOCAL_STORAGE_KEY = "orchest.onboarding_completed";
-export const DATA_DIR = "userdir/data";
-export const PROJECTS_DIR = "userdir/projects";
-export const JOBS_DIR = "userdir/jobs/";
+export const DATA_DIR = "../userdir/data";
+export const PROJECTS_DIR = "../userdir/projects";
+export const JOBS_DIR = "../userdir/jobs/";
 export const TESTS_DATA_DIR = DATA_DIR + "/integration-tests";
 
 const FIXTURE_STEPS_PATH = "cypress/fixtures/custom/steps/";

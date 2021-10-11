@@ -31,7 +31,7 @@ describe("interactive runs", () => {
     it("creates and runs a step", () => {
       // Copy the step file (notebook).
       cy.exec(
-        `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
+        `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
           SAMPLE_PROJECT_NAMES.P1
         }/`
       );
@@ -65,7 +65,7 @@ describe("interactive runs", () => {
       it("creates and runs a step with parameters", () => {
         // Copy the step file (notebook).
         cy.exec(
-          `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
+          `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
             SAMPLE_PROJECT_NAMES.P1
           }/`
         );
@@ -119,7 +119,7 @@ describe("interactive runs", () => {
 
         // Copy the step file (notebook).
         cy.exec(
-          `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
+          `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
             SAMPLE_PROJECT_NAMES.P1
           }/`
         );
@@ -174,7 +174,7 @@ describe("interactive runs", () => {
 
           // Copy the step file (notebook).
           cy.exec(
-            `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} userdir/projects/${
+            `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
               SAMPLE_PROJECT_NAMES.P1
             }/`
           );
@@ -224,7 +224,7 @@ describe("interactive runs", () => {
     beforeEach(() => {
       // Copy the pipeline.
       cy.exec(
-        `cp -r ${PIPELINES.DATA_PASSING.get_path()} userdir/projects/${
+        `cp -r ${PIPELINES.DATA_PASSING.get_path()} ../userdir/projects/${
           SAMPLE_PROJECT_NAMES.P1
         }/`
       );
