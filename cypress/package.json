@@ -7,9 +7,6 @@
   "scripts": {
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
-  "dependencies": {
-    "cypress": "8.5.0"
-  },
   "devDependencies": {
     "cypress": "8.5.0",
     "@testing-library/cypress": "7.0.7",

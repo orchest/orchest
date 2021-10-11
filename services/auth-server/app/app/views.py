@@ -101,7 +101,7 @@ def register_views(app):
         if not is_authenticated(request):
             return "", 401
 
-        return serve_static_or_dev("/admin", request)
+        return serve_static_or_dev("/admin")
 
     @app.route("/auth", methods=["GET"])
     def index():
