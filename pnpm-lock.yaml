@@ -3,11 +3,9 @@ lockfileVersion: 5.3
 importers:
   .:
     specifiers:
-      deep-equal: 2.0.5
       syncpack: 5.7.11
       typescript: 4.3.2
     devDependencies:
-      deep-equal: 2.0.5
       syncpack: 5.7.11
       typescript: 4.3.2
 
@@ -17,12 +15,14 @@ importers:
       "@types/node": 15.0.1
       cypress: 8.5.0
       cypress-localstorage-commands: 1.5.0
+      deep-equal: 2.0.5
       typescript: 4.3.2
     devDependencies:
       "@testing-library/cypress": 7.0.7_cypress@8.5.0
       "@types/node": 15.0.1
       cypress: 8.5.0
       cypress-localstorage-commands: 1.5.0_cypress@8.5.0
+      deep-equal: 2.0.5
       typescript: 4.3.2
 
   lib/design-system/package:
@@ -2848,8 +2848,8 @@ packages:
       es-get-iterator: 1.1.2
       get-intrinsic: 1.1.1
       is-arguments: 1.1.0
-      is-date-object: 1.0.2
-      is-regex: 1.1.2
+      is-date-object: 1.0.5
+      is-regex: 1.1.4
       isarray: 2.0.5
       object-is: 1.1.5
       object-keys: 1.1.1
@@ -3027,31 +3027,6 @@ packages:
       is-arrayish: 0.2.1
     dev: true
 
-  /es-abstract/1.18.0:
-    resolution:
-      {
-        integrity: sha512-LJzK7MrQa8TS0ja2w3YNLzUgJCGPdPOV1yVvezjNnS89D+VR08+Szt2mz3YB2Dck/+w5tfIq/RoUAFqJJGM2yw==,
-      }
-    engines: { node: ">= 0.4" }
-    dependencies:
-      call-bind: 1.0.2
-      es-to-primitive: 1.2.1
-      function-bind: 1.1.1
-      get-intrinsic: 1.1.1
-      has: 1.0.3
-      has-symbols: 1.0.2
-      is-callable: 1.2.3
-      is-negative-zero: 2.0.1
-      is-regex: 1.1.2
-      is-string: 1.0.5
-      object-inspect: 1.10.2
-      object-keys: 1.1.1
-      object.assign: 4.1.2
-      string.prototype.trimend: 1.0.4
-      string.prototype.trimstart: 1.0.4
-      unbox-primitive: 1.0.1
-    dev: true
-
   /es-abstract/1.19.1:
     resolution:
       {
@@ -3093,7 +3068,7 @@ packages:
       is-arguments: 1.1.0
       is-map: 2.0.2
       is-set: 2.0.2
-      is-string: 1.0.5
+      is-string: 1.0.7
       isarray: 2.0.5
     dev: true
 
@@ -4236,14 +4211,6 @@ packages:
       has-tostringtag: 1.0.0
     dev: true
 
-  /is-callable/1.2.3:
-    resolution:
-      {
-        integrity: sha512-J1DcMe8UYTBSrKezuIUTUwjXsho29693unXM2YhJUTR2txK/eG47bvNa/wipPFmZFgr/N6f1GA66dv0mEyTIyQ==,
-      }
-    engines: { node: ">= 0.4" }
-    dev: true
-
   /is-callable/1.2.4:
     resolution:
       {
@@ -4269,14 +4236,6 @@ packages:
       }
     dependencies:
       has: 1.0.3
-    dev: true
-
-  /is-date-object/1.0.2:
-    resolution:
-      {
-        integrity: sha512-USlDT524woQ08aoZFzh3/Z6ch9Y/EWXEHQ/AaRN0SkKq4t2Jw2R2339tSXmwuVoY7LLlBCbOIlx2myP/L5zk0g==,
-      }
-    engines: { node: ">= 0.4" }
     dev: true
 
   /is-date-object/1.0.5:
@@ -4375,17 +4334,6 @@ packages:
     engines: { node: ">=8" }
     dev: true
 
-  /is-regex/1.1.2:
-    resolution:
-      {
-        integrity: sha512-axvdhb5pdhEVThqJzYXwMlVuZwC+FF2DpcOhTS+y/8jVq4trxyPgfcwIxIKiyeuLlSQYKkmUaPQJ8ZE4yNKXDg==,
-      }
-    engines: { node: ">= 0.4" }
-    dependencies:
-      call-bind: 1.0.2
-      has-symbols: 1.0.2
-    dev: true
-
   /is-regex/1.1.4:
     resolution:
       {
@@ -4419,14 +4367,6 @@ packages:
     engines: { node: ">=8" }
     dev: true
 
-  /is-string/1.0.5:
-    resolution:
-      {
-        integrity: sha512-buY6VNRjhQMiF1qWDouloZlQbRhDPCebwxSjxMjxgemYT46YMd2NR0/H+fBhEfWX4A/w9TBJ+ol+okqJKFE6vQ==,
-      }
-    engines: { node: ">= 0.4" }
-    dev: true
-
   /is-string/1.0.7:
     resolution:
       {
@@ -4456,7 +4396,7 @@ packages:
     dependencies:
       available-typed-arrays: 1.0.2
       call-bind: 1.0.2
-      es-abstract: 1.18.0
+      es-abstract: 1.19.1
       foreach: 2.0.5
       has-symbols: 1.0.2
     dev: true
@@ -4910,13 +4850,6 @@ packages:
   /object-assign/4.1.1:
     resolution: { integrity: sha1-IQmtx5ZYh8/AXLvUQsrIv7s2CGM= }
     engines: { node: ">=0.10.0" }
-
-  /object-inspect/1.10.2:
-    resolution:
-      {
-        integrity: sha512-gz58rdPpadwztRrPjZE9DZLOABUpTGdcANUgOwBFO1C+HZZhePoP83M65WGDmbpwFYJSWqavbl4SgDn4k8RYTA==,
-      }
-    dev: true
 
   /object-inspect/1.11.0:
     resolution:
@@ -6499,7 +6432,7 @@ packages:
     dependencies:
       available-typed-arrays: 1.0.2
       call-bind: 1.0.2
-      es-abstract: 1.18.0
+      es-abstract: 1.19.1
       foreach: 2.0.5
       function-bind: 1.1.1
       has-symbols: 1.0.2
