@@ -1,0 +1,18 @@
+[
+  {
+    "environment_count": 1,
+    "job_count": 2,
+    "path": "quickstart",
+    "pipeline_count": 1,
+    "session_count": 0,
+    "uuid": "7b142d1d-f6a5-4f8b-b082-8d22cd2bd47c"
+  },
+  {
+    "environment_count": 1,
+    "job_count": 0,
+    "path": "example",
+    "pipeline_count": 0,
+    "session_count": 0,
+    "uuid": "8aa8fbf9-74ea-4e13-b42c-2e7760afd82c"
+  }
+]

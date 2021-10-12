@@ -3,11 +3,17 @@ name: Integration tests
 on:
   push:
     branches:
-      - master
       - dev
   pull_request:
     branches:
       - master
+      - dev
+
+# Pending or running workflows for the same branch will be cancelled,
+# always keep the latest.
+concurrency:
+  group: integration-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   integration-tests:
@@ -34,11 +40,14 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install dependencies
-        run: pnpm i --dev
+        run: pnpm i --filter '@orchest/cypress'
 
       # Cleanup state before running tests.
       - name: Pre cleanup
         run: |
+          killall Cypress || echo "Did not need to kill Cypress."
+          killall nodejs || echo "Did not need to kill Node.js."
+          killall chrome || echo "Did not need to kill Chrome."
           ./orchest stop
           [ ! -z "$(docker ps -a -q)" ] && docker rm -fv $(docker ps -a -q)
           docker image prune -f
@@ -57,7 +66,7 @@ jobs:
 
       # Can't use the action provided by cypress because of
       # https://github.com/cypress-io/github-action/issues/145.
-      - name: "Run tests"
+      - name: Run tests
         run: |
           umask 002 && scripts/run_integration_tests.sh -a -- --record \
           --parallel --group "Integration tests"
@@ -68,3 +77,11 @@ jobs:
           # correctly determine the unique run id necessary to re-run
           # the checks.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Avoid consuming compute if Cypress leaves dangling processes.
+      - name: Post cleanup
+        if: always()
+        run: |
+          killall Cypress || echo "Did not need to kill Cypress."
+          killall nodejs || echo "Did not need to kill Node.js."
+          killall chrome || echo "Did not need to kill Chrome."

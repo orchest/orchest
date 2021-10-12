@@ -396,6 +396,10 @@ def update_container_config_with_dev(
                         env["HOST_REPO_DIR"], "services", "orchest-webserver", "app"
                     )
                     + ":/orchest/services/orchest-webserver/app",
+                    os.path.join(
+                        env["HOST_REPO_DIR"], "services", "orchest-webserver", "client"
+                    )
+                    + ":/orchest/services/orchest-webserver/client",
                     # Internal library.
                     os.path.join(env["HOST_REPO_DIR"], "lib") + ":/orchest/lib",
                 ],
@@ -408,6 +412,10 @@ def update_container_config_with_dev(
                 "Binds": [
                     os.path.join(env["HOST_REPO_DIR"], "services", "auth-server", "app")
                     + ":/orchest/services/auth-server/app",
+                    os.path.join(
+                        env["HOST_REPO_DIR"], "services", "auth-server", "client"
+                    )
+                    + ":/orchest/services/auth-server/client",
                     # Internal library.
                     os.path.join(env["HOST_REPO_DIR"], "lib") + ":/orchest/lib",
                 ],

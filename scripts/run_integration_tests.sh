@@ -73,10 +73,10 @@ ${DIR}/../orchest status || ${DIR}/../orchest start || (echo "Could not start Or
 echo -e "Removing all environment images..."
 [ ! -z "$(docker images --filter 'label=_orchest_env_build_task_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_env_build_task_uuid" -q) > /dev/null
 
-cd "${DIR}/../"
+cd "${DIR}/../cypress"
 
 if [ $MODE == "cli" ]; then
-	pnpm cy:run -- test --browser $BROWSER $cypress_args
+	pnpm run --filter '@orchest/cypress' cy:run -- test --browser $BROWSER $cypress_args
 else
-	pnpm cy:open -- --config watchForFileChanges=false $cypress_args
+	pnpm run --filter '@orchest/cypress' cy:open -- --config watchForFileChanges=false $cypress_args
 fi

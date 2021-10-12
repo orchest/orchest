@@ -151,8 +151,8 @@ debug-dump
 debug-dump.tar.gz
 
 # Cypress output
-cypress/videos
-cypress/screenshots
+cypress/cypress/videos
+cypress/cypress/screenshots
 
 # ----- Don't ignore -------
 # Compiled custom GitHub Action

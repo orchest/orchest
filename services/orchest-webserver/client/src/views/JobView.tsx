@@ -646,14 +646,14 @@ const JobView: React.FC = () => {
                   classNames={["mdc-button--raised"]}
                   icon="pause"
                   label="Pause"
-                  onClick={pauseCronJob.bind(this)}
+                  onClick={pauseCronJob}
                 />
               )}
 
               {job.schedule !== null && job.status === "PAUSED" && (
                 <MDCButtonReact
                   classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={resumeCronJob.bind(this)}
+                  onClick={resumeCronJob}
                   icon="play_arrow"
                   label="Resume"
                 />

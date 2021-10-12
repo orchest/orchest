@@ -24,3 +24,11 @@ automatically prompt you to sign when creating a pull request. Signing is done e
 The CLA ensures that Orchest has clear ownership specification for all contributions, which in
 turns lets us guarantee to users that we have no "stray" intellectual property or
 differently-licensed material.
+
+Opening a PR
+------------
+
+We use `gitflow <https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow>`_ as
+our branching model with ``master`` and ``dev`` being the described ``master`` and ``develop``
+branches respectively. Therefore, when opening a PR please change the base in which you want to
+merge from ``master`` to ``dev``.

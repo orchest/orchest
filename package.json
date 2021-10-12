@@ -3,20 +3,13 @@
   "scripts": {
     "build": "pnpm run build --r --stream",
     "check": "pnpm run pkg:check && pnpm run pkg:format && pnpm run ts:check --r --parallel",
-    "cy:open": "pnpm exec cypress open",
-    "cy:run": "pnpm exec cypress run",
     "dev": "pnpm run dev --filter '@orchest/client-*...' --r --parallel",
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
-    "sandbox": "pnpm run dev --filter '@orchest/design-system-sandbox'",
-    "setup": "npm i -g pnpm@6.7.6"
+    "setup": "npm i -g pnpm@6.16.1"
   },
   "devDependencies": {
-    "@testing-library/cypress": "7.0.6",
-    "cypress": "8.3.0",
-    "cypress-localstorage-commands": "1.4.5",
-    "deep-equal": "2.0.5",
     "syncpack": "5.7.11",
     "typescript": "4.3.2"
   },

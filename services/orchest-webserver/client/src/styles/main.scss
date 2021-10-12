@@ -1,34 +1,67 @@
 @use "vars";
+@use "sass:math";
 
 // =============================================================================
 // start of @material
 //
-// This is a little annoying, but because Vite treats `aliases` the same whether
-// it's scss or js, we need to be explicit for our `@material` imports
 
-@use "../../../../../node_modules/@material/theme" with (
+@use "@material/theme" with (
   $primary: vars.$primary,
   $secondary: vars.$secondary,
   $on-primary: vars.$on-primary,
   $on-secondary: vars.$on-secondary,
 );
 
-@use "../../../../../node_modules/@material/typography" with (
+@use "@material/typography" with (
     $font-family: ("Inter", sans-serif)
 );
 
-@use "../../../../../node_modules/@material/circular-progress";
+// Use used packages
+@use '@material/button/mdc-button';
+@use '@material/card/mdc-card';
+@use '@material/checkbox/mdc-checkbox';
+@use '@material/chips/deprecated/mdc-chips';
+@use '@material/circular-progress/mdc-circular-progress';
+// Select's styles must be emitted before datatable's due to equal specificity.
+@use '@material/select/mdc-select';
+@use '@material/data-table/mdc-data-table';
+@use '@material/dialog/mdc-dialog';
+@use '@material/drawer/mdc-drawer';
+@use '@material/elevation/mdc-elevation';
+@use '@material/fab/mdc-fab';
+@use '@material/floating-label/mdc-floating-label';
+@use '@material/form-field/mdc-form-field';
+@use '@material/icon-button/mdc-icon-button';
+@use '@material/image-list/mdc-image-list';
+@use '@material/layout-grid/mdc-layout-grid';
+@use '@material/line-ripple/mdc-line-ripple';
+@use '@material/linear-progress/mdc-linear-progress';
+@use '@material/list/mdc-list';
+@use '@material/menu/mdc-menu';
+@use '@material/menu-surface/mdc-menu-surface';
+@use '@material/notched-outline/mdc-notched-outline';
+@use '@material/radio/mdc-radio';
+@use '@material/ripple/mdc-ripple';
+@use '@material/segmented-button/styles' as segmented-button-styles;
+@use '@material/slider/styles' as slider-styles;
+@use '@material/snackbar/mdc-snackbar';
+@use '@material/switch/styles';
+@use '@material/tab/mdc-tab';
+@use '@material/tab-bar/mdc-tab-bar';
+@use '@material/tab-indicator/mdc-tab-indicator';
+@use '@material/tab-scroller/mdc-tab-scroller';
+@use '@material/textfield/mdc-text-field';
+@use '@material/theme/mdc-theme';
+@use '@material/tooltip/styles' as tooltip-styles;
+@use '@material/top-app-bar/mdc-top-app-bar';
+@use '@material/typography/mdc-typography';
 
-@use "../../../../../node_modules/@material/icon-button";
-
-@use "../../../../../node_modules/@material/dialog";
-
-@include dialog.core-styles;
+// Used mixins
+@use '@material/icon-button';
 
 // end of @material
 // =============================================================================
 
-@import "material-components-web/material-components-web";
 @import "fonts";
 @import "codemirror/lib/codemirror";
 
@@ -85,7 +118,7 @@ p {
   float: right;
 }
 
-.mdc-drawer .mdc-list-item {
+.mdc-drawer .mdc-deprecated-list-item {
   font-weight: 400;
 }
 
@@ -318,7 +351,7 @@ a.button {
         font-weight: 500;
       }
 
-      .mdc-list-divider {
+      .mdc-deprecated-list-divider {
         margin: var(--space-5) 0;
       }
 
@@ -352,11 +385,11 @@ a.button {
           padding: 0;
           height: auto;
 
-          .mdc-list-item__graphic {
+          .mdc-deprecated-list-item__graphic {
             margin-right: 12px;
           }
 
-          .mdc-list-item {
+          .mdc-deprecated-list-item {
             height: 56px;
           }
         }
@@ -1116,7 +1149,7 @@ span.floating-button {
   padding: calc(var(--space-5) / 2);
   border-radius: 3px;
   color: #fff;
-  background: var(--colors-red700);
+  background: var(--colors-gray200);
   font-size: 15px;
 
   .material-icons {
@@ -1207,9 +1240,9 @@ strong {
 .dropdown-file-picker {
   position: relative;
 
-  .mdc-list-item {
+  .mdc-deprecated-list-item {
     .material-icons {
-      margin-right: $mdcComponentPadding/2;
+      margin-right: math.div($mdcComponentPadding, 2);
       font-size: 1.3rem;
     }
 
@@ -1821,7 +1854,7 @@ span.code {
 }
 
 .pipelines-view {
-  .mdc-list-item {
+  .mdc-deprecated-list-item {
     .material-icons {
       font-size: 20px;
       margin-left: 10px;
