@@ -55,8 +55,14 @@ else
 
   wait $(jobs -p)
 
-  JS_BUNDLE_HASH=$(md5sum $JS_BUNDLE_PATH | cut -d ' ' -f 1)
-  CSS_BUNDLE_HASH=$(md5sum $CSS_BUNDLE_PATH | cut -d ' ' -f 1)
+  md5_hash_command="md5sum"
+  if ! command -v $md5_hash_command &> /dev/null
+  then
+    md5_hash_command="md5 -r"
+  fi
+
+  JS_BUNDLE_HASH=$($md5_hash_command $JS_BUNDLE_PATH | cut -d ' ' -f 1)
+  CSS_BUNDLE_HASH=$($md5_hash_command $CSS_BUNDLE_PATH | cut -d ' ' -f 1)
 
   JS_FILE_NAME="main.js?hash=$JS_BUNDLE_HASH"
   CSS_FILE_NAME="style.css?hash=$CSS_BUNDLE_HASH"
