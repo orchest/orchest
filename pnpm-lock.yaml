@@ -180,7 +180,7 @@ importers:
       esbuild: 0.13.4
       react: ^16.13.1
       react-dom: ^16.13.1
-      sass-bin: 1.42.1-alpha.5
+      sass-bin: ^1.42.2
       typescript: 4.3.2
     dependencies:
       "@material/animation": 13.0.0
@@ -237,7 +237,7 @@ importers:
       react-dom: 16.14.0_react@16.14.0
     devDependencies:
       esbuild: 0.13.4
-      sass-bin: 1.42.1-alpha.5
+      sass-bin: 1.42.2
       typescript: 4.3.2
 
   services/orchest-webserver/client:
@@ -327,7 +327,7 @@ importers:
       react-github-btn: ^1.2.1
       react-minimal-pie-chart: 8.2.0
       react-router-dom: ^5.3.0
-      sass-bin: 1.42.1-alpha.5
+      sass-bin: ^1.42.2
       socket.io-client: ^2.3.0
       swr: 0.5.5
       typescript: 4.3.2
@@ -426,7 +426,7 @@ importers:
       eslint-plugin-react: 7.26.1_eslint@7.32.0
       eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
       prettier: 2.1.2
-      sass-bin: 1.42.1-alpha.5
+      sass-bin: 1.42.2
       typescript: 4.3.2
 
 packages:
@@ -5581,10 +5581,10 @@ packages:
       }
     dev: true
 
-  /sass-bin-darwin-64/1.42.1-alpha.5:
+  /sass-bin-darwin-64/1.42.2:
     resolution:
       {
-        integrity: sha512-9gquFNpaQzmwe+gFfFUUhDQ8RoIp3Fo2ADyJtxRZpykSx2pL31MRzeGdh1TXNK3DMaKuLRD/9U5w3hSrfJDWDg==,
+        integrity: sha512-/8jJA9QcDKK6g/T/5G6E8GksuOtX3JYeHo745vkOeoJ+vfy2EZsPAMtaZPnLXgIuFBobNAu+XJDde7IwPOtQeA==,
       }
     cpu: [x64]
     os: [darwin]
@@ -5592,10 +5592,10 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin-linux-32/1.42.1-alpha.5:
+  /sass-bin-linux-32/1.42.2:
     resolution:
       {
-        integrity: sha512-XuSmNM42XJE1/g9u7OHcCcvdzx5CXbkk2DmohCkQ5li34HvY13E2yARvq9e+WW3dZNJkRP8dyksj3dViznc+jw==,
+        integrity: sha512-nL/6XbKVraVqLdVSS3/BV2hfjSIIGswHen/Z4Ae4AWLfxL31XPvx3Bc1Y3x631Q28Y5IckbLnHiVb1TK8DzEsQ==,
       }
     cpu: [ia32]
     os: [linux]
@@ -5603,10 +5603,10 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin-linux-64/1.42.1-alpha.5:
+  /sass-bin-linux-64/1.42.2:
     resolution:
       {
-        integrity: sha512-is4NTa3Ge+Cpx78Yk10XOH6HPX7IWs3OCF70HS/mkpMGOyBCg7/0/3yL/8eXuqIhW035yzngvyB3ffryPu9tqw==,
+        integrity: sha512-KqOAvUX/uGsYsO0OlzrMsU2+LIybAxwRNMVs3Ou4neRHqQgg2eAAjqtqLnhrozvFkbGTfujr5Xg1DOrPP0qPyA==,
       }
     cpu: [x64]
     os: [linux]
@@ -5614,10 +5614,10 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin-windows-32/1.42.1-alpha.5:
+  /sass-bin-windows-32/1.42.2:
     resolution:
       {
-        integrity: sha512-AAWfPOARfve5znZzFH1UuqptI/ZVp2vLzISfsaV9o29KZ9r4rrlw6PziFWkJLumC/6TvaIJoUwbOXjyEsUOtPg==,
+        integrity: sha512-cXKCefr09GHQH9J7l5jRTHImO+MOpm6hGtBgXdECCO3PTdoS9L0zeux2mBVeS5TpC9AAKaF0/vahSOK3ygWraA==,
       }
     cpu: [ia32]
     os: [win32]
@@ -5625,10 +5625,10 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin-windows-64/1.42.1-alpha.5:
+  /sass-bin-windows-64/1.42.2:
     resolution:
       {
-        integrity: sha512-7sKdrD/n/yBoG+TC+8G34t0ptWiopzReL2hYw824Y0i5EswX7EQVTWrYwYW+iarHnnAPMP/KNTp81qUfFb1k8A==,
+        integrity: sha512-Wk4SRIrW+Lv/ABhlojzfTAETBmdg7VTyzuN+gxfw9TYdw++W7ETlzvJuaHRmRlOSMSBRfE1JAobxI4QvCdckBQ==,
       }
     cpu: [x64]
     os: [win32]
@@ -5636,18 +5636,18 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin/1.42.1-alpha.5:
+  /sass-bin/1.42.2:
     resolution:
       {
-        integrity: sha512-JTSQY7Xm/gIVuSb6+lfTV04g1U7KWVUWhJdpyWDHnGkTYQbsVOMiQNJMSZunNuc5DM3j25bo2rx4xON3/5vfnQ==,
+        integrity: sha512-hdkiot6jGjTeTGs/fkMBOQhL9BmRqTmFNveHvrG6d/cLj8sFDU8zduSyaa7BRgjiMYHg4Nt+EgP36CJa3WnmLw==,
       }
     hasBin: true
     optionalDependencies:
-      sass-bin-darwin-64: 1.42.1-alpha.5
-      sass-bin-linux-32: 1.42.1-alpha.5
-      sass-bin-linux-64: 1.42.1-alpha.5
-      sass-bin-windows-32: 1.42.1-alpha.5
-      sass-bin-windows-64: 1.42.1-alpha.5
+      sass-bin-darwin-64: 1.42.2
+      sass-bin-linux-32: 1.42.2
+      sass-bin-linux-64: 1.42.2
+      sass-bin-windows-32: 1.42.2
+      sass-bin-windows-64: 1.42.2
     dev: true
 
   /scheduler/0.19.1:
