@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Install dependencies
-        run: pnpm i --dev
+        run: pnpm i --filter '@orchest/cypress'
 
       # Cleanup state before running tests.
       - name: Pre cleanup

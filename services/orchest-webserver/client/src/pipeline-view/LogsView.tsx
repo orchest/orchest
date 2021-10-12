@@ -1,27 +1,25 @@
-import React from "react";
-
-import io from "socket.io-client";
-
-import {
-  makeRequest,
-  PromiseManager,
-  makeCancelable,
-} from "@orchest/lib-utils";
 import {
   MDCButtonReact,
-  MDCLinearProgressReact,
   MDCDrawerReact,
+  MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import {
-  getPipelineJSONEndpoint,
+  PromiseManager,
+  makeCancelable,
+  makeRequest,
+} from "@orchest/lib-utils";
+import {
   createOutgoingConnections,
   filterServices,
+  getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
-import { useOrchest, OrchestSessionsConsumer } from "@/hooks/orchest";
+
 import { Layout } from "@/components/Layout";
 import LogViewer from "@/pipeline-view/LogViewer";
+import React from "react";
+import io from "socket.io-client";
 import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 
@@ -327,7 +325,7 @@ const LogsView: React.FC = () => {
             }
             action={clickLog}
           />
-          <div role="separator" className="mdc-list-divider" />
+          <div role="separator" className="mdc-deprecated-list-divider" />
           <div className="log-section">
             <i className="material-icons">settings</i>
             Service logs

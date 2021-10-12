@@ -7,7 +7,6 @@ import requests
 from flask import jsonify, redirect, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from _orchest.internals.utils import _proxy
 from app.connections import db
 from app.models import Token, User
 from app.utils import get_auth_cache, get_user_conf, set_auth_cache
@@ -78,20 +77,12 @@ def register_views(app):
             else:
                 return False
 
-    def serve_static_or_dev(path, request):
-        # in Debug mode proxy to CLIENT_DEV_SERVER_URL
-        if os.environ.get("FLASK_ENV") == "development":
-            # Dev mode requires trailing slash
-            if path == "" and not request.url.endswith("/"):
-                request.url = request.url + "/"
-
-            return _proxy(request, app.config["CLIENT_DEV_SERVER_URL"] + "/")
+    def serve_static_or_dev(path):
+        file_path = os.path.join(app.config["STATIC_DIR"], path)
+        if os.path.isfile(file_path):
+            return send_from_directory(app.config["STATIC_DIR"], path)
         else:
-            file_path = os.path.join(app.config["STATIC_DIR"], path)
-            if os.path.isfile(file_path):
-                return send_from_directory(app.config["STATIC_DIR"], path)
-            else:
-                return send_from_directory(app.config["STATIC_DIR"], "index.html")
+            return send_from_directory(app.config["STATIC_DIR"], "index.html")
 
     # static file serving
     @app.route("/login", defaults={"path": ""}, methods=["GET"])
@@ -102,7 +93,7 @@ def register_views(app):
         if is_authenticated(request) and path == "":
             return handle_login(redirect_type="server")
 
-        return serve_static_or_dev(path, request)
+        return serve_static_or_dev(path)
 
     @app.route("/login/admin", methods=["GET"])
     def login_admin():
@@ -110,7 +101,7 @@ def register_views(app):
         if not is_authenticated(request):
             return "", 401
 
-        return serve_static_or_dev("/admin", request)
+        return serve_static_or_dev("/admin")
 
     @app.route("/auth", methods=["GET"])
     def index():

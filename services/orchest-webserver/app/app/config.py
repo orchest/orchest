@@ -1,29 +1,6 @@
 import os
-import subprocess
 
 from _orchest.internals import config as _config
-
-
-def get_dev_server_url():
-    if os.environ.get("HOST_OS") == "darwin":
-        # Use Docker for Desktop
-        CLIENT_DEV_SERVER_URL = "http://host.docker.internal"
-    else:
-        # Find gateway IP (e.g. 172.18.0.1) to connect
-        # to host.
-        CLIENT_DEV_SERVER_URL = (
-            "http://"
-            + subprocess.check_output(
-                ["bash", "-c", "/sbin/ip route|awk '/default/ { print $3 }'"]
-            )
-            .decode()
-            .strip()
-        )
-
-    # Client debug server assumed to be running on 3000
-    CLIENT_DEV_SERVER_URL += ":3000"
-
-    return CLIENT_DEV_SERVER_URL
 
 
 class Config:
@@ -179,7 +156,6 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    CLIENT_DEV_SERVER_URL = get_dev_server_url()
 
 
 class TestingConfig(Config):
