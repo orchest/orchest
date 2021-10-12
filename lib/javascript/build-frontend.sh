@@ -32,8 +32,8 @@ done
 
 # Copy everything to dist directory
 mkdir -p dist/
-rm -r dist/* || true # Remove files if they exist
-cp -Tr public/ dist/
+rm -r dist
+cp -R public/ dist/
 
 JS_BUNDLE_PATH="dist/main.js"
 CSS_BUNDLE_PATH="dist/style.css"
