@@ -13,15 +13,15 @@ importers:
     specifiers:
       "@testing-library/cypress": 7.0.7
       "@types/node": 15.0.1
-      cypress: 8.5.0
+      cypress: 8.6.0
       cypress-localstorage-commands: 1.5.0
       deep-equal: 2.0.5
       typescript: 4.3.2
     devDependencies:
-      "@testing-library/cypress": 7.0.7_cypress@8.5.0
+      "@testing-library/cypress": 7.0.7_cypress@8.6.0
       "@types/node": 15.0.1
-      cypress: 8.5.0
-      cypress-localstorage-commands: 1.5.0_cypress@8.5.0
+      cypress: 8.6.0
+      cypress-localstorage-commands: 1.5.0_cypress@8.6.0
       deep-equal: 2.0.5
       typescript: 4.3.2
 
@@ -1655,7 +1655,7 @@ packages:
       react: 16.14.0
     dev: false
 
-  /@testing-library/cypress/7.0.7_cypress@8.5.0:
+  /@testing-library/cypress/7.0.7_cypress@8.6.0:
     resolution:
       {
         integrity: sha512-4yavolmN9o4Lmtrff6sbOTNFW9VqRRqDrP6gS2hkqLri4+lKURRYblg8kjOlcni/5h/qctFych+gkUOkpgypxw==,
@@ -1666,7 +1666,7 @@ packages:
     dependencies:
       "@babel/runtime": 7.15.4
       "@testing-library/dom": 7.31.2
-      cypress: 8.5.0
+      cypress: 8.6.0
     dev: true
 
   /@testing-library/dom/7.31.2:
@@ -2473,7 +2473,7 @@ packages:
     engines: { node: 10.* || >= 12.* }
     dependencies:
       object-assign: 4.1.1
-      string-width: 4.2.2
+      string-width: 4.2.3
     optionalDependencies:
       colors: 1.4.0
     dev: true
@@ -2696,7 +2696,7 @@ packages:
       }
     dev: true
 
-  /cypress-localstorage-commands/1.5.0_cypress@8.5.0:
+  /cypress-localstorage-commands/1.5.0_cypress@8.6.0:
     resolution:
       {
         integrity: sha512-gl1uKeviYdyJG4dLcZ9hfoUjLciwkkfbaQ3gvRtmipsPxC612ZBJhSjbunnJcUGwkryaM+82VrY9ij0tLSg7LA==,
@@ -2705,13 +2705,13 @@ packages:
     peerDependencies:
       cypress: ^2.1.0 || 3.x || 4.x || 5.x || 6.x || 7.x || 8.x
     dependencies:
-      cypress: 8.5.0
+      cypress: 8.6.0
     dev: true
 
-  /cypress/8.5.0:
+  /cypress/8.6.0:
     resolution:
       {
-        integrity: sha512-MMkXIS+Ro2KETn4gAlG3tIc/7FiljuuCZP0zpd9QsRG6MZSyZW/l1J3D4iQM6WHsVxuX4rFChn5jPFlC2tNSvQ==,
+        integrity: sha512-F7qEK/6Go5FsqTueR+0wEw2vOVKNgk5847Mys8vsWkzPoEKdxs+7N9Y1dit+zhaZCLtMPyrMwjfA53ZFy+lSww==,
       }
     engines: { node: ">=12.0.0" }
     hasBin: true
