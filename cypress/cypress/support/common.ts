@@ -362,7 +362,7 @@ export function waitForJobStatus(expected: string, retries = 100) {
 export function waitForJobRunsStatus(
   expectedStatus: string,
   expectedNumberOfRuns: number,
-  retries = 50,
+  retries = 100,
   callback?: Function
 ) {
   cy.location("pathname").should("eq", "/job");
