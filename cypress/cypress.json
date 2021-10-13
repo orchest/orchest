@@ -8,6 +8,6 @@
   "viewportHeight": 1080,
   "videoCompression": false,
   "videoUploadOnPasses": false,
-  "defaultCommandTimeout": 10000,
+  "defaultCommandTimeout": 15000,
   "numTestsKeptInMemory": 1
 }
