@@ -86,7 +86,6 @@ PNPM_FILES=(
     "pnpm-workspace.yaml"
     "package.json"
     "tsconfig.json"
-    ".npmrc"
 )
 
 PNPM_IMAGES=(

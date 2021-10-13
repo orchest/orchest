@@ -1,6 +1,8 @@
 import * as React from "react";
-import { MDCSwitch } from "@material/switch";
+
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
+
+import { MDCSwitch } from "@material/switch";
 
 // used only in orchest-webserver
 export class MDCSwitchReact extends React.Component<any> {
@@ -16,8 +18,6 @@ export class MDCSwitchReact extends React.Component<any> {
 
   componentDidMount() {
     this.mdc = new MDCSwitch(this.refManager.refs.switch);
-    // @ts-ignore
-    this.mdc.foundation.handleChange = this.onChange.bind(this);
   }
 
   onChange(e) {
@@ -29,12 +29,10 @@ export class MDCSwitchReact extends React.Component<any> {
   render() {
     let mdcClasses = ["mdc-switch"];
     if (this.props.on === true) {
-      mdcClasses.push("mdc-switch--checked");
+      mdcClasses.push("mdc-switch--selected");
+    } else {
+      mdcClasses.push("mdc-switch--unselected");
     }
-    if (this.props.disabled === true) {
-      mdcClasses.push("mdc-switch--disabled");
-    }
-
     let topClasses = ["mdc-switch-wrapper"];
     if (this.props.classNames) {
       topClasses = topClasses.concat(this.props.classNames);
@@ -44,22 +42,39 @@ export class MDCSwitchReact extends React.Component<any> {
 
     return (
       <div className={topClasses.join(" ")}>
-        <div
+        <button
+          id={randomFor}
+          role="switch"
+          onClick={this.onChange.bind(this)}
           className={mdcClasses.join(" ")}
           ref={this.refManager.nrefs.switch}
+          aria-checked={this.props.on === true ? "true" : "false"}
+          disabled={this.props.disabled}
         >
-          <div className="mdc-switch__track" />
-          <div className="mdc-switch__thumb-underlay">
-            <div className="mdc-switch__thumb" />
-            <input
-              type="checkbox"
-              id={randomFor}
-              className="mdc-switch__native-control"
-              role="switch"
-              aria-checked={this.props.on === true ? "true" : "false"}
-            />
+          <div className="mdc-switch__track"></div>
+          <div className="mdc-switch__handle-track">
+            <div className="mdc-switch__handle">
+              <div className="mdc-switch__shadow">
+                <div className="mdc-elevation-overlay"></div>
+              </div>
+              <div className="mdc-switch__ripple"></div>
+              <div className="mdc-switch__icons">
+                <svg
+                  className="mdc-switch__icon mdc-switch__icon--on"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M19.69,5.23L8.96,15.96l-4.23-4.23L2.96,13.5l6,6L21.46,7L19.69,5.23z" />
+                </svg>
+                <svg
+                  className="mdc-switch__icon mdc-switch__icon--off"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M20 13H4v-2h16v2z" />
+                </svg>
+              </div>
+            </div>
           </div>
-        </div>
+        </button>
         {this.props.label && (
           <label htmlFor={randomFor}>{this.props.label}</label>
         )}

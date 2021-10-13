@@ -1,6 +1,7 @@
 import * as React from "react";
-import { RefManager } from "@orchest/lib-utils";
+
 import { MDCList } from "@material/list";
+import { RefManager } from "@orchest/lib-utils";
 
 export class MDCDrawerReact extends React.Component<any> {
   refManager: RefManager;
@@ -49,21 +50,25 @@ export class MDCDrawerReact extends React.Component<any> {
     for (let x = 0; x < this.props.items.length; x++) {
       if (this.props.items[x] == "divider") {
         elements.push(
-          <li key={x} role="separator" className="mdc-list-divider" />
+          <li
+            key={x}
+            role="separator"
+            className="mdc-deprecated-list-divider"
+          />
         );
       } else {
         elements.push(
-          <a key={x} className="mdc-list-item">
-            <span className="mdc-list-item__ripple" />
+          <a key={x} className="mdc-deprecated-list-item">
+            <span className="mdc-deprecated-list-item__ripple" />
             {this.props.items[x].icon && (
               <i
-                className="material-icons mdc-list-item__graphic"
+                className="material-icons mdc-deprecated-list-item__graphic"
                 aria-hidden="true"
               >
                 {this.props.items[x].icon}
               </i>
             )}
-            <span className="mdc-list-item__text">
+            <span className="mdc-deprecated-list-item__text">
               {this.props.items[x].label}
             </span>
           </a>
@@ -74,7 +79,10 @@ export class MDCDrawerReact extends React.Component<any> {
     return (
       <aside className="mdc-drawer">
         <div className="mdc-drawer__content">
-          <nav className="mdc-list" ref={this.refManager.nrefs.mainList}>
+          <nav
+            className="mdc-deprecated-list"
+            ref={this.refManager.nrefs.mainList}
+          >
             {elements}
           </nav>
         </div>

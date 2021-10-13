@@ -1,9 +1,9 @@
 import React, { useRef } from "react";
-import { NavLink } from "react-router-dom";
-import { MDCDrawer } from "@material/drawer";
-import { useOrchest } from "@/hooks/orchest";
-
 import { siteMap, toQueryString } from "../routingConfig";
+
+import { MDCDrawer } from "@material/drawer";
+import { NavLink } from "react-router-dom";
+import { useOrchest } from "@/hooks/orchest";
 
 const getProjectMenuItems = (projectUuid: string) => [
   {
@@ -51,16 +51,19 @@ const MenuItem: React.FC<{ item: ItemData; id: string; exact?: boolean }> = ({
   return (
     <NavLink
       to={item.path}
-      className="mdc-list-item"
-      activeClassName="mdc-list-item--selected"
+      className="mdc-deprecated-list-item"
+      activeClassName="mdc-deprecated-list-item--selected"
       exact={exact}
       data-test-id={id}
     >
-      <span className="mdc-list-item__ripple" />
-      <i className="material-icons mdc-list-item__graphic" aria-hidden="true">
+      <span className="mdc-deprecated-list-item__ripple" />
+      <i
+        className="material-icons mdc-deprecated-list-item__graphic"
+        aria-hidden="true"
+      >
         {item.icon}
       </i>
-      <span className="mdc-list-item__text">{item.label}</span>
+      <span className="mdc-deprecated-list-item__text">{item.label}</span>
     </NavLink>
   );
 };
@@ -117,7 +120,7 @@ const MainDrawer: React.FC = () => {
             const id = getItemKey(item);
             return <MenuItem key={id} id={id} item={item} />;
           })}
-          <hr role="separator" className="mdc-list-divider" />
+          <hr role="separator" className="mdc-deprecated-list-divider" />
           {rootMenuItems.map((item) => {
             const id = getItemKey(item);
             // these items are at the root level, we need to set exact to true
