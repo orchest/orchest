@@ -6,6 +6,7 @@ import {
   SAMPLE_PROJECT_NAMES,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_STEP_NAMES,
+  piped_click,
 } from "../support/common";
 
 let pathTestCases = [
@@ -205,7 +206,7 @@ describe("pipelines", () => {
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
-        cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).click();
+        cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).pipe(piped_click);
         waitForJupyterlab();
       });
     });

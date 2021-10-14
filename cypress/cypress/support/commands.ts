@@ -1,10 +1,12 @@
 import "cypress-localstorage-commands";
+import "cypress-pipe";
 import "@testing-library/cypress/add-commands";
 import { TEST_ID } from "../support/common";
 import { LOCAL_STORAGE_KEY } from "../support/common";
 import { DATA_DIR } from "../support/common";
 import { PROJECTS_DIR } from "../support/common";
 import { assertTotalEnvironmentImages } from "../support/common";
+import { piped_click } from "../support/common";
 
 type TBooleanString = "true" | "false";
 
@@ -55,7 +57,6 @@ declare global {
         project?: string,
         environment?: string
       ): Chainable<number>;
-      triggerESC(): Chainable<undefined>;
     }
   }
 }
@@ -270,13 +271,14 @@ Cypress.Commands.add(
   (title: string, createNewFile?: boolean, fileName?: string) => {
     cy.location("pathname").should("eq", "/pipeline");
     cy.intercept("POST", /.*/).as("allPosts");
-    cy.findByTestId(TEST_ID.STEP_CREATE).click();
+    cy.findByTestId(TEST_ID.STEP_CREATE).should("be.visible").pipe(piped_click);
     cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
       .type("{selectall}{backspace}")
       .type(title);
-    cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).click();
+    cy.wait("@allPosts");
+    cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).pipe(piped_click);
     if (createNewFile) {
-      cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).click();
+      cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).pipe(piped_click);
       cy.findByTestId(
         TEST_ID.PROJECT_FILE_PICKER_CREATE_NEW_FILE_DIALOG
       ).should("be.visible");
@@ -284,18 +286,24 @@ Cypress.Commands.add(
         cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_FILE_NAME_TEXTFIELD)
           .type("{selectall}{backspace}")
           .type(fileName);
+        cy.wait("@allPosts");
       }
-      cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_CREATE_FILE).click();
+      cy.findByTestId(TEST_ID.PROJECT_FILE_PICKER_CREATE_FILE)
+        // Apparently, using a piped_click here won't work, i.e the step
+        // will be updated with the new file at the json level, but the
+        // UI state will not, the step will still show the placeholder
+        // name.
+        .should("be.visible")
+        .click();
     } else if (fileName !== undefined) {
       cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD)
         .type("{selectall}{backspace}")
         .type(fileName);
     }
     cy.wait("@allPosts");
-    // press esc to close the step menu.
-    cy.get("body").trigger("keydown", { keycode: 27 });
-    cy.wait(100);
-    cy.get("body").trigger("keyup", { keycode: 27 });
+    cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS)
+      .should("be.visible")
+      .pipe(piped_click);
   }
 );
 
@@ -373,13 +381,6 @@ Cypress.Commands.add(
       );
   }
 );
-
-Cypress.Commands.add("triggerESC", () => {
-  // Press ESC to close the step menu.
-  cy.get("body").trigger("keydown", { keyCode: 27 });
-  cy.wait(100);
-  cy.get("body").trigger("keyup", { keyCode: 27 });
-});
 
 Cypress.Commands.add(
   "totalEnvironmentImages",

@@ -459,3 +459,8 @@ export function assertEnvIsBuilt() {
 
   cy.goToMenu("pipelines");
 }
+
+// Used in conjunction with cypress-pipe as an attempt to fix DOM
+// detachment and focus trap issues. See
+// https://github.com/cypress-io/cypress/issues/7306
+export const piped_click = ($el) => $el.click();

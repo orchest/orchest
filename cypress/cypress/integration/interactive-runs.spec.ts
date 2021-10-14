@@ -8,6 +8,7 @@ import {
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_STEP_NAMES,
   setStepParameters,
+  piped_click,
 } from "../support/common";
 
 describe("interactive runs", () => {
@@ -270,8 +271,8 @@ describe("interactive runs", () => {
           timeout: 20000,
         });
 
-        // Press ESC to close the step menu.
-        cy.triggerESC();
+        // Close the step menu.
+        cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS).pipe(piped_click);
 
         // Select and run B.
         cy.wait(100);
@@ -362,7 +363,7 @@ describe("interactive runs", () => {
         });
 
         // Press ESC to close the step menu.
-        cy.triggerESC();
+        cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS).pipe(piped_click);
 
         // Select and run B.
         cy.wait(100);

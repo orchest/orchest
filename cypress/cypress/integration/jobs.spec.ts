@@ -11,6 +11,7 @@ import {
   DATA_DIR,
   SAMPLE_JOB_NAMES,
   JOB_STATUS,
+  piped_click,
 } from "../support/common";
 
 // Assumes to be in a JobView and that all runs can have their pipeline
@@ -40,7 +41,7 @@ function verifyJobRunsParameters(stepName: string, expectedParameters: {}[]) {
           })
           .then((stepParams) => {
             // Close the step panel.
-            cy.triggerESC();
+            cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS).pipe(piped_click);
 
             // Get the pipeline parameters.
             cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
