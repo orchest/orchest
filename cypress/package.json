@@ -10,11 +10,12 @@
     "cy:run": "cypress run"
   },
   "devDependencies": {
-    "cypress": "8.5.0",
+    "cypress": "8.6.0",
     "deep-equal": "2.0.5",
     "@testing-library/cypress": "7.0.7",
     "cypress-localstorage-commands": "1.5.0",
     "@types/node": "15.0.1",
-    "typescript": "4.3.2"
+    "typescript": "4.3.2",
+    "cypress-pipe": "2.0.0"
   }
 }

@@ -44,7 +44,7 @@ make code changes that are instantly reflected, without having to build the cont
    npm run setup
    pnpm i
 
-   # Run the Vite dev server to for hot reloading. Note: This command
+   # Run the client dev server for hot reloading. Note: This command
    # does not finish.
    pnpm run dev
 
@@ -62,11 +62,6 @@ With ``--dev`` the repository code from the filesystem is mounted (and thus adhe
 branches) to the appropriate paths in the Docker containers. This allows for active code changes
 being reflected inside the application. With ``--dev`` the Flask applications are run in
 development mode.
-
-.. tip::
-   If the development mode hangs it's likely that Vite has left a daemon running that is stuck (the
-   giveaway is that a Vite start runs on ports other than ``3000/3001``). To fix the issue, run
-   ``killall node`` and restart Vite.
 
 Building the docs
 -----------------

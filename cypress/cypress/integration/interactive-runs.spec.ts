@@ -8,6 +8,7 @@ import {
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_STEP_NAMES,
   setStepParameters,
+  piped_click,
 } from "../support/common";
 
 describe("interactive runs", () => {
@@ -24,7 +25,7 @@ describe("interactive runs", () => {
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
     });
 
@@ -233,7 +234,7 @@ describe("interactive runs", () => {
       cy.findByTestId(`pipeline-${PIPELINES.DATA_PASSING.name}`).click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
     });
 
@@ -270,8 +271,8 @@ describe("interactive runs", () => {
           timeout: 20000,
         });
 
-        // Press ESC to close the step menu.
-        cy.triggerESC();
+        // Close the step menu.
+        cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS).pipe(piped_click);
 
         // Select and run B.
         cy.wait(100);
@@ -362,7 +363,7 @@ describe("interactive runs", () => {
         });
 
         // Press ESC to close the step menu.
-        cy.triggerESC();
+        cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS).pipe(piped_click);
 
         // Select and run B.
         cy.wait(100);

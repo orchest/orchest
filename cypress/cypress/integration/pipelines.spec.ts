@@ -6,6 +6,7 @@ import {
   SAMPLE_PROJECT_NAMES,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_STEP_NAMES,
+  piped_click,
 } from "../support/common";
 
 let pathTestCases = [
@@ -133,7 +134,7 @@ describe("pipelines", () => {
       // Expect a running session.
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
@@ -143,7 +144,7 @@ describe("pipelines", () => {
       // Expect a stopped session.
       cy.findAllByTestId(
         TEST_ID.SESSION_TOGGLE_BUTTON
-      ).contains("Start session", { timeout: 30000 });
+      ).contains("Start session", { timeout: 60000 });
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
         .should("be.disabled");
@@ -152,7 +153,7 @@ describe("pipelines", () => {
       // Expect a running session again.
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
-        { timeout: 30000 }
+        { timeout: 60000 }
       );
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
@@ -192,7 +193,7 @@ describe("pipelines", () => {
         // Expect a running session.
         cy.findAllByTestId(
           TEST_ID.SESSION_TOGGLE_BUTTON
-        ).contains("Stop session", { timeout: 30000 });
+        ).contains("Stop session", { timeout: 60000 });
       });
       it("tests getting into Jupyterlab", () => {
         cy.findByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB).click();
@@ -205,7 +206,7 @@ describe("pipelines", () => {
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
-        cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).click();
+        cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).pipe(piped_click);
         waitForJupyterlab();
       });
     });

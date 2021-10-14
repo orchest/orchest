@@ -362,7 +362,7 @@ export function waitForJobStatus(expected: string, retries = 100) {
 export function waitForJobRunsStatus(
   expectedStatus: string,
   expectedNumberOfRuns: number,
-  retries = 50,
+  retries = 100,
   callback?: Function
 ) {
   cy.location("pathname").should("eq", "/job");
@@ -459,3 +459,8 @@ export function assertEnvIsBuilt() {
 
   cy.goToMenu("pipelines");
 }
+
+// Used in conjunction with cypress-pipe as an attempt to fix DOM
+// detachment and focus trap issues. See
+// https://github.com/cypress-io/cypress/issues/7306
+export const piped_click = ($el) => $el.click();
