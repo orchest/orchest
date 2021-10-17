@@ -73,8 +73,7 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   backgroundColor: "$background",
   borderRadius: "$md",
   boxShadow: "$2xl",
-  overflowX: "hidden",
-  overflowY: "auto",
+  overFlow: "visible",
   "&:focus": {
     outline: "none",
   },
