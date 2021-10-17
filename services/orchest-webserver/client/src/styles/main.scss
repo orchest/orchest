@@ -1603,6 +1603,8 @@ span.code {
         color: #666;
         opacity: 1;
         border-radius: 0 0 6px 6px;
+        user-select: none;
+        -webkit-user-select: none;
 
         span.success {
           color: #16bd43;
@@ -1644,6 +1646,8 @@ span.code {
         height: 100%;
         overflow: hidden;
         transform: translateY(-11px);
+        user-select: none;
+        -webkit-user-select: none;
       }
 
       .step-label {
