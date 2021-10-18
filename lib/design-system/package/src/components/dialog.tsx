@@ -1,9 +1,10 @@
-import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
-import { styled, keyframes } from "../core";
+import * as React from "react";
+
 import { ExtractVariants, ICSSProp } from "../types";
 import { Heading, THeadingComponent } from "./heading";
+import { keyframes, styled } from "../core";
 
 export enum DIALOG_ANIMATION_DURATION {
   IN = 200,
@@ -73,7 +74,7 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   backgroundColor: "$background",
   borderRadius: "$md",
   boxShadow: "$2xl",
-  overFlow: "visible",
+  overflow: "visible",
   "&:focus": {
     outline: "none",
   },
