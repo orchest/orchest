@@ -1511,6 +1511,7 @@ span.code {
     height: 100%;
     position: absolute;
     user-select: none;
+    -webkit-user-select: none;
     background-image: url("/image/cross-fill.svg");
     background-repeat: repeat;
     border: 1px solid #e5e5e5;
@@ -1603,6 +1604,8 @@ span.code {
         color: #666;
         opacity: 1;
         border-radius: 0 0 6px 6px;
+        user-select: none;
+        -webkit-user-select: none;
 
         span.success {
           color: #16bd43;
@@ -1644,6 +1647,8 @@ span.code {
         height: 100%;
         overflow: hidden;
         transform: translateY(-11px);
+        user-select: none;
+        -webkit-user-select: none;
       }
 
       .step-label {
