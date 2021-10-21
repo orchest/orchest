@@ -1,4 +1,5 @@
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import {
   PromiseManager,
   RefManager,
@@ -27,9 +28,9 @@ import { MDCButtonReact } from "@orchest/lib-mdc";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import type { PipelineJson } from "@/types";
-import PipelineStep from "./PipelineStep";
 import _ from "lodash";
 import io from "socket.io-client";
+import { layoutPipeline } from "@/utils/pipeline-layout";
 import { siteMap } from "../Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKey } from "./hooks/useHotKey";
@@ -57,7 +58,12 @@ export interface IPipelineStepState {
 }
 
 export interface IPipelineViewState {
-  eventVars: any;
+  eventVars: {
+    steps: {
+      [key: string]: IPipelineStepState;
+    };
+    [key: string]: any;
+  };
   // rendering state
   pipelineOrigin: number[];
   pipelineStepsHolderOffsetLeft: number;
@@ -76,9 +82,6 @@ export interface IPipelineViewState {
   pendingRunUuids?: string[];
   pendingRunType?: string;
   stepExecutionState: {};
-  steps: {
-    [key: string]: IPipelineStepState;
-  };
   pipelineCwd?: string;
   defaultDetailViewIndex: number;
   // The save hash is used to propagate a save's side-effects
@@ -128,7 +131,7 @@ const PipelineView: React.FC = () => {
     "ctrl+a, command+a",
     "pipeline-editor",
     () => {
-      state.eventVars.selectedSteps = Object.keys(state.steps);
+      state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
       updateEventVars();
     }
   );
@@ -177,6 +180,7 @@ const PipelineView: React.FC = () => {
         x2: 0,
         y2: 0,
       },
+      steps: {},
       scaleFactor: DEFAULT_SCALE_FACTOR,
       connections: [],
     },
@@ -201,7 +205,6 @@ const PipelineView: React.FC = () => {
     pendingRunUuids: undefined,
     pendingRunType: undefined,
     stepExecutionState: {},
-    steps: {},
     pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
     // The save hash is used to propagate a save's side-effects
@@ -341,10 +344,10 @@ const PipelineView: React.FC = () => {
     let pipelineJSON: PipelineJson = _.cloneDeep(state.pipelineJson);
     pipelineJSON["steps"] = {};
 
-    for (let key in state.steps) {
-      if (state.steps.hasOwnProperty(key)) {
+    for (let key in state.eventVars.steps) {
+      if (state.eventVars.steps.hasOwnProperty(key)) {
         // deep copy step
-        let step = _.cloneDeep(state.steps[key]);
+        let step = _.cloneDeep(state.eventVars.steps[key]);
 
         // remove private meta_data (prefixed with underscore)
         let keys = Object.keys(step.meta_data);
@@ -372,7 +375,7 @@ const PipelineView: React.FC = () => {
     // initialize React components based on incoming JSON description of the pipeline
 
     // add steps to the state
-    let { steps } = state;
+    let steps = state.eventVars.steps;
 
     for (let key in pipelineJson.steps) {
       if (pipelineJson.steps.hasOwnProperty(key)) {
@@ -385,14 +388,20 @@ const PipelineView: React.FC = () => {
     }
 
     // in addition to creating steps explicitly in the React state, also attach full pipelineJson
-    setState({ steps: steps, pipelineJson: pipelineJson });
+    setPipelineJSON(pipelineJson, steps);
 
     return pipelineJson;
   };
 
   const getPipelineJSON = () => {
-    let { steps } = state;
+    let steps = state.eventVars.steps;
     return { ...state.pipelineJson, steps };
+  };
+
+  const setPipelineJSON = (pipelineJson, steps) => {
+    state.eventVars.steps = steps;
+    updateEventVars();
+    setState({ pipelineJson });
   };
 
   const openSettings = (initialTab?: string) => {
@@ -542,29 +551,32 @@ const PipelineView: React.FC = () => {
   const willCreateCycle = (startNodeUUID, endNodeUUID) => {
     // add connection temporarily
     let insertIndex =
-      state.steps[endNodeUUID].incoming_connections.push(startNodeUUID) - 1;
+      state.eventVars.steps[endNodeUUID].incoming_connections.push(
+        startNodeUUID
+      ) - 1;
 
     // augment incoming_connections with outgoing_connections to be able to traverse from root nodes
 
-    // reset outgoing_connections state (creates 2N algorithm, but makes for guaranteerd clean state.steps data structure)
-    for (let step_uuid in state.steps) {
-      if (state.steps.hasOwnProperty(step_uuid)) {
-        state.steps[step_uuid].outgoing_connections = [];
+    // reset outgoing_connections state (creates 2N algorithm, but makes for guaranteerd clean state.eventVars.steps data structure)
+    for (let step_uuid in state.eventVars.steps) {
+      if (state.eventVars.steps.hasOwnProperty(step_uuid)) {
+        state.eventVars.steps[step_uuid].outgoing_connections = [];
       }
     }
 
-    for (let step_uuid in state.steps) {
-      if (state.steps.hasOwnProperty(step_uuid)) {
-        let incoming_connections = state.steps[step_uuid].incoming_connections;
+    for (let step_uuid in state.eventVars.steps) {
+      if (state.eventVars.steps.hasOwnProperty(step_uuid)) {
+        let incoming_connections =
+          state.eventVars.steps[step_uuid].incoming_connections;
         for (let x = 0; x < incoming_connections.length; x++) {
-          state.steps[incoming_connections[x]].outgoing_connections.push(
-            step_uuid
-          );
+          state.eventVars.steps[
+            incoming_connections[x]
+          ].outgoing_connections.push(step_uuid);
         }
       }
     }
 
-    let whiteSet = new Set(Object.keys(state.steps));
+    let whiteSet = new Set(Object.keys(state.eventVars.steps));
     let greySet = new Set();
 
     let cycles = false;
@@ -579,7 +591,10 @@ const PipelineView: React.FC = () => {
     }
 
     // remote temp connection
-    state.steps[endNodeUUID].incoming_connections.splice(insertIndex, 1);
+    state.eventVars.steps[endNodeUUID].incoming_connections.splice(
+      insertIndex,
+      1
+    );
 
     return cycles;
   };
@@ -591,10 +606,10 @@ const PipelineView: React.FC = () => {
 
     for (
       let x = 0;
-      x < state.steps[step_uuid].outgoing_connections.length;
+      x < state.eventVars.steps[step_uuid].outgoing_connections.length;
       x++
     ) {
-      let child_uuid = state.steps[step_uuid].outgoing_connections[x];
+      let child_uuid = state.eventVars.steps[step_uuid].outgoing_connections[x];
 
       if (whiteSet.has(child_uuid)) {
         if (dfsWithSets(child_uuid, whiteSet, greySet)) {
@@ -749,7 +764,7 @@ const PipelineView: React.FC = () => {
           scaleCorrectedPosition(e.clientY, state.eventVars.scaleFactor),
         ];
 
-        let step = state.steps[state.eventVars.selectedItem];
+        let step = state.eventVars.steps[state.eventVars.selectedItem];
 
         step.meta_data._drag_count++;
         if (step.meta_data._drag_count >= DRAG_CLICK_SENSITIVITY) {
@@ -768,7 +783,7 @@ const PipelineView: React.FC = () => {
             for (let key in state.eventVars.selectedSteps) {
               let uuid = state.eventVars.selectedSteps[key];
 
-              let singleStep = state.steps[uuid];
+              let singleStep = state.eventVars.steps[uuid];
 
               singleStep.meta_data.position[0] += delta[0];
               singleStep.meta_data.position[1] += delta[1];
@@ -843,7 +858,7 @@ const PipelineView: React.FC = () => {
       let stepDragged = false;
 
       if (state.eventVars.selectedItem !== undefined) {
-        let step = state.steps[state.eventVars.selectedItem];
+        let step = state.eventVars.steps[state.eventVars.selectedItem];
 
         if (!step.meta_data._dragged) {
           if (state.eventVars.selectedConnection) {
@@ -1018,7 +1033,7 @@ const PipelineView: React.FC = () => {
 
   const initializePipeline = () => {
     // Initialize should be called only once
-    // state.steps is assumed to be populated
+    // state.eventVars.steps is assumed to be populated
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
 
@@ -1034,9 +1049,9 @@ const PipelineView: React.FC = () => {
     }
 
     // add all existing connections (this happens only at initialization)
-    for (let key in state.steps) {
-      if (state.steps.hasOwnProperty(key)) {
-        let step = state.steps[key];
+    for (let key in state.eventVars.steps) {
+      if (state.eventVars.steps.hasOwnProperty(key)) {
+        let step = state.eventVars.steps[key];
 
         for (let x = 0; x < step.incoming_connections.length; x++) {
           let startNodeUUID = step.incoming_connections[x];
@@ -1217,31 +1232,31 @@ const PipelineView: React.FC = () => {
         },
       };
 
-      state.steps[step.uuid] = step;
-      setState({ steps: state.steps });
+      state.eventVars.steps[step.uuid] = step;
+      updateEventVars();
 
       selectStep(step.uuid);
 
       // wait for single render call
       setTimeout(() => {
         // Assumes step.uuid doesn't change
-        let _step = state.steps[step.uuid];
+        let _step = state.eventVars.steps[step.uuid];
 
         _step["meta_data"]["position"] = [
           -state.pipelineOffset[0] +
             state.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
-            190 / 2,
+            STEP_WIDTH / 2,
           -state.pipelineOffset[1] +
             state.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
-            105 / 2,
+            STEP_HEIGHT / 2,
         ];
 
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
         _step["meta_data"]["hidden"] = false;
-
-        setState({ steps: state.steps, saveHash: uuidv4() });
+        updateEventVars();
+        setState({ saveHash: uuidv4() });
         state.refManager.refs[step.uuid].updatePosition(
-          state.steps[step.uuid].meta_data.position
+          state.eventVars.steps[step.uuid].meta_data.position
         );
       }, 0);
     });
@@ -1269,21 +1284,17 @@ const PipelineView: React.FC = () => {
 
   const makeConnection = (sourcePipelineStepUUID, targetPipelineStepUUID) => {
     if (
-      state.steps[targetPipelineStepUUID].incoming_connections.indexOf(
-        sourcePipelineStepUUID
-      ) === -1
+      state.eventVars.steps[
+        targetPipelineStepUUID
+      ].incoming_connections.indexOf(sourcePipelineStepUUID) === -1
     ) {
-      state.steps[targetPipelineStepUUID].incoming_connections.push(
+      state.eventVars.steps[targetPipelineStepUUID].incoming_connections.push(
         sourcePipelineStepUUID
       );
     }
 
-    setState((state) => {
-      return {
-        steps: state.steps,
-        saveHash: uuidv4(),
-      };
-    });
+    updateEventVars();
+    setState({ saveHash: uuidv4() });
   };
 
   const getStepExecutionState = (stepUUID) => {
@@ -1306,22 +1317,18 @@ const PipelineView: React.FC = () => {
     sourcePipelineStepUUID,
     targetPipelineStepUUID
   ) => {
-    let connectionIndex = state.steps[
+    let connectionIndex = state.eventVars.steps[
       targetPipelineStepUUID
     ].incoming_connections.indexOf(sourcePipelineStepUUID);
     if (connectionIndex !== -1) {
-      state.steps[targetPipelineStepUUID].incoming_connections.splice(
+      state.eventVars.steps[targetPipelineStepUUID].incoming_connections.splice(
         connectionIndex,
         1
       );
     }
 
-    setState((state) => {
-      return {
-        steps: state.steps,
-        saveHash: uuidv4(),
-      };
-    });
+    updateEventVars();
+    setState({ saveHash: uuidv4() });
   };
 
   const deleteSelectedSteps = () => {
@@ -1363,9 +1370,9 @@ const PipelineView: React.FC = () => {
 
   const deleteStep = (uuid) => {
     // also delete incoming connections that contain this uuid
-    for (let key in state.steps) {
-      if (state.steps.hasOwnProperty(key)) {
-        let step = state.steps[key];
+    for (let key in state.eventVars.steps) {
+      if (state.eventVars.steps.hasOwnProperty(key)) {
+        let step = state.eventVars.steps[key];
 
         let connectionIndex = step.incoming_connections.indexOf(uuid);
         if (connectionIndex !== -1) {
@@ -1377,7 +1384,7 @@ const PipelineView: React.FC = () => {
     }
 
     // visually delete incoming connections from GUI
-    let step = state.steps[uuid];
+    let step = state.eventVars.steps[uuid];
     let connectionsToRemove = [];
 
     // removeConnection modifies incoming_connections, hence the double
@@ -1391,7 +1398,7 @@ const PipelineView: React.FC = () => {
       removeConnection(connection);
     }
 
-    delete state.steps[uuid];
+    delete state.eventVars.steps[uuid];
 
     // if step is in selectedSteps remove
     let deletedStepIndex = state.eventVars.selectedSteps.indexOf(uuid);
@@ -1400,9 +1407,6 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setState({
-      steps: state.steps,
-    });
   };
 
   const onDetailsDelete = () => {
@@ -1445,7 +1449,7 @@ const PipelineView: React.FC = () => {
 
       window.orchest.jupyter.navigateTo(
         collapseDoubleDots(
-          state.pipelineCwd + state.steps[stepUUID].file_path
+          state.pipelineCwd + state.eventVars.steps[stepUUID].file_path
         ).slice(1)
       );
     } else if (session.status === "LAUNCHING") {
@@ -1612,6 +1616,36 @@ const PipelineView: React.FC = () => {
       2
     );
     updateEventVars();
+  };
+
+  const autoLayoutPipeline = () => {
+    const spacingFactor = 0.7;
+    const gridMargin = 20;
+
+    const _pipelineJson = layoutPipeline(
+      state.pipelineJson,
+      STEP_HEIGHT,
+      (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
+        (STEP_WIDTH / STEP_HEIGHT),
+      1 + spacingFactor,
+      gridMargin,
+      gridMargin
+    );
+
+    // TODO: make the step position state less duplicated.
+    // Currently done for performance reasons.
+
+    for (let stepUUID of Object.keys(_pipelineJson.steps)) {
+      state.refManager.refs[stepUUID].updatePosition(
+        _pipelineJson.steps[stepUUID].meta_data.position
+      );
+    }
+    setPipelineJSON(_pipelineJson, _pipelineJson.steps);
+
+    // and save
+    setState({
+      saveHash: uuidv4(),
+    });
   };
 
   const scaleCorrectedPosition = (position, scaleFactor) => {
@@ -1827,14 +1861,14 @@ const PipelineView: React.FC = () => {
     if (replace) {
       // Replace works on the top level keys that are provided
       for (let key of Object.keys(stepChanges)) {
-        state.steps[uuid][key] = stepChanges[key];
+        state.eventVars.steps[uuid][key] = stepChanges[key];
       }
     } else {
-      _.merge(state.steps[uuid], stepChanges);
+      _.merge(state.eventVars.steps[uuid], stepChanges);
     }
 
+    updateEventVars();
     setState({
-      steps: state.steps,
       saveHash: uuidv4(),
     });
   };
@@ -1867,9 +1901,9 @@ const PipelineView: React.FC = () => {
 
     // for each step perform intersect
     if (state.eventVars.stepSelector.active) {
-      for (let uuid in state.steps) {
-        if (state.steps.hasOwnProperty(uuid)) {
-          let step = state.steps[uuid];
+      for (let uuid in state.eventVars.steps) {
+        if (state.eventVars.steps.hasOwnProperty(uuid)) {
+          let step = state.eventVars.steps[uuid];
 
           // guard against ref existing, in case step is being added
           if (state.refManager.refs[uuid]) {
@@ -2148,11 +2182,14 @@ const PipelineView: React.FC = () => {
 
   let connections_list = {};
   if (state.eventVars.openedStep) {
-    const step = state.steps[state.eventVars.openedStep];
+    const step = state.eventVars.steps[state.eventVars.openedStep];
     const { incoming_connections } = step;
 
     incoming_connections.forEach((id: string) => {
-      connections_list[id] = [state.steps[id].title, state.steps[id].file_path];
+      connections_list[id] = [
+        state.eventVars.steps[id].title,
+        state.eventVars.steps[id].file_path,
+      ];
     });
   }
 
@@ -2162,7 +2199,7 @@ const PipelineView: React.FC = () => {
   // 'Run incoming steps' button.
   let selectedStepsHasIncoming = false;
   for (let x = 0; x < state.eventVars.selectedSteps.length; x++) {
-    let selectedStep = state.steps[state.eventVars.selectedSteps[x]];
+    let selectedStep = state.eventVars.steps[state.eventVars.selectedSteps[x]];
     for (let i = 0; i < selectedStep.incoming_connections.length; i++) {
       let incomingStepUUID = selectedStep.incoming_connections[i];
       if (state.eventVars.selectedSteps.indexOf(incomingStepUUID) < 0) {
@@ -2175,7 +2212,7 @@ const PipelineView: React.FC = () => {
     }
   }
 
-  const pipelineSteps = Object.entries(state.steps).map((entry) => {
+  const pipelineSteps = Object.entries(state.eventVars.steps).map((entry) => {
     const [uuid, step] = entry;
     const selected = state.eventVars.selectedSteps.indexOf(uuid) !== -1;
     // only add steps to the component that have been properly
@@ -2336,6 +2373,10 @@ const PipelineView: React.FC = () => {
                 />
                 <MDCButtonReact onClick={zoomOut} icon="remove" />
                 <MDCButtonReact onClick={zoomIn} icon="add" />
+                <MDCButtonReact
+                  onClick={autoLayoutPipeline}
+                  icon={<div className="custom-icon pipeline">pipeline</div>}
+                />
               </div>
 
               {!isReadOnly &&
@@ -2489,7 +2530,7 @@ const PipelineView: React.FC = () => {
               run_uuid={runUuidFromRoute}
               sio={state.sio}
               readOnly={isReadOnly}
-              step={state.steps[state.eventVars.openedStep]}
+              step={state.eventVars.steps[state.eventVars.openedStep]}
               saveHash={state.saveHash}
             />
           )}

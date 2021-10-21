@@ -2,6 +2,9 @@ import * as React from "react";
 
 import { RefManager } from "@orchest/lib-utils";
 
+export const STEP_WIDTH = 190;
+export const STEP_HEIGHT = 105;
+
 export type TPipelineStepRef = any;
 export interface IPipelineStepProps {
   selected?: boolean;
