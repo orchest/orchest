@@ -43,19 +43,25 @@ const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
 export interface IPipelineStepState {
-  uuid: any;
-  incoming_connections: any;
-  outgoing_connections?: any;
+  uuid: string;
+  title: string;
+  incoming_connections: string[];
+  outgoing_connections?: string[];
   file_path: string;
-  title: any;
-  meta_data: any;
-  parameters: any;
+  meta_data: {
+    hidden: boolean;
+    position: [number, number];
+    _drag_count: number;
+    _dragged: boolean;
+  };
+  parameters: Record<string, any>;
   environment: string;
   kernel: {
     display_name: string;
     name: string;
   };
 }
+export type Step = Record<string, IPipelineStepState>;
 
 export interface IPipelineViewState {
   eventVars: {
@@ -1225,7 +1231,7 @@ const PipelineView: React.FC = () => {
         environment: environmentUUID,
         parameters: {},
         meta_data: {
-          position: [0, 0],
+          position: [0, 0] as [number, number],
           _dragged: false,
           _drag_count: 0,
           hidden: true,

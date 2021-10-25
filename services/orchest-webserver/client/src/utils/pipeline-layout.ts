@@ -4,10 +4,12 @@ import {
   decrossOpt,
   layeringSimplex,
   sugiyama,
+  NodeSizeAccessor,
 } from "d3-dag";
 
 import { IPipelineStepState } from "@/pipeline-view/PipelineView";
 import _ from "lodash";
+import { PipelineJson } from "@/types";
 
 const rotate = (array, angle) => {
   return array.map((p) => {
@@ -22,21 +24,25 @@ const rotate = (array, angle) => {
 };
 
 // Extract solution from dag
-const collectNodes = (dag, nodes) => {
+const collectNodes = (
+  dag: TransformedDag,
+  nodes: Record<string, { x: number; y: number }>
+) => {
   const id = dag.data.id;
   if (nodes[id] === undefined) {
     nodes[id] = { x: dag.x, y: dag.y };
   }
-  for (const childDag of dag.dataChildren) {
-    collectNodes(childDag.child, nodes);
-  }
+
+  dag.dataChildren.forEach((childDag) => collectNodes(childDag.child, nodes));
 };
 
-const generateDagData = (pipelineJson) => {
-  return Object.values(pipelineJson.steps).map((step: IPipelineStepState) => ({
-    id: step.uuid,
-    parentIds: step.incoming_connections,
-  }));
+const generateDagData = (pipelineJson: PipelineJson) => {
+  return Object.values(pipelineJson.steps).map((step: IPipelineStepState) => {
+    return {
+      id: step.uuid,
+      parentIds: step.incoming_connections,
+    };
+  });
 };
 
 const rotateNodes = (nodes, angle) => {
@@ -46,7 +52,11 @@ const rotateNodes = (nodes, angle) => {
   }
 };
 
-const scaleNodes = (nodes, scaleX, scaleY) => {
+const scaleNodes = (
+  nodes: Record<string, { x: number; y: number }>,
+  scaleX: number,
+  scaleY: number
+) => {
   for (let id in nodes) {
     nodes[id].x *= scaleX;
     nodes[id].y *= scaleY;
@@ -57,8 +67,8 @@ const translateNodes = (
   nodes: {
     [key: string]: { x: number; y: number };
   },
-  translateX,
-  translateY
+  translateX: number,
+  translateY: number
 ) => {
   // Add x and y distance to all points
   for (let node of Object.values(nodes)) {
@@ -87,13 +97,24 @@ const moveNodesTopLeft = (nodes: {
   translateNodes(nodes, -lowestX, -lowestY);
 };
 
+type Point = { x: number; y: number };
+type Data = { id: string; parentIds: string[] };
+
+type TransformedDag = {
+  data: Data;
+  dataChildren: { child: TransformedDag; points: Point[] }[];
+  value: number;
+  x: number;
+  y: number;
+};
+
 export const layoutPipeline = (
-  pipelineJson,
-  nodeRadius,
-  scaleX,
-  scaleY,
-  offsetX,
-  offsetY
+  pipelineJson: PipelineJson,
+  nodeRadius: number,
+  scaleX: number,
+  scaleY: number,
+  offsetX: number,
+  offsetY: number
 ) => {
   const _pipelineJson = _.cloneDeep(pipelineJson);
 
@@ -108,17 +129,18 @@ export const layoutPipeline = (
     .layering(layering)
     .decross(decrossing)
     .coord(coord)
-    .nodeSize(() => [nodeRadius, nodeRadius]);
+    .nodeSize<NodeSizeAccessor<{ id: string; parentIds: string[] }, unknown>>(
+      () => [nodeRadius, nodeRadius]
+    );
 
   // Performs mutable operation on dag
-  // @ts-ignore
   layout(dag);
 
   // Extract nodes from dag
   let nodes = {};
 
   // These three functions are pass by reference
-  collectNodes(dag, nodes);
+  collectNodes((dag as unknown) as TransformedDag, nodes);
   // Default orientation is bottom to top
   rotateNodes(nodes, -90);
   moveNodesTopLeft(nodes);
