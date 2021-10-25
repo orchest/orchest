@@ -12,10 +12,11 @@ Prerequisites
 
 If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
 
-.. note::
-   On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the
-   Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
-   visit https://docs.docker.com/docker-for-windows/wsl/.
+.. warning::
+   On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the Linux
+   environment and run Orchest CLI commands inside a WSL terminal. For more info and installation
+   steps for Docker with WSL 2 backend, please visit
+   https://docs.docker.com/docker-for-windows/wsl/.
 
 .. _regular installation:
 
