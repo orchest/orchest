@@ -304,6 +304,7 @@ importers:
       "@types/node": 15.0.1
       "@types/pascalcase": ^1.0.0
       "@types/react": 17.0.3
+      "@types/react-dom": ^17.0.10
       "@types/react-router-dom": ^5.1.8
       "@typescript-eslint/eslint-plugin": ^4.29.3
       "@typescript-eslint/parser": ^4.29.3
@@ -425,6 +426,7 @@ importers:
       "@types/node": 15.0.1
       "@types/pascalcase": 1.0.1
       "@types/react": 17.0.3
+      "@types/react-dom": 17.0.10
       "@types/react-router-dom": 5.3.1
       "@typescript-eslint/eslint-plugin": 4.33.0_75621ea35fee564fa0bccdae0d250354
       "@typescript-eslint/parser": 4.33.0_eslint@7.32.0+typescript@4.3.2
@@ -1812,6 +1814,15 @@ packages:
       {
         integrity: sha512-rZ5drC/jWjrArrS8BR6SIr4cWpW09RNTYt9AMZo3Jwwif+iacXAqgVjm0B0Bv/S1jhDXKHqRVNCbACkJ89RAnQ==,
       }
+    dev: true
+
+  /@types/react-dom/17.0.10:
+    resolution:
+      {
+        integrity: sha512-8oz3NAUId2z/zQdFI09IMhQPNgIbiP8Lslhv39DIDamr846/0spjZK0vnrMak0iB8EKb9QFTTIdg2Wj2zH5a3g==,
+      }
+    dependencies:
+      "@types/react": 17.0.3
     dev: true
 
   /@types/react-router-dom/5.3.1:
