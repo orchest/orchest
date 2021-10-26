@@ -1,5 +1,11 @@
+// @ts-nocheck
+
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
-import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
+import PipelineStep, {
+  ExecutionState,
+  STEP_HEIGHT,
+  STEP_WIDTH,
+} from "./PipelineStep";
 import {
   PromiseManager,
   RefManager,
@@ -10,7 +16,6 @@ import {
   makeRequest,
   uuidv4,
 } from "@orchest/lib-utils";
-// @ts-nocheck
 import React, { useEffect, useRef, useState } from "react";
 import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
 import {
@@ -63,12 +68,25 @@ export interface IPipelineStepState {
 }
 export type Step = Record<string, IPipelineStepState>;
 
+type Connection = {
+  startNode: HTMLElement;
+  endNode?: HTMLElement;
+  xEnd: number | undefined;
+  yEnd: number | undefined;
+  startNodeUUID: string;
+  pipelineViewEl: HTMLElement;
+  selected: boolean;
+  endNodeUUID: string | undefined;
+};
+
 export interface IPipelineViewState {
   eventVars: {
-    steps: {
-      [key: string]: IPipelineStepState;
-    };
-    [key: string]: any;
+    steps: Record<string, IPipelineStepState>;
+    selectedSteps: string[];
+    showServices: boolean;
+    connections: Connection[];
+    selectedConnection: Connection;
+    newConnection: Connection;
   };
   // rendering state
   pipelineOrigin: number[];
@@ -87,13 +105,13 @@ export interface IPipelineViewState {
   runUuid?: string;
   pendingRunUuids?: string[];
   pendingRunType?: string;
-  stepExecutionState: {};
+  stepExecutionState: ExecutionState;
   pipelineCwd?: string;
   defaultDetailViewIndex: number;
   // The save hash is used to propagate a save's side-effects
   // to components.
   saveHash?: string;
-  pipelineJson: any;
+  pipelineJson: PipelineJson;
 }
 
 const PipelineView: React.FC = () => {
@@ -225,16 +243,19 @@ const PipelineView: React.FC = () => {
       "/catch/api-proxy/api/jobs/" + jobUuidFromRoute + "/";
   }
 
-  const [state, _setState] = React.useState(initialState);
+  const [state, _setState] = React.useState<IPipelineViewState>(initialState);
   // TODO: clean up this class-component-stye setState
-  const setState = (newState) => {
+  const setState = (
+    newState:
+      | Partial<IPipelineViewState>
+      | ((
+          previousState: Partial<IPipelineViewState>
+        ) => Partial<IPipelineViewState>)
+  ) => {
     _setState((prevState) => {
-      let updatedState;
-      if (newState instanceof Function) {
-        updatedState = newState(prevState);
-      } else {
-        updatedState = newState;
-      }
+      let updatedState =
+        newState instanceof Function ? newState(prevState) : newState;
+
       return {
         ...prevState,
         ...updatedState,
@@ -404,10 +425,12 @@ const PipelineView: React.FC = () => {
     return { ...state.pipelineJson, steps };
   };
 
-  const setPipelineJSON = (pipelineJson, steps) => {
+  const setPipelineJSON = (
+    pipelineJson: PipelineJson,
+    steps: Record<string, IPipelineStepState>
+  ) => {
     state.eventVars.steps = steps;
-    updateEventVars();
-    setState({ pipelineJson });
+    setState({ pipelineJson, eventVars: state.eventVars });
   };
 
   const openSettings = (initialTab?: string) => {
@@ -497,7 +520,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const getConnectionByUUIDs = (startNodeUUID, endNodeUUID) => {
+  const getConnectionByUUIDs = (startNodeUUID: string, endNodeUUID: string) => {
     for (let x = 0; x < state.eventVars.connections.length; x++) {
       if (
         state.eventVars.connections[x].startNodeUUID === startNodeUUID &&
@@ -508,7 +531,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const onClickConnection = (e, startNodeUUID, endNodeUUID) => {
+  const onClickConnection = (e, startNodeUUID: string, endNodeUUID: string) => {
     if (e.button === 0 && !state.eventVars.keysDown[32]) {
       if (state.eventVars.selectedConnection) {
         state.eventVars.selectedConnection.selected = false;
@@ -525,8 +548,11 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const createConnection = (outgoingJEl, incomingJEl?) => {
-    let newConnection = {
+  const createConnection = (
+    outgoingJEl: HTMLElement,
+    incomingJEl?: HTMLElement
+  ) => {
+    let newConnection: Connection = {
       startNode: outgoingJEl,
       endNode: incomingJEl,
       xEnd: undefined,
@@ -554,7 +580,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const willCreateCycle = (startNodeUUID, endNodeUUID) => {
+  const willCreateCycle = (startNodeUUID: string, endNodeUUID: string) => {
     // add connection temporarily
     let insertIndex =
       state.eventVars.steps[endNodeUUID].incoming_connections.push(
@@ -630,7 +656,7 @@ const PipelineView: React.FC = () => {
     greySet.delete(step_uuid);
   };
 
-  const removeConnection = (connection) => {
+  const removeConnection = (connection: Connection) => {
     setState((state) => {
       state.eventVars.connections.splice(
         state.eventVars.connections.indexOf(connection),
@@ -656,13 +682,13 @@ const PipelineView: React.FC = () => {
 
         // check whether drag release was on .incomming-connections class
 
-        let dragEndedInIcomingConnectionsElement = $(e.target).hasClass(
+        let dragEndedInIncomingConnectionsElement = $(e.target).hasClass(
           "incoming-connections"
         );
         let noConnectionExists = true;
 
         // check whether there already exists a connection
-        if (dragEndedInIcomingConnectionsElement) {
+        if (dragEndedInIncomingConnectionsElement) {
           noConnectionExists =
             state.refManager.refs[
               endNodeUUID
@@ -671,7 +697,7 @@ const PipelineView: React.FC = () => {
 
         // check whether connection will create a cycle in Pipeline graph
         let connectionCreatesCycle = false;
-        if (noConnectionExists && dragEndedInIcomingConnectionsElement) {
+        if (noConnectionExists && dragEndedInIncomingConnectionsElement) {
           connectionCreatesCycle = willCreateCycle(startNodeUUID, endNodeUUID);
         }
 
@@ -683,7 +709,7 @@ const PipelineView: React.FC = () => {
         }
 
         if (
-          dragEndedInIcomingConnectionsElement &&
+          dragEndedInIncomingConnectionsElement &&
           noConnectionExists &&
           !connectionCreatesCycle
         ) {
@@ -1303,11 +1329,11 @@ const PipelineView: React.FC = () => {
     setState({ saveHash: uuidv4() });
   };
 
-  const getStepExecutionState = (stepUUID) => {
+  const getStepExecutionState = (stepUUID: string) => {
     if (state.stepExecutionState[stepUUID]) {
       return state.stepExecutionState[stepUUID];
     } else {
-      return { status: "idle" };
+      return { status: "IDLE" };
     }
   };
 

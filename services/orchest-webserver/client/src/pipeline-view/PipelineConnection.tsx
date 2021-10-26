@@ -8,8 +8,8 @@ export interface IPipelineConnectionProps {
   startNode: any;
   endNode: any;
   pipelineViewEl: any;
-  startNodeUUID: any;
-  endNodeUUID: any;
+  startNodeUUID: string;
+  endNodeUUID: string;
   onClick: any;
   xEnd: number;
   yEnd: number;
