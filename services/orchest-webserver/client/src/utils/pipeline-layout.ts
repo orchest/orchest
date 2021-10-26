@@ -1,33 +1,44 @@
 import {
+  NodeSizeAccessor,
   coordCenter,
   dagStratify,
   decrossOpt,
   layeringSimplex,
   sugiyama,
-  NodeSizeAccessor,
 } from "d3-dag";
 
 import { IPipelineStepState } from "@/pipeline-view/PipelineView";
-import _ from "lodash";
 import { PipelineJson } from "@/types";
+import _ from "lodash";
 
-const rotate = (array, angle) => {
-  return array.map((p) => {
-    const d2r = (a) => {
-      return (a * Math.PI) / 180;
-    };
-    return [
-      Math.cos(d2r(angle)) * p[0] - Math.sin(d2r(angle)) * p[1],
-      Math.sin(d2r(angle)) * p[0] - Math.cos(d2r(angle)) * p[1],
-    ];
-  });
+type Point = { x: number; y: number };
+type Data = { id: string; parentIds: string[] };
+
+type TransformedDag = {
+  data: Data;
+  dataChildren: { child: TransformedDag; points: Point[] }[];
+  value: number;
+  x: number;
+  y: number;
+};
+
+const degreesToRadians = (angle: number) => {
+  return (angle * Math.PI) / 180;
+};
+
+const rotate = (point: Point, angle: number) => {
+  return {
+    x:
+      Math.cos(degreesToRadians(angle)) * point.x -
+      Math.sin(degreesToRadians(angle)) * point.y,
+    y:
+      Math.sin(degreesToRadians(angle)) * point.x -
+      Math.cos(degreesToRadians(angle)) * point.y,
+  };
 };
 
 // Extract solution from dag
-const collectNodes = (
-  dag: TransformedDag,
-  nodes: Record<string, { x: number; y: number }>
-) => {
+const collectNodes = (dag: TransformedDag, nodes: Record<string, Point>) => {
   const id = dag.data.id;
   if (nodes[id] === undefined) {
     nodes[id] = { x: dag.x, y: dag.y };
@@ -45,15 +56,14 @@ const generateDagData = (pipelineJson: PipelineJson) => {
   });
 };
 
-const rotateNodes = (nodes, angle) => {
+const rotateNodes = (nodes: Record<string, Point>, angle: number) => {
   for (let id in nodes) {
-    let rotatedPoints = rotate([[nodes[id].x, nodes[id].y]], angle)[0];
-    nodes[id] = { x: rotatedPoints[0], y: rotatedPoints[1] };
+    nodes[id] = rotate(nodes[id], angle);
   }
 };
 
 const scaleNodes = (
-  nodes: Record<string, { x: number; y: number }>,
+  nodes: Record<string, Point>,
   scaleX: number,
   scaleY: number
 ) => {
@@ -64,9 +74,7 @@ const scaleNodes = (
 };
 
 const translateNodes = (
-  nodes: {
-    [key: string]: { x: number; y: number };
-  },
+  nodes: Record<string, Point>,
   translateX: number,
   translateY: number
 ) => {
@@ -77,9 +85,7 @@ const translateNodes = (
   }
 };
 
-const moveNodesTopLeft = (nodes: {
-  [key: string]: { x: number; y: number };
-}) => {
+const moveNodesTopLeft = (nodes: Record<string, Point>) => {
   // Find lowest x coordinate
   // Find lowest y coordinate
   let lowestX = Number.MAX_VALUE;
@@ -95,17 +101,6 @@ const moveNodesTopLeft = (nodes: {
   }
 
   translateNodes(nodes, -lowestX, -lowestY);
-};
-
-type Point = { x: number; y: number };
-type Data = { id: string; parentIds: string[] };
-
-type TransformedDag = {
-  data: Data;
-  dataChildren: { child: TransformedDag; points: Point[] }[];
-  value: number;
-  x: number;
-  y: number;
 };
 
 export const layoutPipeline = (
