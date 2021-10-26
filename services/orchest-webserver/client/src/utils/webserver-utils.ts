@@ -1,11 +1,10 @@
-import _ from "lodash";
-import Ajv from "ajv";
-
-import { makeRequest, extensionFromFilename } from "@orchest/lib-utils";
+import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import { format, parseISO } from "date-fns";
+
+import Ajv from "ajv";
+import _ from "lodash";
 import dashify from "dashify";
 import pascalcase from "pascalcase";
-
 import { pipelineSchema } from "@/utils/pipeline-schema";
 
 const ajv = new Ajv({

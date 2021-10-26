@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { MDCRipple } from "@material/ripple";
 import { RefManager } from "@orchest/lib-utils";
 
@@ -57,17 +58,30 @@ export class MDCButtonReact extends React.Component<any> {
 
         {(() => {
           if (this.props.icon && this.props.label !== undefined) {
-            return (
-              <React.Fragment>
-                <i className="material-icons mdc-button__icon">
+            if (typeof this.props.icon == "string") {
+              return (
+                <React.Fragment>
+                  <i className="material-icons mdc-button__icon">
+                    {this.props.icon}
+                  </i>
+                  <span className="mdc-button__label">{this.props.label}</span>
+                </React.Fragment>
+              );
+            } else {
+              return (
+                <React.Fragment>
                   {this.props.icon}
-                </i>
-                <span className="mdc-button__label">{this.props.label}</span>
-              </React.Fragment>
-            );
+                  <span className="mdc-button__label">{this.props.label}</span>
+                </React.Fragment>
+              );
+            }
           }
           if (this.props.icon) {
-            return <i className="material-icons">{this.props.icon}</i>;
+            if (typeof this.props.icon == "string") {
+              return <i className="material-icons">{this.props.icon}</i>;
+            } else {
+              return this.props.icon;
+            }
           }
           if (this.props.label !== undefined) {
             return (

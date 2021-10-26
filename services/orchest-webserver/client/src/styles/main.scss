@@ -285,6 +285,18 @@ h2 {
   }
 }
 
+.custom-icon {
+  &.pipeline {
+    background: url("/image/pipeline.svg");
+    background-repeat: no-repeat;
+    background-size: contain;
+    width: 43px;
+    height: 24px;
+    font-size: 0;
+    color: transparent;
+  }
+}
+
 .material-icons.inline-icon {
   position: absolute;
   &.push-left {

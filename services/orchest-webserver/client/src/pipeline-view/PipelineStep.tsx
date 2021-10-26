@@ -2,19 +2,24 @@ import * as React from "react";
 
 import { RefManager } from "@orchest/lib-utils";
 
+export const STEP_WIDTH = 190;
+export const STEP_HEIGHT = 105;
+
 export type TPipelineStepRef = any;
+
+export type ExecutionState = {
+  finished_time?: number;
+  server_time?: number;
+  started_time?: number;
+  status: "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED" | "PENDING" | "IDLE";
+};
 export interface IPipelineStepProps {
   selected?: boolean;
   step?: any;
   onConnect: (sourcePipelineStepUUID: any, targetPipelineStepUUID: any) => void;
   onClick: any;
   onDoubleClick: any;
-  executionState?: {
-    finished_time: number;
-    server_time: number;
-    started_time: number;
-    status: "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED" | "PENDING";
-  };
+  executionState?: ExecutionState;
 }
 
 const PipelineStep = (props: IPipelineStepProps, ref: TPipelineStepRef) => {

@@ -1,4 +1,5 @@
 import * as React from "react";
+
 import { globalMDCVars } from "@orchest/lib-utils";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
@@ -7,8 +8,8 @@ export interface IPipelineConnectionProps {
   startNode: any;
   endNode: any;
   pipelineViewEl: any;
-  startNodeUUID: any;
-  endNodeUUID: any;
+  startNodeUUID: string;
+  endNodeUUID: string;
   onClick: any;
   xEnd: number;
   yEnd: number;
