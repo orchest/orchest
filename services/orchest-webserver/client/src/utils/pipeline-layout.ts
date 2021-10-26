@@ -1,14 +1,13 @@
+import { IPipelineStepState } from "@/pipeline-view/PipelineView";
+import { PipelineJson } from "@/types";
 import {
-  NodeSizeAccessor,
   coordCenter,
   dagStratify,
   decrossOpt,
   layeringSimplex,
+  NodeSizeAccessor,
   sugiyama,
 } from "d3-dag";
-
-import { IPipelineStepState } from "@/pipeline-view/PipelineView";
-import { PipelineJson } from "@/types";
 import _ from "lodash";
 
 type Point = { x: number; y: number };

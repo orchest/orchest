@@ -180,6 +180,8 @@ importers:
       "@orchest/lib-mdc": workspace:*
       "@orchest/lib-utils": workspace:*
       esbuild: 0.13.4
+      prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4
       react: ^16.13.1
       react-dom: ^16.13.1
       sass-bin: ^1.42.3
@@ -239,6 +241,8 @@ importers:
       react-dom: 16.14.0_react@16.14.0
     devDependencies:
       esbuild: 0.13.4
+      prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4_prettier@2.1.2+typescript@4.3.2
       sass-bin: 1.42.3
       typescript: 4.3.2
 
@@ -300,6 +304,7 @@ importers:
       "@types/node": 15.0.1
       "@types/pascalcase": ^1.0.0
       "@types/react": 17.0.3
+      "@types/react-dom": ^17.0.10
       "@types/react-router-dom": ^5.1.8
       "@typescript-eslint/eslint-plugin": ^4.29.3
       "@typescript-eslint/parser": ^4.29.3
@@ -324,6 +329,7 @@ importers:
       lodash: ^4.17.20
       pascalcase: ^1.0.0
       prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4
       react: ^16.13.1
       react-codemirror2: ^7.2.1
       react-dom: ^16.13.1
@@ -420,6 +426,7 @@ importers:
       "@types/node": 15.0.1
       "@types/pascalcase": 1.0.1
       "@types/react": 17.0.3
+      "@types/react-dom": 17.0.10
       "@types/react-router-dom": 5.3.1
       "@typescript-eslint/eslint-plugin": 4.33.0_75621ea35fee564fa0bccdae0d250354
       "@typescript-eslint/parser": 4.33.0_eslint@7.32.0+typescript@4.3.2
@@ -430,6 +437,7 @@ importers:
       eslint-plugin-react: 7.26.1_eslint@7.32.0
       eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
       prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4_prettier@2.1.2+typescript@4.3.2
       sass-bin: 1.42.3
       typescript: 4.3.2
 
@@ -1806,6 +1814,15 @@ packages:
       {
         integrity: sha512-rZ5drC/jWjrArrS8BR6SIr4cWpW09RNTYt9AMZo3Jwwif+iacXAqgVjm0B0Bv/S1jhDXKHqRVNCbACkJ89RAnQ==,
       }
+    dev: true
+
+  /@types/react-dom/17.0.10:
+    resolution:
+      {
+        integrity: sha512-8oz3NAUId2z/zQdFI09IMhQPNgIbiP8Lslhv39DIDamr846/0spjZK0vnrMak0iB8EKb9QFTTIdg2Wj2zH5a3g==,
+      }
+    dependencies:
+      "@types/react": 17.0.3
     dev: true
 
   /@types/react-router-dom/5.3.1:
@@ -5184,6 +5201,19 @@ packages:
     engines: { node: ">=6.0.0" }
     dependencies:
       fast-diff: 1.2.0
+    dev: true
+
+  /prettier-plugin-organize-imports/2.3.4_prettier@2.1.2+typescript@4.3.2:
+    resolution:
+      {
+        integrity: sha512-R8o23sf5iVL/U71h9SFUdhdOEPsi3nm42FD/oDYIZ2PQa4TNWWuWecxln6jlIQzpZTDMUeO1NicJP6lLn2TtRw==,
+      }
+    peerDependencies:
+      prettier: ">=2.0"
+      typescript: ">=2.9"
+    dependencies:
+      prettier: 2.1.2
+      typescript: 4.3.2
     dev: true
 
   /prettier/2.1.2:
