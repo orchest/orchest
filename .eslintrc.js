@@ -32,5 +32,10 @@ module.exports = {
       version: "detect",
     },
   },
-  ignorePatterns: ["**/*.test.ts", "**/*.test.tsx"],
+  ignorePatterns: [
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/dist/**/*.ts",
+    "**/dist/**/*.tsx",
+  ],
 };

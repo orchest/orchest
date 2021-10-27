@@ -7,7 +7,6 @@
   "scripts": {
     "cy:open": "cypress open",
     "cy:run": "cypress run",
-    "lint": "pnpm eslint --fix --quiet --ext .ts,.tsx .",
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
@@ -17,12 +16,6 @@
     "cypress-localstorage-commands": "1.5.0",
     "cypress-pipe": "2.0.0",
     "deep-equal": "2.0.5",
-    "eslint": "7.32.0",
-    "eslint-config-prettier": "8.3.0",
-    "eslint-plugin-prettier": "3.4.1",
-    "eslint-plugin-react": "7.26.1",
-    "eslint-plugin-react-hooks": "4.2.0",
-    "prettier": "2.1.2",
     "react": "^16.13.1",
     "typescript": "4.3.2"
   }

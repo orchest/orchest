@@ -7,7 +7,6 @@
   "scripts": {
     "build": "./build.sh",
     "dev": "./build.sh --watch",
-    "lint": "pnpm eslint --fix --quiet --ext .ts,.tsx .",
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
