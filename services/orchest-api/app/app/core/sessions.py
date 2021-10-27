@@ -1017,7 +1017,7 @@ def _get_orchest_services_specs(
         "ORCHEST_HOST_GID,"
         "ORCHEST_SESSION_UUID,"
         "ORCHEST_SESSION_TYPE,"
-        "GPU_ENABLED_INSTANCE,"
+        "ORCHEST_GPU_ENABLED_INSTANCE,"
     )
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
@@ -1048,7 +1048,7 @@ def _get_orchest_services_specs(
                 f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
                 f"ORCHEST_SESSION_UUID={uuid}",
                 f"ORCHEST_SESSION_TYPE={session_type.value}",
-                f"GPU_ENABLED_INSTANCE={CONFIG_CLASS.GPU_ENABLED_INSTANCE}",
+                f"ORCHEST_GPU_ENABLED_INSTANCE={CONFIG_CLASS.GPU_ENABLED_INSTANCE}",
             ]
             + user_defined_env_vars,
             "user": "root",

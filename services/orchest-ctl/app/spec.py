@@ -181,7 +181,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
                 "PYTHONUNBUFFERED=TRUE",
-                f"GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
+                f"ORCHEST_GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
@@ -201,7 +201,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',
                 f'HOST_OS={env["HOST_OS"]}',
                 "PYTHONUNBUFFERED=TRUE",
-                f"GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
+                f"ORCHEST_GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
@@ -222,7 +222,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
                 # Set a default log level because supervisor can't deal
                 # with non assigned env variables.
                 "ORCHEST_LOG_LEVEL=INFO",
-                f"GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
+                f"ORCHEST_GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
