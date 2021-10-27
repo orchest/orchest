@@ -15,6 +15,13 @@ export class MDCCheckboxReact extends React.Component<any> {
 
     this.refManager = new RefManager();
   }
+
+  componentDidUpdate() {
+    if (this.props.value !== undefined) {
+      this.mdc.checked = this.props.value;
+    }
+  }
+
   componentDidMount() {
     this.mdcField = new MDCFormField(this.refManager.refs.formField);
     this.mdc = new MDCCheckbox(this.refManager.refs.checkbox);
