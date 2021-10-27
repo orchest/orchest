@@ -1,12 +1,4 @@
 repos:
-  - repo: local
-    hooks:
-      - id: "pre-commit-package"
-        name: "package.json"
-        language: "system"
-        entry: "pnpm run pkg:check && pnpm run pkg:format"
-        pass_filenames: false
-        files: package.json$
   - repo: https://github.com/pycqa/isort
     rev: 5.6.4
     hooks:
