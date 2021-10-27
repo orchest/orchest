@@ -18,6 +18,7 @@ from flask import current_app
 from _orchest.internals import config as _config
 from app import errors, utils
 from app.core import docker_utils
+from config import CONFIG_CLASS
 
 
 class SessionType(Enum):
@@ -1046,6 +1047,7 @@ def _get_orchest_services_specs(
                 f'ORCHEST_HOST_GID={os.environ.get("ORCHEST_HOST_GID")}',
                 f"ORCHEST_SESSION_UUID={uuid}",
                 f"ORCHEST_SESSION_TYPE={session_type.value}",
+                f"GPU_ENABLED_INSTANCE={CONFIG_CLASS.GPU_ENABLED_INSTANCE}",
             ]
             + user_defined_env_vars,
             "user": "root",

@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Dict, Optional
 
 from _orchest.internals import config as _config
+from _orchest.internals import utils as _utils
 from app import utils
 
 
@@ -171,6 +172,13 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
         "MAX_JOB_RUNS_PARALLELISM", 1
     )
 
+    GPU_ENABLED_INSTANCE = _utils.docker_has_gpu_capabilities()
+    # Format expected by the internal _config file.
+    if GPU_ENABLED_INSTANCE:
+        GPU_ENABLED_INSTANCE = "true"
+    else:
+        GPU_ENABLED_INSTANCE = "false"
+
     # name -> request body
     container_config = {
         "orchest-api": {
@@ -178,6 +186,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
                 "PYTHONUNBUFFERED=TRUE",
+                f"GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
@@ -197,6 +206,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
                 f'HOST_REPO_DIR={env["HOST_REPO_DIR"]}',
                 f'HOST_OS={env["HOST_OS"]}',
                 "PYTHONUNBUFFERED=TRUE",
+                f"GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
@@ -217,6 +227,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
                 # Set a default log level because supervisor can't deal
                 # with non assigned env variables.
                 "ORCHEST_LOG_LEVEL=INFO",
+                f"GPU_ENABLED_INSTANCE={GPU_ENABLED_INSTANCE}",
             ],
             "HostConfig": {
                 "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
