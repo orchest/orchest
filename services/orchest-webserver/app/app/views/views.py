@@ -155,7 +155,6 @@ def register_views(app, db):
             "ENVIRONMENT_DEFAULTS",
             "ORCHEST_WEB_URLS",
             "CLOUD",
-            "GPU_REQUEST_URL",
             "GPU_ENABLED_INSTANCE",
             "CLOUD_UNMODIFIABLE_CONFIG_VALUES",
             "INTERCOM_APP_ID",

@@ -11,7 +11,7 @@ class Config:
 
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    CLOUD = os.environ.get("CLOUD") == "true"
+    CLOUD = _config.CLOUD
     ORCHEST_API_ADDRESS = _config.ORCHEST_API_ADDRESS
     CLOUD_URL = "https://cloud.orchest.io"
     GITHUB_URL = "https://github.com/orchest/orchest"

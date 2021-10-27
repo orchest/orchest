@@ -543,18 +543,10 @@ const EnvironmentEditView: React.FC = () => {
                                 <div className="docs-notice push-down-7">
                                   <p>
                                     This instance is not configured with a GPU.
-                                    To request a GPU instance please fill out
-                                    this{" "}
-                                    <a
-                                      target="_blank"
-                                      href={
-                                        context.state?.config["GPU_REQUEST_URL"]
-                                      }
-                                      rel="noreferrer"
-                                    >
-                                      form
-                                    </a>
-                                    .
+                                    Change the instance type to a GPU enabled
+                                    one if you need GPU pass-through. Steps
+                                    using this environment will work regardless,
+                                    but no GPU pass-through will take place.
                                   </p>
                                 </div>
                               );
@@ -563,7 +555,7 @@ const EnvironmentEditView: React.FC = () => {
                                 <div className="docs-notice push-down-7">
                                   {enabledBlock}
                                   <p>
-                                    Check out{" "}
+                                    Could not detect a GPU. Check out{" "}
                                     <a
                                       target="_blank"
                                       href={
@@ -578,7 +570,9 @@ const EnvironmentEditView: React.FC = () => {
                                     to make sure Orchest is properly configured
                                     for environments with GPU support. In
                                     particular, make sure the selected base
-                                    image supports GPU pass through.
+                                    image supports GPU pass through. Steps using
+                                    this environment will work regardless, but
+                                    no GPU pass-through will take place.
                                   </p>
                                 </div>
                               );

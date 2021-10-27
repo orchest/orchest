@@ -1,3 +1,6 @@
+from _orchest.internals import config as _config
+
+
 class Config:
     # TODO: Should we read these from ENV variables instead?
     DEBUG = False
@@ -14,6 +17,8 @@ class Config:
     # How often to run the scheduling logic when the process is running
     # as scheduler, in seconds.
     SCHEDULER_INTERVAL = 10
+
+    GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
