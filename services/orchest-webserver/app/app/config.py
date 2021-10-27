@@ -63,7 +63,6 @@ class Config:
     # The port nginx will listen on. Necessary for a proper restart.
     ORCHEST_PORT = os.getenv("ORCHEST_PORT", 8000)
     CLOUD = _config.CLOUD
-    GPU_REQUEST_URL = "https://www.orchest.io/redirect-request-gpu"
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
     INTERCOM_APP_ID = "v61sr629"
