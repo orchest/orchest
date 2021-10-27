@@ -4,3 +4,4 @@ venv/
 .venvs/
 npm_modules/
 dist/
+pnpm-lock.yaml
