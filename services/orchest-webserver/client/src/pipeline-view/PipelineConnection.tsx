@@ -1,6 +1,5 @@
-import * as React from "react";
-
 import { globalMDCVars } from "@orchest/lib-utils";
+import * as React from "react";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 

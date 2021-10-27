@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCTabBar } from "@material/tab-bar";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCTabBarReact extends React.Component<any, any> {

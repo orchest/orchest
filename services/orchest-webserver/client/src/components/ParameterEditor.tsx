@@ -1,7 +1,7 @@
-import * as React from "react";
+import "codemirror/mode/javascript/javascript";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
-import "codemirror/mode/javascript/javascript";
 
 export interface IParameterEditorProps {
   strategyJSON?: any;
@@ -104,9 +104,8 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
             ) {
               return (
                 <>
-                  {/* 
-                   // @ts-ignore */}
                   <CodeMirror
+                    onBeforeChange={() => null}
                     value={
                       state.strategyJSON[state.activeParameter.strategyJSONKey]
                         .parameters[state.activeParameter.key]

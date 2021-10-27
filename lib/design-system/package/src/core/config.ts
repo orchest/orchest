@@ -163,8 +163,8 @@ export const stitches = createCss({
     inset: (config) => (
       value:
         | keyof typeof config["theme"]["space"]
-        | (string & {})
-        | (number & {})
+        | (string & Record<string, unknown>)
+        | (number & Record<string, unknown>)
     ) => ({
       top: value,
       right: value,

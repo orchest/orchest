@@ -1,23 +1,10 @@
 // @ts-nocheck
 
+import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
-import PipelineStep, {
-  ExecutionState,
-  STEP_HEIGHT,
-  STEP_WIDTH,
-} from "./PipelineStep";
-import {
-  PromiseManager,
-  RefManager,
-  activeElementIsInput,
-  collapseDoubleDots,
-  intersectRect,
-  makeCancelable,
-  makeRequest,
-  uuidv4,
-} from "@orchest/lib-utils";
-import React, { useEffect, useRef, useState } from "react";
-import { Rectangle, getStepSelectorRectangle } from "./Rectangle";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import type { PipelineJson } from "@/types";
+import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
   checkGate,
   filterServices,
@@ -27,18 +14,30 @@ import {
   serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
-
-import { Layout } from "@/components/Layout";
 import { MDCButtonReact } from "@orchest/lib-mdc";
+import {
+  activeElementIsInput,
+  collapseDoubleDots,
+  intersectRect,
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+  RefManager,
+  uuidv4,
+} from "@orchest/lib-utils";
+import _ from "lodash";
+import React, { useEffect, useRef, useState } from "react";
+import io from "socket.io-client";
+import { siteMap } from "../Routes";
+import { useHotKey } from "./hooks/useHotKey";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
-import type { PipelineJson } from "@/types";
-import _ from "lodash";
-import io from "socket.io-client";
-import { layoutPipeline } from "@/utils/pipeline-layout";
-import { siteMap } from "../Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useHotKey } from "./hooks/useHotKey";
+import PipelineStep, {
+  ExecutionState,
+  STEP_HEIGHT,
+  STEP_WIDTH,
+} from "./PipelineStep";
+import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;

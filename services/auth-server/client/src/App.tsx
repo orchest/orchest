@@ -1,10 +1,8 @@
 // @ts-nocheck
+import { makeRequest } from "@orchest/lib-utils";
+import * as React from "react";
 import Admin from "./views/Admin";
 import Login from "./views/Login";
-
-import { makeRequest } from "@orchest/lib-utils";
-
-import * as React from "react";
 
 export default class App extends React.Component {
   constructor(props) {

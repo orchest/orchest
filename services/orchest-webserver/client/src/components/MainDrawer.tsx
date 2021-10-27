@@ -1,9 +1,8 @@
-import React, { useRef } from "react";
-import { siteMap, toQueryString } from "../routingConfig";
-
-import { MDCDrawer } from "@material/drawer";
-import { NavLink } from "react-router-dom";
 import { useOrchest } from "@/hooks/orchest";
+import { MDCDrawer } from "@material/drawer";
+import React, { useRef } from "react";
+import { NavLink } from "react-router-dom";
+import { siteMap, toQueryString } from "../routingConfig";
 
 const getProjectMenuItems = (projectUuid: string) => [
   {

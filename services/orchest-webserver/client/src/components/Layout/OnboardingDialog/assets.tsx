@@ -1,5 +1,5 @@
-import * as React from "react";
-import { styled, ExtractVariants, ICSSProp } from "@orchest/design-system";
+import { ExtractVariants, ICSSProp, styled } from "@orchest/design-system";
+import React from "react";
 
 const PipelineDiagramSvg = styled("svg", {
   include: "box",
@@ -14,10 +14,10 @@ type TPipelineDiagramVariants = ExtractVariants<typeof PipelineDiagramSvg>;
 
 interface IPipelineDiagramProps extends TPipelineDiagramVariants, ICSSProp {}
 
-export const PipelineDiagram = React.forwardRef<
-  TPipelineDiagramRef,
+const ForwardedPipelineDiagram: React.ForwardRefRenderFunction<
+  SVGSVGElement,
   IPipelineDiagramProps
->((props, ref) => (
+> = (props, ref) => (
   <PipelineDiagramSvg
     ref={ref}
     width="366"
@@ -150,4 +150,9 @@ export const PipelineDiagram = React.forwardRef<
       </filter>
     </defs>
   </PipelineDiagramSvg>
-));
+);
+
+export const PipelineDiagram = React.forwardRef<
+  TPipelineDiagramRef,
+  IPipelineDiagramProps
+>(ForwardedPipelineDiagram);

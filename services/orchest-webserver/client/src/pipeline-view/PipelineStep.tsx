@@ -1,6 +1,5 @@
-import * as React from "react";
-
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;

@@ -1,6 +1,5 @@
-import React from "react";
-
 import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
+import React from "react";
 
 const ImportSuccessDialog: React.FC<{
   projectName: string;

@@ -1,5 +1,5 @@
-import useSWR from "swr";
 import { wrapNumber } from "@/utils/wrap-number";
+import useSWR from "swr";
 import { onboardingDialogCarouselSlides } from "./content";
 
 export const useOnboardingDialogCarousel = () => {

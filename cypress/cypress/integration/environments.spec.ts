@@ -1,5 +1,8 @@
-import { TEST_ID, SAMPLE_PROJECT_NAMES } from "../support/common";
-import { assertTotalEnvironmentImages } from "../support/common";
+import {
+  assertTotalEnvironmentImages,
+  SAMPLE_PROJECT_NAMES,
+  TEST_ID,
+} from "../support/common";
 
 describe("environments", () => {
   beforeEach(() => {

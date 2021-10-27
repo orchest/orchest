@@ -1,13 +1,8 @@
-import "codemirror/mode/shell/shell";
-
-import {
-  DEFAULT_BASE_IMAGES,
-  LANGUAGE_MAP,
-  PromiseManager,
-  RefManager,
-  makeCancelable,
-  makeRequest,
-} from "@orchest/lib-utils";
+import ImageBuildLog from "@/components/ImageBuildLog";
+import { Layout } from "@/components/Layout";
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
 import {
   MDCButtonReact,
@@ -18,15 +13,18 @@ import {
   MDCTabBarReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
-
-import { Controlled as CodeMirror } from "react-codemirror2";
-import ImageBuildLog from "@/components/ImageBuildLog";
-import { Layout } from "@/components/Layout";
+import {
+  DEFAULT_BASE_IMAGES,
+  LANGUAGE_MAP,
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+  RefManager,
+  uuidv4,
+} from "@orchest/lib-utils";
+import "codemirror/mode/shell/shell";
 import React from "react";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useOrchest } from "@/hooks/orchest";
-import { uuidv4 } from "@orchest/lib-utils";
+import { Controlled as CodeMirror } from "react-codemirror2";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 

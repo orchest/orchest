@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCCircularProgress } from "@material/circular-progress";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCCircularProgressReact extends React.Component<any> {

@@ -1,5 +1,5 @@
-import React from "react";
 import { MDCDataTableReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import React from "react";
 
 interface ForwardedSearchableTableProps {
   getSelectedRowIndices: () => number[];

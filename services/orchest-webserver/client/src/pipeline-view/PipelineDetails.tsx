@@ -1,9 +1,9 @@
-import * as React from "react";
-import { RefManager } from "@orchest/lib-utils";
-import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
-import PipelineDetailsProperties from "./PipelineDetailsProperties";
-import PipelineDetailsLogs from "./PipelineDetailsLogs";
 import { useLocalStorage } from "@/hooks/local-storage";
+import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
+import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
+import PipelineDetailsLogs from "./PipelineDetailsLogs";
+import PipelineDetailsProperties from "./PipelineDetailsProperties";
 
 const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const { $ } = window;

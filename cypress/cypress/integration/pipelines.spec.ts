@@ -1,12 +1,12 @@
 import {
   assertEnvIsBuilt,
-  waitForJupyterlab,
-  TEST_ID,
-  PROJECTS_DIR,
-  SAMPLE_PROJECT_NAMES,
-  SAMPLE_PIPELINE_NAMES,
-  SAMPLE_STEP_NAMES,
   piped_click,
+  PROJECTS_DIR,
+  SAMPLE_PIPELINE_NAMES,
+  SAMPLE_PROJECT_NAMES,
+  SAMPLE_STEP_NAMES,
+  TEST_ID,
+  waitForJupyterlab,
 } from "../support/common";
 
 let pathTestCases = [

@@ -1,5 +1,5 @@
+import { Grid, ICSSProp, styled, TGridVariants } from "@orchest/design-system";
 import * as React from "react";
-import { styled, Grid, ICSSProp, TGridVariants } from "@orchest/design-system";
 
 const DescriptionPair = styled("div", {
   include: "box",

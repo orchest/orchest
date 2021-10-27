@@ -1,7 +1,7 @@
 // @ts-nocheck
-import * as React from "react";
-import { MDCTextFieldReact, MDCButtonReact } from "@orchest/lib-mdc";
+import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import { makeRequest } from "@orchest/lib-utils";
+import * as React from "react";
 
 export default class Login extends React.Component {
   constructor(props) {
@@ -110,15 +110,19 @@ export default class Login extends React.Component {
               </form>
             </div>
             <div className="utility-links">
-              <a target="_blank" href={this.props.documentationURL}>
+              <a
+                target="_blank"
+                href={this.props.documentationURL}
+                rel="noreferrer"
+              >
                 Documentation
               </a>
               <span> - </span>
-              <a target="_blank" href={this.props.githubURL}>
+              <a target="_blank" href={this.props.githubURL} rel="noreferrer">
                 GitHub
               </a>
               <span> - </span>
-              <a target="_blank" href={this.props.videosURL}>
+              <a target="_blank" href={this.props.videosURL} rel="noreferrer">
                 Video tutorials
               </a>
             </div>

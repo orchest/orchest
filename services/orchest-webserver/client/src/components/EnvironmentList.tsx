@@ -1,21 +1,20 @@
-import * as React from "react";
-
-import {
-  makeRequest,
-  makeCancelable,
-  PromiseManager,
-  RefManager,
-  LANGUAGE_MAP,
-} from "@orchest/lib-utils";
+import { useInterval } from "@/hooks/use-interval";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
 import {
   MDCButtonReact,
   MDCDataTableReact,
   MDCIconButtonToggleReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-import { useInterval } from "@/hooks/use-interval";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import {
+  LANGUAGE_MAP,
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+  RefManager,
+} from "@orchest/lib-utils";
+import * as React from "react";
 
 export interface IEnvironmentListProps {
   projectUuid: string;
@@ -284,9 +283,11 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         environmentBuilds[props.projectUuid + "-" + environment.uuid];
 
       listData.push([
-        <span>{environment.name}</span>,
-        <span>{LANGUAGE_MAP[environment.language]}</span>,
-        <span>
+        <span key={`${environment.uuid}-name`}>{environment.name}</span>,
+        <span key={`${environment.uuid}-language`}>
+          {LANGUAGE_MAP[environment.language]}
+        </span>,
+        <span key={`${environment.uuid}-enabled`}>
           {environment.gpu_support ? (
             <>
               <span>Enabled </span>
@@ -299,7 +300,9 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
             </>
           )}
         </span>,
-        <span>{environmentBuild ? environmentBuild.status : "NOT BUILT"}</span>,
+        <span key={`${environment.uuid}-status`}>
+          {environmentBuild ? environmentBuild.status : "NOT BUILT"}
+        </span>,
       ]);
     }
     return listData;

@@ -1,5 +1,3 @@
-import * as React from "react";
-
 import type {
   IOrchestConfig,
   IOrchestGet,
@@ -7,12 +5,12 @@ import type {
   IOrchestUserConfig,
   TOrchestAction,
 } from "@/types";
-import { isCurrentSession, isSession } from "./utils";
-
+import { uuidv4 } from "@orchest/lib-utils";
+import * as React from "react";
+import { useLocalStorage } from "../local-storage";
 import { OrchestContext } from "./context";
 import { OrchestSessionsProvider } from "./sessions";
-import { useLocalStorage } from "../local-storage";
-import { uuidv4 } from "@orchest/lib-utils";
+import { isCurrentSession, isSession } from "./utils";
 
 const reducer = (state: IOrchestState, action: TOrchestAction) => {
   switch (action.type) {

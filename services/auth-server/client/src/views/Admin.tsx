@@ -1,7 +1,7 @@
 // @ts-nocheck
-import * as React from "react";
-import { MDCTextFieldReact, MDCButtonReact } from "@orchest/lib-mdc";
+import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import { makeRequest } from "@orchest/lib-utils";
+import * as React from "react";
 
 export default class Admin extends React.Component {
   constructor(props) {

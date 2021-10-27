@@ -1,4 +1,7 @@
-import React from "react";
+import { Layout } from "@/components/Layout";
+import { useInterval } from "@/hooks/use-interval";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
   checkHeartbeat,
@@ -6,10 +9,7 @@ import {
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
-import { Layout } from "@/components/Layout";
-import { useInterval } from "@/hooks/use-interval";
-import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/routingConfig";
+import React from "react";
 
 const UpdateView: React.FC = () => {
   const { orchest } = window;

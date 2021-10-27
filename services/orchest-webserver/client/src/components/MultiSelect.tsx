@@ -1,11 +1,11 @@
-import * as React from "react";
 import {
-  styled,
-  useId,
   Box,
   IconButton,
   IconCrossSolid,
+  styled,
+  useId,
 } from "@orchest/design-system";
+import * as React from "react";
 
 const isValueWhitespace = (value: string) => !value.replace(/\s/g, "").length;
 const isNumeric = (value: string) => value.match("^\\d+$") != null;

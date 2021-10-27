@@ -1,20 +1,4 @@
 repos:
-  - repo: local
-    hooks:
-      - id: "pre-commit-package"
-        name: "package.json"
-        language: "system"
-        entry: "pnpm run pkg:check && pnpm run pkg:format"
-        pass_filenames: false
-        files: package.json$
-  - repo: local
-    hooks:
-      - id: "pre-commit-typescript"
-        name: "typescript"
-        language: "system"
-        entry: "pnpm run ts:check --r --parallel"
-        pass_filenames: false
-        files: \.(js|jsx|ts|tsx)$
   - repo: https://github.com/pycqa/isort
     rev: 5.6.4
     hooks:
@@ -32,6 +16,23 @@ repos:
           - prettier@2.1.2
           - typescript@4.3.2
           - prettier-plugin-organize-imports@2.3.4
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: "v7.32.0"
+    hooks:
+      - id: eslint
+        files: \.[jt]sx?$ # *.js, *.jsx, *.ts and *.tsx
+        types: [file]
+        additional_dependencies:
+          - eslint@7.32.0
+          - prettier@2.1.2
+          - typescript@4.3.2
+          - prettier-plugin-organize-imports@2.3.4
+          - eslint-config-prettier@8.3.0
+          - eslint-plugin-prettier@3.4.1
+          - eslint-plugin-react@7.24.0
+          - eslint-plugin-react-hooks@4.2.0
+          - "@typescript-eslint/eslint-plugin@4.29.3"
+          - "@typescript-eslint/parser@4.29.3"
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.8.4
     hooks:

@@ -1,23 +1,22 @@
-import React from "react";
-import { Link } from "react-router-dom";
-
-import {
-  makeRequest,
-  makeCancelable,
-  PromiseManager,
-} from "@orchest/lib-utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import { useOrchest } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
 import EnvVarList from "@/components/EnvVarList";
+import { Layout } from "@/components/Layout";
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap, toQueryString } from "@/Routes";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
-  OverflowListener,
   isValidEnvironmentVariableName,
+  OverflowListener,
 } from "@/utils/webserver-utils";
-import { siteMap, toQueryString } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import {
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+} from "@orchest/lib-utils";
+import React from "react";
+import { Link } from "react-router-dom";
 
 const ProjectSettingsView: React.FC = () => {
   // global states

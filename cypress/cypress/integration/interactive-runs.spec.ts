@@ -1,14 +1,14 @@
 import {
   assertEnvIsBuilt,
   mergeEnvVariables,
-  TEST_ID,
-  STEPS,
+  piped_click,
   PIPELINES,
-  SAMPLE_PROJECT_NAMES,
   SAMPLE_PIPELINE_NAMES,
+  SAMPLE_PROJECT_NAMES,
   SAMPLE_STEP_NAMES,
   setStepParameters,
-  piped_click,
+  STEPS,
+  TEST_ID,
 } from "../support/common";
 
 describe("interactive runs", () => {

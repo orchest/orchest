@@ -1,6 +1,6 @@
+import { ICSSProp, styled } from "@orchest/design-system";
+import { AnimatePresence, m } from "framer-motion";
 import * as React from "react";
-import { styled, ICSSProp } from "@orchest/design-system";
-import { m, AnimatePresence } from "framer-motion";
 import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
 export const OnboardingDialogCarousel = ({ children }) => {

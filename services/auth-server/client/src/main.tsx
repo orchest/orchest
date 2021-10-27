@@ -1,6 +1,6 @@
-import App from "./App";
 import React from "react";
 import ReactDOM from "react-dom";
+import App from "./App";
 
 // Get path components
 const view = window.location.pathname;

@@ -1,33 +1,32 @@
-import React from "react";
-
-import { m, AnimatePresence } from "framer-motion";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
 import {
-  styled,
   Box,
-  Flex,
   Dialog,
   DialogBody,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Flex,
   IconButton,
   IconCrossSolid,
+  styled,
   Text,
 } from "@orchest/design-system";
+import { MDCButtonReact } from "@orchest/lib-mdc";
+import { AnimatePresence, m } from "framer-motion";
+import React from "react";
 import { PipelineDiagram } from "./assets";
 import {
-  useOnboardingDialogCarousel,
-  onboardingDialogCarouselSlides,
   OnboardingDialogCarousel,
-  OnboardingDialogCarouselSlide,
   OnboardingDialogCarouselIndicator,
+  OnboardingDialogCarouselSlide,
+  onboardingDialogCarouselSlides,
   ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT,
+  useOnboardingDialogCarousel,
 } from "./OnboardingDialogCarousel";
 import { useOnboardingDialog } from "./use-onboarding-dialog";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const CodeHeader = styled("header", { include: "box", textAlign: "right" });
 const CodeHeading = styled("h1", {

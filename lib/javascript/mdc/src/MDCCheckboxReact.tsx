@@ -1,7 +1,7 @@
-import * as React from "react";
-import { MDCFormField } from "@material/form-field";
 import { MDCCheckbox } from "@material/checkbox";
+import { MDCFormField } from "@material/form-field";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCCheckboxReact extends React.Component<any> {
