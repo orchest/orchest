@@ -173,11 +173,6 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
     )
 
     GPU_ENABLED_INSTANCE = _utils.docker_has_gpu_capabilities()
-    # Format expected by the internal _config file.
-    if GPU_ENABLED_INSTANCE:
-        GPU_ENABLED_INSTANCE = "true"
-    else:
-        GPU_ENABLED_INSTANCE = "false"
 
     # name -> request body
     container_config = {

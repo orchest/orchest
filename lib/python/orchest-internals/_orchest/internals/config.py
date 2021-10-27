@@ -9,7 +9,7 @@ PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "true"
-GPU_ENABLED_INSTANCE = os.environ.get("GPU_ENABLED_INSTANCE") == "true"
+GPU_ENABLED_INSTANCE = os.environ.get("GPU_ENABLED_INSTANCE") == "True"
 
 # Databases
 database_naming_convention = {
