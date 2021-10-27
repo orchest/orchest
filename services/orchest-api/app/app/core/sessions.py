@@ -1017,6 +1017,7 @@ def _get_orchest_services_specs(
         "ORCHEST_HOST_GID,"
         "ORCHEST_SESSION_UUID,"
         "ORCHEST_SESSION_TYPE,"
+        "GPU_ENABLED_INSTANCE,"
     )
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
