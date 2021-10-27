@@ -287,7 +287,7 @@ def docker_has_gpu_capabilities(
     device_requests.append(DeviceRequest(count=-1, capabilities=[capabilities]))
     try:
         client.containers.run(
-            "orchest/base-kernel-py-gpu",
+            "orchest/base-kernel-py",
             device_requests=device_requests,
             **other_container_args,
         )
