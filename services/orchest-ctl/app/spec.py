@@ -359,17 +359,17 @@ def update_container_config_with_cloud(
     cloud_inject = {
         "orchest-webserver": {
             "Env": [
-                "CLOUD=true",
+                "CLOUD=True",
             ],
         },
         "update-server": {
             "Env": [
-                "CLOUD=true",
+                "CLOUD=True",
             ],
         },
         "auth-server": {
             "Env": [
-                "CLOUD=true",
+                "CLOUD=True",
             ],
         },
     }
