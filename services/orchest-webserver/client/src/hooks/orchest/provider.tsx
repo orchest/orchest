@@ -6,7 +6,7 @@ import type {
   TOrchestAction,
 } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
 import { useLocalStorage } from "../local-storage";
 import { OrchestContext } from "./context";
 import { OrchestSessionsProvider } from "./sessions";

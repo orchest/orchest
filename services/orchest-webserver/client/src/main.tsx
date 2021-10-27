@@ -3,6 +3,7 @@ import { makeRequest } from "@orchest/lib-utils";
 import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
 import ReactDOM from "react-dom";
+import { IntercomProvider } from "react-use-intercom";
 import App from "./App";
 import { OrchestProvider } from "./hooks/orchest";
 
@@ -29,14 +30,16 @@ window.addEventListener("load", () => {
   document.fonts.ready.then(() => {
     makeRequest("GET", "/async/server-config")
       .then((result) => {
-        let config = JSON.parse(result as string);
+        let serverConfig = JSON.parse(result as string);
 
         ReactDOM.render(
           <LazyMotion features={domMax}>
             <DesignSystemProvider>
-              <OrchestProvider {...config}>
-                <App />
-              </OrchestProvider>
+              <IntercomProvider appId={serverConfig.config.INTERCOM_APP_ID}>
+                <OrchestProvider {...serverConfig}>
+                  <App />
+                </OrchestProvider>
+              </IntercomProvider>
             </DesignSystemProvider>
           </LazyMotion>,
           document.querySelector("#root")

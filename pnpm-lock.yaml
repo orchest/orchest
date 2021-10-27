@@ -345,6 +345,7 @@ importers:
       react-github-btn: ^1.2.1
       react-minimal-pie-chart: 8.2.0
       react-router-dom: ^5.3.0
+      react-use-intercom: ^1.4.0
       sass-bin: ^1.42.3
       socket.io-client: ^2.3.0
       swr: 0.5.5
@@ -423,6 +424,7 @@ importers:
       react-github-btn: 1.2.1
       react-minimal-pie-chart: 8.2.0_react-dom@16.14.0+react@16.14.0
       react-router-dom: 5.3.0_react@16.14.0
+      react-use-intercom: 1.4.0_react-dom@16.14.0+react@16.14.0
       socket.io-client: 2.4.0
       swr: 0.5.5_react@16.14.0
       xterm: 4.14.1
@@ -4230,6 +4232,17 @@ packages:
       invariant: 2.2.4
       react: 16.14.0
       tslib: 1.14.1
+    dev: false
+
+  /react-use-intercom/1.4.0_react-dom@16.14.0+react@16.14.0:
+    resolution: {integrity: sha512-HqPp7nRnftREE01i88w2kYWOV45zvJt0Of6jtHflIBa3eKl1bAs/izZUINGCJ0DOdgAdlbLweAvJlP4VTzsJjQ==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    dependencies:
+      react: 16.14.0
+      react-dom: 16.14.0_react@16.14.0
     dev: false
 
   /react/16.14.0:
