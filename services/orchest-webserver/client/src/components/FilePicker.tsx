@@ -1,12 +1,10 @@
-import * as React from "react";
-
+import { MDCTextFieldReact } from "@orchest/lib-mdc";
 import {
-  RefManager,
   absoluteToRelativePath,
   collapseDoubleDots,
+  RefManager,
 } from "@orchest/lib-utils";
-
-import { MDCTextFieldReact } from "@orchest/lib-mdc";
+import * as React from "react";
 
 /**
  * @typedef {{

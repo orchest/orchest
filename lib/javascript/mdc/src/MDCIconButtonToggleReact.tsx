@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCIconButtonToggle } from "@material/icon-button";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCIconButtonToggleReact extends React.Component<any> {

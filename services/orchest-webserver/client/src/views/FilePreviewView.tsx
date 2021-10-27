@@ -1,26 +1,24 @@
-import React from "react";
-import { Controlled as CodeMirror } from "react-codemirror2";
-import "codemirror/mode/python/python";
-import "codemirror/mode/shell/shell";
-import "codemirror/mode/r/r";
-
+import { Layout } from "@/components/Layout";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import {
+  getPipelineJSONEndpoint,
+  getPipelineStepChildren,
+  getPipelineStepParents,
+  setWithRetry,
+} from "@/utils/webserver-utils";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
+  makeCancelable,
   makeRequest,
   PromiseManager,
   RefManager,
-  makeCancelable,
 } from "@orchest/lib-utils";
-
-import { Layout } from "@/components/Layout";
-import {
-  getPipelineJSONEndpoint,
-  getPipelineStepParents,
-  getPipelineStepChildren,
-  setWithRetry,
-} from "@/utils/webserver-utils";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import "codemirror/mode/python/python";
+import "codemirror/mode/r/r";
+import "codemirror/mode/shell/shell";
+import React from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
 
 const MODE_MAPPING = {
   py: "text/x-python",

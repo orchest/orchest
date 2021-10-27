@@ -1,17 +1,15 @@
-import React from "react";
-import { useRouteMatch } from "react-router-dom";
-
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
 import {
   MDCButtonReact,
   MDCCircularProgressReact,
   MDCIconButtonToggleReact,
 } from "@orchest/lib-mdc";
-import { useOrchest } from "@/hooks/orchest";
+import React from "react";
+import { useRouteMatch } from "react-router-dom";
 import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
-
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;

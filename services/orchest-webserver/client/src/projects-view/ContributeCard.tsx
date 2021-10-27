@@ -1,5 +1,5 @@
-import React from "react";
 import { MDCButtonReact, MDCCardReact } from "@orchest/lib-mdc";
+import React from "react";
 
 const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
   style = {},

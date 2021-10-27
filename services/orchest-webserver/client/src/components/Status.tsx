@@ -1,17 +1,17 @@
-import * as React from "react";
 import {
-  Text,
+  IconCheckCircleOutline,
   IconCheckSolid,
   IconClockOutline,
+  IconCrossCircleOutline,
   IconCrossSolid,
   IconDraftCircleOutline,
-  IconCheckCircleOutline,
-  IconCrossCircleOutline,
-  styled,
   IconDraftOutline,
   ICSSProp,
   ITextProps,
+  styled,
+  Text,
 } from "@orchest/design-system";
+import * as React from "react";
 
 export type TStatus =
   | "DRAFT"
@@ -21,7 +21,7 @@ export type TStatus =
   | "SUCCESS"
   | "ABORTED"
   | "FAILURE"
-  | ({} & string);
+  | (Record<string, unknown> & string);
 
 const StatusInlineRoot = styled(Text, {
   include: "box",

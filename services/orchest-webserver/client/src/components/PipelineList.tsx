@@ -1,23 +1,22 @@
-import React from "react";
-
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import {
-  makeRequest,
+  MDCButtonReact,
+  MDCDataTableReact,
+  MDCDialogReact,
+  MDCIconButtonToggleReact,
+  MDCLinearProgressReact,
+  MDCTextFieldReact,
+} from "@orchest/lib-mdc";
+import {
   makeCancelable,
+  makeRequest,
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import {
-  MDCIconButtonToggleReact,
-  MDCButtonReact,
-  MDCTextFieldReact,
-  MDCLinearProgressReact,
-  MDCDialogReact,
-  MDCDataTableReact,
-} from "@orchest/lib-mdc";
+import React from "react";
+import { siteMap } from "../Routes";
 import { checkGate } from "../utils/webserver-utils";
 import SessionToggleButton from "./SessionToggleButton";
-import { siteMap } from "../Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";

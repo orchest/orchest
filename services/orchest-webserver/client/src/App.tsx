@@ -1,20 +1,14 @@
-import React, { useRef } from "react";
-
-import { BrowserRouter as Router, Prompt } from "react-router-dom";
-
 import { useOrchest } from "@/hooks/orchest";
-
+import { Routes } from "@/Routes";
+import $ from "jquery";
+import React, { useRef } from "react";
+import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
-import Jupyter from "./jupyter/Jupyter";
-
-import { Routes } from "@/Routes";
-
-import { loadIntercom } from "./utils/webserver-utils";
 import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
-
-import $ from "jquery";
+import Jupyter from "./jupyter/Jupyter";
+import { loadIntercom } from "./utils/webserver-utils";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore

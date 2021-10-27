@@ -7,7 +7,7 @@
   "scripts": {
     "build": "./build.sh",
     "dev": "./build.sh --watch",
-    "lint": "pnpm eslint --fix --ext .ts,.tsx .",
+    "lint": "pnpm eslint --fix --quiet --ext .ts,.tsx .",
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
@@ -88,6 +88,7 @@
     "xterm-for-react": "^1.0.4"
   },
   "devDependencies": {
+    "@types/codemirror": "^5.60.5",
     "@types/jest": "^27.0.1",
     "@types/jquery": "^3.5.6",
     "@types/lodash": "^4.14.172",

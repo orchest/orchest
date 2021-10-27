@@ -1,7 +1,6 @@
-import * as React from "react";
-
 import { MDCList } from "@material/list";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 export class MDCDrawerReact extends React.Component<any> {
   refManager: RefManager;

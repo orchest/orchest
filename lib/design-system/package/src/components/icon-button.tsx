@@ -1,5 +1,5 @@
-import * as React from "react";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
+import * as React from "react";
 import { styled } from "../core";
 import type { ExtractVariants, ICSSProp } from "../types";
 
@@ -93,6 +93,8 @@ export type TIconButtonComponent = Polymorphic.ForwardRefComponent<
   IIconButtonProps
 >;
 
+/* eslint-disable react/display-name */
+
 export const IconButton: TIconButtonComponent = React.forwardRef(
   ({ label, ...props }, ref) => (
     <StyledIconButton
@@ -103,3 +105,5 @@ export const IconButton: TIconButtonComponent = React.forwardRef(
     />
   )
 );
+
+/* eslint-enable react/display-name */

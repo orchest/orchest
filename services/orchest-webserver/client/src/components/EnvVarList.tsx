@@ -1,11 +1,10 @@
-import * as React from "react";
+import { isValidEnvironmentVariableName } from "@/utils/webserver-utils";
 import {
   MDCButtonReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
-
-import { isValidEnvironmentVariableName } from "@/utils/webserver-utils";
+import * as React from "react";
 
 export interface IEnvVarListProps {
   value?: any;

@@ -20,7 +20,7 @@ module.exports = {
   rules: {
     "prefer-const": "off",
     "@typescript-eslint/explicit-module-boundary-types": "off",
-    "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/no-namespace": "warn",
     "react/prop-types": "off",
     "react/jsx-no-target-blank": "warn",
     "react-hooks/rules-of-hooks": "error",

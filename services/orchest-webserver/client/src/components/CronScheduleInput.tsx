@@ -1,7 +1,7 @@
-import * as React from "react";
-import cronstrue from "cronstrue";
-import parser from "cron-parser";
 import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import parser from "cron-parser";
+import cronstrue from "cronstrue";
+import * as React from "react";
 
 export interface ICronScheduleInputProps {
   disabled: boolean;

@@ -1,7 +1,6 @@
-import * as React from "react";
-
 import { MDCRipple } from "@material/ripple";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used in orchest-webserver and orchest-authserver
 export class MDCButtonReact extends React.Component<any> {

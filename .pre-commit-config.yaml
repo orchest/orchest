@@ -12,7 +12,7 @@ repos:
       - id: "pre-commit-typescript"
         name: "typescript"
         language: "system"
-        entry: "pnpm run ts:check --r --parallel"
+        entry: "pnpm exec eslint --fix --quiet --ext .ts,.tsx ."
         pass_filenames: false
         files: \.(js|jsx|ts|tsx)$
   - repo: https://github.com/pycqa/isort

@@ -1,23 +1,26 @@
 import * as deepEqual from "deep-equal";
 import {
   assertEnvIsBuilt,
-  mergeEnvVariables,
-  setJobParameter,
-  waitForJobStatus,
-  waitForJobRunsStatus,
-  dateTimeToInputString,
-  TEST_ID,
-  PROJECTS,
   DATA_DIR,
-  SAMPLE_JOB_NAMES,
+  dateTimeToInputString,
   JOB_STATUS,
+  mergeEnvVariables,
   piped_click,
+  PROJECTS,
+  SAMPLE_JOB_NAMES,
+  setJobParameter,
+  TEST_ID,
+  waitForJobRunsStatus,
+  waitForJobStatus,
 } from "../support/common";
 
 // Assumes to be in a JobView and that all runs can have their pipeline
 // view available, thus requiring the run to be started or in an end
 // state. Note that it currently supports parameters from 1 step.
-function verifyJobRunsParameters(stepName: string, expectedParameters: {}[]) {
+function verifyJobRunsParameters(
+  stepName: string,
+  expectedParameters: Record<string, unknown>[]
+) {
   let foundParamsIndexes = new Set();
   cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
     .its("length")

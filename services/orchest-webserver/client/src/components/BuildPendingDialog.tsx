@@ -1,16 +1,16 @@
-import React from "react";
+import { useOrchest } from "@/hooks/orchest";
+import { useInterval } from "@/hooks/use-interval";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import { Box } from "@orchest/design-system";
 import {
   MDCButtonReact,
   MDCDialogReact,
   MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
-import { Box } from "@orchest/design-system";
-import { RefManager, makeRequest } from "@orchest/lib-utils";
-import { useOrchest } from "@/hooks/orchest";
+import { makeRequest, RefManager } from "@orchest/lib-utils";
+import React from "react";
 import { checkGate } from "../utils/webserver-utils";
-import { siteMap } from "@/Routes";
-import { useInterval } from "@/hooks/use-interval";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 
 const buildFailMessage = `Some environment builds of this project have failed. 
   You can try building them again, 

@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCDataTable } from "@material/data-table";
 import { RefManager, someParentHasClass } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCDataTableReact extends React.Component<any, any> {

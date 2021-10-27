@@ -1,11 +1,10 @@
-import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
-import { format, parseISO } from "date-fns";
-
-import Ajv from "ajv";
-import _ from "lodash";
-import dashify from "dashify";
-import pascalcase from "pascalcase";
 import { pipelineSchema } from "@/utils/pipeline-schema";
+import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
+import Ajv from "ajv";
+import dashify from "dashify";
+import { format, parseISO } from "date-fns";
+import _ from "lodash";
+import pascalcase from "pascalcase";
 
 const ajv = new Ajv({
   allowUnionTypes: true,
@@ -185,7 +184,7 @@ export function checkGate(project_uuid) {
 export class OverflowListener {
   triggerOverflow: any;
 
-  constructor() {}
+  constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
 
   attach() {
     // check if ResizeObserver is defined
@@ -477,8 +476,8 @@ export function loadIntercom(
     ic("update", w.intercomSettings);
   } else {
     let d = document;
-    var i = function () {
-      i.c(arguments);
+    const i = function (...args) {
+      i.c(args);
     } as any;
     i.q = [];
     i.c = function (args) {

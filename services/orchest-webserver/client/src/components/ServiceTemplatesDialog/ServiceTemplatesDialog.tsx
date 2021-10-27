@@ -1,7 +1,4 @@
-import * as React from "react";
 import {
-  css,
-  styled,
   Dialog,
   DialogBody,
   DialogContent,
@@ -10,9 +7,11 @@ import {
   DialogTitle,
   Flex,
   IconServicesSolid,
+  styled,
 } from "@orchest/design-system";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import { templates, IServiceTemplate } from "./content";
+import * as React from "react";
+import { IServiceTemplate, templates } from "./content";
 
 // we'll extract this into the design-system later
 const CreateServiceButton = styled("button", {

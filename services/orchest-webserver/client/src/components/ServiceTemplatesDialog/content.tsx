@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   IconPostgreSQL,
   IconRedis,
@@ -7,6 +6,7 @@ import {
   IconVSCode,
 } from "@/icons";
 import { IconDraftOutline } from "@orchest/design-system";
+import * as React from "react";
 
 export interface IServiceTemplate {
   label: string;

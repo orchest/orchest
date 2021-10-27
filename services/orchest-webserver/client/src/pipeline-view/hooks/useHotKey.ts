@@ -1,5 +1,5 @@
-import { useRef, useCallback } from "react";
 import hotkeys from "hotkeys-js";
+import { useCallback, useRef } from "react";
 
 const useHotKey = (keys: string, scope = "all", _callback: () => void) => {
   const callbackRef = useRef<(event: KeyboardEvent) => void>();

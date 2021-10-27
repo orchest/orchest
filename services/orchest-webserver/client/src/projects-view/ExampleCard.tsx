@@ -1,13 +1,12 @@
-import React from "react";
-import classNames from "classnames";
-import GitHubButton from "react-github-btn";
-
+import { Example } from "@/types";
 import {
   MDCButtonReact,
-  MDCTooltipReact,
   MDCCardReact,
+  MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import { Example } from "@/types";
+import classNames from "classnames";
+import React from "react";
+import GitHubButton from "react-github-btn";
 
 type ExampleCardProps = Example & {
   startImport: (url: string) => void;

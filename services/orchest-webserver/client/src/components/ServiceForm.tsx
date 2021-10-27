@@ -1,6 +1,5 @@
-import * as React from "react";
-
-import { Box, styled } from "@orchest/design-system";
+import EnvVarList from "@/components/EnvVarList";
+import { Box } from "@orchest/design-system";
 import {
   MDCButtonReact,
   MDCCheckboxReact,
@@ -11,20 +10,19 @@ import {
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
 import {
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+} from "@orchest/lib-utils";
+import _ from "lodash";
+import * as React from "react";
+import { getServiceURLs } from "../utils/webserver-utils";
+import {
   MultiSelect,
   MultiSelectError,
   MultiSelectInput,
   MultiSelectLabel,
 } from "./MultiSelect";
-import {
-  PromiseManager,
-  makeCancelable,
-  makeRequest,
-} from "@orchest/lib-utils";
-
-import EnvVarList from "@/components/EnvVarList";
-import _ from "lodash";
-import { getServiceURLs } from "../utils/webserver-utils";
 
 const ServiceForm: React.FC<any> = (props) => {
   const environmentPrefix = "environment@";

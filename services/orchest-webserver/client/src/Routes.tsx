@@ -1,9 +1,7 @@
-import { Redirect, Route, Switch } from "react-router-dom";
-import { orderedRoutes, siteMap, toQueryString } from "./routingConfig";
-
-import React from "react";
-import { useLocation } from "react-router-dom";
 import { useOrchest } from "@/hooks/orchest";
+import React from "react";
+import { Redirect, Route, Switch, useLocation } from "react-router-dom";
+import { orderedRoutes, siteMap, toQueryString } from "./routingConfig";
 
 const Routes = () => {
   let location = useLocation();

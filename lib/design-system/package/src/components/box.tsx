@@ -4,7 +4,7 @@ import type { ICSSProp } from "../types";
 
 const DEFAULT_TAG = "div";
 
-export interface IBoxProps extends ICSSProp {}
+export type IBoxProps = ICSSProp;
 export type TBoxComponent = Polymorphic.ForwardRefComponent<
   typeof DEFAULT_TAG,
   IBoxProps

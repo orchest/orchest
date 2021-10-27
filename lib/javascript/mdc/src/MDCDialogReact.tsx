@@ -1,6 +1,6 @@
-import React from "react";
 import { MDCDialog } from "@material/dialog";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
+import React from "react";
 
 // used only in orchest-webserver
 

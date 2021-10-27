@@ -7,15 +7,14 @@
   "scripts": {
     "build": "./build.sh",
     "dev": "./build.sh --watch",
+    "lint": "pnpm eslint --fix --quiet --ext .ts,.tsx .",
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@orchest/lib-mdc": "workspace:*",
-    "@orchest/lib-utils": "workspace:*",
     "@material/animation": "^13.0.0",
     "@material/auto-init": "^13.0.0",
-    "@material/base": "^13.0.0",
     "@material/banner": "^13.0.0",
+    "@material/base": "^13.0.0",
     "@material/button": "^13.0.0",
     "@material/card": "^13.0.0",
     "@material/checkbox": "^13.0.0",
@@ -60,14 +59,21 @@
     "@material/top-app-bar": "^13.0.0",
     "@material/touch-target": "^13.0.0",
     "@material/typography": "^13.0.0",
+    "@orchest/lib-mdc": "workspace:*",
+    "@orchest/lib-utils": "workspace:*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "sass-bin": "^1.42.3",
     "esbuild": "0.13.4",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.1",
+    "eslint-plugin-react": "^7.24.0",
+    "eslint-plugin-react-hooks": "^4.2.0",
     "prettier": "2.1.2",
     "prettier-plugin-organize-imports": "2.3.4",
+    "sass-bin": "^1.42.3",
     "typescript": "4.3.2"
   }
 }

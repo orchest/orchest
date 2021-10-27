@@ -1,6 +1,6 @@
 import * as React from "react";
-import { styled, config } from "../core";
-import { ExtractVariants, ICSSProp, CSS } from "../types";
+import { config, styled } from "../core";
+import { CSS, ExtractVariants, ICSSProp } from "../types";
 
 const getSizes = Object.keys(config.theme.space).reduce(
   (acc, cv) => ({ ...acc, [`${cv}`]: { $$iconSize: `$space$${cv}` } }),
@@ -25,6 +25,8 @@ export const Icon = styled("svg", {
 
 export type IIconRef = SVGSVGElement;
 export interface IIconProps extends ExtractVariants<typeof Icon>, ICSSProp {}
+
+/* eslint-disable react/display-name */
 
 export const IconCheckSolid = React.forwardRef<IIconRef, IIconProps>(
   (props, ref) => (
@@ -283,3 +285,5 @@ export const IconServicesSolid = React.forwardRef<IIconRef, IIconProps>(
     </Icon>
   )
 );
+
+/* eslint-enable react/display-name */

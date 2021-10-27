@@ -3,9 +3,23 @@ lockfileVersion: 5.3
 importers:
   .:
     specifiers:
+      eslint: ^7.32.0
+      eslint-config-prettier: ^8.3.0
+      eslint-plugin-prettier: ^3.4.1
+      eslint-plugin-react: ^7.24.0
+      eslint-plugin-react-hooks: ^4.2.0
+      prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4
       syncpack: 5.7.11
       typescript: 4.3.2
     devDependencies:
+      eslint: 7.32.0
+      eslint-config-prettier: 8.3.0_eslint@7.32.0
+      eslint-plugin-prettier: 3.4.1_d52790e4558093d069bcb1189ab57b0a
+      eslint-plugin-react: 7.26.1_eslint@7.32.0
+      eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
+      prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4_prettier@2.1.2+typescript@4.3.2
       syncpack: 5.7.11
       typescript: 4.3.2
 
@@ -17,6 +31,13 @@ importers:
       cypress-localstorage-commands: 1.5.0
       cypress-pipe: 2.0.0
       deep-equal: 2.0.5
+      eslint: ^7.32.0
+      eslint-config-prettier: ^8.3.0
+      eslint-plugin-prettier: ^3.4.1
+      eslint-plugin-react: ^7.24.0
+      eslint-plugin-react-hooks: ^4.2.0
+      prettier: 2.1.2
+      react: ^16.13.1
       typescript: 4.3.2
     devDependencies:
       "@testing-library/cypress": 7.0.7_cypress@8.6.0
@@ -25,6 +46,13 @@ importers:
       cypress-localstorage-commands: 1.5.0_cypress@8.6.0
       cypress-pipe: 2.0.0
       deep-equal: 2.0.5
+      eslint: 7.32.0
+      eslint-config-prettier: 8.3.0_eslint@7.32.0
+      eslint-plugin-prettier: 3.4.1_d52790e4558093d069bcb1189ab57b0a
+      eslint-plugin-react: 7.26.1_eslint@7.32.0
+      eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
+      prettier: 2.1.2
+      react: 16.14.0
       typescript: 4.3.2
 
   lib/design-system/package:
@@ -38,7 +66,14 @@ importers:
       "@types/react": 17.0.3
       concurrently: 6.0.2
       esbuild: 0.13.4
+      eslint: ^7.32.0
+      eslint-config-prettier: ^8.3.0
+      eslint-plugin-prettier: ^3.4.1
+      eslint-plugin-react: ^7.24.0
+      eslint-plugin-react-hooks: ^4.2.0
       fs-extra: 10.0.0
+      prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4
       react: ^16.13.1
       react-dom: ^16.13.1
       stitches-mixins: 0.2.1
@@ -57,7 +92,14 @@ importers:
       "@types/react": 17.0.3
       concurrently: 6.0.2
       esbuild: 0.13.4
+      eslint: 7.32.0
+      eslint-config-prettier: 8.3.0_eslint@7.32.0
+      eslint-plugin-prettier: 3.4.1_d52790e4558093d069bcb1189ab57b0a
+      eslint-plugin-react: 7.26.1_eslint@7.32.0
+      eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
       fs-extra: 10.0.0
+      prettier: 2.1.2
+      prettier-plugin-organize-imports: 2.3.4_prettier@2.1.2+typescript@4.3.2
       react: 16.14.0
       react-dom: 16.14.0_react@16.14.0
       ts-node: 9.1.1_typescript@4.3.2
@@ -86,6 +128,12 @@ importers:
       "@material/typography": ^13.0.0
       "@orchest/lib-utils": workspace:*
       "@types/react": 17.0.3
+      eslint: ^7.32.0
+      eslint-config-prettier: ^8.3.0
+      eslint-plugin-prettier: ^3.4.1
+      eslint-plugin-react: ^7.24.0
+      eslint-plugin-react-hooks: ^4.2.0
+      prettier: 2.1.2
       react: ^16.13.1
       react-dom: ^16.13.1
       typescript: 4.3.2
@@ -113,16 +161,34 @@ importers:
       react-dom: 16.14.0_react@16.14.0
     devDependencies:
       "@types/react": 17.0.3
+      eslint: 7.32.0
+      eslint-config-prettier: 8.3.0_eslint@7.32.0
+      eslint-plugin-prettier: 3.4.1_d52790e4558093d069bcb1189ab57b0a
+      eslint-plugin-react: 7.26.1_eslint@7.32.0
+      eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
+      prettier: 2.1.2
       typescript: 4.3.2
 
   lib/javascript/utils:
     specifiers:
       "@types/react": 17.0.3
+      eslint: ^7.32.0
+      eslint-config-prettier: ^8.3.0
+      eslint-plugin-prettier: ^3.4.1
+      eslint-plugin-react: ^7.24.0
+      eslint-plugin-react-hooks: ^4.2.0
+      prettier: 2.1.2
       react: ^16.13.1
       react-dom: ^16.13.1
       typescript: 4.3.2
     devDependencies:
       "@types/react": 17.0.3
+      eslint: 7.32.0
+      eslint-config-prettier: 8.3.0_eslint@7.32.0
+      eslint-plugin-prettier: 3.4.1_d52790e4558093d069bcb1189ab57b0a
+      eslint-plugin-react: 7.26.1_eslint@7.32.0
+      eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
+      prettier: 2.1.2
       react: 16.14.0
       react-dom: 16.14.0_react@16.14.0
       typescript: 4.3.2
@@ -180,6 +246,11 @@ importers:
       "@orchest/lib-mdc": workspace:*
       "@orchest/lib-utils": workspace:*
       esbuild: 0.13.4
+      eslint: ^7.32.0
+      eslint-config-prettier: ^8.3.0
+      eslint-plugin-prettier: ^3.4.1
+      eslint-plugin-react: ^7.24.0
+      eslint-plugin-react-hooks: ^4.2.0
       prettier: 2.1.2
       prettier-plugin-organize-imports: 2.3.4
       react: ^16.13.1
@@ -241,6 +312,11 @@ importers:
       react-dom: 16.14.0_react@16.14.0
     devDependencies:
       esbuild: 0.13.4
+      eslint: 7.32.0
+      eslint-config-prettier: 8.3.0_eslint@7.32.0
+      eslint-plugin-prettier: 3.4.1_d52790e4558093d069bcb1189ab57b0a
+      eslint-plugin-react: 7.26.1_eslint@7.32.0
+      eslint-plugin-react-hooks: 4.2.0_eslint@7.32.0
       prettier: 2.1.2
       prettier-plugin-organize-imports: 2.3.4_prettier@2.1.2+typescript@4.3.2
       sass-bin: 1.42.3
@@ -298,6 +374,7 @@ importers:
       "@orchest/design-system": workspace:*
       "@orchest/lib-mdc": workspace:*
       "@orchest/lib-utils": workspace:*
+      "@types/codemirror": ^5.60.5
       "@types/jest": ^27.0.1
       "@types/jquery": ^3.5.6
       "@types/lodash": ^4.14.172
@@ -420,6 +497,7 @@ importers:
       xterm-addon-fit: 0.4.0_xterm@4.14.1
       xterm-for-react: 1.0.4_react-dom@16.14.0+react@16.14.0
     devDependencies:
+      "@types/codemirror": 5.60.5
       "@types/jest": 27.0.2
       "@types/jquery": 3.5.6
       "@types/lodash": 4.14.175
@@ -1705,6 +1783,22 @@ packages:
       }
     dev: true
 
+  /@types/codemirror/5.60.5:
+    resolution:
+      {
+        integrity: sha512-TiECZmm8St5YxjFUp64LK0c8WU5bxMDt9YaAek1UqUb9swrSCoJhh92fWu1p3mTEqlHjhB5sY7OFBhWroJXZVg==,
+      }
+    dependencies:
+      "@types/tern": 0.23.4
+    dev: true
+
+  /@types/estree/0.0.50:
+    resolution:
+      {
+        integrity: sha512-C6N5s2ZFtuZRj54k2/zyRhNDjJwwcViAM3Nbm8zjBpbqAdZ00mr0CFxvSKeO8Y/e03WVFLpQMdHYVfUd6SB+Hw==,
+      }
+    dev: true
+
   /@types/history/4.7.9:
     resolution:
       {
@@ -1876,6 +1970,15 @@ packages:
       {
         integrity: sha512-JYM8x9EGF163bEyhdJBpR2QX1R5naCJHC8ucJylJ3w9/CVBaskdQ8WqBf8MmQrd1kRvp/a4TS8HJ+bxzR7ZJYQ==,
       }
+    dev: true
+
+  /@types/tern/0.23.4:
+    resolution:
+      {
+        integrity: sha512-JAUw1iXGO1qaWwEOzxTKJZ/5JxVeON9kvGZ/osgZaJImBnyjyn0cjovPsf6FNLmyGY8Vw9DoXZCMlfMkMwHRWg==,
+      }
+    dependencies:
+      "@types/estree": 0.0.50
     dev: true
 
   /@types/yargs-parser/20.2.1:

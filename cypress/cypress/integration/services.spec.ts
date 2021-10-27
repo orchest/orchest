@@ -1,15 +1,15 @@
 import {
   assertEnvIsBuilt,
-  TEST_ID,
-  PROJECTS,
   DATA_DIR,
-  PROJECTS_DIR,
   getJobProjectDirPath,
+  JOB_STATUS,
+  mergeEnvVariables,
+  PROJECTS,
+  PROJECTS_DIR,
   SAMPLE_JOB_NAMES,
   SAMPLE_PROJECT_NAMES,
-  JOB_STATUS,
+  TEST_ID,
   waitForJobStatus,
-  mergeEnvVariables,
 } from "../support/common";
 
 function verifyExternalConnectivity(externalConnData: { string: [string] }) {

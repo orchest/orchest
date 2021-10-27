@@ -1,8 +1,7 @@
-import React from "react";
-import { useLocation } from "react-router-dom";
-
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import React from "react";
+import { useLocation } from "react-router-dom";
 
 // TODO: Currently this component is not used, we need a proper Page Not Found page
 // atm, wrong path will simply redirect back to ProjectsView

@@ -1,15 +1,15 @@
+import { useInterval } from "@/hooks/use-interval";
+import {
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+  RefManager,
+} from "@orchest/lib-utils";
 import * as React from "react";
 import io from "socket.io-client";
-import { XTerm } from "xterm-for-react";
 import { FitAddon } from "xterm-addon-fit";
-import {
-  makeRequest,
-  makeCancelable,
-  RefManager,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { XTerm } from "xterm-for-react";
 import { formatServerDateTime } from "../utils/webserver-utils";
-import { useInterval } from "@/hooks/use-interval";
 
 const BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
 

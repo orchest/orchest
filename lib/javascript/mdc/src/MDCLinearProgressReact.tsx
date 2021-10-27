@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCLinearProgress } from "@material/linear-progress";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCLinearProgressReact extends React.Component<any> {

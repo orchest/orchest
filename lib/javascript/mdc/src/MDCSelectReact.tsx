@@ -1,8 +1,6 @@
-import * as React from "react";
-
-import { RefManager, arraysEqual, uuidv4 } from "@orchest/lib-utils";
-
 import { MDCSelect } from "@material/select";
+import { arraysEqual, RefManager, uuidv4 } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCSelectReact extends React.Component<any> {
@@ -15,7 +13,6 @@ export class MDCSelectReact extends React.Component<any> {
 
     this.refManager = new RefManager();
   }
-  componentWillUnmount() {}
 
   componentDidMount() {
     this.initializeMDC();

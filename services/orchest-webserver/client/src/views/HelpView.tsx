@@ -1,11 +1,9 @@
-import * as React from "react";
-
 import { Layout, useLayout } from "@/components/Layout";
-
-import { MDCButtonReact } from "@orchest/lib-mdc";
-import { siteMap } from "@/routingConfig";
 import { useOrchest } from "@/hooks/orchest";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
+import { MDCButtonReact } from "@orchest/lib-mdc";
+import * as React from "react";
 
 const HelpView: React.FC = () => {
   const { state } = useOrchest();

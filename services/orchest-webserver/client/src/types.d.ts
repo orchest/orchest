@@ -1,5 +1,4 @@
 import React from "react";
-import { TStatus } from "./components/Status";
 
 export interface IOrchestConfig {
   CLOUD: boolean;
@@ -217,7 +216,7 @@ export type Job = {
     project_uuid: string | null;
     run_type: string;
   };
-  pipeline_runs: [];
+  pipeline_runs: any[];
   pipeline_uuid: string;
   project_uuid: string;
   schedule: string;

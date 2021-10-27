@@ -1,19 +1,16 @@
-import React from "react";
-
+import { useOrchest } from "@/hooks/orchest";
+import { useLocationQuery } from "@/hooks/useCustomRoute";
+import { Project } from "@/types";
+import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
 import {
   MDCButtonReact,
   MDCDialogReact,
   MDCLinearProgressReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
-import { useLocationQuery } from "@/hooks/useCustomRoute";
-
-import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
-
-import { useImportProject } from "./hooks/useImportProject";
 import { makeRequest } from "@orchest/lib-utils";
-import { Project } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
+import React from "react";
+import { useImportProject } from "./hooks/useImportProject";
 
 const PrefilledWarning = () => {
   return (

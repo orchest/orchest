@@ -1,8 +1,7 @@
-import React from "react";
-import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { useAsync } from "@/hooks/useAsync";
-
+import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { makeRequest, validURL } from "@orchest/lib-utils";
+import React from "react";
 
 const validProjectName = (
   projectName = ""

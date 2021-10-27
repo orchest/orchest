@@ -1,10 +1,8 @@
-import React from "react";
-
-import { Layout } from "@/components/Layout";
 import JobList from "@/components/JobList";
+import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
-
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import React from "react";
 
 const JobsView: React.FC = () => {
   const { projectUuid } = useCustomRoute();

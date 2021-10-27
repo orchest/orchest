@@ -1,7 +1,7 @@
 import {
   PROJECTS_DIR,
-  SAMPLE_PROJECT_NAMES,
   SAMPLE_PIPELINE_NAMES,
+  SAMPLE_PROJECT_NAMES,
   TEST_ID,
 } from "../support/common";
 
