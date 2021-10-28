@@ -33,16 +33,30 @@ jobs:
       - name: Get changed files
         id: getChangedFiles
         run: |
-          if [[ "${{ github.event.before }}" = "" ]]; then
+          # (1) Whenever we do a PR we want pre-commit to run on all the files that have changed
+          # with respect to the branch we want to merge into. We don't want to compare to the file
+          # changes w.r.t. the last commit on the PR branch.
+          # (2) Whenever `github.event.before` is empty, it means we have hit the edge case where a
+          # branch does not yet contain any commits. This happens whenever a PR is created (GitHub
+          # creates a special PR merge branch) and the branch we want to merge did not have any
+          # commits yet. So this should fall under the `pull_request` case, but wanted to be
+          # explicit in case we want to make changes in the future.
+          # (3) If `github.event.before` is equal to a bunch of zeros, then we have hit another edge
+          # case. Triggered when a first push has been made to a new release branch. For this case
+          # we make use of the fact that we will always merge the release branch into master.
+          if [[ "${{ github.event.before }}" = "" ]] || [[ "${{ github.event_name }}" = "pull_request" ]]; then
             echo "First deployment of new branch"
             # Piped into xargs so that all the lines are outputted in a single line (so no newline
             # characters).
             CHANGEDFILES="$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} ${{ github.sha }} | xargs)"
+          elif [[ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]]; then
+            echo "First push to a new release branch"
+            CHANGEDFILES="$(git diff --name-only HEAD^ HEAD | xargs)"
           else
             echo "Not the first deployment"
             # Piped into xargs so that all the lines are outputted in a single line (so no newline
             # characters).
-            CHANGEDFILES="$(git diff --name-only ${{ github.event.before}} ${{ github.sha }} | xargs)"
+            CHANGEDFILES="$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | xargs)"
           fi
           echo Found changed files: "$CHANGEDFILES"
           # https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#setting-an-output-parameter
