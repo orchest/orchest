@@ -1,8 +1,7 @@
-import React from "react";
-
-import { MDCButtonReact } from "@orchest/lib-mdc";
-import { siteMap } from "@/Routes";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import { MDCButtonReact } from "@orchest/lib-mdc";
+import React from "react";
 
 export interface IProjectBasedViewProps {
   projectUuid?: string;

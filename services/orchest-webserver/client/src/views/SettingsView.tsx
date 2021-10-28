@@ -1,20 +1,19 @@
-import React from "react";
-
-import { Controlled as CodeMirror } from "react-codemirror2";
-import _ from "lodash";
-import "codemirror/mode/javascript/javascript";
+import { Layout } from "@/components/Layout";
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/Routes";
 import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
-  makeRequest,
   checkHeartbeat,
-  PromiseManager,
   makeCancelable,
+  makeRequest,
+  PromiseManager,
 } from "@orchest/lib-utils";
-import { useOrchest } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
-import { siteMap } from "@/Routes";
-import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import "codemirror/mode/javascript/javascript";
+import _ from "lodash";
+import React from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
 
 const SettingsView: React.FC = () => {
   const { orchest } = window;
@@ -501,7 +500,9 @@ const SettingsView: React.FC = () => {
               }
             })()}
             <p className="push-up">
-              Orchest's current status is <i>{state.status}</i>.
+              {`Orchest's current status is `}
+              <i>{state.status}</i>
+              {`.`}
             </p>
           </div>
           <div className="clear"></div>

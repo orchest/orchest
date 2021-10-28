@@ -1,21 +1,14 @@
-import React, { useRef } from "react";
-
-import { BrowserRouter as Router, Prompt } from "react-router-dom";
-
 import { useOrchest } from "@/hooks/orchest";
-
+import { Routes } from "@/Routes";
+import $ from "jquery";
+import React, { useRef } from "react";
+import { BrowserRouter as Router, Prompt } from "react-router-dom";
+import { useIntercom } from "react-use-intercom";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
-import Jupyter from "./jupyter/Jupyter";
-
-import { Routes } from "@/Routes";
-
-import { loadIntercom } from "./utils/webserver-utils";
 import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
-
-import $ from "jquery";
-
+import Jupyter from "./jupyter/Jupyter";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 $.fn.overflowing = function () {
@@ -38,6 +31,7 @@ window.$ = $;
 
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
+  const { boot } = useIntercom();
 
   const sendEvent = useSendAnalyticEvent();
 
@@ -47,7 +41,7 @@ const App = () => {
   const dialogsRef = useRef(null);
 
   // load server side config populated by flask template
-  const { config } = context.state;
+  const { config, user_config } = context.state;
 
   React.useEffect(() => {
     if (config.FLASK_ENV === "development") {
@@ -57,11 +51,10 @@ const App = () => {
     if (config.CLOUD === true) {
       console.log("Orchest is running with --cloud.");
 
-      loadIntercom(
-        config["INTERCOM_APP_ID"],
-        config["INTERCOM_USER_EMAIL"],
-        config["INTERCOM_DEFAULT_SIGNUP_DATE"]
-      );
+      boot({
+        email: user_config.INTERCOM_USER_EMAIL,
+        createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
+      });
     }
   }, [config]);
 

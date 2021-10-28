@@ -1,36 +1,35 @@
-import { Box, Flex, Text } from "@orchest/design-system";
-import type { Job, PipelineJson } from "@/types";
-import {
-  MDCButtonReact,
-  MDCLinearProgressReact,
-  MDCTabBarReact,
-} from "@orchest/lib-mdc";
-import {
-  PromiseManager,
-  RefManager,
-  makeCancelable,
-  makeRequest,
-} from "@orchest/lib-utils";
-import React, { useState } from "react";
+import { DescriptionList } from "@/components/DescriptionList";
+import EnvVarList from "@/components/EnvVarList";
+import { Layout } from "@/components/Layout";
+import ParameterEditor from "@/components/ParameterEditor";
+import ParamTree from "@/components/ParamTree";
+import SearchableTable from "@/components/SearchableTable";
 import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import type { Job, PipelineJson } from "@/types";
+import { commaSeparatedString } from "@/utils/text";
 import {
   checkGate,
   envVariablesDictToArray,
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
-
-import { DescriptionList } from "@/components/DescriptionList";
-import EnvVarList from "@/components/EnvVarList";
-import { Layout } from "@/components/Layout";
-import ParamTree from "@/components/ParamTree";
-import ParameterEditor from "@/components/ParameterEditor";
-import { PieChart } from "react-minimal-pie-chart";
-import SearchableTable from "@/components/SearchableTable";
-import { commaSeparatedString } from "@/utils/text";
+import { Box, Flex, Text } from "@orchest/design-system";
+import {
+  MDCButtonReact,
+  MDCLinearProgressReact,
+  MDCTabBarReact,
+} from "@orchest/lib-mdc";
+import {
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+  RefManager,
+} from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import React, { useState } from "react";
+import { PieChart } from "react-minimal-pie-chart";
 
 type TSharedStatus = Extract<
   TStatus,
@@ -266,7 +265,10 @@ const JobView: React.FC = () => {
       rows.push([
         pipelineRuns[x].pipeline_run_index,
         formatPipelineParams(pipelineRuns[x].parameters),
-        <StatusInline status={pipelineRuns[x].status} />,
+        <StatusInline
+          key={pipelineRuns[x].pipeline_run_index}
+          status={pipelineRuns[x].status}
+        />,
         pipelineRuns[x].started_time ? (
           formatServerDateTime(pipelineRuns[x].started_time)
         ) : (
@@ -387,7 +389,7 @@ const JobView: React.FC = () => {
       if (pipelineRunRow.length > 0) {
         rows.push([pipelineRunRow.join(", ")]);
       } else {
-        rows.push([<i>Parameterless run</i>]);
+        rows.push([<i>Parameterless run</i>]); // eslint-disable-line react/jsx-key
       }
     }
 

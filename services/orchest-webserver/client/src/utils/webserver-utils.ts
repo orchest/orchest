@@ -1,12 +1,10 @@
-import _ from "lodash";
-import Ajv from "ajv";
-
-import { makeRequest, extensionFromFilename } from "@orchest/lib-utils";
-import { format, parseISO } from "date-fns";
-import dashify from "dashify";
-import pascalcase from "pascalcase";
-
 import { pipelineSchema } from "@/utils/pipeline-schema";
+import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
+import Ajv from "ajv";
+import dashify from "dashify";
+import { format, parseISO } from "date-fns";
+import _ from "lodash";
+import pascalcase from "pascalcase";
 
 const ajv = new Ajv({
   allowUnionTypes: true,
@@ -186,7 +184,7 @@ export function checkGate(project_uuid) {
 export class OverflowListener {
   triggerOverflow: any;
 
-  constructor() {}
+  constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
 
   attach() {
     // check if ResizeObserver is defined
@@ -463,54 +461,4 @@ export function pascalCaseToCapitalized(viewName) {
   const regex = /([A-Z])/gm;
   const subst = ` $1`;
   return viewName.replace(regex, subst).trim();
-}
-
-export function loadIntercom(
-  INTERCOM_APP_ID,
-  INTERCOM_USER_EMAIL,
-  INTERCOM_DEFAULT_SIGNUP_DATE
-) {
-  let w = window;
-  let ic = w.Intercom;
-  if (typeof ic === "function") {
-    ic("reattach_activator");
-    // @ts-ignore
-    ic("update", w.intercomSettings);
-  } else {
-    let d = document;
-    var i = function () {
-      i.c(arguments);
-    } as any;
-    i.q = [];
-    i.c = function (args) {
-      i.q.push(args);
-    };
-    w.Intercom = i;
-    let l = function () {
-      let s = d.createElement("script");
-      s.type = "text/javascript";
-      s.async = true;
-      s.src = "https://widget.intercom.io/widget/v61sr629";
-      let x = d.getElementsByTagName("script")[0];
-      x.parentNode.insertBefore(s, x);
-    };
-
-    // if (w.attachEvent) {
-    //   w.attachEvent("onload", l);
-    // } else {
-    //   w.addEventListener("load", l, false);
-    // }
-
-    // Modified original embed snippet as window.load
-    // has already triggered.
-    l();
-  }
-
-  // consumed by Intercom's function collector (i)
-  window.Intercom("boot", {
-    app_id: INTERCOM_APP_ID,
-    name: "",
-    email: INTERCOM_USER_EMAIL, // Email address
-    created_at: INTERCOM_DEFAULT_SIGNUP_DATE, // Signup date as a Unix timestamp
-  });
 }

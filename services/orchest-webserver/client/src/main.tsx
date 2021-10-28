@@ -1,13 +1,11 @@
-import { LazyMotion, domMax } from "framer-motion";
-
-import App from "./App";
-import { DesignSystemProvider } from "@orchest/design-system";
-import { OrchestProvider } from "./hooks/orchest";
-// @ts-check
+import { DesignSystemProvider, getCssString } from "@orchest/design-system";
+import { makeRequest } from "@orchest/lib-utils";
+import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
 import ReactDOM from "react-dom";
-import { getCssString } from "@orchest/design-system";
-import { makeRequest } from "@orchest/lib-utils";
+import { IntercomProvider } from "react-use-intercom";
+import App from "./App";
+import { OrchestProvider } from "./hooks/orchest";
 
 declare global {
   interface Document {
@@ -32,14 +30,16 @@ window.addEventListener("load", () => {
   document.fonts.ready.then(() => {
     makeRequest("GET", "/async/server-config")
       .then((result) => {
-        let config = JSON.parse(result as string);
+        let serverConfig = JSON.parse(result as string);
 
         ReactDOM.render(
           <LazyMotion features={domMax}>
             <DesignSystemProvider>
-              <OrchestProvider {...config}>
-                <App />
-              </OrchestProvider>
+              <IntercomProvider appId={serverConfig.config.INTERCOM_APP_ID}>
+                <OrchestProvider {...serverConfig}>
+                  <App />
+                </OrchestProvider>
+              </IntercomProvider>
             </DesignSystemProvider>
           </LazyMotion>,
           document.querySelector("#root")

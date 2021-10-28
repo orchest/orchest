@@ -1,8 +1,8 @@
+import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import AlertDialog from "./AlertDialog";
-import { uuidv4 } from "@orchest/lib-utils";
-import ConfirmDialog from "./ConfirmDialog";
 import BuildPendingDialog from "./BuildPendingDialog";
+import ConfirmDialog from "./ConfirmDialog";
 
 function newslines2breaks(lines: string) {
   if (lines === undefined) {

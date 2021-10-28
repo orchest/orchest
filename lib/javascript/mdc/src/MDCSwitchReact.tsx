@@ -1,8 +1,6 @@
-import * as React from "react";
-
-import { RefManager, uuidv4 } from "@orchest/lib-utils";
-
 import { MDCSwitch } from "@material/switch";
+import { RefManager, uuidv4 } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCSwitchReact extends React.Component<any> {

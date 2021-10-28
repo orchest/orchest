@@ -1,18 +1,15 @@
-import React from "react";
-
-import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
-
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { siteMap } from "@/routingConfig";
-
-import { ImportDialog } from "./ImportDialog";
-import { useFetchExamples } from "./hooks/useFetchExamples";
-import { Example } from "@/types";
-import { ExampleCard } from "./ExampleCard";
-import { ContributeCard } from "./ContributeCard";
-import { CommunityWarning } from "./CommunityWarning";
 import { useTransition } from "@/hooks/useTransition";
+import { siteMap } from "@/routingConfig";
+import { Example } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
+import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
+import React from "react";
+import { CommunityWarning } from "./CommunityWarning";
+import { ContributeCard } from "./ContributeCard";
+import { ExampleCard } from "./ExampleCard";
+import { useFetchExamples } from "./hooks/useFetchExamples";
+import { ImportDialog } from "./ImportDialog";
 import { ImportSuccessDialog } from "./ImportSuccessDialog";
 
 const pageHeaderText = `Don't start from scratch, use a template!`;

@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCTextField } from "@material/textfield";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used in orchest-webserver and orchest-authserver
 export class MDCTextFieldReact extends React.Component<any> {

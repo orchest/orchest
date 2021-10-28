@@ -1,17 +1,16 @@
 // @ts-check
-import React from "react";
-
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
+import { siteMap } from "@/routingConfig";
+import type { Project } from "@/types";
 import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
-import { useOrchest } from "@/hooks/orchest";
-import { siteMap } from "@/routingConfig";
-import type { Project } from "@/types";
-import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import React from "react";
 
 export type TProjectSelectorRef = any;
 

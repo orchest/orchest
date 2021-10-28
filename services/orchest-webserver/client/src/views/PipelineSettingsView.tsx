@@ -1,5 +1,19 @@
-import "codemirror/mode/javascript/javascript";
-
+import EnvVarList from "@/components/EnvVarList";
+import { Layout } from "@/components/Layout";
+import ServiceForm from "@/components/ServiceForm";
+import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import {
+  envVariablesArrayToDict,
+  envVariablesDictToArray,
+  getPipelineJSONEndpoint,
+  isValidEnvironmentVariableName,
+  OverflowListener,
+  validatePipeline,
+} from "@/utils/webserver-utils";
 import {
   Alert,
   AlertDescription,
@@ -18,32 +32,16 @@ import {
   MDCTextFieldReact,
   MDCTooltipReact,
 } from "@orchest/lib-mdc";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import {
-  OverflowListener,
-  envVariablesArrayToDict,
-  envVariablesDictToArray,
-  getPipelineJSONEndpoint,
-  isValidEnvironmentVariableName,
-  validatePipeline,
-} from "@/utils/webserver-utils";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
-import {
-  PromiseManager,
-  RefManager,
   makeCancelable,
   makeRequest,
+  PromiseManager,
+  RefManager,
 } from "@orchest/lib-utils";
-import React, { useRef, useState } from "react";
-
-import { Controlled as CodeMirror } from "react-codemirror2";
-import EnvVarList from "@/components/EnvVarList";
-import { Layout } from "@/components/Layout";
-import ServiceForm from "@/components/ServiceForm";
-import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
+import "codemirror/mode/javascript/javascript";
 import _ from "lodash";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import React, { useRef, useState } from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"

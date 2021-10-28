@@ -1,13 +1,13 @@
-import * as React from "react";
-import _ from "lodash";
+import { useOrchest } from "@/hooks/orchest";
 import {
   Alert,
-  AlertHeader,
   AlertDescription,
+  AlertHeader,
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-import { useOrchest } from "@/hooks/orchest";
+import _ from "lodash";
+import * as React from "react";
 
 export interface IParamTreeProps {
   pipelineName: string;
@@ -116,7 +116,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
         <Alert status="info">
           <AlertHeader>
             <IconLightBulbOutline />
-            This pipeline doesn't have any parameters defined
+            {`This pipeline doesn't have any parameters defined`}
           </AlertHeader>
           <AlertDescription>
             <>

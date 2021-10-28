@@ -1,9 +1,7 @@
-import React from "react";
-
 import { Layout } from "@/components/Layout";
-
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import React from "react";
 
 const ManageUsersView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.manageUsers.path });

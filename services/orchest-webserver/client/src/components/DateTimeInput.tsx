@@ -1,6 +1,6 @@
-import * as React from "react";
-import { parseISO } from "date-fns";
 import { MDCTextFieldReact } from "@orchest/lib-mdc";
+import { parseISO } from "date-fns";
+import * as React from "react";
 
 export type TDateTimeInputRef = any;
 export interface IDateTimeInputProps {

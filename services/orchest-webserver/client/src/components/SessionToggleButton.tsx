@@ -1,6 +1,6 @@
-import * as React from "react";
-import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
 import { useOrchest } from "@/hooks/orchest";
+import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
+import * as React from "react";
 
 export type TSessionToggleButtonRef = HTMLButtonElement;
 export interface ISessionToggleButtonProps

@@ -1,7 +1,6 @@
+import { siteMap } from "@/routingConfig";
 import React from "react";
 import { matchPath } from "react-router-dom";
-
-import { siteMap } from "@/routingConfig";
 import { useHistoryListener } from "./useCustomRoute";
 
 const projectRootPaths = [

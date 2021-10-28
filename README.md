@@ -54,9 +54,10 @@ docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html
 
 - [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
 
-> **NOTE:** On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside
-> the Linux environment. For more info and installation steps for Docker with WSL 2 backend, please
-> visit https://docs.docker.com/docker-for-windows/wsl/.
+> ‼️ On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the
+> Linux environment and run Orchest CLI commands inside a WSL terminal. For more info and
+> installation steps for Docker with WSL 2 backend, please visit
+> https://docs.docker.com/docker-for-windows/wsl/.
 
 #### Linux, macOS and Windows
 
@@ -116,3 +117,4 @@ for more details.
 <a href="https://github.com/kingabzpro"><img src="https://avatars.githubusercontent.com/u/36753484?v=4" title="Abid" width="50" height="50"></a>
 <a href="https://github.com/iannbing"><img src="https://avatars.githubusercontent.com/u/627607?v=4" title="iannbing" width="50" height="50"></a>
 <a href="https://github.com/andtheWings"><img src="https://avatars.githubusercontent.com/u/5892089?v=4" title="andtheWings" width="50" height="50"></a>
+<a href="https://github.com/jacobodeharo"><img src="https://avatars.githubusercontent.com/jacobodeharo?v=4" title="jacobodeharo" width="50" height="50"></a>

@@ -1,38 +1,36 @@
-import React, { useState } from "react";
-import parser from "cron-parser";
-import _ from "lodash";
+import CronScheduleInput from "@/components/CronScheduleInput";
+import DateTimeInput from "@/components/DateTimeInput";
+import EnvVarList from "@/components/EnvVarList";
+import { Layout } from "@/components/Layout";
+import ParameterEditor from "@/components/ParameterEditor";
+import ParamTree from "@/components/ParamTree";
+import SearchableTable from "@/components/SearchableTable";
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import type { Job, PipelineJson } from "@/types";
 import {
-  MDCTabBarReact,
+  envVariablesArrayToDict,
+  envVariablesDictToArray,
+  getPipelineJSONEndpoint,
+  isValidEnvironmentVariableName,
+} from "@/utils/webserver-utils";
+import {
   MDCButtonReact,
   MDCLinearProgressReact,
   MDCRadioReact,
+  MDCTabBarReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
-  makeRequest,
   makeCancelable,
+  makeRequest,
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-
-import {
-  getPipelineJSONEndpoint,
-  envVariablesArrayToDict,
-  envVariablesDictToArray,
-  isValidEnvironmentVariableName,
-} from "@/utils/webserver-utils";
-import type { Job, PipelineJson } from "@/types";
-import { useOrchest } from "@/hooks/orchest";
-import { Layout } from "@/components/Layout";
-import ParameterEditor from "@/components/ParameterEditor";
-import CronScheduleInput from "@/components/CronScheduleInput";
-import DateTimeInput from "@/components/DateTimeInput";
-import SearchableTable from "@/components/SearchableTable";
-import ParamTree from "@/components/ParamTree";
-import EnvVarList from "@/components/EnvVarList";
-import { siteMap } from "@/Routes";
-
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import parser from "cron-parser";
+import _ from "lodash";
+import React, { useState } from "react";
 
 type EditJobState = {
   selectedTabIndex: number;
@@ -333,7 +331,7 @@ const EditJobView: React.FC = () => {
       if (pipelineRunRow.length > 0) {
         generatedPipelineRunRows.push([pipelineRunRow.join(", ")]);
       } else {
-        generatedPipelineRunRows.push([<i>Parameterless run</i>]);
+        generatedPipelineRunRows.push([<i>Parameterless run</i>]); // eslint-disable-line react/jsx-key
       }
     }
 

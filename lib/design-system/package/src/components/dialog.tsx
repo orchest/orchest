@@ -1,7 +1,7 @@
-import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
-import { styled, keyframes } from "../core";
+import * as React from "react";
+import { keyframes, styled } from "../core";
 import { ExtractVariants, ICSSProp } from "../types";
 import { Heading, THeadingComponent } from "./heading";
 
@@ -44,8 +44,7 @@ const DialogOverlay = styled(DialogPrimitive.Overlay, {
   },
 });
 
-export interface IDialogProps
-  extends React.ComponentProps<typeof DialogPrimitive.Root> {}
+export type IDialogProps = React.ComponentProps<typeof DialogPrimitive.Root>;
 
 export const Dialog: React.FC<IDialogProps> = ({ children, ...props }) => (
   <DialogPrimitive.Root {...props}>
@@ -107,6 +106,9 @@ export interface IDialogContentProps
   extends ICSSProp,
     TDialogContentVariants,
     Polymorphic.OwnProps<typeof DialogPrimitive.Content> {}
+
+/* eslint-disable react/display-name */
+
 export type TDialogContentComponent = Polymorphic.ForwardRefComponent<
   Polymorphic.IntrinsicElement<typeof DialogPrimitive.Content>,
   IDialogContentProps
@@ -131,6 +133,8 @@ export const DialogHeader = styled("header", {
 export const DialogTitle: THeadingComponent = React.forwardRef(
   (props, forwardedRef) => <Heading ref={forwardedRef} size="xl" {...props} />
 );
+
+/* eslint-enable react/display-name */
 
 export const DialogBody = styled("div", {
   include: "box",

@@ -1,20 +1,18 @@
+import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useInterval } from "@/hooks/use-interval";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
+import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import {
-  PromiseManager,
   collapseDoubleDots,
   makeCancelable,
   makeRequest,
+  PromiseManager,
 } from "@orchest/lib-utils";
-
-import { Layout } from "@/components/Layout";
-import { MDCLinearProgressReact } from "@orchest/lib-mdc";
 import React from "react";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
-import { checkGate } from "@/utils/webserver-utils";
-import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { siteMap } from "@/Routes";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useInterval } from "@/hooks/use-interval";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"

@@ -1,5 +1,8 @@
 import React from "react";
-
+import LogsView from "./pipeline-view/LogsView";
+import PipelineView from "./pipeline-view/PipelineView";
+import ExamplesView from "./projects-view/ExamplesView";
+import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import EditJobView from "./views/EditJobView";
 import EnvironmentEditView from "./views/EnvironmentEditView";
@@ -7,19 +10,15 @@ import EnvironmentsView from "./views/EnvironmentsView";
 import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
 import HelpView from "./views/HelpView";
-import JobView from "./views/JobView";
 import JobsView from "./views/JobsView";
+import JobView from "./views/JobView";
 import JupyterLabView from "./views/JupyterLabView";
-import LogsView from "./pipeline-view/LogsView";
 import ManageUsersView from "./views/ManageUsersView";
 import PipelineSettingsView from "./views/PipelineSettingsView";
-import PipelineView from "./pipeline-view/PipelineView";
 import PipelinesView from "./views/PipelinesView";
 import ProjectSettingsView from "./views/ProjectSettingsView";
-import ProjectsView from "./projects-view/ProjectsView";
 import SettingsView from "./views/SettingsView";
 import UpdateView from "./views/UpdateView";
-import ExamplesView from "./projects-view/ExamplesView";
 
 type RouteName =
   | "projects"

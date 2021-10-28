@@ -1,5 +1,5 @@
-import * as React from "react";
 import { useId } from "@radix-ui/react-id";
+import * as React from "react";
 import { styled } from "../core";
 import {
   Icon,
@@ -9,6 +9,8 @@ import {
 import type { ExtractVariants, ICSSProp } from "../types";
 import { IconButton } from "./icon-button";
 import { Text, TTextVariants } from "./text";
+
+/* eslint-disable react/display-name */
 
 interface IAlertContext {
   descriptionIndex: number;
@@ -57,7 +59,7 @@ const StyledAlert = styled("div", {
   },
 });
 
-export interface IAlertRef extends HTMLDivElement {}
+export type IAlertRef = HTMLDivElement;
 export type TAlertVariants = ExtractVariants<typeof StyledAlert>;
 export interface IAlertProps extends ICSSProp, TAlertVariants {
   children?: React.ReactNode;
@@ -126,7 +128,7 @@ const StyledAlertHeader = styled("p", {
   },
 });
 
-export interface IAlertHeaderRef extends HTMLParagraphElement {}
+export type IAlertHeaderRef = HTMLParagraphElement;
 export type TAlertHeaderVariants = ExtractVariants<typeof StyledAlertHeader>;
 export interface IAlertHeaderProps extends ICSSProp, TAlertHeaderVariants {
   children?: React.ReactNode;
@@ -142,7 +144,7 @@ export const AlertHeader = React.forwardRef<IAlertHeaderRef, IAlertHeaderProps>(
 /* AlertDescription
   =========================================== */
 
-export interface IAlertDescriptionRef extends HTMLParagraphElement {}
+export type IAlertDescriptionRef = HTMLParagraphElement;
 export type TAlertDescriptionVariants = TTextVariants;
 export interface IAlertDescriptionProps
   extends ICSSProp,
@@ -190,9 +192,9 @@ const StyledControls = styled("div", {
 
 const StyledPagination = styled(Text, { color: "$$paginationColor" });
 
-export interface IAlertControlsRef extends HTMLDivElement {}
+export type IAlertControlsRef = HTMLDivElement;
 
-export interface IAlertControlsProps extends ICSSProp {}
+export type IAlertControlsProps = ICSSProp;
 
 export const AlertControls = React.forwardRef<
   IAlertControlsRef,
@@ -237,3 +239,5 @@ export const AlertControls = React.forwardRef<
     </StyledControls>
   );
 });
+
+/* eslint-enable react/display-name */

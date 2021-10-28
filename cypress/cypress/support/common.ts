@@ -363,7 +363,7 @@ export function waitForJobRunsStatus(
   expectedStatus: string,
   expectedNumberOfRuns: number,
   retries = 100,
-  callback?: Function
+  callback?: () => void
 ) {
   cy.location("pathname").should("eq", "/job");
   let passingRuns = [];
@@ -400,7 +400,10 @@ export function waitForJobRunsStatus(
 }
 
 // Assumes paramName is unique across steps/pipeline params.
-export function setJobParameter(paramName: string, paramValues: object) {
+export function setJobParameter(
+  paramName: string,
+  paramValues: Record<string, unknown>
+) {
   cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
   cy.location("pathname").should("eq", "/edit-job");
   cy.findByTestId(`job-edit-parameter-row-${paramName}-value`).click();

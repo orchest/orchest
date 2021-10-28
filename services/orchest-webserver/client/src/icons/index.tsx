@@ -1,5 +1,7 @@
-import * as React from "react";
-import { Icon, IIconRef, IIconProps } from "@orchest/design-system";
+import { Icon, IIconProps, IIconRef } from "@orchest/design-system";
+import React from "react";
+
+/* eslint-disable react/display-name */
 
 export const IconPostgreSQL = React.forwardRef<IIconRef, IIconProps>(
   (props, ref) => (
@@ -319,3 +321,4 @@ export const IconVSCode = React.forwardRef<IIconRef, IIconProps>(
     </Icon>
   )
 );
+/* eslint-enable react/display-name */

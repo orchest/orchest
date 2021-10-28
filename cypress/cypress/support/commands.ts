@@ -1,12 +1,14 @@
+import "@testing-library/cypress/add-commands";
 import "cypress-localstorage-commands";
 import "cypress-pipe";
-import "@testing-library/cypress/add-commands";
-import { TEST_ID } from "../support/common";
-import { LOCAL_STORAGE_KEY } from "../support/common";
-import { DATA_DIR } from "../support/common";
-import { PROJECTS_DIR } from "../support/common";
-import { assertTotalEnvironmentImages } from "../support/common";
-import { piped_click } from "../support/common";
+import {
+  assertTotalEnvironmentImages,
+  DATA_DIR,
+  LOCAL_STORAGE_KEY,
+  piped_click,
+  PROJECTS_DIR,
+  TEST_ID,
+} from "../support/common";
 
 type TBooleanString = "true" | "false";
 

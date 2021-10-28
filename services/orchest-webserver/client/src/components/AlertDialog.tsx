@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 export interface IAlertDialogProps {
   title: string;

@@ -13,6 +13,8 @@ const LogoSvg = styled("svg", {
 export type ILogoRef = SVGSVGElement;
 export interface ILogoProps extends ExtractVariants<typeof LogoSvg>, ICSSProp {}
 
+/* eslint-disable react/display-name */
+
 export const LogoBrand = React.forwardRef<ILogoRef, ILogoProps>(
   (props, ref) => (
     <LogoSvg
@@ -40,3 +42,5 @@ export const LogoBrand = React.forwardRef<ILogoRef, ILogoProps>(
     </LogoSvg>
   )
 );
+
+/* eslint-enable react/display-name */

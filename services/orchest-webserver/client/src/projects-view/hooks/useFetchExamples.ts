@@ -1,8 +1,7 @@
-import useSWR from "swr";
-
-import { fetcher } from "@/utils/fetcher";
 import type { STATUS } from "@/hooks/useAsync";
 import { Example } from "@/types";
+import { fetcher } from "@/utils/fetcher";
+import useSWR from "swr";
 
 const useFetchExamples = (shouldFetch = true) => {
   const { data, error, isValidating } = useSWR<{

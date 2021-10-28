@@ -1,5 +1,4 @@
 import React from "react";
-import { TStatus } from "./components/Status";
 
 export interface IOrchestConfig {
   CLOUD: boolean;
@@ -16,7 +15,6 @@ export interface IOrchestConfig {
   GPU_REQUEST_URL: string;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
-  INTERCOM_USER_EMAIL: string;
   ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
   ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE: string;
   ORCHEST_WEB_URLS: {
@@ -34,6 +32,7 @@ export interface IOrchestConfig {
 export interface IOrchestUserConfig {
   AUTH_ENABLED?: boolean;
   TELEMETRY_UUID: string;
+  INTERCOM_USER_EMAIL: string;
 }
 
 export interface IOrchestSessionUuid {
@@ -217,7 +216,7 @@ export type Job = {
     project_uuid: string | null;
     run_type: string;
   };
-  pipeline_runs: [];
+  pipeline_runs: any[];
   pipeline_uuid: string;
   project_uuid: string;
   schedule: string;

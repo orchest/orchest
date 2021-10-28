@@ -1,21 +1,18 @@
-import "codemirror/mode/javascript/javascript";
-
-import * as React from "react";
-
 import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import {
-  PromiseManager,
-  RefManager,
   collapseDoubleDots,
   extensionFromFilename,
   kernelNameToLanguage,
   makeCancelable,
   makeRequest,
+  PromiseManager,
+  RefManager,
 } from "@orchest/lib-utils";
-
+import "codemirror/mode/javascript/javascript";
+import _ from "lodash";
+import * as React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ProjectFilePicker from "../components/ProjectFilePicker";
-import _ from "lodash";
 
 const ConnectionItem = ({
   connection: { name, uuid },

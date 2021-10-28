@@ -1,4 +1,3 @@
-import * as React from "react";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -14,6 +13,7 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
+import * as React from "react";
 import FilePicker from "./FilePicker";
 
 const ProjectFilePicker: React.FC<any> = (props) => {

@@ -1,7 +1,7 @@
 import {
   QUICKSTART_URL,
-  TEST_ID,
   SAMPLE_PROJECT_NAMES,
+  TEST_ID,
 } from "../support/common";
 
 describe("projects", () => {

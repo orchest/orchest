@@ -10,12 +10,10 @@
     "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@orchest/lib-mdc": "workspace:*",
-    "@orchest/lib-utils": "workspace:*",
     "@material/animation": "^13.0.0",
     "@material/auto-init": "^13.0.0",
-    "@material/base": "^13.0.0",
     "@material/banner": "^13.0.0",
+    "@material/base": "^13.0.0",
     "@material/button": "^13.0.0",
     "@material/card": "^13.0.0",
     "@material/checkbox": "^13.0.0",
@@ -60,12 +58,14 @@
     "@material/top-app-bar": "^13.0.0",
     "@material/touch-target": "^13.0.0",
     "@material/typography": "^13.0.0",
+    "@orchest/lib-mdc": "workspace:*",
+    "@orchest/lib-utils": "workspace:*",
     "react": "^16.13.1",
     "react-dom": "^16.13.1"
   },
   "devDependencies": {
-    "sass-bin": "^1.42.3",
     "esbuild": "0.13.4",
+    "sass-bin": "^1.42.3",
     "typescript": "4.3.2"
   }
 }

@@ -1,6 +1,6 @@
-import * as React from "react";
 import { MDCTooltip } from "@material/tooltip";
 import { RefManager } from "@orchest/lib-utils";
+import * as React from "react";
 
 // used only in orchest-webserver
 export class MDCTooltipReact extends React.Component<any> {

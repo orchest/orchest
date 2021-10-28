@@ -1,6 +1,6 @@
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import { config, styled } from "../core";
-import type { CSS, ICSSProp, ExtractVariants } from "../types";
+import type { CSS, ExtractVariants, ICSSProp } from "../types";
 
 const DEFAULT_TAG = "h1";
 

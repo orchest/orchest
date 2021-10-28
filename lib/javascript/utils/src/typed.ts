@@ -71,14 +71,14 @@ export function makeCancelable<T>(
 }
 
 // used in orchest-webserver only
-export var LANGUAGE_MAP = {
+export const LANGUAGE_MAP = {
   python: "Python",
   r: "R",
   julia: "Julia",
 };
 
 // used in orchest-webserver only
-export var DEFAULT_BASE_IMAGES = [
+export const DEFAULT_BASE_IMAGES = [
   "orchest/base-kernel-py",
   "orchest/base-kernel-py-gpu",
   "orchest/base-kernel-r",
@@ -86,7 +86,7 @@ export var DEFAULT_BASE_IMAGES = [
 ];
 
 // used in orchest-webserver only
-export var ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
+export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
 
 // used in orchest-webserver only
 export function collapseDoubleDots(path) {
@@ -259,7 +259,7 @@ export function arraysEqual(a, b) {
 // used in orchest-webserver only
 export function makeRequest(method, url, body?, onprogressCallback?, timeout?) {
   return new Promise<string>(function (resolve, reject) {
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open(method, url);
 
     if (onprogressCallback) {

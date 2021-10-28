@@ -1,7 +1,7 @@
-import * as React from "react";
-import { DIALOG_ANIMATION_DURATION } from "@orchest/design-system";
 import { useLocalStorage } from "@/hooks/local-storage";
 import { useProjects } from "@/hooks/projects";
+import { DIALOG_ANIMATION_DURATION } from "@orchest/design-system";
+import * as React from "react";
 import useSWR from "swr";
 
 export const useOnboardingDialog = () => {

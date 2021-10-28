@@ -3,11 +3,13 @@ import os
 import re
 import time
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import docker
 import requests
 from docker.types import DeviceRequest
+
+from _orchest.internals import config as _config
 
 
 def get_mount(source, target, form="docker-sdk"):
@@ -56,6 +58,13 @@ def get_device_requests(environment_uuid, project_uuid, form="docker-sdk"):
     device_requests = []
 
     capabilities = get_environment_capabilities(environment_uuid, project_uuid)
+
+    # Do not request GPU capabilities if the instance can't support it,
+    # it will result in an error.
+    if not _config.GPU_ENABLED_INSTANCE:
+        capabilities = [
+            c for c in capabilities if c not in ["gpu", "utility", "compute"]
+        ]
 
     if len(capabilities) > 0:
 
@@ -259,3 +268,36 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
             for sname, service in services.items()
         ]
     )
+
+
+def docker_has_gpu_capabilities(
+    client: Optional[docker.client.DockerClient] = None,
+) -> bool:
+    """Checks if GPU capabilities can be requested for containers."""
+
+    if client is None:
+        client = docker.client.DockerClient.from_env()
+
+    other_container_args = {}
+    other_container_args["remove"] = True
+    other_container_args["command"] = "bash"
+    other_container_args["name"] = f"orchest-gpu-test-{str(uuid.uuid1())}"
+    device_requests = []
+    capabilities = ["gpu", "utility", "compute"]
+    device_requests.append(DeviceRequest(count=-1, capabilities=[capabilities]))
+    try:
+        client.containers.run(
+            "python:3.8-slim",
+            device_requests=device_requests,
+            **other_container_args,
+        )
+    except docker.errors.APIError:
+        # If the error is caused by the device driver "nvidia" not being
+        # there the container will not be auto removed.
+        try:
+            c = client.containers.get(other_container_args["name"])
+            c.remove(force=True)
+        except (docker.errors.NotFound, docker.errors.APIError):
+            pass
+        return False
+    return True

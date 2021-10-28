@@ -1,21 +1,18 @@
-import "codemirror/mode/shell/shell";
-
-import * as React from "react";
-
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
-import {
-  PromiseManager,
-  makeCancelable,
-  makeRequest,
-  uuidv4,
-} from "@orchest/lib-utils";
-
-import { Controlled as CodeMirror } from "react-codemirror2";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
-import { siteMap } from "@/routingConfig";
+import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/routingConfig";
+import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import {
+  makeCancelable,
+  makeRequest,
+  PromiseManager,
+  uuidv4,
+} from "@orchest/lib-utils";
+import "codemirror/mode/shell/shell";
+import * as React from "react";
+import { Controlled as CodeMirror } from "react-codemirror2";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -259,11 +256,11 @@ const ConfigureJupyterLabView: React.FC = () => {
                 <br />
                 <br />
                 <span className="code">
-                  git config --global user.name "John Doe"
+                  {`git config --global user.name "John Doe"`}
                 </span>
                 <br />
                 <span className="code">
-                  git config --global user.email "john@example.org"
+                  {`git config --global user.email "john@example.org"`}
                 </span>
               </p>
 

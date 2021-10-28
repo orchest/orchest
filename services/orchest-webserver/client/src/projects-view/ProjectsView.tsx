@@ -1,5 +1,10 @@
-import React from "react";
-
+import { Layout } from "@/components/Layout";
+import { useOrchest } from "@/hooks/orchest";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { siteMap } from "@/Routes";
+import type { Project } from "@/types";
+import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import {
   MDCButtonReact,
   MDCDataTableReact,
@@ -9,21 +14,12 @@ import {
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
-  PromiseManager,
-  RefManager,
   makeCancelable,
   makeRequest,
+  PromiseManager,
+  RefManager,
 } from "@orchest/lib-utils";
-
-import { Layout } from "@/components/Layout";
-import { useOrchest } from "@/hooks/orchest";
-import { siteMap } from "@/Routes";
-import type { Project } from "@/types";
-import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
-
-import { useCustomRoute } from "@/hooks/useCustomRoute";
-
-import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import React from "react";
 import { ImportDialog } from "./ImportDialog";
 
 const ProjectsView: React.FC = () => {

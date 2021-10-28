@@ -1,10 +1,8 @@
-import React from "react";
-
-import { Layout } from "@/components/Layout";
 import EnvironmentList from "@/components/EnvironmentList";
+import { Layout } from "@/components/Layout";
 import ProjectBasedView from "@/components/ProjectBasedView";
-
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import React from "react";
 
 const EnvironmentsView: React.FC = () => {
   const { projectUuid } = useCustomRoute();
