@@ -32,14 +32,77 @@ def close_issue(conn: client.HTTPSConnection, issue_number: str) -> bool:
 
 
 def get_issues_from_pr_body(body: str) -> list[str]:
-    pattern = r"Fixes: (#\d+(?:\, )?)*"
-    match = re.search(pattern, body)
+    body = body.lower()
 
-    if match is None:
-        return []
+    # NOTE: In Python it is not possible to repeat capturing groups
+    # using operators like `*` and `+`. Therefore the regex just needs
+    # to match the entire pattern and we then process on the entire
+    # match.
+    pattern = r"(fix|clos|resolv)(e|es|ed)?:? (#\d+(\, )?)+"
 
-    issue_numbers = match.group(0).lstrip("Fixes: ").split(", ")
-    return [num.lstrip("#") for num in issue_numbers]
+    # Compiling is more efficient because the expression will be used
+    # several times.
+    prog = re.compile(pattern)
+
+    res = []
+    for line in body.split("\n"):
+        match = prog.search(line)
+
+        if match is None:
+            continue
+
+        match = match[0]
+        raw_issue_numbers = match[match.index("#") :].split(", ")
+        res.extend([num.lstrip("#") for num in raw_issue_numbers])
+
+    return res
+
+
+# For development only.
+def _test_get_issues_from_pr_body():
+    bodies = [
+        # All words.
+        "Fix: #316",
+        "Fixes: #316",
+        "Fixed: #316",
+        "Close: #316",
+        "Closes: #316",
+        "Closed: #316",
+        "Resolve: #316",
+        "Resolves: #316",
+        "Resolved: #316",
+        # Without optional `:`
+        "Fix #316",
+        # Multiple issues to close
+        "Fixes: #316, #67, #89",
+        # Multiple lines
+        "Resolved: #316\nResolved: #380",
+        # Multiple lines and issues
+        "Resolved: #316, #89\nResolved: #380",
+        # Regular PR body
+        "This PR is to do bla bla..\nbla bla\nbla\ncloses #10",
+    ]
+    answers = [
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316"],
+        ["316", "67", "89"],
+        ["316", "380"],
+        ["316", "89", "380"],
+        ["10"],
+    ]
+
+    for body, ans in zip(bodies, answers):
+        issues = get_issues_from_pr_body(body)
+
+        assert issues == ans
 
 
 def main():
