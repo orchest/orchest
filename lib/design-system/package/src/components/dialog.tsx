@@ -1,3 +1,4 @@
+import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
 import * as React from "react";
@@ -72,7 +73,8 @@ const DialogContentRoot = styled(DialogPrimitive.Content, {
   backgroundColor: "$background",
   borderRadius: "$md",
   boxShadow: "$2xl",
-  overflow: "visible",
+  overflowX: "hidden",
+  overflowY: "auto",
   "&:focus": {
     outline: "none",
   },
