@@ -41,7 +41,7 @@ const App = () => {
   const dialogsRef = useRef(null);
 
   // load server side config populated by flask template
-  const { config } = context.state;
+  const { config, user_config } = context.state;
 
   React.useEffect(() => {
     if (config.FLASK_ENV === "development") {
@@ -52,7 +52,7 @@ const App = () => {
       console.log("Orchest is running with --cloud.");
 
       boot({
-        email: config.INTERCOM_USER_EMAIL,
+        email: user_config.INTERCOM_USER_EMAIL,
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
       });
     }
