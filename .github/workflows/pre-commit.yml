@@ -33,11 +33,11 @@ jobs:
       - name: Get changed files
         id: getChangedFiles
         run: |
-          if [[ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]]; then
+          if [[ "${{ github.event.before }}" = "" ]]; then
             echo "First deployment of new branch"
             # Piped into xargs so that all the lines are outputted in a single line (so no newline
             # characters).
-            CHANGEDFILES="$(git diff --name-only ${{ github.event.pull_request.base.ref }} ${{ github.sha }} | xargs)"
+            CHANGEDFILES="$(git diff --name-only origin/${{ github.event.pull_request.base.ref }} ${{ github.sha }} | xargs)"
           else
             echo "Not the first deployment"
             # Piped into xargs so that all the lines are outputted in a single line (so no newline
