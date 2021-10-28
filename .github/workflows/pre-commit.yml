@@ -1,4 +1,4 @@
-# Runs pre-commit on all changed files.
+# Runs pre-commit on changed files only.
 name: pre-commit
 
 on:
@@ -19,17 +19,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+        # NOTE: This will fetch the entire git history which is needed for the
+        # `github.event.before`.
+        # TODO: Not sure how slow this is.
+        with:
+          fetch-depth: 0
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
           python-version: 3.8
 
-      - id: file_changes
-        uses: trilom/file-changes-action@v1.2.4
-        with:
-          output: " "
+      - name: Get changed files
+        id: getChangedFiles
+        run: |
+          if [[ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]]; then
+            echo "First deployment of new branch"
+            # Piped into xargs so that all the lines are outputted in a single line (so no newline
+            # characters).
+            CHANGEDFILES="$(git diff --name-only ${{ github.event.pull_request.base.ref }} ${{ github.sha }} | xargs)"
+          else
+            echo "Not the first deployment"
+            # Piped into xargs so that all the lines are outputted in a single line (so no newline
+            # characters).
+            CHANGEDFILES="$(git diff --name-only ${{ github.event.before}} ${{ github.sha }} | xargs)"
+          fi
+          echo Found changed files: "$CHANGEDFILES"
+          # https://docs.github.com/en/actions/learn-github-actions/workflow-commands-for-github-actions#setting-an-output-parameter
+          echo "::set-output name=changed_files::$CHANGEDFILES"
 
       - uses: pre-commit/action@v2.0.0
         with:
-          extra_args: --files ${{ steps.file_changes.outputs.files }}
+          # https://docs.github.com/en/actions/learn-github-actions/contexts#steps-context
+          extra_args: --files ${{ steps.getChangedFiles.outputs.changed_files }}
