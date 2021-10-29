@@ -28,8 +28,17 @@ const statusMap = {
   done: "157363bd-b118-44db-8876-726ed5fb9b04",
 };
 
-// Closed or cancelled issues are auto-archived in Linear after 1 month.
-async function getLinearIssueId(GHIssueUrl, includeArchived = false) {
+function IssueNotUniqueError(message) {
+  this.message = message;
+  this.name = "IssueNotUniqueError";
+}
+
+function IssueNotFoundException(message) {
+  this.message = message;
+  this.name = "IssueNotFoundException";
+}
+
+async function _getLinearIssueId(GHIssueUrl, includeArchived = false) {
   // NOTE: Sadly, the `client.issues` method does not yet expose the
   // newly added `filter` variable to search for an exact comment body.
   // For the time being `issueSearches` will do, which searches the
@@ -43,12 +52,36 @@ async function getLinearIssueId(GHIssueUrl, includeArchived = false) {
   // The comment should be unique because it contains the unique
   // identifier of the GitHub issue, e.g. 461.
   if (issues.length > 1) {
-    throw "Issue identifier is not unique.";
+    throw new IssueNotUniqueError("Issue identifier is not unique.");
   } else if (issues.length === 0) {
-    throw "No issue found that matches the given identifier.";
+    throw new IssueNotFoundException(
+      "No issue found that matches the given identifier."
+    );
   }
 
   return issues[0].id;
+}
+
+// Closed or cancelled issues are auto-archived in Linear after 1 month.
+async function getLinearIssueId(GHIssueUrl, includeArchived = false) {
+  try {
+    return await _getLinearIssueId(GHIssueUrl, includeArchived);
+  } catch (error) {
+    if (error instanceof IssueNotUniqueError) {
+      throw error;
+    } else if (error instanceof IssueNotFoundException) {
+      // Sadly, Linear automatically rendered links as markdown links during
+      // the migration. So to make sure the Linear integration also works
+      // for the migrated (from Jira) tickets, we need to do an additional
+      // query.
+      return _getLinearIssueId(
+        `[${GHIssueUrl}](${GHIssueUrl})`,
+        includeArchived
+      );
+    } else {
+      throw error;
+    }
+  }
 }
 
 function createIdentifierMsg(GHIssueURL) {
@@ -128,7 +161,7 @@ async function handleAction(payload) {
         throw "Unsupported action.";
     }
   } catch (error) {
-    console.log("Could not find matching Linear issue.");
+    console.log(error.name + ": " + error.message);
     throw error;
   }
 }
