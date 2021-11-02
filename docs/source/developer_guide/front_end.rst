@@ -55,18 +55,6 @@ Both offer strongly-typed access to our `CSS-variable-driven design tokens
      <div>
    );
 
-Sandbox
-~~~~~~~
-
-For fast local-development, the sandbox offers a hot-reloading environment to build and test our
-components.
-
-To get started, run:
-
-.. code-block:: sh
-
-   pnpm run sandbox
-
 Style guide
 -----------
 
@@ -90,7 +78,7 @@ React.js
   - **Do** make use of `context-driven hooks
     <https://reactjs.org/docs/hooks-reference.html#usecontext>`_
 
-Project-specific Details
+Project-specific details
 ------------------------
 
 ``orchest-webserver``

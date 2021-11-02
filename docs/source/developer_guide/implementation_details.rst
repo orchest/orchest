@@ -1,8 +1,19 @@
 Implementation details
 ======================
 
+Best practices
+--------------
+
+When adding new code to the repository, try to stick to the following best practices (WIP):
+
+* New endpoints, e.g. in the ``orchest-api`` or proxy in the ``orchest-webserver``, should **NOT**
+  end with trailing slashes. For example, go with ``/api/jobs`` (good) over ``/api/jobs/`` (bad).
+
+Topics
+------
+
 ``userdir/`` paths
-------------------
+~~~~~~~~~~~~~~~~~~
 Overview of the different paths inside the ``userdir/``.
 
 .. code-block:: bash
@@ -52,7 +63,7 @@ Overview of the different paths inside the ``userdir/``.
 .. _pipeline-json-schema:
 
 Pipeline definition JSON
-------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The full `JSON Schema <https://json-schema.org/>`_ definition of :ref:`pipelines <pipeline
 definition>` in Orchest can be found below.
@@ -263,7 +274,7 @@ Full JSON Schema:
   }
 
 ENV variables
--------------
+~~~~~~~~~~~~~
 When it comes to pipeline execution, each pipeline step is executed in its own environment. More
 particularly in its own container. Depending on how the code inside a pipeline step is executed a
 number of ENV variables are set by Orchest. The different ways to execute code as part of a pipeline
@@ -288,7 +299,7 @@ environment:
     # Put in the relative path to the pipeline file.
     with open("pipeline.orchest", "r") as f:
         desc = json.load(f)
-        
+
     p = orchest.pipeline.Pipeline.from_json(desc)
     step_uuid = orchest.utils.get_step_uuid(p)
 
@@ -299,7 +310,7 @@ to make the entire project directory available through the JupyterLab UI and is 
 interactive Jupyter kernels.
 
 SDK data passing
-----------------
+~~~~~~~~~~~~~~~~
 The :meth:`orchest.transfer.get_inputs` method calls :meth:`orchest.transfer.resolve` which, in
 order to resolve what output data the user most likely wants to get, needs a timestamp of the most
 recent output for every transfer type. E.g. if some step outputs to disk at 1pm and later outputs to
@@ -307,14 +318,14 @@ memory at 2pm, then it is very likely that output data should be retrieved from 
 we adhere to a certain "protocol" for transfers through disk and memory as can be read below.
 
 Disk transfer
-~~~~~~~~~~~~~
+"""""""""""""
 To be able to resolve the timestamp of the most recent write, we keep a file called ``HEAD`` for
 every step. It has the following content: ``timestamp, serialization``, where timestamp is specified
 in isoformat with timespec in seconds.
 
 
 Memory transfer
-~~~~~~~~~~~~~~~
+"""""""""""""""
 When data is put inside the store it is given metadata stating either its serialization or (in case
 of an empty message for eviction) the source and target of the output that is stored.
 
@@ -322,3 +333,70 @@ All metadata has to be in `bytes`, where we use the following encoding:
 
 * ``1;serialization`` where serialization is one of ``["arrow", "arrowpickle"]``.
 * ``2;source,target`` where source and target are both UUIDs of the respective steps.
+
+Writing tests
+~~~~~~~~~~~~~
+
+Orchest includes a selection of `custom commands
+<https://docs.cypress.io/api/cypress-api/custom-commands#Parent-Commands>`_ to ease the writing of
+tests:
+
+* ``cy.setOnboardingCompleted(<value>)``
+   override the local storage value for whether or not to display the Onboarding Dialog.
+* ``cy.getOnboardingCompleted()``
+   get the local storage value for whether or not the Onboarding Dialog has been completed.
+
+As well as:
+
+- `Cypress LocalStorage Commands <https://github.com/javierbrea/cypress-localstorage-commands>`_
+- `Cypress Testing Library <https://testing-library.com/docs/cypress-testing-library/intro/>`_
+
+Querying Elements
+"""""""""""""""""
+
+**Don't** query for specific content, HTML structure or CSS selectors – these methods are brittle
+and prone to change.
+
+**Do** use the ``data-test-id`` attribute.
+
+.. code:: html
+
+    <div data-test-id="some-test-id">Content to test</div>
+
+.. code:: ts
+
+    cy.findByTestId("some-test-id").should("exist");
+
+Grouping
+""""""""
+
+Organizing tests can be tricky – think of the `test interface
+<https://docs.cypress.io/guides/core-concepts/writing-and-organizing-tests#Test-Structure>`_
+like a directory tree:
+
+* ``describe()`` – the top-level user-journey or business logic.
+
+   * ``context()`` – shared/similar behavior patterns.
+
+      * ``it()`` – individual/use-case behavior.
+
+Inside each level, make use of hooks to run `shared checks and cleanup
+<https://docs.cypress.io/guides/core-concepts/writing-and-organizing-tests#Hooks>`_.
+
+.. tip::
+   **For example;** if you're testing a Dialog component, you may want to group various "close" actions
+   inside a ``context()``. Inside that ``context()``, an ``afterEach()`` hook could be used to assert
+   the Dialog is no longer visible.
+
+Debugging
+"""""""""
+
+By default, Cypress operates as fast as the browser can go – this can make it difficult to debug
+tests during development.
+
+To make things easier, try:
+
+* Using ``.only`` to run only the specified step.
+* Using ``cy.wait(<ms>)`` to slow steps down arbitrarily.
+
+(Just make sure not to commit these!)

@@ -35,6 +35,18 @@ Last but not least, Orchest needs to be build from source:
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
    `GitHub <https://github.com/orchest/orchest/issues>`_ and find interesting issues to work on.
 
+IDE & language servers
+----------------------
+Who doesn't like to use the smarts of their IDE by using features such as auto complete, go to
+definition, find all references etc. For everyone who is using VS Code (or the `pyright
+<https://github.com/microsoft/pyright>`_ language server to be more precise) the different services
+contain their own ``pyrightconfig.json`` file that configures these features. All that is needed is
+to install the dependencies of the services in the correct virtual environment. This is done using:
+
+.. code-block:: bash
+
+   scripts/run_tests.sh
+
 Incremental development
 -----------------------
 .. note::
@@ -82,61 +94,17 @@ To build the docs, run:
    cd docs
    make html
 
-Best practices
---------------
-
-When adding new code to the repository, try to stick to the following best practices (WIP):
-
-* New endpoints, e.g. in the ``orchest-api`` or proxy in the ``orchest-webserver``, should **NOT**
-  end with trailing slashes. For example, go with ``/api/jobs`` (good) over ``/api/jobs/`` (bad).
-
-.. _before committing:
-
 Before committing
 -----------------
 
 Make sure your development environment is set up correctly (see :ref:`prerequisites
-<prerequisites>`) so that pre-commit can take care of running the appropriate formatters and
-linters. Lastly, it is good practice to run the units tests to make sure your changes didn't break
-anything:
+<prerequisites>`) so that pre-commit can automatically take care of running the appropriate
+formatters and linters when running ``git commit``. Lastly, it is good practice to run the units
+tests to make sure your changes didn't break anything:
 
 .. code-block:: bash
 
     scripts/run_tests.sh
 
 In our CI we also run all of these checks together with integration tests to make sure the codebase
-remains stable. To read more about testing, check out the :ref:`testing <testing>` section.
-
-Troubleshooting & gotchas
--------------------------
-
-Breaking schema changes
-~~~~~~~~~~~~~~~~~~~~~~~
-
-**What it looks like**: the client can't be accessed (the webserver is not up) or
-the client can be accessed but a lot of functionality seems to not be working, e.g.
-creating an environment.
-
-**How to solve**:
-
-.. code-block:: bash
-
-   # Remove the database by cleaning the entire userdir.
-   scripts/clean_userdir.sh
-
-   # To restart Orchest and clean the database.
-   ./orchest stop && scripts/clean_userdir.sh && ./orchest start --dev
-
-
-**Context**: Some branches might contain a schema migration that applies changes to the
-database in a way that is not compatible with ``dev`` or any other branch. By moving back
-to those branches, the database has a schema that is not compatible with what's in the code.
-
-**Verify**: Check the webserver and the api logs by using ``docker logs orchest-webserver``
-or ``docker logs orchest-api``. It will be easy to spot because the service won't produce
-other logs but the ones related to incompatible schema changes.
-
-.. note::
-
-   This approach will wipe your entire ``userdir``, meaning that you will lose all Orchest state. An
-   alternative is to just remove the database directory ``userdir/.orchest/database``.
+remains stable. To read more about testing, check out the :ref:`tests <tests>` section.

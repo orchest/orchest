@@ -16,10 +16,11 @@ To get started, check out the :ref:`development workflow <development workflow>`
 Opening a PR
 ------------
 
-When opening a PR please change the base in which you want to merge from ``master`` to ``dev``. The
-`GitHub docs
-<https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-base-branch-of-a-pull-request>`_
-describe how this can be done.
+.. note::
+   When opening a PR please change the base in which you want to merge from ``master`` to ``dev``.
+   The `GitHub docs
+   <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/changing-the-base-branch-of-a-pull-request>`_
+   describe how this can be done.
 
 We use `gitflow <https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow>`_ as
 our branching model with ``master`` and ``dev`` being the described ``master`` and ``develop``
