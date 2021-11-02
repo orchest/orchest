@@ -82,11 +82,8 @@ You can expect the build to finish in roughly 15 minutes.
    # Build Orchest's Docker containers from source (in parallel).
    scripts/build_container.sh
 
-   # Finish the Orchest installation by pulling additionally required
-   # images, e.g. postgres, and installing the Orchest Docker network.
-   ./orchest install
-
-   # Start Orchest.
+   # Start Orchest. Note that it will pull additional containers that
+   # Orchest depends on, such as `postgres`.
    ./orchest start
 
 .. tip::
