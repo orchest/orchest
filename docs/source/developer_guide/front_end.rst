@@ -147,25 +147,3 @@ trigger fetching and polling for updates via `SWR <https://swr.vercel.app/>`_.
        // <SessionsConsumer>{/* <your-component> */}</SessionsConsumer>;
     );
    };
-
-Ongoing migrations
-------------------
-
-We can't spend a lot of time refactoring, but we can implement changes incrementally. When
-contributing to the front-end, please keep in mind the following ongoing migrations:
-
-Global
-~~~~~~
-
-- TypeScript
-
-  - All ``.js`` files using ``// @ts-check``
-  - All ``.js`` files moved to ``.ts``
-
-- Class components → Functional components
-
-``orchest-webserver``
-~~~~~~~~~~~~~~~~~~~~~
-
-* Extract all shared logic/state into ``useOrchest()`` hook (`See #214 for initial
-  setup <https://github.com/orchest/orchest/pull/214>`_).
