@@ -122,7 +122,7 @@ class OrchestApp:
         # Update the Orchest git repo to get the latest changes to the
         # "userdir/" structure.
         if not dev:
-            exit_code = utils.update_git_repo()
+            exit_code = utils.update_git_repo(verbose=False)
             if exit_code == 0:
                 logger.info("Successfully updated git repo during update.")
             elif exit_code == 21:
@@ -173,12 +173,14 @@ class OrchestApp:
         # Delete Orchest dangling images.
         self.resource_manager.remove_orchest_dangling_imgs()
 
-        utils.echo(
-            "Checking whether all containers are running the same version of Orchest."
-        )
+        if mode != "web":
+            utils.echo(
+                "Checking whether all containers are running the same version of "
+                "Orchest."
+            )
         try:
             version_exit_code = 0
-            self.version(ext=True)
+            self.version(ext=True, verbose=False)
         except typer.Exit as e:
             version_exit_code = e.exit_code
 
@@ -423,28 +425,29 @@ class OrchestApp:
                 else:
                     raise typer.Exit(code=3)
 
-    def version(self, ext=False):
+    def version(self, ext=False, verbose: bool = True):
         """Returns the version of Orchest.
 
         Args:
             ext: If True return the extensive version of Orchest.
                 Meaning that the version of every pulled image is
                 checked.
+            verbose: Echo non-error related output to the user.
 
         """
         if not ext:
             version = os.getenv("ORCHEST_VERSION")
-            utils.echo(f"Orchest version: {version}")
+            verbose and utils.echo(f"Orchest version: {version}")
             return
 
-        utils.echo("Getting versions of all containers...")
+        verbose and utils.echo("Getting versions of all containers...")
 
         # Get container versions.
         stdouts = self.resource_manager.containers_version()
         stdout_values = set()
         for img, stdout in stdouts.items():
             stdout_values.add(stdout)
-            utils.echo(f"{img:<44}: {stdout}")
+            verbose and utils.echo(f"{img:<44}: {stdout}")
 
         # Check whether all required images are present.
         installation_req_images: Set[str] = set(
@@ -472,7 +475,7 @@ class OrchestApp:
             utils.echo("This should get all containers on the same version again.")
             raise typer.Exit(code=2)
         else:
-            utils.echo(
+            verbose and utils.echo(
                 "All containers are running on the same version"
                 " of Orchest. Happy coding!"
             )

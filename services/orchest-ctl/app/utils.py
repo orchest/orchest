@@ -104,13 +104,22 @@ def do_proxy_certs_exist_on_host() -> bool:
     return crt_exists and key_exists
 
 
-def update_git_repo():
+def update_git_repo(verbose: bool = True):
     """Pulls the latest changes from the Orchest git repository."""
     logger.info("Updating Orchest git repository to get the latest userdir changes...")
     script_path = os.path.join(
         "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
     )
-    script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+    if verbose:
+        script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+    else:
+        script_process = subprocess.Popen(
+            [script_path],
+            cwd="/orchest-host",
+            bufsize=0,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     exit_code = script_process.wait()
 
     return exit_code
