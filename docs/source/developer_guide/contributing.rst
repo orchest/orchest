@@ -26,6 +26,9 @@ We use `gitflow <https://www.atlassian.com/git/tutorials/comparing-workflows/git
 our branching model with ``master`` and ``dev`` being the described ``master`` and ``develop``
 branches respectively. Therefore, we require PRs to be merged into ``dev`` instead of ``master``.
 
+When opening the PR a checklist will automatically appear to guide you to successfully complete your
+PR 🏁.
+
 Contributor License Agreement
 -----------------------------
 
