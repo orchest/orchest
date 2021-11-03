@@ -168,11 +168,9 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
     if env is None:
         env = utils.get_env()
 
-    max_job_runs_parallelism = utils.get_orchest_config().get(
-        "MAX_JOB_RUNS_PARALLELISM", 1
-    )
-
     GPU_ENABLED_INSTANCE = _utils.docker_has_gpu_capabilities()
+    orchest_config = _utils.GlobalOrchestConfig()
+    max_job_runs_parallelism = orchest_config["MAX_JOB_RUNS_PARALLELISM"]
 
     # name -> request body
     container_config = {

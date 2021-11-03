@@ -1,8 +1,11 @@
+import json
 import logging
 import os
 import re
 import time
 import uuid
+from collections import ChainMap, abc
+from copy import deepcopy
 from typing import Any, Dict, Optional
 
 import docker
@@ -10,6 +13,205 @@ import requests
 from docker.types import DeviceRequest
 
 from _orchest.internals import config as _config
+from _orchest.internals import errors as _errors
+
+logger = logging.getLogger(__name__)
+
+
+class GlobalOrchestConfig:
+    # Configurations at the application level.
+    _cloud = _config.CLOUD
+
+    # Class specific configurations.
+    _path = "/config/config.json"
+
+    # Defines default values for all supported configuration options.
+    _default_values = {
+        "MAX_JOB_RUNS_PARALLELISM": 1,
+        "AUTH_ENABLED": False,
+        "TELEMETRY_DISABLED": False,
+        "TELEMETRY_UUID": str(uuid.uuid4()),
+        "INTERCOM_USER_EMAIL": "johndoe@example.org",
+    }
+    _cloud_unmodifiable_config_values = [
+        "TELEMETRY_UUID",
+        "TELEMETRY_DISABLED",
+        "AUTH_ENABLED",
+        "INTERCOM_USER_EMAIL",
+    ]
+
+    def __init__(self) -> None:
+        """Manages the global user config.
+
+        Uses a collections.ChainMap under the hood to provide fallback
+        to default values where needed.
+
+        Raises:
+            CorruptedFileError: The global user config file is
+                corrupted.
+
+        Example:
+            >>> config = GlobalOrchestConfig()
+            >>> # Automatically fill in default values when accessing
+            >>> # the configuration values.
+            >>> d = config.get()
+
+        """
+        self._values = ChainMap(self._get_current_config(), self._default_values)
+
+    def get(self) -> dict:
+        # Flatten into regular dictionary.
+        return dict(self._values)
+
+    def save(self, flask_app=None) -> None:
+        """Saves the state to disk.
+
+        Optionally also saves to the `flask_app.config`.
+
+        Args:
+            flask_app (flask.Flask): Flask application to save the state
+                to.
+
+        """
+        state = self.get()
+        with open(self._path, "w") as f:
+            json.dump(state, f)
+
+        # Save to the flask_app config after the disk save has succeeded
+        # to make sure the flask_app does not have configuration values
+        # that are not persisted.
+        if flask_app is not None:
+            flask_app.config.update(state)
+
+    def update(self, d: dict) -> None:
+        """Adds the dictionary to the front of the underlying ChainMap.
+
+        When running with `--cloud`, it won't allow you to change config
+        values of the keys defined in
+        `self._cloud_unmodifiable_config_values`.
+
+        Raises:
+            RuntimeError: The private ChainMap was incorrectly modified
+                outside of the class.
+            TypeError: The values of the dictionary that correspond to
+                supported config values have incorrect types.
+
+        """
+        d = self._remove_undefined_keys(d)
+
+        if len(self._values.maps) == 2:
+            self._values = self._values.new_child(d)
+        elif len(self._values.maps) == 3:
+            # If this runs, then this function has been called before.
+            self._values.maps[0] = d
+        else:
+            raise RuntimeError(
+                "Private class attributes were incorrectly modified outside of the"
+                " class."
+            )
+
+        if self._cloud:
+            for k in self._cloud_unmodifiable_config_values:
+                try:
+                    # The ChainMap class only makes updates (writes and
+                    # deletions) to the first mapping in the chain while
+                    # lookups will search the full chain.
+                    del self._values[k]
+                    logger.debug(
+                        "User tried to change unmodifiable config values in cloud."
+                    )
+                except KeyError:
+                    ...
+
+        try:
+            self._validate_dict(self._values.maps[0])
+        except (TypeError, ValueError) as e:
+            del self._values.maps[0]
+            raise e
+
+    def __getitem__(self, key):
+        return self._values[key]
+
+    def _remove_undefined_keys(self, d: dict) -> dict:
+        """Return a new dict where undefined keys are removed.
+
+        Defined keys are defined as keys that are contained in the
+        `self._default_values` dictionary.
+
+        """
+        res = {}
+        for k in d:
+            if k in self._default_values:
+                res[k] = deepcopy(d[k])
+
+        return res
+
+    def _validate_dict(self, d: abc.Mapping) -> None:
+        """Validates the values of the given dict.
+
+        Note:
+            Keys in the given dict that are not in the
+            `self._default_values` are not checked.
+
+        Returns:
+            `True` if the types of the values of the given dict equal
+            the types of the respective key's values of the
+            `self._default_values` and specific rules are satisfied,
+            e.g. parallelism > 0.
+            `False` otherwise.
+
+        """
+        # Check for types.
+        for k, val in self._default_values.items():
+            try:
+                if not isinstance(d[k], type(val)):
+                    raise TypeError(
+                        "Given dictionary has uncompatible types for certain values."
+                    )
+            except KeyError:
+                # We let it pass silently because it won't break the
+                # application in any way.
+                logger.debug(
+                    "User tried to add a config value that is not used by Orchest."
+                )
+
+        # Check for values.
+        max_job_runs_parallelism = d.get("MAX_JOB_RUNS_PARALLELISM")
+        if max_job_runs_parallelism is not None and max_job_runs_parallelism <= 0:
+            raise ValueError(
+                "MAX_JOB_RUNS_PARALLELISM has to be strictly larger than zero."
+            )
+
+    def _get_current_config(self) -> dict:
+        current_config = self.read_raw_current_config()
+
+        try:
+            self._validate_dict(current_config)
+        except (TypeError, ValueError):
+            raise _errors.CorruptedFileError(
+                f'The values defined in the global user config ("{self._path}") have'
+                + " incorrect types or values."
+            )
+
+        return self._remove_undefined_keys(current_config)
+
+    def read_raw_current_config(self) -> dict:
+        """Purely reads the current config without any editing."""
+        try:
+            with open(self._path, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            logger.warning("Global user config file did not exist.", exc_info=True)
+            return {}
+        except json.JSONDecodeError as e:
+            logger.debug(e, exc_info=True)
+
+            # NOTE: It can not pass silenty because then we might write
+            # to the file later on, overwriting existing values. This
+            # could break the Telemetry.
+            raise _errors.CorruptedFileError(
+                f'Could not decode global user config file ("{self._path}").'
+            )
 
 
 def get_mount(source, target, form="docker-sdk"):

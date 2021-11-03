@@ -6,7 +6,6 @@ from werkzeug.security import generate_password_hash
 from app import create_app
 from app.connections import db
 from app.models import User
-from app.utils import get_user_conf
 from config import CONFIG_CLASS
 
 if __name__ == "__main__":
@@ -26,7 +25,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    conf_data = get_user_conf()
     app = create_app(config_class=CONFIG_CLASS)
 
     username = args.username[0]

@@ -12,6 +12,8 @@ from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
 
 from _orchest.internals import config as _config
+from _orchest.internals import errors as _errors
+from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app import analytics, error
@@ -45,14 +47,11 @@ from app.utils import (
     get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
-    get_user_conf,
-    get_user_conf_raw,
     is_valid_project_relative_path,
     normalize_project_relative_path,
     pipeline_set_notebook_kernels,
     project_entity_counts,
     project_exists,
-    save_user_conf_raw,
     serialize_environment_to_disk,
 )
 
@@ -167,9 +166,10 @@ def register_views(app, db):
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
+        user_config = _utils.GlobalOrchestConfig()
         return jsonify(
             {
-                "user_config": get_user_conf(),
+                "user_config": user_config.get(),
                 "config": {
                     **{key: app.config[key] for key in front_end_config},
                     **{key: getattr(_config, key) for key in front_end_config_internal},
@@ -228,47 +228,30 @@ def register_views(app, db):
     def user_config():
 
         # Current user config, from disk.
-        current_config = json.loads(get_user_conf_raw())
+        try:
+            user_config = _utils.GlobalOrchestConfig()
+        except _errors.CorruptedFileError as e:
+            app.logger.error(e, exc_info=True)
+            return {"message": "Global user configuration could not be read."}, 500
 
         if request.method == "POST":
-
             # Updated config, from client.
             config = request.form.get("config")
+
+            if config is None:
+                return user_config.get()
 
             try:
                 # Only save if parseable JSON.
                 config = json.loads(config)
             except json.JSONDecodeError as e:
                 app.logger.debug(e, exc_info=True)
-                return current_config
+                return user_config.get()
 
-            max_job_runs_parallelism = config.get("MAX_JOB_RUNS_PARALLELISM")
-            if (
-                not isinstance(max_job_runs_parallelism, int)
-                or max_job_runs_parallelism <= 0
-            ):
-                config["MAX_JOB_RUNS_PARALLELISM"] = 1
+            user_config.update(config)
+            user_config.save(flask_app=app)
 
-            auth_enabled = config.get("AUTH_ENABLED")
-            if not isinstance(auth_enabled, bool):
-                config["AUTH_ENABLED"] = False
-
-            # Do not allow some settings to be modified or removed while
-            # running with --cloud, by overwriting whatever value was
-            # set (or unset) by checking it against the current
-            # configuration.
-            if StaticConfig.CLOUD:
-                for setting in StaticConfig.CLOUD_UNMODIFIABLE_CONFIG_VALUES:
-                    if setting in current_config:
-                        config[setting] = current_config[setting]
-                    else:
-                        config.pop(setting, None)
-
-            # Save the updated configuration.
-            save_user_conf_raw(json.dumps(config))
-            current_config = config
-
-        return current_config
+        return user_config.get()
 
     @app.route("/async/host-info", methods=["GET"])
     def host_info():

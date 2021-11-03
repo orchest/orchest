@@ -8,12 +8,14 @@ Configuration
 
 Global configurations
 ~~~~~~~~~~~~~~~~~~~~~
+.. tip::
 
-Orchest stores a global configuration file at ``~/.config/orchest/config.json`` (or at
-``$XDG_CONFIG_HOME/orchest/config.json`` if defined). The content of the file can be changed from
-within in the UI through *Settings*.
+    Change the global configuration through Orchest, by going to *Settings*.  If you change the
+    content of the file through the filesystem of the host, then you need to restart Orchest for the
+    changes to take effect.
 
-Example content:
+Orchest stores a global configuration file in JSON format at ``~/.config/orchest/config.json`` (or at
+``$XDG_CONFIG_HOME/orchest/config.json`` if defined). Example content:
 
 .. code-block:: json
 
@@ -24,7 +26,7 @@ Example content:
      "TELEMETRY_UUID": "69b40767-e315-4953-8a2b-355833e344b8"
    }
 
-Explanation of possible configuration settings:
+Explanation of all configuration settings:
 
 ``AUTH_ENABLED``
     Enable authentication, see :ref:`authentication <authentication>`.
