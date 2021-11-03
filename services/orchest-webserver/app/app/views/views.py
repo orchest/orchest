@@ -238,32 +238,35 @@ def register_views(app, db):
             try:
                 # Only save if parseable JSON.
                 config = json.loads(config)
-
-                # Do not allow some settings to be modified or removed
-                # while running with --cloud, by overwriting whatever
-                # value was set (or unset) using the current
-                # configuration.
-                if StaticConfig.CLOUD:
-                    for setting in StaticConfig.CLOUD_UNMODIFIABLE_CONFIG_VALUES:
-                        if setting in current_config:
-                            config[setting] = current_config[setting]
-                        else:
-                            config.pop(setting, None)
-
-                j_run_parall = config.get("MAX_JOB_RUNS_PARALLELISM")
-                if not (isinstance(j_run_parall, int) and j_run_parall > 0):
-                    config["MAX_JOB_RUNS_PARALLELISM"] = 1
-
-                auth = config.get("AUTH_ENABLED")
-                if not isinstance(auth, bool):
-                    config["AUTH_ENABLED"] = False
-
-                # Save the updated configuration.
-                save_user_conf_raw(json.dumps(config))
-                current_config = config
-
             except json.JSONDecodeError as e:
-                app.logger.debug(e)
+                app.logger.debug(e, exc_info=True)
+                return current_config
+
+            max_job_runs_parallelism = config.get("MAX_JOB_RUNS_PARALLELISM")
+            if (
+                not isinstance(max_job_runs_parallelism, int)
+                or max_job_runs_parallelism <= 0
+            ):
+                config["MAX_JOB_RUNS_PARALLELISM"] = 1
+
+            auth_enabled = config.get("AUTH_ENABLED")
+            if not isinstance(auth_enabled, bool):
+                config["AUTH_ENABLED"] = False
+
+            # Do not allow some settings to be modified or removed while
+            # running with --cloud, by overwriting whatever value was
+            # set (or unset) by checking it against the current
+            # configuration.
+            if StaticConfig.CLOUD:
+                for setting in StaticConfig.CLOUD_UNMODIFIABLE_CONFIG_VALUES:
+                    if setting in current_config:
+                        config[setting] = current_config[setting]
+                    else:
+                        config.pop(setting, None)
+
+            # Save the updated configuration.
+            save_user_conf_raw(json.dumps(config))
+            current_config = config
 
         return current_config
 
