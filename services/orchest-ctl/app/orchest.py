@@ -150,7 +150,12 @@ class OrchestApp:
         pulled_images = self.resource_manager.get_images()
         to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(pulled_images)
         logger.info("Updating images:\n" + "\n".join(to_pull_images))
-        self.docker_client.pull_images(to_pull_images, prog_bar=True, force=True)
+        self.docker_client.pull_images(
+            to_pull_images,
+            prog_bar=True,
+            mode=mode,
+            force=True,
+        )
 
         # Add a tag to user environment images to mark them for removal.
         # The orchest-api will deal with the rest of the logic related

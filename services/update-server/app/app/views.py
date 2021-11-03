@@ -17,6 +17,7 @@ UPDATE_COMPLETE_FILE = "/tmp/update-complete"
 
 def log_update(message):
     try:
+        message = message.replace("!!\n", "")
         with open(UPDATE_FILE_LOG, "a") as log_file:
             log_file.write(message)
 
