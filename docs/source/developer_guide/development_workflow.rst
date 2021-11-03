@@ -94,6 +94,22 @@ To build the docs, run:
    cd docs
    make html
 
+Database schema migrations
+--------------------------
+Whenever one of the services's database models (in ``models.py``) have been changed, a database
+migration has to be performed so that all existing users are unaffected by the schema change (since
+they can then be automatically migrated to the latest version).
+
+.. code-block:: sh
+
+   # Depending on the service that requires schema changes.
+   scripts/migration_manager.sh orchest-api migrate
+   scripts/migration_manager.sh orchest-webserver migrate
+
+   # For more options run:
+   scripts/migration_manager.sh --help
+
+
 Before committing
 -----------------
 
