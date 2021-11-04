@@ -273,13 +273,6 @@ const SettingsView: React.FC = () => {
         <h2>Orchest settings</h2>
         <div className="push-down">
           <div>
-            <p className="push-down">
-              Enabling authentication through{" "}
-              <span className="code">AUTH_ENABLED</span> will automatically
-              redirect you to the login page, so make sure you have set up a
-              user first!
-            </p>
-
             {(() => {
               if (state.config === undefined) {
                 return <p>Loading config...</p>;
@@ -326,6 +319,17 @@ const SettingsView: React.FC = () => {
                               ))}{" "}
                               cannot be modified when running in the{" "}
                               <span className="code">cloud</span>.
+                            </p>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="push-up notice">
+                            <p>
+                              Enabling authentication through{" "}
+                              <span className="code">AUTH_ENABLED</span> will
+                              automatically redirect you to the login page, so
+                              make sure you have set up a user first!
                             </p>
                           </div>
                         );

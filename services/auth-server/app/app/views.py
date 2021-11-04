@@ -7,6 +7,7 @@ import requests
 from flask import jsonify, redirect, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from app.connections import db
 from app.models import Token, User
@@ -45,11 +46,22 @@ def register_views(app):
         )
 
     def is_authenticated(request):
+        # If authenticated is not enabled then the request is always
+        # authenticated (by definition).
+        try:
+            global_orchest_config = _utils.GlobalOrchestConfig()
+        except _errors.CorruptedFileError:
+            app.logger.error(
+                "Failed to load global orchest config file.", exc_info=True
+            )
 
-        # if auth_enabled request is always authenticated
-        config = _utils.GlobalOrchestConfig()
-        if not config["AUTH_ENABLED"]:
-            return True
+            # Fall back on the cached value.
+            if not app.config["AUTH_ENABLED"]:
+                return True
+        else:
+            global_orchest_config.save(flask_app=app)
+            if not global_orchest_config["AUTH_ENABLED"]:
+                return True
 
         cookie_token = request.cookies.get("auth_token")
         username = request.cookies.get("auth_username")

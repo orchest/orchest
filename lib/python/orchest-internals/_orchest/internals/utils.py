@@ -6,7 +6,7 @@ import time
 import uuid
 from collections import ChainMap, abc
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import docker
 import requests
@@ -44,7 +44,9 @@ class GlobalOrchestConfig:
         """Manages the global user config.
 
         Uses a collections.ChainMap under the hood to provide fallback
-        to default values where needed.
+        to default values where needed. And when running with `--cloud`,
+        it won't allow you to update config values of the keys defined
+        in `self._cloud_unmodifiable_config_values`.
 
         Raises:
             CorruptedFileError: The global user config file is
@@ -52,12 +54,16 @@ class GlobalOrchestConfig:
 
         Example:
             >>> config = GlobalOrchestConfig()
-            >>> # Automatically fill in default values when accessing
-            >>> # the configuration values.
-            >>> d = config.get()
+            >>> # Save the validated config to a flask app config.
+            >>> config.save(flask_app=app)
+            >>> # Set the current config to a new one.
+            >>> config.set(new_config)
+            >>> # Save the updated (and automatically validated) config.
+            >>> config.save(flask_app=app)
 
         """
-        self._values = ChainMap(self._get_current_config(), self._default_values)
+        unmodifiable_config, self._config = self._get_current_configs()
+        self._values = ChainMap(unmodifiable_config, self._config, self._default_values)
 
     def get(self) -> dict:
         # Flatten into regular dictionary.
@@ -84,70 +90,56 @@ class GlobalOrchestConfig:
             flask_app.config.update(state)
 
     def update(self, d: dict) -> None:
-        """Adds the dictionary to the front of the underlying ChainMap.
+        """Updates the current config values.
 
-        When running with `--cloud`, it won't allow you to change config
-        values of the keys defined in
-        `self._cloud_unmodifiable_config_values`.
+        Under the hood it just calls `dict.update` on the current config
+        dict.
 
         Raises:
-            RuntimeError: The private ChainMap was incorrectly modified
-                outside of the class.
             TypeError: The values of the dictionary that correspond to
                 supported config values have incorrect types.
+            ValueError: The values of the dictionary that correspond to
+                supported config values have incorrect values. E.g.
+                maximum parallelism has to be greater or equal to one.
 
         """
-        d = self._remove_undefined_keys(d)
-
-        if len(self._values.maps) == 2:
-            self._values = self._values.new_child(d)
-        elif len(self._values.maps) == 3:
-            # If this runs, then this function has been called before.
-            self._values.maps[0] = d
-        else:
-            raise RuntimeError(
-                "Private class attributes were incorrectly modified outside of the"
-                " class."
-            )
-
-        if self._cloud:
-            for k in self._cloud_unmodifiable_config_values:
-                try:
-                    # The ChainMap class only makes updates (writes and
-                    # deletions) to the first mapping in the chain while
-                    # lookups will search the full chain.
-                    del self._values[k]
-                    logger.debug(
-                        "User tried to change unmodifiable config values in cloud."
-                    )
-                except KeyError:
-                    ...
-
         try:
-            self._validate_dict(self._values.maps[0])
+            self._validate_dict(d)
         except (TypeError, ValueError) as e:
-            del self._values.maps[0]
+            logger.error(
+                "Tried to update global Orchest config with incorrect types or values."
+            )
             raise e
+        else:
+            self._config.update(d)
+
+    def set(self, d: dict) -> None:
+        """Overwrites the current config with the given dict.
+
+        Raises:
+            TypeError: The values of the dictionary that correspond to
+                supported config values have incorrect types.
+            ValueError: The values of the dictionary that correspond to
+                supported config values have incorrect values. E.g.
+                maximum parallelism has to be greater or equal to one.
+
+        """
+        try:
+            self._validate_dict(d)
+        except (TypeError, ValueError) as e:
+            logger.error(
+                "Tried to update global Orchest config with incorrect types or values."
+            )
+            raise e
+        else:
+            self._config = d
+            self._values.maps[1] = self._config
 
     def __getitem__(self, key):
         return self._values[key]
 
-    def _remove_undefined_keys(self, d: dict) -> dict:
-        """Return a new dict where undefined keys are removed.
-
-        Defined keys are defined as keys that are contained in the
-        `self._default_values` dictionary.
-
-        """
-        res = {}
-        for k in d:
-            if k in self._default_values:
-                res[k] = deepcopy(d[k])
-
-        return res
-
     def _validate_dict(self, d: abc.Mapping) -> None:
-        """Validates the values of the given dict.
+        """Validates the types and values of the values of the dict.
 
         Note:
             Keys in the given dict that are not in the
@@ -182,7 +174,15 @@ class GlobalOrchestConfig:
                 "MAX_JOB_RUNS_PARALLELISM has to be strictly larger than zero."
             )
 
-    def _get_current_config(self) -> dict:
+    def _get_current_configs(self) -> Tuple[dict, dict]:
+        """Gets the dicts needed to initialize this class.
+
+        Returns:
+            (unmodifiable_config, current_config): The first being
+                populated in case `self._cloud==True` and taking the
+                values of the respective `current_config` values.
+
+        """
         current_config = self.read_raw_current_config()
 
         try:
@@ -193,10 +193,29 @@ class GlobalOrchestConfig:
                 + " incorrect types or values."
             )
 
-        return self._remove_undefined_keys(current_config)
+        unmodifiable_config = {}
+        if self._cloud:
+            for k in self._cloud_unmodifiable_config_values:
+                try:
+                    unmodifiable_config[k] = deepcopy(current_config[k])
+                except KeyError:
+                    # Otherwise you could get a default value of
+                    # `AUTH_ENABLED` being `False`. This is probably not
+                    # what you want.
+                    raise _errors.CorruptedFileError(
+                        "When running Orchest with '--cloud' all of"
+                        f" {self._cloud_unmodifiable_config_values} have to be defined."
+                    )
+
+        return unmodifiable_config, current_config
 
     def read_raw_current_config(self) -> dict:
-        """Purely reads the current config without any editing."""
+        """Purely reads the current config without any editing.
+
+        Raises:
+            CorruptedFileError: Could not decode config file.
+
+        """
         try:
             with open(self._path, "r") as f:
                 return json.load(f)

@@ -248,7 +248,7 @@ def register_views(app, db):
                 app.logger.debug(e, exc_info=True)
                 return user_config.get()
 
-            user_config.update(config)
+            user_config.set(config)
             user_config.save(flask_app=app)
 
         return user_config.get()
