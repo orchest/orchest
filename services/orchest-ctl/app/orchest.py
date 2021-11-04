@@ -180,7 +180,7 @@ class OrchestApp:
             )
         try:
             version_exit_code = 0
-            self.version(ext=True, verbose=False)
+            self.version(ext=True)
         except typer.Exit as e:
             version_exit_code = e.exit_code
 
