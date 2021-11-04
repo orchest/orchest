@@ -94,7 +94,7 @@ class DockerWrapper:
             # unresponsive. Use !!\n so that the update server knows
             # what to look for when deleting the extra newline.
             if mode == "web":
-                bar_format = bar_format + "!!\n"
+                bar_format = bar_format + _config.DOCKER_LOGS_BUFFER_FLUSH_FLAG
             pulls = tqdm.as_completed(
                 pulls,
                 total=len(pulls),

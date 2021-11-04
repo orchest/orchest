@@ -103,3 +103,10 @@ DOCKER_NETWORK = "orchest"
 MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH
 
 SIDECAR_PORT = 1111
+
+# update-server
+
+# This is used to force docker to flush the logs buffer, which won't
+# happen without a newline. This way the update server knows when a
+# newline is "genuine" vs a newline being put there to flush the buffer.
+DOCKER_LOGS_BUFFER_FLUSH_FLAG = "F|!!!|\n"
