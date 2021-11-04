@@ -209,13 +209,8 @@ class GlobalOrchestConfig:
                 try:
                     unmodifiable_config[k] = deepcopy(current_config[k])
                 except KeyError:
-                    # Otherwise you could get a default value of
-                    # `AUTH_ENABLED` being `False`. This is probably not
-                    # what you want.
-                    raise _errors.CorruptedFileError(
-                        "When running Orchest with '--cloud' all of"
-                        f" {self._cloud_unmodifiable_config_values} have to be defined."
-                    )
+                    # Fall back on default values.
+                    ...
 
         return unmodifiable_config, current_config
 
