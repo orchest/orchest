@@ -28,6 +28,7 @@ class GlobalOrchestConfig:
     # Defines default values for all supported configuration options.
     _default_values = {
         "MAX_JOB_RUNS_PARALLELISM": 1,
+        "MAX_INTERACTIVE_RUNS_PARALLELISM": 1,
         "AUTH_ENABLED": False,
         "TELEMETRY_DISABLED": False,
         "TELEMETRY_UUID": str(uuid.uuid4()),
@@ -172,6 +173,15 @@ class GlobalOrchestConfig:
         if max_job_runs_parallelism is not None and max_job_runs_parallelism <= 0:
             raise ValueError(
                 "MAX_JOB_RUNS_PARALLELISM has to be strictly larger than zero."
+            )
+
+        max_interactive_runs_parallelism = d.get("MAX_INTERACTIVE_RUNS_PARALLELISM")
+        if (
+            max_interactive_runs_parallelism is not None
+            and max_interactive_runs_parallelism <= 0
+        ):
+            raise ValueError(
+                "MAX_INTERACTIVE_RUNS_PARALLELISM has to be strictly larger than zero."
             )
 
     def _get_current_configs(self) -> Tuple[dict, dict]:

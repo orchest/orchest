@@ -59,7 +59,10 @@ const SettingsView: React.FC = () => {
       .catch(console.error);
   };
 
-  const REQUIRES_RESTART_ON_CHANGE = ["MAX_JOB_RUNS_PARALLELISM"];
+  const REQUIRES_RESTART_ON_CHANGE = [
+    "MAX_JOB_RUNS_PARALLELISM",
+    "MAX_INTERACTIVE_RUNS_PARALLELISM",
+  ];
 
   const getConfig = () => {
     let getConfigPromise = makeCancelable(

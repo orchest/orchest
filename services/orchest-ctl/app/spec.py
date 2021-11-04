@@ -171,6 +171,9 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
     GPU_ENABLED_INSTANCE = _utils.docker_has_gpu_capabilities()
     orchest_config = _utils.GlobalOrchestConfig()
     max_job_runs_parallelism = orchest_config["MAX_JOB_RUNS_PARALLELISM"]
+    max_interactive_runs_parallelism = orchest_config[
+        "MAX_INTERACTIVE_RUNS_PARALLELISM"
+    ]
 
     # name -> request body
     container_config = {
@@ -217,6 +220,7 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             "Env": [
                 f'ORCHEST_HOST_GID={env["ORCHEST_HOST_GID"]}',
                 f"MAX_JOB_RUNS_PARALLELISM={max_job_runs_parallelism}",
+                f"MAX_INTERACTIVE_RUNS_PARALLELISM={max_interactive_runs_parallelism}",
                 # Set a default log level because supervisor can't deal
                 # with non assigned env variables.
                 "ORCHEST_LOG_LEVEL=INFO",
