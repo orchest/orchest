@@ -667,3 +667,34 @@ def _process_stale_environment_image(img) -> None:
         # is required because pipeline runs PUT to the orchest-api their
         # finished state before deleting their stopped containers.
         docker_images_rm_safe(docker_client, img.id, attempt_count=20, force=True)
+
+
+def delete_dangling_orchest_images() -> None:
+    """Deletes dangling Orchest images.
+
+    After an update there could be old Orchest images dangling, for two
+    reasons:
+    - running containers during update, e.g. when running in "web" mode.
+    - existing environmens making use of those images.
+
+    After an update, all services are restarted, and at the start of
+    this service, all user environment images coming from a previous
+    Orchest version are deleted, which means those dangling images can
+    now be deleted.
+
+    """
+    filters = {
+        "label": ["maintainer=Orchest B.V. https://www.orchest.io"],
+        # Note: a dangling image has no tags and no dependent child
+        # images. A base image with no tags which is being used by an
+        # environment, even a dangling one, will not be removed.
+        "dangling": True,
+    }
+    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    for img in env_imgs:
+        # Since environment images might be built using Orchest base
+        # images, make sure to not delete environment images by mistake
+        # because of the filtering.
+        env_uuid = img.labels.get("_orchest_environment_uuid")
+        if env_uuid is None:
+            docker_images_rm_safe(docker_client, img.id)
