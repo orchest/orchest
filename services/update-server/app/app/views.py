@@ -17,6 +17,8 @@ UPDATE_COMPLETE_FILE = "/tmp/update-complete"
 
 def log_update(message):
     try:
+        # Remove extra spaces from the progress bar. See the orchest-ctl
+        # progress bar implementation for more info.
         message = message.replace("!!\n", "")
         with open(UPDATE_FILE_LOG, "a") as log_file:
             log_file.write(message)
