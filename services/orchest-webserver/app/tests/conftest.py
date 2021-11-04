@@ -4,9 +4,13 @@ import pytest
 from sqlalchemy_utils import drop_database
 from tests.test_utils import Pipeline, Project
 
+from _orchest.internals import utils as _utils
 from _orchest.internals.test_utils import gen_uuid
 from app import config, create_app
 from app.connections import db
+
+BASEPATH = os.path.dirname(__file__)
+TEMP_DIR = os.path.join(BASEPATH, "tmp-artifacts")
 
 
 @pytest.fixture(scope="module")
@@ -27,10 +31,12 @@ def test_app():
     SQLALCHEMY_DATABASE_URI = f"postgresql://postgres@{db_host}:{db_port}/{db_name}"
     config.TestingConfig.SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI
     config.CONFIG_CLASS = config.TestingConfig
+    _utils.GlobalOrchestConfig._path = os.path.join(TEMP_DIR, "config.json")
     app, _, _ = create_app()
     yield app
 
     drop_database(app.config["SQLALCHEMY_DATABASE_URI"])
+    os.remove(os.path.join(TEMP_DIR, "config.json"))
 
 
 @pytest.fixture()
