@@ -592,7 +592,9 @@ class AbortJob(TwoPhaseFunction):
             res.abort()
 
         if project_uuid is not None:
-            process_stale_environment_images(project_uuid)
+            process_stale_environment_images(
+                project_uuid, only_marked_for_removal=False
+            )
 
 
 class CreateJob(TwoPhaseFunction):
@@ -841,7 +843,9 @@ class DeleteJob(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str):
         if project_uuid is not None:
-            process_stale_environment_images(project_uuid)
+            process_stale_environment_images(
+                project_uuid, only_marked_for_removal=False
+            )
 
 
 class UpdateJobPipelineRun(TwoPhaseFunction):
@@ -910,7 +914,9 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str, completed: bool):
         if completed and project_uuid is not None:
-            process_stale_environment_images(project_uuid)
+            process_stale_environment_images(
+                project_uuid, only_marked_for_removal=False
+            )
 
 
 class PauseCronJob(TwoPhaseFunction):
