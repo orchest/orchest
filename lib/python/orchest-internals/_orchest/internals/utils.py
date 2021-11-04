@@ -27,8 +27,8 @@ class GlobalOrchestConfig:
 
     # Defines default values for all supported configuration options.
     _default_values = {
-        "MAX_JOB_RUNS_PARALLELISM": 1,
-        "MAX_INTERACTIVE_RUNS_PARALLELISM": 1,
+        "MAX_JOB_RUNS_PARALLELISM": 4,
+        "MAX_INTERACTIVE_RUNS_PARALLELISM": 4,
         "AUTH_ENABLED": False,
         "TELEMETRY_DISABLED": False,
         "TELEMETRY_UUID": str(uuid.uuid4()),
