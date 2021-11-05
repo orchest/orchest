@@ -64,11 +64,11 @@ def create_app():
 
     # read directory mount based config into Flask config
     try:
-        global_user_config = _utils.GlobalOrchestConfig()
+        global_orchest_config = _utils.GlobalOrchestConfig()
     except _errors.CorruptedFileError:
         app.logger.error("Failed to load global orchest config file.", exc_info=True)
     else:
-        global_user_config.save(app)
+        app.config.update(global_orchest_config.as_dict())
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 

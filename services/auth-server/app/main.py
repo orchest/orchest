@@ -10,7 +10,7 @@ try:
 except _errors.CorruptedFileError:
     app.logger.error("Failed to load global orchest config file.", exc_info=True)
 else:
-    global_orchest_config.save(flask_app=app)
+    app.config.update(global_orchest_config.as_dict())
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80)

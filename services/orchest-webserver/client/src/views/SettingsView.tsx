@@ -59,11 +59,6 @@ const SettingsView: React.FC = () => {
       .catch(console.error);
   };
 
-  const REQUIRES_RESTART_ON_CHANGE = [
-    "MAX_JOB_RUNS_PARALLELISM",
-    "MAX_INTERACTIVE_RUNS_PARALLELISM",
-  ];
-
   const getConfig = () => {
     let getConfigPromise = makeCancelable(
       makeRequest("GET", "/async/user-config"),
@@ -74,6 +69,7 @@ const SettingsView: React.FC = () => {
       .then((data) => {
         try {
           let configJSON = JSON.parse(data);
+          configJSON = configJSON.user_config;
           let visibleJSON = configToVisibleConfig(configJSON);
 
           setState((prevState) => ({
@@ -140,14 +136,9 @@ const SettingsView: React.FC = () => {
 
       formData.append("config", JSON.stringify(joinedConfig));
 
-      let authWasEnabled = state.configJSON.AUTH_ENABLED;
-
       setState((prevState) => ({
         ...prevState,
         configJSON: joinedConfig,
-        requiresRestart: REQUIRES_RESTART_ON_CHANGE.some(
-          (key) => state.configJSON[key] != joinedConfig[key]
-        ),
       }));
 
       context.dispatch({
@@ -161,31 +152,26 @@ const SettingsView: React.FC = () => {
       })
         .catch((e) => {
           console.error(e);
+          orchest.alert("Error", JSON.parse(e.body).message);
         })
         .then((data: string) => {
-          let shouldReload = false;
-
           try {
-            let configJSON = JSON.parse(data);
+            let responseJSON = JSON.parse(data);
+            let requiresRestart = responseJSON.requires_restart;
+            let configJSON = responseJSON.user_config;
 
             setState((prevState) => ({
               ...prevState,
               configJSON,
+              requiresRestart,
               config: JSON.stringify(
                 configToVisibleConfig(configJSON),
                 null,
                 2
               ),
             }));
-
-            // Refresh the page when auth gets enabled in the config.
-            shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
           } catch (error) {
             console.warn("Received invalid JSON config from the server.");
-          }
-
-          if (shouldReload) {
-            location.reload();
           }
         });
     } catch (error) {
@@ -322,17 +308,6 @@ const SettingsView: React.FC = () => {
                               ))}{" "}
                               cannot be modified when running in the{" "}
                               <span className="code">cloud</span>.
-                            </p>
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <div className="push-up notice">
-                            <p>
-                              Enabling authentication through{" "}
-                              <span className="code">AUTH_ENABLED</span> will
-                              automatically redirect you to the login page, so
-                              make sure you have set up a user first!
                             </p>
                           </div>
                         );

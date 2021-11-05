@@ -19,20 +19,53 @@ logger = logging.getLogger(__name__)
 
 
 class GlobalOrchestConfig:
-    # Configurations at the application level.
     _cloud = _config.CLOUD
-
-    # Class specific configurations.
     _path = "/config/config.json"
 
+    # Whether the application needs to be restarted if this global
+    # config were to be saved.
+    _requires_restart = False
+
     # Defines default values for all supported configuration options.
-    _default_values = {
-        "MAX_JOB_RUNS_PARALLELISM": 4,
-        "MAX_INTERACTIVE_RUNS_PARALLELISM": 4,
-        "AUTH_ENABLED": False,
-        "TELEMETRY_DISABLED": False,
-        "TELEMETRY_UUID": str(uuid.uuid4()),
-        "INTERCOM_USER_EMAIL": "johndoe@example.org",
+    _config_values = {
+        "MAX_JOB_RUNS_PARALLELISM": {
+            "default": 4,
+            "type": int,
+            "requires-restart": True,
+            "condition": lambda x: x > 0,
+            "condition-msg": "strictly larger than zero",
+        },
+        "MAX_INTERACTIVE_RUNS_PARALLELISM": {
+            "default": 4,
+            "type": int,
+            "requires-restart": True,
+            "condition": lambda x: x > 0,
+            "condition-msg": "strictly larger than zero",
+        },
+        "AUTH_ENABLED": {
+            "default": False,
+            "type": bool,
+            "requires-restart": True,
+            "condition": None,
+        },
+        "TELEMETRY_DISABLED": {
+            "default": False,
+            "type": bool,
+            "requires-restart": True,
+            "condition": None,
+        },
+        "TELEMETRY_UUID": {
+            "default": str(uuid.uuid4()),
+            "type": str,
+            "requires-restart": True,
+            "condition": None,
+        },
+        "INTERCOM_USER_EMAIL": {
+            "default": "johndoe@example.org",
+            "type": str,
+            "requires-restart": True,
+            "condition": None,
+        },
     }
     _cloud_unmodifiable_config_values = [
         "TELEMETRY_UUID",
@@ -55,40 +88,45 @@ class GlobalOrchestConfig:
 
         Example:
             >>> config = GlobalOrchestConfig()
-            >>> # Save the validated config to a flask app config.
-            >>> config.save(flask_app=app)
             >>> # Set the current config to a new one.
             >>> config.set(new_config)
-            >>> # Save the updated (and automatically validated) config.
-            >>> config.save(flask_app=app)
+            >>> # Save the updated (and automatically validated) config
+            >>> # to disk.
+            >>> requires_orchest_restart = config.save(flask_app=app)
 
         """
-        unmodifiable_config, self._config = self._get_current_configs()
-        self._values = ChainMap(unmodifiable_config, self._config, self._default_values)
+        unmodifiable_config, current_config = self._get_current_configs()
+        defaults = {k: val["default"] for k, val in self._config_values.items()}
+
+        self._values = ChainMap(unmodifiable_config, current_config, defaults)
 
     def as_dict(self) -> dict:
         # Flatten into regular dictionary.
         return dict(self._values)
 
-    def save(self, flask_app=None) -> None:
+    def save(self, flask_app=None) -> Optional[bool]:
         """Saves the state to disk.
 
-        Optionally also saves to the `flask_app.config`.
-
         Args:
-            flask_app (flask.Flask): Flask application to save the state
-                to.
+            flask_app (flask.Flask): Uses the `flask_app.config` to
+                determine whether Orchest needs to be restarted for the
+                global config changes to take effect.
+
+        Returns:
+            * `None` if no `flask_app` is given.
+            * `True` if Orchest needs to be restarted for the changes to
+              the global config to take effect.
+            * `False` otherwise.
 
         """
         state = self.as_dict()
         with open(self._path, "w") as f:
             json.dump(state, f)
 
-        # Save to the flask_app config after the disk save has succeeded
-        # to make sure the flask_app does not have configuration values
-        # that are not persisted.
-        if flask_app is not None:
-            flask_app.config.update(state)
+        if flask_app is None:
+            return
+
+        return self._changes_require_restart(flask_app, state)
 
     def update(self, d: dict) -> None:
         """Updates the current config values.
@@ -112,7 +150,7 @@ class GlobalOrchestConfig:
             )
             raise e
         else:
-            self._config.update(d)
+            self._values.maps[1].update(d)
 
     def set(self, d: dict) -> None:
         """Overwrites the current config with the given dict.
@@ -133,55 +171,74 @@ class GlobalOrchestConfig:
             )
             raise e
         else:
-            self._config = d
-            self._values.maps[1] = self._config
+            self._values.maps[1] = d
 
     def __getitem__(self, key):
         return self._values[key]
 
+    def _changes_require_restart(self, flask_app, new: dict) -> bool:
+        """Do config changes require an Orchest restart.
+
+        Compares the Orchest global config values in the flask app to
+        the new values and determines whether the changes require a
+        restart of the Orchest application.
+
+        Returns:
+            `True` if the Orchest application needs to restart if `new`
+            becomes the new config. `False` otherwise.
+
+        """
+        for k, val in self._config_values.items():
+            if not val["requires-restart"]:
+                continue
+
+            # Changes to unmodifiable config options won't take effect
+            # anyways and so they should not account towards requiring
+            # a restart yes or no.
+            if self._cloud and k in self._cloud_unmodifiable_config_values:
+                continue
+
+            old_val = flask_app.config[k]
+            if new.get(k) is not None and new[k] != old_val:
+                return True
+
+        return False
+
     def _validate_dict(self, d: abc.Mapping) -> None:
         """Validates the types and values of the values of the dict.
 
+        Validates whether the types of the values of the given dict
+        equal the types of the respective key's values of the
+        `self._config_values` and additional key specific rules are
+        satisfied, e.g. parallelism > 0.
+
         Note:
             Keys in the given dict that are not in the
-            `self._default_values` are not checked.
-
-        Returns:
-            `True` if the types of the values of the given dict equal
-            the types of the respective key's values of the
-            `self._default_values` and specific rules are satisfied,
-            e.g. parallelism > 0.
-            `False` otherwise.
+            `self._config_values` are not checked.
 
         """
-        # Check for types.
-        for k, val in self._default_values.items():
+        for k, val in self._config_values.items():
             try:
-                if not type(d[k]) == type(val):
-                    raise TypeError(
-                        "Given dictionary has uncompatible types for certain values."
-                    )
+                given_val = d[k]
             except KeyError:
                 # We let it pass silently because it won't break the
                 # application in any way as we will later fall back on
                 # default values.
                 logger.debug("Dictionary missing values for required config options.")
+                continue
 
-        # Check for values.
-        max_job_runs_parallelism = d.get("MAX_JOB_RUNS_PARALLELISM")
-        if max_job_runs_parallelism is not None and max_job_runs_parallelism <= 0:
-            raise ValueError(
-                "MAX_JOB_RUNS_PARALLELISM has to be strictly larger than zero."
-            )
+            if type(given_val) is not val["type"]:
+                given_val_type = type(given_val).__name__
+                correct_val_type = val["type"].__name__
+                raise TypeError(
+                    f'{k} has to be a "{correct_val_type}" but "{given_val_type}"'
+                    " was given."
+                )
 
-        max_interactive_runs_parallelism = d.get("MAX_INTERACTIVE_RUNS_PARALLELISM")
-        if (
-            max_interactive_runs_parallelism is not None
-            and max_interactive_runs_parallelism <= 0
-        ):
-            raise ValueError(
-                "MAX_INTERACTIVE_RUNS_PARALLELISM has to be strictly larger than zero."
-            )
+            if val["condition"] is not None and not val["condition"].__call__(
+                given_val
+            ):
+                raise ValueError(f"{k} has to be {val['condition-msg']}.")
 
     def _get_current_configs(self) -> Tuple[dict, dict]:
         """Gets the dicts needed to initialize this class.
@@ -199,7 +256,7 @@ class GlobalOrchestConfig:
         except (TypeError, ValueError):
             raise _errors.CorruptedFileError(
                 f'The values defined in the global user config ("{self._path}") have'
-                + " incorrect types or values."
+                + " incorrect types and/or values."
             )
 
         unmodifiable_config = {}

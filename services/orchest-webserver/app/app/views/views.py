@@ -229,34 +229,42 @@ def register_views(app, db):
 
         # Current user config, from disk.
         try:
-            user_config = _utils.GlobalOrchestConfig()
+            current_config = _utils.GlobalOrchestConfig()
         except _errors.CorruptedFileError as e:
             app.logger.error(e, exc_info=True)
             return {"message": "Global user configuration could not be read."}, 500
+
+        if request.method == "GET":
+            return {
+                "user_config": current_config.as_dict(),
+            }
 
         if request.method == "POST":
             # Updated config, from client.
             config = request.form.get("config")
 
             if config is None:
-                return user_config.as_dict()
+                return {"message": "No config was given."}, 400
 
             try:
                 # Only save if parseable JSON.
                 config = json.loads(config)
             except json.JSONDecodeError as e:
                 app.logger.debug(e, exc_info=True)
-                return user_config.as_dict()
+                return {"message": "Given config is invalid JSON."}, 400
 
             try:
-                user_config.set(config)
+                current_config.set(config)
             except (TypeError, ValueError) as e:
                 app.logger.debug(e, exc_info=True)
-                return user_config.as_dict()
+                return {"message": f"{e}"}, 400
 
-            user_config.save(flask_app=app)
+            requires_restart = current_config.save(flask_app=app)
 
-        return user_config.as_dict()
+            return {
+                "requires_restart": requires_restart,
+                "user_config": current_config.as_dict(),
+            }
 
     @app.route("/async/host-info", methods=["GET"])
     def host_info():
