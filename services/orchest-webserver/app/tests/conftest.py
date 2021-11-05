@@ -36,7 +36,12 @@ def test_app():
     yield app
 
     drop_database(app.config["SQLALCHEMY_DATABASE_URI"])
-    os.remove(os.path.join(TEMP_DIR, "config.json"))
+    try:
+        os.remove(os.path.join(TEMP_DIR, "config.json"))
+    except FileNotFoundError:
+        # Config file was never created because default values were
+        # never updated.
+        ...
 
 
 @pytest.fixture()
