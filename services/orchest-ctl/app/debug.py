@@ -338,11 +338,11 @@ def orchest_config_dump(path: str) -> None:
         config = _utils.GlobalOrchestConfig()
     except _errors.CorruptedFileError as e:
         utils.echo(e)
-        config = _utils.GlobalOrchestConfig.read_raw_current_config(
+        config = _utils.GlobalOrchestConfig._read_raw_current_config(
             _utils.GlobalOrchestConfig
         )
     else:
-        config = config.read_raw_current_config()
+        config = config._read_raw_current_config()
 
     # Removed for privacy.
     del config["TELEMETRY_UUID"]

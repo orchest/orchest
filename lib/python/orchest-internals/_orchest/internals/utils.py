@@ -66,7 +66,7 @@ class GlobalOrchestConfig:
         unmodifiable_config, self._config = self._get_current_configs()
         self._values = ChainMap(unmodifiable_config, self._config, self._default_values)
 
-    def get(self) -> dict:
+    def as_dict(self) -> dict:
         # Flatten into regular dictionary.
         return dict(self._values)
 
@@ -80,7 +80,7 @@ class GlobalOrchestConfig:
                 to.
 
         """
-        state = self.get()
+        state = self.as_dict()
         with open(self._path, "w") as f:
             json.dump(state, f)
 
@@ -157,16 +157,15 @@ class GlobalOrchestConfig:
         # Check for types.
         for k, val in self._default_values.items():
             try:
-                if not isinstance(d[k], type(val)):
+                if not type(d[k]) == type(val):
                     raise TypeError(
                         "Given dictionary has uncompatible types for certain values."
                     )
             except KeyError:
                 # We let it pass silently because it won't break the
-                # application in any way.
-                logger.debug(
-                    "User tried to add a config value that is not used by Orchest."
-                )
+                # application in any way as we will later fall back on
+                # default values.
+                logger.debug("Dictionary missing values for required config options.")
 
         # Check for values.
         max_job_runs_parallelism = d.get("MAX_JOB_RUNS_PARALLELISM")
@@ -193,7 +192,7 @@ class GlobalOrchestConfig:
                 values of the respective `current_config` values.
 
         """
-        current_config = self.read_raw_current_config()
+        current_config = self._read_raw_current_config()
 
         try:
             self._validate_dict(current_config)
@@ -214,7 +213,7 @@ class GlobalOrchestConfig:
 
         return unmodifiable_config, current_config
 
-    def read_raw_current_config(self) -> dict:
+    def _read_raw_current_config(self) -> dict:
         """Purely reads the current config without any editing.
 
         Raises:

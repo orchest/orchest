@@ -169,7 +169,7 @@ def register_views(app, db):
         user_config = _utils.GlobalOrchestConfig()
         return jsonify(
             {
-                "user_config": user_config.get(),
+                "user_config": user_config.as_dict(),
                 "config": {
                     **{key: app.config[key] for key in front_end_config},
                     **{key: getattr(_config, key) for key in front_end_config_internal},
@@ -239,19 +239,24 @@ def register_views(app, db):
             config = request.form.get("config")
 
             if config is None:
-                return user_config.get()
+                return user_config.as_dict()
 
             try:
                 # Only save if parseable JSON.
                 config = json.loads(config)
             except json.JSONDecodeError as e:
                 app.logger.debug(e, exc_info=True)
-                return user_config.get()
+                return user_config.as_dict()
 
-            user_config.set(config)
+            try:
+                user_config.set(config)
+            except (TypeError, ValueError) as e:
+                app.logger.debug(e, exc_info=True)
+                return user_config.as_dict()
+
             user_config.save(flask_app=app)
 
-        return user_config.get()
+        return user_config.as_dict()
 
     @app.route("/async/host-info", methods=["GET"])
     def host_info():
