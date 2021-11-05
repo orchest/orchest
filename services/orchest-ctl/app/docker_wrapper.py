@@ -82,11 +82,19 @@ class DockerWrapper:
         self,
         images: Iterable[str],
         prog_bar: bool = True,
+        mode: Optional[str] = None,
         force: bool = False,
     ):
         pulls = [self._pull_image(image, force=force) for image in images]
 
         if prog_bar:
+            bar_format = "{desc}: {n}/{total}|{bar}|"
+            # This is necessary because docker won't flush the log until
+            # it has seen a newline, making the web update feel
+            # unresponsive. Use !!\n so that the update server knows
+            # what to look for when deleting the extra newline.
+            if mode == "web":
+                bar_format = bar_format + _config.DOCKER_LOGS_BUFFER_FLUSH_FLAG
             pulls = tqdm.as_completed(
                 pulls,
                 total=len(pulls),
@@ -95,7 +103,7 @@ class DockerWrapper:
                 ascii=True,
                 position=0,
                 leave=True,
-                bar_format="{desc}: {n}/{total}|{bar}|",
+                bar_format=bar_format,
             )
 
         for pull in pulls:
@@ -117,6 +125,7 @@ class DockerWrapper:
         self,
         images: Iterable[str],
         prog_bar: bool = True,
+        mode: Optional[str] = None,
         force: bool = False,
     ):
         """Pulls an iterable of images.
@@ -125,11 +134,21 @@ class DockerWrapper:
             images: The images to pull.
             prog_bar: Whether or not to show a progress bar to
                 indicate progress.
+            mode: What mode is orchest-ctl running e.g. "web". This
+                affects how some lower level components act, like the
+                progress bar.
             force: If True, then pulls an image even when it is already
                 present and thus replacing it.
 
         """
-        return asyncio.run(self._pull_images(images, prog_bar=prog_bar, force=force))
+        return asyncio.run(
+            self._pull_images(
+                images,
+                prog_bar=prog_bar,
+                mode=mode,
+                force=force,
+            )
+        )
 
     async def _does_image_exist(self, image: str) -> bool:
         try:

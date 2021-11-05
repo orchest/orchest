@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 import docker
 from flask import jsonify
 
+from _orchest.internals import config as _config
 from _orchest.internals.utils import run_orchest_ctl
 from app.config import CONFIG_CLASS
 
@@ -17,6 +18,9 @@ UPDATE_COMPLETE_FILE = "/tmp/update-complete"
 
 def log_update(message):
     try:
+        # Remove extra spaces from the progress bar. See the orchest-ctl
+        # progress bar implementation for more info.
+        message = message.replace(_config.DOCKER_LOGS_BUFFER_FLUSH_FLAG, "")
         with open(UPDATE_FILE_LOG, "a") as log_file:
             log_file.write(message)
 
