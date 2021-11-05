@@ -559,11 +559,6 @@ class OrchestResourceManager:
             label="_orchest_jupyter_build_task_uuid"
         )
 
-    def get_orchest_dangling_imgs(self):
-        return self.docker_client.list_image_ids(
-            label="maintainer=Orchest B.V. https://www.orchest.io", dangling=True
-        )
-
     def tag_environment_images_for_removal(self):
         env_build_imgs = self.get_env_build_imgs()
         for img in env_build_imgs:
@@ -597,20 +592,6 @@ class OrchestResourceManager:
     def remove_jupyter_build_imgs(self):
         jupyter_build_imgs = self.get_jupyter_build_imgs()
         self.docker_client.remove_images(jupyter_build_imgs, force=True)
-
-    def remove_orchest_dangling_imgs(self):
-        """Remove Orchest dangling images that are not in use."""
-        orchest_dangling_imgs = set(self.get_orchest_dangling_imgs())
-
-        # This will pick up both orchest-ctl (which is not in the
-        # orchest network) and the other orchest containers.
-        containers, _ = self.docker_client.get_containers(full_info=True, network=None)
-
-        # Do not try to delete images that are in use.
-        images_in_use = {c["ImageID"] for c in containers}
-        orchest_dangling_imgs = orchest_dangling_imgs - images_in_use
-
-        self.docker_client.remove_images(orchest_dangling_imgs, force=True)
 
     def containers_version(self):
         pulled_images = self.get_images(orchest_owned=True)

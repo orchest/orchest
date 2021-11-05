@@ -170,9 +170,6 @@ class OrchestApp:
         logger.info("Deleting user-built Jupyter image.")
         self.resource_manager.remove_jupyter_build_imgs()
 
-        # Delete Orchest dangling images.
-        self.resource_manager.remove_orchest_dangling_imgs()
-
         if mode != "web":
             utils.echo(
                 "Checking whether all containers are running the same version of "
