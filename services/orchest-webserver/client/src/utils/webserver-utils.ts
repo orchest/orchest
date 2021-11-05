@@ -96,6 +96,48 @@ export function filterServices(services, scope) {
   return servicesCopy;
 }
 
+export function addOutgoingConnections(steps: {
+  [stepUuid: string]: {
+    incoming_connections: string[];
+    outgoing_connections?: string[];
+  };
+}) {
+  /* Augment incoming_connections with outgoing_connections to be able
+  to traverse from root nodes. Reset outgoing_connections state.
+  Notes: modifies 'steps' object that's passed in
+  */
+
+  for (let stepUuid in steps) {
+    if (steps.hasOwnProperty(stepUuid)) {
+      steps[stepUuid].outgoing_connections = [];
+    }
+  }
+
+  for (let stepUuid in steps) {
+    if (steps.hasOwnProperty(stepUuid)) {
+      let incoming_connections = steps[stepUuid].incoming_connections;
+      for (let x = 0; x < incoming_connections.length; x++) {
+        steps[incoming_connections[x]].outgoing_connections.push(stepUuid);
+      }
+    }
+  }
+}
+export function clearOutgoingConnections(steps: {
+  [stepUuid: string]: {
+    outgoing_connections?: string[];
+  };
+}) {
+  // Notes: modifies 'steps' object that's passed in
+  for (let stepUuid in steps) {
+    if (
+      steps.hasOwnProperty(stepUuid) &&
+      steps[stepUuid].outgoing_connections !== undefined
+    ) {
+      delete steps[stepUuid].outgoing_connections;
+    }
+  }
+}
+
 export function getServiceURLs(
   service,
   projectUuid: string,
