@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -93,6 +95,9 @@ class GlobalOrchestConfig:
             >>> # Save the updated (and automatically validated) config
             >>> # to disk.
             >>> requires_orchest_restart = config.save(flask_app=app)
+            >>> # Just an example output.
+            >>> requres_orchest_restart
+            ... ["MAX_INTERACTIVE_RUNS_PARALLELISM"]
 
         """
         unmodifiable_config, current_config = self._get_current_configs()
@@ -104,7 +109,7 @@ class GlobalOrchestConfig:
         # Flatten into regular dictionary.
         return dict(self._values)
 
-    def save(self, flask_app=None) -> Optional[bool]:
+    def save(self, flask_app=None) -> Optional[list[str]]:
         """Saves the state to disk.
 
         Args:
@@ -114,9 +119,9 @@ class GlobalOrchestConfig:
 
         Returns:
             * `None` if no `flask_app` is given.
-            * `True` if Orchest needs to be restarted for the changes to
-              the global config to take effect.
-            * `False` otherwise.
+            * List of changed config options that require an Orchest
+              restart to take effect.
+            * Empty list otherwise.
 
         """
         state = self.as_dict()
@@ -176,18 +181,19 @@ class GlobalOrchestConfig:
     def __getitem__(self, key):
         return self._values[key]
 
-    def _changes_require_restart(self, flask_app, new: dict) -> bool:
+    def _changes_require_restart(self, flask_app, new: dict) -> list[str]:
         """Do config changes require an Orchest restart.
 
         Compares the Orchest global config values in the flask app to
-        the new values and determines whether the changes require a
+        the `new` values and determines whether the changes require a
         restart of the Orchest application.
 
         Returns:
-            `True` if the Orchest application needs to restart if `new`
-            becomes the new config. `False` otherwise.
+            A list of strings representing the changed configuration
+            options that require a restart of Orchest to take effect.
 
         """
+        res = []
         for k, val in self._config_values.items():
             if not val["requires-restart"]:
                 continue
@@ -200,9 +206,9 @@ class GlobalOrchestConfig:
 
             old_val = flask_app.config[k]
             if new.get(k) is not None and new[k] != old_val:
-                return True
+                res.append(k)
 
-        return False
+        return res
 
     def _validate_dict(self, d: abc.Mapping) -> None:
         """Validates the types and values of the values of the dict.

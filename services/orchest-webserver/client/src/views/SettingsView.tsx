@@ -31,7 +31,8 @@ const SettingsView: React.FC = () => {
     configJSON: undefined,
     version: undefined,
     hostInfo: undefined,
-    requiresRestart: false,
+    // changed config options that require an Orchest restart
+    requiresRestart: [],
   });
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -213,7 +214,7 @@ const SettingsView: React.FC = () => {
           ...prevState,
           restarting: true,
           status: "restarting",
-          requiresRestart: false,
+          requiresRestart: [],
         }));
 
         makeRequest("POST", "/async/restart")
@@ -327,11 +328,14 @@ const SettingsView: React.FC = () => {
                       }
                     })()}
                     {(() => {
-                      if (state.requiresRestart) {
+                      if (state.requiresRestart.length > 0) {
+                        let vals = state.requiresRestart.map(
+                          (val) => `"${val}" `
+                        );
                         return (
                           <div className="warning push-up">
                             <i className="material-icons">info</i> Restart
-                            Orchest to have the changes take effect.
+                            Orchest for the changes to {vals} to take effect.
                           </div>
                         );
                       }
