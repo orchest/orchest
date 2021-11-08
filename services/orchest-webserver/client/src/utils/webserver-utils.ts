@@ -96,32 +96,34 @@ export function filterServices(services, scope) {
   return servicesCopy;
 }
 
-export function addOutgoingConnections(steps: {
-  [stepUuid: string]: {
-    incoming_connections: string[];
-    outgoing_connections?: string[];
-  };
-}) {
+export function addOutgoingConnections(
+  steps: Record<
+    string,
+    { incoming_connections: string[]; outgoing_connections?: string[] }
+  >
+) {
   /* Augment incoming_connections with outgoing_connections to be able
   to traverse from root nodes. Reset outgoing_connections state.
   Notes: modifies 'steps' object that's passed in
   */
 
-  for (let stepUuid in steps) {
-    if (steps.hasOwnProperty(stepUuid)) {
-      steps[stepUuid].outgoing_connections = [];
-    }
-  }
+  Object.keys(steps).forEach((stepUuid) => {
+    steps[stepUuid].outgoing_connections =
+      steps[stepUuid].outgoing_connections || [];
 
-  for (let stepUuid in steps) {
-    if (steps.hasOwnProperty(stepUuid)) {
-      let incoming_connections = steps[stepUuid].incoming_connections;
-      for (let x = 0; x < incoming_connections.length; x++) {
-        steps[incoming_connections[x]].outgoing_connections.push(stepUuid);
-      }
-    }
-  }
+    steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
+      const outgoingConnections =
+        steps[incomingConnectionUuid].outgoing_connections;
+
+      steps[incomingConnectionUuid].outgoing_connections = outgoingConnections
+        ? [...outgoingConnections, stepUuid]
+        : [stepUuid];
+    });
+  });
+
+  return steps;
 }
+
 export function clearOutgoingConnections(steps: {
   [stepUuid: string]: {
     outgoing_connections?: string[];
@@ -129,10 +131,7 @@ export function clearOutgoingConnections(steps: {
 }) {
   // Notes: modifies 'steps' object that's passed in
   for (let stepUuid in steps) {
-    if (
-      steps.hasOwnProperty(stepUuid) &&
-      steps[stepUuid].outgoing_connections !== undefined
-    ) {
+    if (steps[stepUuid] && steps[stepUuid].outgoing_connections !== undefined) {
       delete steps[stepUuid].outgoing_connections;
     }
   }
@@ -175,25 +174,6 @@ export function getServiceURLs(
   }
 
   return urls;
-}
-
-export function createOutgoingConnections(steps) {
-  for (let step_uuid in steps) {
-    if (steps.hasOwnProperty(step_uuid)) {
-      steps[step_uuid].outgoing_connections = [];
-    }
-  }
-
-  for (let step_uuid in steps) {
-    if (steps.hasOwnProperty(step_uuid)) {
-      let incoming_connections = steps[step_uuid].incoming_connections;
-      for (let x = 0; x < incoming_connections.length; x++) {
-        steps[incoming_connections[x]].outgoing_connections.push(step_uuid);
-      }
-    }
-  }
-
-  return steps;
 }
 
 export function checkGate(project_uuid) {

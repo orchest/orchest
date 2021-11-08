@@ -2198,7 +2198,7 @@ const PipelineView: React.FC = () => {
   let connections_list = {};
   if (state.eventVars.openedStep) {
     const step = state.eventVars.steps[state.eventVars.openedStep];
-    const { incoming_connections } = step;
+    const { incoming_connections = [] } = step;
 
     incoming_connections.forEach((id: string) => {
       connections_list[id] = [

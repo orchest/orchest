@@ -58,22 +58,16 @@ const collectNodes = (
   dag: TransformedDag | DagRoots,
   nodes: Record<string, Point>
 ) => {
-  let roots;
-  if (isDagRoots(dag)) {
-    roots = dag.proots;
-  } else {
-    roots = [dag];
-  }
+  const roots = isDagRoots(dag) ? dag.proots : [dag];
 
-  for (let root of roots) {
+  roots.forEach((root) => {
     const id = root.data.id;
-    if (nodes[id] === undefined) {
-      nodes[id] = { x: root.x, y: root.y };
-    }
+    nodes[id] = nodes[id] || { x: root.x, y: root.y };
+
     root.dataChildren.forEach((childDag) =>
       collectNodes(childDag.child, nodes)
     );
-  }
+  });
 };
 
 const generateDagData = (subGraph: SubGraph) => {
@@ -120,20 +114,13 @@ const computeBoundingBox = (nodes: Record<string, Point>) => {
   let maxX = Number.MIN_VALUE;
   let maxY = Number.MIN_VALUE;
 
-  for (let node of Object.values(nodes)) {
-    if (node.x < minX) {
-      minX = node.x;
-    }
-    if (node.y < minY) {
-      minY = node.y;
-    }
-    if (node.x > maxX) {
-      maxX = node.x;
-    }
-    if (node.y > maxY) {
-      maxY = node.y;
-    }
-  }
+  Object.values(nodes).forEach((node) => {
+    minX = Math.min(node.x, minX);
+    minY = Math.min(node.y, minY);
+    maxX = Math.max(node.x, maxX);
+    maxY = Math.max(node.y, maxY);
+  });
+
   return { minX, minY, maxX, maxY };
 };
 
@@ -143,12 +130,12 @@ const moveNodesTopLeft = (nodes: Record<string, Point>) => {
 };
 
 const layoutSubGraph = (
-  subGraph,
-  nodeRadius,
-  scaleX,
-  scaleY,
-  offsetX,
-  offsetY
+  subGraph: SubGraph,
+  nodeRadius: number,
+  scaleX: number,
+  scaleY: number,
+  offsetX: number,
+  offsetY: number
 ): Record<string, Point> => {
   const stratify = dagStratify();
   const dag = stratify(generateDagData(subGraph));
@@ -216,7 +203,7 @@ const collectSubGraphs = (pipelineJson) => {
   let seenNodes: Set<string> = new Set();
   let subGraphs: { uuid: string; incoming_connections: string[] }[][] = [];
 
-  for (let stepUuid of Object.keys(pipelineJson.steps)) {
+  Object.keys(pipelineJson.steps).forEach((stepUuid) => {
     let step = pipelineJson.steps[stepUuid];
 
     // Start at unseen root nodes
@@ -230,10 +217,10 @@ const collectSubGraphs = (pipelineJson) => {
       // Add to subGraphs
       subGraphs.push(graphNodes);
     }
-  }
+  });
 
   // Sort subGraphs (big to small)
-  subGraphs.sort((a, b) => (a.length > b.length ? -1 : 1));
+  subGraphs.sort((a, b) => b.length - a.length);
 
   // Remove annotations after being done with them
   clearOutgoingConnections(pipelineJson.steps);
@@ -272,16 +259,13 @@ export const layoutPipeline = (
     // stepHeight is needed because the alignment only includes the center coordinates
     // of the steps
     y += boundingBox.maxY - boundingBox.minY + stepHeight + verticalGraphMargin;
-  }
 
-  // Write node positions to _pipelineJson
-  for (let laidOutSubGraph of laidOutSubGraphs) {
-    for (let stepUuid of Object.keys(laidOutSubGraph)) {
-      _pipelineJson.steps[stepUuid].meta_data.position[0] =
-        laidOutSubGraph[stepUuid].x;
-      _pipelineJson.steps[stepUuid].meta_data.position[1] =
-        laidOutSubGraph[stepUuid].y;
-    }
+    // Write node positions to _pipelineJson
+    Object.entries(laidOutSubGraph).forEach((subgraph) => {
+      const [stepUuid, node] = subgraph;
+      _pipelineJson.steps[stepUuid].meta_data.position[0] = node.x;
+      _pipelineJson.steps[stepUuid].meta_data.position[1] = node.y;
+    });
   }
 
   return _pipelineJson;
