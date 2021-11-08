@@ -5,7 +5,7 @@ import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
 import {
-  createOutgoingConnections,
+  addOutgoingConnections,
   filterServices,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
@@ -106,7 +106,7 @@ const LogsView: React.FC = () => {
   const topologicalSort = (pipelineSteps) => {
     let sortedStepKeys = [];
 
-    pipelineSteps = createOutgoingConnections(pipelineSteps);
+    addOutgoingConnections(pipelineSteps);
 
     let conditionalAdd = (step) => {
       // add iff all parents are already in the sortedStepKeys
