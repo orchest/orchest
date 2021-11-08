@@ -107,18 +107,14 @@ export function addOutgoingConnections(steps: {
   Notes: modifies 'steps' object that's passed in
   */
 
-  for (let stepUuid in steps) {
-    if (steps.hasOwnProperty(stepUuid)) {
-      steps[stepUuid].outgoing_connections = [];
-    }
+  for (let stepUuid of Object.keys(steps)) {
+    steps[stepUuid].outgoing_connections = [];
   }
 
-  for (let stepUuid in steps) {
-    if (steps.hasOwnProperty(stepUuid)) {
-      let incoming_connections = steps[stepUuid].incoming_connections;
-      for (let x = 0; x < incoming_connections.length; x++) {
-        steps[incoming_connections[x]].outgoing_connections.push(stepUuid);
-      }
+  for (let stepUuid of Object.keys(steps)) {
+    let incoming_connections = steps[stepUuid].incoming_connections;
+    for (let x = 0; x < incoming_connections.length; x++) {
+      steps[incoming_connections[x]].outgoing_connections.push(stepUuid);
     }
   }
 }
@@ -175,25 +171,6 @@ export function getServiceURLs(
   }
 
   return urls;
-}
-
-export function createOutgoingConnections(steps) {
-  for (let step_uuid in steps) {
-    if (steps.hasOwnProperty(step_uuid)) {
-      steps[step_uuid].outgoing_connections = [];
-    }
-  }
-
-  for (let step_uuid in steps) {
-    if (steps.hasOwnProperty(step_uuid)) {
-      let incoming_connections = steps[step_uuid].incoming_connections;
-      for (let x = 0; x < incoming_connections.length; x++) {
-        steps[incoming_connections[x]].outgoing_connections.push(step_uuid);
-      }
-    }
-  }
-
-  return steps;
 }
 
 export function checkGate(project_uuid) {

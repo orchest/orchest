@@ -233,7 +233,7 @@ const collectSubGraphs = (pipelineJson) => {
   }
 
   // Sort subGraphs (big to small)
-  subGraphs.sort((a, b) => (a.length > b.length ? -1 : 1));
+  subGraphs.sort((a, b) => b.length - a.length);
 
   // Remove annotations after being done with them
   clearOutgoingConnections(pipelineJson.steps);
