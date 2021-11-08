@@ -1524,7 +1524,8 @@ span.code {
     position: absolute;
     user-select: none;
     -webkit-user-select: none;
-    background-image: url("/image/cross-fill.svg");
+    background-size: 40px 40px;
+    background-image: url("/image/cross-fill.png");
     background-repeat: repeat;
     border: 1px solid #e5e5e5;
 
