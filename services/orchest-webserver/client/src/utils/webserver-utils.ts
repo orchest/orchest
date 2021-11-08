@@ -107,16 +107,19 @@ export function addOutgoingConnections(
   Notes: modifies 'steps' object that's passed in
   */
 
-  for (let stepUuid of Object.keys(steps)) {
-    steps[stepUuid].outgoing_connections = [];
-  }
+  Object.keys(steps).forEach((stepUuid) => {
+    // assign an empty array as initial value if possible
+    steps[stepUuid].outgoing_connections =
+      steps[stepUuid].outgoing_connections || [];
 
-  for (let stepUuid of Object.keys(steps)) {
-    let incoming_connections = steps[stepUuid].incoming_connections;
-    for (let x = 0; x < incoming_connections.length; x++) {
-      steps[incoming_connections[x]].outgoing_connections.push(stepUuid);
-    }
-  }
+    steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
+      if (!steps[incomingConnectionUuid].outgoing_connections) {
+        steps[incomingConnectionUuid].outgoing_connections = [];
+      } else {
+        steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      }
+    });
+  });
 }
 
 export function clearOutgoingConnections(steps: {
