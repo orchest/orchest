@@ -96,12 +96,12 @@ export function filterServices(services, scope) {
   return servicesCopy;
 }
 
-export function addOutgoingConnections(steps: {
-  [stepUuid: string]: {
-    incoming_connections: string[];
-    outgoing_connections?: string[];
-  };
-}) {
+export function addOutgoingConnections(
+  steps: Record<
+    string,
+    { incoming_connections: string[]; outgoing_connections?: string[] }
+  >
+) {
   /* Augment incoming_connections with outgoing_connections to be able
   to traverse from root nodes. Reset outgoing_connections state.
   Notes: modifies 'steps' object that's passed in
@@ -118,6 +118,7 @@ export function addOutgoingConnections(steps: {
     }
   }
 }
+
 export function clearOutgoingConnections(steps: {
   [stepUuid: string]: {
     outgoing_connections?: string[];
@@ -125,10 +126,7 @@ export function clearOutgoingConnections(steps: {
 }) {
   // Notes: modifies 'steps' object that's passed in
   for (let stepUuid in steps) {
-    if (
-      steps.hasOwnProperty(stepUuid) &&
-      steps[stepUuid].outgoing_connections !== undefined
-    ) {
+    if (steps[stepUuid] && steps[stepUuid].outgoing_connections !== undefined) {
       delete steps[stepUuid].outgoing_connections;
     }
   }
