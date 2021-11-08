@@ -181,18 +181,6 @@ def retry_func(func, _retries=10, _sleep_duration=1, _wait_msg=None, **kwargs) -
     return func_result
 
 
-def get_orchest_config() -> dict:
-    try:
-        with open("/config/config.json") as input_json_file:
-            return json.load(input_json_file)
-    except FileNotFoundError:
-        logger.info("Could not find Orchest's global configuration file.")
-        return {}
-    except json.decoder.JSONDecodeError:
-        logger.info("Malformed Orchest global configuration file.")
-        return {}
-
-
 # orchest <arguments> cmd <arguments>, excluding the use of cmd as an
 # argument, so that "orchest --update update" would match but
 # "orchest update update" would not.

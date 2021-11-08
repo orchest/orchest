@@ -8,31 +8,39 @@ Configuration
 
 Global configurations
 ~~~~~~~~~~~~~~~~~~~~~
+.. tip::
 
-Orchest stores a global configuration file at ``~/.config/orchest/config.json`` (or at
-``$XDG_CONFIG_HOME/orchest/config.json`` if defined). The content of the file can be changed from
-within in the UI through *Settings*.
+    Change the global configuration through Orchest, by going to *Settings*.  If you change the
+    content of the file through the filesystem of the host, then you need to restart Orchest for the
+    changes to take effect.
 
-Example content:
+Orchest stores a global configuration file in JSON format at ``~/.config/orchest/config.json`` (or at
+``$XDG_CONFIG_HOME/orchest/config.json`` if defined). Example content:
 
 .. code-block:: json
 
    {
      "AUTH_ENABLED": false,
-     "MAX_JOB_RUNS_PARALLELISM": 1,
+     "MAX_JOB_RUNS_PARALLELISM": 4,
+     "MAX_INTERACTIVE_RUNS_PARALLELISM": 4,
      "TELEMETRY_DISABLED": false,
      "TELEMETRY_UUID": "69b40767-e315-4953-8a2b-355833e344b8"
    }
 
-Explanation of possible configuration settings:
+Explanation of all configuration settings:
 
 ``AUTH_ENABLED``
     Enable authentication, see :ref:`authentication <authentication>`.
 
 ``MAX_JOB_RUNS_PARALLELISM``
-    Controls the level of parallelism of job runs. By default, only one
-    run at a time will be executed, across all jobs. You need to restart
-    Orchest for this change to take effect.
+    Controls the level of parallelism of job runs. By default, four runs at a time will be
+    executed, across all jobs. You need to restart Orchest for changes to take effect.
+
+``MAX_INTERACTIVE_RUNS_PARALLELISM``
+    Controls the level of parallelism of interactive runs of different pipelines (by definition only
+    one interactive run can be running for a particular pipeline at a given time). For example, by
+    setting this value to ``2`` you can (interactively) run two different pipelines (through the
+    pipeline editor) at the same time. You need to restart Orchest for changes to take effect.
 
 ``TELEMETRY_DISABLED``
     Option to disable telemetry completely.

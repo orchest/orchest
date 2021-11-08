@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.connections import db
 from app.models import Token, User
-from app.utils import get_auth_cache, get_user_conf, set_auth_cache
+from app.utils import get_auth_cache, set_auth_cache
 
 # This auth_cache is shared between requests
 # within the same Flask process
@@ -44,10 +44,9 @@ def register_views(app):
         )
 
     def is_authenticated(request):
-
-        # if auth_enabled request is always authenticated
-        config_data = get_user_conf()
-        if not config_data["AUTH_ENABLED"]:
+        # If authentication is not enabled then the request is always
+        # authenticated (by definition).
+        if not app.config["AUTH_ENABLED"]:
             return True
 
         cookie_token = request.cookies.get("auth_token")

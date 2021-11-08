@@ -7,6 +7,8 @@ from typing import List, Set
 from docker.errors import NotFound
 
 from _orchest.internals import config as _config
+from _orchest.internals import errors as _errors
+from _orchest.internals import utils as _utils
 from app import utils
 from app.config import _on_start_images
 from app.docker_wrapper import OrchestResourceManager
@@ -332,7 +334,16 @@ def containers_version_dump(
 def orchest_config_dump(path: str) -> None:
     """Get the Orchest config file, with telemetry UUID removed"""
 
-    config = utils.get_orchest_config()
+    try:
+        config = _utils.GlobalOrchestConfig()
+    except _errors.CorruptedFileError as e:
+        utils.echo(e)
+        config = _utils.GlobalOrchestConfig._read_raw_current_config(
+            _utils.GlobalOrchestConfig
+        )
+    else:
+        config = config._read_raw_current_config()
+
     # Removed for privacy.
     del config["TELEMETRY_UUID"]
 
