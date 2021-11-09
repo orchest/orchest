@@ -659,3 +659,39 @@ validation_environments_result = Model(
         ),
     },
 )
+
+_idleness_check_result_details = Model(
+    "IdlenessCheckResultDetails",
+    {
+        "no_ongoing_environment_builds": fields.Boolean(
+            required=True,
+        ),
+        "no_ongoing_jupyterlab_builds": fields.Boolean(
+            required=True,
+        ),
+        "no_ongoing_interactive_runs": fields.Boolean(
+            required=True,
+        ),
+        "no_ongoing_job_runs": fields.Boolean(
+            required=True,
+        ),
+        "no_busy_kernels": fields.Boolean(
+            required=True,
+        ),
+    },
+)
+
+idleness_check_result = Model(
+    "IdlenessCheckResult",
+    {
+        "idle": fields.Boolean(
+            required=True,
+            description="True if the Orchest-api is idle.",
+        ),
+        "details": fields.Nested(
+            _idleness_check_result_details,
+            required=True,
+            description="Details of the idleness check.",
+        ),
+    },
+)
