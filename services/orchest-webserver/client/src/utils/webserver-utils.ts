@@ -115,9 +115,8 @@ export function addOutgoingConnections(
     steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
       if (!steps[incomingConnectionUuid].outgoing_connections) {
         steps[incomingConnectionUuid].outgoing_connections = [];
-      } else {
-        steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
       }
+      steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
     });
   });
 }

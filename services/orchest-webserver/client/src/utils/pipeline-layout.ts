@@ -208,10 +208,8 @@ const collectSubGraphs = (pipelineJson) => {
 
     // Start at unseen root nodes
     if (!seenNodes.has(stepUuid) && step.incoming_connections.length == 0) {
-      seenNodes.add(stepUuid);
-
       // Found untraversed root node
-      let graphNodes = [step];
+      let graphNodes = [];
       traverseNode(step, pipelineJson.steps, seenNodes, graphNodes);
 
       // Add to subGraphs
