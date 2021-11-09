@@ -1,7 +1,7 @@
 # Orchest SDK for Python
 
 [Website](https://www.orchest.io) —
-[Docs](https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html)
+[Docs](https://docs.orchest.io/en/stable/user_guide/sdk/python.html)
 
 ---
 
@@ -18,7 +18,7 @@ pip install orchest
 ## Next steps
 
 Check out our
-[quickstart](https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html#quickstart) to get
+[quickstart](https://docs.orchest.io/en/stable/user_guide/sdk/python.html#quickstart) to get
 started!
 
 ## Compatibility

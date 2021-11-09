@@ -495,7 +495,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                         <div className="warning push-down">
                           <i className="material-icons">warning</i> Snapshot
                           size exceeds 50MB. Please refer to the{" "}
-                          <a href="https://orchest.readthedocs.io/en/latest/user_guide/jobs.html">
+                          <a href="https://docs.orchest.io/en/latest/user_guide/jobs.html">
                             docs
                           </a>
                           .
