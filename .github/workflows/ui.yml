@@ -18,6 +18,12 @@ on:
       - master
       - dev
       - "release/**"
+    paths:
+      - "**package.json"
+      - "lib/design-system/**"
+      - "lib/javascript/**"
+      - "services/auth-server/**"
+      - "services/orchest-webserver/**"
 
 jobs:
   pnpm-linting:

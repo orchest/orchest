@@ -1,8 +1,5 @@
 import datetime
 import hashlib
-import json
-
-from flask import current_app
 
 
 def get_hash(path):
@@ -15,31 +12,6 @@ def get_hash(path):
             buf = afile.read(BLOCKSIZE)
 
     return hasher.hexdigest()
-
-
-def get_user_conf():
-    conf_data = {}
-
-    # configure default value
-    conf_data["AUTH_ENABLED"] = False
-
-    try:
-        with open("/config/config.json", "r") as f:
-            config = json.load(f)
-
-        conf_data.update(config)
-    except Exception as e:
-        try:
-            current_app.logger.debug(e)
-        except RuntimeError:
-            # Is hit in case the function is called without an
-            # application context, e.g. in the `main.py` module.
-            import logging
-
-            logger = logging.getLogger(__name__)
-            logger.debug(e)
-
-    return conf_data
 
 
 def set_auth_cache(

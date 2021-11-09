@@ -6,6 +6,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
+  addOutgoingConnections,
   checkGate,
   filterServices,
   getPipelineJSONEndpoint,
@@ -586,26 +587,7 @@ const PipelineView: React.FC = () => {
         startNodeUUID
       ) - 1;
 
-    // augment incoming_connections with outgoing_connections to be able to traverse from root nodes
-
-    // reset outgoing_connections state (creates 2N algorithm, but makes for guaranteerd clean state.eventVars.steps data structure)
-    for (let step_uuid in state.eventVars.steps) {
-      if (state.eventVars.steps.hasOwnProperty(step_uuid)) {
-        state.eventVars.steps[step_uuid].outgoing_connections = [];
-      }
-    }
-
-    for (let step_uuid in state.eventVars.steps) {
-      if (state.eventVars.steps.hasOwnProperty(step_uuid)) {
-        let incoming_connections =
-          state.eventVars.steps[step_uuid].incoming_connections;
-        for (let x = 0; x < incoming_connections.length; x++) {
-          state.eventVars.steps[
-            incoming_connections[x]
-          ].outgoing_connections.push(step_uuid);
-        }
-      }
-    }
+    addOutgoingConnections(state.eventVars.steps);
 
     let whiteSet = new Set(Object.keys(state.eventVars.steps));
     let greySet = new Set();
@@ -1660,7 +1642,9 @@ const PipelineView: React.FC = () => {
         (STEP_WIDTH / STEP_HEIGHT),
       1 + spacingFactor,
       gridMargin,
-      gridMargin
+      gridMargin,
+      gridMargin,
+      STEP_HEIGHT
     );
 
     // TODO: make the step position state less duplicated.
@@ -2214,7 +2198,7 @@ const PipelineView: React.FC = () => {
   let connections_list = {};
   if (state.eventVars.openedStep) {
     const step = state.eventVars.steps[state.eventVars.openedStep];
-    const { incoming_connections } = step;
+    const { incoming_connections = [] } = step;
 
     incoming_connections.forEach((id: string) => {
       connections_list[id] = [

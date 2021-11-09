@@ -310,48 +310,6 @@ def get_repo_tag():
     return os.getenv("ORCHEST_VERSION")
 
 
-def get_user_conf():
-    conf_data = {}
-
-    # configure default value
-    conf_data["AUTH_ENABLED"] = False
-    conf_data["INTERCOM_USER_EMAIL"] = "johndoe@example.org"
-
-    try:
-        with open("/config/config.json", "r") as f:
-            conf_data = json.load(f)
-    except Exception as e:
-        current_app.logger.debug(e)
-
-    return conf_data
-
-
-def get_user_conf_raw():
-    try:
-        with open("/config/config.json", "r") as f:
-            return f.read()
-    except Exception as e:
-        current_app.logger.debug(e)
-
-
-def migrate_user_config():
-    config = get_user_conf_raw()
-    if config is None:
-        return
-    config = json.loads(config)
-    if "MAX_JOB_RUNS_PARALLELISM" not in config:
-        config["MAX_JOB_RUNS_PARALLELISM"] = 1
-        save_user_conf_raw(json.dumps(config))
-
-
-def save_user_conf_raw(config):
-    try:
-        with open("/config/config.json", "w") as f:
-            f.write(config)
-    except Exception as e:
-        current_app.logger.debug(e)
-
-
 def clear_folder(folder):
     try:
         for filename in os.listdir(folder):

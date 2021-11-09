@@ -1,15 +1,303 @@
+from __future__ import annotations
+
+import json
 import logging
 import os
 import re
 import time
 import uuid
-from typing import Any, Dict, Optional
+from collections import ChainMap, abc
+from copy import deepcopy
+from typing import Any, Dict, Optional, Tuple
 
 import docker
 import requests
 from docker.types import DeviceRequest
 
 from _orchest.internals import config as _config
+from _orchest.internals import errors as _errors
+
+logger = logging.getLogger(__name__)
+
+
+class GlobalOrchestConfig:
+    _cloud = _config.CLOUD
+    _path = "/config/config.json"
+
+    # Whether the application needs to be restarted if this global
+    # config were to be saved.
+    _requires_restart = False
+
+    # Defines default values for all supported configuration options.
+    _config_values = {
+        "MAX_JOB_RUNS_PARALLELISM": {
+            "default": 4,
+            "type": int,
+            "requires-restart": True,
+            "condition": lambda x: x > 0,
+            "condition-msg": "strictly larger than zero",
+        },
+        "MAX_INTERACTIVE_RUNS_PARALLELISM": {
+            "default": 4,
+            "type": int,
+            "requires-restart": True,
+            "condition": lambda x: x > 0,
+            "condition-msg": "strictly larger than zero",
+        },
+        "AUTH_ENABLED": {
+            "default": False,
+            "type": bool,
+            "requires-restart": True,
+            "condition": None,
+        },
+        "TELEMETRY_DISABLED": {
+            "default": False,
+            "type": bool,
+            "requires-restart": True,
+            "condition": None,
+        },
+        "TELEMETRY_UUID": {
+            "default": str(uuid.uuid4()),
+            "type": str,
+            "requires-restart": True,
+            "condition": None,
+        },
+        "INTERCOM_USER_EMAIL": {
+            "default": "johndoe@example.org",
+            "type": str,
+            "requires-restart": True,
+            "condition": None,
+        },
+    }
+    _cloud_unmodifiable_config_values = [
+        "TELEMETRY_UUID",
+        "TELEMETRY_DISABLED",
+        "AUTH_ENABLED",
+        "INTERCOM_USER_EMAIL",
+    ]
+
+    def __init__(self) -> None:
+        """Manages the global user config.
+
+        Uses a collections.ChainMap under the hood to provide fallback
+        to default values where needed. And when running with `--cloud`,
+        it won't allow you to update config values of the keys defined
+        in `self._cloud_unmodifiable_config_values`.
+
+        Raises:
+            CorruptedFileError: The global user config file is
+                corrupted.
+
+        Example:
+            >>> config = GlobalOrchestConfig()
+            >>> # Set the current config to a new one.
+            >>> config.set(new_config)
+            >>> # Save the updated (and automatically validated) config
+            >>> # to disk.
+            >>> requires_orchest_restart = config.save(flask_app=app)
+            >>> # Just an example output.
+            >>> requres_orchest_restart
+            ... ["MAX_INTERACTIVE_RUNS_PARALLELISM"]
+
+        """
+        unmodifiable_config, current_config = self._get_current_configs()
+        defaults = {k: val["default"] for k, val in self._config_values.items()}
+
+        self._values = ChainMap(unmodifiable_config, current_config, defaults)
+
+    def as_dict(self) -> dict:
+        # Flatten into regular dictionary.
+        return dict(self._values)
+
+    def save(self, flask_app=None) -> Optional[list[str]]:
+        """Saves the state to disk.
+
+        Args:
+            flask_app (flask.Flask): Uses the `flask_app.config` to
+                determine whether Orchest needs to be restarted for the
+                global config changes to take effect.
+
+        Returns:
+            * `None` if no `flask_app` is given.
+            * List of changed config options that require an Orchest
+              restart to take effect.
+            * Empty list otherwise.
+
+        """
+        state = self.as_dict()
+        with open(self._path, "w") as f:
+            json.dump(state, f)
+
+        if flask_app is None:
+            return
+
+        return self._changes_require_restart(flask_app, state)
+
+    def update(self, d: dict) -> None:
+        """Updates the current config values.
+
+        Under the hood it just calls `dict.update` on the current config
+        dict.
+
+        Raises:
+            TypeError: The values of the dictionary that correspond to
+                supported config values have incorrect types.
+            ValueError: The values of the dictionary that correspond to
+                supported config values have incorrect values. E.g.
+                maximum parallelism has to be greater or equal to one.
+
+        """
+        try:
+            self._validate_dict(d)
+        except (TypeError, ValueError) as e:
+            logger.error(
+                "Tried to update global Orchest config with incorrect types or values."
+            )
+            raise e
+        else:
+            self._values.maps[1].update(d)
+
+    def set(self, d: dict) -> None:
+        """Overwrites the current config with the given dict.
+
+        Raises:
+            TypeError: The values of the dictionary that correspond to
+                supported config values have incorrect types.
+            ValueError: The values of the dictionary that correspond to
+                supported config values have incorrect values. E.g.
+                maximum parallelism has to be greater or equal to one.
+
+        """
+        try:
+            self._validate_dict(d)
+        except (TypeError, ValueError) as e:
+            logger.error(
+                "Tried to update global Orchest config with incorrect types or values."
+            )
+            raise e
+        else:
+            self._values.maps[1] = d
+
+    def __getitem__(self, key):
+        return self._values[key]
+
+    def _changes_require_restart(self, flask_app, new: dict) -> list[str]:
+        """Do config changes require an Orchest restart.
+
+        Compares the Orchest global config values in the flask app to
+        the `new` values and determines whether the changes require a
+        restart of the Orchest application.
+
+        Returns:
+            A list of strings representing the changed configuration
+            options that require a restart of Orchest to take effect.
+
+        """
+        res = []
+        for k, val in self._config_values.items():
+            if not val["requires-restart"]:
+                continue
+
+            # Changes to unmodifiable config options won't take effect
+            # anyways and so they should not account towards requiring
+            # a restart yes or no.
+            if self._cloud and k in self._cloud_unmodifiable_config_values:
+                continue
+
+            old_val = flask_app.config[k]
+            if new.get(k) is not None and new[k] != old_val:
+                res.append(k)
+
+        return res
+
+    def _validate_dict(self, d: abc.Mapping) -> None:
+        """Validates the types and values of the values of the dict.
+
+        Validates whether the types of the values of the given dict
+        equal the types of the respective key's values of the
+        `self._config_values` and additional key specific rules are
+        satisfied, e.g. parallelism > 0.
+
+        Note:
+            Keys in the given dict that are not in the
+            `self._config_values` are not checked.
+
+        """
+        for k, val in self._config_values.items():
+            try:
+                given_val = d[k]
+            except KeyError:
+                # We let it pass silently because it won't break the
+                # application in any way as we will later fall back on
+                # default values.
+                logger.debug("Dictionary missing values for required config options.")
+                continue
+
+            if type(given_val) is not val["type"]:
+                given_val_type = type(given_val).__name__
+                correct_val_type = val["type"].__name__
+                raise TypeError(
+                    f'{k} has to be a "{correct_val_type}" but "{given_val_type}"'
+                    " was given."
+                )
+
+            if val["condition"] is not None and not val["condition"].__call__(
+                given_val
+            ):
+                raise ValueError(f"{k} has to be {val['condition-msg']}.")
+
+    def _get_current_configs(self) -> Tuple[dict, dict]:
+        """Gets the dicts needed to initialize this class.
+
+        Returns:
+            (unmodifiable_config, current_config): The first being
+                populated in case `self._cloud==True` and taking the
+                values of the respective `current_config` values.
+
+        """
+        current_config = self._read_raw_current_config()
+
+        try:
+            self._validate_dict(current_config)
+        except (TypeError, ValueError):
+            raise _errors.CorruptedFileError(
+                f'The values defined in the global user config ("{self._path}") have'
+                + " incorrect types and/or values."
+            )
+
+        unmodifiable_config = {}
+        if self._cloud:
+            for k in self._cloud_unmodifiable_config_values:
+                try:
+                    unmodifiable_config[k] = deepcopy(current_config[k])
+                except KeyError:
+                    # Fall back on default values.
+                    ...
+
+        return unmodifiable_config, current_config
+
+    def _read_raw_current_config(self) -> dict:
+        """Purely reads the current config without any editing.
+
+        Raises:
+            CorruptedFileError: Could not decode config file.
+
+        """
+        try:
+            with open(self._path, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            logger.warning("Global user config file did not exist.", exc_info=True)
+            return {}
+        except json.JSONDecodeError as e:
+            logger.debug(e, exc_info=True)
+
+            # NOTE: It can not pass silenty because then we might write
+            # to the file later on, overwriting existing values. This
+            # could break the Telemetry.
+            raise _errors.CorruptedFileError(
+                f'Could not decode global user config file ("{self._path}").'
+            )
 
 
 def get_mount(source, target, form="docker-sdk"):

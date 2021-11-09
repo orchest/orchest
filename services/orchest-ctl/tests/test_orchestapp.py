@@ -203,7 +203,7 @@ def test_update(installed_images, update_exit_code, mode, expected_stdout, capsy
 
     to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(installed_images)
     docker_client.pull_images.assert_called_once_with(
-        to_pull_images, prog_bar=True, force=True
+        to_pull_images, prog_bar=True, force=True, mode=mode
     )
 
 

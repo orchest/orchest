@@ -1,12 +1,16 @@
+from _orchest.internals import errors as _errors
+from _orchest.internals import utils as _utils
+from app import create_app
 from config import CONFIG_CLASS
 
-from app import create_app
-from app.utils import get_user_conf
-
-conf_data = get_user_conf()
-
 app = create_app(config_class=CONFIG_CLASS)
-app.config.update(conf_data)
+
+try:
+    global_orchest_config = _utils.GlobalOrchestConfig()
+except _errors.CorruptedFileError:
+    app.logger.error("Failed to load global orchest config file.", exc_info=True)
+else:
+    app.config.update(global_orchest_config.as_dict())
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=80)

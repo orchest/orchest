@@ -1,8 +1,6 @@
 name: Publish SDK to PyPi
 
-# Runs whenever a file is changed that matched the glob. Note: this
-# means that the SDK is published separately from Orchest, this way
-# user can build their own custom images for Orchest.
+# Whenever Orchest is released, also publish the Orchest SDK.
 on:
   release:
     types: [published]

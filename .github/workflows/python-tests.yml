@@ -1,10 +1,5 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
-
 name: Python Tests
 
-# Always run on PR because through GitHub settings the Python tests
-# are always required to have passed before a PR can be merged.
 on:
   push:
     branches:
@@ -29,6 +24,7 @@ jobs:
         service:
           [
             memory-server,
+            session-sidecar,
             orchest-api,
             orchest-webserver,
             orchest-sdk,

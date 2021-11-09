@@ -167,6 +167,10 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                 # update.
                 utils.process_stale_environment_images()
 
+                # Remove dangling Orchest images, mostly useful after an
+                # update.
+                utils.delete_dangling_orchest_images()
+
             except FileExistsError:
                 app.logger.info("/tmp/cleanup_done exists. Skipping cleanup.")
             except Exception as e:
