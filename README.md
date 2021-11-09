@@ -6,9 +6,9 @@
 
 <p align="center">
 <a href=https://orchest.io><img src="https://img.shields.io/badge/Website-violet?style=flat&logo=webflow&labelColor=5c5c5c"></a>
-<a href=https://orchest.readthedocs.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
+<a href=https://docs.orchest.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
 <a href=https://www.orchest.io/video-tutorials><img src="https://img.shields.io/badge/Video tutorials-blue?style=flat&logo=airplayvideo&labelColor=5c5c5c"></a>
-<a href=https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
+<a href=https://docs.orchest.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 <a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-blue?style=flat&logo=slack&labelColor=5c5c5c"></a>
 </p>
 
@@ -22,14 +22,14 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
   <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
  </p>
 
-Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
+Read the [docs](https://docs.orchest.io/en/stable/); get the
 [code](https://github.com/orchest/orchest#installation); ask us
 [anything](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)!
 
 ## Features
 
 > For a complete list of Orchest's features, check out the
-> [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
+> [overview](https://docs.orchest.io/en/stable/getting_started/overview.html) in our docs!
 
 - **Visually construct** pipelines through our user-friendly UI.
 - **Code in Notebooks**.
@@ -48,7 +48,7 @@ Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
 
 For GPU support, language dependencies other than Python, and other installation methods, such as
 building from source, please refer to our [installation
-docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html).
+docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 #### Requirements
 
@@ -73,7 +73,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ```
 
 Now that you have installed Orchest, get started with our
-[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
+[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
 check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
 users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
 explaining some of Orchest's core concepts.
@@ -95,7 +95,7 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 ## Contributing
 
 Contributions are more than welcome! Please see our
-[contributor guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
+[contributor guides](https://docs.orchest.io/en/stable/developer_guide/contributing.html)
 for more details.
 
 ## Contributors

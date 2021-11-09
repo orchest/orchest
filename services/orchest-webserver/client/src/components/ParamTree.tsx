@@ -122,7 +122,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
             <>
               <Link
                 target="_blank"
-                href="https://orchest.readthedocs.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
+                href="https://docs.orchest.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
               >
                 Learn more
               </Link>{" "}
