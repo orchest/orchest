@@ -8,7 +8,6 @@ TODO:
 
 """
 import copy
-import datetime
 from typing import Any, Dict
 
 from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, func, text
@@ -723,6 +722,5 @@ class ClientHeartbeat(BaseModel):
         TIMESTAMP(timezone=True),
         nullable=False,
         index=True,
-        default=lambda: datetime.datetime.now(datetime.timezone.utc),
         server_default=func.now(),
     )
