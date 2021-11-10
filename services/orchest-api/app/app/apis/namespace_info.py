@@ -1,8 +1,8 @@
 """API endpoints for unspecified orchest-api level information."""
-
 from flask_restx import Namespace, Resource
 
-from app import schema, utils
+from app import models, schema, utils
+from app.connections import db
 
 api = Namespace("info", description="Orchest-api information.")
 api = utils.register_schema(api)
@@ -30,3 +30,24 @@ class IdleCheck(Resource):
         """
         idleness_data = utils.is_orchest_api_idle()
         return idleness_data, 200
+
+
+@api.route("/client-heartbeat")
+class ClientHeartBeat(Resource):
+    @api.doc("client_heartbeat")
+    def get(self):
+        """Allows to signal an heartbeat to the Orchest-api.
+
+        This allows the Orchest-api to know about the fact that some
+        clients are using Orchest.
+
+        """
+        # Cleanup old entries. Note that this works correctly because
+        # we are in transaction mode. If flask would run in eager mode
+        # there would be a time window where orchest would be idle, at
+        # least according to client heartbeats.
+        models.ClientHeartbeat.query.delete()
+        db.session.add(models.ClientHeartbeat())
+        db.session.commit()
+
+        return "", 200

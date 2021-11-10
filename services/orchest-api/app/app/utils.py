@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 
 import requests
@@ -720,9 +720,24 @@ def is_orchest_api_idle() -> dict:
     Returns:
         See schema.idleness_check_result for details.
     """
-    result = {"idle": True, "details": {"no_busy_kernels": True}}
+    data = {}
+
+    # Active clients.
+    threshold = (
+        datetime.now(timezone.utc)
+        - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
+    )
+    current_app.logger.error(threshold)
+    data["no_active_clients"] = not (
+        db.session.query(
+            db.session.query(models.ClientHeartbeat)
+            .filter(models.ClientHeartbeat.timestamp > threshold)
+            .exists()
+        ).scalar()
+    )
 
     # Find busy kernels.
+    data["no_busy_kernels"] = True
     isessions = models.InteractiveSession.query.filter(
         models.InteractiveSession.status.in_(["RUNNING"])
     ).all()
@@ -739,10 +754,9 @@ def is_orchest_api_idle() -> dict:
                 "pipeline_uuid": session.pipeline_uuid,
             }
         )
-        result["details"]["no_busy_kernels"] = (
-            result["details"]["no_busy_kernels"] and not session_has_busy_kernels
+        data["no_busy_kernels"] = (
+            data["no_busy_kernels"] and not session_has_busy_kernels
         )
-    result["idle"] = result["idle"] and result["details"]["no_busy_kernels"]
 
     # Assumes the model has a uuid field and its lifecycle contains the
     # PENDING and STARTED statuses. NOTE: we could be stopping earlier
@@ -756,12 +770,12 @@ def is_orchest_api_idle() -> dict:
         ("no_ongoing_interactive_runs", models.InteractivePipelineRun),
         ("no_ongoing_job_runs", models.NonInteractivePipelineRun),
     ]:
-        result["details"][name] = not db.session.query(
+        data[name] = not db.session.query(
             db.session.query(model)
             .filter(model.status.in_(["PENDING", "STARTED"]))
             .exists()
         ).scalar()
-        result["idle"] = result["idle"] and result["details"][name]
 
-    current_app.logger.info(result)
+    result = {"details": data}
+    result["idle"] = all(data.values())
     return result

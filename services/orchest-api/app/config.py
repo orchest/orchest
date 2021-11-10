@@ -1,3 +1,5 @@
+import datetime
+
 from _orchest.internals import config as _config
 
 
@@ -19,6 +21,10 @@ class Config:
     SCHEDULER_INTERVAL = 10
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
+
+    # Used to decide when client heartbeats are too old to represent
+    # activity.
+    CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=5)
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.

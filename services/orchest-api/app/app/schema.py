@@ -663,6 +663,9 @@ validation_environments_result = Model(
 _idleness_check_result_details = Model(
     "IdlenessCheckResultDetails",
     {
+        "no_active_clients": fields.Boolean(
+            required=True,
+        ),
         "no_ongoing_environment_builds": fields.Boolean(
             required=True,
         ),
