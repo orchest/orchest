@@ -491,18 +491,19 @@ class InteractiveSession(Session):
         """
         IP = self.get_containers_IP()
 
-        self._notebook_server_info = {
-            "port": 8888,
-            "base_url": "/"
-            + _config.JUPYTER_SERVER_NAME.format(
-                project_uuid=session_config["project_uuid"][
-                    : _config.TRUNCATED_UUID_LENGTH
-                ],
-                pipeline_uuid=session_config["pipeline_uuid"][
-                    : _config.TRUNCATED_UUID_LENGTH
-                ],
-            ),
-        }
+        if self._notebook_server_info is None:
+            self._notebook_server_info = {
+                "port": 8888,
+                "base_url": "/"
+                + _config.JUPYTER_SERVER_NAME.format(
+                    project_uuid=session_config["project_uuid"][
+                        : _config.TRUNCATED_UUID_LENGTH
+                    ],
+                    pipeline_uuid=session_config["pipeline_uuid"][
+                        : _config.TRUNCATED_UUID_LENGTH
+                    ],
+                ),
+            }
 
         # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
         url = (
