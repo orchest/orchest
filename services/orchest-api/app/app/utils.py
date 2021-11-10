@@ -714,7 +714,7 @@ def delete_dangling_orchest_images() -> None:
             docker_images_rm_safe(docker_client, img.id)
 
 
-def is_orchest_api_idle() -> dict:
+def is_orchest_idle() -> dict:
     """Checks if the orchest-api is idle.
 
     Returns:
@@ -727,7 +727,6 @@ def is_orchest_api_idle() -> dict:
         datetime.now(timezone.utc)
         - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
     )
-    current_app.logger.error(threshold)
     data["active_clients"] = db.session.query(
         db.session.query(models.ClientHeartbeat)
         .filter(models.ClientHeartbeat.timestamp > threshold)
@@ -753,6 +752,8 @@ def is_orchest_api_idle() -> dict:
             }
         )
         data["busy_kernels"] = data["busy_kernels"] or session_has_busy_kernels
+        if data["busy_kernels"]:
+            break
 
     # Assumes the model has a uuid field and its lifecycle contains the
     # PENDING and STARTED statuses. NOTE: we could be stopping earlier

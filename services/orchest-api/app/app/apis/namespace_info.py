@@ -28,7 +28,7 @@ class IdleCheck(Resource):
             state is reported by JupyterLab, and reflects the fact that
             a kernel is not actively doing some compute.
         """
-        idleness_data = utils.is_orchest_api_idle()
+        idleness_data = utils.is_orchest_idle()
         return idleness_data, 200
 
 

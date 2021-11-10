@@ -518,7 +518,7 @@ class InteractiveSession(Session):
         # 'last_activity': '2021-11-10T09:04:10.508031Z',
         # 'execution_state': 'idle', 'connections': 2}]
         kernels: List[dict] = response.json()
-        return any([kernel.get("execution_state") == "busy" for kernel in kernels])
+        return any(kernel.get("execution_state") == "busy" for kernel in kernels)
 
     def shutdown(self) -> None:
         """Shuts down the launch.
