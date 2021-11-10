@@ -24,7 +24,7 @@ class Config:
 
     # Used to decide when client heartbeats are too old to represent
     # activity.
-    CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=5)
+    CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
