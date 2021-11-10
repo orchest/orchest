@@ -751,8 +751,8 @@ def is_orchest_idle() -> dict:
                 "pipeline_uuid": session.pipeline_uuid,
             }
         )
-        data["busy_kernels"] = data["busy_kernels"] or session_has_busy_kernels
-        if data["busy_kernels"]:
+        if session_has_busy_kernels:
+            data["busy_kernels"] = True
             break
 
     # Assumes the model has a uuid field and its lifecycle contains the
