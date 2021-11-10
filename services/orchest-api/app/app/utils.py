@@ -728,16 +728,14 @@ def is_orchest_api_idle() -> dict:
         - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
     )
     current_app.logger.error(threshold)
-    data["no_active_clients"] = not (
-        db.session.query(
-            db.session.query(models.ClientHeartbeat)
-            .filter(models.ClientHeartbeat.timestamp > threshold)
-            .exists()
-        ).scalar()
-    )
+    data["active_clients"] = db.session.query(
+        db.session.query(models.ClientHeartbeat)
+        .filter(models.ClientHeartbeat.timestamp > threshold)
+        .exists()
+    ).scalar()
 
     # Find busy kernels.
-    data["no_busy_kernels"] = True
+    data["busy_kernels"] = False
     isessions = models.InteractiveSession.query.filter(
         models.InteractiveSession.status.in_(["RUNNING"])
     ).all()
@@ -754,9 +752,7 @@ def is_orchest_api_idle() -> dict:
                 "pipeline_uuid": session.pipeline_uuid,
             }
         )
-        data["no_busy_kernels"] = (
-            data["no_busy_kernels"] and not session_has_busy_kernels
-        )
+        data["busy_kernels"] = data["busy_kernels"] or session_has_busy_kernels
 
     # Assumes the model has a uuid field and its lifecycle contains the
     # PENDING and STARTED statuses. NOTE: we could be stopping earlier
@@ -765,17 +761,17 @@ def is_orchest_api_idle() -> dict:
     # on this "feature" in the future without fragmenting users due to
     # different versions.
     for name, model in [
-        ("no_ongoing_environment_builds", models.EnvironmentBuild),
-        ("no_ongoing_jupyterlab_builds", models.JupyterBuild),
-        ("no_ongoing_interactive_runs", models.InteractivePipelineRun),
-        ("no_ongoing_job_runs", models.NonInteractivePipelineRun),
+        ("ongoing_environment_builds", models.EnvironmentBuild),
+        ("ongoing_jupyterlab_builds", models.JupyterBuild),
+        ("ongoing_interactive_runs", models.InteractivePipelineRun),
+        ("ongoing_job_runs", models.NonInteractivePipelineRun),
     ]:
-        data[name] = not db.session.query(
+        data[name] = db.session.query(
             db.session.query(model)
             .filter(model.status.in_(["PENDING", "STARTED"]))
             .exists()
         ).scalar()
 
     result = {"details": data}
-    result["idle"] = all(data.values())
+    result["idle"] = not any(data.values())
     return result
