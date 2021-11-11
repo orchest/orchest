@@ -659,3 +659,14 @@ validation_environments_result = Model(
         ),
     },
 )
+
+next_scheduled_job_data = Model(
+    "NextScheduledJobData",
+    {
+        "uuid": fields.String(required=False, description="UUID of the job."),
+        "next_scheduled_time": fields.String(
+            required=False,
+            description=("Time at which the job is scheduled to start. UTC."),
+        ),
+    },
+)
