@@ -33,8 +33,8 @@ const Dialogs = (_, ref) => {
   const requestBuild = (
     project_uuid,
     environmentValidationData,
-    requestedFromView,
-    onBuildComplete,
+    requestedFromView: string,
+    onBuildComplete: () => void,
     onCancel
   ) => {
     let uuid = uuidv4();

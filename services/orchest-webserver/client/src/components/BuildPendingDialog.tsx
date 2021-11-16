@@ -1,4 +1,3 @@
-import { useOrchest } from "@/hooks/orchest";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
@@ -17,70 +16,78 @@ const buildFailMessage = `Some environment builds of this project have failed.
   but you might need to change the environment setup script in 
   order for the build to succeed.`;
 
+const solutionMessages = {
+  Pipeline: " You can cancel to open the pipeline in read-only mode.",
+  JupyterLab:
+    " To start JupyterLab all environments in the project need to be built.",
+};
+
+const getInactiveEnvironmentsMessage = (
+  inactiveEnvironments: string[],
+  requestedFromView: string
+) => {
+  const inactiveEnvironmentsMessage =
+    inactiveEnvironments.length > 0
+      ? `Not all environments of this project have been built. Would you like to build them?`
+      : `Some environments of this project are still building. Please wait until the build is complete.`;
+  const solutionMessage = solutionMessages[requestedFromView] || "";
+
+  return `${inactiveEnvironmentsMessage}${solutionMessage}`;
+};
+
 export interface IBuildPendingDialogProps {
   environmentValidationData: any;
   projectUuid: string;
   requestedFromView: string;
-  onBuildComplete: any;
-  onCancel: any;
-  onClose: any;
+  onBuildComplete: () => void;
+  onCancel: () => void;
+  onClose: () => void;
 }
 
 const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
   const { navigateTo } = useCustomRoute();
 
   const [gateInterval, setGateInterval] = React.useState(null);
-  const [state, setState] = React.useState(null);
+  const [state, setState] = React.useState<{
+    buildHasFailed: boolean;
+    message: string;
+    environmentsBuilding: number;
+    allowBuild: boolean;
+    showBuildStatus: boolean;
+    building: boolean;
+  }>(null);
   const [environmentsToBeBuilt, setEnvironmentsToBeBuilt] = React.useState<
     string[]
   >([]);
 
-  const { dispatch } = useOrchest();
   const [refManager] = React.useState(new RefManager());
 
   const processValidationData = (data) => {
-    let messageSuffix = "";
-    switch (props?.requestedFromView) {
-      case "Pipeline":
-        messageSuffix =
-          " You can cancel to open the pipeline in read-only mode.";
-        break;
-      case "JupyterLab":
-        messageSuffix =
-          " To start JupyterLab all environments in the project need to be built.";
-        break;
-    }
-
     let inactiveEnvironments: string[] = [];
     let buildHasFailed = false;
     let environmentsBuilding = 0;
     let building = false;
 
     for (let x = 0; x < data.actions.length; x++) {
-      if (data.actions[x] == "BUILD" || data.actions[x] == "RETRY") {
+      const action = data.actions[x];
+
+      if (["BUILD", "RETRY"].includes(action))
         inactiveEnvironments.push(data.fail[x]);
 
-        if (data.actions[x] == "RETRY") {
-          buildHasFailed = true;
-        }
-      } else if (data.actions[x] == "WAIT") {
+      if (action === "RETRY") buildHasFailed = true;
+      if (action === "WAIT") {
         building = true;
         environmentsBuilding++;
       }
     }
 
-    let message = "";
-    if (buildHasFailed) {
-      message = buildFailMessage;
-    } else if (inactiveEnvironments.length > 0) {
-      message =
-        `Not all environments of this project have been built. Would you like to build them?` +
-        messageSuffix;
-    } else {
-      message =
-        `Some environments of this project are still building. Please wait until the build is complete.` +
-        messageSuffix;
-    }
+    let message = buildHasFailed
+      ? buildFailMessage
+      : getInactiveEnvironmentsMessage(
+          inactiveEnvironments,
+          props?.requestedFromView
+        );
+
     setEnvironmentsToBeBuilt(inactiveEnvironments);
     setState((prevState) => ({
       ...prevState,
@@ -144,13 +151,9 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
 
     makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
       type: "json",
-      content: {
-        environment_build_requests,
-      },
+      content: { environment_build_requests },
     })
-      .then(() => {
-        startPollingGate();
-      })
+      .then(() => startPollingGate())
       .catch((error) => {
         console.error("Failed to start environment builds:", error);
       });

@@ -173,14 +173,12 @@ export function getServiceURLs(
   return urls;
 }
 
-export function checkGate(project_uuid) {
+export function checkGate(project_uuid: string) {
   return new Promise((resolve, reject) => {
     // we validate whether all environments have been built on the server
     makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
       type: "json",
-      content: {
-        project_uuid: project_uuid,
-      },
+      content: { project_uuid },
     })
       .then((response: string) => {
         try {
