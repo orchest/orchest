@@ -80,14 +80,12 @@ const App = () => {
   const requestBuild = (
     project_uuid: string,
     environmentValidationData,
-    requestedFromView,
-    onBuildComplete,
+    requestedFromView: string,
+    onBuildComplete: () => void,
     onCancel: () => void
   ) => {
     // Analytics call
-    sendEvent("build request", {
-      requestedFromView: requestedFromView,
-    });
+    sendEvent("build request", { requestedFromView });
 
     dialogsRef.current.requestBuild(
       project_uuid,

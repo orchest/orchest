@@ -24,7 +24,7 @@ export interface IPipelineStepProps {
 const PipelineStep = (props: IPipelineStepProps, ref: TPipelineStepRef) => {
   const [refManager] = React.useState(new RefManager());
 
-  const updatePosition = (position) => {
+  const updatePosition = (position: [number, number]) => {
     // note: DOM update outside of normal React loop for performance
     refManager.refs.container.style.transform =
       "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
