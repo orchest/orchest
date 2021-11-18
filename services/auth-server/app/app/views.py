@@ -214,6 +214,9 @@ def register_views(app):
             username = request.form.get("username")
             password = request.form.get("password")
 
+            if username == app.config.get("ORCHEST_CLOUD_RESERVED_USER"):
+                return jsonify({"error": "User is reserved."}), 409
+
             user = User.query.filter(User.username == username).first()
             if user is not None:
                 return jsonify({"error": "User already exists."}), 409
@@ -241,7 +244,8 @@ def register_views(app):
         data_json = {"users": []}
         users = User.query.all()
         for user in users:
-            data_json["users"].append({"username": user.username})
+            if user.username != app.config.get("ORCHEST_CLOUD_RESERVED_USER"):
+                data_json["users"].append({"username": user.username})
 
         return jsonify(data_json), 200
 
