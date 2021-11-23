@@ -116,7 +116,6 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
 
         {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
           <MDCButtonReact
-            disabled={get.currentSession?.status !== "RUNNING"}
             classNames={["mdc-button--outlined"]}
             onClick={showJupyter}
             icon="science"
