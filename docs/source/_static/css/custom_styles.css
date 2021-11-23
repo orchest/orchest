@@ -11,7 +11,7 @@
 
 .sidebar,
 .vp-sidebar {
-  position: static !important;
+  /* position: static !important; */
 }
 
 .sidebar form.search input[type="text"],
@@ -67,4 +67,10 @@ a:hover {
 .admonition.hint,
 .admonition.tip {
   border-color: var(--blue) !important;
+}
+
+@media (max-width: 800px) {
+  img {
+    width: 100% !important;
+  }
 }
