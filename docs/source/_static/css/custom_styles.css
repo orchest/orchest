@@ -9,11 +9,6 @@
   display: block;
 }
 
-.sidebar,
-.vp-sidebar {
-  position: static !important;
-}
-
 .sidebar form.search input[type="text"],
 .vp-sidebar form.search input[type="text"] {
   padding: 4px;
@@ -30,6 +25,11 @@
 .ds-dropdown-menu {
   position: fixed !important;
   top: auto !important;
+}
+
+.algolia-autocomplete .ds-dropdown-menu {
+  min-width: 0px;
+  max-width: 100%;
 }
 
 /* Color tweaking, this is not yet possible in conf.py so !important
@@ -67,4 +67,10 @@ a:hover {
 .admonition.hint,
 .admonition.tip {
   border-color: var(--blue) !important;
+}
+
+@media (max-width: 800px) {
+  img {
+    width: 100% !important;
+  }
 }
