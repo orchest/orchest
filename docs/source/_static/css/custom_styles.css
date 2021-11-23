@@ -28,8 +28,8 @@
 }
 
 .algolia-autocomplete .ds-dropdown-menu {
-  min-width: 0px;
-  max-width: 100%;
+  min-width: 0px !important;
+  max-width: 100% !important;
 }
 
 /* Color tweaking, this is not yet possible in conf.py so !important
