@@ -27,6 +27,11 @@
   top: auto !important;
 }
 
+.algolia-autocomplete .ds-dropdown-menu {
+  min-width: 0px;
+  max-width: 100%;
+}
+
 /* Color tweaking, this is not yet possible in conf.py so !important
 overrides like below are unfortunately required. */
 :root {
