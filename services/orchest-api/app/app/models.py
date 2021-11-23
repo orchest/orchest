@@ -10,7 +10,7 @@ TODO:
 import copy
 from typing import Any, Dict
 
-from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, text
+from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import deferred
 
@@ -709,3 +709,18 @@ ForeignKeyConstraint(
     [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
     ondelete="CASCADE",
 )
+
+
+class ClientHeartbeat(BaseModel):
+    """Clients heartbeat for idle checking."""
+
+    __tablename__ = "client_heartbeats"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        index=True,
+        server_default=func.now(),
+    )

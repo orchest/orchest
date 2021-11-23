@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 
 import requests
@@ -16,6 +16,7 @@ from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_s
 from app import errors as self_errors
 from app import schema
 from app.connections import db, docker_client
+from app.core import sessions
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -711,3 +712,67 @@ def delete_dangling_orchest_images() -> None:
         env_uuid = img.labels.get("_orchest_environment_uuid")
         if env_uuid is None:
             docker_images_rm_safe(docker_client, img.id)
+
+
+def is_orchest_idle() -> dict:
+    """Checks if the orchest-api is idle.
+
+    Returns:
+        See schema.idleness_check_result for details.
+    """
+    data = {}
+
+    # Active clients.
+    threshold = (
+        datetime.now(timezone.utc)
+        - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
+    )
+    data["active_clients"] = db.session.query(
+        db.session.query(models.ClientHeartbeat)
+        .filter(models.ClientHeartbeat.timestamp > threshold)
+        .exists()
+    ).scalar()
+
+    # Find busy kernels.
+    data["busy_kernels"] = False
+    isessions = models.InteractiveSession.query.filter(
+        models.InteractiveSession.status.in_(["RUNNING"])
+    ).all()
+    for session in isessions:
+        session_obj = sessions.InteractiveSession.from_container_IDs(
+            docker_client,
+            container_IDs=session.container_ids,
+            network=_config.DOCKER_NETWORK,
+            notebook_server_info=session.notebook_server_info,
+        )
+        session_has_busy_kernels = session_obj.has_busy_kernels(
+            {
+                "project_uuid": session.project_uuid,
+                "pipeline_uuid": session.pipeline_uuid,
+            }
+        )
+        if session_has_busy_kernels:
+            data["busy_kernels"] = True
+            break
+
+    # Assumes the model has a uuid field and its lifecycle contains the
+    # PENDING and STARTED statuses. NOTE: we could be stopping earlier
+    # on truthy values since we already know the orchest-api is idle at
+    # this point, but providing all details might allow to further build
+    # on this "feature" in the future without fragmenting users due to
+    # different versions.
+    for name, model in [
+        ("ongoing_environment_builds", models.EnvironmentBuild),
+        ("ongoing_jupyterlab_builds", models.JupyterBuild),
+        ("ongoing_interactive_runs", models.InteractivePipelineRun),
+        ("ongoing_job_runs", models.NonInteractivePipelineRun),
+    ]:
+        data[name] = db.session.query(
+            db.session.query(model)
+            .filter(model.status.in_(["PENDING", "STARTED"]))
+            .exists()
+        ).scalar()
+
+    result = {"details": data}
+    result["idle"] = not any(data.values())
+    return result
