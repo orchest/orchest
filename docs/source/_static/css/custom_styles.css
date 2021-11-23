@@ -9,11 +9,6 @@
   display: block;
 }
 
-.sidebar,
-.vp-sidebar {
-  /* position: static !important; */
-}
-
 .sidebar form.search input[type="text"],
 .vp-sidebar form.search input[type="text"] {
   padding: 4px;
