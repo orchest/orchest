@@ -670,3 +670,42 @@ next_scheduled_job_data = Model(
         ),
     },
 )
+
+_idleness_check_result_details = Model(
+    "IdlenessCheckResultDetails",
+    {
+        "active_clients": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_environment_builds": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_jupyterlab_builds": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_interactive_runs": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_job_runs": fields.Boolean(
+            required=True,
+        ),
+        "busy_kernels": fields.Boolean(
+            required=True,
+        ),
+    },
+)
+
+idleness_check_result = Model(
+    "IdlenessCheckResult",
+    {
+        "idle": fields.Boolean(
+            required=True,
+            description="True if the Orchest-api is idle.",
+        ),
+        "details": fields.Nested(
+            _idleness_check_result_details,
+            required=True,
+            description="Details of the idleness check.",
+        ),
+    },
+)

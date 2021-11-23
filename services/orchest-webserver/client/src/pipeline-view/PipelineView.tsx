@@ -132,12 +132,13 @@ const PipelineView: React.FC = () => {
   } = useCustomRoute();
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
-  const setIsReadOnly = (readOnly) => {
+  const setIsReadOnly = (readOnly: boolean) => {
     dispatch({
       type: "pipelineUpdateReadOnlyState",
       payload: readOnly,
     });
     _setIsReadOnly(readOnly);
+    if (!readOnly) initializePipelineEditListeners();
   };
 
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
@@ -2519,7 +2520,7 @@ const PipelineView: React.FC = () => {
                 {state.eventVars.stepSelector.active && (
                   <Rectangle
                     {...getStepSelectorRectangle(state.eventVars.stepSelector)}
-                  ></Rectangle>
+                  />
                 )}
                 {pipelineSteps}
                 <div className="connections">{connectionComponents}</div>
