@@ -1,4 +1,6 @@
-import { DesignSystemProvider, getCssString } from "@orchest/design-system";
+import theme from "@/theme";
+import { ThemeProvider } from "@mui/material/styles";
+import { DesignSystemProvider } from "@orchest/design-system";
 import { makeRequest } from "@orchest/lib-utils";
 import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
@@ -20,11 +22,6 @@ declare global {
   }
 }
 
-// Load Stitches CSS
-let style = document.createElement("style");
-style.innerHTML = getCssString();
-window.document.head.appendChild(style);
-
 // Load after fonts are ready, required by MDC
 window.addEventListener("load", () => {
   document.fonts.ready.then(() => {
@@ -36,9 +33,11 @@ window.addEventListener("load", () => {
           <LazyMotion features={domMax}>
             <DesignSystemProvider>
               <IntercomProvider appId={serverConfig.config.INTERCOM_APP_ID}>
-                <OrchestProvider {...serverConfig}>
-                  <App />
-                </OrchestProvider>
+                <ThemeProvider theme={theme}>
+                  <OrchestProvider {...serverConfig}>
+                    <App />
+                  </OrchestProvider>
+                </ThemeProvider>
               </IntercomProvider>
             </DesignSystemProvider>
           </LazyMotion>,
