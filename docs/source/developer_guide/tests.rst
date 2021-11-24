@@ -1,7 +1,7 @@
 .. _tests:
 
-Tests
-=====
+Testing
+=======
 
 Prerequisites
 -------------
@@ -21,6 +21,8 @@ Next, you will need to install some development dependencies:
    # the integration tests.
    npm run setup --install && \
         pnpm i
+
+.. _unit tests:
 
 Unit tests
 ----------
@@ -47,6 +49,8 @@ environment you likely need to install some additional dependencies:
 .. code-block:: sh
 
    sudo apt install default-libmysqlclient-dev
+
+.. _integration tests:
 
 Integration tests
 -----------------

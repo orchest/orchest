@@ -33,7 +33,8 @@ Last but not least, Orchest needs to be build from source:
 
 .. note::
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
-   `GitHub <https://github.com/orchest/orchest/issues>`_ and find interesting issues to work on.
+   :ref:`best practices <best practices>` and our `GitHub
+   <https://github.com/orchest/orchest/issues>`_ to find interesting issues to work on.
 
 IDE & language servers
 ----------------------
@@ -85,7 +86,7 @@ Building the docs
 -----------------
 
 Our docs are build using `Read the Docs <https://docs.readthedocs.io/>`_ with Sphinx and written in
-`reStructuredText`.
+`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/basics.html>`_.
 
 To build the docs, run:
 
@@ -93,6 +94,15 @@ To build the docs, run:
 
    cd docs
    make html
+
+.. tip::
+
+   If you haven't followed the :ref:`prerequisites <prerequisites>`, then make sure you've installed
+   the needed requirements to builds the docs:
+
+   .. code-block:: sh
+
+      python3 -m pip install -r docs/requirements.txt
 
 Database schema migrations
 --------------------------
@@ -115,12 +125,13 @@ Before committing
 
 Make sure your development environment is set up correctly (see :ref:`prerequisites
 <prerequisites>`) so that pre-commit can automatically take care of running the appropriate
-formatters and linters when running ``git commit``. Lastly, it is good practice to run the units
-tests to make sure your changes didn't break anything:
+formatters and linters when running ``git commit``. Lastly, it is good practice to run the
+:ref:`unit tests <unit tests>` to make sure your changes didn't break anything:
 
 .. code-block:: bash
 
     scripts/run_tests.sh
 
-In our CI we also run all of these checks together with integration tests to make sure the codebase
-remains stable. To read more about testing, check out the :ref:`tests <tests>` section.
+In our CI we also run all of these checks together with :ref:`integration tests <integration tests>`
+to make sure the codebase remains stable. To read more about testing, check out the :ref:`tests
+<tests>` section.
