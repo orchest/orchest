@@ -219,29 +219,6 @@ h3 {
   color: red;
 }
 
-.edit-users-form {
-  padding: $generalPadding;
-
-  .delete-user-form {
-    > span {
-      display: inline-block;
-      margin-right: $generalPadding;
-    }
-  }
-
-  h2 {
-    margin-bottom: $generalPadding;
-  }
-
-  .group {
-    margin-bottom: $generalPadding;
-  }
-
-  .mdc-text-field {
-    margin-bottom: $generalPadding;
-  }
-}
-
 button.themed-secondary {
   &:not(:disabled) {
     background-color: theme.$secondary;

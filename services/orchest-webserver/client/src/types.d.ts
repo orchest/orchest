@@ -1,5 +1,10 @@
 import React from "react";
 
+export type ColorScale = Record<
+  "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900",
+  string
+>;
+
 export interface IOrchestConfig {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;

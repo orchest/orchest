@@ -1,47 +1,47 @@
-// @ts-nocheck
-import { makeRequest } from "@orchest/lib-utils";
-import * as React from "react";
+import { fetcher } from "@orchest/lib-utils";
+import React from "react";
 import Admin from "./views/Admin";
 import Login from "./views/Login";
 
-export default class App extends React.Component {
-  constructor(props) {
-    super(props);
+type Config = {
+  CLOUD: boolean;
+  CLOUD_URL: string;
+  GITHUB_URL: string;
+  DOCUMENTATION_URL: string;
+  VIDEOS_URL: string;
+};
 
-    this.state = {
-      config: undefined,
+const App: React.FC<{ view: string; queryArgs: string }> = ({
+  view,
+  queryArgs,
+}) => {
+  const [config, setConfig] = React.useState<Config>();
+
+  React.useEffect(() => {
+    const fetchConfig = async () => {
+      const response = await fetcher<Config>("/login/server-config");
+      setConfig(response);
     };
-  }
+    fetchConfig();
+  }, []);
 
-  componentDidMount() {
-    makeRequest("GET", "/login/server-config").then((result) => {
-      let config = JSON.parse(result);
-      this.setState({
-        config,
-      });
-    });
+  if (!config) {
+    console.log("The given view is not defined: " + view);
+    return null;
   }
+  // TODO: was working on styling. change /login/admin back to /login
+  if (view === "/login/admin")
+    return (
+      <Login
+        cloud={config.CLOUD}
+        cloudUrl={config.CLOUD_URL}
+        githubUrl={config.GITHUB_URL}
+        documentationUrl={config.DOCUMENTATION_URL}
+        videosUrl={config.VIDEOS_URL}
+        queryArgs={queryArgs}
+      />
+    );
+  if (view === "/login/admin") return <Admin />;
+};
 
-  render() {
-    if (this.state.config) {
-      switch (this.props.view) {
-        case "/login":
-          return (
-            <Login
-              cloud={this.state.config.CLOUD}
-              cloudURL={this.state.config.CLOUD_URL}
-              githubURL={this.state.config.GITHUB_URL}
-              documentationURL={this.state.config.DOCUMENTATION_URL}
-              videosURL={this.state.config.VIDEOS_URL}
-              queryArgs={this.props.queryArgs}
-            />
-          );
-        case "/login/admin":
-          return <Admin />;
-      }
-    } else {
-      console.log("The given view is not defined: " + this.props.view);
-      return null;
-    }
-  }
-}
+export default App;

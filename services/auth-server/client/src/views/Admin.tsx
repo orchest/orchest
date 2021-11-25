@@ -1,145 +1,138 @@
-// @ts-nocheck
-import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
-import { makeRequest } from "@orchest/lib-utils";
-import * as React from "react";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import { fetcher } from "@orchest/lib-utils";
+import React from "react";
 
-export default class Admin extends React.Component {
-  constructor(props) {
-    super(props);
+const Admin = () => {
+  const [users, setUsers] = React.useState([]);
+  const [newUsername, setNewUsername] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [formError, setFormError] = React.useState();
 
-    this.state = {
-      users: [],
-      newUsername: "",
-      newPassword: "",
-      formError: undefined,
-    };
-  }
+  const fetchUsers = async () => {
+    try {
+      const response = await fetcher("/login/users");
+      setUsers(response["users"]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-  componentDidMount() {
-    this.fetchUsers();
-  }
+  React.useEffect(() => {
+    fetchUsers();
+  }, []);
 
-  fetchUsers() {
-    makeRequest("GET", "/login/users")
-      .then((response) => {
-        this.setState({
-          users: JSON.parse(response)["users"],
-        });
-      })
-      .catch((response) => {
-        console.log(response);
-      });
-  }
-
-  handleInput(key, value) {
-    let data = {};
-    data[key] = value;
-    this.setState(data);
-  }
-
-  addUser() {
+  const addUser = async () => {
     // auto save the bash script
     let formData = new FormData();
-    formData.append("username", this.state.newUsername);
-    formData.append("password", this.state.newPassword);
+    formData.append("username", newUsername);
+    formData.append("password", newPassword);
 
-    this.setState({
-      newUsername: "",
-      newPassword: "",
-      formError: "",
-    });
+    setNewUsername("");
+    setNewPassword("");
+    setFormError(undefined);
 
-    makeRequest("POST", "/login/users", {
-      type: "FormData",
-      content: formData,
-    })
-      .then(() => {
-        this.fetchUsers();
-      })
-      .catch((response) => {
-        let result = JSON.parse(response.body);
-        this.setState({
-          formError: result.error,
-        });
+    try {
+      await fetcher("/login/users", {
+        method: "POST",
+        body: formData,
       });
-  }
+      fetchUsers();
+    } catch (error) {
+      console.log(error);
+      // TODO: proper form validation
+      setFormError(error.body.error);
+    }
+  };
 
-  deleteUser(username) {
+  const deleteUser = async (username: string) => {
     // auto save the bash script
     let formData = new FormData();
     formData.append("username", username);
 
-    this.setState({
-      formError: "",
-    });
+    setFormError(undefined);
 
-    makeRequest("DELETE", "/login/users", {
-      type: "FormData",
-      content: formData,
-    })
-      .then(() => {
-        this.fetchUsers();
-      })
-      .catch((response) => {
-        let result = JSON.parse(response.body);
-        this.setState({
-          formError: result.error,
-        });
+    try {
+      await fetch("/login/users", {
+        method: "DELETE",
+        body: formData,
       });
-  }
-
-  render() {
-    let userNodes = [];
-    for (let user of this.state.users) {
-      userNodes.push(
-        <div key={user.username} className="delete-user-form">
-          <span>{user.username}</span>
-          <MDCButtonReact
-            onClick={this.deleteUser.bind(this, user.username)}
-            label="Delete"
-            data-test-id={`delete-user-${user.username}`}
-          />
-        </div>
-      );
+      fetchUsers();
+    } catch (error) {
+      setFormError(error);
     }
+  };
 
+  const userNodes = users.map((user) => {
     return (
-      <div className="edit-users-form">
-        <div className="group">
-          <h2>Add a user</h2>
-          <MDCTextFieldReact
-            value={this.state.newUsername}
-            onChange={this.handleInput.bind(this, "newUsername")}
+      <Box key={user.username}>
+        <Box component="span" sx={{ marginRight: 2 }}>
+          {user.username}
+        </Box>
+        <Button
+          color="secondary"
+          onClick={() => deleteUser(user.username)}
+          data-test-id={`delete-user-${user.username}`}
+        >
+          Delete
+        </Button>
+      </Box>
+    );
+  });
+  return (
+    <Box sx={{ margin: 4 }}>
+      <Box>
+        <Typography variant="h5" sx={{ marginBottom: 4 }}>
+          Add a user
+        </Typography>
+        <Stack direction="column" alignItems="flex-start">
+          <TextField
+            variant="filled"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
             label="Username"
             name="username"
+            color="secondary"
+            sx={{ marginBottom: 2 }}
             data-test-id="new-user-name"
           />
-          <br />
-          <MDCTextFieldReact
-            value={this.state.newPassword}
-            onChange={this.handleInput.bind(this, "newPassword")}
+          <TextField
+            variant="filled"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
             label="Password"
-            inputType="password"
+            type="password"
             name="password"
+            color="secondary"
+            sx={{ marginBottom: 2 }}
             data-test-id="new-user-password"
           />
-          <br />
-          <MDCButtonReact
-            onClick={this.addUser.bind(this)}
-            classNames={["mdc-button--raised"]}
-            label="Add"
+          <Button
+            onClick={addUser}
+            color="secondary"
+            variant="contained"
             data-test-id="add-user"
-          />
+          >
+            Add
+          </Button>
+        </Stack>
+        {formError && (
+          <Typography sx={{ marginTop: 4, color: "error.main" }}>
+            {formError}
+          </Typography>
+        )}
+      </Box>
+      <Box sx={{ marginTop: 6, marginBottom: 4 }}>
+        <Typography variant="h5">Delete users</Typography>
+        <Stack direction="column" sx={{ marginTop: 2 }}>
+          {userNodes.length > 0 ? userNodes : <i>There are no users yet.</i>}
+        </Stack>
+      </Box>
+    </Box>
+  );
+};
 
-          {this.state.formError && (
-            <p className="push-up error">{this.state.formError}</p>
-          )}
-        </div>
-        <div className="group">
-          <h2>Delete users</h2>
-          {userNodes.length != 0 ? userNodes : <i>There are no users yet.</i>}
-        </div>
-      </div>
-    );
-  }
-}
+export default Admin;
