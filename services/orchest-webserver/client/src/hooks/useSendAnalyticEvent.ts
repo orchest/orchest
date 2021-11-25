@@ -14,7 +14,7 @@ const useSendAnalyticEvent = (
   props?: Record<string, unknown>
 ) => {
   const context = useOrchest();
-  const shouldSend = !context.state.config["TELEMETRY_DISABLED"];
+  const shouldSend = !context.state.config?.TELEMETRY_DISABLED;
 
   const send = React.useCallback(
     (innerEvent: string, innerProps?: Record<string, unknown>) => {

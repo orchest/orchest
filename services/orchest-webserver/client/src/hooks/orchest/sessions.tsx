@@ -260,7 +260,7 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
       });
   }, [state.sessionsKillAllInProgress]);
 
-  return <React.Fragment>{children}</React.Fragment>;
+  return <>{children}</>;
 };
 
 /* Consumer
@@ -286,5 +286,5 @@ export const OrchestSessionsConsumer: React.FC = ({ children }) => {
     };
   }, []);
 
-  return <React.Fragment>{children}</React.Fragment>;
+  return <>{children}</>;
 };

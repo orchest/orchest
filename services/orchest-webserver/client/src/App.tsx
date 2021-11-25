@@ -52,6 +52,8 @@ const App = () => {
   }, 5000);
 
   React.useEffect(() => {
+    if (!user_config || !config) return;
+
     if (config.FLASK_ENV === "development") {
       console.log("Orchest is running with --dev.");
     }
@@ -64,11 +66,11 @@ const App = () => {
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
       });
     }
-  }, [config]);
+  }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const alert = (title, content, onClose) => {
+  const alert = (title: string, content, onClose) => {
     // Analytics call
-    sendEvent("alert show", { title: title, content: content });
+    sendEvent("alert show", { title, content });
 
     dialogsRef.current.alert(title, content, onClose);
   };
@@ -77,7 +79,7 @@ const App = () => {
     title: string,
     content: string,
     onConfirm: () => void,
-    onCancel?
+    onCancel?: () => void
   ) => {
     // Analytics call
     sendEvent("confirm show", { title: title, content: content });

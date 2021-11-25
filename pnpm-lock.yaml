@@ -204,6 +204,7 @@ importers:
       '@mui/material': ^5.2.0
       '@orchest/lib-mdc': workspace:*
       '@orchest/lib-utils': workspace:*
+      '@types/jest': ^27.0.3
       '@types/react': 17.0.3
       '@types/react-dom': ^17.0.10
       esbuild: 0.13.4
@@ -269,6 +270,7 @@ importers:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
     devDependencies:
+      '@types/jest': 27.0.3
       '@types/react': 17.0.3
       '@types/react-dom': 17.0.11
       esbuild: 0.13.4
@@ -333,7 +335,7 @@ importers:
       '@orchest/lib-mdc': workspace:*
       '@orchest/lib-utils': workspace:*
       '@types/codemirror': ^5.60.5
-      '@types/jest': ^27.0.1
+      '@types/jest': ^27.0.3
       '@types/jquery': ^3.5.6
       '@types/lodash': ^4.14.172
       '@types/node': 15.0.1
@@ -1701,8 +1703,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
-      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       '@mui/base': 5.0.0-alpha.56_ba191c0052acfa37659f3ba04a2d9405
       '@mui/system': 5.2.0_98944ee4dd5f6cfd31442cef9ca2b57e
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -1751,8 +1753,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
-      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -1774,8 +1776,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
-      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       '@mui/private-theming': 5.2.0_@types+react@17.0.3+react@17.0.2
       '@mui/styled-engine': 5.2.0_3ca9f49da28f3590cbe49aab51aa421d
       '@mui/types': 7.1.0_@types+react@17.0.3

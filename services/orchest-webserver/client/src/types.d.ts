@@ -1,11 +1,29 @@
 import React from "react";
 
-export type ColorScale = Record<
-  "50" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900",
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PartialRecord<K extends keyof any, T> = {
+  [P in K]?: T;
+};
+
+export type ColorScale = PartialRecord<
+  | "50"
+  | "100"
+  | "200"
+  | "300"
+  | "400"
+  | "500"
+  | "600"
+  | "700"
+  | "800"
+  | "900"
+  | "A100"
+  | "A200"
+  | "A400"
+  | "A700",
   string
 >;
 
-export interface IOrchestConfig {
+export type OrchestConfig = {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
   ENVIRONMENT_DEFAULTS: {
@@ -17,7 +35,6 @@ export interface IOrchestConfig {
   };
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
-  GPU_REQUEST_URL: string;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
   ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
@@ -32,12 +49,20 @@ export interface IOrchestConfig {
   };
   PIPELINE_PARAMETERS_RESERVED_KEY: string;
   TELEMETRY_DISABLED: boolean;
+};
+
+export interface OrchestUserConfig {
+  AUTH_ENABLED?: boolean;
+  INTERCOM_USER_EMAIL: string;
+  MAX_INTERACTIVE_RUNS_PARALLELISM: number;
+  MAX_JOB_RUNS_PARALLELISM: number;
+  TELEMETRY_DISABLED: boolean;
+  TELEMETRY_UUID: string;
 }
 
-export interface IOrchestUserConfig {
-  AUTH_ENABLED?: boolean;
-  TELEMETRY_UUID: string;
-  INTERCOM_USER_EMAIL: string;
+export interface OrchestServerConfig {
+  config: OrchestConfig;
+  user_config: OrchestUserConfig;
 }
 
 export interface IOrchestSessionUuid {
@@ -77,17 +102,17 @@ export interface IOrchestState
   sessions?: IOrchestSession[] | [];
   sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;
-  config: IOrchestConfig;
-  user_config: IOrchestUserConfig;
+  config?: OrchestConfig;
+  user_config?: OrchestUserConfig;
   unsavedChanges: boolean;
   _sessionsToFetch?: IOrchestSessionUuid[] | [];
   _sessionsToggle?: IOrchestSessionUuid;
   _sessionsIsPolling?: boolean;
 }
 
-export type TOrchestAction =
+export type OrchestAction =
   | { type: "alert"; payload: IOrchestState["alert"] }
-  | { type: "isLoaded" }
+  | { type: "isLoaded"; payload: OrchestServerConfig }
   | { type: "pipelineClear" }
   | {
       type: "pipelineSet";
@@ -136,7 +161,7 @@ export interface IOrchestGet {
 
 export interface IOrchestContext {
   state: IOrchestState;
-  dispatch: React.Dispatch<TOrchestAction>;
+  dispatch: React.Dispatch<OrchestAction>;
   get: IOrchestGet;
 }
 

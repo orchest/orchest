@@ -1,23 +1,33 @@
 import type {
-  IOrchestConfig,
   IOrchestGet,
   IOrchestState,
-  IOrchestUserConfig,
-  TOrchestAction,
+  OrchestAction,
+  OrchestServerConfig,
 } from "@/types";
-import { uuidv4 } from "@orchest/lib-utils";
+import { fetcher, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
+import { IntercomProvider } from "react-use-intercom";
 import { useLocalStorage } from "../local-storage";
 import { OrchestContext } from "./context";
 import { OrchestSessionsProvider } from "./sessions";
 import { isCurrentSession, isSession } from "./utils";
 
-const reducer = (state: IOrchestState, action: TOrchestAction) => {
+type OrchestActionCallback = (currentState: IOrchestState) => OrchestAction;
+type OrchestContextAction = OrchestAction | OrchestActionCallback;
+
+const reducer = (state: IOrchestState, _action: OrchestContextAction) => {
+  const action = _action instanceof Function ? _action(state) : _action;
+
   switch (action.type) {
     case "alert":
       return { ...state, alert: action.payload };
     case "isLoaded":
-      return { ...state, isLoading: false };
+      return {
+        ...state,
+        isLoading: false,
+        user_config: action.payload.user_config,
+        config: action.payload.config,
+      };
     case "drawerToggle":
       return { ...state, drawerIsOpen: !state.drawerIsOpen };
     case "pipelineClear":
@@ -59,8 +69,6 @@ const reducer = (state: IOrchestState, action: TOrchestAction) => {
 };
 
 const initialState: IOrchestState = {
-  config: null,
-  user_config: null,
   isLoading: true,
   pipelineFetchHash: null,
   pipelineName: null,
@@ -79,16 +87,7 @@ const initialState: IOrchestState = {
   drawerIsOpen: true,
 };
 
-export interface IOrchestProviderProps {
-  config: IOrchestConfig;
-  user_config: IOrchestUserConfig;
-}
-
-export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
-  config,
-  user_config,
-  children,
-}) => {
+export const OrchestProvider: React.FC = ({ children }) => {
   const orchest = window.orchest;
 
   const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
@@ -96,8 +95,6 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   const [state, dispatch] = React.useReducer(reducer, {
     ...initialState,
     drawerIsOpen,
-    config,
-    user_config,
   });
 
   const get: IOrchestGet = {
@@ -117,10 +114,20 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
    * have been achieved
    */
   React.useEffect(() => {
-    if (config && user_config) {
-      dispatch({ type: "isLoaded" });
-    }
-  }, [config, user_config]);
+    const fetchServerConfig = async () => {
+      try {
+        const serverConfig = await fetcher<OrchestServerConfig>(
+          "/async/server-config"
+        );
+        dispatch({ type: "isLoaded", payload: serverConfig });
+      } catch (error) {
+        console.error(
+          `Failed to fetch server config: ${JSON.stringify(error)}`
+        );
+      }
+    };
+    fetchServerConfig();
+  }, []);
 
   /**
    * Sync Local Storage
@@ -150,14 +157,16 @@ export const OrchestProvider: React.FC<IOrchestProviderProps> = ({
   }, [state.unsavedChanges]);
 
   return (
-    <OrchestContext.Provider
-      value={{
-        state,
-        dispatch,
-        get,
-      }}
-    >
-      <OrchestSessionsProvider>{children}</OrchestSessionsProvider>
-    </OrchestContext.Provider>
+    <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>
+      <OrchestContext.Provider
+        value={{
+          state,
+          dispatch,
+          get,
+        }}
+      >
+        <OrchestSessionsProvider>{children}</OrchestSessionsProvider>
+      </OrchestContext.Provider>
+    </IntercomProvider>
   );
 };

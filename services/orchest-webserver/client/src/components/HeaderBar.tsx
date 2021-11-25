@@ -125,7 +125,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
           />
         )}
 
-        {state?.user_config.AUTH_ENABLED && (
+        {state?.user_config?.AUTH_ENABLED && (
           <MDCIconButtonToggleReact
             icon="logout"
             tooltipText="Logout"
