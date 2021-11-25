@@ -1,5 +1,5 @@
-Contributing
-============
+Contributing to Orchest
+=======================
 
 .. tip::
    👉 Is this your first time contributing to a project? Fear not! Find an easy step-by-step guide

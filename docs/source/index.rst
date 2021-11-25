@@ -4,20 +4,24 @@ Orchest
 .. tip::
    👉 Get started with the :ref:`quickstart <quickstart>`!
 
-Orchest is a tool for building data pipelines, made to be easy to use.
+.. figure:: img/pipeline-editor.png
+   :width: 800
+   :align: center
 
-A pipeline in Orchest can be thought of as a graph, where the nodes are executable files that
-execute within their own
-isolated environment (powered by containerization), and the edges/connections define the way the data flows. All defined through our visual pipeline editor.
+   💡 Watch the `video <https://vimeo.com/589879082>`_ to learn more.
 
-After coding your Notebooks and scripts, Orchest let's you run any subset of the pipeline either
-interactively or on a cron-like schedule.
+**Orchest is a tool for building data pipelines, made to be easy to use.**
 
-.. note::
-   Orchest is in alpha.
+* Visually construct pipelines through its user-friendly UI
+* Code in Notebooks and scripts (:ref:`quickstart <quickstart>`)
+* Run any subset of a pipelines directly or periodically (:ref:`jobs <jobs>`)
+* Easily define your dependencies to run on any machine (:ref:`environments <environments>`)
+* Spin up services which lifetime spans across the entire pipeline run (:ref:`services <services>`)
+* Version your projects using git (TODO insert link to projects)
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
    :caption: Getting started
 
    getting_started/overview
@@ -29,6 +33,7 @@ interactively or on a cron-like schedule.
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
    :caption: User guide
 
    user_guide/how_orchest_works
@@ -45,6 +50,7 @@ interactively or on a cron-like schedule.
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
    :caption: Developer guide
 
    developer_guide/contributing

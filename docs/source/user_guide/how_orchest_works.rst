@@ -3,6 +3,10 @@
 How Orchest works
 =================
 
+A pipeline in Orchest can be thought of as a graph, where the nodes are executable files that
+execute within their own isolated environment (powered by containerization), and the edges define
+the execution order and the way the data flows. All build in our visual pipeline editor.
+
 .. note::
    Global configurations are stored at ``~/.config/orchest/config.json``, for possible configuration
    values see :ref:`configuration <configuration>`.

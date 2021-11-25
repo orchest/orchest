@@ -3,6 +3,9 @@
 Installation
 ============
 
+.. note::
+   Orchest is in beta.
+
 .. tip::
    Be sure to check out the :ref:`quickstart tutorial <quickstart>` after installing Orchest.
 
