@@ -1,11 +1,10 @@
 .. _best practices:
 
-Best practices
-==============
+Implementation best practices
+=============================
 
 .. note::
-
-   This is still very much a WIP.
+   WIP!
 
 To keep the codebase consistent whilst adding new code, please try to stick to the following best
 practices that have served us well so far (grouped by topic). For example, these best practices make

@@ -21,7 +21,7 @@ Ready to go templates
 =====================
 For ease of use, we provide some commonly used services as templates:
 
-.. figure:: ../img/overview/services.png
+.. figure:: ../img/services.png
    :width: 400
    :align: center
 

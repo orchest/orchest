@@ -1,7 +1,7 @@
 .. _quickstart:
 
-Quickstart
-==========
+Quickstart tutorial
+===================
 
 .. tip::
    💡 Building data pipelines in Orchest is really that easy! Check out our `introductory video

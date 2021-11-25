@@ -1,13 +1,10 @@
-Other
-=====
-
 .. _configuration:
 
 Configuration
--------------
+=============
 
 Global configurations
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 Orchest stores a global configuration file at ``~/.config/orchest/config.json`` (or at
 ``$XDG_CONFIG_HOME/orchest/config.json`` if defined). The content of the file can be changed from
@@ -51,7 +48,7 @@ Explanation of possible configuration settings:
 .. _pipeline configuration:
 
 Pipeline level configurations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-----------------------------
 There are also configuration options per pipeline that can be set through the UI by opening a
 pipeline and going to its *Settings* in the top right corner. This will add the following JSON block
 to the corresponding pipeline definition:
@@ -145,3 +142,36 @@ running on your host.
 
    `Docker networking features <https://docs.docker.com/docker-for-windows/networking/#use-cases-and-workarounds>`_
        Connecting from a container to a service on the host.
+
+Configuring JupyterLab
+----------------------
+
+Extensions
+~~~~~~~~~~
+
+You can install JupyterLab extensions through the JupyterLab GUI directly, these extensions will be
+persisted (across :ref:`interactive sessions <interactive session>`) automatically.
+
+JupyterLab also supports server extensions. To install these extensions, navigate to *Settings* >
+*Configure JupyterLab*. Here you can install extensions like you normally would using commands such
+as:
+
+.. code-block:: bash
+
+   pip install jupyterlab-git
+
+In addition, you can install extensions from :code:`npm` through the :code:`jupyter` command.
+
+.. code-block:: bash
+
+   jupyter labextension install jupyterlab-spreadsheet
+
+.. note::
+
+   To build the JupyterLab image you need to make sure there are no interactive sessions running.
+
+User settings
+~~~~~~~~~~~~~
+
+User settings that are configured through the JupyterLab GUI, such as your *JupyterLab Theme* or
+*Text Editor Key Map*, are persisted automatically. It just works.

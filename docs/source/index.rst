@@ -24,38 +24,35 @@ Orchest
    :hidden:
    :caption: Getting started
 
-   getting_started/overview
    getting_started/installation
-   getting_started/starting_orchest
    getting_started/quickstart
-   getting_started/help
+   getting_started/when_to_use_orchest
+   getting_started/how_to
 
 
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: User guide
+   :caption: Fundamentals
 
-   user_guide/how_orchest_works
-   user_guide/data_passing
-   user_guide/environments
-   user_guide/jobs
-   user_guide/environment_variables
-   user_guide/services
-   user_guide/configure_jupyterlab
-   user_guide/sdk/index
-   user_guide/other
-   user_guide/glossary
+   fundamentals/projects
+   fundamentals/pipelines
+   fundamentals/jobs
+   fundamentals/environments
+   fundamentals/environment_variables
+   fundamentals/services
+   fundamentals/sdk/index
+   fundamentals/configuration
+   fundamentals/glossary
 
 
 .. toctree::
    :maxdepth: 1
    :hidden:
-   :caption: Developer guide
+   :caption: Development
 
-   developer_guide/contributing
-   developer_guide/development_workflow
-   developer_guide/tests
-   developer_guide/troubleshooting
-   developer_guide/best_practices
-   developer_guide/implementation_details
+   development/contributing
+   development/development_workflow
+   development/how_orchest_works
+   development/troubleshooting
+   development/implementation_best_practices

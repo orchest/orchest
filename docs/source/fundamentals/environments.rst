@@ -1,7 +1,7 @@
-.. _install packages:
+.. _environments:
 
-Installing packages
-===================
+Environments
+============
 
 .. tip::
     👉 Would you rather watch a short video tutorial? Check it our here: `installing packages
@@ -25,7 +25,7 @@ script inside the selected base image.
     If an environment is in use by an active Jupyter kernel, then changes to the environment require
     a restart of the kernel (which can be done through the JupyterLab UI).
 
-.. _environments:
+.. _install packages:
 
 Build an environment
 --------------------
