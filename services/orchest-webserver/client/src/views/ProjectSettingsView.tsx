@@ -9,7 +9,8 @@ import {
   isValidEnvironmentVariableName,
   OverflowListener,
 } from "@/utils/webserver-utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -254,7 +255,7 @@ const ProjectSettingsView: React.FC = () => {
               </div>
             </>
           ) : (
-            <MDCLinearProgressReact />
+            <LinearProgress />
           )}
         </form>
       </div>

@@ -14,6 +14,7 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   Alert,
   AlertDescription,
@@ -27,7 +28,6 @@ import {
   MDCCheckboxReact,
   MDCDataTableReact,
   MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
   MDCTabBarReact,
   MDCTextFieldReact,
   MDCTooltipReact,
@@ -1048,7 +1048,7 @@ const PipelineSettingsView: React.FC = () => {
               )}
             </div>
           ) : (
-            <MDCLinearProgressReact />
+            <LinearProgress />
           )}
         </div>
       </Layout>

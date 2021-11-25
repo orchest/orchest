@@ -4,11 +4,11 @@ import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCCheckboxReact,
   MDCDialogReact,
-  MDCLinearProgressReact,
   MDCSelectReact,
   MDCTabBarReact,
   MDCTextFieldReact,
@@ -432,7 +432,7 @@ const EnvironmentEditView: React.FC = () => {
     <Layout>
       <div className={"view-page edit-environment"}>
         {!environment ? (
-          <MDCLinearProgressReact />
+          <LinearProgress />
         ) : (
           <>
             {state.addCustomBaseImageDialog && state.addCustomBaseImageDialog}

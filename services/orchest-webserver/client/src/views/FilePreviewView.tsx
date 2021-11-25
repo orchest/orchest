@@ -7,7 +7,8 @@ import {
   getPipelineStepParents,
   setWithRetry,
 } from "@/utils/webserver-utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -305,7 +306,7 @@ const FilePreviewView: React.FC = () => {
 
         {(() => {
           if (state.loadingFile) {
-            return <MDCLinearProgressReact />;
+            return <LinearProgress />;
           } else if (
             state.fileDescription != undefined &&
             state.parentSteps != undefined

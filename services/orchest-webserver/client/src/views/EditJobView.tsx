@@ -15,9 +15,9 @@ import {
   getPipelineJSONEndpoint,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
-  MDCLinearProgressReact,
   MDCRadioReact,
   MDCTabBarReact,
   MDCTextFieldReact,
@@ -926,7 +926,7 @@ const EditJobView: React.FC = () => {
             </div>
           </React.Fragment>
         ) : (
-          <MDCLinearProgressReact />
+          <LinearProgress />
         )}
       </div>
     </Layout>

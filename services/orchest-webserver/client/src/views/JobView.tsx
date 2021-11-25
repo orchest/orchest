@@ -15,12 +15,9 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
+import LinearProgress from "@mui/material/LinearProgress";
 import { Box, Flex, Text } from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCLinearProgressReact,
-  MDCTabBarReact,
-} from "@orchest/lib-mdc";
+import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -546,7 +543,7 @@ const JobView: React.FC = () => {
     <Layout>
       <div className="view-page job-view">
         {isLoading ? (
-          <MDCLinearProgressReact />
+          <LinearProgress />
         ) : (
           <div className="view-page job-view">
             <div className="push-down">

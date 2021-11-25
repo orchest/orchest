@@ -1,12 +1,9 @@
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import LinearProgress from "@mui/material/LinearProgress";
 import { Box } from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCDialogReact,
-  MDCLinearProgressReact,
-} from "@orchest/lib-mdc";
+import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
 import { makeRequest, RefManager } from "@orchest/lib-utils";
 import React from "react";
 import { checkGate } from "../utils/webserver-utils";
@@ -194,7 +191,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
           <p>{state?.message}</p>
           {state?.building && (
             <Box css={{ marginTop: "$4" }}>
-              <MDCLinearProgressReact />
+              <LinearProgress />
             </Box>
           )}
         </div>

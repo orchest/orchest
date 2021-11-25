@@ -5,7 +5,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { MDCLinearProgressReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   collapseDoubleDots,
   makeCancelable,
@@ -214,7 +214,7 @@ const JupyterLabView: React.FC = () => {
           <div className="lab-loader">
             <div>
               <h2>Setting up JupyterLab…</h2>
-              <MDCLinearProgressReact />
+              <LinearProgress />
             </div>
           </div>
         </div>

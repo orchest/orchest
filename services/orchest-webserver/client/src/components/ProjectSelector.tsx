@@ -4,7 +4,8 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
-import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -13,8 +14,6 @@ import {
 import React from "react";
 
 export type TProjectSelectorRef = any;
-
-[siteMap];
 
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
@@ -118,7 +117,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
       data-test-id="project-selector"
     />
   ) : (
-    <MDCLinearProgressReact ref={ref} />
+    <LinearProgress ref={ref} />
   );
 };
 

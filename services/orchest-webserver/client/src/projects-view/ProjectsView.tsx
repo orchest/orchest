@@ -5,12 +5,12 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDataTableReact,
   MDCDialogReact,
   MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
@@ -495,7 +495,7 @@ const ProjectsView: React.FC = () => {
 
         {(() => {
           if (state.loading) {
-            return <MDCLinearProgressReact />;
+            return <LinearProgress />;
           } else {
             return (
               <React.Fragment>

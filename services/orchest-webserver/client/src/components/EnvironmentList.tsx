@@ -1,11 +1,11 @@
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDataTableReact,
   MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
 } from "@orchest/lib-mdc";
 import {
   LANGUAGE_MAP,
@@ -326,50 +326,38 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   return (
     <div className={"environments-page"}>
       <h2>Environments</h2>
-
-      {(() => {
-        if (state.environments) {
-          return (
-            <React.Fragment>
-              <div className="push-down">
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  icon="add"
-                  label="Create environment"
-                  onClick={onCreateClick}
-                  data-test-id="environments-create"
-                />
-              </div>
-              <div className={"environment-actions push-down"}>
-                <MDCIconButtonToggleReact
-                  icon="delete"
-                  tooltipText="Delete environment"
-                  disabled={state.isDeleting}
-                  onClick={onDeleteClick}
-                  data-test-id="environments-delete"
-                />
-              </div>
-
-              <MDCDataTableReact
-                ref={refManager.nrefs.environmentListView}
-                selectable
-                onRowClick={onClickListItem}
-                classNames={["fullwidth"]}
-                headers={[
-                  "Environment",
-                  "Language",
-                  "GPU Support",
-                  "Build status",
-                ]}
-                rows={state.listData}
-                data-test-id="environments"
-              />
-            </React.Fragment>
-          );
-        } else {
-          return <MDCLinearProgressReact />;
-        }
-      })()}
+      {!state.environments && <LinearProgress />}
+      {state.environments && (
+        <>
+          <div className="push-down">
+            <MDCButtonReact
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              icon="add"
+              label="Create environment"
+              onClick={onCreateClick}
+              data-test-id="environments-create"
+            />
+          </div>
+          <div className={"environment-actions push-down"}>
+            <MDCIconButtonToggleReact
+              icon="delete"
+              tooltipText="Delete environment"
+              disabled={state.isDeleting}
+              onClick={onDeleteClick}
+              data-test-id="environments-delete"
+            />
+          </div>
+          <MDCDataTableReact
+            ref={refManager.nrefs.environmentListView}
+            selectable
+            onRowClick={onClickListItem}
+            classNames={["fullwidth"]}
+            headers={["Environment", "Language", "GPU Support", "Build status"]}
+            rows={state.listData}
+            data-test-id="environments"
+          />
+        </>
+      )}
     </div>
   );
 };

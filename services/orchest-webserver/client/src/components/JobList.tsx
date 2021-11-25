@@ -1,6 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   Box,
   Dialog,
@@ -15,7 +16,6 @@ import {
   MDCButtonReact,
   MDCDialogReact,
   MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
   MDCSelectReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
@@ -485,7 +485,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                     <Box
                       css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}
                     >
-                      <MDCLinearProgressReact />
+                      <LinearProgress />
 
                       <p>Copying pipeline directory...</p>
                     </Box>
@@ -563,7 +563,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
           />
         </>
       ) : (
-        <MDCLinearProgressReact />
+        <LinearProgress />
       )}
     </div>
   );

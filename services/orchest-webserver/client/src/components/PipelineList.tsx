@@ -1,10 +1,10 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDataTableReact,
   MDCDialogReact,
   MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
@@ -401,7 +401,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   return state.loading ? (
     <div className={"pipelines-view"}>
       <h2>Pipelines</h2>
-      <MDCLinearProgressReact />
+      <LinearProgress />
     </div>
   ) : (
     <div className={"pipelines-view"}>

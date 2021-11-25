@@ -3,7 +3,8 @@ import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -338,7 +339,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               )}
             </>
           ) : (
-            <MDCLinearProgressReact />
+            <LinearProgress />
           )}
         </div>
       </Layout>

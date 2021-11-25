@@ -2,10 +2,10 @@ import { useOrchest } from "@/hooks/orchest";
 import { useLocationQuery } from "@/hooks/useCustomRoute";
 import { Project } from "@/types";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDialogReact,
-  MDCLinearProgressReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import { makeRequest } from "@orchest/lib-utils";
@@ -43,7 +43,7 @@ const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
     <>
       {data.status === "PENDING" && (
         <div className="push-up">
-          <MDCLinearProgressReact />
+          <LinearProgress />
         </div>
       )}
       {data.status === "FAILURE" && (

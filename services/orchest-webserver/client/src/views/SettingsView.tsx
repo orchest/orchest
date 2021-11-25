@@ -3,7 +3,8 @@ import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   checkHeartbeat,
   makeCancelable,
@@ -370,7 +371,7 @@ const SettingsView: React.FC = () => {
               } else {
                 return (
                   <React.Fragment>
-                    <MDCLinearProgressReact classNames={["push-down"]} />
+                    <LinearProgress classNames={["push-down"]} />
                   </React.Fragment>
                 );
               }
@@ -396,7 +397,7 @@ const SettingsView: React.FC = () => {
               if (state.hostInfo !== undefined) {
                 return (
                   <React.Fragment>
-                    <MDCLinearProgressReact
+                    <LinearProgress
                       classNames={["disk-size-info"]}
                       progress={state.hostInfo.disk_info.used_pcent / 100}
                     />
@@ -413,7 +414,7 @@ const SettingsView: React.FC = () => {
                 );
               } else {
                 return (
-                  <MDCLinearProgressReact
+                  <LinearProgress
                     classNames={["push-down", "disk-size-info"]}
                   />
                 );
@@ -479,7 +480,7 @@ const SettingsView: React.FC = () => {
               } else {
                 return (
                   <React.Fragment>
-                    <MDCLinearProgressReact classNames={["push-down"]} />
+                    <LinearProgress classNames={["push-down"]} />
                     <p>This can take up to 30 seconds.</p>
                   </React.Fragment>
                 );

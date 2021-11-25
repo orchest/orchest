@@ -1,10 +1,10 @@
 import EnvVarList from "@/components/EnvVarList";
+import LinearProgress from "@mui/material/LinearProgress";
 import { Box } from "@orchest/design-system";
 import {
   MDCButtonReact,
   MDCCheckboxReact,
   MDCDialogReact,
-  MDCLinearProgressReact,
   MDCSelectReact,
   MDCTextFieldReact,
   MDCTooltipReact,
@@ -134,7 +134,7 @@ const ServiceForm: React.FC<any> = (props) => {
   };
 
   if (!environmentOptions) {
-    return <MDCLinearProgressReact />;
+    return <LinearProgress />;
   }
 
   return (

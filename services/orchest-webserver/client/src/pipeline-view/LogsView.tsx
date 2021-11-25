@@ -9,11 +9,8 @@ import {
   filterServices,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
-import {
-  MDCButtonReact,
-  MDCDrawerReact,
-  MDCLinearProgressReact,
-} from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCButtonReact, MDCDrawerReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -373,7 +370,7 @@ const LogsView: React.FC = () => {
       </div>
     );
   } else {
-    rootView = <MDCLinearProgressReact />;
+    rootView = <LinearProgress />;
   }
 
   return (

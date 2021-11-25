@@ -2,7 +2,8 @@ import { Layout } from "@/components/Layout";
 import { useInterval } from "@/hooks/use-interval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import LinearProgress from "@mui/material/LinearProgress";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   checkHeartbeat,
   makeCancelable,
@@ -128,7 +129,7 @@ const UpdateView: React.FC = () => {
 
           if (state.updating) {
             elements.push(
-              <MDCLinearProgressReact key="0" classNames={["push-down"]} />
+              <LinearProgress key="0" classNames={["push-down"]} />
             );
           }
           if (state.updateOutput.length > 0) {
