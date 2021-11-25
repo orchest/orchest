@@ -1,5 +1,7 @@
 import { useOrchest } from "@/hooks/orchest";
+import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
+import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
@@ -42,6 +44,12 @@ const App = () => {
 
   // load server side config populated by flask template
   const { config, user_config } = context.state;
+
+  // Each client provides an heartbeat, used for telemetry and idle
+  // checking.
+  useInterval(() => {
+    makeRequest("GET", "/heartbeat");
+  }, 5000);
 
   React.useEffect(() => {
     if (config.FLASK_ENV === "development") {

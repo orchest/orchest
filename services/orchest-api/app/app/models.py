@@ -10,7 +10,7 @@ TODO:
 import copy
 from typing import Any, Dict
 
-from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, text
+from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, func, text
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import deferred
 
@@ -234,6 +234,13 @@ class Job(BaseModel):
     __tablename__ = "jobs"
     __table_args__ = (
         Index("ix_jobs_project_uuid_pipeline_uuid", "project_uuid", "pipeline_uuid"),
+        Index("ix_jobs_next_scheduled_time_status", "next_scheduled_time", "status"),
+        Index(
+            "ix_jobs_project_uuid_next_scheduled_time_status",
+            "project_uuid",
+            "next_scheduled_time",
+            "status",
+        ),
     )
 
     name = db.Column(
@@ -709,3 +716,18 @@ ForeignKeyConstraint(
     [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
     ondelete="CASCADE",
 )
+
+
+class ClientHeartbeat(BaseModel):
+    """Clients heartbeat for idle checking."""
+
+    __tablename__ = "client_heartbeats"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        index=True,
+        server_default=func.now(),
+    )

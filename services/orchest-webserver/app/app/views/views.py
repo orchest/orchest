@@ -199,6 +199,15 @@ def register_views(app, db):
 
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
+        # Don't bubble up the fact that the heartbeat is proxied to the
+        # orchest-api to the client.
+        requests.get(
+            (
+                f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/info/'
+                "client-heartbeat"
+            )
+        )
+
         return ""
 
     @app.route("/async/restart", methods=["POST"])

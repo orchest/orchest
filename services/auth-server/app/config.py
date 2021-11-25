@@ -17,6 +17,7 @@ class Config:
     GITHUB_URL = "https://github.com/orchest/orchest"
     DOCUMENTATION_URL = "https://www.orchest.io/docs"
     VIDEOS_URL = "https://www.orchest.io/video-tutorials"
+    ORCHEST_CLOUD_RESERVED_USER = "orchest_cloud_reserved_admin"
 
     STATIC_DIR = os.path.join(dir_path, "..", "client", "dist")
 

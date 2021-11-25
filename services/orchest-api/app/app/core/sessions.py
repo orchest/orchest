@@ -6,7 +6,7 @@ import traceback
 from abc import abstractmethod
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 from uuid import uuid4
 
 import docker
@@ -480,6 +480,45 @@ class InteractiveSession(Session):
                 break
 
         return
+
+    def has_busy_kernels(self, session_config: Dict[str, Any]) -> bool:
+        """Tells if the session has busy kernels.
+
+        Args:
+            session_config: Requires a "project_uuid" and a
+            "pipeline_uuid".
+
+        """
+        IP = self.get_containers_IP()
+
+        if self._notebook_server_info is None:
+            self._notebook_server_info = {
+                "port": 8888,
+                "base_url": "/"
+                + _config.JUPYTER_SERVER_NAME.format(
+                    project_uuid=session_config["project_uuid"][
+                        : _config.TRUNCATED_UUID_LENGTH
+                    ],
+                    pipeline_uuid=session_config["pipeline_uuid"][
+                        : _config.TRUNCATED_UUID_LENGTH
+                    ],
+                ),
+            }
+
+        # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
+        url = (
+            f"http://{IP.jupyter_server}"
+            f":8888{self._notebook_server_info['base_url']}/api/kernels"
+        )
+        response = requests.get(url, timeout=2.0)
+
+        # Expected format: a list of dictionaries.
+        # [{'id': '3af6f3b9-4358-43b9-b2dd-03b51c4f7881', 'name':
+        # 'orchest-kernel-c56ab762-539c-4cce-9b1e-c4b00300ec6f',
+        # 'last_activity': '2021-11-10T09:04:10.508031Z',
+        # 'execution_state': 'idle', 'connections': 2}]
+        kernels: List[dict] = response.json()
+        return any(kernel.get("execution_state") == "busy" for kernel in kernels)
 
     def shutdown(self) -> None:
         """Shuts down the launch.
