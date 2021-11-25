@@ -21,7 +21,7 @@ const ORCHEST_BLUE: ColorScale = {
 
 const theme = createTheme({
   palette: {
-    primary: { main: ORCHEST_BLUE["400"], ...blue },
+    primary: { main: ORCHEST_BLUE["300"], ...blue },
     secondary: { main: grey[900], ...grey },
     error: { main: red.A400, ...red },
     background: { default: grey[100] },

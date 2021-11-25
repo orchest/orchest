@@ -29,7 +29,7 @@ const App: React.FC<{ view: string; queryArgs: string }> = ({
     console.log("The given view is not defined: " + view);
     return null;
   }
-  // TODO: was working on styling. change /login/admin back to /login
+
   if (view === "/login/admin")
     return (
       <Login

@@ -1,5 +1,5 @@
 export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
-  const response = await fetch(url, params);
+  const response = await window.fetch(url, params);
 
   if (!response.ok || response.status >= 299) {
     const jsonResponse = await response.json();
@@ -10,5 +10,10 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
       body: jsonResponse.body || jsonResponse,
     };
   }
-  return response.json() as Promise<T>;
+
+  const responseAsString = await response.text();
+  const jsonResponse =
+    responseAsString === "" ? {} : JSON.parse(responseAsString);
+
+  return jsonResponse as Promise<T>;
 };

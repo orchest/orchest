@@ -1,4 +1,7 @@
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
@@ -18,11 +21,12 @@ const Login: React.FC<{
   videosUrl,
   queryArgs,
 }) => {
+  // TODO: proper client-side validation
   const [loginFailure, setLoginFailure] = React.useState();
   const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
 
-  const submitLogin = async (e) => {
+  const submitLogin = async (e: React.SyntheticEvent) => {
     e.preventDefault();
 
     let formData = new FormData();
@@ -36,8 +40,11 @@ const Login: React.FC<{
         `/login/submit${queryString}`,
         { method: "POST", body: formData }
       );
+
       if (response.redirect) {
         window.location.href = response.redirect;
+      } else {
+        throw { error: "Failed to redirect" };
       }
     } catch (error) {
       setLoginFailure(error.body.error);
@@ -75,42 +82,76 @@ const Login: React.FC<{
               <img src="image/logo.png" width="200px" className="logo" />
             )}
             <form method="post" onSubmit={submitLogin}>
-              <TextField
-                label="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                name="username"
-              />
-              <br />
-              <TextField
-                label="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                type="password"
-                name="password"
-              />
-              <br />
-              <Button type="submit" variant="contained" color="secondary">
-                Login
-              </Button>
-              {loginFailure && (
-                <div className="error push-up">{loginFailure}</div>
-              )}
+              <Stack direction="column">
+                <TextField
+                  variant="filled"
+                  label="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  name="username"
+                  margin="normal"
+                />
+                <TextField
+                  variant="filled"
+                  label="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type="password"
+                  name="password"
+                  margin="normal"
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  color="secondary"
+                  sx={{ marginTop: 4 }}
+                >
+                  Login
+                </Button>
+                {loginFailure && (
+                  <div className="error push-up">{loginFailure}</div>
+                )}
+              </Stack>
             </form>
           </div>
-          <div className="utility-links">
-            <a target="_blank" href={documentationUrl} rel="noreferrer">
+          <Box
+            sx={{
+              position: "absolute",
+              bottom: "9rem",
+              width: "100%",
+              textAlign: "center",
+            }}
+          >
+            <Link
+              color="secondary"
+              target="_blank"
+              href={documentationUrl}
+              rel="noreferrer"
+              sx={{ color: "grey.600" }}
+            >
               Documentation
-            </a>
-            <span> - </span>
-            <a target="_blank" href={githubUrl} rel="noreferrer">
+            </Link>
+            <Box component="span"> - </Box>
+            <Link
+              color="secondary"
+              target="_blank"
+              href={githubUrl}
+              rel="noreferrer"
+              sx={{ color: "grey.600" }}
+            >
               GitHub
-            </a>
-            <span> - </span>
-            <a target="_blank" href={videosUrl} rel="noreferrer">
+            </Link>
+            <Box component="span"> - </Box>
+            <Link
+              color="secondary"
+              target="_blank"
+              href={videosUrl}
+              rel="noreferrer"
+              sx={{ color: "grey.600" }}
+            >
               Video tutorials
-            </a>
-          </div>
+            </Link>
+          </Box>
         </div>
       </div>
     </div>
