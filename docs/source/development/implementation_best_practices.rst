@@ -10,8 +10,8 @@ To keep the codebase consistent whilst adding new code, please try to stick to t
 practices that have served us well so far (grouped by topic). For example, these best practices make
 sure it is clear which services touch the filesystem state of Orchest.
 
-API endpoints
--------------
+API design guidelines
+---------------------
 New API endpoints should **not** end with trailing slashes. For example, go with ``/api/jobs`` and
 not with ``/api/jobs/``.
 

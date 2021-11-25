@@ -17,7 +17,7 @@ Orchest
 * Run any subset of a pipelines directly or periodically (:ref:`jobs <jobs>`)
 * Easily define your dependencies to run on any machine (:ref:`environments <environments>`)
 * Spin up services which lifetime spans across the entire pipeline run (:ref:`services <services>`)
-* Version your projects using git (TODO insert link to projects)
+* Version your projects using git (:ref:`projects <projects>`)
 
 .. toctree::
    :maxdepth: 1
@@ -37,6 +37,7 @@ Orchest
 
    fundamentals/projects
    fundamentals/pipelines
+   fundamentals/data_passing
    fundamentals/jobs
    fundamentals/environments
    fundamentals/environment_variables

@@ -1,9 +1,11 @@
 When to use Orchest
 ===================
 
-We are always happy to help with any questions you might have, simply join
-`our Slack <https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w>`_ and
-let us know how we can be helpful 👍.
+.. note::
+   WIP
 
-If you are running into any bugs or would like another medium than Slack, feel free to create a
-`GitHub issue <https://github.com/orchest/orchest/issues>`_.
+**Who should use Orchest?**
+
+* Data Scientists who want to rapidly prototype.
+* Data Scientists who like to work in Notebooks.
+* Data Scientists who are looking to create pipelines through a visual interface instead of YAML.

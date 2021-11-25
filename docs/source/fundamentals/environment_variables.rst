@@ -29,7 +29,7 @@ pipeline run>` is ``PIP_VALUE``.
 .. warning::
    Environment variables are persisted within Orchest. Make sure only authorized people have access
    to your instance and sensible data. See how to setup :ref:`authentication <authentication>` and
-   how to setup :ref:`Orchest on the cloud <cloud installation>`.
+   how to :ref:`self-host Orchest <self-host orchest>`.
 
 Project environment variables
 -----------------------------
