@@ -1,33 +1,46 @@
-import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
-import { RefManager } from "@orchest/lib-utils";
-import * as React from "react";
+import { useAppContext } from "@/contexts/AppContext";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import { MDCButtonReact } from "@orchest/lib-mdc";
+import { hasValue } from "@orchest/lib-utils";
+import React from "react";
 
-export interface IAlertDialogProps {
-  title: string;
-  onClose: () => void;
-  content: string;
-}
+const AlertDialog: React.FC = ({}) => {
+  const { state, deleteAlert } = useAppContext();
+  const sendEvent = useSendAnalyticEvent;
+  const alert = state.alerts.length > 0 ? state.alerts[0] : null;
 
-const AlertDialog: React.FC<IAlertDialogProps> = (props) => {
-  const [refManager] = React.useState(new RefManager());
+  React.useEffect(() => {
+    if (alert) {
+      // Analytics call
+      const { title, content } = alert;
+      sendEvent("alert show", { title, content });
+    }
+  }, [alert]);
 
-  const close = () => {
-    refManager.refs.dialogRef.close();
+  if (!alert) return null;
+
+  const onClose = () => {
+    if (alert.onClose) alert.onClose();
+    deleteAlert();
   };
 
   return (
-    <MDCDialogReact
-      ref={refManager.nrefs.dialogRef}
-      {...props}
-      actions={
+    <Dialog open={hasValue(alert)} onClose={onClose}>
+      <DialogTitle>{alert.title || "Error"}</DialogTitle>
+      <DialogContent>{alert.content}</DialogContent>
+      <DialogActions>
         <MDCButtonReact
           classNames={["mdc-button--raised", "themed-secondary"]}
           submitButton
           label="Ok"
-          onClick={close}
+          onClick={onClose}
         />
-      }
-    />
+      </DialogActions>
+    </Dialog>
   );
 };
 

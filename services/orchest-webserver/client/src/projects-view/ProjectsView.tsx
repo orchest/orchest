@@ -1,15 +1,20 @@
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDataTableReact,
-  MDCDialogReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
@@ -24,6 +29,7 @@ import { ImportDialog } from "./ImportDialog";
 
 const ProjectsView: React.FC = () => {
   const { orchest } = window;
+  const { setAlert } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
@@ -94,17 +100,14 @@ const ProjectsView: React.FC = () => {
           let resp = JSON.parse(e.body);
 
           if (resp.code == 0) {
-            orchest.alert(
-              "Error",
-              "Cannnot rename project when an interactive session is running."
-            );
+            setAlert({
+              content:
+                "Cannot rename project when an interactive session is running.",
+            });
           } else if (resp.code == 1) {
-            orchest.alert(
-              "Error",
-              'Cannnot rename project, a project with the name "' +
-                state.editProjectPath +
-                '" already exists.'
-            );
+            setAlert({
+              content: `Cannot rename project, a project with the name "${state.editProjectPath}" already exists.`,
+            });
           }
         } catch (error) {
           console.error(e);
@@ -214,7 +217,9 @@ const ProjectsView: React.FC = () => {
       let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
 
       if (selectedIndices.length === 0) {
-        orchest.alert("Error", "You haven't selected a project.");
+        setAlert({
+          content: "You haven't selected a project.",
+        });
 
         setState((prevState) => ({
           ...prevState,
@@ -277,9 +282,13 @@ const ProjectsView: React.FC = () => {
       try {
         let data = JSON.parse(response.body);
 
-        orchest.alert("Error", "Could not delete project. " + data.message);
+        setAlert({
+          content: `Could not delete project. ${data.message}`,
+        });
       } catch {
-        orchest.alert("Error", "Could not delete project. Reason unknown.");
+        setAlert({
+          content: "Could not delete project. Reason unknown.",
+        });
       }
     });
 
@@ -313,9 +322,9 @@ const ProjectsView: React.FC = () => {
         try {
           let data = JSON.parse(response.body);
 
-          orchest.alert("Error", "Could not create project. " + data.message);
+          setAlert({ content: `Could not create project. ${data.message}` });
         } catch {
-          orchest.alert("Error", "Could not create project. Reason unknown.");
+          setAlert({ content: "Could not create project. Reason unknown." });
         }
       })
       .finally(() => {
@@ -347,17 +356,11 @@ const ProjectsView: React.FC = () => {
   const validateProjectNameAndAlert = (projectName) => {
     let projectNameValidation = validProjectName(projectName);
     if (!projectNameValidation.valid) {
-      orchest.alert(
-        "Error",
-        "Please make sure you enter a valid project name. " +
-          projectNameValidation.reason
-      );
+      setAlert({
+        content: `Please make sure you enter a valid project name. ${projectNameValidation.reason}`,
+      });
     }
     return projectNameValidation.valid;
-  };
-
-  const onCancelModal = () => {
-    refManager.refs.createProjectDialog.close();
   };
 
   const onCloseCreateProjectModal = () => {
@@ -399,163 +402,148 @@ const ProjectsView: React.FC = () => {
     }
   }, [state?.fetchListAndSetProject]);
 
+  const [importUrl, setImportUrl] = useImportUrl();
+  // if user loads the app with a pre-filled import_url in their query string
+  // we prompt them directly with the import modal
+  React.useEffect(() => {
+    if (importUrl !== "") setIsImporting(true);
+  }, []);
+
   return (
     <Layout>
       <div className={"view-page projects-view"}>
-        {isImporting && (
-          <ImportDialog
-            projectName={projectName}
-            setProjectName={setProjectName}
-            onImportComplete={onImportComplete}
-            open={() => setIsImporting(true)}
-            close={() => setIsImporting(false)}
-          />
-        )}
+        <ImportDialog
+          projectName={projectName}
+          setProjectName={setProjectName}
+          onImportComplete={onImportComplete}
+          setImportUrl={setImportUrl}
+          open={isImporting}
+          onClose={() => setIsImporting(false)}
+        />
 
-        {state.editProjectPathModal && (
-          <MDCDialogReact
-            title="Edit project name"
-            onClose={onCloseEditProjectPathModal}
-            content={
-              <React.Fragment>
-                <MDCTextFieldReact
-                  classNames={["fullwidth push-down"]}
-                  value={state.editProjectPath}
-                  label="Project name"
-                  onChange={(value) => {
-                    setState((prevState) => ({
-                      ...prevState,
-                      editProjectPath: value,
-                    }));
-                  }}
-                />
-              </React.Fragment>
-            }
-            actions={
-              <React.Fragment>
-                <MDCButtonReact
-                  icon="close"
-                  label="Cancel"
-                  classNames={["push-right"]}
-                  onClick={onCloseEditProjectPathModal}
-                />
-                <MDCButtonReact
-                  icon="save"
-                  disabled={state.editProjectPathModalBusy}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  label="Save"
-                  submitButton
-                  onClick={onSubmitEditProjectPathModal}
-                />
-              </React.Fragment>
-            }
-          />
-        )}
-
-        {(() => {
-          if (isShowingCreateModal) {
-            return (
-              <MDCDialogReact
-                title="Create a new project"
-                onClose={onCloseCreateProjectModal}
-                ref={refManager.nrefs.createProjectDialog}
-                content={
-                  <MDCTextFieldReact
-                    classNames={["fullwidth"]}
-                    label="Project name"
-                    value={projectName}
-                    onChange={setProjectName}
-                    data-test-id="project-name-textfield"
-                  />
-                }
-                actions={
-                  <React.Fragment>
-                    <MDCButtonReact
-                      icon="close"
-                      label="Cancel"
-                      classNames={["push-right"]}
-                      onClick={onCancelModal}
-                    />
-                    <MDCButtonReact
-                      icon="format_list_bulleted"
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      label="Create project"
-                      submitButton
-                      onClick={onClickCreateProject}
-                      data-test-id="create-project"
-                    />
-                  </React.Fragment>
-                }
-              />
-            );
-          }
-        })()}
+        <Dialog
+          open={state.editProjectPathModal}
+          onClose={onCloseEditProjectPathModal}
+        >
+          <DialogTitle>Edit project name</DialogTitle>
+          <DialogContent>
+            <MDCTextFieldReact
+              classNames={["fullwidth push-down"]}
+              value={state.editProjectPath}
+              label="Project name"
+              onChange={(value) => {
+                setState((prevState) => ({
+                  ...prevState,
+                  editProjectPath: value,
+                }));
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <MDCButtonReact
+              icon="close"
+              label="Cancel"
+              classNames={["push-right"]}
+              onClick={onCloseEditProjectPathModal}
+            />
+            <MDCButtonReact
+              icon="save"
+              disabled={state.editProjectPathModalBusy}
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              label="Save"
+              submitButton
+              onClick={onSubmitEditProjectPathModal}
+            />
+          </DialogActions>
+        </Dialog>
+        <Dialog open={isShowingCreateModal} onClose={onCloseCreateProjectModal}>
+          <DialogTitle>Create a new project</DialogTitle>
+          <DialogContent>
+            <MDCTextFieldReact
+              classNames={["fullwidth"]}
+              label="Project name"
+              value={projectName}
+              onChange={setProjectName}
+              data-test-id="project-name-textfield"
+            />
+          </DialogContent>
+          <DialogActions>
+            <MDCButtonReact
+              icon="close"
+              label="Cancel"
+              classNames={["push-right"]}
+              onClick={onCloseCreateProjectModal}
+            />
+            <MDCButtonReact
+              icon="format_list_bulleted"
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              label="Create project"
+              submitButton
+              onClick={onClickCreateProject}
+              data-test-id="create-project"
+            />
+          </DialogActions>
+        </Dialog>
 
         <h2>Projects</h2>
-
-        {(() => {
-          if (state.loading) {
-            return <LinearProgress />;
-          } else {
-            return (
-              <React.Fragment>
-                <div className="push-down">
-                  <MDCButtonReact
-                    classNames={[
-                      "mdc-button--raised",
-                      "themed-secondary",
-                      "push-right",
-                    ]}
-                    icon="add"
-                    label="Add project"
-                    onClick={onCreateClick}
-                    data-test-id="add-project"
-                  />
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised", "push-right"]}
-                    icon="input"
-                    label="Import project"
-                    onClick={onImport}
-                    data-test-id="import-project"
-                  />
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    icon="lightbulb"
-                    label="Explore Examples"
-                    onClick={goToExamples}
-                    data-test-id="explore-examples"
-                  />
-                </div>
-                <div className={"pipeline-actions push-down"}>
-                  <MDCIconButtonToggleReact
-                    icon="delete"
-                    disabled={state.isDeleting}
-                    tooltipText="Delete project"
-                    onClick={onDeleteClick}
-                    data-test-id="delete-project"
-                  />
-                </div>
-
-                <MDCDataTableReact
-                  ref={refManager.nrefs.projectListView}
-                  selectable
-                  onRowClick={onClickListItem}
-                  classNames={["fullwidth"]}
-                  headers={[
-                    "Project",
-                    "Pipelines",
-                    "Active sessions",
-                    "Jobs",
-                    "Environments",
-                    "Settings",
-                  ]}
-                  rows={state.listData}
-                  data-test-id="projects-table"
-                />
-              </React.Fragment>
-            );
-          }
-        })()}
+        {state.loading ? (
+          <LinearProgress />
+        ) : (
+          <>
+            <div className="push-down">
+              <MDCButtonReact
+                classNames={[
+                  "mdc-button--raised",
+                  "themed-secondary",
+                  "push-right",
+                ]}
+                icon="add"
+                label="Add project"
+                onClick={onCreateClick}
+                data-test-id="add-project"
+              />
+              <MDCButtonReact
+                classNames={["mdc-button--raised", "push-right"]}
+                icon="input"
+                label="Import project"
+                onClick={onImport}
+                data-test-id="import-project"
+              />
+              <MDCButtonReact
+                classNames={["mdc-button--raised"]}
+                icon="lightbulb"
+                label="Explore Examples"
+                onClick={goToExamples}
+                data-test-id="explore-examples"
+              />
+            </div>
+            <div className={"pipeline-actions push-down"}>
+              <MDCIconButtonToggleReact
+                icon="delete"
+                disabled={state.isDeleting}
+                tooltipText="Delete project"
+                onClick={onDeleteClick}
+                data-test-id="delete-project"
+              />
+            </div>
+            <MDCDataTableReact
+              ref={refManager.nrefs.projectListView}
+              selectable
+              onRowClick={onClickListItem}
+              classNames={["fullwidth"]}
+              headers={[
+                "Project",
+                "Pipelines",
+                "Active sessions",
+                "Jobs",
+                "Environments",
+                "Settings",
+              ]}
+              rows={state.listData}
+              data-test-id="projects-table"
+            />
+          </>
+        )}
       </div>
     </Layout>
   );

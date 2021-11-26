@@ -1,4 +1,4 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
 import * as React from "react";
 
@@ -14,11 +14,11 @@ const SessionToggleButton = React.forwardRef<
   TSessionToggleButtonRef,
   ISessionToggleButtonProps
 >((props, ref) => {
+  const { state, dispatch, getSession } = useSessionsContext();
   const [isLoading, setIsLoading] = React.useState(true);
-  const { state, dispatch, get } = useOrchest();
 
   const { pipelineUuid, projectUuid } = props;
-  const session = get.session({
+  const session = getSession({
     pipelineUuid,
     projectUuid,
   });

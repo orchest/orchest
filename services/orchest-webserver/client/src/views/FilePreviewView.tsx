@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import {
@@ -29,7 +30,7 @@ const MODE_MAPPING = {
 
 const FilePreviewView: React.FC = () => {
   // global states
-  const { orchest } = window;
+  const { setAlert } = useAppContext();
 
   // data from route
   const {
@@ -256,10 +257,10 @@ const FilePreviewView: React.FC = () => {
         }
       })
       .catch(() => {
-        orchest.alert(
-          "Error",
-          "Failed to load file. Make sure the path of the pipeline step is correct."
-        );
+        setAlert({
+          content:
+            "Failed to load file. Make sure the path of the pipeline step is correct.",
+        });
       });
   };
 

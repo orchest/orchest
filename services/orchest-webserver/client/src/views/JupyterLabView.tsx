@@ -1,7 +1,9 @@
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useOrchest } from "@/hooks/orchest";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
@@ -20,7 +22,10 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 
 const JupyterLabView: React.FC = () => {
   // global states
-  const { state, dispatch, get } = useOrchest();
+  const { dispatch } = useOrchest();
+  const sessionsContext = useSessionsContext();
+  const { getSession } = sessionsContext;
+  useSessionsPoller();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
@@ -36,7 +41,7 @@ const JupyterLabView: React.FC = () => {
     setHasEnvironmentCheckCompleted,
   ] = React.useState(false);
 
-  const session = get.session({
+  const session = getSession({
     pipelineUuid,
     projectUuid,
   });
@@ -59,15 +64,15 @@ const JupyterLabView: React.FC = () => {
   // Launch the session if it doesn't exist
   React.useEffect(() => {
     if (
-      !state.sessionsIsLoading &&
+      !sessionsContext.state.sessionsIsLoading &&
       (typeof session === "undefined" || !session?.status)
     ) {
-      dispatch({
+      sessionsContext.dispatch({
         type: "sessionToggle",
         payload: { pipelineUuid, projectUuid },
       });
     }
-  }, [session, state.sessionsIsLoading]);
+  }, [session, sessionsContext.state.sessionsIsLoading]);
 
   // On any session change
   React.useEffect(() => {
@@ -208,18 +213,16 @@ const JupyterLabView: React.FC = () => {
   };
 
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="view-page jupyter no-padding">
-          <div className="lab-loader">
-            <div>
-              <h2>Setting up JupyterLab…</h2>
-              <LinearProgress />
-            </div>
+    <Layout>
+      <div className="view-page jupyter no-padding">
+        <div className="lab-loader">
+          <div>
+            <h2>Setting up JupyterLab…</h2>
+            <LinearProgress />
           </div>
         </div>
-      </Layout>
-    </OrchestSessionsConsumer>
+      </div>
+    </Layout>
   );
 };
 

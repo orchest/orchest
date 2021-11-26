@@ -1,10 +1,13 @@
 import EnvVarList from "@/components/EnvVarList";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import { Box } from "@orchest/design-system";
 import {
   MDCButtonReact,
   MDCCheckboxReact,
-  MDCDialogReact,
   MDCSelectReact,
   MDCTextFieldReact,
   MDCTooltipReact,
@@ -139,76 +142,70 @@ const ServiceForm: React.FC<any> = (props) => {
 
   return (
     <div className="service-form">
-      {showImageDialog && (
-        <MDCDialogReact
-          title="Edit service image"
-          onClose={onCloseEditImageName}
-          content={
-            <div>
-              <MDCTextFieldReact
-                label="Image name"
-                aria-describedby={"tooltip-imageNameField"}
-                onChange={(value) => {
-                  setEditImageName(value);
-                  if (value.length > 0) {
-                    setEditImageEnvironmentUUID("");
-                  }
-                }}
-                classNames={["fullwidth"]}
-                value={editImageName}
-                data-test-id="service-image-name-dialog-image-name"
-              />
-              <MDCTooltipReact
-                tooltipID="tooltip-imageNameField"
-                tooltip="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`"
-              />
-              <p className="push-up push-down">
-                Or choose an environment as your image:
-              </p>
-              <MDCSelectReact
-                label="Environment"
-                classNames={["fullwidth"]}
-                onChange={(environmentUUID) => {
-                  setEditImageEnvironmentUUID(environmentUUID);
-                  if (environmentUUID.length > 0) {
-                    setEditImageName("");
-                  }
-                }}
-                value={editImageEnvironmentUUID}
-                options={environmentOptions}
-              />
-            </div>
-          }
-          actions={
-            <>
-              <MDCButtonReact
-                classNames={["push-right"]}
-                label="Cancel"
-                onClick={onCloseEditImageName}
-              />
-              <MDCButtonReact
-                label="Save"
-                icon="check"
-                classNames={["mdc-button--raised"]}
-                submitButton
-                onClick={() => {
-                  if (editImageEnvironmentUUID == "") {
-                    handleServiceChange("image", editImageName);
-                  } else {
-                    handleServiceChange(
-                      "image",
-                      environmentPrefix + editImageEnvironmentUUID
-                    );
-                  }
-                  onCloseEditImageName();
-                }}
-                data-test-id="service-image-name-dialog-save"
-              />
-            </>
-          }
-          data-test-id="service-image-name-dialog"
-        />
-      )}
+      <Dialog open={showImageDialog} onClose={onCloseEditImageName}>
+        <DialogTitle>Edit service image</DialogTitle>
+        <DialogContent>
+          <div>
+            <MDCTextFieldReact
+              label="Image name"
+              aria-describedby={"tooltip-imageNameField"}
+              onChange={(value) => {
+                setEditImageName(value);
+                if (value.length > 0) {
+                  setEditImageEnvironmentUUID("");
+                }
+              }}
+              classNames={["fullwidth"]}
+              value={editImageName}
+              data-test-id="service-image-name-dialog-image-name"
+            />
+            <MDCTooltipReact
+              tooltipID="tooltip-imageNameField"
+              tooltip="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`"
+            />
+            <p className="push-up push-down">
+              Or choose an environment as your image:
+            </p>
+            <MDCSelectReact
+              label="Environment"
+              classNames={["fullwidth"]}
+              onChange={(environmentUUID) => {
+                setEditImageEnvironmentUUID(environmentUUID);
+                if (environmentUUID.length > 0) {
+                  setEditImageName("");
+                }
+              }}
+              value={editImageEnvironmentUUID}
+              options={environmentOptions}
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <MDCButtonReact
+            classNames={["push-right"]}
+            label="Cancel"
+            onClick={onCloseEditImageName}
+          />
+          <MDCButtonReact
+            label="Save"
+            icon="check"
+            classNames={["mdc-button--raised"]}
+            submitButton
+            onClick={() => {
+              if (editImageEnvironmentUUID == "") {
+                handleServiceChange("image", editImageName);
+              } else {
+                handleServiceChange(
+                  "image",
+                  environmentPrefix + editImageEnvironmentUUID
+                );
+              }
+              onCloseEditImageName();
+            }}
+            data-test-id="service-image-name-dialog-save"
+          />
+        </DialogActions>
+      </Dialog>
 
       <Box
         as="form"

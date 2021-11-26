@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
@@ -22,10 +23,13 @@ export interface IEnvironmentListProps {
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const { navigateTo } = useCustomRoute();
+  const { setAlert } = useAppContext();
+
   const [
     environmentBuildsInterval,
     setEnvironmentBuildsInterval,
   ] = React.useState(null);
+
   const [state, setState] = React.useState({
     isDeleting: false,
     environments: undefined,
@@ -156,13 +160,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         } catch (e) {
           console.error(e);
         }
-        orchest.alert(
-          "Error",
-          "Deleting environment '" +
-            environmentName +
-            "' failed. " +
-            errorMessage
-        );
+
+        setAlert({
+          content: `Deleting environment '${environmentName}' failed. ${errorMessage}`,
+        });
       });
   };
 
@@ -179,12 +180,12 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
           `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
         ).then((response: string) => {
           let data = JSON.parse(response);
-          if (data.environment_builds.some((x) => x.status == "SUCCESS"))
-            orchest.alert(
-              "Error",
-              "Environments cannot be deleted with a running interactive session."
-            );
-          else {
+          if (data.environment_builds.some((x) => x.status == "SUCCESS")) {
+            setAlert({
+              content:
+                "Environments cannot be deleted with a running interactive session.",
+            });
+          } else {
             _removeEnvironment(projectUuid, environmentUuid, environmentName);
           }
         });
@@ -229,7 +230,9 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       let selectedIndices = refManager.refs.environmentListView.getSelectedRowIndices();
 
       if (selectedIndices.length === 0) {
-        orchest.alert("Error", "You haven't selected any environments.");
+        setAlert({
+          content: "You haven't selected any environments.",
+        });
 
         setState((prevState) => ({
           ...prevState,

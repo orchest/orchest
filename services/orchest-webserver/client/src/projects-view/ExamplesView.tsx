@@ -1,4 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useImportUrl } from "@/hooks/useImportUrl";
 import { useTransition } from "@/hooks/useTransition";
 import { siteMap } from "@/routingConfig";
 import { Example } from "@/types";
@@ -30,7 +31,6 @@ const ExamplesView: React.FC = () => {
   const { navigateTo } = useCustomRoute();
   const { data } = useFetchExamples();
   // local states
-  const [exampleUrl, setExampleUrl] = React.useState<string>();
   const [projectName, setProjectName] = React.useState<string>();
   const [projectUuid, setProjectUuid] = React.useState<string>();
   const [importingState, setImportingState] = React.useState<ImportingState>(
@@ -39,6 +39,14 @@ const ExamplesView: React.FC = () => {
   const [selectedTab, setSelectedTab] = React.useState<EXAMPLES_TAB>(
     EXAMPLES_TAB.ORCHEST
   );
+  const [importUrl, setImportUrl] = useImportUrl();
+
+  // if user loads the app with a pre-filled import_url in their query string
+  // we prompt them directly with the import modal
+  React.useEffect(() => {
+    if (importUrl !== "") setImportingState("IMPORTING");
+  }, []);
+
   const {
     shouldRender: shouldShowCommunityWithTransition,
     mountedStyle,
@@ -71,7 +79,7 @@ const ExamplesView: React.FC = () => {
   };
 
   const startImport = (url: string) => {
-    setExampleUrl(url);
+    setImportUrl(url);
     setImportingState("IMPORTING");
   };
 
@@ -85,28 +93,27 @@ const ExamplesView: React.FC = () => {
   const closeDialog = () => {
     setImportingState("READY");
     setProjectName("");
-    setExampleUrl("");
+    setImportUrl("");
   };
 
   return (
     <div className="view-page examples-view">
-      {importingState === "IMPORTING" && (
-        <ImportDialog
-          projectName={projectName}
-          setProjectName={setProjectName}
-          initialImportUrl={exampleUrl}
-          open={() => setImportingState("IMPORTING")}
-          close={closeDialog}
-          onImportComplete={onImportComplete}
-        />
-      )}
-      {importingState === "DONE" && (
-        <ImportSuccessDialog
-          projectName={projectName}
-          close={closeDialog}
-          goToPipelines={goToSelectedProject}
-        />
-      )}
+      <ImportDialog
+        projectName={projectName}
+        setProjectName={setProjectName}
+        onClose={closeDialog}
+        open={importingState === "IMPORTING"}
+        importUrl={importUrl}
+        setImportUrl={setImportUrl}
+        onImportComplete={onImportComplete}
+      />
+
+      <ImportSuccessDialog
+        projectName={projectName}
+        open={importingState === "DONE"}
+        onClose={closeDialog}
+        goToPipelines={goToSelectedProject}
+      />
       <div className="push-down">
         <MDCButtonReact
           label="Back to projects"
@@ -138,11 +145,7 @@ const ExamplesView: React.FC = () => {
           {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}
           {examples[selectedTab].map((item) => {
             return (
-              <ExampleCard
-                key={item.url}
-                {...item}
-                startImport={startImport}
-              ></ExampleCard>
+              <ExampleCard key={item.url} {...item} startImport={startImport} />
             );
           })}
         </div>

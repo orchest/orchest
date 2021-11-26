@@ -1,6 +1,5 @@
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import AlertDialog from "./AlertDialog";
 import BuildPendingDialog from "./BuildPendingDialog";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -53,29 +52,6 @@ const Dialogs = (_, ref) => {
         onClose={() => {
           remove(uuid);
         }}
-      />,
-    ]);
-  };
-
-  const alert = (title, content, onClose) => {
-    let uuid = uuidv4();
-
-    if (typeof content == "string") {
-      content = newslines2breaks(content);
-    }
-
-    setDialogs((prevDialogs) => [
-      ...prevDialogs,
-      <AlertDialog
-        key={uuid}
-        onClose={() => {
-          if (onClose) {
-            onClose();
-          }
-          remove(uuid);
-        }}
-        title={title}
-        content={content}
       />,
     ]);
   };

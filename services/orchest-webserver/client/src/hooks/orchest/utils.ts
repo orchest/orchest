@@ -1,5 +1,3 @@
-import type { IOrchestSession, IOrchestState } from "@/types";
-
 type Session = {
   project_uuid?: string;
   pipeline_uuid?: string;
@@ -25,8 +23,3 @@ export const isSession = (a: Session, b: Session) => {
 
   return !Object.keys(sessionA).some((key) => sessionA[key] !== sessionB[key]);
 };
-
-export const isCurrentSession = (
-  session: IOrchestSession,
-  state: IOrchestState
-) => isSession(session, state);

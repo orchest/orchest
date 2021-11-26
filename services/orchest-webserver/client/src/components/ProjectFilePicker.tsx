@@ -1,6 +1,10 @@
+import { useAppContext } from "@/contexts/AppContext";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import {
   MDCButtonReact,
-  MDCDialogReact,
   MDCSelectReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
@@ -17,6 +21,8 @@ import * as React from "react";
 import FilePicker from "./FilePicker";
 
 const ProjectFilePicker: React.FC<any> = (props) => {
+  const { setAlert } = useAppContext();
+
   const [state, setState] = React.useState({
     createFileModal: false,
     selectedFileExists: null,
@@ -182,15 +188,15 @@ const ProjectFilePicker: React.FC<any> = (props) => {
 
     // TODO: case insensitive extension checking?
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
-      // @ts-ignore
-      orchest.alert(
-        "Error",
-        <div>
-          <p>Invalid file extension</p>
-          Extension {extension} is not in allowed set of{" "}
-          {allowedExtensionsMarkup()}.
-        </div>
-      );
+      setAlert({
+        content: (
+          <div>
+            <p>Invalid file extension</p>
+            Extension {extension} is not in allowed set of{" "}
+            {allowedExtensionsMarkup()}.
+          </div>
+        ),
+      });
 
       return;
     }
@@ -225,8 +231,9 @@ const ProjectFilePicker: React.FC<any> = (props) => {
       })
       .catch((error) => {
         if (error.status == 409) {
-          // @ts-ignore
-          orchest.alert("Error", "A file with this name already exists.");
+          setAlert({
+            content: "A file with this name already exists.",
+          });
         }
         console.log(error);
       });
@@ -259,63 +266,60 @@ const ProjectFilePicker: React.FC<any> = (props) => {
   React.useEffect(() => checkFileValidity(), [props.value]);
 
   return (
-    <React.Fragment>
-      {state.createFileModal && (
-        <MDCDialogReact
-          title="Create a new file"
-          onClose={onCloseCreateFileModal}
-          ref={refManager.nrefs.createFileDialog}
-          data-test-id="project-file-picker-create-new-file-dialog"
-          content={
-            <div className="create-file-input">
-              <div className="push-down">
-                Supported file extensions are:&nbsp;
-                {allowedExtensionsMarkup()}.
-              </div>
+    <>
+      <Dialog
+        open={state.createFileModal}
+        onClose={onCloseCreateFileModal}
+        data-test-id="project-file-picker-create-new-file-dialog"
+      >
+        <DialogTitle>Create a new file</DialogTitle>
+        <DialogContent>
+          <div className="create-file-input">
+            <div className="push-down">
+              Supported file extensions are:&nbsp;
+              {allowedExtensionsMarkup()}.
+            </div>
 
-              <div className="push-down field-select-combo">
-                <MDCTextFieldReact
-                  label="File name"
-                  value={state.fileName}
-                  onChange={onChangeNewFilename}
-                  data-test-id="project-file-picker-file-name-textfield"
-                />
-                <MDCSelectReact
-                  ref={refManager.nrefs.createFileExtensionDropdown}
-                  label="Extension"
-                  value={state.selectedExtension}
-                  options={ALLOWED_STEP_EXTENSIONS.map((el) => ["." + el])}
-                  onChange={onChangeNewFilenameExtension}
-                />
-              </div>
+            <div className="push-down field-select-combo">
               <MDCTextFieldReact
-                label="Path in project"
-                value={getFullProjectPath()}
-                classNames={["fullwidth push-down"]}
-                disabled
+                label="File name"
+                value={state.fileName}
+                onChange={onChangeNewFilename}
+                data-test-id="project-file-picker-file-name-textfield"
+              />
+              <MDCSelectReact
+                ref={refManager.nrefs.createFileExtensionDropdown}
+                label="Extension"
+                value={state.selectedExtension}
+                options={ALLOWED_STEP_EXTENSIONS.map((el) => ["." + el])}
+                onChange={onChangeNewFilenameExtension}
               />
             </div>
-          }
-          actions={
-            <React.Fragment>
-              <MDCButtonReact
-                icon="close"
-                label="Cancel"
-                classNames={["push-right"]}
-                onClick={onCancelModal}
-              />
-              <MDCButtonReact
-                icon="add"
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                label="Create file"
-                submitButton
-                onClick={onSubmitModal}
-                data-test-id="project-file-picker-create-file"
-              />
-            </React.Fragment>
-          }
-        />
-      )}
+            <MDCTextFieldReact
+              label="Path in project"
+              value={getFullProjectPath()}
+              classNames={["fullwidth push-down"]}
+              disabled
+            />
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <MDCButtonReact
+            icon="close"
+            label="Cancel"
+            classNames={["push-right"]}
+            onClick={onCancelModal}
+          />
+          <MDCButtonReact
+            icon="add"
+            classNames={["mdc-button--raised", "themed-secondary"]}
+            label="Create file"
+            submitButton
+            onClick={onSubmitModal}
+            data-test-id="project-file-picker-create-file"
+          />
+        </DialogActions>
+      </Dialog>
       {state.cwd && state.tree && (
         <FilePicker
           tree={state.tree}
@@ -332,7 +336,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
           onChangeValue={onChangeFileValue}
         />
       )}
-    </React.Fragment>
+    </>
   );
 };
 

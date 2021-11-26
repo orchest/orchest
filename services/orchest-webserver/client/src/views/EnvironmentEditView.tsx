@@ -1,14 +1,18 @@
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCCheckboxReact,
-  MDCDialogReact,
   MDCSelectReact,
   MDCTabBarReact,
   MDCTextFieldReact,
@@ -30,8 +34,8 @@ const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const EnvironmentEditView: React.FC = () => {
   // global states
-  const { orchest } = window;
   const context = useOrchest();
+  const { setAlert } = useAppContext();
 
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
@@ -50,8 +54,12 @@ const EnvironmentEditView: React.FC = () => {
     setup_script: context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
   });
 
+  const [
+    isShowingAddCustomImageDialog,
+    setIsShowingAddCustomImageDialog,
+  ] = React.useState(false);
+
   const [state, setState] = React.useState({
-    addCustomBaseImageDialog: null,
     subviewIndex: 0,
     baseImages: [...DEFAULT_BASE_IMAGES],
     ignoreIncomingLogs: false,
@@ -171,10 +179,10 @@ const EnvironmentEditView: React.FC = () => {
     };
 
     if (!validEnvironmentName(environment.name)) {
-      orchest.alert(
-        "Error",
-        'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
-      );
+      setAlert({
+        content:
+          'Double quotation marks in the "Environment name" have to be escaped using a backslash.',
+      });
     } else {
       e.preventDefault();
       save();
@@ -223,15 +231,9 @@ const EnvironmentEditView: React.FC = () => {
     });
   };
 
-  const onCancelAddCustomBaseImageDialog = () => {
-    refManager.refs.addCustomBaseImageDialog.close();
+  const onCloseAddCustomBaseImageDialog = () => {
+    setIsShowingAddCustomImageDialog(false);
   };
-
-  const onCloseAddCustomBaseImageDialog = () =>
-    setState((prevState) => ({
-      ...prevState,
-      addCustomBaseImageDialog: undefined,
-    }));
 
   const submitAddCustomBaseImage = () => {
     setState((prevState) => {
@@ -240,6 +242,8 @@ const EnvironmentEditView: React.FC = () => {
         base_image: prevState.customBaseImageName,
       }));
 
+      setIsShowingAddCustomImageDialog(false);
+
       return {
         ...prevState,
         customBaseImageName: "",
@@ -247,7 +251,6 @@ const EnvironmentEditView: React.FC = () => {
           prevState.baseImages.indexOf(prevState.customBaseImageName) == -1
             ? prevState.baseImages.concat(prevState.customBaseImageName)
             : prevState.baseImages,
-        addCustomBaseImageDialog: undefined,
       };
     });
 
@@ -258,46 +261,7 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   const onAddCustomBaseImage = () => {
-    setState((prevState) => ({
-      ...prevState,
-      addCustomBaseImageDialog: (
-        <MDCDialogReact
-          title="Add custom base image"
-          ref={refManager.nrefs.addCustomBaseImageDialog}
-          onClose={onCloseAddCustomBaseImageDialog}
-          content={
-            <div>
-              <MDCTextFieldReact
-                label="Base image name"
-                value={state.customBaseImageName}
-                onChange={(value) =>
-                  setState((nestedPrevState) => ({
-                    ...nestedPrevState,
-                    customBaseImageName: value,
-                  }))
-                }
-              />
-            </div>
-          }
-          actions={
-            <React.Fragment>
-              <MDCButtonReact
-                classNames={["push-right"]}
-                label="Cancel"
-                onClick={onCancelAddCustomBaseImageDialog}
-              />
-              <MDCButtonReact
-                label="Add"
-                icon="check"
-                classNames={["mdc-button--raised"]}
-                submitButton
-                onClick={submitAddCustomBaseImage}
-              />
-            </React.Fragment>
-          }
-        />
-      ),
-    }));
+    setIsShowingAddCustomImageDialog(true);
   };
 
   const onSelectSubview = (index) => {
@@ -396,9 +360,9 @@ const EnvironmentEditView: React.FC = () => {
           }));
         });
     } else {
-      orchest.alert(
-        "Could not cancel build, please try again in a few seconds."
-      );
+      setAlert({
+        content: "Could not cancel build, please try again in a few seconds.",
+      });
     }
   };
 
@@ -435,7 +399,38 @@ const EnvironmentEditView: React.FC = () => {
           <LinearProgress />
         ) : (
           <>
-            {state.addCustomBaseImageDialog && state.addCustomBaseImageDialog}
+            <Dialog
+              open={isShowingAddCustomImageDialog}
+              onClose={onCloseAddCustomBaseImageDialog}
+            >
+              <DialogTitle>Add custom base image</DialogTitle>
+              <DialogContent>
+                <MDCTextFieldReact
+                  label="Base image name"
+                  value={state.customBaseImageName}
+                  onChange={(value) =>
+                    setState((nestedPrevState) => ({
+                      ...nestedPrevState,
+                      customBaseImageName: value,
+                    }))
+                  }
+                />
+              </DialogContent>
+              <DialogActions>
+                <MDCButtonReact
+                  classNames={["push-right"]}
+                  label="Cancel"
+                  onClick={onCloseAddCustomBaseImageDialog}
+                />
+                <MDCButtonReact
+                  label="Add"
+                  icon="check"
+                  classNames={["mdc-button--raised"]}
+                  submitButton
+                  onClick={submitAddCustomBaseImage}
+                />
+              </DialogActions>
+            </Dialog>
 
             <div className="push-down">
               <MDCButtonReact

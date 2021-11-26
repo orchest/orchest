@@ -128,9 +128,7 @@ const UpdateView: React.FC = () => {
           let elements = [];
 
           if (state.updating) {
-            elements.push(
-              <LinearProgress key="0" classNames={["push-down"]} />
-            );
+            elements.push(<LinearProgress key="0" className="push-down" />);
           }
           if (state.updateOutput.length > 0) {
             elements.push(

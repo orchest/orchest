@@ -1,5 +1,4 @@
 import type {
-  IOrchestGet,
   IOrchestState,
   OrchestAction,
   OrchestServerConfig,
@@ -9,8 +8,6 @@ import React from "react";
 import { IntercomProvider } from "react-use-intercom";
 import { useLocalStorage } from "../local-storage";
 import { OrchestContext } from "./context";
-import { OrchestSessionsProvider } from "./sessions";
-import { isCurrentSession, isSession } from "./utils";
 
 type OrchestActionCallback = (currentState: IOrchestState) => OrchestAction;
 type OrchestContextAction = OrchestAction | OrchestActionCallback;
@@ -19,8 +16,6 @@ const reducer = (state: IOrchestState, _action: OrchestContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
-    case "alert":
-      return { ...state, alert: action.payload };
     case "isLoaded":
       return {
         ...state,
@@ -46,20 +41,6 @@ const reducer = (state: IOrchestState, _action: OrchestContextAction) => {
       return { ...state, projectUuid: action.payload };
     case "projectsSet":
       return { ...state, projects: action.payload, hasLoadedProjects: true };
-    case "sessionToggle":
-      return { ...state, _sessionsToggle: action.payload };
-    case "_sessionsToggleClear":
-      return { ...state, _sessionsToggle: null };
-    case "_sessionsSet":
-      return { ...state, ...action.payload };
-    case "_sessionsPollingStart":
-      return { ...state, _sessionsIsPolling: true };
-    case "_sessionsPollingClear":
-      return { ...state, _sessionsIsPolling: false };
-    case "sessionsKillAll":
-      return { ...state, sessionsKillAllInProgress: true };
-    case "_sessionsKillAllClear":
-      return { ...state, sessionsKillAllInProgress: false };
     case "setUnsavedChanges":
       return { ...state, unsavedChanges: action.payload };
     default:
@@ -78,32 +59,17 @@ const initialState: IOrchestState = {
   projectUuid: undefined,
   projects: [],
   hasLoadedProjects: false,
-  sessions: [],
-  sessionsIsLoading: true,
-  sessionsKillAllInProgress: false,
   unsavedChanges: false,
-  _sessionsToFetch: [],
-  _sessionsToggle: null,
   drawerIsOpen: true,
 };
 
 export const OrchestProvider: React.FC = ({ children }) => {
-  const orchest = window.orchest;
-
   const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
 
   const [state, dispatch] = React.useReducer(reducer, {
     ...initialState,
     drawerIsOpen,
   });
-
-  const get: IOrchestGet = {
-    session: (session) =>
-      state?.sessions?.find((stateSession) => isSession(session, stateSession)),
-    currentSession: state?.sessions?.find((session) =>
-      isCurrentSession(session, state)
-    ),
-  };
 
   /**
    * Side Effects
@@ -137,15 +103,6 @@ export const OrchestProvider: React.FC = ({ children }) => {
   }, [state.drawerIsOpen]);
 
   /**
-   * Handle Alerts
-   */
-  React.useEffect(() => {
-    if (state.alert) {
-      orchest.alert(...state.alert);
-    }
-  }, [state.alert]);
-
-  /**
    * Handle Unsaved Changes prompt
    */
   React.useEffect(() => {
@@ -162,10 +119,9 @@ export const OrchestProvider: React.FC = ({ children }) => {
         value={{
           state,
           dispatch,
-          get,
         }}
       >
-        <OrchestSessionsProvider>{children}</OrchestSessionsProvider>
+        {children}
       </OrchestContext.Provider>
     </IntercomProvider>
   );

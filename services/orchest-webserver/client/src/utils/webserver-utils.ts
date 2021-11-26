@@ -422,31 +422,32 @@ export function tryUntilTrue(action, retries, delay, interval?) {
 }
 
 // Will return undefined if the envVariables are ill defined.
-export function envVariablesArrayToDict(envVariables) {
-  const { orchest } = window;
+export function envVariablesArrayToDict(
+  envVariables
+):
+  | { status: "resolved"; value: Record<string, unknown> }
+  | { status: "rejected"; error: string } {
   const result = {};
   const seen = new Set();
   for (const pair of envVariables) {
     if (!pair) {
       continue;
     } else if (!pair["name"] || !pair["value"]) {
-      orchest.alert(
-        "Error",
-        "Environment variables must have a name and value."
-      );
-      return undefined;
+      return {
+        status: "rejected",
+        error: "Environment variables must have a name and value.",
+      };
     } else if (seen.has(pair["name"])) {
-      orchest.alert(
-        "Error",
-        "You have defined environment variables with the same name."
-      );
-      return undefined;
+      return {
+        status: "rejected",
+        error: "You have defined environment variables with the same name.",
+      };
     } else {
       result[pair["name"]] = pair["value"];
       seen.add(pair["name"]);
     }
   }
-  return result;
+  return { status: "resolved", value: result };
 }
 
 // Sorted by key.

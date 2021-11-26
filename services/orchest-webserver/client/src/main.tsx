@@ -5,6 +5,8 @@ import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
+import { AppContextProvider } from "./contexts/AppContext";
+import { SessionsContextProvider } from "./contexts/SessionsContext";
 import { OrchestProvider } from "./hooks/orchest";
 
 declare global {
@@ -26,15 +28,19 @@ window.addEventListener("load", async () => {
     await document.fonts.ready;
 
     ReactDOM.render(
-      <LazyMotion features={domMax}>
-        <DesignSystemProvider>
-          <ThemeProvider theme={theme}>
-            <OrchestProvider>
-              <App />
-            </OrchestProvider>
-          </ThemeProvider>
-        </DesignSystemProvider>
-      </LazyMotion>,
+      <AppContextProvider>
+        <LazyMotion features={domMax}>
+          <DesignSystemProvider>
+            <ThemeProvider theme={theme}>
+              <OrchestProvider>
+                <SessionsContextProvider>
+                  <App />
+                </SessionsContextProvider>
+              </OrchestProvider>
+            </ThemeProvider>
+          </DesignSystemProvider>
+        </LazyMotion>
+      </AppContextProvider>,
       document.querySelector("#root")
     );
   } catch (error) {

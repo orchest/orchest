@@ -6,6 +6,7 @@ import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
+import AlertDialog from "./components/AlertDialog";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
@@ -68,13 +69,6 @@ const App = () => {
     }
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const alert = (title: string, content, onClose) => {
-    // Analytics call
-    sendEvent("alert show", { title, content });
-
-    dialogsRef.current.alert(title, content, onClose);
-  };
-
   const confirm = (
     title: string,
     content: string,
@@ -112,7 +106,6 @@ const App = () => {
 
   window.orchest = {
     config,
-    alert,
     confirm,
     requestBuild,
     jupyter,
@@ -144,6 +137,9 @@ const App = () => {
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />
         </main>
       </div>
+
+      <AlertDialog />
+
       <div className="dialogs">
         <Dialogs ref={dialogsRef} />
       </div>

@@ -1,13 +1,12 @@
 import { useOrchest } from "@/hooks/orchest";
-import { useLocationQuery } from "@/hooks/useCustomRoute";
 import { Project } from "@/types";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  MDCButtonReact,
-  MDCDialogReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { useImportProject } from "./hooks/useImportProject";
@@ -66,41 +65,23 @@ const getProjectNameFromUrl = (importUrl: string) => {
 const ImportDialog: React.FC<{
   projectName: string;
   setProjectName: React.Dispatch<React.SetStateAction<string>>;
-  initialImportUrl?: string;
+  importUrl?: string;
+  setImportUrl: (url: string) => void;
   onImportComplete?: (backgroundTaskResult: BackgroundTask) => void;
-  open: () => void;
-  close: () => void;
+  open: boolean;
+  onClose: () => void;
 }> = ({
   projectName,
   setProjectName,
-  initialImportUrl,
+  importUrl,
+  setImportUrl,
   onImportComplete,
   open,
-  close,
+  onClose,
 }) => {
-  const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
   const { dispatch } = useOrchest();
 
   const [isCloseVisible, setIsCloseVisible] = React.useState(true);
-
-  const hasPrefilledImportUrl =
-    initialImportUrl ||
-    (importUrlFromQuerystring && typeof importUrlFromQuerystring === "string");
-
-  // if user loads the app with a pre-filled import_url in their query string
-  // we prompt them directly with the import modal
-  React.useEffect(() => {
-    if (hasPrefilledImportUrl) open();
-  }, []);
-
-  const [importUrl, _setImportUrl] = React.useState<string>(
-    hasPrefilledImportUrl
-      ? initialImportUrl ||
-          window.decodeURIComponent(importUrlFromQuerystring as string)
-      : ""
-  );
-
-  const setImportUrl = (url: string) => _setImportUrl(url.trim().toLowerCase());
 
   const { startImport: fireImportRequest, importResult } = useImportProject(
     projectName,
@@ -109,7 +90,7 @@ const ImportDialog: React.FC<{
       if (result.status === "SUCCESS") {
         setImportUrl("");
         setProjectName("");
-        close();
+        onClose();
 
         if (onImportComplete) {
           // currently result.result is project.path (projectName)
@@ -150,22 +131,21 @@ const ImportDialog: React.FC<{
     fireImportRequest();
   };
 
-  const onClose = () => {
+  const closeDialog = () => {
     setImportUrl("");
     setProjectName("");
-    close();
+    onClose();
   };
 
   // if the URL is not from Orchest, we warn the user
   const shouldShowWarning =
-    hasPrefilledImportUrl &&
+    importUrl !== "" &&
     !/^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl);
 
   return (
-    <MDCDialogReact
-      title="Import a project"
-      onClose={onClose}
-      content={
+    <Dialog open={open}>
+      <DialogTitle>Import a project</DialogTitle>
+      <DialogContent>
         <div data-test-id="import-project-dialog">
           {shouldShowWarning && <PrefilledWarning />}
           <p className="push-down">
@@ -179,7 +159,6 @@ const ImportDialog: React.FC<{
             onChange={setImportUrl}
             data-test-id="project-url-textfield"
           />
-
           <MDCTextFieldReact
             classNames={["fullwidth"]}
             label="Project name (optional)"
@@ -197,36 +176,33 @@ const ImportDialog: React.FC<{
             <span className="code">projects/</span> directory.
           </p>
         </div>
-      }
-      actions={({ setAllowClose }) => (
-        <>
-          {isCloseVisible && (
-            <MDCButtonReact
-              icon="close"
-              label="Close"
-              classNames={["push-right"]}
-              onClick={onClose}
-            />
-          )}
+      </DialogContent>
+      <DialogActions>
+        {isCloseVisible && (
           <MDCButtonReact
-            icon="input"
-            // So that the button is disabled when in a states
-            // that requires so (currently ["PENDING"]).
-            disabled={["PENDING"].includes(
-              importResult !== null ? importResult.status : undefined
-            )}
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            label="Import"
-            submitButton
-            onClick={() => {
-              setAllowClose(false);
-              startImport();
-            }}
-            data-test-id="import-project-ok"
+            icon="close"
+            label="Close"
+            classNames={["push-right"]}
+            onClick={closeDialog}
           />
-        </>
-      )}
-    />
+        )}
+        <MDCButtonReact
+          icon="input"
+          // So that the button is disabled when in a states
+          // that requires so (currently ["PENDING"]).
+          disabled={["PENDING"].includes(
+            importResult !== null ? importResult.status : undefined
+          )}
+          classNames={["mdc-button--raised", "themed-secondary"]}
+          label="Import"
+          submitButton
+          onClick={() => {
+            startImport();
+          }}
+          data-test-id="import-project-ok"
+        />
+      </DialogActions>
+    </Dialog>
   );
 };
 

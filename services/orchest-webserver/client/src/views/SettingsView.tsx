@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -22,6 +23,7 @@ const SettingsView: React.FC = () => {
 
   const { navigateTo } = useCustomRoute();
   const context = useOrchest();
+  const { setAlert } = useAppContext();
 
   const [state, setState] = React.useState({
     status: "...",
@@ -154,7 +156,7 @@ const SettingsView: React.FC = () => {
       })
         .catch((e) => {
           console.error(e);
-          orchest.alert("Error", JSON.parse(e.body).message);
+          setAlert({ content: JSON.parse(e.body).message });
         })
         .then((data: string) => {
           try {

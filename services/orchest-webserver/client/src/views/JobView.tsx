@@ -5,6 +5,7 @@ import ParameterEditor from "@/components/ParameterEditor";
 import ParamTree from "@/components/ParamTree";
 import SearchableTable from "@/components/SearchableTable";
 import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import type { Job, PipelineJson } from "@/types";
@@ -153,6 +154,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
 const JobView: React.FC = () => {
   // global states
   const orchest = window.orchest;
+  const { setAlert } = useAppContext();
 
   // data from route
   const { navigateTo, projectUuid, jobUuid } = useCustomRoute();
@@ -290,10 +292,11 @@ const JobView: React.FC = () => {
 
   const onDetailPipelineView = (pipelineRun) => {
     if (pipelineRun.status == "PENDING") {
-      orchest.alert(
-        "Error",
-        "This pipeline is still pending. Please wait until pipeline run has started."
-      );
+      setAlert({
+        content:
+          "This pipeline is still pending. Please wait until pipeline run has started.",
+      });
+
       return;
     }
 
@@ -473,10 +476,9 @@ const JobView: React.FC = () => {
               try {
                 let result = JSON.parse(response.body);
                 setTimeout(() => {
-                  orchest.alert(
-                    "Error",
-                    "Failed to create job. " + result.message
-                  );
+                  setAlert({
+                    content: `Failed to create job. ${result.message}`,
+                  });
                 });
               } catch (error) {
                 console.log(error);

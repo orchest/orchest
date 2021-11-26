@@ -1,4 +1,6 @@
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useOrchest } from "@/hooks/orchest";
+import { isSession } from "@/hooks/orchest/utils";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import {
@@ -16,8 +18,11 @@ export type THeaderBarRef = HTMLDivElement;
 
 export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   const { navigateTo } = useCustomRoute();
-
-  const { state, dispatch, get } = useOrchest();
+  const { state, dispatch } = useOrchest();
+  const {
+    state: { sessions },
+  } = useSessionsContext();
+  const currentSession = sessions.find((session) => isSession(session, state));
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
@@ -116,7 +121,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
 
         {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
           <MDCButtonReact
-            disabled={get.currentSession?.status !== "RUNNING"}
+            disabled={currentSession?.status !== "RUNNING"}
             classNames={["mdc-button--outlined"]}
             onClick={showJupyter}
             icon="science"

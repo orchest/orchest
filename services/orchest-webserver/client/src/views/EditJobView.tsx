@@ -5,6 +5,7 @@ import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
 import ParamTree from "@/components/ParamTree";
 import SearchableTable from "@/components/SearchableTable";
+import { useAppContext } from "@/contexts/AppContext";
 import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
@@ -48,6 +49,7 @@ const EditJobView: React.FC = () => {
   // global states
   const { orchest } = window;
   const context = useOrchest();
+  const { setAlert } = useAppContext();
 
   // data from route
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();
@@ -382,7 +384,7 @@ const EditJobView: React.FC = () => {
     if (validation.pass === true) {
       runJob();
     } else {
-      orchest.alert("Error", validation.reason);
+      setAlert({ content: validation.reason });
       if (validation.selectView !== undefined) {
         onSelectSubview(validation.selectView);
       }
@@ -403,7 +405,8 @@ const EditJobView: React.FC = () => {
 
     let updatedEnvVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (!updatedEnvVariables) {
+    if (updatedEnvVariables.status === "rejected") {
+      setAlert({ content: updatedEnvVariables.error });
       setState((prevState) => ({
         ...prevState,
         runJobLoading: false,
@@ -420,7 +423,7 @@ const EditJobView: React.FC = () => {
         state.generatedPipelineRuns,
         state.selectedIndices
       ),
-      env_variables: updatedEnvVariables,
+      env_variables: updatedEnvVariables.value,
     };
 
     if (state.scheduleOption === "scheduled") {
@@ -470,7 +473,7 @@ const EditJobView: React.FC = () => {
         if (!response.isCanceled) {
           try {
             let result = JSON.parse(response.body);
-            orchest.alert("Error", "Failed to start job. " + result.message);
+            setAlert({ content: `Failed to start job. ${result.message}` });
             setState((prevState) => ({
               ...prevState,
               runJobCompleted: true,
@@ -506,7 +509,8 @@ const EditJobView: React.FC = () => {
       let cronSchedule = state.cronString;
       let updatedEnvVariables = envVariablesArrayToDict(envVariables);
       // Do not go through if env variables are not correctly defined.
-      if (updatedEnvVariables === undefined) {
+      if (updatedEnvVariables.status === "rejected") {
+        setAlert({ content: updatedEnvVariables.error });
         onSelectSubview(2);
         return;
       }
@@ -543,7 +547,7 @@ const EditJobView: React.FC = () => {
           console.error(error);
         });
     } else {
-      orchest.alert("Error", validation.reason);
+      setAlert({ content: validation.reason });
       if (validation.selectView !== undefined) {
         onSelectSubview(validation.selectView);
       }

@@ -90,7 +90,6 @@ export interface IOrchestState
     Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
     "projectUuid" | "pipelineUuid"
   > {
-  alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
   pipelineName?: string;
@@ -99,19 +98,12 @@ export interface IOrchestState
   pipelineSaveStatus: "saved" | "saving";
   projects: Project[];
   hasLoadedProjects: boolean;
-  sessions?: IOrchestSession[] | [];
-  sessionsIsLoading?: boolean;
-  sessionsKillAllInProgress?: boolean;
   config?: OrchestConfig;
   user_config?: OrchestUserConfig;
   unsavedChanges: boolean;
-  _sessionsToFetch?: IOrchestSessionUuid[] | [];
-  _sessionsToggle?: IOrchestSessionUuid;
-  _sessionsIsPolling?: boolean;
 }
 
 export type OrchestAction =
-  | { type: "alert"; payload: IOrchestState["alert"] }
   | { type: "isLoaded"; payload: OrchestServerConfig }
   | { type: "pipelineClear" }
   | {
@@ -137,32 +129,11 @@ export type OrchestAction =
       payload: IOrchestState["pipelineIsReadOnly"];
     }
   | { type: "drawerToggle" }
-  | {
-      type: "sessionToggle";
-      payload: IOrchestSessionUuid;
-    }
-  | { type: "setUnsavedChanges"; payload: IOrchestState["unsavedChanges"] }
-  | { type: "_sessionsToggleClear" }
-  | {
-      type: "_sessionsSet";
-      payload: Pick<IOrchestState, "sessions" | "sessionsIsLoading">;
-    }
-  | { type: "sessionsKillAll" }
-  | { type: "_sessionsKillAllClear" }
-  | { type: "_sessionsPollingStart" }
-  | { type: "_sessionsPollingClear" };
-
-export interface IOrchestGet {
-  currentSession: IOrchestSession;
-  session: (
-    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
-  ) => IOrchestSession;
-}
+  | { type: "setUnsavedChanges"; payload: IOrchestState["unsavedChanges"] };
 
 export interface IOrchestContext {
   state: IOrchestState;
   dispatch: React.Dispatch<OrchestAction>;
-  get: IOrchestGet;
 }
 
 export interface IQueryArgs

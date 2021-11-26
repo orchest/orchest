@@ -1,6 +1,8 @@
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
@@ -25,7 +27,9 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 
 const LogsView: React.FC = () => {
   // global states
-  const { dispatch, get } = useOrchest();
+  const { dispatch } = useOrchest();
+  const { getSession } = useSessionsContext();
+  useSessionsPoller();
 
   // data from route
   const {
@@ -48,7 +52,7 @@ const LogsView: React.FC = () => {
 
   // Conditional fetch session
   let session = !jobUuid
-    ? get.session({ pipelineUuid, projectUuid })
+    ? getSession({ pipelineUuid, projectUuid })
     : undefined;
 
   React.useEffect(() => {
@@ -374,11 +378,9 @@ const LogsView: React.FC = () => {
   }
 
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="view-page no-padding logs-view">{rootView}</div>
-      </Layout>
-    </OrchestSessionsConsumer>
+    <Layout>
+      <div className="view-page no-padding logs-view">{rootView}</div>
+    </Layout>
   );
 };
 

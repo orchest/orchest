@@ -1,4 +1,6 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -24,15 +26,33 @@ import SessionToggleButton from "./SessionToggleButton";
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";
 
+const getErrorMessages = (path: string) => ({
+  0: "",
+  1: "Cannot change the pipeline path if an interactive session is running. Please stop it first.",
+  2: `Cannot change the pipeline path, a file path with the name ${path}" already exists.`,
+  3: "The pipeline does not exist.",
+  4: 'The pipeline file name should end with ".orchest".',
+  5: "The pipeline file does not exist.",
+  6: "Can't move the pipeline outside of the project.",
+});
+
 const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { orchest } = window;
   const { navigateTo } = useCustomRoute();
+  const { setAlert } = useAppContext();
+  useSessionsPoller();
+
+  const [pipelineInEdit, setPipelineInEdit] = React.useState<{
+    uuid: string;
+    path: string;
+  }>(null);
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
   const [isEditingPipelinePath, setIsEditingPipelinePath] = React.useState(
     false
   );
+
   const [
     isSubmittingPipelinePath,
     setIsSubmittingPipelinePath,
@@ -43,8 +63,8 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     isDeleting: false,
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
-    editPipelinePath: undefined,
-    editPipelinePathUUID: undefined,
+    // editPipelinePath: undefined,
+    // editPipelinePathUUID: undefined,
     listData: null,
     pipelines: null,
   });
@@ -146,8 +166,9 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       let selectedIndices = refManager.refs.pipelineListView.getSelectedRowIndices();
 
       if (selectedIndices.length === 0) {
-        // @ts-ignore
-        orchest.alert("Error", "You haven't selected a pipeline.");
+        setAlert({
+          content: "You haven't selected a pipeline.",
+        });
 
         setState((prevState) => ({
           ...prevState,
@@ -213,8 +234,12 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   };
 
   const onSubmitEditPipelinePathModal = () => {
-    if (!state.editPipelinePath.endsWith(".orchest")) {
-      orchest.alert("Error", "The path should end in the .orchest extension.");
+    if (!pipelineInEdit) return;
+    if (!pipelineInEdit.path.endsWith(".orchest")) {
+      setAlert({
+        content: "The path should end in the .orchest extension.",
+      });
+
       return;
     }
 
@@ -222,11 +247,11 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
     makeRequest(
       "PUT",
-      `/async/pipelines/${projectUuid}/${state.editPipelinePathUUID}`,
+      `/async/pipelines/${projectUuid}/${pipelineInEdit.uuid}`,
       {
         type: "json",
         content: {
-          path: state.editPipelinePath,
+          path: pipelineInEdit.path,
         },
       }
     )
@@ -242,37 +267,10 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         try {
           let resp = JSON.parse(e.body);
 
-          if (resp.code == 0) {
-            orchest.alert("Error", "");
-          } else if (resp.code == 1) {
-            orchest.alert(
-              "Error",
-              "Cannot change the pipeline path if an interactive session is running. Please stop it first."
-            );
-          } else if (resp.code == 2) {
-            orchest.alert(
-              "Error",
-              'Cannot change the pipeline path, a file path with the name "' +
-                state.editPipelinePath +
-                '" already exists.'
-            );
-          } else if (resp.code == 3) {
-            orchest.alert("Error", "The pipeline does not exist.");
-          } else if (resp.code == 4) {
-            orchest.alert(
-              "Error",
-              'The pipeline file name should end with ".orchest".'
-            );
-          } else if (resp.code == 5) {
-            orchest.alert("Error", "The pipeline file does not exist.");
-          } else if (resp.code == 6) {
-            orchest.alert(
-              "Error",
-              "Can't move the pipeline outside of the project."
-            );
-          }
+          setAlert({
+            content: getErrorMessages(pipelineInEdit.path)[resp.code],
+          });
         } catch (error) {
-          console.error(e);
           console.error(error);
         }
       })
@@ -281,14 +279,12 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       });
   };
 
-  const onEditClick = (pipeline_uuid: string, pipeline_path: string) => {
+  const onEditClick = (uuid: string, path: string) => {
     setIsEditingPipelinePath(true);
-
-    setState((prevState) => ({
-      ...prevState,
-      editPipelinePathUUID: pipeline_uuid,
-      editPipelinePath: pipeline_path,
-    }));
+    setPipelineInEdit({
+      uuid,
+      path,
+    });
   };
 
   const onCreateClick = () => {
@@ -300,17 +296,23 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     let pipelinePath = state.createPipelinePath;
 
     if (!pipelineName) {
-      orchest.alert("Error", "Please enter a name.");
+      setAlert({
+        content: "Please enter a name.",
+      });
       return;
     }
 
     if (!pipelinePath) {
-      orchest.alert("Error", "Please enter the path for the pipeline.");
+      setAlert({
+        content: "Please enter the path for the pipeline.",
+      });
       return;
     }
 
     if (!pipelinePath.endsWith(".orchest")) {
-      orchest.alert("Error", "The path should end in the .orchest extension.");
+      setAlert({
+        content: "The path should end in the .orchest extension.",
+      });
       return;
     }
 
@@ -344,15 +346,13 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           try {
             let data = JSON.parse(response.body);
 
-            orchest.alert(
-              "Error",
-              "Could not create pipeline. " + data.message
-            );
+            setAlert({
+              content: `Could not create pipeline. ${data.message}`,
+            });
           } catch {
-            orchest.alert(
-              "Error",
-              "Could not create pipeline. Reason unknown."
-            );
+            setAlert({
+              content: "Could not create pipeline. Reason unknown.",
+            });
           }
 
           setState((prevState) => ({
@@ -456,14 +456,17 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={isEditingPipelinePath} onClose={onCloseEditPipelineModal}>
+      <Dialog
+        open={isEditingPipelinePath && pipelineInEdit !== null}
+        onClose={onCloseEditPipelineModal}
+      >
         <DialogTitle>Edit pipeline path</DialogTitle>
         <DialogContent>
           <MDCTextFieldReact
             classNames={["fullwidth push-down"]}
-            value={state.editPipelinePath}
+            value={pipelineInEdit?.path}
             label="Pipeline path"
-            initialCursorPosition={state.editPipelinePath.indexOf(".orchest")}
+            initialCursorPosition={pipelineInEdit?.path.indexOf(".orchest")}
             onChange={(value) => {
               setState((prevState) => ({
                 ...prevState,

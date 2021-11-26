@@ -1,10 +1,10 @@
+import { useAppContext } from "@/contexts/AppContext";
+import { isSession } from "@/hooks/orchest/utils";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 import { fetcher } from "@/utils/fetcher";
 import pascalcase from "pascalcase";
 import React from "react";
 import useSWR from "swr";
-import { useOrchest } from "./context";
-import { isSession } from "./utils";
 
 type TSessionStatus = IOrchestSession["status"];
 
@@ -13,7 +13,7 @@ const ENDPOINT = "/catch/api-proxy/api/sessions/";
 const lowerCaseFirstLetter = (str: string) =>
   str.charAt(0).toLowerCase() + str.slice(1);
 
-const convertKeyToCamelCase = <T extends unknown>(data: T, keys?: string[]) => {
+function convertKeyToCamelCase<T>(data: T, keys?: string[]) {
   if (!data) return data;
   if (keys) {
     for (const key of keys) {
@@ -28,12 +28,10 @@ const convertKeyToCamelCase = <T extends unknown>(data: T, keys?: string[]) => {
       [lowerCaseFirstLetter(pascalcase(key))]: value,
     };
   }, {}) as T;
-};
+}
 
 /* Matchers
   =========================================== */
-
-const isLaunchable = (status: TSessionStatus) => !status;
 
 const isStoppable = (status: TSessionStatus) =>
   ["RUNNING", "LAUNCHING"].includes(status);
@@ -49,13 +47,102 @@ const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
     method: "DELETE",
   });
 
+/**
+ *
+ * Context
+ */
+
+type SessionsContextState = {
+  sessions?: IOrchestSession[] | [];
+  sessionsIsLoading?: boolean;
+  sessionsKillAllInProgress?: boolean;
+  _sessionsToFetch?: IOrchestSessionUuid[] | [];
+  _startSessionPayload?: IOrchestSessionUuid;
+  _sessionsIsPolling: boolean;
+};
+
+type Action =
+  | {
+      type: "sessionToggle";
+      payload: IOrchestSessionUuid;
+    }
+  | { type: "_sessionsToggleClear" }
+  | {
+      type: "_sessionsSet";
+      payload: Pick<SessionsContextState, "sessions" | "sessionsIsLoading">;
+    }
+  | { type: "sessionsKillAll" }
+  | { type: "_sessionsKillAllClear" }
+  | { type: "_sessionsPollingStart" }
+  | { type: "_sessionsPollingClear" };
+
+type ActionCallback = (previousState: SessionsContextState) => Action;
+
+type SessionsContextAction = Action | ActionCallback;
+
+type SessionsContext = {
+  state: SessionsContextState;
+  dispatch: React.Dispatch<SessionsContextAction>;
+  getSession: (
+    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
+  ) => IOrchestSession | undefined;
+};
+
+const Context = React.createContext<SessionsContext | null>(null);
+export const useSessionsContext = () =>
+  React.useContext(Context) as SessionsContext;
+
+const reducer = (
+  state: SessionsContextState,
+  _action: SessionsContextAction
+) => {
+  const action = _action instanceof Function ? _action(state) : _action;
+
+  if (process.env.NODE_ENV === "development")
+    console.log("(Dev Mode) useUserContext: action ", action);
+  switch (action.type) {
+    case "sessionToggle":
+      return { ...state, _startSessionPayload: action.payload };
+    case "_sessionsToggleClear":
+      return { ...state, _startSessionPayload: null };
+    case "_sessionsSet":
+      return { ...state, ...action.payload };
+    case "_sessionsPollingStart":
+      return { ...state, _sessionsIsPolling: true };
+    case "_sessionsPollingClear":
+      return { ...state, _sessionsIsPolling: false };
+    case "sessionsKillAll":
+      return { ...state, sessionsKillAllInProgress: true };
+    case "_sessionsKillAllClear":
+      return { ...state, sessionsKillAllInProgress: false };
+
+    default: {
+      console.error(action);
+      return state;
+    }
+  }
+};
+
+const initialState: SessionsContextState = {
+  sessions: [],
+  sessionsIsLoading: true,
+  sessionsKillAllInProgress: false,
+  _sessionsToFetch: [],
+  _startSessionPayload: null,
+  _sessionsIsPolling: false,
+};
+
 /* Provider
   =========================================== */
 
-export const OrchestSessionsProvider: React.FC = ({ children }) => {
-  const { state, dispatch } = useOrchest();
+export const SessionsContextProvider: React.FC = ({ children }) => {
+  const appContext = useAppContext();
 
-  const { _sessionsIsPolling } = state;
+  const [state, dispatch] = React.useReducer(reducer, initialState);
+
+  const getSession = (
+    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
+  ) => state.sessions.find((stateSession) => isSession(session, stateSession));
 
   /**
    * Use SWR to fetch and cache the data from our sessions endpoint
@@ -70,7 +157,7 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
     })[];
     status: TSessionStatus;
   }>(ENDPOINT, fetcher, {
-    refreshInterval: _sessionsIsPolling ? 1000 : 0,
+    refreshInterval: state._sessionsIsPolling ? 1000 : 0,
   });
 
   const isLoading = !data && !error;
@@ -108,11 +195,11 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
     const foundSession =
       isLoaded &&
       data?.sessions?.find((dataSession) =>
-        isSession(dataSession, state?._sessionsToggle)
+        isSession(dataSession, state?._startSessionPayload)
       );
 
     // no cashed session from useSWR, nor previous session in the memory
-    if (!foundSession && !state._sessionsToggle) {
+    if (!foundSession && !state._startSessionPayload) {
       dispatch({ type: "_sessionsToggleClear" });
       return;
     }
@@ -121,7 +208,7 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
     const session = convertKeyToCamelCase<IOrchestSession>(foundSession, [
       "project_uuid",
       "pipeline_uuid",
-    ]) || { ...state._sessionsToggle, status: null };
+    ]) || { ...state._startSessionPayload, status: null };
 
     /**
      * Any session-specific cache mutations must be made with this helper to
@@ -163,9 +250,8 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
           if (err?.message) {
-            dispatch({
-              type: "alert",
-              payload: ["Error while starting the session", err.message],
+            appContext.setAlert({
+              content: `Error while starting the session: ${err.message}`,
             });
           }
 
@@ -182,17 +268,12 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
      * disabling buttons – but it's here just in case.
      */
     if (isWorking(session.status)) {
-      dispatch({
-        type: "alert",
-        payload: [
-          "Error",
-          "Please wait, the pipeline session is still " +
-            { STARTING: "launching", STOPPING: "shutting down" }[
-              session.status
-            ] +
-            ".",
-        ],
+      appContext.setAlert({
+        content: `Please wait, the pipeline session is still ${
+          { STARTING: "launching", STOPPING: "shutting down" }[session.status]
+        }.`,
       });
+
       dispatch({ type: "_sessionsToggleClear" });
       return;
     }
@@ -213,7 +294,7 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
     }
 
     dispatch({ type: "_sessionsToggleClear" });
-  }, [state._sessionsToggle]);
+  }, [state._startSessionPayload]);
 
   /**
    * DELETE ALL
@@ -260,31 +341,15 @@ export const OrchestSessionsProvider: React.FC = ({ children }) => {
       });
   }, [state.sessionsKillAllInProgress]);
 
-  return <>{children}</>;
-};
-
-/* Consumer
-  =========================================== */
-
-/**
- * OrchestSessionsConsumer
- *
- * In an ideal scenario, we'd just use the SWR hook directly to only trigger
- * polling where it's used. Unfortunately, that's not an option until all of our
- * codebase has moved away from class-based components.
- *
- * In the meantime, we'll wrap this Component around session-dependent views or
- * components to explicitly trigger polling.
- */
-export const OrchestSessionsConsumer: React.FC = ({ children }) => {
-  const { dispatch } = useOrchest();
-
-  React.useEffect(() => {
-    dispatch({ type: "_sessionsPollingStart" });
-    return () => {
-      dispatch({ type: "_sessionsPollingClear" });
-    };
-  }, []);
-
-  return <>{children}</>;
+  return (
+    <Context.Provider
+      value={{
+        state,
+        dispatch,
+        getSession,
+      }}
+    >
+      {children}
+    </Context.Provider>
+  );
 };

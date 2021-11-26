@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Job } from "@/types";
@@ -30,6 +31,8 @@ export interface IJobListProps {
 
 const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
+  const { setAlert } = useAppContext();
+
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
   const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -94,7 +97,9 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
     if (pipelines !== undefined && pipelines.length > 0) {
       setIsCreateDialogOpen(true);
     } else {
-      orchest.alert("Error", "Could not find any pipelines for this project.");
+      setAlert({
+        content: "Could not find any pipelines for this project.",
+      });
     }
   };
 
@@ -106,7 +111,9 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
       let selectedRows = refManager.current.refs.jobTable.getSelectedRowIndices();
 
       if (selectedRows.length == 0) {
-        orchest.alert("Error", "You haven't selected any jobs.");
+        setAlert({
+          content: "You haven't selected any jobs.",
+        });
         setIsDeleting(true);
 
         return;
@@ -159,12 +166,16 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   ) => {
     if (!rerun) {
       if (refManager.current.refs.formJobName.mdc.value.length == 0) {
-        orchest.alert("Error", "Please enter a name for your job.");
+        setAlert({
+          content: "Please enter a name for your job.",
+        });
         return;
       }
 
       if (refManager.current.refs.formPipeline.mdc.value == "") {
-        orchest.alert("Error", "Please choose a pipeline.");
+        setAlert({
+          content: "Please choose a pipeline.",
+        });
         return;
       }
     }
@@ -219,10 +230,9 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
 
                 setIsCreateDialogOpen(false);
                 setIsCreatingJob(false);
-                orchest.alert(
-                  "Error",
-                  "Failed to create job. " + result.message
-                );
+                setAlert({
+                  content: `Failed to create job. ${result.message}`,
+                });
               } catch (error) {
                 console.log(error);
               }

@@ -1,5 +1,6 @@
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap, toQueryString } from "@/Routes";
@@ -23,6 +24,7 @@ const ProjectSettingsView: React.FC = () => {
   // global states
   const { orchest } = window;
   const context = useOrchest();
+  const { setAlert } = useAppContext();
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
@@ -74,17 +76,17 @@ const ProjectSettingsView: React.FC = () => {
 
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (envVariables === undefined) {
+    if (envVariables.status === "rejected") {
+      setAlert({ content: envVariables.error });
       return;
     }
 
     // Validate environment variable names
-    for (let envVariableName of Object.keys(envVariables)) {
+    for (let envVariableName of Object.keys(envVariables.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
-        orchest.alert(
-          "Error",
-          'Invalid environment variable name: "' + envVariableName + '".'
-        );
+        setAlert({
+          content: `Invalid environment variable name: "${envVariableName}".`,
+        });
         return;
       }
     }
@@ -92,7 +94,7 @@ const ProjectSettingsView: React.FC = () => {
     // perform PUT to update
     makeRequest("PUT", "/async/projects/" + projectUuid, {
       type: "json",
-      content: { env_variables: envVariables },
+      content: { env_variables: envVariables.value },
     })
       .then(() => {
         context.dispatch({

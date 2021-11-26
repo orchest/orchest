@@ -1,8 +1,11 @@
 // @ts-nocheck
 
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
@@ -116,11 +119,15 @@ export interface IPipelineViewState {
 
 const PipelineView: React.FC = () => {
   const { $, orchest } = window;
+  const { dispatch } = useOrchest();
+  const { setAlert } = useAppContext();
+  const sessionContext = useSessionsContext();
+  useSessionsPoller();
+
   const {
-    get,
     state: { sessionsIsLoading },
-    dispatch,
-  } = useOrchest();
+    getSession,
+  } = sessionContext;
 
   const {
     projectUuid,
@@ -147,7 +154,7 @@ const PipelineView: React.FC = () => {
     setShouldAutoStart(!isReadOnly);
   }, [isReadOnly]);
 
-  const session = get.session({
+  const session = getSession({
     projectUuid,
     pipelineUuid,
   });
@@ -308,7 +315,7 @@ const PipelineView: React.FC = () => {
       // if invalid
       if (pipelineValidation.valid !== true) {
         // Just show the first error
-        orchest.alert("Error", pipelineValidation.errors[0]);
+        setAlert({ content: pipelineValidation.errors[0] });
       } else {
         // store pipeline.json
         let formData = new FormData();
@@ -477,7 +484,7 @@ const PipelineView: React.FC = () => {
     if (!sessionsIsLoading) {
       // If session doesn't exist and first load
       if (shouldAutoStart && !session) {
-        dispatch({
+        sessionContext.dispatch({
           type: "sessionToggle",
           payload: { pipelineUuid, projectUuid },
         });
@@ -684,10 +691,10 @@ const PipelineView: React.FC = () => {
         }
 
         if (connectionCreatesCycle) {
-          orchest.alert(
-            "Error",
-            "Connecting this step will create a cycle in your pipeline which is not supported."
-          );
+          setAlert({
+            content:
+              "Connecting this step will create a cycle in your pipeline which is not supported.",
+          });
         }
 
         if (
@@ -708,10 +715,10 @@ const PipelineView: React.FC = () => {
           removeConnection(state.eventVars.newConnection);
 
           if (!noConnectionExists) {
-            orchest.alert(
-              "Error",
-              "These steps are already connected. No new connection has been created."
-            );
+            setAlert({
+              content:
+                "These steps are already connected. No new connection has been created.",
+            });
           }
         }
 
@@ -1177,11 +1184,11 @@ const PipelineView: React.FC = () => {
             // cannot be found. Alert the user about missing pipeline and return
             // to JobView.
 
-            orchest.alert(
-              "Error",
-              "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-              returnToJob
-            );
+            setAlert({
+              content:
+                "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+              onClose: returnToJob,
+            });
           } else {
             console.error("Could not load pipeline.json");
             console.error(error);
@@ -1449,10 +1456,10 @@ const PipelineView: React.FC = () => {
 
   const openNotebook = (stepUUID: string) => {
     if (session === undefined) {
-      orchest.alert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
+      setAlert({
+        content:
+          "Please start the session before opening the Notebook in Jupyter.",
+      });
     } else if (session.status === "RUNNING") {
       navigateTo(siteMap.jupyterLab.path, {
         query: {
@@ -1467,15 +1474,15 @@ const PipelineView: React.FC = () => {
         ).slice(1)
       );
     } else if (session.status === "LAUNCHING") {
-      orchest.alert(
-        "Error",
-        "Please wait for the session to start before opening the Notebook in Jupyter."
-      );
+      setAlert({
+        content:
+          "Please wait for the session to start before opening the Notebook in Jupyter.",
+      });
     } else {
-      orchest.alert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
+      setAlert({
+        content:
+          "Please start the session before opening the Notebook in Jupyter.",
+      });
     }
   };
 
@@ -1736,7 +1743,7 @@ const PipelineView: React.FC = () => {
 
   const cancelRun = () => {
     if (!state.pipelineRunning) {
-      orchest.alert("Error", "There is no pipeline running.");
+      setAlert({ content: "There is no pipeline running." });
       return;
     }
 
@@ -1749,10 +1756,9 @@ const PipelineView: React.FC = () => {
         });
       })
       .catch((response) => {
-        orchest.alert(
-          "Error",
-          `Could not cancel pipeline run for runUuid ${runUuid}`
-        );
+        setAlert({
+          content: `Could not cancel pipeline run for runUuid ${runUuid}`,
+        });
       });
   };
 
@@ -1797,15 +1803,13 @@ const PipelineView: React.FC = () => {
 
           try {
             let data = JSON.parse(response.body);
-            orchest.alert(
-              "Error",
-              "Failed to start interactive run. " + data["message"]
-            );
+            setAlert({
+              content: `Failed to start interactive run. ${data["message"]}`,
+            });
           } catch {
-            orchest.alert(
-              "Error",
-              "Failed to start interactive run. Unknown error."
-            );
+            setAlert({
+              content: "Failed to start interactive run. Unknown error.",
+            });
           }
         }
       });
@@ -1813,18 +1817,17 @@ const PipelineView: React.FC = () => {
 
   const runStepUUIDs = (uuids, type) => {
     if (!session || session.status !== "RUNNING") {
-      orchest.alert(
-        "Error",
-        "There is no active session. Please start the session first."
-      );
+      setAlert({
+        content: "There is no active session. Please start the session first.",
+      });
       return;
     }
 
     if (state.pipelineRunning) {
-      orchest.alert(
-        "Error",
-        "The pipeline is currently executing, please wait until it completes."
-      );
+      setAlert({
+        content:
+          "The pipeline is currently executing, please wait until it completes.",
+      });
       return;
     }
 
@@ -2360,211 +2363,209 @@ const PipelineView: React.FC = () => {
   }, [state.eventVars.scaleFactor, state.pipelineOffset]);
 
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="pipeline-view">
-          <div
-            className="pane pipeline-view-pane"
-            onMouseLeave={disableHotkeys}
-            onMouseOver={onMouseOverPipelineView}
-          >
-            {jobUuidFromRoute && isReadOnly && (
-              <div className="pipeline-actions top-left">
+    <Layout>
+      <div className="pipeline-view">
+        <div
+          className="pane pipeline-view-pane"
+          onMouseLeave={disableHotkeys}
+          onMouseOver={onMouseOverPipelineView}
+        >
+          {jobUuidFromRoute && isReadOnly && (
+            <div className="pipeline-actions top-left">
+              <MDCButtonReact
+                classNames={["mdc-button--outlined"]}
+                label="Back to job"
+                icon="arrow_back"
+                onClick={returnToJob}
+                data-test-id="pipeline-back-to-job"
+              />
+            </div>
+          )}
+
+          <div className="pipeline-actions bottom-left">
+            <div className="navigation-buttons">
+              <MDCButtonReact
+                onClick={centerView}
+                icon="crop_free"
+                data-test-id="pipeline-center"
+              />
+              <MDCButtonReact onClick={zoomOut} icon="remove" />
+              <MDCButtonReact onClick={zoomIn} icon="add" />
+              <MDCButtonReact
+                onClick={autoLayoutPipeline}
+                icon={<div className="custom-icon pipeline">pipeline</div>}
+              />
+            </div>
+
+            {!isReadOnly &&
+              !state.pipelineRunning &&
+              state.eventVars.selectedSteps.length > 0 &&
+              !state.eventVars.stepSelector.active && (
+                <div className="selection-buttons">
+                  <MDCButtonReact
+                    classNames={["mdc-button--raised", "themed-secondary"]}
+                    onClick={runSelectedSteps}
+                    label="Run selected steps"
+                    data-test-id="interactive-run-run-selected-steps"
+                  />
+                  {selectedStepsHasIncoming && (
+                    <MDCButtonReact
+                      classNames={["mdc-button--raised", "themed-secondary"]}
+                      onClick={onRunIncoming}
+                      label="Run incoming steps"
+                      data-test-id="interactive-run-run-incoming-steps"
+                    />
+                  )}
+                </div>
+              )}
+            {!isReadOnly && state.pipelineRunning && (
+              <div className="selection-buttons">
                 <MDCButtonReact
-                  classNames={["mdc-button--outlined"]}
-                  label="Back to job"
-                  icon="arrow_back"
-                  onClick={returnToJob}
-                  data-test-id="pipeline-back-to-job"
+                  classNames={["mdc-button--raised"]}
+                  onClick={cancelRun}
+                  icon="close"
+                  disabled={state.waitingOnCancel}
+                  label="Cancel run"
+                  data-test-id="interactive-run-cancel"
                 />
               </div>
             )}
-
-            <div className="pipeline-actions bottom-left">
-              <div className="navigation-buttons">
-                <MDCButtonReact
-                  onClick={centerView}
-                  icon="crop_free"
-                  data-test-id="pipeline-center"
-                />
-                <MDCButtonReact onClick={zoomOut} icon="remove" />
-                <MDCButtonReact onClick={zoomIn} icon="add" />
-                <MDCButtonReact
-                  onClick={autoLayoutPipeline}
-                  icon={<div className="custom-icon pipeline">pipeline</div>}
-                />
-              </div>
-
-              {!isReadOnly &&
-                !state.pipelineRunning &&
-                state.eventVars.selectedSteps.length > 0 &&
-                !state.eventVars.stepSelector.active && (
-                  <div className="selection-buttons">
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      onClick={runSelectedSteps}
-                      label="Run selected steps"
-                      data-test-id="interactive-run-run-selected-steps"
-                    />
-                    {selectedStepsHasIncoming && (
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        onClick={onRunIncoming}
-                        label="Run incoming steps"
-                        data-test-id="interactive-run-run-incoming-steps"
-                      />
-                    )}
-                  </div>
-                )}
-              {!isReadOnly && state.pipelineRunning && (
-                <div className="selection-buttons">
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    onClick={cancelRun}
-                    icon="close"
-                    disabled={state.waitingOnCancel}
-                    label="Cancel run"
-                    data-test-id="interactive-run-cancel"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className={"pipeline-actions top-right"}>
-              {!isReadOnly && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={newStep}
-                  icon={"add"}
-                  label={"NEW STEP"}
-                  data-test-id="step-create"
-                />
-              )}
-
-              {isReadOnly && (
-                <MDCButtonReact
-                  label={"Read only"}
-                  disabled={true}
-                  icon={"visibility"}
-                />
-              )}
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={openLogs}
-                label={"Logs"}
-                icon="view_headline"
-              />
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={showServices}
-                label={"Services"}
-                icon="settings"
-              />
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={() => openSettings()}
-                label={"Settings"}
-                icon="tune"
-                data-test-id="pipeline-settings"
-              />
-
-              {state.eventVars.showServices && (
-                <div className="services-status">
-                  <h3>Running services</h3>
-                  {servicesAvailable() ? (
-                    generateServiceEndpoints()
-                  ) : (
-                    <i>No services are running.</i>
-                  )}
-
-                  <div className="edit-button-holder">
-                    <MDCButtonReact
-                      icon="tune"
-                      label={`${!isReadOnly ? "Edit" : "View"} services`}
-                      onClick={() => openSettings("services")}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div
-              className="pipeline-steps-outer-holder"
-              ref={state.refManager.nrefs.pipelineStepsOuterHolder}
-              onMouseMove={onPipelineStepsOuterHolderMove}
-              onMouseDown={onPipelineStepsOuterHolderDown}
-              onWheel={onPipelineStepsOuterHolderWheel}
-            >
-              <div
-                className="pipeline-steps-holder"
-                ref={state.refManager.nrefs.pipelineStepsHolder}
-                style={{
-                  transformOrigin: `${state.pipelineOrigin[0]}px ${state.pipelineOrigin[1]}px`,
-                  transform:
-                    "translateX(" +
-                    state.pipelineOffset[0] +
-                    "px)" +
-                    "translateY(" +
-                    state.pipelineOffset[1] +
-                    "px)" +
-                    "scale(" +
-                    state.eventVars.scaleFactor +
-                    ")",
-                  left: state.pipelineStepsHolderOffsetLeft,
-                  top: state.pipelineStepsHolderOffsetTop,
-                }}
-              >
-                {state.eventVars.stepSelector.active && (
-                  <Rectangle
-                    {...getStepSelectorRectangle(state.eventVars.stepSelector)}
-                  />
-                )}
-                {pipelineSteps}
-                <div className="connections">{connectionComponents}</div>
-              </div>
-            </div>
           </div>
 
-          {state.eventVars.openedStep && (
-            <PipelineDetails
-              key={state.eventVars.openedStep}
-              onSave={onSaveDetails}
-              onDelete={onDetailsDelete}
-              onClose={onCloseDetails}
-              onOpenFilePreviewView={onOpenFilePreviewView}
-              onOpenNotebook={onOpenNotebook}
-              onChangeView={onDetailsChangeView}
-              connections={connections_list}
-              defaultViewIndex={state.defaultDetailViewIndex}
-              pipeline={state.pipelineJson}
-              pipelineCwd={state.pipelineCwd}
-              project_uuid={projectUuid}
-              job_uuid={jobUuidFromRoute}
-              run_uuid={runUuidFromRoute}
-              sio={state.sio}
-              readOnly={isReadOnly}
-              step={state.eventVars.steps[state.eventVars.openedStep]}
-              saveHash={state.saveHash}
-            />
-          )}
-
-          {state.eventVars.openedMultistep && !isReadOnly && (
-            <div className={"pipeline-actions bottom-right"}>
+          <div className={"pipeline-actions top-right"}>
+            {!isReadOnly && (
               <MDCButtonReact
                 classNames={["mdc-button--raised"]}
-                label={"Delete"}
-                onClick={onDeleteMultistep}
-                icon={"delete"}
-                data-test-id="step-delete-multi"
+                onClick={newStep}
+                icon={"add"}
+                label={"NEW STEP"}
+                data-test-id="step-create"
               />
+            )}
+
+            {isReadOnly && (
+              <MDCButtonReact
+                label={"Read only"}
+                disabled={true}
+                icon={"visibility"}
+              />
+            )}
+
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              onClick={openLogs}
+              label={"Logs"}
+              icon="view_headline"
+            />
+
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              onClick={showServices}
+              label={"Services"}
+              icon="settings"
+            />
+
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              onClick={() => openSettings()}
+              label={"Settings"}
+              icon="tune"
+              data-test-id="pipeline-settings"
+            />
+
+            {state.eventVars.showServices && (
+              <div className="services-status">
+                <h3>Running services</h3>
+                {servicesAvailable() ? (
+                  generateServiceEndpoints()
+                ) : (
+                  <i>No services are running.</i>
+                )}
+
+                <div className="edit-button-holder">
+                  <MDCButtonReact
+                    icon="tune"
+                    label={`${!isReadOnly ? "Edit" : "View"} services`}
+                    onClick={() => openSettings("services")}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div
+            className="pipeline-steps-outer-holder"
+            ref={state.refManager.nrefs.pipelineStepsOuterHolder}
+            onMouseMove={onPipelineStepsOuterHolderMove}
+            onMouseDown={onPipelineStepsOuterHolderDown}
+            onWheel={onPipelineStepsOuterHolderWheel}
+          >
+            <div
+              className="pipeline-steps-holder"
+              ref={state.refManager.nrefs.pipelineStepsHolder}
+              style={{
+                transformOrigin: `${state.pipelineOrigin[0]}px ${state.pipelineOrigin[1]}px`,
+                transform:
+                  "translateX(" +
+                  state.pipelineOffset[0] +
+                  "px)" +
+                  "translateY(" +
+                  state.pipelineOffset[1] +
+                  "px)" +
+                  "scale(" +
+                  state.eventVars.scaleFactor +
+                  ")",
+                left: state.pipelineStepsHolderOffsetLeft,
+                top: state.pipelineStepsHolderOffsetTop,
+              }}
+            >
+              {state.eventVars.stepSelector.active && (
+                <Rectangle
+                  {...getStepSelectorRectangle(state.eventVars.stepSelector)}
+                />
+              )}
+              {pipelineSteps}
+              <div className="connections">{connectionComponents}</div>
             </div>
-          )}
+          </div>
         </div>
-      </Layout>
-    </OrchestSessionsConsumer>
+
+        {state.eventVars.openedStep && (
+          <PipelineDetails
+            key={state.eventVars.openedStep}
+            onSave={onSaveDetails}
+            onDelete={onDetailsDelete}
+            onClose={onCloseDetails}
+            onOpenFilePreviewView={onOpenFilePreviewView}
+            onOpenNotebook={onOpenNotebook}
+            onChangeView={onDetailsChangeView}
+            connections={connections_list}
+            defaultViewIndex={state.defaultDetailViewIndex}
+            pipeline={state.pipelineJson}
+            pipelineCwd={state.pipelineCwd}
+            project_uuid={projectUuid}
+            job_uuid={jobUuidFromRoute}
+            run_uuid={runUuidFromRoute}
+            sio={state.sio}
+            readOnly={isReadOnly}
+            step={state.eventVars.steps[state.eventVars.openedStep]}
+            saveHash={state.saveHash}
+          />
+        )}
+
+        {state.eventVars.openedMultistep && !isReadOnly && (
+          <div className={"pipeline-actions bottom-right"}>
+            <MDCButtonReact
+              classNames={["mdc-button--raised"]}
+              label={"Delete"}
+              onClick={onDeleteMultistep}
+              icon={"delete"}
+              data-test-id="step-delete-multi"
+            />
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 };
 
