@@ -96,6 +96,7 @@ importers:
       '@material/icon-button': ^13.0.0
       '@material/linear-progress': ^13.0.0
       '@material/list': ^13.0.0
+      '@material/menu': ^13.0.0
       '@material/radio': ^13.0.0
       '@material/ripple': ^13.0.0
       '@material/select': ^13.0.0
@@ -120,6 +121,7 @@ importers:
       '@material/icon-button': 13.0.0
       '@material/linear-progress': 13.0.0
       '@material/list': 13.0.0
+      '@material/menu': 13.0.0
       '@material/radio': 13.0.0
       '@material/ripple': 13.0.0
       '@material/select': 13.0.0

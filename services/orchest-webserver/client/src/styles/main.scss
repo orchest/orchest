@@ -78,6 +78,8 @@ $codeSize: 14px;
 $defaultFontSize: 15px;
 $borderColor: rgba(0, 0, 0, 0.12);
 $stepBorderRadius: 6px;
+$mdcBorderRadius: 4px;
+$dialogBackground: rgba(0, 0, 0, 0.32);
 
 $pipelineStepHeight: 105px;
 $pipelineStepWidth: 190px;
@@ -1295,6 +1297,41 @@ strong {
   padding: calc(var(--space-5) / 2);
   white-space: pre-line;
   overflow-x: auto;
+}
+
+.command-palette-holder {
+  background-color: $dialogBackground;
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .command-pallette {
+    margin-top: 20vh;
+    width: 100%;
+    max-width: 400px;
+
+    .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+      background-color: white;
+    }
+    .mdc-deprecated-list--dense {
+      padding: 0;
+    }
+
+    .search-box {
+      margin-bottom: calc(var(--space-5) / 2);
+    }
+
+    .command-list {
+      background: #fff;
+      border-radius: $mdcBorderRadius;
+    }
+  }
 }
 
 button.themed-secondary {

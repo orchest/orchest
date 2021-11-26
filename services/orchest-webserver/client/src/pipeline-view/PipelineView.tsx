@@ -3,6 +3,7 @@
 import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHotKey } from "@/hooks/useHotKey";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
@@ -30,7 +31,6 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
-import { useHotKey } from "./hooks/useHotKey";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep, {

@@ -1,7 +1,17 @@
 import hotkeys from "hotkeys-js";
 import { useCallback, useRef } from "react";
 
-const useHotKey = (keys: string, scope = "all", _callback: () => void) => {
+// Also activate hotkeys on INPUT, SELECT, TEXTAREA
+// Those are disabled by default.
+hotkeys.filter = function (event) {
+  return true;
+};
+
+const useHotKey = (
+  keys: string,
+  scope = "all",
+  _callback: (event?) => void
+) => {
   const callbackRef = useRef<(event: KeyboardEvent) => void>();
 
   // hotkeys-js persists the callback function
@@ -12,7 +22,7 @@ const useHotKey = (keys: string, scope = "all", _callback: () => void) => {
   }
   callbackRef.current = (event) => {
     event.preventDefault();
-    _callback();
+    _callback(event);
   };
   hotkeys(keys, scope, callbackRef.current);
 

@@ -50,149 +50,149 @@ type RouteData = {
   order: number;
 };
 
-const getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
+const _getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
 
 // this is the central place where we maintain all the FE routes
 // to add new route, you would also need to add the route name to RouteName.
 // NOTE: the order of the routes matters, react-router loads the first route that matches the given path
 
-export const orderedRoutes: {
-  name: RouteName;
-  path: string;
-  component: React.FunctionComponent;
-  title: string;
-}[] = [
-  {
-    name: "projects",
-    path: "/projects",
-    title: getTitle("Projects"),
-    component: ProjectsView,
-  },
-  {
-    name: "examples",
-    path: "/examples",
-    title: getTitle("Examples"),
-    component: ExamplesView,
-  },
-  {
-    name: "projectSettings",
-    path: "/project-settings",
-    title: getTitle("Project Settings"),
-    component: ProjectSettingsView,
-  },
-  {
-    name: "pipelines",
-    path: "/pipelines",
-    title: getTitle("Pipelines"),
-    component: PipelinesView,
-  },
-  {
-    name: "pipeline",
-    path: "/pipeline",
-    title: getTitle("Pipeline"),
-    component: PipelineView,
-  },
-  {
-    name: "jupyterLab",
-    path: "/jupyter-lab",
-    title: getTitle("JupyterLab"),
-    component: JupyterLabView,
-  },
-  {
-    name: "pipelineSettings",
-    path: "/pipeline-settings",
-    title: getTitle("Pipeline Settings"),
-    component: PipelineSettingsView,
-  },
-  {
-    name: "filePreview",
-    path: "/file-preview",
-    title: getTitle("Step File Preview"),
-    component: FilePreviewView,
-  },
-  {
-    name: "logs",
-    path: "/logs",
-    title: getTitle("Logs"),
-    component: LogsView,
-  },
-  {
-    name: "environments",
-    path: "/environments",
-    title: getTitle("Environments"),
-    component: EnvironmentsView,
-  },
-  {
-    name: "environment",
-    path: "/environment",
-    title: getTitle("Environment"),
-    component: EnvironmentEditView,
-  },
-  {
-    name: "jobs",
-    path: "/jobs",
-    title: getTitle("Jobs"),
-    component: JobsView,
-  },
-  {
-    name: "job",
-    path: "/job",
-    title: getTitle("Job"),
-    component: JobView,
-  },
-  {
-    name: "editJob",
-    path: "/edit-job",
-    title: getTitle("Edit Job"),
-    component: EditJobView,
-  },
-  {
-    name: "fileManager",
-    path: "/file-manager",
-    title: getTitle("File Manager"),
-    component: FileManagerView,
-  },
-  {
-    name: "settings",
-    path: "/settings",
-    title: getTitle("Settings"),
-    component: SettingsView,
-  },
-  {
-    name: "configureJupyterLab",
-    path: "/configure-jupyter-lab",
-    title: getTitle("Configure JupyterLab"),
-    component: ConfigureJupyterLabView,
-  },
-  {
-    name: "update",
-    path: "/update",
-    title: getTitle("Update"),
-    component: UpdateView,
-  },
-  {
-    name: "manageUsers",
-    path: "/manage-users",
-    title: getTitle("Manage Users"),
-    component: ManageUsersView,
-  },
-  {
-    name: "help",
-    path: "/help",
-    title: getTitle("Help"),
-    component: HelpView,
-  },
-  // TODO: we need a proper PageNotFound page, atm we redirect back to ProjectsView
-  // // will always be the last one as a fallback
-  // {
-  //   name: "notFound",
-  //   path: "*",
-  //   title: getTitle("Page Not Found"),
-  //   component: NotFound,
-  // },
-];
+export const getOrderedRoutes = (getTitle?) => {
+  if (getTitle === undefined) {
+    getTitle = _getTitle;
+  }
+  return [
+    {
+      name: "projects",
+      path: "/projects",
+      title: getTitle("Projects"),
+      component: ProjectsView,
+    },
+    {
+      name: "examples",
+      path: "/examples",
+      title: getTitle("Examples"),
+      component: ExamplesView,
+    },
+    {
+      name: "projectSettings",
+      path: "/project-settings",
+      title: getTitle("Project Settings"),
+      component: ProjectSettingsView,
+    },
+    {
+      name: "pipelines",
+      path: "/pipelines",
+      title: getTitle("Pipelines"),
+      component: PipelinesView,
+    },
+    {
+      name: "pipeline",
+      path: "/pipeline",
+      title: getTitle("Pipeline"),
+      component: PipelineView,
+    },
+    {
+      name: "jupyterLab",
+      path: "/jupyter-lab",
+      title: getTitle("JupyterLab"),
+      component: JupyterLabView,
+    },
+    {
+      name: "pipelineSettings",
+      path: "/pipeline-settings",
+      title: getTitle("Pipeline Settings"),
+      component: PipelineSettingsView,
+    },
+    {
+      name: "filePreview",
+      path: "/file-preview",
+      title: getTitle("Step File Preview"),
+      component: FilePreviewView,
+    },
+    {
+      name: "logs",
+      path: "/logs",
+      title: getTitle("Logs"),
+      component: LogsView,
+    },
+    {
+      name: "environments",
+      path: "/environments",
+      title: getTitle("Environments"),
+      component: EnvironmentsView,
+    },
+    {
+      name: "environment",
+      path: "/environment",
+      title: getTitle("Environment"),
+      component: EnvironmentEditView,
+    },
+    {
+      name: "jobs",
+      path: "/jobs",
+      title: getTitle("Jobs"),
+      component: JobsView,
+    },
+    {
+      name: "job",
+      path: "/job",
+      title: getTitle("Job"),
+      component: JobView,
+    },
+    {
+      name: "editJob",
+      path: "/edit-job",
+      title: getTitle("Edit Job"),
+      component: EditJobView,
+    },
+    {
+      name: "fileManager",
+      path: "/file-manager",
+      title: getTitle("File Manager"),
+      component: FileManagerView,
+    },
+    {
+      name: "settings",
+      path: "/settings",
+      title: getTitle("Settings"),
+      component: SettingsView,
+    },
+    {
+      name: "configureJupyterLab",
+      path: "/configure-jupyter-lab",
+      title: getTitle("Configure JupyterLab"),
+      component: ConfigureJupyterLabView,
+    },
+    {
+      name: "update",
+      path: "/update",
+      title: getTitle("Update"),
+      component: UpdateView,
+    },
+    {
+      name: "manageUsers",
+      path: "/manage-users",
+      title: getTitle("Manage Users"),
+      component: ManageUsersView,
+    },
+    {
+      name: "help",
+      path: "/help",
+      title: getTitle("Help"),
+      component: HelpView,
+    },
+    // TODO: we need a proper PageNotFound page, atm we redirect back to ProjectsView
+    // // will always be the last one as a fallback
+    // {
+    //   name: "notFound",
+    //   path: "*",
+    //   title: getTitle("Page Not Found"),
+    //   component: NotFound,
+    // },
+  ];
+};
 
-export const siteMap = orderedRoutes.reduce<Record<RouteName, RouteData>>(
+export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
   (all, curr, i) => ({
     ...all,
     [curr.name]: {
