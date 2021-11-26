@@ -30,7 +30,7 @@ const App: React.FC<{ view: string; queryArgs: string }> = ({
     return null;
   }
 
-  if (view === "/login/admin")
+  if (view === "/login")
     return (
       <Login
         cloud={config.CLOUD}

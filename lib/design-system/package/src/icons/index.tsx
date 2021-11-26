@@ -1,6 +1,7 @@
+import type { CSS } from "@stitches/react";
 import * as React from "react";
 import { config, styled } from "../core";
-import { CSS, ExtractVariants, ICSSProp } from "../types";
+import { ExtractVariants, ICSSProp } from "../types";
 
 const getSizes = Object.keys(config.theme.space).reduce(
   (acc, cv) => ({ ...acc, [`${cv}`]: { $$iconSize: `$space$${cv}` } }),

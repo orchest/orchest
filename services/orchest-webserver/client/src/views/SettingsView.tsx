@@ -365,26 +365,16 @@ const SettingsView: React.FC = () => {
             <p>Version information.</p>
           </div>
           <div className="column">
-            {(() => {
-              if (state.version !== undefined) {
-                return <p>{state.version}</p>;
-              } else {
-                return (
-                  <React.Fragment>
-                    <LinearProgress classNames={["push-down"]} />
-                  </React.Fragment>
-                );
-              }
-            })()}
-            {(() => {
-              if (context.state?.config?.FLASK_ENV === "development") {
-                return (
-                  <p>
-                    <span className="code">development mode</span>
-                  </p>
-                );
-              }
-            })()}
+            {state.version ? (
+              <p>{state.version}</p>
+            ) : (
+              <LinearProgress className="push-down" />
+            )}
+            {context.state?.config?.FLASK_ENV === "development" && (
+              <p>
+                <span className="code">development mode</span>
+              </p>
+            )}
           </div>
           <div className="clear"></div>
         </div>
@@ -396,10 +386,11 @@ const SettingsView: React.FC = () => {
             {(() => {
               if (state.hostInfo !== undefined) {
                 return (
-                  <React.Fragment>
+                  <>
                     <LinearProgress
-                      classNames={["disk-size-info"]}
-                      progress={state.hostInfo.disk_info.used_pcent / 100}
+                      className="disk-size-info"
+                      variant="determinate"
+                      value={state.hostInfo.disk_info.used_pcent}
                     />
 
                     <div className="disk-size-info push-up-half">
@@ -410,14 +401,10 @@ const SettingsView: React.FC = () => {
                         {state.hostInfo.disk_info.avail_GB + "GB free"}
                       </span>
                     </div>
-                  </React.Fragment>
+                  </>
                 );
               } else {
-                return (
-                  <LinearProgress
-                    classNames={["push-down", "disk-size-info"]}
-                  />
-                );
+                return <LinearProgress className="push-down disk-size-info" />;
               }
             })()}
           </div>
@@ -467,22 +454,20 @@ const SettingsView: React.FC = () => {
             {(() => {
               if (!state.restarting) {
                 return (
-                  <React.Fragment>
-                    <MDCButtonReact
-                      classNames={["mdc-button--outlined"]}
-                      label="Restart"
-                      icon="power_settings_new"
-                      onClick={restartOrchest}
-                      data-test-id="restart"
-                    />
-                  </React.Fragment>
+                  <MDCButtonReact
+                    classNames={["mdc-button--outlined"]}
+                    label="Restart"
+                    icon="power_settings_new"
+                    onClick={restartOrchest}
+                    data-test-id="restart"
+                  />
                 );
               } else {
                 return (
-                  <React.Fragment>
-                    <LinearProgress classNames={["push-down"]} />
+                  <>
+                    <LinearProgress className="push-down" />
                     <p>This can take up to 30 seconds.</p>
-                  </React.Fragment>
+                  </>
                 );
               }
             })()}

@@ -217,7 +217,7 @@ export const AlertControls = React.forwardRef<
       </StyledPagination>
       <div role="group">
         <IconButton
-          label="Back"
+          title="Back"
           color="multiply"
           variant="ghost"
           bleed="bottom"
@@ -227,7 +227,7 @@ export const AlertControls = React.forwardRef<
         </IconButton>
 
         <IconButton
-          label="Next"
+          title="Next"
           color="multiply"
           variant="ghost"
           bleed="bottomRight"

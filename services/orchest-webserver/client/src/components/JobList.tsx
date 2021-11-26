@@ -1,17 +1,12 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  Box,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DIALOG_ANIMATION_DURATION,
-} from "@orchest/design-system";
+import { Box } from "@orchest/design-system";
 import {
   MDCButtonReact,
   MDCDialogReact,
@@ -247,15 +242,11 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 let result = JSON.parse(response.body);
 
                 setIsCreateDialogOpen(false);
-
-                setTimeout(() => {
-                  setIsCreateDialogLoading(false);
-
-                  orchest.alert(
-                    "Error",
-                    "Failed to create job. " + result.message
-                  );
-                });
+                setIsCreateDialogLoading(false);
+                orchest.alert(
+                  "Error",
+                  "Failed to create job. " + result.message
+                );
               } catch (error) {
                 console.log(error);
               }
@@ -265,25 +256,22 @@ const JobList: React.FC<IJobListProps> = (props) => {
       .catch((result) => {
         if (result.reason === "gate-failed") {
           setIsCreateDialogOpen(false);
+          setIsCreateDialogLoading(false);
 
-          setTimeout(() => {
-            setIsCreateDialogLoading(false);
-
-            orchest.requestBuild(
-              props.projectUuid,
-              result.data,
-              "CreateJob",
-              () => {
-                setIsCreateDialogOpen(true);
-                onSubmitModal({
-                  name,
-                  pipelineName,
-                  pipelineUuid,
-                  projectUuid,
-                });
-              }
-            );
-          }, DIALOG_ANIMATION_DURATION.OUT);
+          orchest.requestBuild(
+            props.projectUuid,
+            result.data,
+            "CreateJob",
+            () => {
+              setIsCreateDialogOpen(true);
+              onSubmitModal({
+                name,
+                pipelineName,
+                pipelineUuid,
+                projectUuid,
+              });
+            }
+          );
         }
       });
   };
@@ -453,78 +441,69 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
       {state.jobs && state.pipelines ? (
         <>
-          <Dialog
-            open={isCreateDialogOpen}
-            onOpenChange={(open) => setIsCreateDialogOpen(open)}
-          >
-            <div className="push-down">
-              <MDCButtonReact
-                icon="add"
-                label="Create job"
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                onClick={() => onCreateClick()}
-                data-test-id="job-create"
-              />
-            </div>
+          <div className="push-down">
+            <MDCButtonReact
+              icon="add"
+              label="Create job"
+              classNames={["mdc-button--raised", "themed-secondary"]}
+              onClick={() => onCreateClick()}
+              data-test-id="job-create"
+            />
+          </div>
+          <Dialog open={isCreateDialogOpen}>
+            <DialogTitle>Create a new job</DialogTitle>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create a new job</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <form
-                  id="create-job"
-                  className="create-job-modal"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+              <form
+                id="create-job"
+                className="create-job-modal"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
 
-                    onSubmitModal();
-                  }}
-                >
-                  {isCreateDialogLoading ? (
-                    <Box
-                      css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}
-                    >
-                      <LinearProgress />
+                  onSubmitModal();
+                }}
+              >
+                {isCreateDialogLoading ? (
+                  <Box css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}>
+                    <LinearProgress />
 
-                      <p>Copying pipeline directory...</p>
-                    </Box>
-                  ) : (
-                    <>
-                      {state.projectSnapshotSize > 50 && (
-                        <div className="warning push-down">
-                          <i className="material-icons">warning</i> Snapshot
-                          size exceeds 50MB. Please refer to the{" "}
-                          <a href="https://docs.orchest.io/en/latest/user_guide/jobs.html">
-                            docs
-                          </a>
-                          .
-                        </div>
-                      )}
+                    <p>Copying pipeline directory...</p>
+                  </Box>
+                ) : (
+                  <>
+                    {state.projectSnapshotSize > 50 && (
+                      <div className="warning push-down">
+                        <i className="material-icons">warning</i> Snapshot size
+                        exceeds 50MB. Please refer to the{" "}
+                        <a href="https://docs.orchest.io/en/latest/user_guide/jobs.html">
+                          docs
+                        </a>
+                        .
+                      </div>
+                    )}
 
-                      <MDCTextFieldReact
-                        ref={refManager.nrefs.formJobName}
-                        classNames={["fullwidth push-down"]}
-                        label="Job name"
-                        data-test-id="job-create-name"
-                      />
+                    <MDCTextFieldReact
+                      ref={refManager.nrefs.formJobName}
+                      classNames={["fullwidth push-down"]}
+                      label="Job name"
+                      data-test-id="job-create-name"
+                    />
 
-                      <MDCSelectReact
-                        ref={refManager.nrefs.formPipeline}
-                        label="Pipeline"
-                        classNames={["fullwidth"]}
-                        value={
-                          pipelineOptions &&
-                          pipelineOptions[0] &&
-                          pipelineOptions[0][0]
-                        }
-                        options={pipelineOptions}
-                      />
-                    </>
-                  )}
-                </form>
-              </DialogBody>
-              <DialogFooter>
+                    <MDCSelectReact
+                      ref={refManager.nrefs.formPipeline}
+                      label="Pipeline"
+                      classNames={["fullwidth"]}
+                      value={
+                        pipelineOptions &&
+                        pipelineOptions[0] &&
+                        pipelineOptions[0][0]
+                      }
+                      options={pipelineOptions}
+                    />
+                  </>
+                )}
+              </form>
+              <DialogActions>
                 <MDCButtonReact
                   icon="close"
                   classNames={["push-right"]}
@@ -541,7 +520,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
                   form="create-job"
                   data-test-id="job-create-ok"
                 />
-              </DialogFooter>
+              </DialogActions>
             </DialogContent>
           </Dialog>
 

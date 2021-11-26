@@ -299,7 +299,7 @@ export const MultiSelectInput: React.FC = () => {
               color="multiply"
               size="3"
               rounded
-              label="Remove"
+              title="Remove"
               type="button"
               tabIndex={tabIndices[index]}
               onClick={() => {

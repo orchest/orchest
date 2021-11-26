@@ -1,13 +1,11 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import {
   Box,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Flex,
   IconButton,
   IconCrossSolid,
@@ -117,26 +115,21 @@ export const OnboardingDialog: React.FC = () => {
   };
 
   return (
-    <Dialog
-      open={isOnboardingDialogOpen}
-      onOpenChange={(open) => (open ? onOpen() : onClose())}
-    >
+    <Dialog open={isOnboardingDialogOpen} onClose={onClose}>
       <DialogContent
-        size="md"
         css={{ paddingTop: "$10", overflow: isAnimating && "hidden" }}
         data-test-id="onboarding-dialog-content"
       >
         <IconButton
           variant="ghost"
           rounded
-          label="Close"
+          title="Close"
           onClick={() => onClose()}
           css={{ position: "absolute", top: "$4", right: "$4" }}
           data-test-id="onboarding-close"
         >
           <IconCrossSolid />
         </IconButton>
-
         <OnboardingDialogCarousel>
           {onboardingDialogCarouselSlides.map(
             (item, i) =>
@@ -151,15 +144,13 @@ export const OnboardingDialog: React.FC = () => {
                       justifyContent: "center",
                     }}
                   >
-                    <DialogHeader css={{ justifyContent: "inherit" }}>
-                      <DialogTitle
-                        css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
-                        data-test-id="onboarding-title"
-                      >
-                        {item.title}
-                      </DialogTitle>
-                    </DialogHeader>
-                    <DialogBody
+                    <DialogTitle
+                      css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
+                      data-test-id="onboarding-title"
+                    >
+                      {item.title}
+                    </DialogTitle>
+                    <Box
                       css={{
                         width: "100%",
                         margin: "0 auto",
@@ -173,7 +164,7 @@ export const OnboardingDialog: React.FC = () => {
                       }}
                     >
                       {item.variant === "code" && (
-                        <React.Fragment>
+                        <>
                           <Text>{item.description}</Text>
                           <article>
                             <CodeHeader>
@@ -187,7 +178,7 @@ export const OnboardingDialog: React.FC = () => {
                               </CodeList>
                             </CodeWindow>
                           </article>
-                        </React.Fragment>
+                        </>
                       )}
 
                       {item.variant === "icons" && (
@@ -214,21 +205,19 @@ export const OnboardingDialog: React.FC = () => {
                       )}
 
                       {item.variant === "end" && (
-                        <React.Fragment>
-                          <Text>
-                            {hasQuickstart
-                              ? item.description.withQuickstart
-                              : item.description.withoutQuickstart}
-                          </Text>
-                        </React.Fragment>
+                        <Text>
+                          {hasQuickstart
+                            ? item.description.withQuickstart
+                            : item.description.withoutQuickstart}
+                        </Text>
                       )}
-                    </DialogBody>
+                    </Box>
                   </Flex>
                 </OnboardingDialogCarouselSlide>
               )
           )}
         </OnboardingDialogCarousel>
-        <DialogFooter
+        <DialogActions
           css={{
             flexDirection: "column",
             paddingTop: "$8",
@@ -269,7 +258,7 @@ export const OnboardingDialog: React.FC = () => {
               </m.div>
             </AnimatePresence>
           </Box>
-        </DialogFooter>
+        </DialogActions>
       </DialogContent>
     </Dialog>
   );

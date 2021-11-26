@@ -9,9 +9,7 @@ const svgSize = (size: string) => ({
   },
 });
 
-const DEFAULT_TAG = "button";
-
-const StyledIconButton = styled(DEFAULT_TAG, {
+const StyledIconButton = styled("button", {
   appearance: "none",
   display: "inline-flex",
   borderWidth: 0,
@@ -85,25 +83,21 @@ const StyledIconButton = styled(DEFAULT_TAG, {
 });
 
 export type IIconButtonVariants = ExtractVariants<typeof StyledIconButton>;
-export interface IIconButtonProps extends ICSSProp, IIconButtonVariants {
-  label: string;
-}
+export interface IIconButtonProps extends ICSSProp, IIconButtonVariants {}
 export type TIconButtonComponent = Polymorphic.ForwardRefComponent<
-  typeof DEFAULT_TAG,
+  "button",
   IIconButtonProps
 >;
 
 /* eslint-disable react/display-name */
 
-export const IconButton: TIconButtonComponent = React.forwardRef(
-  ({ label, ...props }, ref) => (
-    <StyledIconButton
-      ref={ref}
-      title={props.title || label}
-      aria-label={label}
-      {...props}
-    />
-  )
-);
+export const IconButton = React.forwardRef((props, ref) => (
+  <StyledIconButton
+    ref={ref}
+    title={props.title}
+    aria-label={props.title}
+    {...props}
+  />
+)) as TIconButtonComponent;
 
 /* eslint-enable react/display-name */

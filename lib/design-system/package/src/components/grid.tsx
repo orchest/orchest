@@ -1,6 +1,7 @@
 import type * as Polymorphic from "@radix-ui/react-polymorphic";
+import type { CSS } from "@stitches/react";
 import { config, styled } from "../core";
-import type { CSS, ExtractVariants, ICSSProp } from "../types";
+import type { ExtractVariants, ICSSProp } from "../types";
 
 const DEFAULT_TAG = "div";
 

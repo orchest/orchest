@@ -1,14 +1,8 @@
-import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  Flex,
-  IconServicesSolid,
-  styled,
-} from "@orchest/design-system";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import { Flex, IconServicesSolid, styled } from "@orchest/design-system";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import * as React from "react";
 import { IServiceTemplate, templates } from "./content";
@@ -43,7 +37,7 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
 }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <>
       <MDCButtonReact
         icon="add"
         classNames={["mdc-button--raised", "themed-primary"]}
@@ -51,11 +45,9 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
         onClick={() => setIsOpen(true)}
         data-test-id="pipeline-service-add"
       />
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create a service</DialogTitle>
-        </DialogHeader>
-        <DialogBody>
+      <Dialog open={isOpen} onClose={() => setIsOpen(false)}>
+        <DialogTitle>Create a service</DialogTitle>
+        <DialogContent>
           <Flex as="ul" direction="column" gap="2">
             {Object.keys(templates).map((item) => {
               const template = templates[item];
@@ -78,15 +70,16 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
               );
             })}
           </Flex>
-        </DialogBody>
-        <DialogFooter>
-          <MDCButtonReact
-            icon="close"
-            label="Cancel"
-            onClick={() => setIsOpen(false)}
-          />
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          <DialogActions>
+            <MDCButtonReact
+              icon="close"
+              label="Cancel"
+              onClick={() => setIsOpen(false)}
+            />
+          </DialogActions>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
