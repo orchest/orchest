@@ -1,9 +1,12 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDataTableReact,
-  MDCDialogReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
@@ -25,14 +28,21 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { orchest } = window;
   const { navigateTo } = useCustomRoute();
 
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+
+  const [isEditingPipelinePath, setIsEditingPipelinePath] = React.useState(
+    false
+  );
+  const [
+    isSubmittingPipelinePath,
+    setIsSubmittingPipelinePath,
+  ] = React.useState(false);
+
   const [state, setState] = React.useState({
     loading: true,
     isDeleting: false,
-    createModal: false,
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
-    editPipelinePathModal: false,
-    editPipelinePathModalBusy: false,
     editPipelinePath: undefined,
     editPipelinePathUUID: undefined,
     listData: null,
@@ -198,11 +208,8 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   };
 
   const onCloseEditPipelineModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      editPipelinePathModal: false,
-      editPipelinePathModalBusy: false,
-    }));
+    setIsEditingPipelinePath(false);
+    setIsSubmittingPipelinePath(false);
   };
 
   const onSubmitEditPipelinePathModal = () => {
@@ -211,10 +218,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       return;
     }
 
-    setState((prevState) => ({
-      ...prevState,
-      editPipelinePathModalBusy: true,
-    }));
+    setIsSubmittingPipelinePath(true);
 
     makeRequest(
       "PUT",
@@ -277,20 +281,18 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       });
   };
 
-  const onEditClick = (pipeline_uuid, pipeline_path) => {
+  const onEditClick = (pipeline_uuid: string, pipeline_path: string) => {
+    setIsEditingPipelinePath(true);
+
     setState((prevState) => ({
       ...prevState,
       editPipelinePathUUID: pipeline_uuid,
       editPipelinePath: pipeline_path,
-      editPipelinePathModal: true,
     }));
   };
 
   const onCreateClick = () => {
-    setState((prevState) => ({
-      ...prevState,
-      createModal: true,
-    }));
+    setIsCreateDialogOpen(true);
   };
 
   const onSubmitModal = () => {
@@ -368,10 +370,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         }));
       });
 
-    setState((prevState) => ({
-      ...prevState,
-      createModal: false,
-    }));
+    setIsCreateDialogOpen(false);
   };
 
   const onCancelModal = () => {
@@ -379,9 +378,10 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   };
 
   const onCloseCreatePipelineModal = () => {
+    setIsCreateDialogOpen(false);
     setState((prevState) => ({
       ...prevState,
-      createModal: false,
+
       createPipelineName: INITIAL_PIPELINE_NAME,
       createPipelinePath: INITIAL_PIPELINE_PATH,
     }));
@@ -405,107 +405,92 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     </div>
   ) : (
     <div className={"pipelines-view"}>
-      {state.createModal && (
-        <MDCDialogReact
-          title="Create a new pipeline"
-          onClose={onCloseCreatePipelineModal}
-          ref={refManager.nrefs.createPipelineDialog}
-          content={
-            <React.Fragment>
-              <MDCTextFieldReact
-                classNames={["fullwidth push-down"]}
-                value={state.createPipelineName}
-                label="Pipeline name"
-                onChange={(value) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    createPipelinePath:
-                      value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
-                    createPipelineName: value,
-                  }));
-                }}
-                data-test-id="pipeline-name-textfield"
-              />
-              <MDCTextFieldReact
-                ref={refManager.nrefs.createPipelinePathField}
-                classNames={["fullwidth"]}
-                label="Pipeline path"
-                onChange={(value) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    createPipelinePath: value,
-                  }));
-                }}
-                value={state.createPipelinePath}
-                data-test-id="pipeline-path-textfield"
-              />
-            </React.Fragment>
-          }
-          actions={
-            <React.Fragment>
-              <MDCButtonReact
-                icon="close"
-                label="Cancel"
-                classNames={["push-right"]}
-                onClick={onCancelModal}
-              />
-              <MDCButtonReact
-                icon="add"
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                label="Create pipeline"
-                submitButton
-                onClick={onSubmitModal}
-                data-test-id="pipeline-create-ok"
-              />
-            </React.Fragment>
-          }
-        />
-      )}
+      <Dialog open={isCreateDialogOpen} onClose={onCloseCreatePipelineModal}>
+        <DialogTitle>Create a new pipeline</DialogTitle>
+        <DialogContent>
+          <>
+            <MDCTextFieldReact
+              classNames={["fullwidth push-down"]}
+              value={state.createPipelineName}
+              label="Pipeline name"
+              onChange={(value) => {
+                setState((prevState) => ({
+                  ...prevState,
+                  createPipelinePath:
+                    value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
+                  createPipelineName: value,
+                }));
+              }}
+              data-test-id="pipeline-name-textfield"
+            />
+            <MDCTextFieldReact
+              ref={refManager.nrefs.createPipelinePathField}
+              classNames={["fullwidth"]}
+              label="Pipeline path"
+              onChange={(value) => {
+                setState((prevState) => ({
+                  ...prevState,
+                  createPipelinePath: value,
+                }));
+              }}
+              value={state.createPipelinePath}
+              data-test-id="pipeline-path-textfield"
+            />
+          </>
+        </DialogContent>
+        <DialogActions>
+          <MDCButtonReact
+            icon="close"
+            label="Cancel"
+            classNames={["push-right"]}
+            onClick={onCancelModal}
+          />
+          <MDCButtonReact
+            icon="add"
+            classNames={["mdc-button--raised", "themed-secondary"]}
+            label="Create pipeline"
+            submitButton
+            onClick={onSubmitModal}
+            data-test-id="pipeline-create-ok"
+          />
+        </DialogActions>
+      </Dialog>
 
-      {state.editPipelinePathModal && (
-        <MDCDialogReact
-          title="Edit pipeline path"
-          onClose={onCloseEditPipelineModal}
-          content={
-            <React.Fragment>
-              <MDCTextFieldReact
-                classNames={["fullwidth push-down"]}
-                value={state.editPipelinePath}
-                label="Pipeline path"
-                initialCursorPosition={state.editPipelinePath.indexOf(
-                  ".orchest"
-                )}
-                onChange={(value) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    editPipelinePath: value,
-                  }));
-                }}
-                data-test-id="pipeline-edit-path-textfield"
-              />
-            </React.Fragment>
-          }
-          actions={
-            <React.Fragment>
-              <MDCButtonReact
-                icon="close"
-                label="Cancel"
-                classNames={["push-right"]}
-                onClick={onCloseEditPipelineModal}
-              />
-              <MDCButtonReact
-                icon="save"
-                disabled={state.editPipelinePathModalBusy}
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                label="Save"
-                submitButton
-                onClick={onSubmitEditPipelinePathModal}
-                data-test-id="pipeline-edit-path-save"
-              />
-            </React.Fragment>
-          }
-        />
-      )}
+      <Dialog open={isEditingPipelinePath} onClose={onCloseEditPipelineModal}>
+        <DialogTitle>Edit pipeline path</DialogTitle>
+        <DialogContent>
+          <MDCTextFieldReact
+            classNames={["fullwidth push-down"]}
+            value={state.editPipelinePath}
+            label="Pipeline path"
+            initialCursorPosition={state.editPipelinePath.indexOf(".orchest")}
+            onChange={(value) => {
+              setState((prevState) => ({
+                ...prevState,
+                editPipelinePath: value,
+              }));
+            }}
+            data-test-id="pipeline-edit-path-textfield"
+          />
+        </DialogContent>
+        <DialogActions>
+          <MDCButtonReact
+            icon="close"
+            label="Cancel"
+            classNames={["push-right"]}
+            onClick={onCloseEditPipelineModal}
+          />
+          <MDCButtonReact
+            icon="save"
+            disabled={isSubmittingPipelinePath}
+            classNames={["mdc-button--raised", "themed-secondary"]}
+            label="Save"
+            submitButton
+            onClick={onSubmitEditPipelinePathModal}
+            data-test-id="pipeline-edit-path-save"
+          />
+        </DialogActions>
+      </Dialog>
 
       <h2>Pipelines</h2>
       <div className="push-down">
