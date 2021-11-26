@@ -57,10 +57,13 @@ To enable user authentication in Orchest the ``AUTH_ENABLED`` config option has 
    between users. All you can do is have the same installation of Orchest be accessible by a
    configured set of users with corresponding passwords.  IP information either on our servers.
 
-.. _pipeline configuration:
+.. _pipeline settings:
 
 Pipeline settings
 -----------------
+.. note::
+   WIP: clearing the memory store
+
 There are also configuration options per pipeline that can be set through the UI by opening a
 pipeline and going to its *Settings* in the top right corner. This will add the following JSON block
 to the corresponding pipeline definition:

@@ -2,32 +2,38 @@
 
 Data passing
 ============
+.. tip::
+   👉 Check out the full :ref:`data passing API reference <api transfer>`.
 
 To pass data between the different pipeline steps, across different languages, we make use of the
 `Apache Arrow <https://github.com/apache/arrow>`_ project. The :ref:`Orchest SDK` provides a
 convenience wrapper of the project to be used within Orchest.
 
-:ref:`data passing API reference <api transfer>`
+We will start with an example to illustrate how to pass data between pipeline steps before diving
+into more detail.
 
 Python example
 --------------
-The SDK manages the target and source of the data, leaving you only with the decision what data to
-pass. The target and source of the data are inferred through the :ref:`pipeline definition <pipeline
-definition>`.
-
-For this example we let the pipeline be defined as follows:
-
-.. image:: ../img/pipeline.png
-  :width: 400
-  :alt: Pipeline defined as: step-1, step-2 --> step-3
-  :align: center
-
 .. note::
-   In this example we will name the data we output in the steps. It is also possible to use
-   ``name=None`` and obtain the data using the ``"unnamed"`` key, which allows you treat the inputs
-   as a collection. Additionally, there is an implied order of data in ``"unnamed"``, for more
-   information please read the dedicated :ref:`connections section <connections>`.
+   💡 Orchest also supports data passing for other languages than Python. For example, check out
+   the :ref:`Orchest SDK` section on :ref:`R <r>`.
 
+.. The SDK manages the target and source of the data, leaving you only with the decision what data to
+.. pass. The target and source of the data are inferred through the :ref:`pipeline definition <pipeline
+.. definition>`.
+
+In this example we will use Python to illustrate how to pass data between different pipeline steps.
+Let the pipeline be defined as follows:
+
+.. figure:: ../img/pipeline.png
+   :width: 400
+   :alt: Pipeline defined as: step-1, step-2 --> step-3
+   :align: center
+
+   An example pipeline.
+
+In both steps 1 and 2 we will create some data and pass it to step 3 under specific names so that we
+can later use those names to get the data.
 
 .. code-block:: python
 
@@ -39,7 +45,6 @@ For this example we let the pipeline be defined as follows:
    # Output the data so that step-3 can retrieve it.
    orchest.output(data, name="my_string")
 
-
 .. code-block:: python
 
    """step-2"""
@@ -50,6 +55,11 @@ For this example we let the pipeline be defined as follows:
    # Output the data so that step-3 can retrieve it.
    orchest.output(data, name="my_list")
 
+When outputting the data in steps 1 and 2 the data is actually copied to another location in shared
+memory so that other steps can access it. This explains why you can access the data from inside
+JupyterLab as well!
+
+Now that data is in memory, step-3 can be executed and get the data for further processing.
 
 .. code-block:: python
 
@@ -59,63 +69,102 @@ For this example we let the pipeline be defined as follows:
    # Get the input for step-3, i.e. the output of step-1 and step-2.
    input_data = orchest.get_inputs()
 
-   print(input_data)
-   # {
-   #  "my_list": [3, 1, 4],
-   #  "my_string": "Hello, World!"
-   # }
+The ``input_data`` in step-3 will be as follows:
 
-.. note::
-   Memory eviction of objects is disabled by default, refer to :ref:`configuration <configuration>`
-   to learn how to enable it.
+.. code-block:: json
 
-Memory data passing
--------------------
-To pass data through memory between steps (which is enabled by default) we make use of `the Plasma
-in-memory object store <https://arrow.apache.org/docs/python/plasma.html>`_ from the Apache Arrow
-project. Within Orchest it is wrapped with additional code for object eviction, which we will cover
-later in this section. Every interactive session gets its own memory store, which is shared between
-the kernels and interactive runs, for pipeline runs as part of jobs each gets an isolated
-memory store.
+   {
+    "my_list": [3, 1, 4],
+    "my_string": "Hello, World!",
+    "unnamed": []
+   }
 
-When an object is sent from one step to another (using :meth:`orchest.transfer.output`) it is
-actually stored inside the Plasma store and copied into the memory of the receiving step. This is
-useful in interactive runs as it allows you to rerun a certain step without having to run the steps it
-depends on (if they have run before) enabling faster iteration on your ideas.
+You can see both ``my_string`` and ``my_list``, the output data from steps 1 and 2 respectively, are
+in the received input data. But what is the ``unnamed``? We will answer this in the next section.
 
-When it comes to clearing the memory store there are two options:
+.. tip::
+   👉 You can increase the size of the shared memory (to allow for larger data to be passed) in the
+   :ref:`pipeline settings <pipeline settings>`.
 
-1. Clearing all objects from memory through the pipeline settings.
-2. Enabling auto eviction also through the pipeline settings, additional information about this
-   setting can be found in :ref:`pipeline level configurations <pipeline configuration>`.
-
-.. _connections:
-
-Connections
------------
-.. note::
-   This section only applies when you are outputting unnamed data, i.e.
-   calling :meth:`orchest.transfer.output` with ``name=None``.
-
-The image below is a screenshot from the properties pane of step that has incoming steps "A", "B"
-and "C". The order of the list can be changed with a simple drag and drop.
-
-.. image:: ../img/step-connections.png
-  :width: 300
-  :alt: From top to bottom: A -> C -> B
-  :align: center
-
-The order of this list is important as it determines the order in which the receiving step obtains
-data from the steps A, B and C when calling :meth:`orchest.transfer.get_inputs`. In the example
-image above, under the assumption that all steps called :meth:`orchest.transfer.output` with
-``name=None``, the receiving step would get the following data structure (when calling
-:meth:`orchest.transfer.get_inputs`):
+Passing data without a name
+---------------------------
+As you could see in the previous example, step-3 received input data with a special key called
+``unnamed``. When passing data it is not necessary to give the data you are outputting a name, for
+example we could change what step-1 is outputting:
 
 .. code-block:: python
 
-   # Note the order!
-   {'unnamed': ['A', 'C', 'B']}
+   """step-1"""
+   import orchest
 
+   data = "Hello, World!"
+
+   # Output the data so that step-3 can retrieve it.
+   # But this time, don't give a name.
+   orchest.output(data)
+
+The ``input_data`` in step-3 will now be equal to:
+
+.. code-block:: json
+
+   {
+    "my_list": [3, 1, 4],
+    "unnamed": ["Hello, World!"]
+   }
+
+Populating the list of the ``unnamed`` key with the values of the steps that outputted data without
+a name.
+
+For example, we could change the code of step-2 to:
+
+.. code-block:: python
+
+   """step-2"""
+   import orchest
+
+   data = [3, 1, 4]
+
+   orchest.output(data)
+
+Making the ``input_data`` in step-3 equal to:
+
+.. code-block:: json
+
+   {
+    "unnamed": ["Hello, World!", [3, 1, 4]]
+   }
+
+But how exactly is this useful?
+
+By outputting data without a name the receiving step can treat the values as a collection (it is
+even an ordered collection, see :ref:`order of unnamed data <unnamed order>`). Just like in regular programming,
+sometimes you would rather use a list than a dictionary to store your data.
+
+.. tip::
+   👉 For the majority of cases passing data with a name is the way to go!
+
+.. _unnamed order:
+
+Order of unnamed data
+~~~~~~~~~~~~~~~~~~~~~
 .. note::
-   The Orchest SDK actually infers the order via the pipeline definition. The UI simply stores the
-   order in the pipeline definition file.
+   💡 :meth:`orchet.transfer.get_inputs` actually infers the order via the pipeline definition. The
+   UI simply stores the order in the pipeline definition file and provides a visual handle to it.
+
+The image below is a screenshot from the properties pane in the UI of step-3 from the example above.
+The order of the list in the screenshot can be changed with a simple drag and drop.
+
+.. image:: ../img/step-connections.png
+  :width: 300
+  :align: center
+
+Having the above order of connections, the ``input_data`` in step-3 becomes (note how the order of
+the data in ``unnamed`` has changed!):
+
+.. code-block:: json
+
+   {
+    "unnamed": [[3, 1, 4], "Hello, World!"]
+   }
+
+Top-to-bottom in the UI corresponds with left-to-right in ``unnamed``.

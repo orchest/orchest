@@ -9,16 +9,24 @@ Install new packages
 --------------------
 WIP
 
+Use ``git`` inside Orchest
+--------------------------
+Please refer to the dedicated section on :ref:`using git inside Orchest <git inside Orchest>`.
+
 .. _how to import a project:
 
 Import a project
 ----------------
 WIP
 
-Import private ``git`` repositories
------------------------------------
-To import private ``git`` repositories upload them directly through the *File manager* into the
-``projects/`` directory.
+Share code between steps
+------------------------
+.. note::
+   💡 This approach also works to share code between pipelines.
+
+WIP.
+
+``utils.py`` module for example inside the project.
 
 Minimalize Orchest's disk size
 ------------------------------

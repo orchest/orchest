@@ -11,7 +11,6 @@ Python
 
 Data passing
 ~~~~~~~~~~~~
-
 Please refer to the dedicated section on :ref:`data passing <data passing>`.
 
 .. _sdk-quickstart-parameters:
@@ -34,6 +33,8 @@ Parameters
 .. note::
    Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out different modeling
    ideas based on a set of variable inputs.
+
+.. _r:
 
 R
 -

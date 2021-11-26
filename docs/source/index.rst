@@ -12,7 +12,7 @@ Orchest
 
 **Orchest is a tool for building data pipelines, made to be easy to use.**
 
-* Visually construct pipelines through its user-friendly UI
+* Visually construct pipelines through our user-friendly UI
 * Code in Notebooks and scripts (:ref:`quickstart <quickstart>`)
 * Run any subset of a pipelines directly or periodically (:ref:`jobs <jobs>`)
 * Easily define your dependencies to run on any machine (:ref:`environments <environments>`)
