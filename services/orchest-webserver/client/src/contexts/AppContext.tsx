@@ -89,16 +89,14 @@ export const AppContextProvider: React.FC = ({ children }) => {
   if (process.env.NODE_ENV === "development" && false)
     console.log("(Dev Mode) useAppContext: state updated", state);
 
-  const setAlert = (alert: Alert) => {
+  const setAlert = ({ title = "Error", content, onClose }: Alert) => {
     const parsedContent =
-      typeof alert.content === "string"
-        ? parseLineBreak(alert.content)
-        : alert.content;
+      typeof content === "string" ? parseLineBreak(content) : content;
     dispatch((store) => ({
       type: "SET_ALERTS",
       payload: [
         ...store.alerts,
-        { title: alert.title, content: parsedContent },
+        { title: title, content: parsedContent, onClose },
       ],
     }));
   };
