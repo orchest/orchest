@@ -2,7 +2,6 @@ import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/routingConfig";
@@ -23,8 +22,8 @@ const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 const ConfigureJupyterLabView: React.FC = () => {
   // global
   const { orchest } = window;
-  const context = useOrchest();
-  const { setAlert } = useAppContext();
+  const appContext = useAppContext();
+  const { setAlert, setAsSaved } = appContext;
   const sessionContext = useSessionsContext();
   useSessionsPoller();
 
@@ -176,10 +175,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   };
 
   const save = (cb) => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
+    setAsSaved();
 
     // auto save the bash script
     let formData = new FormData();
@@ -284,10 +280,7 @@ const ConfigureJupyterLabView: React.FC = () => {
                     ...prevState,
                     jupyterSetupScript: value,
                   }));
-                  context.dispatch({
-                    type: "setUnsavedChanges",
-                    payload: true,
-                  });
+                  setAsSaved(false);
                 }}
               />
             </div>
@@ -299,7 +292,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               }
               buildsKey="jupyter_builds"
               socketIONamespace={
-                context.state?.config
+                appContext.state?.config
                   .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
@@ -311,7 +304,7 @@ const ConfigureJupyterLabView: React.FC = () => {
             />
 
             <MDCButtonReact
-              label={context.state.unsavedChanges ? "Save*" : "Save"}
+              label={appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
               icon="save"
               classNames={[
                 "mdc-button--raised",

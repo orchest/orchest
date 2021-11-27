@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useOrchest } from "@/hooks/orchest";
 import { isSession } from "@/hooks/orchest/utils";
@@ -19,6 +20,7 @@ export type THeaderBarRef = HTMLDivElement;
 export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   const { navigateTo } = useCustomRoute();
   const { state, dispatch } = useOrchest();
+  const appContext = useAppContext();
   const {
     state: { sessions },
   } = useSessionsContext();
@@ -130,7 +132,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
           />
         )}
 
-        {state?.user_config?.AUTH_ENABLED && (
+        {appContext.state.user_config?.AUTH_ENABLED && (
           <MDCIconButtonToggleReact
             icon="logout"
             tooltipText="Logout"

@@ -60,7 +60,8 @@ const PipelineSettingsView: React.FC = () => {
   // global states
   const orchest = window.orchest;
   const context = useOrchest();
-  const { setAlert } = useAppContext();
+  const appContext = useAppContext();
+  const { setAlert, setAsSaved } = appContext;
 
   const sessionsContext = useSessionsContext();
   const { getSession } = sessionsContext;
@@ -100,7 +101,7 @@ const PipelineSettingsView: React.FC = () => {
   });
   if (
     !session &&
-    !context.state.unsavedChanges &&
+    !appContext.state.hasUnsavedChanges &&
     (state.servicesChanged || state.environmentVariablesChanged)
   ) {
     setState((prevState) => ({
@@ -192,10 +193,8 @@ const PipelineSettingsView: React.FC = () => {
       servicesChanged: true,
       pipelineJson: pipelineJson,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+
+    setAsSaved(false);
   };
 
   const nameChangeService = (oldName, newName) => {
@@ -210,10 +209,8 @@ const PipelineSettingsView: React.FC = () => {
       servicesChanged: true,
       pipelineJson: pipelineJson,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+
+    setAsSaved(false);
   };
 
   const deleteService = (serviceName) => {
@@ -225,10 +222,7 @@ const PipelineSettingsView: React.FC = () => {
       servicesChanged: true,
       pipelineJson: pipelineJson,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const attachResizeListener = () => overflowListener.attach();
@@ -398,10 +392,7 @@ const PipelineSettingsView: React.FC = () => {
         name: value,
       },
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onChangePipelineParameters = (editor, data, value) => {
@@ -421,10 +412,7 @@ const PipelineSettingsView: React.FC = () => {
         },
       }));
 
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: true,
-      });
+      setAsSaved(false);
     } catch (err) {
       // console.log("JSON did not parse")
     }
@@ -450,10 +438,7 @@ const PipelineSettingsView: React.FC = () => {
           },
         },
       }));
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: true,
-      });
+      setAsSaved(false);
     }
   };
 
@@ -479,10 +464,7 @@ const PipelineSettingsView: React.FC = () => {
         },
       },
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const addEnvVariablePair = (e) => {
@@ -510,10 +492,7 @@ const PipelineSettingsView: React.FC = () => {
 
       return { ...prevState, envVariables, environmentVariablesChanged: true };
     });
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onEnvVariablesDeletion = (idx) => {
@@ -523,10 +502,7 @@ const PipelineSettingsView: React.FC = () => {
 
       return { ...prevState, envVariables };
     });
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const cleanPipelineJson = (pipelineJson) => {
@@ -612,10 +588,7 @@ const PipelineSettingsView: React.FC = () => {
           setState((prevState) => ({
             ...prevState,
           }));
-          context.dispatch({
-            type: "setUnsavedChanges",
-            payload: false,
-          });
+          setAsSaved();
 
           // Sync name changes with the global context
           context.dispatch({
@@ -1036,7 +1009,7 @@ const PipelineSettingsView: React.FC = () => {
             {!isReadOnly && (
               <div className="bottom-buttons observe-overflow">
                 <MDCButtonReact
-                  label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                  label={appContext.state.hasUnsavedChanges ? "SAVE*" : "SAVE"}
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={saveGeneralForm}
                   icon="save"

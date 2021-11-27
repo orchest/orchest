@@ -1,6 +1,5 @@
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -22,8 +21,11 @@ const SettingsView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.settings.path });
 
   const { navigateTo } = useCustomRoute();
-  const context = useOrchest();
-  const { setAlert } = useAppContext();
+  const {
+    setAlert,
+    setAsSaved,
+    state: { config, hasUnsavedChanges },
+  } = useAppContext();
 
   const [state, setState] = React.useState({
     status: "...",
@@ -95,14 +97,14 @@ const SettingsView: React.FC = () => {
   };
 
   const configToVisibleConfig = (configJSON) => {
-    if (context.state?.config["CLOUD"] !== true) {
+    if (config.CLOUD !== true) {
       return configJSON;
     }
 
     let visibleJSON = _.cloneDeep(configJSON);
 
     // strip cloud config
-    for (let key of context.state?.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"]) {
+    for (let key of config.CLOUD_UNMODIFIABLE_CONFIG_VALUES) {
       delete visibleJSON[key];
     }
 
@@ -110,7 +112,7 @@ const SettingsView: React.FC = () => {
   };
 
   const configToInvisibleConfig = (configJSON) => {
-    if (context.state?.config["CLOUD"] !== true) {
+    if (config.CLOUD !== true) {
       return {};
     }
 
@@ -118,11 +120,7 @@ const SettingsView: React.FC = () => {
 
     // Strip visible config
     for (let key of Object.keys(invisibleJSON)) {
-      if (
-        context.state?.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(
-          key
-        ) === -1
-      ) {
+      if (config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.indexOf(key) === -1) {
         delete invisibleJSON[key];
       }
     }
@@ -145,10 +143,7 @@ const SettingsView: React.FC = () => {
         configJSON: joinedConfig,
       }));
 
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: false,
-      });
+      setAsSaved(true);
 
       makeRequest("POST", "/async/user-config", {
         type: "FormData",
@@ -284,39 +279,31 @@ const SettingsView: React.FC = () => {
                           ...prevState,
                           config: value,
                         }));
-                        context.dispatch({
-                          type: "setUnsavedChanges",
-                          payload: state.config != value,
-                        });
+                        setAsSaved(state.config !== value);
                       }}
                     />
 
-                    {(() => {
-                      if (context.state?.config?.CLOUD === true) {
-                        return (
-                          <div className="push-up notice">
-                            <p>
-                              {" "}
-                              Note that{" "}
-                              {context.state?.config[
-                                "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
-                              ].map((el, i) => (
-                                <span key={i}>
-                                  <span className="code">{el}</span>
-                                  {i !=
-                                    context.state?.config[
-                                      "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
-                                    ].length -
-                                      1 && <span>, </span>}
-                                </span>
-                              ))}{" "}
-                              cannot be modified when running in the{" "}
-                              <span className="code">cloud</span>.
-                            </p>
-                          </div>
-                        );
-                      }
-                    })()}
+                    {config.CLOUD === true && (
+                      <div className="push-up notice">
+                        <p>
+                          {" "}
+                          Note that{" "}
+                          {config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.map(
+                            (el, i) => (
+                              <span key={i}>
+                                <span className="code">{el}</span>
+                                {i !==
+                                  config.CLOUD_UNMODIFIABLE_CONFIG_VALUES
+                                    .length -
+                                    1 && <span>, </span>}
+                              </span>
+                            )
+                          )}{" "}
+                          cannot be modified when running in the{" "}
+                          <span className="code">cloud</span>.
+                        </p>
+                      </div>
+                    )}
 
                     {(() => {
                       try {
@@ -350,7 +337,7 @@ const SettingsView: React.FC = () => {
                         "mdc-button--raised",
                         "themed-secondary",
                       ]}
-                      label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                      label={hasUnsavedChanges ? "SAVE*" : "SAVE"}
                       icon="save"
                       onClick={() => saveConfig(state.config)}
                     />
@@ -372,7 +359,7 @@ const SettingsView: React.FC = () => {
             ) : (
               <LinearProgress className="push-down" />
             )}
-            {context.state?.config?.FLASK_ENV === "development" && (
+            {config.FLASK_ENV === "development" && (
               <p>
                 <span className="code">development mode</span>
               </p>

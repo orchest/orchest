@@ -1,7 +1,6 @@
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
@@ -34,8 +33,11 @@ const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const EnvironmentEditView: React.FC = () => {
   // global states
-  const context = useOrchest();
-  const { setAlert } = useAppContext();
+  const {
+    setAlert,
+    setAsSaved,
+    state: { config, hasUnsavedChanges },
+  } = useAppContext();
 
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
@@ -46,12 +48,8 @@ const EnvironmentEditView: React.FC = () => {
   );
   const [environment, setEnvironment] = React.useState<Environment>({
     uuid: "new",
-    name: context.state?.config?.ENVIRONMENT_DEFAULTS.name,
-    gpu_support: context.state?.config?.ENVIRONMENT_DEFAULTS.gpu_support,
     project_uuid: projectUuid,
-    base_image: context.state?.config?.ENVIRONMENT_DEFAULTS.base_image,
-    language: context.state?.config?.ENVIRONMENT_DEFAULTS.language,
-    setup_script: context.state?.config?.ENVIRONMENT_DEFAULTS.setup_script,
+    ...config.ENVIRONMENT_DEFAULTS,
   });
 
   const [
@@ -134,10 +132,7 @@ const EnvironmentEditView: React.FC = () => {
             setEnvironment((prev) => ({ ...prev, uuid: result.uuid }));
             setIsNewEnvironment(false);
 
-            context.dispatch({
-              type: "setUnsavedChanges",
-              payload: false,
-            });
+            setAsSaved();
 
             resolve(result);
           })
@@ -198,37 +193,25 @@ const EnvironmentEditView: React.FC = () => {
   const onChangeName = (value: string) => {
     setEnvironment((prev) => ({ ...prev, name: value }));
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onChangeBaseImage = (value: string) => {
     setEnvironment((prev) => ({ ...prev, base_image: value }));
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onChangeLanguage = (value: string) => {
     setEnvironment((prev) => ({ ...prev, language: value }));
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onGPUChange = (isChecked: boolean) => {
     setEnvironment((prev) => ({ ...prev, gpu_support: isChecked }));
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onCloseAddCustomBaseImageDialog = () => {
@@ -254,10 +237,7 @@ const EnvironmentEditView: React.FC = () => {
       };
     });
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onAddCustomBaseImage = () => {
@@ -383,10 +363,7 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   React.useEffect(() => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: isNewEnvironment,
-    });
+    setAsSaved(!isNewEnvironment);
 
     if (!isNewEnvironment) fetchEnvironment();
 
@@ -504,15 +481,11 @@ const EnvironmentEditView: React.FC = () => {
                         steps that point to a Notebook.
                       </div>
 
-                      {(() => {
-                        if (state.languageDocsNotice === true) {
-                          return (
-                            <div className="docs-notice push-down-7">
-                              Language explanation
-                            </div>
-                          );
-                        }
-                      })()}
+                      {state.languageDocsNotice === true && (
+                        <div className="docs-notice push-down-7">
+                          Language explanation
+                        </div>
+                      )}
 
                       <MDCCheckboxReact
                         onChange={onGPUChange}
@@ -530,11 +503,8 @@ const EnvironmentEditView: React.FC = () => {
                               capabilities when in use.
                             </p>
                           );
-                          if (
-                            context.state?.config["GPU_ENABLED_INSTANCE"] !==
-                            true
-                          ) {
-                            if (context.state?.config["CLOUD"] === true) {
+                          if (config.GPU_ENABLED_INSTANCE !== true) {
+                            if (config.CLOUD === true) {
                               return (
                                 <div className="docs-notice push-down-7">
                                   <p>
@@ -555,8 +525,7 @@ const EnvironmentEditView: React.FC = () => {
                                     <a
                                       target="_blank"
                                       href={
-                                        context.state?.config.ORCHEST_WEB_URLS
-                                          .readthedocs +
+                                        config.ORCHEST_WEB_URLS.readthedocs +
                                         "/getting_started/installation.html#gpu-support"
                                       }
                                       rel="noreferrer"
@@ -607,10 +576,7 @@ const EnvironmentEditView: React.FC = () => {
                             setup_script: value,
                           }));
 
-                          context.dispatch({
-                            type: "setUnsavedChanges",
-                            payload: true,
-                          });
+                          setAsSaved(false);
                         }}
                       />
                     </div>
@@ -620,9 +586,7 @@ const EnvironmentEditView: React.FC = () => {
                         buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
                         buildsKey="environment_builds"
                         socketIONamespace={
-                          context.state?.config[
-                            "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE"
-                          ]
+                          config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
                         }
                         streamIdentity={projectUuid + "-" + environment.uuid}
                         onUpdateBuild={onUpdateBuild}
@@ -641,7 +605,7 @@ const EnvironmentEditView: React.FC = () => {
               <MDCButtonReact
                 classNames={["mdc-button--raised", "themed-secondary"]}
                 onClick={onSave}
-                label={context.state.unsavedChanges ? "Save*" : "Save"}
+                label={hasUnsavedChanges ? "Save*" : "Save"}
                 icon="save"
                 data-test-id="environments-save"
               />

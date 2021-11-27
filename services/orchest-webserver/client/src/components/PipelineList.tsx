@@ -357,10 +357,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     setIsCreateDialogOpen(false);
   };
 
-  const onCancelModal = () => {
-    refManager.refs.createPipelineDialog.close();
-  };
-
   const onCloseCreatePipelineModal = () => {
     setIsCreateDialogOpen(false);
     setState((prevState) => ({
@@ -427,7 +423,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             icon="close"
             label="Cancel"
             classNames={["push-right"]}
-            onClick={onCancelModal}
+            onClick={onCloseCreatePipelineModal}
           />
           <MDCButtonReact
             icon="add"

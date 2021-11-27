@@ -1,4 +1,3 @@
-import { useOrchest } from "@/hooks/orchest";
 import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
 import { makeRequest } from "@orchest/lib-utils";
@@ -10,6 +9,7 @@ import AlertDialog from "./components/AlertDialog";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
+import { useAppContext } from "./contexts/AppContext";
 import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
 import Jupyter from "./jupyter/Jupyter";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -38,13 +38,14 @@ const App = () => {
 
   const sendEvent = useSendAnalyticEvent();
 
-  const context = useOrchest();
+  // load server side config populated by flask template
+  const {
+    state: { config, user_config, hasUnsavedChanges },
+    setAsSaved,
+  } = useAppContext();
 
   const jupyterRef = useRef(null);
   const dialogsRef = useRef(null);
-
-  // load server side config populated by flask template
-  const { config, user_config } = context.state;
 
   // Each client provides an heartbeat, used for telemetry and idle
   // checking.
@@ -116,19 +117,19 @@ const App = () => {
       getUserConfirmation={(message, callback) => {
         // use Prompt component to intercept route changes
         // handle the blocking event here
-        if (message === "unsavedChanges") {
+        if (message === "hasUnsavedChanges") {
           window.orchest.confirm(
             "Warning",
             "There are unsaved changes. Are you sure you want to navigate away?",
             () => {
-              context.dispatch({ type: "setUnsavedChanges", payload: false });
+              setAsSaved();
               callback(true);
             }
           );
         }
       }}
     >
-      <Prompt when={context.state.unsavedChanges} message="unsavedChanges" />
+      <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
       <HeaderBar />
       <div className="app-container" data-test-id="app">
         <MainDrawer />

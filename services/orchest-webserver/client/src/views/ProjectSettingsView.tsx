@@ -1,7 +1,6 @@
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap, toQueryString } from "@/Routes";
 import {
@@ -22,9 +21,12 @@ import { Link } from "react-router-dom";
 
 const ProjectSettingsView: React.FC = () => {
   // global states
-  const { orchest } = window;
-  const context = useOrchest();
-  const { setAlert } = useAppContext();
+
+  const {
+    setAlert,
+    setAsSaved,
+    state: { hasUnsavedChanges },
+  } = useAppContext();
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
@@ -98,10 +100,7 @@ const ProjectSettingsView: React.FC = () => {
       content: { env_variables: envVariables.value },
     })
       .then(() => {
-        context.dispatch({
-          type: "setUnsavedChanges",
-          payload: false,
-        });
+        setAsSaved();
       })
       .catch((response) => {
         console.error(response);
@@ -116,10 +115,7 @@ const ProjectSettingsView: React.FC = () => {
       ...prevState,
       envVariables: envVariables,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const addEnvPair = (e) => {
@@ -144,10 +140,8 @@ const ProjectSettingsView: React.FC = () => {
       ...prevState,
       envVariables: envVariables,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+
+    setAsSaved(false);
   };
 
   React.useEffect(() => {
@@ -249,7 +243,7 @@ const ProjectSettingsView: React.FC = () => {
               </div>
               <div className="bottom-buttons observe-overflow">
                 <MDCButtonReact
-                  label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
+                  label={hasUnsavedChanges ? "SAVE*" : "SAVE"}
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={saveGeneralForm}
                   icon="save"

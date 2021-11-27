@@ -1,12 +1,18 @@
 import { Layout, useLayout } from "@/components/Layout";
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import { MDCButtonReact } from "@orchest/lib-mdc";
 import * as React from "react";
 
 const HelpView: React.FC = () => {
-  const { state } = useOrchest();
+  const {
+    state: {
+      config: {
+        ORCHEST_WEB_URLS: { readthedocs, website, slack, github },
+      },
+    },
+  } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useLayout();
@@ -23,10 +29,7 @@ const HelpView: React.FC = () => {
         <div className="mdc-list">
           <a
             className="mdc-deprecated-list-item"
-            href={
-              state.config.ORCHEST_WEB_URLS.readthedocs +
-              "/getting_started/quickstart.html"
-            }
+            href={readthedocs + "/getting_started/quickstart.html"}
             target="_blank"
             rel="noreferrer"
           >
@@ -37,7 +40,7 @@ const HelpView: React.FC = () => {
           </a>
           <a
             className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.readthedocs}
+            href={readthedocs}
             target="_blank"
             rel="noreferrer"
           >
@@ -50,7 +53,7 @@ const HelpView: React.FC = () => {
           </a>
           <a
             className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.website + "/video-tutorials"}
+            href={website + "/video-tutorials"}
             target="_blank"
             rel="noreferrer"
           >
@@ -63,7 +66,7 @@ const HelpView: React.FC = () => {
           </a>
           <a
             className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.slack}
+            href={slack}
             target="_blank"
             rel="noreferrer"
           >
@@ -74,7 +77,7 @@ const HelpView: React.FC = () => {
           </a>
           <a
             className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.github}
+            href={github}
             target="_blank"
             rel="noreferrer"
           >
@@ -85,7 +88,7 @@ const HelpView: React.FC = () => {
           </a>
           <a
             className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.website}
+            href={website}
             target="_blank"
             rel="noreferrer"
           >

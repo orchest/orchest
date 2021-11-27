@@ -1,4 +1,7 @@
+import { OrchestConfig, OrchestServerConfig, OrchestUserConfig } from "@/types";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
+import { IntercomProvider } from "react-use-intercom";
 
 function parseLineBreak(lines: string) {
   if (lines === undefined) return [];
@@ -28,13 +31,26 @@ export type Alert = {
 };
 
 type AppContextState = {
+  config?: OrchestConfig;
+  user_config?: OrchestUserConfig;
+  isLoaded: boolean;
   alerts: Alert[];
+  hasUnsavedChanges: boolean;
 };
 
-type Action = {
-  type: "SET_ALERTS";
-  payload: Alert[];
-};
+type Action =
+  | {
+      type: "SET_ALERTS";
+      payload: Alert[];
+    }
+  | {
+      type: "SET_SERVER_CONFIG";
+      payload: OrchestServerConfig;
+    }
+  | {
+      type: "SET_HAS_UNSAVED_CHANGES";
+      payload: boolean;
+    };
 
 type ActionCallback = (previousState: AppContextState) => Action;
 
@@ -42,13 +58,9 @@ type AppContextAction = Action | ActionCallback;
 
 /**
  * TODO: move the following into this context
- * - user_config
- * - config
- * - unsavedChanges
  * - isDrawer open
  * - orchest.confirm
  * - orchest.requestBuild
- *
  * OrchestContext should only be about projects and pipelines
  */
 
@@ -61,6 +73,7 @@ type AppContext = {
     onClose?: () => void
   ) => void;
   deleteAlert: () => void;
+  setAsSaved: (value?: boolean) => void;
 };
 
 const Context = React.createContext<AppContext | null>(null);
@@ -76,6 +89,23 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
       return { ...state, alerts: action.payload };
     }
 
+    case "SET_SERVER_CONFIG": {
+      const { config, user_config } = action.payload;
+      return {
+        ...state,
+        isLoaded: true,
+        user_config,
+        config,
+      };
+    }
+
+    case "SET_HAS_UNSAVED_CHANGES": {
+      return {
+        ...state,
+        hasUnsavedChanges: action.payload,
+      };
+    }
+
     default: {
       console.error(action);
       return state;
@@ -85,6 +115,8 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
 
 const initialState: AppContextState = {
   alerts: [],
+  isLoaded: false,
+  hasUnsavedChanges: false,
 };
 
 export const AppContextProvider: React.FC = ({ children }) => {
@@ -92,6 +124,39 @@ export const AppContextProvider: React.FC = ({ children }) => {
 
   if (process.env.NODE_ENV === "development" && false)
     console.log("(Dev Mode) useAppContext: state updated", state);
+  /**
+   * =========================== side effects
+   */
+  /**
+   * Complete loading once config has been provided and local storage values
+   * have been achieved
+   */
+  React.useEffect(() => {
+    const fetchServerConfig = async () => {
+      try {
+        const serverConfig = await fetcher<OrchestServerConfig>(
+          "/async/server-config"
+        );
+        dispatch({ type: "SET_SERVER_CONFIG", payload: serverConfig });
+      } catch (error) {
+        console.error(
+          `Failed to fetch server config: ${JSON.stringify(error)}`
+        );
+      }
+    };
+    fetchServerConfig();
+  }, []);
+
+  /**
+   * Handle Unsaved Changes prompt
+   */
+  React.useEffect(() => {
+    window.onbeforeunload = state.hasUnsavedChanges ? () => true : null;
+  }, [state.hasUnsavedChanges]);
+
+  /**
+   * =========================== Action dispatchers
+   */
 
   const setAlert = (
     title: string,
@@ -113,16 +178,23 @@ export const AppContextProvider: React.FC = ({ children }) => {
     }));
   };
 
+  const setAsSaved = (value = true) => {
+    dispatch({ type: "SET_HAS_UNSAVED_CHANGES", payload: !value });
+  };
+
   return (
-    <Context.Provider
-      value={{
-        state,
-        dispatch,
-        setAlert,
-        deleteAlert,
-      }}
-    >
-      {children}
-    </Context.Provider>
+    <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>
+      <Context.Provider
+        value={{
+          state,
+          dispatch,
+          setAlert,
+          deleteAlert,
+          setAsSaved,
+        }}
+      >
+        {children}
+      </Context.Provider>
+    </IntercomProvider>
   );
 };

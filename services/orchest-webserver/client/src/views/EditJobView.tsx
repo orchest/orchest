@@ -6,7 +6,6 @@ import ParameterEditor from "@/components/ParameterEditor";
 import ParamTree from "@/components/ParamTree";
 import SearchableTable from "@/components/SearchableTable";
 import { useAppContext } from "@/contexts/AppContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import type { Job, PipelineJson } from "@/types";
@@ -47,9 +46,9 @@ type EditJobState = {
 
 const EditJobView: React.FC = () => {
   // global states
-  const { orchest } = window;
-  const context = useOrchest();
-  const { setAlert } = useAppContext();
+
+  const appContext = useAppContext();
+  const { setAlert, setAsSaved } = appContext;
 
   // data from route
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();
@@ -102,10 +101,7 @@ const EditJobView: React.FC = () => {
         }));
 
         if (fetchedJob.status === "DRAFT") {
-          context.dispatch({
-            type: "setUnsavedChanges",
-            payload: true,
-          });
+          setAsSaved(false);
         }
       } catch (error) {
         console.error(error);
@@ -236,8 +232,10 @@ const EditJobView: React.FC = () => {
     let strategyJSON = {};
 
     if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
-      strategyJSON[context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY] = {
-        key: context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+      strategyJSON[
+        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      ] = {
+        key: appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
         parameters: generateParameterLists(pipeline.parameters),
         title: pipeline.name,
       };
@@ -398,10 +396,8 @@ const EditJobView: React.FC = () => {
       ...prevState,
       runJobLoading: true,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
+
+    setAsSaved();
 
     let updatedEnvVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
@@ -464,10 +460,7 @@ const EditJobView: React.FC = () => {
           runJobCompleted: true,
         }));
 
-        context.dispatch({
-          type: "setUnsavedChanges",
-          payload: false,
-        });
+        setAsSaved();
       })
       .catch((response: any) => {
         if (!response.isCanceled) {
@@ -479,10 +472,7 @@ const EditJobView: React.FC = () => {
               runJobCompleted: true,
             }));
 
-            context.dispatch({
-              type: "setUnsavedChanges",
-              payload: false,
-            });
+            setAsSaved();
           } catch (error) {
             console.log("error");
           }
@@ -515,10 +505,7 @@ const EditJobView: React.FC = () => {
         return;
       }
 
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: false,
-      });
+      setAsSaved();
 
       let putJobRequest = makeCancelable(
         makeRequest("PUT", `/catch/api-proxy/api/jobs/${job.uuid}`, {
@@ -609,10 +596,7 @@ const EditJobView: React.FC = () => {
       selectedIndices: selectedIndices,
     }));
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const parameterValueOverride = (strategyJSON, parameters) => {
@@ -635,10 +619,7 @@ const EditJobView: React.FC = () => {
       scheduleOption: "cron",
     }));
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const addEnvVariablePair = (e) => {
@@ -649,10 +630,7 @@ const EditJobView: React.FC = () => {
       { name: null, value: null },
     ]);
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onEnvVariablesChange = (value, idx: number, type) => {
@@ -662,10 +640,7 @@ const EditJobView: React.FC = () => {
       return copiedEnvVariables;
     });
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   const onEnvVariablesDeletion = (idx: number) => {
@@ -675,10 +650,7 @@ const EditJobView: React.FC = () => {
       return copiedEnvVariables;
     });
 
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
   // @ts-ignore
@@ -854,10 +826,8 @@ const EditJobView: React.FC = () => {
                             generatedPipelineRunRows,
                             selectedIndices,
                           }));
-                          context.dispatch({
-                            type: "setUnsavedChanges",
-                            payload: true,
-                          });
+
+                          setAsSaved(false);
                         }}
                         strategyJSON={_.cloneDeep(state.strategyJSON)}
                         data-test-id="job-edit"

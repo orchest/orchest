@@ -1,6 +1,6 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
-import { useOrchest } from "./orchest";
 
 // use this hook as a side effect by specifying the parameters, it will fire when the component mounts
 // useSendAnalyticEvent('view load', { name: 'projectsView' });
@@ -13,8 +13,10 @@ const useSendAnalyticEvent = (
   event?: string,
   props?: Record<string, unknown>
 ) => {
-  const context = useOrchest();
-  const shouldSend = !context.state.config?.TELEMETRY_DISABLED;
+  const {
+    state: { config },
+  } = useAppContext();
+  const shouldSend = config?.TELEMETRY_DISABLED === false;
 
   const send = React.useCallback(
     (innerEvent: string, innerProps?: Record<string, unknown>) => {

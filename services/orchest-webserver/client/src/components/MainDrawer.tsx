@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useOrchest } from "@/hooks/orchest";
 import { MDCDrawer } from "@material/drawer";
 import React, { useRef } from "react";
@@ -72,6 +73,7 @@ const getItemKey = (item: { label: string; icon: string; path: string }) =>
 
 const MainDrawer: React.FC = () => {
   const context = useOrchest();
+  const appContext = useAppContext();
   const projectUuid = context.state.projectUuid;
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
@@ -84,10 +86,7 @@ const MainDrawer: React.FC = () => {
       if (macDrawerRef.current)
         macDrawerRef.current.open = context.state.drawerIsOpen;
 
-      if (
-        context.state?.config?.CLOUD === true &&
-        window.Intercom !== undefined
-      ) {
+      if (appContext.state.config?.CLOUD && window.Intercom !== undefined) {
         // show Intercom widget
         window.Intercom("update", {
           hide_default_launcher: !context.state?.drawerIsOpen,

@@ -1,4 +1,4 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import {
   Alert,
   AlertDescription,
@@ -16,7 +16,9 @@ export interface IParamTreeProps {
 }
 
 const ParamTree: React.FC<IParamTreeProps> = (props) => {
-  const context = useOrchest();
+  const {
+    state: { config },
+  } = useAppContext();
 
   const truncateParameterValue = (value) => {
     // stringify non string values
@@ -85,7 +87,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
 
     // first list pipeline parameters
     let pipelineParameterization =
-      strategyJSON[context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY];
+      strategyJSON[config?.PIPELINE_PARAMETERS_RESERVED_KEY];
     if (pipelineParameterization) {
       pipelineParameterElement = generateParameterElement(
         pipelineParameterization,
@@ -94,7 +96,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
     }
 
     for (const stepUUID in strategyJSON) {
-      if (stepUUID == context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
+      if (stepUUID == config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
         continue;
       }
 

@@ -90,7 +90,6 @@ export interface IOrchestState
     Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
     "projectUuid" | "pipelineUuid"
   > {
-  isLoading: boolean;
   drawerIsOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
@@ -98,9 +97,6 @@ export interface IOrchestState
   pipelineSaveStatus: "saved" | "saving";
   projects: Project[];
   hasLoadedProjects: boolean;
-  config?: OrchestConfig;
-  user_config?: OrchestUserConfig;
-  unsavedChanges: boolean;
 }
 
 export type OrchestAction =
@@ -128,8 +124,7 @@ export type OrchestAction =
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];
     }
-  | { type: "drawerToggle" }
-  | { type: "setUnsavedChanges"; payload: IOrchestState["unsavedChanges"] };
+  | { type: "drawerToggle" };
 
 export interface IOrchestContext {
   state: IOrchestState;

@@ -168,8 +168,6 @@ const ProjectFilePicker: React.FC<any> = (props) => {
   const getFullProjectPath = () =>
     state.createFileDir + state.fileName + state.selectedExtension;
 
-  const onCancelModal = () => refManager.refs.createFileDialog.close();
-
   const onCloseCreateFileModal = () =>
     setState((prevState) => ({
       ...prevState,
@@ -305,7 +303,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
             icon="close"
             label="Cancel"
             classNames={["push-right"]}
-            onClick={onCancelModal}
+            onClick={onCloseCreateFileModal}
           />
           <MDCButtonReact
             icon="add"
