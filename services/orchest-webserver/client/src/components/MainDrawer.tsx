@@ -71,7 +71,7 @@ const MenuItem: React.FC<{ item: ItemData; id: string; exact?: boolean }> = ({
 const getItemKey = (item: { label: string; icon: string; path: string }) =>
   `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
 
-const MainDrawer: React.FC = () => {
+const MainDrawer: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
   const context = useOrchest();
   const appContext = useAppContext();
   const projectUuid = context.state.projectUuid;
@@ -83,23 +83,22 @@ const MainDrawer: React.FC = () => {
 
   React.useEffect(() => {
     if (drawerRef.current) {
-      if (macDrawerRef.current)
-        macDrawerRef.current.open = context.state.drawerIsOpen;
+      if (macDrawerRef.current) macDrawerRef.current.open = isOpen;
 
       if (appContext.state.config?.CLOUD && window.Intercom !== undefined) {
         // show Intercom widget
         window.Intercom("update", {
-          hide_default_launcher: !context.state?.drawerIsOpen,
+          hide_default_launcher: !isOpen,
         });
       }
     }
-  }, [context.state.drawerIsOpen]);
+  }, [isOpen]);
 
   React.useEffect(() => {
     if (drawerRef.current) {
       const initMDCDrawer = new MDCDrawer(drawerRef.current);
 
-      initMDCDrawer.open = context.state.drawerIsOpen;
+      initMDCDrawer.open = isOpen;
       initMDCDrawer.list.singleSelection = true;
 
       initMDCDrawer.listen("MDCDrawer:opened", () => {

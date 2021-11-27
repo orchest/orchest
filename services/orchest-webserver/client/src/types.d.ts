@@ -90,7 +90,6 @@ export interface IOrchestState
     Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
     "projectUuid" | "pipelineUuid"
   > {
-  drawerIsOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
@@ -123,8 +122,7 @@ export type OrchestAction =
   | {
       type: "pipelineUpdateReadOnlyState";
       payload: IOrchestState["pipelineIsReadOnly"];
-    }
-  | { type: "drawerToggle" };
+    };
 
 export interface IOrchestContext {
   state: IOrchestState;

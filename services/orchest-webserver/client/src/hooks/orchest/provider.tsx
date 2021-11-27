@@ -1,7 +1,6 @@
 import type { IOrchestState, OrchestAction } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import { useLocalStorage } from "../local-storage";
 import { OrchestContext } from "./context";
 
 type OrchestActionCallback = (currentState: IOrchestState) => OrchestAction;
@@ -11,8 +10,6 @@ const reducer = (state: IOrchestState, _action: OrchestContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
-    case "drawerToggle":
-      return { ...state, drawerIsOpen: !state.drawerIsOpen };
     case "pipelineClear":
       return {
         ...state,
@@ -44,23 +41,10 @@ const initialState: IOrchestState = {
   projectUuid: undefined,
   projects: [],
   hasLoadedProjects: false,
-  drawerIsOpen: true,
 };
 
 export const OrchestProvider: React.FC = ({ children }) => {
-  const [drawerIsOpen, setDrawerIsOpen] = useLocalStorage("drawer", true);
-
-  const [state, dispatch] = React.useReducer(reducer, {
-    ...initialState,
-    drawerIsOpen,
-  });
-
-  /**
-   * Sync Local Storage
-   */
-  React.useEffect(() => {
-    setDrawerIsOpen(state?.drawerIsOpen);
-  }, [state.drawerIsOpen]);
+  const [state, dispatch] = React.useReducer(reducer, initialState);
 
   return (
     <OrchestContext.Provider

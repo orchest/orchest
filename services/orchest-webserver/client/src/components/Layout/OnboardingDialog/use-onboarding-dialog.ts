@@ -1,5 +1,5 @@
-import { useLocalStorage } from "@/hooks/local-storage";
 import { useProjects } from "@/hooks/projects";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import * as React from "react";
 import useSWR from "swr";
 

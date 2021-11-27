@@ -10,6 +10,7 @@ import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
 import { useAppContext } from "./contexts/AppContext";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
 import Jupyter from "./jupyter/Jupyter";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -35,6 +36,9 @@ window.$ = $;
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
   const { boot } = useIntercom();
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+
+  const toggleDrawer = () => setIsDrawerOpen((currentValue) => !currentValue);
 
   const sendEvent = useSendAnalyticEvent();
 
@@ -130,9 +134,9 @@ const App = () => {
       }}
     >
       <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
-      <HeaderBar />
+      <HeaderBar toggleDrawer={toggleDrawer} />
       <div className="app-container" data-test-id="app">
-        <MainDrawer />
+        <MainDrawer isOpen={isDrawerOpen} />
         <main className="main-content" id="main-content">
           <Routes />
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />

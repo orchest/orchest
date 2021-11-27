@@ -17,9 +17,12 @@ import SessionToggleButton from "./SessionToggleButton";
 // HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
 export type THeaderBarRef = HTMLDivElement;
 
-export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
+export const HeaderBar = (
+  { toggleDrawer }: { toggleDrawer: () => void },
+  ref: React.MutableRefObject<null>
+) => {
   const { navigateTo } = useCustomRoute();
-  const { state, dispatch } = useOrchest();
+  const { state } = useOrchest();
   const appContext = useAppContext();
   const {
     state: { sessions },
@@ -71,7 +74,7 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
         <button
           onClick={(e) => {
             e.preventDefault();
-            dispatch({ type: "drawerToggle" });
+            toggleDrawer();
           }}
           className="material-icons mdc-icon-button"
         >
