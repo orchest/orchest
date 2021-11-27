@@ -179,10 +179,10 @@ const EnvironmentEditView: React.FC = () => {
     };
 
     if (!validEnvironmentName(environment.name)) {
-      setAlert({
-        content:
-          'Double quotation marks in the "Environment name" have to be escaped using a backslash.',
-      });
+      setAlert(
+        "Error",
+        'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
+      );
     } else {
       e.preventDefault();
       save();
@@ -360,9 +360,10 @@ const EnvironmentEditView: React.FC = () => {
           }));
         });
     } else {
-      setAlert({
-        content: "Could not cancel build, please try again in a few seconds.",
-      });
+      setAlert(
+        "Error",
+        "Could not cancel build, please try again in a few seconds."
+      );
     }
   };
 

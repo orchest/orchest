@@ -155,9 +155,10 @@ const ConfigureJupyterLabView: React.FC = () => {
           }));
         });
     } else {
-      setAlert({
-        content: "Could not cancel build, please try again in a few seconds.",
-      });
+      setAlert(
+        "Error",
+        "Could not cancel build, please try again in a few seconds."
+      );
     }
   };
 

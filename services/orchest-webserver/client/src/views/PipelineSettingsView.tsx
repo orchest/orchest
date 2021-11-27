@@ -547,9 +547,10 @@ const PipelineSettingsView: React.FC = () => {
 
       for (let envVariableName of Object.keys(service.env_variables)) {
         if (!isValidEnvironmentVariableName(envVariableName)) {
-          setAlert({
-            content: `Invalid environment variable name: "${envVariableName}" in service "${service.name}".`,
-          });
+          setAlert(
+            "Error",
+            `Invalid environment variable name: "${envVariableName}" in service "${service.name}".`
+          );
           return false;
         }
       }
@@ -565,7 +566,7 @@ const PipelineSettingsView: React.FC = () => {
 
     let validationResult = validatePipeline(pipelineJson);
     if (!validationResult.valid) {
-      setAlert({ content: validationResult.errors[0] });
+      setAlert("Error", validationResult.errors[0]);
       return;
     }
 
@@ -577,7 +578,7 @@ const PipelineSettingsView: React.FC = () => {
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables.status === "rejected") {
-      setAlert({ content: envVariables.error });
+      setAlert("Error", envVariables.error);
       onSelectSubview(1);
       return;
     }
@@ -585,9 +586,10 @@ const PipelineSettingsView: React.FC = () => {
     // Validate pipeline level environment variables
     for (let envVariableName of Object.keys(envVariables.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
-        setAlert({
-          content: `Invalid environment variable name: "${envVariableName}".`,
-        });
+        setAlert(
+          "Error",
+          `Invalid environment variable name: "${envVariableName}".`
+        );
         onSelectSubview(1);
         return;
       }
@@ -674,7 +676,7 @@ const PipelineSettingsView: React.FC = () => {
               console.error(error);
             }
 
-            setAlert({ content: errorMessage });
+            setAlert("Error", errorMessage);
 
             setState((prevState) => ({
               ...prevState,

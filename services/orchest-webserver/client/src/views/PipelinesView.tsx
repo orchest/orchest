@@ -6,6 +6,7 @@ import React from "react";
 
 const PipelinesView: React.FC = () => {
   const { projectUuid } = useCustomRoute();
+
   return (
     <Layout>
       <ProjectBasedView projectUuid={projectUuid}>

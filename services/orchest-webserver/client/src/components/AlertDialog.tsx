@@ -10,8 +10,8 @@ import React from "react";
 
 const AlertDialog: React.FC = ({}) => {
   const { state, deleteAlert } = useAppContext();
-  const sendEvent = useSendAnalyticEvent;
   const alert = state.alerts.length > 0 ? state.alerts[0] : null;
+  const sendEvent = useSendAnalyticEvent();
 
   React.useEffect(() => {
     if (alert) {

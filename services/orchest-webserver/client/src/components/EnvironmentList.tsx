@@ -161,9 +161,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
           console.error(e);
         }
 
-        setAlert({
-          content: `Deleting environment '${environmentName}' failed. ${errorMessage}`,
-        });
+        setAlert(
+          "Error",
+          `Deleting environment '${environmentName}' failed. ${errorMessage}`
+        );
       });
   };
 
@@ -181,10 +182,10 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         ).then((response: string) => {
           let data = JSON.parse(response);
           if (data.environment_builds.some((x) => x.status == "SUCCESS")) {
-            setAlert({
-              content:
-                "Environments cannot be deleted with a running interactive session.",
-            });
+            setAlert(
+              "Error",
+              "Environments cannot be deleted with a running interactive session."
+            );
           } else {
             _removeEnvironment(projectUuid, environmentUuid, environmentName);
           }
@@ -230,9 +231,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       let selectedIndices = refManager.refs.environmentListView.getSelectedRowIndices();
 
       if (selectedIndices.length === 0) {
-        setAlert({
-          content: "You haven't selected any environments.",
-        });
+        setAlert("Error", "You haven't selected any environments.");
 
         setState((prevState) => ({
           ...prevState,

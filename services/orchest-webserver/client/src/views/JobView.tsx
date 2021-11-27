@@ -292,10 +292,10 @@ const JobView: React.FC = () => {
 
   const onDetailPipelineView = (pipelineRun) => {
     if (pipelineRun.status == "PENDING") {
-      setAlert({
-        content:
-          "This pipeline is still pending. Please wait until pipeline run has started.",
-      });
+      setAlert(
+        "Error",
+        "This pipeline is still pending. Please wait until pipeline run has started."
+      );
 
       return;
     }
@@ -476,9 +476,7 @@ const JobView: React.FC = () => {
               try {
                 let result = JSON.parse(response.body);
                 setTimeout(() => {
-                  setAlert({
-                    content: `Failed to create job. ${result.message}`,
-                  });
+                  setAlert("Error", `Failed to create job. ${result.message}`);
                 });
               } catch (error) {
                 console.log(error);

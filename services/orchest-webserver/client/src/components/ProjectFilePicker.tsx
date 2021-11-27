@@ -188,15 +188,14 @@ const ProjectFilePicker: React.FC<any> = (props) => {
 
     // TODO: case insensitive extension checking?
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
-      setAlert({
-        content: (
-          <div>
-            <p>Invalid file extension</p>
-            Extension {extension} is not in allowed set of{" "}
-            {allowedExtensionsMarkup()}.
-          </div>
-        ),
-      });
+      setAlert(
+        "Error",
+        <div>
+          <p>Invalid file extension</p>
+          Extension {extension} is not in allowed set of{" "}
+          {allowedExtensionsMarkup()}.
+        </div>
+      );
 
       return;
     }
@@ -231,9 +230,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
       })
       .catch((error) => {
         if (error.status == 409) {
-          setAlert({
-            content: "A file with this name already exists.",
-          });
+          setAlert("Error", "A file with this name already exists.");
         }
         console.log(error);
       });

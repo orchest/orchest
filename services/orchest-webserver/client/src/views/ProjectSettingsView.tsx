@@ -77,16 +77,17 @@ const ProjectSettingsView: React.FC = () => {
     let envVariables = envVariablesArrayToDict(state.envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables.status === "rejected") {
-      setAlert({ content: envVariables.error });
+      setAlert("Error", envVariables.error);
       return;
     }
 
     // Validate environment variable names
     for (let envVariableName of Object.keys(envVariables.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
-        setAlert({
-          content: `Invalid environment variable name: "${envVariableName}".`,
-        });
+        setAlert(
+          "Error",
+          `Invalid environment variable name: "${envVariableName}".`
+        );
         return;
       }
     }

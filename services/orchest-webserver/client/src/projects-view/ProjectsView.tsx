@@ -100,14 +100,15 @@ const ProjectsView: React.FC = () => {
           let resp = JSON.parse(e.body);
 
           if (resp.code == 0) {
-            setAlert({
-              content:
-                "Cannot rename project when an interactive session is running.",
-            });
+            setAlert(
+              "Error",
+              "Cannot rename project when an interactive session is running."
+            );
           } else if (resp.code == 1) {
-            setAlert({
-              content: `Cannot rename project, a project with the name "${state.editProjectPath}" already exists.`,
-            });
+            setAlert(
+              "Error",
+              `Cannot rename project, a project with the name "${state.editProjectPath}" already exists.`
+            );
           }
         } catch (error) {
           console.error(e);
@@ -217,9 +218,7 @@ const ProjectsView: React.FC = () => {
       let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
 
       if (selectedIndices.length === 0) {
-        setAlert({
-          content: "You haven't selected a project.",
-        });
+        setAlert("Error", "You haven't selected a project.");
 
         setState((prevState) => ({
           ...prevState,
@@ -282,13 +281,9 @@ const ProjectsView: React.FC = () => {
       try {
         let data = JSON.parse(response.body);
 
-        setAlert({
-          content: `Could not delete project. ${data.message}`,
-        });
+        setAlert("Error", `Could not delete project. ${data.message}`);
       } catch {
-        setAlert({
-          content: "Could not delete project. Reason unknown.",
-        });
+        setAlert("Error", "Could not delete project. Reason unknown.");
       }
     });
 
@@ -322,9 +317,9 @@ const ProjectsView: React.FC = () => {
         try {
           let data = JSON.parse(response.body);
 
-          setAlert({ content: `Could not create project. ${data.message}` });
+          setAlert("Error", `Could not create project. ${data.message}`);
         } catch {
-          setAlert({ content: "Could not create project. Reason unknown." });
+          setAlert("Error", "Could not create project. Reason unknown.");
         }
       })
       .finally(() => {
@@ -356,9 +351,10 @@ const ProjectsView: React.FC = () => {
   const validateProjectNameAndAlert = (projectName) => {
     let projectNameValidation = validProjectName(projectName);
     if (!projectNameValidation.valid) {
-      setAlert({
-        content: `Please make sure you enter a valid project name. ${projectNameValidation.reason}`,
-      });
+      setAlert(
+        "Error",
+        `Please make sure you enter a valid project name. ${projectNameValidation.reason}`
+      );
     }
     return projectNameValidation.valid;
   };

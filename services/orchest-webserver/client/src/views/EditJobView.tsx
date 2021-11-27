@@ -384,7 +384,7 @@ const EditJobView: React.FC = () => {
     if (validation.pass === true) {
       runJob();
     } else {
-      setAlert({ content: validation.reason });
+      setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
         onSelectSubview(validation.selectView);
       }
@@ -406,7 +406,7 @@ const EditJobView: React.FC = () => {
     let updatedEnvVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
     if (updatedEnvVariables.status === "rejected") {
-      setAlert({ content: updatedEnvVariables.error });
+      setAlert("Error", updatedEnvVariables.error);
       setState((prevState) => ({
         ...prevState,
         runJobLoading: false,
@@ -473,7 +473,7 @@ const EditJobView: React.FC = () => {
         if (!response.isCanceled) {
           try {
             let result = JSON.parse(response.body);
-            setAlert({ content: `Failed to start job. ${result.message}` });
+            setAlert("Error", `Failed to start job. ${result.message}`);
             setState((prevState) => ({
               ...prevState,
               runJobCompleted: true,
@@ -510,7 +510,7 @@ const EditJobView: React.FC = () => {
       let updatedEnvVariables = envVariablesArrayToDict(envVariables);
       // Do not go through if env variables are not correctly defined.
       if (updatedEnvVariables.status === "rejected") {
-        setAlert({ content: updatedEnvVariables.error });
+        setAlert("Error", updatedEnvVariables.error);
         onSelectSubview(2);
         return;
       }
@@ -547,7 +547,7 @@ const EditJobView: React.FC = () => {
           console.error(error);
         });
     } else {
-      setAlert({ content: validation.reason });
+      setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
         onSelectSubview(validation.selectView);
       }

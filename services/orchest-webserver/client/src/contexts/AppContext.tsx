@@ -55,7 +55,11 @@ type AppContextAction = Action | ActionCallback;
 type AppContext = {
   state: AppContextState;
   dispatch: React.Dispatch<AppContextAction>;
-  setAlert: (alert: Alert) => void;
+  setAlert: (
+    title: string,
+    content: string | JSX.Element | JSX.Element[],
+    onClose?: () => void
+  ) => void;
   deleteAlert: () => void;
 };
 
@@ -89,15 +93,16 @@ export const AppContextProvider: React.FC = ({ children }) => {
   if (process.env.NODE_ENV === "development" && false)
     console.log("(Dev Mode) useAppContext: state updated", state);
 
-  const setAlert = ({ title = "Error", content, onClose }: Alert) => {
+  const setAlert = (
+    title: string,
+    content: string | JSX.Element | JSX.Element[],
+    onClose?: () => void
+  ) => {
     const parsedContent =
       typeof content === "string" ? parseLineBreak(content) : content;
     dispatch((store) => ({
       type: "SET_ALERTS",
-      payload: [
-        ...store.alerts,
-        { title: title, content: parsedContent, onClose },
-      ],
+      payload: [...store.alerts, { title, content: parsedContent, onClose }],
     }));
   };
 

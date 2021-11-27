@@ -156,7 +156,7 @@ const SettingsView: React.FC = () => {
       })
         .catch((e) => {
           console.error(e);
-          setAlert({ content: JSON.parse(e.body).message });
+          setAlert("Error", JSON.parse(e.body).message);
         })
         .then((data: string) => {
           try {

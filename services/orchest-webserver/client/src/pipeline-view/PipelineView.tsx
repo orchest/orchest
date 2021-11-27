@@ -315,7 +315,7 @@ const PipelineView: React.FC = () => {
       // if invalid
       if (pipelineValidation.valid !== true) {
         // Just show the first error
-        setAlert({ content: pipelineValidation.errors[0] });
+        setAlert("Error", pipelineValidation.errors[0]);
       } else {
         // store pipeline.json
         let formData = new FormData();
@@ -691,10 +691,10 @@ const PipelineView: React.FC = () => {
         }
 
         if (connectionCreatesCycle) {
-          setAlert({
-            content:
-              "Connecting this step will create a cycle in your pipeline which is not supported.",
-          });
+          setAlert(
+            "Error",
+            "Connecting this step will create a cycle in your pipeline which is not supported."
+          );
         }
 
         if (
@@ -715,10 +715,10 @@ const PipelineView: React.FC = () => {
           removeConnection(state.eventVars.newConnection);
 
           if (!noConnectionExists) {
-            setAlert({
-              content:
-                "These steps are already connected. No new connection has been created.",
-            });
+            setAlert(
+              "Error",
+              "These steps are already connected. No new connection has been created."
+            );
           }
         }
 
@@ -1184,11 +1184,11 @@ const PipelineView: React.FC = () => {
             // cannot be found. Alert the user about missing pipeline and return
             // to JobView.
 
-            setAlert({
-              content:
-                "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-              onClose: returnToJob,
-            });
+            setAlert(
+              "Error",
+              "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+              returnToJob
+            );
           } else {
             console.error("Could not load pipeline.json");
             console.error(error);
@@ -1456,10 +1456,10 @@ const PipelineView: React.FC = () => {
 
   const openNotebook = (stepUUID: string) => {
     if (session === undefined) {
-      setAlert({
-        content:
-          "Please start the session before opening the Notebook in Jupyter.",
-      });
+      setAlert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter."
+      );
     } else if (session.status === "RUNNING") {
       navigateTo(siteMap.jupyterLab.path, {
         query: {
@@ -1474,15 +1474,15 @@ const PipelineView: React.FC = () => {
         ).slice(1)
       );
     } else if (session.status === "LAUNCHING") {
-      setAlert({
-        content:
-          "Please wait for the session to start before opening the Notebook in Jupyter.",
-      });
+      setAlert(
+        "Error",
+        "Please wait for the session to start before opening the Notebook in Jupyter."
+      );
     } else {
-      setAlert({
-        content:
-          "Please start the session before opening the Notebook in Jupyter.",
-      });
+      setAlert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter."
+      );
     }
   };
 
@@ -1743,7 +1743,7 @@ const PipelineView: React.FC = () => {
 
   const cancelRun = () => {
     if (!state.pipelineRunning) {
-      setAlert({ content: "There is no pipeline running." });
+      setAlert("Error", "There is no pipeline running.");
       return;
     }
 
@@ -1755,10 +1755,11 @@ const PipelineView: React.FC = () => {
           waitingOnCancel: true,
         });
       })
-      .catch((response) => {
-        setAlert({
-          content: `Could not cancel pipeline run for runUuid ${runUuid}`,
-        });
+      .catch(() => {
+        setAlert(
+          "Error",
+          `Could not cancel pipeline run for runUuid ${runUuid}`
+        );
       });
   };
 
@@ -1803,13 +1804,15 @@ const PipelineView: React.FC = () => {
 
           try {
             let data = JSON.parse(response.body);
-            setAlert({
-              content: `Failed to start interactive run. ${data["message"]}`,
-            });
+            setAlert(
+              "Error",
+              `Failed to start interactive run. ${data["message"]}`
+            );
           } catch {
-            setAlert({
-              content: "Failed to start interactive run. Unknown error.",
-            });
+            setAlert(
+              "Error",
+              "Failed to start interactive run. Unknown error."
+            );
           }
         }
       });
@@ -1817,17 +1820,18 @@ const PipelineView: React.FC = () => {
 
   const runStepUUIDs = (uuids, type) => {
     if (!session || session.status !== "RUNNING") {
-      setAlert({
-        content: "There is no active session. Please start the session first.",
-      });
+      setAlert(
+        "Error",
+        "There is no active session. Please start the session first."
+      );
       return;
     }
 
     if (state.pipelineRunning) {
-      setAlert({
-        content:
-          "The pipeline is currently executing, please wait until it completes.",
-      });
+      setAlert(
+        "Error",
+        "The pipeline is currently executing, please wait until it completes."
+      );
       return;
     }
 

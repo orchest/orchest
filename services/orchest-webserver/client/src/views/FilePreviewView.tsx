@@ -257,10 +257,10 @@ const FilePreviewView: React.FC = () => {
         }
       })
       .catch(() => {
-        setAlert({
-          content:
-            "Failed to load file. Make sure the path of the pipeline step is correct.",
-        });
+        setAlert(
+          "Error",
+          "Failed to load file. Make sure the path of the pipeline step is correct."
+        );
       });
   };
 

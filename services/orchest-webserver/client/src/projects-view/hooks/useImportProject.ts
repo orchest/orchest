@@ -1,4 +1,4 @@
-import { Alert, useAppContext } from "@/contexts/AppContext";
+import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { makeRequest, validURL } from "@orchest/lib-utils";
@@ -26,7 +26,7 @@ const validateImportData = ({
 }: {
   importUrl: string;
   projectName: string;
-  setAlert: (alert: Alert) => void;
+  setAlert: (title: string, content: string) => void;
 }) => {
   const invalidUrl = !validURL(importUrl) || !importUrl.startsWith("https://");
   const projectNameValidation = validProjectName(projectName);
@@ -37,7 +37,7 @@ const validateImportData = ({
       ? "Please make sure you enter a valid HTTPS git-repo URL."
       : projectNameValidation.reason;
 
-    setAlert({ content: reason });
+    setAlert("Error", reason);
     return false;
   }
   return true;

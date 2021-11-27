@@ -166,9 +166,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       let selectedIndices = refManager.refs.pipelineListView.getSelectedRowIndices();
 
       if (selectedIndices.length === 0) {
-        setAlert({
-          content: "You haven't selected a pipeline.",
-        });
+        setAlert("Error", "You haven't selected a pipeline.");
 
         setState((prevState) => ({
           ...prevState,
@@ -236,9 +234,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const onSubmitEditPipelinePathModal = () => {
     if (!pipelineInEdit) return;
     if (!pipelineInEdit.path.endsWith(".orchest")) {
-      setAlert({
-        content: "The path should end in the .orchest extension.",
-      });
+      setAlert("Error", "The path should end in the .orchest extension.");
 
       return;
     }
@@ -267,9 +263,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         try {
           let resp = JSON.parse(e.body);
 
-          setAlert({
-            content: getErrorMessages(pipelineInEdit.path)[resp.code],
-          });
+          setAlert("Error", getErrorMessages(pipelineInEdit.path)[resp.code]);
         } catch (error) {
           console.error(error);
         }
@@ -296,23 +290,17 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     let pipelinePath = state.createPipelinePath;
 
     if (!pipelineName) {
-      setAlert({
-        content: "Please enter a name.",
-      });
+      setAlert("Error", "Please enter a name.");
       return;
     }
 
     if (!pipelinePath) {
-      setAlert({
-        content: "Please enter the path for the pipeline.",
-      });
+      setAlert("Error", "Please enter the path for the pipeline.");
       return;
     }
 
     if (!pipelinePath.endsWith(".orchest")) {
-      setAlert({
-        content: "The path should end in the .orchest extension.",
-      });
+      setAlert("Error", "The path should end in the .orchest extension.");
       return;
     }
 
@@ -346,13 +334,9 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           try {
             let data = JSON.parse(response.body);
 
-            setAlert({
-              content: `Could not create pipeline. ${data.message}`,
-            });
+            setAlert("Error", `Could not create pipeline. ${data.message}`);
           } catch {
-            setAlert({
-              content: "Could not create pipeline. Reason unknown.",
-            });
+            setAlert("Error", "Could not create pipeline. Reason unknown.");
           }
 
           setState((prevState) => ({

@@ -250,9 +250,10 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         .then((sessionDetails) => mutateSession(sessionDetails))
         .catch((err) => {
           if (err?.message) {
-            appContext.setAlert({
-              content: `Error while starting the session: ${err.message}`,
-            });
+            appContext.setAlert(
+              "Error",
+              `Error while starting the session: ${err.message}`
+            );
           }
 
           console.error(err);
@@ -268,11 +269,12 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
      * disabling buttons – but it's here just in case.
      */
     if (isWorking(session.status)) {
-      appContext.setAlert({
-        content: `Please wait, the pipeline session is still ${
+      appContext.setAlert(
+        "Error",
+        `Please wait, the pipeline session is still ${
           { STARTING: "launching", STOPPING: "shutting down" }[session.status]
-        }.`,
-      });
+        }.`
+      );
 
       dispatch({ type: "_sessionsToggleClear" });
       return;
