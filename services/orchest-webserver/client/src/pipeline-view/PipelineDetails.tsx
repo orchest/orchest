@@ -1,3 +1,4 @@
+import { useDragElement } from "@/hooks/useDragElement";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
@@ -6,20 +7,17 @@ import PipelineDetailsLogs from "./PipelineDetailsLogs";
 import PipelineDetailsProperties from "./PipelineDetailsProperties";
 
 const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
-  const { $ } = window;
-
-  const [storedPaneWidth, setStoredPaneWidth] = useLocalStorage(
-    "pipelinedetails.paneWidth",
+  const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
+    "pipelinedetails.panelWidth",
     450
   );
 
-  const [, setIsDragging] = React.useState(false);
-  const [eventVars] = React.useState({
+  const eventVars = React.useRef({
     prevClientX: 0,
     cumulativeDeltaX: 0,
   });
 
-  const [paneWidth, setPaneWidth] = React.useState(storedPaneWidth);
+  const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
 
   const [subViewIndex, setSubViewIndex] = React.useState(defaultViewIndex);
 
@@ -29,98 +27,65 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
   const onOpenFilePreviewView = (step_uuid: string) =>
     props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
 
-  const onMouseMove = (e) => {
-    let prevClientX = eventVars.prevClientX;
-    eventVars.prevClientX = e.clientX;
-    eventVars.cumulativeDeltaX += e.clientX - prevClientX;
+  const onStartDragging = React.useCallback((e: React.MouseEvent) => {
+    eventVars.current.prevClientX = e.clientX;
+    eventVars.current.cumulativeDeltaX = 0;
+  }, []);
 
-    setIsDragging((isDragging) => {
-      if (isDragging) {
-        setPaneWidth((prevPaneWidth) => {
-          let newPaneWidth = Math.max(
-            0,
-            Math.max(50, prevPaneWidth - eventVars.cumulativeDeltaX)
-          );
-
-          eventVars.cumulativeDeltaX = 0;
-          return newPaneWidth;
-        });
-      }
-      return isDragging;
+  const onDragging = React.useCallback((e) => {
+    eventVars.current.cumulativeDeltaX +=
+      e.clientX - eventVars.current.prevClientX;
+    eventVars.current.prevClientX = e.clientX;
+    setPanelWidth((prevPanelWidth) => {
+      let newPanelWidth = Math.max(
+        50, // panelWidth min: 50px
+        prevPanelWidth - eventVars.current.cumulativeDeltaX
+      );
+      eventVars.current.cumulativeDeltaX = 0;
+      return newPanelWidth;
     });
-  };
+  }, []);
 
-  const onMouseUp = () => {
-    onColumnResizeMouseUp();
-  };
-
-  const onMouseDown = (e) => {
-    eventVars.prevClientX = e.clientX;
-  };
-
-  const onColumnResizeMouseUp = () => {
-    // This pattern allows you to use the latest state
-    // value in event handlers that are captured
-    // when the functional component is first initialized.
-    setIsDragging((isDragging) => {
-      if (isDragging) {
-        setPaneWidth((paneWidth) => {
-          setStoredPaneWidth(paneWidth);
-          return paneWidth;
-        });
-        return false;
-      } else {
-        return isDragging;
-      }
+  const onStopDragging = React.useCallback(() => {
+    setPanelWidth((panelWidth) => {
+      setStoredPanelWidth(panelWidth);
+      return panelWidth;
     });
-  };
+  }, [setStoredPanelWidth]);
 
-  // TODO: refactor to use OverflowListener
-  const overflowChecks = () => {
-    $(".overflowable").each(function () {
-      if ($(this).overflowing()) {
-        $(this).addClass("overflown");
-      } else {
-        $(this).removeClass("overflown");
+  const startDragging = useDragElement({
+    onStartDragging,
+    onDragging,
+    onStopDragging,
+  });
+
+  const overflowable = React.useRef<HTMLDivElement>();
+  const onOverflown = React.useCallback(() => {
+    if (overflowable.current) {
+      overflowable.current.classList.add("overflown");
+    }
+  }, []);
+
+  React.useEffect(() => {
+    window.addEventListener("overflow", onOverflown, false);
+    const overflowableElement = overflowable.current;
+    return () => {
+      window.removeEventListener("overflow", onOverflown);
+      if (overflowableElement) {
+        overflowableElement.classList.remove("overflown");
       }
-    });
-  };
+    };
+  }, [onOverflown]);
 
   const onSelectSubView = (index) => {
     setSubViewIndex(index);
     props.onChangeView(index);
   };
 
-  const onColumnResizeMouseDown = () => {
-    eventVars.cumulativeDeltaX = 0;
-    setIsDragging(true);
-  };
-
-  React.useEffect(() => {
-    // overflow checks
-    overflowChecks();
-
-    $(window).on("resize.pipelineDetails", overflowChecks);
-    $(window).on("mousemove.pipelineDetails", onMouseMove);
-    $(window).on("mousedown.pipelineDetails", onMouseDown);
-    $(window).on("mouseup.pipelineDetails", onMouseUp);
-
-    return () => {
-      $(window).off("resize.pipelineDetails");
-      $(window).off("mousemove.pipelineDetails");
-      $(window).off("mousedown.pipelineDetails");
-      $(window).off("mouseup.pipelineDetails");
-    };
-  }, []);
-
   return (
-    <div className="pipeline-details pane" style={{ width: paneWidth + "px" }}>
-      <div
-        className="col-drag-resize"
-        onMouseDown={onColumnResizeMouseDown}
-        onMouseUp={onMouseUp}
-      />
-      <div className={"overflowable"}>
+    <div className="pipeline-details pane" style={{ width: panelWidth + "px" }}>
+      <div className="col-drag-resize" onMouseDown={startDragging} />
+      <div ref={overflowable} className={"overflowable"}>
         <div className="input-group">
           <MDCTabBarReact
             ref={refManager.nrefs.tabBar}
