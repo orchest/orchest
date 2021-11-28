@@ -1,12 +1,46 @@
-import type { IOrchestState, OrchestAction } from "@/types";
+import type { IProjectsContext, IProjectsContextState, Project } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import { OrchestContext } from "./context";
 
-type OrchestActionCallback = (currentState: IOrchestState) => OrchestAction;
-type OrchestContextAction = OrchestAction | OrchestActionCallback;
+export const ProjectsContext = React.createContext<IProjectsContext>(null);
 
-const reducer = (state: IOrchestState, _action: OrchestContextAction) => {
+export const useProjectsContext = () => React.useContext(ProjectsContext);
+
+type Action =
+  | { type: "pipelineClear" }
+  | {
+      type: "pipelineSet";
+      payload: Partial<
+        Pick<
+          IProjectsContextState,
+          "pipelineUuid" | "projectUuid" | "pipelineName"
+        >
+      >;
+    }
+  | {
+      type: "pipelineSetSaveStatus";
+      payload: IProjectsContextState["pipelineSaveStatus"];
+    }
+  | {
+      type: "projectSet";
+      payload: IProjectsContextState["projectUuid"];
+    }
+  | {
+      type: "projectsSet";
+      payload: Project[];
+    }
+  | {
+      type: "pipelineUpdateReadOnlyState";
+      payload: IProjectsContextState["pipelineIsReadOnly"];
+    };
+
+type ActionCallback = (currentState: IProjectsContextState) => Action;
+type ProjectsContextAction = Action | ActionCallback;
+
+const reducer = (
+  state: IProjectsContextState,
+  _action: ProjectsContextAction
+) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
@@ -32,7 +66,7 @@ const reducer = (state: IOrchestState, _action: OrchestContextAction) => {
   }
 };
 
-const initialState: IOrchestState = {
+const initialState: IProjectsContextState = {
   pipelineFetchHash: null,
   pipelineName: null,
   pipelineIsReadOnly: false,
@@ -43,17 +77,17 @@ const initialState: IOrchestState = {
   hasLoadedProjects: false,
 };
 
-export const OrchestProvider: React.FC = ({ children }) => {
+export const ProjectsContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   return (
-    <OrchestContext.Provider
+    <ProjectsContext.Provider
       value={{
         state,
         dispatch,
       }}
     >
       {children}
-    </OrchestContext.Provider>
+    </ProjectsContext.Provider>
   );
 };

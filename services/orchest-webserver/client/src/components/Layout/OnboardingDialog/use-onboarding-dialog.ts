@@ -1,4 +1,4 @@
-import { useProjects } from "@/hooks/projects";
+import { useProjects } from "@/hooks/projects/useProjects";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import * as React from "react";
 import useSWR from "swr";

@@ -1,4 +1,4 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
 import Dialog from "@mui/material/Dialog";
@@ -79,7 +79,7 @@ const ImportDialog: React.FC<{
   open,
   onClose,
 }) => {
-  const { dispatch } = useOrchest();
+  const { dispatch } = useProjectsContext();
 
   const [isCloseVisible, setIsCloseVisible] = React.useState(true);
 

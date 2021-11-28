@@ -1,13 +1,7 @@
-import theme from "@/theme";
-import { ThemeProvider } from "@mui/material/styles";
-import { DesignSystemProvider } from "@orchest/design-system";
-import { domMax, LazyMotion } from "framer-motion";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import { AppContextProvider } from "./contexts/AppContext";
-import { SessionsContextProvider } from "./contexts/SessionsContext";
-import { OrchestProvider } from "./hooks/orchest";
+import { DesignProvider, OrchestProvider } from "./contexts/Providers";
 
 declare global {
   interface Document {
@@ -28,19 +22,11 @@ window.addEventListener("load", async () => {
     await document.fonts.ready;
 
     ReactDOM.render(
-      <AppContextProvider>
-        <LazyMotion features={domMax}>
-          <DesignSystemProvider>
-            <ThemeProvider theme={theme}>
-              <OrchestProvider>
-                <SessionsContextProvider>
-                  <App />
-                </SessionsContextProvider>
-              </OrchestProvider>
-            </ThemeProvider>
-          </DesignSystemProvider>
-        </LazyMotion>
-      </AppContextProvider>,
+      <DesignProvider>
+        <OrchestProvider>
+          <App />
+        </OrchestProvider>
+      </DesignProvider>,
       document.querySelector("#root")
     );
   } catch (error) {

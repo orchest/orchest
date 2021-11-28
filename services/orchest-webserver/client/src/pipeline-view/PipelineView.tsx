@@ -2,8 +2,8 @@
 
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import type { PipelineJson } from "@/types";
@@ -119,7 +119,7 @@ export interface IPipelineViewState {
 
 const PipelineView: React.FC = () => {
   const { $, orchest } = window;
-  const { dispatch } = useOrchest();
+  const { dispatch } = useProjectsContext();
   const { setAlert } = useAppContext();
   const sessionContext = useSessionsContext();
   useSessionsPoller();

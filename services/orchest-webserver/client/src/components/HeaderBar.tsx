@@ -1,7 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useOrchest } from "@/hooks/orchest";
-import { isSession } from "@/hooks/orchest/utils";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import {
@@ -22,7 +21,7 @@ export const HeaderBar = (
   ref: React.MutableRefObject<null>
 ) => {
   const { navigateTo } = useCustomRoute();
-  const { state } = useOrchest();
+  const { state } = useProjectsContext();
   const appContext = useAppContext();
   const {
     state: { sessions },

@@ -1,11 +1,11 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
 import { orderedRoutes, siteMap, toQueryString } from "./routingConfig";
 
 const Routes = () => {
   let location = useLocation();
-  const context = useOrchest();
+  const { dispatch } = useProjectsContext();
 
   React.useEffect(() => {
     /*
@@ -15,7 +15,7 @@ const Routes = () => {
 
       TODO: move to HeaderBar in the future.
     */
-    context.dispatch({
+    dispatch({
       type: "pipelineSet",
       payload: {
         pipelineUuid: undefined,

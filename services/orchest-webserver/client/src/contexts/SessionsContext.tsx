@@ -1,5 +1,4 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { isSession } from "@/hooks/orchest/utils";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 import { fetcher } from "@/utils/fetcher";
 import pascalcase from "pascalcase";
@@ -9,6 +8,9 @@ import useSWR from "swr";
 type TSessionStatus = IOrchestSession["status"];
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
+
+/* Util functions
+  =========================================== */
 
 const lowerCaseFirstLetter = (str: string) =>
   str.charAt(0).toLowerCase() + str.slice(1);
@@ -29,6 +31,32 @@ function convertKeyToCamelCase<T>(data: T, keys?: string[]) {
     };
   }, {}) as T;
 }
+
+type Session = {
+  project_uuid?: string;
+  pipeline_uuid?: string;
+  projectUuid?: string;
+  pipelineUuid?: string;
+};
+
+const getSessionValue = (session: Session | null) => {
+  return (
+    session && {
+      projectUuid: session.projectUuid || session.project_uuid,
+      pipelineUuid: session.pipelineUuid || session.pipeline_uuid,
+    }
+  );
+};
+
+// because project_uuid and pipeline_uuid can either be snake_case or camelCase,
+// isSession function should be able to compare either case.
+export const isSession = (a: Session, b: Session) => {
+  if (!a || !b) return false;
+  const sessionA = getSessionValue(a);
+  const sessionB = getSessionValue(b);
+
+  return !Object.keys(sessionA).some((key) => sessionA[key] !== sessionB[key]);
+};
 
 /* Matchers
   =========================================== */

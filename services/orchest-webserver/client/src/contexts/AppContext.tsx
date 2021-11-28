@@ -61,7 +61,7 @@ type AppContextAction = Action | ActionCallback;
  * - isDrawer open
  * - orchest.confirm
  * - orchest.requestBuild
- * OrchestContext should only be about projects and pipelines
+ * ProjectsContext should only be about projects and pipelines
  */
 
 type AppContext = {

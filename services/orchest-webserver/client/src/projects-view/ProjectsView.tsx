@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -33,7 +33,10 @@ const ProjectsView: React.FC = () => {
 
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
-  const context = useOrchest();
+  const {
+    dispatch,
+    state: { projectUuid },
+  } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
   const [projectName, setProjectName] = React.useState<string>();
@@ -160,7 +163,7 @@ const ProjectsView: React.FC = () => {
       .then((response: string) => {
         let projects: Project[] = JSON.parse(response);
 
-        context.dispatch({
+        dispatch({
           type: "projectsSet",
           payload: projects,
         });
@@ -176,12 +179,10 @@ const ProjectsView: React.FC = () => {
         // Verify selected project UUID
         // TODO: do we still need this?
         if (
-          !context.state.projectUuid ||
-          !projects.some(
-            (project) => project.uuid === context.state.projectUuid
-          )
+          !projectUuid ||
+          !projects.some((project) => project.uuid === projectUuid)
         ) {
-          context.dispatch({
+          dispatch({
             type: "projectSet",
             payload: projects.length > 0 ? projects[0].uuid : undefined,
           });
@@ -262,9 +263,9 @@ const ProjectsView: React.FC = () => {
     }
   };
 
-  const deleteProjectRequest = (projectUuid) => {
-    if (context.state.projectUuid === projectUuid) {
-      context.dispatch({
+  const deleteProjectRequest = (toBeDeletedId: string) => {
+    if (projectUuid === toBeDeletedId) {
+      dispatch({
         type: "projectSet",
         payload: undefined,
       });
@@ -273,7 +274,7 @@ const ProjectsView: React.FC = () => {
     let deletePromise = makeRequest("DELETE", "/async/projects", {
       type: "json",
       content: {
-        project_uuid: projectUuid,
+        project_uuid: toBeDeletedId,
       },
     });
 
@@ -390,7 +391,7 @@ const ProjectsView: React.FC = () => {
       // exist anymore because it has been removed between a POST and a
       // get request.
       if (createdProject !== undefined) {
-        context.dispatch({
+        dispatch({
           type: "projectSet",
           payload: createdProject.uuid,
         });

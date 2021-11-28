@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
@@ -22,7 +22,7 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 
 const JupyterLabView: React.FC = () => {
   // global states
-  const { dispatch } = useOrchest();
+  const { dispatch } = useProjectsContext();
   const sessionsContext = useSessionsContext();
   const { getSession } = sessionsContext;
   useSessionsPoller();

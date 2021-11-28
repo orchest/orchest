@@ -1,7 +1,7 @@
-import { useLocalStorage } from "@/hooks/local-storage";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import { RefManager } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
 import PipelineDetailsLogs from "./PipelineDetailsLogs";
 import PipelineDetailsProperties from "./PipelineDetailsProperties";
 
@@ -10,7 +10,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
 
   const [storedPaneWidth, setStoredPaneWidth] = useLocalStorage(
     "pipelinedetails.paneWidth",
-    "450"
+    450
   );
 
   const [, setIsDragging] = React.useState(false);
@@ -19,9 +19,8 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     cumulativeDeltaX: 0,
   });
 
-  const [paneWidth, setPaneWidth] = React.useState(
-    storedPaneWidth != null ? parseFloat(storedPaneWidth) : null
-  );
+  const [paneWidth, setPaneWidth] = React.useState(storedPaneWidth);
+
   const [subViewIndex, setSubViewIndex] = React.useState(defaultViewIndex);
 
   const [refManager] = React.useState(new RefManager());
@@ -66,7 +65,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     setIsDragging((isDragging) => {
       if (isDragging) {
         setPaneWidth((paneWidth) => {
-          setStoredPaneWidth(paneWidth.toString());
+          setStoredPaneWidth(paneWidth);
           return paneWidth;
         });
         return false;
@@ -119,7 +118,7 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
       <div
         className="col-drag-resize"
         onMouseDown={onColumnResizeMouseDown}
-        onMouseUp={onColumnResizeMouseUp}
+        onMouseUp={onMouseUp}
       />
       <div className={"overflowable"}>
         <div className="input-group">
@@ -128,7 +127,6 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
             selectedIndex={subViewIndex}
             items={["Properties", "Logs"]}
             icons={["tune", "view_headline"]}
-            V
             onChange={onSelectSubView}
           />
         </div>

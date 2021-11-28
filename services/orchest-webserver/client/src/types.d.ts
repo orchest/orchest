@@ -85,7 +85,7 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
-export interface IOrchestState
+export interface IProjectsContextState
   extends Pick<
     Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
     "projectUuid" | "pipelineUuid"
@@ -98,34 +98,8 @@ export interface IOrchestState
   hasLoadedProjects: boolean;
 }
 
-export type OrchestAction =
-  | { type: "isLoaded"; payload: OrchestServerConfig }
-  | { type: "pipelineClear" }
-  | {
-      type: "pipelineSet";
-      payload: Partial<
-        Pick<IOrchestState, "pipelineUuid" | "projectUuid" | "pipelineName">
-      >;
-    }
-  | {
-      type: "pipelineSetSaveStatus";
-      payload: IOrchestState["pipelineSaveStatus"];
-    }
-  | {
-      type: "projectSet";
-      payload: IOrchestState["projectUuid"];
-    }
-  | {
-      type: "projectsSet";
-      payload: Project[];
-    }
-  | {
-      type: "pipelineUpdateReadOnlyState";
-      payload: IOrchestState["pipelineIsReadOnly"];
-    };
-
-export interface IOrchestContext {
-  state: IOrchestState;
+export interface IProjectsContext {
+  state: IProjectsContextState;
   dispatch: React.Dispatch<OrchestAction>;
 }
 

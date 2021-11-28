@@ -3,8 +3,8 @@ import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
@@ -59,9 +59,12 @@ const tabMapping: Record<string, number> = {
 const PipelineSettingsView: React.FC = () => {
   // global states
   const orchest = window.orchest;
-  const context = useOrchest();
-  const appContext = useAppContext();
-  const { setAlert, setAsSaved } = appContext;
+  const projectsContext = useProjectsContext();
+  const {
+    state: { hasUnsavedChanges },
+    setAlert,
+    setAsSaved,
+  } = useAppContext();
 
   const sessionsContext = useSessionsContext();
   const { getSession } = sessionsContext;
@@ -101,7 +104,7 @@ const PipelineSettingsView: React.FC = () => {
   });
   if (
     !session &&
-    !appContext.state.hasUnsavedChanges &&
+    !hasUnsavedChanges &&
     (state.servicesChanged || state.environmentVariablesChanged)
   ) {
     setState((prevState) => ({
@@ -142,7 +145,7 @@ const PipelineSettingsView: React.FC = () => {
   }, [state]);
 
   const setHeaderComponent = (pipelineName: string) =>
-    context.dispatch({
+    projectsContext.dispatch({
       type: "pipelineSet",
       payload: {
         pipelineUuid,
@@ -591,7 +594,7 @@ const PipelineSettingsView: React.FC = () => {
           setAsSaved();
 
           // Sync name changes with the global context
-          context.dispatch({
+          projectsContext.dispatch({
             type: "pipelineSet",
             payload: {
               pipelineName: pipelineJson?.name,
@@ -1009,7 +1012,7 @@ const PipelineSettingsView: React.FC = () => {
             {!isReadOnly && (
               <div className="bottom-buttons observe-overflow">
                 <MDCButtonReact
-                  label={appContext.state.hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                  label={hasUnsavedChanges ? "SAVE*" : "SAVE"}
                   classNames={["mdc-button--raised", "themed-secondary"]}
                   onClick={saveGeneralForm}
                   icon="save"

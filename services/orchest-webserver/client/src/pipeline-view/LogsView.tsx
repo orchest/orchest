@@ -1,6 +1,6 @@
 import { Layout } from "@/components/Layout";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogViewer from "@/pipeline-view/LogViewer";
@@ -27,7 +27,7 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 
 const LogsView: React.FC = () => {
   // global states
-  const { dispatch } = useOrchest();
+  const { dispatch } = useProjectsContext();
   const { getSession } = useSessionsContext();
   useSessionsPoller();
 

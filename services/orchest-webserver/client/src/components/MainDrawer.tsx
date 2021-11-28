@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { MDCDrawer } from "@material/drawer";
 import React, { useRef } from "react";
 import { NavLink } from "react-router-dom";
@@ -72,9 +72,10 @@ const getItemKey = (item: { label: string; icon: string; path: string }) =>
   `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
 
 const MainDrawer: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
-  const context = useOrchest();
+  const {
+    state: { projectUuid },
+  } = useProjectsContext();
   const appContext = useAppContext();
-  const projectUuid = context.state.projectUuid;
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
 

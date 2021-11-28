@@ -1,5 +1,5 @@
 // @ts-check
-import { useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { siteMap } from "@/routingConfig";
@@ -16,7 +16,7 @@ import React from "react";
 export type TProjectSelectorRef = any;
 
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
-  const { state, dispatch } = useOrchest();
+  const { state, dispatch } = useProjectsContext();
   const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
   const matchProjectRoot = useMatchProjectRoot();
 
