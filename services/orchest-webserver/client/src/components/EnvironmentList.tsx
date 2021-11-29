@@ -23,7 +23,7 @@ export interface IEnvironmentListProps {
 
 const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
   const { navigateTo } = useCustomRoute();
-  const { setAlert } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
 
   const [
     environmentBuildsInterval,
@@ -199,7 +199,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         ).then((response: string) => {
           let data = JSON.parse(response);
           if (data.in_use) {
-            orchest.confirm(
+            setConfirm(
               "Warning",
               "The environment you're trying to delete (" +
                 environmentName +
@@ -241,7 +241,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
         return;
       }
 
-      orchest.confirm(
+      setConfirm(
         "Warning",
         "Are you certain that you want to delete the selected environments?",
         () => {

@@ -5,6 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
@@ -120,8 +121,10 @@ export interface IPipelineViewState {
 const PipelineView: React.FC = () => {
   const { $, orchest } = window;
   const { dispatch } = useProjectsContext();
-  const { setAlert } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
   const sessionContext = useSessionsContext();
+  useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
+
   useSessionsPoller();
 
   const {
@@ -1359,7 +1362,7 @@ const PipelineView: React.FC = () => {
       state.eventVars.isDeletingStep = true;
       updateEventVars();
 
-      orchest.confirm(
+      setConfirm(
         "Warning",
         "A deleted step and its logs cannot be recovered once deleted, are you" +
           " sure you want to proceed?",
@@ -1432,7 +1435,7 @@ const PipelineView: React.FC = () => {
 
   const onDetailsDelete = () => {
     let uuid = state.eventVars.openedStep;
-    orchest.confirm(
+    setConfirm(
       "Warning",
       "A deleted step and its logs cannot be recovered once deleted, are you" +
         " sure you want to proceed?",

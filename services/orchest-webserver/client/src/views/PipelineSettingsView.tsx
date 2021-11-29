@@ -6,6 +6,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
@@ -58,13 +59,15 @@ const tabMapping: Record<string, number> = {
 
 const PipelineSettingsView: React.FC = () => {
   // global states
-  const orchest = window.orchest;
   const projectsContext = useProjectsContext();
   const {
     state: { hasUnsavedChanges },
     setAlert,
+    setConfirm,
     setAsSaved,
   } = useAppContext();
+
+  useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
 
   const sessionsContext = useSessionsContext();
   const { getSession } = sessionsContext;
@@ -939,7 +942,7 @@ const PipelineSettingsView: React.FC = () => {
                             icon="delete"
                             disabled={isReadOnly}
                             onClick={() => {
-                              orchest.confirm(
+                              setConfirm(
                                 "Warning",
                                 "Are you sure you want to delete the service: " +
                                   service.name +

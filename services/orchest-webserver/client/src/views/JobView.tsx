@@ -7,6 +7,7 @@ import SearchableTable from "@/components/SearchableTable";
 import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Job, PipelineJson } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
@@ -155,6 +156,7 @@ const JobView: React.FC = () => {
   // global states
   const orchest = window.orchest;
   const { setAlert } = useAppContext();
+  useSendAnalyticEvent("view load", { name: siteMap.job.path });
 
   // data from route
   const { navigateTo, projectUuid, jobUuid } = useCustomRoute();

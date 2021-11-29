@@ -1,6 +1,7 @@
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import {
   getPipelineJSONEndpoint,
@@ -31,6 +32,7 @@ const MODE_MAPPING = {
 const FilePreviewView: React.FC = () => {
   // global states
   const { setAlert } = useAppContext();
+  useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
 
   // data from route
   const {

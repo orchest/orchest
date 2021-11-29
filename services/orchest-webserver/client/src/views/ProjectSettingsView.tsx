@@ -2,6 +2,7 @@ import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap, toQueryString } from "@/Routes";
 import {
   envVariablesArrayToDict,
@@ -27,6 +28,7 @@ const ProjectSettingsView: React.FC = () => {
     setAsSaved,
     state: { hasUnsavedChanges },
   } = useAppContext();
+  useSendAnalyticEvent("view load", { name: siteMap.projectSettings.path });
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();

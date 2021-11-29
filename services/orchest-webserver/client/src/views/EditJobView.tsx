@@ -7,6 +7,7 @@ import ParamTree from "@/components/ParamTree";
 import SearchableTable from "@/components/SearchableTable";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Job, PipelineJson } from "@/types";
 import {
@@ -49,6 +50,7 @@ const EditJobView: React.FC = () => {
 
   const appContext = useAppContext();
   const { setAlert, setAsSaved } = appContext;
+  useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
 
   // data from route
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();

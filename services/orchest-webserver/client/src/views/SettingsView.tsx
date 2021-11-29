@@ -17,15 +17,15 @@ import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
 const SettingsView: React.FC = () => {
-  const { orchest } = window;
-  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
-
   const { navigateTo } = useCustomRoute();
   const {
     setAlert,
     setAsSaved,
+    setConfirm,
     state: { config, hasUnsavedChanges },
   } = useAppContext();
+
+  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
 
   const [state, setState] = React.useState({
     status: "...",
@@ -204,7 +204,7 @@ const SettingsView: React.FC = () => {
   };
 
   const restartOrchest = () => {
-    orchest.confirm(
+    setConfirm(
       "Warning",
       "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
       () => {

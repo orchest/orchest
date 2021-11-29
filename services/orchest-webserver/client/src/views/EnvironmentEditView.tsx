@@ -2,6 +2,7 @@ import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
 import Dialog from "@mui/material/Dialog";
@@ -38,6 +39,8 @@ const EnvironmentEditView: React.FC = () => {
     setAsSaved,
     state: { config, hasUnsavedChanges },
   } = useAppContext();
+
+  useSendAnalyticEvent("view load", { name: siteMap.environment.path });
 
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();

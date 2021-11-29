@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -13,7 +14,7 @@ import {
 import React from "react";
 
 const UpdateView: React.FC = () => {
-  const { orchest } = window;
+  const { setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
   const [state, setState] = React.useState((prevState) => ({
@@ -26,7 +27,7 @@ const UpdateView: React.FC = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const startUpdateTrigger = () => {
-    orchest.confirm(
+    setConfirm(
       "Warning",
       "Are you sure you want to update Orchest? This will kill all active sessions and ongoing runs.",
       () => {

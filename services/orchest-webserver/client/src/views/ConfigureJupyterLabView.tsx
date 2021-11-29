@@ -21,9 +21,8 @@ const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const ConfigureJupyterLabView: React.FC = () => {
   // global
-  const { orchest } = window;
   const appContext = useAppContext();
-  const { setAlert, setAsSaved } = appContext;
+  const { setAlert, setConfirm, setAsSaved } = appContext;
   const sessionContext = useSessionsContext();
   useSessionsPoller();
 
@@ -93,7 +92,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               let resp = JSON.parse(e.body);
 
               if (resp.message == "SessionInProgressException") {
-                orchest.confirm(
+                setConfirm(
                   "Warning",
                   "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
                     "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",

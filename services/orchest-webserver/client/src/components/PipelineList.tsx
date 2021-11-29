@@ -37,9 +37,8 @@ const getErrorMessages = (path: string) => ({
 });
 
 const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
-  const { orchest } = window;
   const { navigateTo } = useCustomRoute();
-  const { setAlert } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
   useSessionsPoller();
 
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
@@ -176,8 +175,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         return;
       }
 
-      // @ts-ignore
-      orchest.confirm(
+      setConfirm(
         "Warning",
         "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
         () => {

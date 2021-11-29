@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
+import { useMounted } from "./useMounted";
 
 // use this hook as a side effect by specifying the parameters, it will fire when the component mounts
 // useSendAnalyticEvent('view load', { name: 'projectsView' });
@@ -16,7 +17,8 @@ const useSendAnalyticEvent = (
   const {
     state: { config },
   } = useAppContext();
-  const shouldSend = config?.TELEMETRY_DISABLED === false;
+  const isMounted = useMounted();
+  const shouldSend = config?.TELEMETRY_DISABLED === false && isMounted;
 
   const send = React.useCallback(
     (innerEvent: string, innerProps?: Record<string, unknown>) => {
@@ -35,11 +37,13 @@ const useSendAnalyticEvent = (
     [shouldSend]
   );
 
+  const hasSent = React.useRef(false);
   React.useEffect(() => {
-    if (event) {
+    if (shouldSend && event && !hasSent.current) {
+      hasSent.current = true;
       send(event, props);
     }
-  }, []);
+  }, [shouldSend]);
   return event ? undefined : send;
 };
 

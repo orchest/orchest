@@ -3,7 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import { MDCButtonReact } from "@orchest/lib-mdc";
-import * as React from "react";
+import React from "react";
 
 const HelpView: React.FC = () => {
   const {

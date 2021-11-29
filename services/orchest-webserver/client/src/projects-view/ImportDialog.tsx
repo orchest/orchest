@@ -81,7 +81,7 @@ const ImportDialog: React.FC<{
 }) => {
   const { dispatch } = useProjectsContext();
 
-  const [isCloseVisible, setIsCloseVisible] = React.useState(true);
+  const [isAllowedToClose, setIsAllowedToClose] = React.useState(true);
 
   const { startImport: fireImportRequest, importResult } = useImportProject(
     projectName,
@@ -122,12 +122,12 @@ const ImportDialog: React.FC<{
   );
   React.useEffect(() => {
     if (importResult && importResult.status !== "PENDING") {
-      setIsCloseVisible(true);
+      setIsAllowedToClose(true);
     }
   }, [importResult]);
 
   const startImport = () => {
-    setIsCloseVisible(false);
+    setIsAllowedToClose(false);
     fireImportRequest();
   };
 
@@ -143,7 +143,7 @@ const ImportDialog: React.FC<{
     !/^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl);
 
   return (
-    <Dialog open={open}>
+    <Dialog open={open} onClose={isAllowedToClose ? closeDialog : undefined}>
       <DialogTitle>Import a project</DialogTitle>
       <DialogContent>
         <div data-test-id="import-project-dialog">
@@ -178,7 +178,7 @@ const ImportDialog: React.FC<{
         </div>
       </DialogContent>
       <DialogActions>
-        {isCloseVisible && (
+        {isAllowedToClose && (
           <MDCButtonReact
             icon="close"
             label="Close"

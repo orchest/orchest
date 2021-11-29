@@ -5,10 +5,10 @@ import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
-import AlertDialog from "./components/AlertDialog";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
+import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
@@ -37,6 +37,7 @@ const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
   const { boot } = useIntercom();
   const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+  const { setConfirm } = useAppContext();
 
   const toggleDrawer = () => setIsDrawerOpen((currentValue) => !currentValue);
 
@@ -122,7 +123,7 @@ const App = () => {
         // use Prompt component to intercept route changes
         // handle the blocking event here
         if (message === "hasUnsavedChanges") {
-          window.orchest.confirm(
+          setConfirm(
             "Warning",
             "There are unsaved changes. Are you sure you want to navigate away?",
             () => {
@@ -142,9 +143,7 @@ const App = () => {
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />
         </main>
       </div>
-
-      <AlertDialog />
-
+      <SystemDialog />
       <div className="dialogs">
         <Dialogs ref={dialogsRef} />
       </div>

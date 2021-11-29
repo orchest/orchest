@@ -3,6 +3,9 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { IntercomProvider } from "react-use-intercom";
 
+/** Utility functions
+ =====================================================
+ */
 function parseLineBreak(lines: string) {
   if (lines === undefined) return [];
 
@@ -24,24 +27,59 @@ function parseLineBreak(lines: string) {
   return lineElements;
 }
 
+const contentParser = (content: string | JSX.Element | JSX.Element[]) =>
+  typeof content === "string" ? parseLineBreak(content) : content;
+
+export type PromptMessageType = "alert" | "confirm";
+
 export type Alert = {
-  title?: string | JSX.Element;
+  type: "alert";
+  title: string | JSX.Element;
   content: string | JSX.Element | JSX.Element[];
-  onClose?: () => void;
+  onConfirm?: () => void;
 };
+
+export type Confirm = {
+  type: "confirm";
+  title: string | JSX.Element;
+  content: string | JSX.Element | JSX.Element[];
+  onConfirm: () => void; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
+  onCancel?: () => void;
+};
+
+export type PromptMessage = Alert | Confirm;
+
+type AlertConverter = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirm?: () => void
+) => Alert;
+
+type ConfirmConverter = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirm: () => void,
+  onCancel?: () => void
+) => Confirm;
+
+type PromptMessageConverter<T extends PromptMessage> = T extends Alert
+  ? AlertConverter
+  : T extends Confirm
+  ? ConfirmConverter
+  : never;
 
 type AppContextState = {
   config?: OrchestConfig;
   user_config?: OrchestUserConfig;
   isLoaded: boolean;
-  alerts: Alert[];
+  promptMessages: PromptMessage[];
   hasUnsavedChanges: boolean;
 };
 
 type Action =
   | {
-      type: "SET_ALERTS";
-      payload: Alert[];
+      type: "SET_PROMPT_MESSAGES";
+      payload: PromptMessage[];
     }
   | {
       type: "SET_SERVER_CONFIG";
@@ -58,21 +96,35 @@ type AppContextAction = Action | ActionCallback;
 
 /**
  * TODO: move the following into this context
- * - isDrawer open
- * - orchest.confirm
  * - orchest.requestBuild
  * ProjectsContext should only be about projects and pipelines
  */
 
+type AlertDispatcher = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirm?: () => void
+) => void;
+
+type ConfirmDispatcher = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirm: () => void,
+  onCancel?: () => void
+) => void;
+
+type PromptMessageDispatcher<T extends PromptMessage> = T extends Alert
+  ? AlertDispatcher
+  : T extends Confirm
+  ? ConfirmDispatcher
+  : never;
+
 type AppContext = {
   state: AppContextState;
   dispatch: React.Dispatch<AppContextAction>;
-  setAlert: (
-    title: string,
-    content: string | JSX.Element | JSX.Element[],
-    onClose?: () => void
-  ) => void;
-  deleteAlert: () => void;
+  setAlert: AlertDispatcher;
+  setConfirm: ConfirmDispatcher;
+  deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
 };
 
@@ -85,8 +137,8 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
   if (process.env.NODE_ENV === "development")
     console.log("(Dev Mode) useUserContext: action ", action);
   switch (action.type) {
-    case "SET_ALERTS": {
-      return { ...state, alerts: action.payload };
+    case "SET_PROMPT_MESSAGES": {
+      return { ...state, promptMessages: action.payload };
     }
 
     case "SET_SERVER_CONFIG": {
@@ -114,7 +166,7 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
 };
 
 const initialState: AppContextState = {
-  alerts: [],
+  promptMessages: [],
   isLoaded: false,
   hasUnsavedChanges: false,
 };
@@ -154,27 +206,67 @@ export const AppContextProvider: React.FC = ({ children }) => {
     window.onbeforeunload = state.hasUnsavedChanges ? () => true : null;
   }, [state.hasUnsavedChanges]);
 
-  /**
-   * =========================== Action dispatchers
-   */
+  /* Action dispatchers
+  =========================== */
 
-  const setAlert = (
-    title: string,
-    content: string | JSX.Element | JSX.Element[],
-    onClose?: () => void
-  ) => {
-    const parsedContent =
-      typeof content === "string" ? parseLineBreak(content) : content;
-    dispatch((store) => ({
-      type: "SET_ALERTS",
-      payload: [...store.alerts, { title, content: parsedContent, onClose }],
-    }));
-  };
+  const withPromptMessageDispatcher = React.useCallback(
+    function <T extends PromptMessage>(convert: PromptMessageConverter<T>) {
+      const dispatcher = (
+        title: string,
+        content: string | JSX.Element | JSX.Element[],
+        onConfirm?: () => void, // is required for 'confirm'
+        onCancel?: () => void
+      ) => {
+        const message = convert(title, content, onConfirm, onCancel);
+        dispatch((store) => {
+          return {
+            type: "SET_PROMPT_MESSAGES",
+            payload: [...store.promptMessages, message],
+          };
+        });
+      };
 
-  const deleteAlert = () => {
+      return dispatcher as PromptMessageDispatcher<T>;
+    },
+    [dispatch]
+  );
+
+  const setAlert = withPromptMessageDispatcher<Alert>(
+    (
+      title: string,
+      content: string | JSX.Element | JSX.Element[],
+      onConfirm?: () => void
+    ) => {
+      return {
+        type: "alert",
+        title,
+        content: contentParser(content),
+        onConfirm,
+      };
+    }
+  );
+
+  const setConfirm = withPromptMessageDispatcher<Confirm>(
+    (
+      title: string,
+      content: string | JSX.Element | JSX.Element[],
+      onConfirm: () => void,
+      onCancel?: () => void
+    ) => {
+      return {
+        type: "confirm",
+        title,
+        content: contentParser(content),
+        onConfirm,
+        onCancel,
+      };
+    }
+  );
+
+  const deletePromptMessage = () => {
     dispatch((store) => ({
-      type: "SET_ALERTS",
-      payload: store.alerts.slice(1),
+      type: "SET_PROMPT_MESSAGES",
+      payload: store.promptMessages.slice(1),
     }));
   };
 
@@ -189,7 +281,8 @@ export const AppContextProvider: React.FC = ({ children }) => {
           state,
           dispatch,
           setAlert,
-          deleteAlert,
+          setConfirm,
+          deletePromptMessage,
           setAsSaved,
         }}
       >

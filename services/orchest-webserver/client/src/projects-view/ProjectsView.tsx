@@ -28,9 +28,7 @@ import React from "react";
 import { ImportDialog } from "./ImportDialog";
 
 const ProjectsView: React.FC = () => {
-  const { orchest } = window;
-  const { setAlert } = useAppContext();
-
+  const { setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
   const {
@@ -229,7 +227,7 @@ const ProjectsView: React.FC = () => {
         return;
       }
 
-      orchest.confirm(
+      setConfirm(
         "Warning",
         "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
         () => {

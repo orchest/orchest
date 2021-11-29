@@ -1,5 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useTransition } from "@/hooks/useTransition";
 import { siteMap } from "@/routingConfig";
 import { Example } from "@/types";
@@ -29,7 +30,10 @@ type ImportingState = "READY" | "IMPORTING" | "DONE";
 const ExamplesView: React.FC = () => {
   // global states
   const { navigateTo } = useCustomRoute();
+  useSendAnalyticEvent("view load", { name: siteMap.examples.path });
+
   const { data } = useFetchExamples();
+
   // local states
   const [projectName, setProjectName] = React.useState<string>();
   const [projectUuid, setProjectUuid] = React.useState<string>();

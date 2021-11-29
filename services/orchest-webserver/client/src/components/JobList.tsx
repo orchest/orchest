@@ -31,7 +31,7 @@ export interface IJobListProps {
 
 const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const { setAlert } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
 
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
   const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
@@ -115,7 +115,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
         return;
       }
 
-      orchest.confirm(
+      setConfirm(
         "Warning",
         "Are you sure you want to delete these jobs? (This cannot be undone.)",
         () => {

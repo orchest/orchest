@@ -3,6 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
@@ -26,6 +27,7 @@ const JupyterLabView: React.FC = () => {
   const sessionsContext = useSessionsContext();
   const { getSession } = sessionsContext;
   useSessionsPoller();
+  useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
