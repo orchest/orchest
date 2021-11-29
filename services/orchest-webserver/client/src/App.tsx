@@ -75,18 +75,6 @@ const App = () => {
     }
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const confirm = (
-    title: string,
-    content: string,
-    onConfirm: () => void,
-    onCancel?: () => void
-  ) => {
-    // Analytics call
-    sendEvent("confirm show", { title: title, content: content });
-
-    dialogsRef.current.confirm(title, content, onConfirm, onCancel);
-  };
-
   const requestBuild = (
     project_uuid: string,
     environmentValidationData,
@@ -107,12 +95,10 @@ const App = () => {
   };
 
   React.useEffect(() => {
-    setJupyter(new Jupyter(jupyterRef.current));
+    setJupyter(new Jupyter(jupyterRef.current, setConfirm));
   }, []);
 
   window.orchest = {
-    config,
-    confirm,
     requestBuild,
     jupyter,
   };

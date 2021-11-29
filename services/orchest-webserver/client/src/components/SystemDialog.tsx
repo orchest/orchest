@@ -31,10 +31,10 @@ export const SystemDialog: React.FC = () => {
   const sendEvent = useSendAnalyticEvent();
 
   React.useEffect(() => {
-    if (promptMessage && promptMessage.type === "alert") {
+    if (promptMessage) {
       // Analytics call
       const { title, content } = promptMessage;
-      sendEvent("alert show", { title, content });
+      sendEvent(`${promptMessage.type} show`, { title, content });
     }
   }, [sendEvent, promptMessage]);
 

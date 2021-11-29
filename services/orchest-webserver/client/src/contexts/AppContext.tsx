@@ -106,7 +106,7 @@ type AlertDispatcher = (
   onConfirm?: () => void
 ) => void;
 
-type ConfirmDispatcher = (
+export type ConfirmDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
   onConfirm: () => void,

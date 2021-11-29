@@ -1,3 +1,4 @@
+import { ConfirmDispatcher } from "@/contexts/AppContext";
 import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
@@ -8,8 +9,9 @@ class Jupyter {
   showCheckInterval: any;
   pendingKernelChanges: any;
   iframeHasLoaded: boolean;
+  setConfirm: ConfirmDispatcher;
 
-  constructor(jupyterHolderJEl) {
+  constructor(jupyterHolderJEl, setConfirm: ConfirmDispatcher) {
     // @ts-ignore
     this.jupyterHolder = $(jupyterHolderJEl);
     this.iframe = undefined;
@@ -18,6 +20,7 @@ class Jupyter {
     this.iframeHasLoaded = false;
     this.showCheckInterval = undefined;
     this.pendingKernelChanges = {};
+    this.setConfirm = setConfirm;
 
     this.initializeJupyter();
   }
@@ -199,7 +202,7 @@ class Jupyter {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
               // @ts-ignore
-              orchest.confirm("Warning", warningMessage, () => {
+              this.setConfirm("Warning", warningMessage, () => {
                 sessionContext
                   .changeKernel({ name: kernel })
                   .then(() => {
@@ -222,7 +225,7 @@ class Jupyter {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
                   // @ts-ignore
-                  orchest.confirm("Warning", warningMessage, () => {
+                  this.setConfirm("Warning", warningMessage, () => {
                     docManager.services.sessions
                       .shutdown(notebookSession.id)
                       .then(() => {
