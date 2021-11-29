@@ -154,8 +154,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
 
 const JobView: React.FC = () => {
   // global states
-  const orchest = window.orchest;
-  const { setAlert } = useAppContext();
+  const { setAlert, requestBuild } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.job.path });
 
   // data from route
@@ -488,14 +487,9 @@ const JobView: React.FC = () => {
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
-          orchest.requestBuild(
-            job.project_uuid,
-            result.data,
-            "DuplicateJob",
-            () => {
-              onJobDuplicate();
-            }
-          );
+          requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
+            onJobDuplicate();
+          });
         }
       });
   };

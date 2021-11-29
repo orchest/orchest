@@ -119,9 +119,9 @@ export interface IPipelineViewState {
 }
 
 const PipelineView: React.FC = () => {
-  const { $, orchest } = window;
+  const { $ } = window;
   const { dispatch } = useProjectsContext();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm, requestBuild } = useAppContext();
   const sessionContext = useSessionsContext();
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
 
@@ -2328,7 +2328,7 @@ const PipelineView: React.FC = () => {
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
-            orchest.requestBuild(projectUuid, result.data, "Pipeline", () => {
+            requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
             });
           }

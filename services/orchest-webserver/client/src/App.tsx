@@ -5,7 +5,7 @@ import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
-import Dialogs from "./components/Dialogs";
+import BuildPendingDialog from "./components/BuildPendingDialog";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
@@ -75,31 +75,11 @@ const App = () => {
     }
   }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const requestBuild = (
-    project_uuid: string,
-    environmentValidationData,
-    requestedFromView: string,
-    onBuildComplete: () => void,
-    onCancel: () => void
-  ) => {
-    // Analytics call
-    sendEvent("build request", { requestedFromView });
-
-    dialogsRef.current.requestBuild(
-      project_uuid,
-      environmentValidationData,
-      requestedFromView,
-      onBuildComplete,
-      onCancel
-    );
-  };
-
   React.useEffect(() => {
     setJupyter(new Jupyter(jupyterRef.current, setConfirm));
   }, []);
 
   window.orchest = {
-    requestBuild,
     jupyter,
   };
 
@@ -130,9 +110,7 @@ const App = () => {
         </main>
       </div>
       <SystemDialog />
-      <div className="dialogs">
-        <Dialogs ref={dialogsRef} />
-      </div>
+      <BuildPendingDialog />
     </Router>
   );
 };

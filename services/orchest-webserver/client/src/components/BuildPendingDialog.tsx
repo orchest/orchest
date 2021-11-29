@@ -1,10 +1,16 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import { EnvironmentValidationData } from "@/types";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import { Box } from "@orchest/design-system";
-import { MDCButtonReact, MDCDialogReact } from "@orchest/lib-mdc";
-import { makeRequest, RefManager } from "@orchest/lib-utils";
+import { MDCButtonReact } from "@orchest/lib-mdc";
+import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { checkGate } from "../utils/webserver-utils";
 
@@ -32,17 +38,12 @@ const getInactiveEnvironmentsMessage = (
   return `${inactiveEnvironmentsMessage}${solutionMessage}`;
 };
 
-export interface IBuildPendingDialogProps {
-  environmentValidationData: any;
-  projectUuid: string;
-  requestedFromView: string;
-  onBuildComplete: () => void;
-  onCancel: () => void;
-  onClose: () => void;
-}
-
-const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
+const BuildPendingDialog: React.FC = () => {
   const { navigateTo } = useCustomRoute();
+  const {
+    state: { buildRequest },
+    dispatch,
+  } = useAppContext();
 
   const [gateInterval, setGateInterval] = React.useState(null);
   const [state, setState] = React.useState<{
@@ -57,9 +58,47 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
     string[]
   >([]);
 
-  const [refManager] = React.useState(new RefManager());
+  useInterval(() => {
+    if (!buildRequest) return;
+    checkGate(buildRequest.projectUuid)
+      .then(() => {
+        setState((prevState) => ({
+          ...prevState,
+          building: false,
+        }));
 
-  const processValidationData = (data) => {
+        if (onBuildComplete) onBuildComplete();
+
+        onClose();
+      })
+      .catch((error) => {
+        // Gate check failed, check why it failed and act
+        // accordingly
+        processValidationData(error.data);
+      });
+  }, gateInterval);
+
+  React.useEffect(() => {
+    if (buildRequest?.environmentValidationData)
+      processValidationData(buildRequest.environmentValidationData);
+
+    return () => setGateInterval(null);
+  }, [buildRequest]);
+
+  if (!buildRequest) return null;
+
+  const {
+    onCancel,
+    onBuildComplete,
+    projectUuid,
+    requestedFromView,
+  } = buildRequest;
+
+  const onClose = () => {
+    dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
+  };
+
+  const processValidationData = (data: EnvironmentValidationData) => {
     let inactiveEnvironments: string[] = [];
     let buildHasFailed = false;
     let environmentsBuilding = 0;
@@ -80,10 +119,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
 
     let message = buildHasFailed
       ? buildFailMessage
-      : getInactiveEnvironmentsMessage(
-          inactiveEnvironments,
-          props?.requestedFromView
-        );
+      : getInactiveEnvironmentsMessage(inactiveEnvironments, requestedFromView);
 
     setEnvironmentsToBeBuilt(inactiveEnvironments);
     setState((prevState) => ({
@@ -103,32 +139,8 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
     }
   };
 
-  const close = () => {
-    refManager.refs.dialogRef.close();
-  };
-
   const startPollingGate = () => {
     setGateInterval(1000);
-  };
-
-  const gateCheckWrapper = () => {
-    checkGate(props.projectUuid)
-      .then(() => {
-        setState((prevState) => ({
-          ...prevState,
-          building: false,
-        }));
-
-        if (props.onBuildComplete) {
-          close();
-          props.onBuildComplete();
-        }
-      })
-      .catch((error) => {
-        // Gate check failed, check why it failed and act
-        // accordingly
-        processValidationData(error.data);
-      });
   };
 
   const onBuild = () => {
@@ -142,7 +154,7 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
     let environment_build_requests = environmentsToBeBuilt.map(
       (environmentUuid) => ({
         environment_uuid: environmentUuid,
-        project_uuid: props.projectUuid,
+        project_uuid: projectUuid,
       })
     );
 
@@ -158,35 +170,22 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
 
   const onViewBuildStatus = () => {
     navigateTo(siteMap.environments.path, {
-      query: { projectUuid: props.projectUuid },
+      query: { projectUuid },
     });
 
-    close();
+    onClose();
   };
 
-  const onCancel = () => {
-    if (props.onCancel) {
-      props.onCancel();
-    }
-    close();
+  const cancel = () => {
+    if (onCancel) onCancel();
+
+    onClose();
   };
-
-  useInterval(() => {
-    gateCheckWrapper();
-  }, gateInterval);
-
-  React.useEffect(() => {
-    processValidationData(props.environmentValidationData);
-
-    return () => setGateInterval(null);
-  }, []);
 
   return (
-    <MDCDialogReact
-      ref={refManager.nrefs.dialogRef}
-      title={"Build"}
-      onClose={props.onClose}
-      content={
+    <Dialog open={hasValue(buildRequest)}>
+      <DialogTitle>Build</DialogTitle>
+      <DialogContent>
         <div>
           <p>{state?.message}</p>
           {state?.building && (
@@ -195,37 +194,31 @@ const BuildPendingDialog: React.FC<IBuildPendingDialogProps> = (props) => {
             </Box>
           )}
         </div>
-      }
-      actions={
-        <>
-          <MDCButtonReact label="Cancel" onClick={onCancel} />
-          {state?.showBuildStatus && (
-            <MDCButtonReact
-              submitButton
-              label="View build status"
-              classNames={
-                !state.allowBuild
-                  ? ["push-left", "mdc-button--raised", "themed-secondary"]
-                  : ["push-left"]
-              }
-              onClick={onViewBuildStatus}
-            />
-          )}
-          {state?.allowBuild && (
-            <MDCButtonReact
-              submitButton
-              classNames={[
-                "mdc-button--raised",
-                "themed-secondary",
-                "push-left",
-              ]}
-              label="Build"
-              onClick={onBuild}
-            />
-          )}
-        </>
-      }
-    />
+      </DialogContent>
+      <DialogActions>
+        <MDCButtonReact label="Cancel" onClick={cancel} />
+        {state?.showBuildStatus && (
+          <MDCButtonReact
+            submitButton
+            label="View build status"
+            classNames={
+              !state.allowBuild
+                ? ["push-left", "mdc-button--raised", "themed-secondary"]
+                : ["push-left"]
+            }
+            onClick={onViewBuildStatus}
+          />
+        )}
+        {state?.allowBuild && (
+          <MDCButtonReact
+            submitButton
+            classNames={["mdc-button--raised", "themed-secondary", "push-left"]}
+            label="Build"
+            onClick={onBuild}
+          />
+        )}
+      </DialogActions>
+    </Dialog>
   );
 };
 

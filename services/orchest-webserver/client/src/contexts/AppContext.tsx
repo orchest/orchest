@@ -1,4 +1,10 @@
-import { OrchestConfig, OrchestServerConfig, OrchestUserConfig } from "@/types";
+import {
+  BuildRequest,
+  EnvironmentValidationData,
+  OrchestConfig,
+  OrchestServerConfig,
+  OrchestUserConfig,
+} from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { IntercomProvider } from "react-use-intercom";
@@ -73,6 +79,7 @@ type AppContextState = {
   user_config?: OrchestUserConfig;
   isLoaded: boolean;
   promptMessages: PromptMessage[];
+  buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
 };
 
@@ -80,6 +87,10 @@ type Action =
   | {
       type: "SET_PROMPT_MESSAGES";
       payload: PromptMessage[];
+    }
+  | {
+      type: "SET_BUILD_REQUEST";
+      payload: BuildRequest | undefined;
     }
   | {
       type: "SET_SERVER_CONFIG";
@@ -94,12 +105,6 @@ type ActionCallback = (previousState: AppContextState) => Action;
 
 type AppContextAction = Action | ActionCallback;
 
-/**
- * TODO: move the following into this context
- * - orchest.requestBuild
- * ProjectsContext should only be about projects and pipelines
- */
-
 type AlertDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
@@ -110,6 +115,14 @@ export type ConfirmDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
   onConfirm: () => void,
+  onCancel?: () => void
+) => void;
+
+export type RequestBuildDispatcher = (
+  projectUuid: string,
+  environmentValidationData: EnvironmentValidationData,
+  requestedFromView: string,
+  onBuildComplete: () => void,
   onCancel?: () => void
 ) => void;
 
@@ -124,6 +137,7 @@ type AppContext = {
   dispatch: React.Dispatch<AppContextAction>;
   setAlert: AlertDispatcher;
   setConfirm: ConfirmDispatcher;
+  requestBuild: RequestBuildDispatcher;
   deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
 };
@@ -139,6 +153,10 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
   switch (action.type) {
     case "SET_PROMPT_MESSAGES": {
       return { ...state, promptMessages: action.payload };
+    }
+
+    case "SET_BUILD_REQUEST": {
+      return { ...state, buildRequest: action.payload };
     }
 
     case "SET_SERVER_CONFIG": {
@@ -274,6 +292,25 @@ export const AppContextProvider: React.FC = ({ children }) => {
     dispatch({ type: "SET_HAS_UNSAVED_CHANGES", payload: !value });
   };
 
+  const requestBuild = (
+    projectUuid: string,
+    environmentValidationData: EnvironmentValidationData,
+    requestedFromView: string,
+    onBuildComplete: () => void,
+    onCancel?: () => void
+  ) => {
+    dispatch({
+      type: "SET_BUILD_REQUEST",
+      payload: {
+        projectUuid,
+        environmentValidationData,
+        requestedFromView,
+        onBuildComplete,
+        onCancel,
+      },
+    });
+  };
+
   return (
     <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>
       <Context.Provider
@@ -282,6 +319,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
           dispatch,
           setAlert,
           setConfirm,
+          requestBuild,
           deletePromptMessage,
           setAsSaved,
         }}

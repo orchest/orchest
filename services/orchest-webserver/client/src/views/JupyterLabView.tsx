@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
@@ -24,6 +25,7 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 const JupyterLabView: React.FC = () => {
   // global states
   const { dispatch } = useProjectsContext();
+  const { requestBuild } = useAppContext();
   const sessionsContext = useSessionsContext();
   const { getSession } = sessionsContext;
   useSessionsPoller();
@@ -47,7 +49,6 @@ const JupyterLabView: React.FC = () => {
     pipelineUuid,
     projectUuid,
   });
-  const orchest = window.orchest;
   const [promiseManager] = React.useState(new PromiseManager());
 
   React.useEffect(() => {
@@ -106,7 +107,7 @@ const JupyterLabView: React.FC = () => {
           return;
         }
         if (result.reason === "gate-failed") {
-          orchest.requestBuild(
+          requestBuild(
             projectUuid,
             result.data,
             "JupyterLab",

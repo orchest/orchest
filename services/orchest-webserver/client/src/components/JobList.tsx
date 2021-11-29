@@ -31,7 +31,7 @@ export interface IJobListProps {
 
 const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const { setAlert, setConfirm } = useAppContext();
+  const { setAlert, setConfirm, requestBuild } = useAppContext();
 
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
   const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
@@ -50,8 +50,6 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
 
   const promiseManager = React.useRef(new PromiseManager());
   const refManager = React.useRef(new RefManager());
-
-  const { orchest } = window;
 
   const fetchList = () => {
     // in case jobTable exists, clear checks
@@ -234,7 +232,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
           setIsCreateDialogOpen(false);
           setIsCreatingJob(false);
 
-          orchest.requestBuild(projectUuid, result.data, "CreateJob", () => {
+          requestBuild(projectUuid, result.data, "CreateJob", () => {
             setIsCreateDialogOpen(true);
             onSubmitModal({
               name,

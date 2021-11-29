@@ -230,3 +230,17 @@ export type Example = {
   title: string;
   url: string;
 };
+
+export type EnvironmentAction = "BUILD" | "WAIT" | "RETRY";
+export type EnvironmentValidationData = {
+  actions: EnvironmentAction[];
+  fail: string[];
+};
+
+export type BuildRequest = {
+  projectUuid: string;
+  environmentValidationData: EnvironmentValidationData;
+  requestedFromView: string;
+  onBuildComplete: () => void;
+  onCancel?: () => void;
+};
