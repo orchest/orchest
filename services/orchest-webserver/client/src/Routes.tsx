@@ -35,7 +35,7 @@ const Routes = () => {
         return (
           <Route
             exact={shouldBeExact}
-            key={name}
+            key={path + "-" + location.search}
             path={path}
             render={() => {
               window.document.title = title;

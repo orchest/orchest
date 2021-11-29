@@ -900,6 +900,8 @@ iframe.fullsize {
 a.text-button,
 button.text-button {
   border: 0;
+  color: #000;
+  text-decoration: none;
   border-bottom: 1px dotted #c6cbd1;
   background: none;
   &:hover {

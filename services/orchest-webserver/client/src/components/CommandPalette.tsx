@@ -176,62 +176,65 @@ const CommandPalette: React.FC = () => {
   };
 
   const commandsFromPipeline = (pipeline: any) => {
+    const generatePipelineCommands = (pipelineDisplay) => {
+      return [
+        {
+          title: "Edit: " + pipelineDisplay,
+          action: "openPage",
+          data: {
+            path: siteMap.pipeline.path,
+            query: {
+              pipelineUuid: pipeline.uuid,
+              projectUuid: pipeline.project_uuid,
+            },
+          },
+        },
+        {
+          title: "JupyterLab: " + pipelineDisplay,
+          action: "openPage",
+          data: {
+            path: siteMap.jupyterLab.path,
+            query: {
+              pipelineUuid: pipeline.uuid,
+              projectUuid: pipeline.project_uuid,
+            },
+          },
+        },
+        {
+          title: "Settings: " + pipelineDisplay,
+          action: "openPage",
+          data: {
+            path: siteMap.pipelineSettings.path,
+            query: {
+              pipelineUuid: pipeline.uuid,
+              projectUuid: pipeline.project_uuid,
+            },
+          },
+        },
+        {
+          title: "Logs: " + pipelineDisplay,
+          action: "openPage",
+          data: {
+            path: siteMap.logs.path,
+            query: {
+              pipelineUuid: pipeline.uuid,
+              projectUuid: pipeline.project_uuid,
+            },
+          },
+        },
+      ];
+    };
+
     return [
       {
         title: "Pipeline path: " + pipeline.path,
         action: "openList",
-        data: [
-          {
-            title: "Edit pipeline: " + pipeline.path,
-            action: "openPage",
-            data: {
-              path: siteMap.pipeline.path,
-              query: {
-                pipelineUuid: pipeline.uuid,
-                projectUuid: pipeline.project_uuid,
-              },
-            },
-          },
-          {
-            title: "JupyterLab: " + pipeline.path,
-            action: "openPage",
-            data: {
-              path: siteMap.jupyterLab.path,
-              query: {
-                pipelineUuid: pipeline.uuid,
-                projectUuid: pipeline.project_uuid,
-              },
-            },
-          },
-        ],
+        data: generatePipelineCommands(pipeline.path),
       },
       {
         title: "Pipeline name: " + pipeline.name,
         action: "openList",
-        data: [
-          {
-            title: "Edit pipeline: " + pipeline.name,
-            action: "openPage",
-            data: {
-              path: siteMap.pipeline.path,
-              query: {
-                pipelineUuid: pipeline.uuid,
-                projectUuid: pipeline.project_uuid,
-              },
-            },
-          },
-          {
-            title: "JupyterLab: " + pipeline.name,
-            action: "openPage",
-            data: {
-              path: siteMap.jupyterLab.path,
-              query: {
-                pipelineUuid: pipeline.uuid,
-                projectUuid: pipeline.project_uuid,
-              },
-            },
-          },
-        ],
+        data: generatePipelineCommands(pipeline.name),
       },
     ];
   };
@@ -308,34 +311,37 @@ const CommandPalette: React.FC = () => {
     );
   };
 
-  const [enableEnterHotKey] = useHotKey("enter", "command-palette", () => {
+  const [enableEnterHotKey, disableEnterHotKey] = useHotKey("enter", () => {
     if (filteredCommands[selectedCommandIndex]) {
       handleCommand(filteredCommands[selectedCommandIndex]);
     }
   });
 
-  const [enableUpDownHotKey] = useHotKey("up, down", "command-palette", (e) => {
-    if (e.code == "ArrowDown") {
-      if (selectedCommandIndex < filteredCommands.length - 1) {
-        setSelectedCommandIndex(selectedCommandIndex + 1);
+  const [enableUpDownHotKey, disableUpDownHotKey] = useHotKey(
+    "up, down, pageup, pagedown",
+    (e) => {
+      if (e.code == "ArrowDown") {
+        if (selectedCommandIndex < filteredCommands.length - 1) {
+          setSelectedCommandIndex(selectedCommandIndex + 1);
+        }
+      } else if (e.code == "ArrowUp") {
+        if (selectedCommandIndex > 0) {
+          setSelectedCommandIndex(selectedCommandIndex - 1);
+        }
+      } else if (e.code == "PageUp") {
+        setSelectedCommandIndex(0);
+      } else if (e.code == "PageDown") {
+        setSelectedCommandIndex(filteredCommands.length - 1);
       }
-    } else if (e.code == "ArrowUp") {
-      if (selectedCommandIndex > 0) {
-        setSelectedCommandIndex(selectedCommandIndex - 1);
-      }
-    }
-  });
-
-  const [enableKHotKey] = useHotKey(
-    "ctrl+k, command+k",
-    "command-palette",
-    () => {
-      showCommandPalette();
-      setRootCommands();
     }
   );
 
-  const [enableEscapeHotKey] = useHotKey("escape", "command-palette", () => {
+  const [_, disableKHotKey] = useHotKey("ctrl+k, command+k", () => {
+    showCommandPalette();
+    setRootCommands();
+  });
+
+  const [enableEscapeHotKey, disableEscapeHotKey] = useHotKey("escape", () => {
     hideCommandPalette();
   });
 
@@ -345,19 +351,34 @@ const CommandPalette: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
-    enableKHotKey();
+  const enableShowOnlyHotKeys = () => {
     enableEscapeHotKey();
     enableUpDownHotKey();
     enableEnterHotKey();
+  };
 
+  const disableShowOnlyHotKeys = () => {
+    disableEscapeHotKey();
+    disableUpDownHotKey();
+    disableEnterHotKey();
+  };
+
+  React.useEffect(() => {
     // Load cache on page load
     refreshCache();
+
+    return () => {
+      disableKHotKey();
+      disableShowOnlyHotKeys();
+    };
   }, []);
 
   React.useEffect(() => {
     if (isShowing) {
       refManager.refs.search.focus();
+      enableShowOnlyHotKeys();
+    } else {
+      disableShowOnlyHotKeys();
     }
   }, [isShowing]);
 

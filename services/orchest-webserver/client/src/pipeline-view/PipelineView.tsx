@@ -152,18 +152,16 @@ const PipelineView: React.FC = () => {
     pipelineUuid,
   });
 
-  const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
+  const [enableSelectAllHotKey, disableSelectAllHotKey] = useHotKey(
     "ctrl+a, command+a",
-    "pipeline-editor",
     () => {
       state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
       updateEventVars();
     }
   );
 
-  const [enableRunStepsHotkey, disableRunStepsHotkey] = useHotKey(
+  const [enableRunStepsHotKey, disableRunStepsHotKey] = useHotKey(
     "ctrl+enter, command+enter",
-    "pipeline-editor",
     () => {
       runSelectedSteps();
     }
@@ -2035,14 +2033,14 @@ const PipelineView: React.FC = () => {
     };
   }, []);
 
-  const onMouseOverPipelineView = () => {
-    enableSelectAllHotkey();
-    enableRunStepsHotkey();
+  const enableHotKeys = () => {
+    enableSelectAllHotKey();
+    enableRunStepsHotKey();
   };
 
-  const disableHotkeys = () => {
-    disableSelectAllHotkey();
-    disableRunStepsHotkey();
+  const disableHotKeys = () => {
+    disableSelectAllHotKey();
+    disableRunStepsHotKey();
   };
 
   const onPipelineStepsOuterHolderDown = (e) => {
@@ -2325,6 +2323,9 @@ const PipelineView: React.FC = () => {
         });
     }
 
+    // Start with hotkeys disabled
+    disableHotKeys();
+
     connectSocketIO();
     initializeResizeHandlers();
 
@@ -2344,6 +2345,8 @@ const PipelineView: React.FC = () => {
       clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
       clearTimeout(timersRef.current.doubleClickTimeout);
       clearTimeout(timersRef.current.saveIndicatorTimeout);
+
+      disableHotKeys();
 
       state.promiseManager.cancelCancelablePromises();
     };
@@ -2365,8 +2368,12 @@ const PipelineView: React.FC = () => {
         <div className="pipeline-view">
           <div
             className="pane pipeline-view-pane"
-            onMouseLeave={disableHotkeys}
-            onMouseOver={onMouseOverPipelineView}
+            onMouseEnter={() => {
+              enableHotKeys();
+            }}
+            onMouseLeave={() => {
+              disableHotKeys();
+            }}
           >
             {jobUuidFromRoute && isReadOnly && (
               <div className="pipeline-actions top-left">

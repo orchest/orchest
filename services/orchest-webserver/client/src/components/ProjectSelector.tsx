@@ -14,8 +14,6 @@ import React from "react";
 
 export type TProjectSelectorRef = any;
 
-[siteMap];
-
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
   const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();

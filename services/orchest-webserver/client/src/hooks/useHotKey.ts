@@ -1,5 +1,5 @@
 import hotkeys from "hotkeys-js";
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
 // Also activate hotkeys on INPUT, SELECT, TEXTAREA
 // Those are disabled by default.
@@ -7,12 +7,15 @@ hotkeys.filter = function (event) {
   return true;
 };
 
+const ORCHEST_SCOPE = "orchest";
+
 const useHotKey = (
   keys: string,
-  scope = "all",
-  _callback: (event?) => void
+  _callback: (event?) => void,
+  scope = ORCHEST_SCOPE
 ) => {
   const callbackRef = useRef<(event: KeyboardEvent) => void>();
+  const [isDisabled, setIsDisabled] = useState(false);
 
   // hotkeys-js persists the callback function
   // so we need to unbind the previous callback to ensure that our callback is latest one
@@ -20,24 +23,42 @@ const useHotKey = (
   if (callbackRef.current) {
     hotkeys.unbind(keys, scope, callbackRef.current);
   }
+
   callbackRef.current = (event) => {
     event.preventDefault();
     _callback(event);
   };
-  hotkeys(keys, scope, callbackRef.current);
+
+  const _enableHotKey = (keys, scope, callbackRef) => {
+    if (isDisabled) {
+      setIsDisabled(false);
+    }
+
+    hotkeys.setScope(scope);
+    hotkeys(keys, scope, callbackRef.current);
+  };
+
+  // By default the useHotKey hook will bind the callback
+  // to the key
+  if (!isDisabled) {
+    _enableHotKey(keys, scope, callbackRef);
+  }
 
   const enableHotKey = useCallback(
     () => {
-      hotkeys.setScope(scope);
+      _enableHotKey(keys, scope, callbackRef);
     },
-    [keys] // eslint-disable-line react-hooks/exhaustive-deps
+    [keys, scope, callbackRef.current] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const disableHotKey = useCallback(
     () => {
-      hotkeys.setScope("all");
+      setIsDisabled(true);
+      if (callbackRef.current) {
+        hotkeys.unbind(keys, scope, callbackRef.current);
+      }
     },
-    [keys] // eslint-disable-line react-hooks/exhaustive-deps
+    [keys, scope, callbackRef.current] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return [enableHotKey, disableHotKey];
