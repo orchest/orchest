@@ -3,7 +3,7 @@
 import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useHotKey } from "@/hooks/useHotKey";
+import { useHotKeys } from "@/hooks/useHotKeys";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
@@ -152,19 +152,23 @@ const PipelineView: React.FC = () => {
     pipelineUuid,
   });
 
-  const [enableSelectAllHotKey, disableSelectAllHotKey] = useHotKey(
-    "ctrl+a, command+a",
-    () => {
-      state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
-      updateEventVars();
-    }
-  );
-
-  const [enableRunStepsHotKey, disableRunStepsHotKey] = useHotKey(
-    "ctrl+enter, command+enter",
-    () => {
-      runSelectedSteps();
-    }
+  const [isHoverEditor, setIsHoverEditor] = React.useState(false);
+  const { setScope } = useHotKeys(
+    {
+      "pipeline-editor": {
+        "ctrl+a, command+a, ctrl+enter, command+enter": (e, hotKeyEvent) => {
+          if (["ctrl+a", "command+a"].includes(hotKeyEvent.key)) {
+            e.preventDefault();
+            state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
+            updateEventVars();
+          }
+          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key))
+            runSelectedSteps();
+        },
+      },
+    },
+    [isHoverEditor],
+    isHoverEditor
   );
 
   const timersRef = useRef({
@@ -2034,13 +2038,12 @@ const PipelineView: React.FC = () => {
   }, []);
 
   const enableHotKeys = () => {
-    enableSelectAllHotKey();
-    enableRunStepsHotKey();
+    setScope("pipeline-editor");
+    setIsHoverEditor(true);
   };
 
   const disableHotKeys = () => {
-    disableSelectAllHotKey();
-    disableRunStepsHotKey();
+    setIsHoverEditor(false);
   };
 
   const onPipelineStepsOuterHolderDown = (e) => {
@@ -2368,12 +2371,8 @@ const PipelineView: React.FC = () => {
         <div className="pipeline-view">
           <div
             className="pane pipeline-view-pane"
-            onMouseEnter={() => {
-              enableHotKeys();
-            }}
-            onMouseLeave={() => {
-              disableHotKeys();
-            }}
+            onMouseOver={enableHotKeys}
+            onMouseLeave={disableHotKeys}
           >
             {jobUuidFromRoute && isReadOnly && (
               <div className="pipeline-actions top-left">

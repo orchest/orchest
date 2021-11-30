@@ -1,5 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useHotKey } from "@/hooks/useHotKey";
+import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/Routes";
 import { getOrderedRoutes } from "@/routingConfig";
 import { Job, Project } from "@/types";
@@ -59,29 +59,36 @@ const fetcherCreator = (promiseManager: PromiseManager<any>) => {
 
 const CommandPalette: React.FC = () => {
   const { navigateTo } = useCustomRoute();
-  const [isShowing, setIsShowing] = React.useState(false);
+  const [isCommandMode, setIsCommandMode] = React.useState(false);
   const [isRefreshingCache, setIsRefreshingCache] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [selectedCommandIndex, setSelectedCommandIndex] = React.useState(0);
-  const [commandCache, setCommandCache] = React.useState([]);
-  const [commands, setCommands] = React.useState([]);
-  const [filteredCommands, setFilteredCommands] = React.useState([]);
+
+  const commandCache = React.useRef<Command[]>([]);
+
+  const [commands, setCommands] = React.useState<Command[]>([]);
+
+  const filteredCommands = React.useMemo(() => {
+    return (commands || []).filter((command) =>
+      command.title.toLowerCase().includes(query.toLowerCase())
+    );
+  }, [commands, query]);
 
   const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
   const fetcher = fetcherCreator(promiseManager);
 
   const showCommandPalette = () => {
-    setIsShowing(true);
+    setIsCommandMode(true);
   };
 
   const hideCommandPalette = () => {
     refreshCache();
-    setIsShowing(false);
+    setIsCommandMode(false);
   };
 
   const setRootCommands = () => {
-    setCommands(commandCache);
+    setCommands(commandCache.current);
   };
 
   const refreshCache = () => {
@@ -110,12 +117,13 @@ const CommandPalette: React.FC = () => {
       projectCommandsPromise,
       jobCommandsPromise,
     ]).then(([pipelineCommands, projectCommands, jobCommands]) => {
-      setCommandCache([
+      commandCache.current = [
         ...generatePageCommands(),
         ...pipelineCommands,
         ...projectCommands,
         ...jobCommands,
-      ]);
+      ];
+      setCommands(commandCache.current);
       setIsRefreshingCache(false);
     });
   };
@@ -265,7 +273,7 @@ const CommandPalette: React.FC = () => {
       siteMap.editJob.path,
     ];
 
-    return getOrderedRoutes((title) => title)
+    return getOrderedRoutes((title: string) => title)
       .filter((route) => excludedPaths.indexOf(route.path) == -1)
       .map((route) => {
         return {
@@ -282,7 +290,7 @@ const CommandPalette: React.FC = () => {
 
     switch (command.action) {
       case "openPage":
-        setIsShowing(false);
+        setIsCommandMode(false);
         navigateTo(command.data.path, { query: command.data.query });
         break;
       case "openList":
@@ -291,19 +299,7 @@ const CommandPalette: React.FC = () => {
     }
   };
 
-  const filterCommands = (commands: Command[], query: string) => {
-    return commands.filter((command) =>
-      command.title.toLowerCase().includes(query.toLowerCase())
-    );
-  };
-
-  const [enableEnterHotKey, disableEnterHotKey] = useHotKey("enter", () => {
-    if (filteredCommands[selectedCommandIndex]) {
-      handleCommand(filteredCommands[selectedCommandIndex]);
-    }
-  });
-
-  const handleIndexScrollContainer = (index) => {
+  const handleIndexScrollContainer = (index: number) => {
     // Set scroll position to make sure the selected element is in view
     if (refManager.refs.commandList) {
       const isVisible = (el, holder) => {
@@ -333,33 +329,44 @@ const CommandPalette: React.FC = () => {
     handleIndexScrollContainer(selectedCommandIndex);
   }, [selectedCommandIndex]);
 
-  const [enableUpDownHotKey, disableUpDownHotKey] = useHotKey(
-    "up, down, pageup, pagedown",
-    (e) => {
-      if (e.code == "ArrowDown") {
-        if (selectedCommandIndex < filteredCommands.length - 1) {
-          setSelectedCommandIndex(selectedCommandIndex + 1);
-        }
-      } else if (e.code == "ArrowUp") {
-        if (selectedCommandIndex > 0) {
-          setSelectedCommandIndex(selectedCommandIndex - 1);
-        }
-      } else if (e.code == "PageUp") {
-        setSelectedCommandIndex(0);
-      } else if (e.code == "PageDown") {
-        setSelectedCommandIndex(filteredCommands.length - 1);
-      }
-    }
+  const { setScope } = useHotKeys(
+    {
+      all: {
+        "ctrl+k, command+k": () => {
+          showCommandPalette();
+          setRootCommands();
+        },
+      },
+      command: {
+        "up, down, pageup, pagedown, escape, enter": (e, hotKeyEvent) => {
+          if (hotKeyEvent.key === "escape") hideCommandPalette();
+          if (hotKeyEvent.key === "enter") {
+            if (filteredCommands[selectedCommandIndex]) {
+              handleCommand(filteredCommands[selectedCommandIndex]);
+            }
+          }
+          if (["down", "up", "pageup", "pagedown"].includes(hotKeyEvent.key))
+            setSelectedCommandIndex((current) => {
+              if (hotKeyEvent.key == "down") {
+                if (current < filteredCommands.length - 1) {
+                  return current + 1;
+                }
+              } else if (hotKeyEvent.key == "up") {
+                if (current > 0) {
+                  return current - 1;
+                }
+              } else if (hotKeyEvent.key == "pageup") {
+                return 0;
+              } else if (hotKeyEvent.key == "pagedown") {
+                return filteredCommands.length - 1;
+              }
+              return current;
+            });
+        },
+      },
+    },
+    [selectedCommandIndex, filteredCommands]
   );
-
-  const [_, disableKHotKey] = useHotKey("ctrl+k, command+k", () => {
-    showCommandPalette();
-    setRootCommands();
-  });
-
-  const [enableEscapeHotKey, disableEscapeHotKey] = useHotKey("escape", () => {
-    hideCommandPalette();
-  });
 
   const selectCommand = (index) => {
     if (filteredCommands[index]) {
@@ -367,16 +374,12 @@ const CommandPalette: React.FC = () => {
     }
   };
 
-  const enableShowOnlyHotKeys = () => {
-    enableEscapeHotKey();
-    enableUpDownHotKey();
-    enableEnterHotKey();
+  const enableCommandMode = () => {
+    setScope("command");
   };
 
-  const disableShowOnlyHotKeys = () => {
-    disableEscapeHotKey();
-    disableUpDownHotKey();
-    disableEnterHotKey();
+  const disableCommandMode = () => {
+    setScope("all");
   };
 
   React.useEffect(() => {
@@ -384,34 +387,26 @@ const CommandPalette: React.FC = () => {
     refreshCache();
 
     return () => {
-      disableKHotKey();
-      disableShowOnlyHotKeys();
+      disableCommandMode();
     };
   }, []);
 
   React.useEffect(() => {
-    if (isShowing) {
+    if (isCommandMode) {
       refManager.refs.search.focus();
-      enableShowOnlyHotKeys();
+      enableCommandMode();
     } else {
-      disableShowOnlyHotKeys();
+      disableCommandMode();
     }
-  }, [isShowing]);
+  }, [isCommandMode]);
 
   React.useEffect(() => {
-    if (commands.length == 0) {
-      setCommands(commandCache);
-    }
-  }, [commandCache]);
-
-  React.useEffect(() => {
-    setFilteredCommands(filterCommands(commands, query));
     setSelectedCommandIndex(0);
   }, [commands, query]);
 
   return (
     <div>
-      {isShowing && (
+      {isCommandMode && (
         <div className="command-palette-holder">
           <div className="command-pallette">
             <div className="search-box">

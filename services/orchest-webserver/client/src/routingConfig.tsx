@@ -56,7 +56,7 @@ const _getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
 // to add new route, you would also need to add the route name to RouteName.
 // NOTE: the order of the routes matters, react-router loads the first route that matches the given path
 
-export const getOrderedRoutes = (getTitle?) => {
+export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
   if (getTitle === undefined) {
     getTitle = _getTitle;
   }
