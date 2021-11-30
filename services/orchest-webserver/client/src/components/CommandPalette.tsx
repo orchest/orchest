@@ -253,7 +253,7 @@ const CommandPalette: React.FC = () => {
           },
         }
       : {
-          title: "View job: " + job.name,
+          title: "Job: " + job.name,
           action: "openPage",
           data: {
             path: siteMap.job.path,
@@ -316,6 +316,36 @@ const CommandPalette: React.FC = () => {
       handleCommand(filteredCommands[selectedCommandIndex]);
     }
   });
+
+  const handleIndexScrollContainer = (index) => {
+    // Set scroll position to make sure the selected element is in view
+    if (refManager.refs.commandList) {
+      const isVisible = (el, holder) => {
+        let { top, bottom, height } = el.getBoundingClientRect();
+
+        height = 0; // Show at least full element
+        const holderRect = holder.getBoundingClientRect();
+
+        return top <= holderRect.top
+          ? [holderRect.top - top <= height, "top"]
+          : [bottom - holderRect.bottom <= height, "bottom"];
+      };
+
+      let listEl = refManager.refs.commandList.querySelectorAll("li")[index];
+
+      const [visible, position] = isVisible(
+        listEl,
+        refManager.refs.commandList
+      );
+      if (!visible) {
+        listEl.scrollIntoView(position == "top");
+      }
+    }
+  };
+
+  React.useEffect(() => {
+    handleIndexScrollContainer(selectedCommandIndex);
+  }, [selectedCommandIndex]);
 
   const [enableUpDownHotKey, disableUpDownHotKey] = useHotKey(
     "up, down, pageup, pagedown",
@@ -407,7 +437,7 @@ const CommandPalette: React.FC = () => {
                 label="Command search"
               />
             </div>
-            <div className="command-list">
+            <div className="command-list" ref={refManager.nrefs.commandList}>
               {
                 <MDCListReact
                   className="mdc-deprecated-list--dense"

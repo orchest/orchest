@@ -1332,6 +1332,8 @@ strong {
     .command-list {
       background: #fff;
       border-radius: $mdcBorderRadius;
+      max-height: 50vh;
+      overflow-y: auto;
     }
   }
 }
