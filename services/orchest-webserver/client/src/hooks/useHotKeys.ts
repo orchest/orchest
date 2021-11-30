@@ -14,7 +14,17 @@ export const useHotKeys = (
   deps: React.DependencyList,
   shouldBind?: boolean
 ) => {
+  const unbindAll = () => {
+    Object.entries(config).forEach(([scope, keyActionPairs]) => {
+      Object.keys(keyActionPairs).forEach((key) => {
+        hotkeys.unbind(key, scope);
+      });
+    });
+  };
+
   const bindConfig = () => {
+    unbindAll();
+
     Object.entries(config).forEach(([scope, keyActionPairs]) => {
       Object.entries(keyActionPairs).forEach(([key, action]) => {
         if (scope === "all") {
@@ -22,14 +32,6 @@ export const useHotKeys = (
         } else {
           hotkeys(key, scope, action);
         }
-      });
-    });
-  };
-
-  const unbindAll = () => {
-    Object.entries(config).forEach(([scope, keyActionPairs]) => {
-      Object.keys(keyActionPairs).forEach((key) => {
-        hotkeys.unbind(key, scope);
       });
     });
   };
