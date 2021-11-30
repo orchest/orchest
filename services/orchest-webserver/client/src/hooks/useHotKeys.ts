@@ -34,9 +34,10 @@ export const useHotKeys = (
     });
   };
 
-  // unbind everything when unmounted
   React.useEffect(() => {
-    bindConfig();
+    // bind when mounted
+    if (shouldBind === undefined || shouldBind) bindConfig();
+    // unbind everything when unmounted
     return () => unbindAll();
   }, []);
 
