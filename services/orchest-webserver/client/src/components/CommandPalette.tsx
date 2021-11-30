@@ -265,7 +265,7 @@ const CommandPalette: React.FC = () => {
       siteMap.editJob.path,
     ];
 
-    return getOrderedRoutes((title) => title)
+    return getOrderedRoutes((title: string) => title)
       .filter((route) => excludedPaths.indexOf(route.path) == -1)
       .map((route) => {
         return {
