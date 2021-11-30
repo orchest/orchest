@@ -2,6 +2,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKey } from "@/hooks/useHotKey";
 import { siteMap } from "@/Routes";
 import { getOrderedRoutes } from "@/routingConfig";
+import { Job, Project } from "@/types";
 import {
   MDCLinearProgressReact,
   MDCListReact,
@@ -13,7 +14,48 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
+
+type Pipeline = {
+  name: string;
+  path: string;
+  project_uuid: string;
+  uuid: string;
+};
+
+type Command = {
+  title: string;
+  action: string;
+  children?: Command[];
+  data?: {
+    path: string;
+    query: Record<string, string>; // the query param for navigateTo function
+  };
+};
+
+const fetcherCreator = (promiseManager: PromiseManager<any>) => {
+  return function <T>(path: string, attribute?: string) {
+    return new Promise<T[]>((resolve, reject) => {
+      let fetchListPromise = makeCancelable(
+        makeRequest("GET", path),
+        promiseManager
+      );
+
+      fetchListPromise.promise
+        .then((response: string) => {
+          const parsed = JSON.parse(response);
+          resolve(attribute ? parsed[attribute] : parsed);
+        })
+        .catch((e) => {
+          console.error(e);
+          reject([]);
+        })
+        .finally(() => {
+          resolve([]);
+        });
+    });
+  };
+};
 
 const CommandPalette: React.FC = () => {
   const { navigateTo } = useCustomRoute();
@@ -27,6 +69,7 @@ const CommandPalette: React.FC = () => {
 
   const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
+  const fetcher = fetcherCreator(promiseManager);
 
   const showCommandPalette = () => {
     setIsShowing(true);
@@ -44,34 +87,29 @@ const CommandPalette: React.FC = () => {
   const refreshCache = () => {
     setIsRefreshingCache(true);
 
-    let pipelineCommands = [];
-    let projectCommands = [];
-    let jobCommands = [];
-
-    let pipelinesPromise = fetchPipelines();
-    pipelinesPromise.then((pipelines) => {
-      pipelines.forEach((pipeline) => {
-        pipelineCommands = pipelineCommands.concat(
-          commandsFromPipeline(pipeline)
-        );
-      });
+    let pipelineCommandsPromise = fetchPipelines().then((pipelines) => {
+      return pipelines.reduce((all, pipeline) => {
+        return [...all, ...commandsFromPipeline(pipeline)];
+      }, []);
     });
 
-    let projectsPromise = fetchProjects();
-    projectsPromise.then((projects) => {
-      projects.forEach((project) => {
-        projectCommands = projectCommands.concat(commandsFromProject(project));
-      });
+    let projectCommandsPromise = fetchProjects().then((projects) => {
+      return projects.reduce((all, project) => {
+        return [...all, commandsFromProject(project)];
+      }, []);
     });
 
-    let jobsPromise = fetchJobs();
-    jobsPromise.then((jobs) => {
-      jobs.forEach((job) => {
-        jobCommands = jobCommands.concat(commandsFromJob(job));
-      });
+    let jobCommandsPromise = fetchJobs().then((jobs) => {
+      return jobs.reduce((all, job) => {
+        return [...all, commandsFromJob(job)];
+      }, []);
     });
 
-    Promise.all([pipelinesPromise, projectsPromise, jobsPromise]).then(() => {
+    Promise.all([
+      pipelineCommandsPromise,
+      projectCommandsPromise,
+      jobCommandsPromise,
+    ]).then(([pipelineCommands, projectCommands, jobCommands]) => {
       setCommandCache([
         ...generatePageCommands(),
         ...pipelineCommands,
@@ -82,102 +120,53 @@ const CommandPalette: React.FC = () => {
     });
   };
 
-  const fetchPipelines: () => Promise<[]> = () => {
-    return new Promise((resolve, reject) => {
-      let fetchListPromise = makeCancelable(
-        makeRequest("GET", `/async/pipelines`),
-        promiseManager
-      );
-
-      fetchListPromise.promise
-        .then((response: string) => {
-          resolve(JSON.parse(response)["result"]);
-        })
-        .catch((e) => {
-          console.error(e);
-          reject([]);
-        })
-        .finally(() => {
-          resolve([]);
-        });
-    });
+  const fetchPipelines = () => {
+    return fetcher<Pipeline>("/async/pipelines", "result");
   };
 
-  const fetchProjects: () => Promise<[]> = () => {
-    return new Promise((resolve) => {
-      let fetchListPromise = makeCancelable(
-        makeRequest("GET", `/async/projects`),
-        promiseManager
-      );
-
-      fetchListPromise.promise
-        .then((response: string) => {
-          let projects = JSON.parse(response);
-          resolve(projects);
-        })
-        .catch((e) => {
-          console.error(e);
-          resolve([]);
-        });
-    });
+  const fetchProjects = () => {
+    return fetcher<Project>("/async/projects");
   };
 
-  const fetchJobs: () => Promise<[]> = () => {
-    return new Promise((resolve) => {
-      let fetchListPromise = makeCancelable(
-        makeRequest("GET", `/catch/api-proxy/api/jobs/`),
-        promiseManager
-      );
-
-      fetchListPromise.promise
-        .then((response: string) => {
-          let jobs = JSON.parse(response);
-          resolve(jobs["jobs"]);
-        })
-        .catch((e) => {
-          console.error(e);
-          resolve([]);
-        });
-    });
+  const fetchJobs = () => {
+    return fetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
   };
 
-  const onQueryChange = (value) => {
+  const onQueryChange = (value: string) => {
     setQuery(value);
   };
 
-  const commandsFromProject = (project: any) => {
-    return [
-      {
-        title: "Project: " + project.path,
-        action: "openList",
-        data: [
-          {
-            title: "Project settings: " + project.path,
-            action: "openPage",
-            data: {
-              path: siteMap.projectSettings.path,
-              query: {
-                projectUuid: project.uuid,
-              },
+  const commandsFromProject = (project: Project): Command => {
+    return {
+      title: "Project: " + project.path,
+      action: "openList",
+      children: [
+        {
+          title: "Project settings: " + project.path,
+          action: "openPage",
+          data: {
+            path: siteMap.projectSettings.path,
+            query: {
+              projectUuid: project.uuid,
             },
           },
-          {
-            title: "Pipelines: " + project.path,
-            action: "openPage",
-            data: {
-              path: siteMap.pipelines.path,
-              query: {
-                projectUuid: project.uuid,
-              },
+        },
+        {
+          title: "Pipelines: " + project.path,
+          action: "openPage",
+          data: {
+            path: siteMap.pipelines.path,
+            query: {
+              projectUuid: project.uuid,
             },
           },
-        ],
-      },
-    ];
+        },
+      ],
+    };
   };
 
-  const commandsFromPipeline = (pipeline: any) => {
-    const generatePipelineCommands = (pipelineDisplay) => {
+  const commandsFromPipeline = (pipeline: Pipeline) => {
+    const generatePipelineCommands = (pipelineDisplay): Command[] => {
       return [
         {
           title: "Edit: " + pipelineDisplay,
@@ -287,7 +276,7 @@ const CommandPalette: React.FC = () => {
       });
   };
 
-  const handleCommand = (command) => {
+  const handleCommand = (command: Command) => {
     // Hide command palette before executing command
     setQuery("");
 
@@ -297,14 +286,14 @@ const CommandPalette: React.FC = () => {
         navigateTo(command.data.path, { query: command.data.query });
         break;
       case "openList":
-        setCommands(command.data);
+        setCommands(command.children);
         break;
     }
   };
 
-  const filterCommands = (commands, query) => {
-    return commands.filter(
-      (command) => command.title.toLowerCase().indexOf(query.toLowerCase()) >= 0
+  const filterCommands = (commands: Command[], query: string) => {
+    return commands.filter((command) =>
+      command.title.toLowerCase().includes(query.toLowerCase())
     );
   };
 
