@@ -28,8 +28,7 @@ Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
 
 ## Features
 
-> For a complete list of Orchest's features, check out the
-> [overview](https://orchest.readthedocs.io/en/stable/getting_started/overview.html) in our docs!
+> This is not a comprehensive list.
 
 - **Visually construct** pipelines through our user-friendly UI.
 - **Code in Notebooks**.
@@ -44,7 +43,7 @@ Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
 
 ## Installation
 
-> **NOTE:** Orchest is in **alpha**.
+> **NOTE:** Orchest is in **beta**.
 
 For GPU support, language dependencies other than Python, and other installation methods, such as
 building from source, please refer to our [installation
