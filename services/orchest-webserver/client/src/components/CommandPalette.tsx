@@ -228,7 +228,7 @@ const CommandPalette: React.FC = () => {
       {
         title: "Pipeline: " + pipelineName,
         action: "openList",
-        data: generatePipelineCommands(pipelineName),
+        children: generatePipelineCommands(pipelineName),
       },
     ];
   };
@@ -315,12 +315,14 @@ const CommandPalette: React.FC = () => {
 
       let listEl = refManager.refs.commandList.querySelectorAll("li")[index];
 
-      const [visible, position] = isVisible(
-        listEl,
-        refManager.refs.commandList
-      );
-      if (!visible) {
-        listEl.scrollIntoView(position == "top");
+      if (listEl) {
+        const [visible, position] = isVisible(
+          listEl,
+          refManager.refs.commandList
+        );
+        if (!visible) {
+          listEl.scrollIntoView(position == "top");
+        }
       }
     }
   };
