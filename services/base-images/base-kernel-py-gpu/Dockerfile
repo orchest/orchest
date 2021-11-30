@@ -23,11 +23,21 @@ RUN chown $NB_USER -R /orchest/orchest-sdk
 RUN chown $NB_USER -R /orchest/lib
 
 USER $NB_USER
-RUN pip install -r requirements.txt
+RUN pip install -r requirements-user.txt
+# Install Orchest dependencies in our own environment
+RUN conda create -y -n orchestdependencies && \
+    # requirements.txt includes local install and thus we need to use pip
+    conda install -y -n orchestdependencies pip && \
+    conda run -n orchestdependencies pip install -r requirements.txt
 
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 
 ENV HOME=/home/$NB_USER
+
+# This path is searched first to locate kernels. Without this variable
+# Jupyter will search inside the orchestdependencies environment first
+# and end up using the wrong executable to start the kernel.
+ENV JUPYTER_PATH=/opt/conda/share/jupyter
 
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}

@@ -1,9 +1,12 @@
+import logging
 import typing as t
 
 import nbformat
 from nbconvert.preprocessors import ExecutePreprocessor
 from nbconvert.preprocessors.execute import CellExecutionError
 from nbformat.v4 import output_from_msg
+
+logger = logging.getLogger(__name__)
 
 
 class PartialExecutePreprocessor(ExecutePreprocessor):
@@ -130,6 +133,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
             except CellExecutionError as e:
 
+                logger.error(f"Cell failed to execute with kernel: {self.kernel_name}")
                 self.log_file.write("%s" % e)
                 self.log_file.flush()
 

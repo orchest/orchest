@@ -52,7 +52,10 @@ def main():
     elif file_extension in ["py", "r", "sh", "jl", ""]:
 
         extension_script_mapping = {
-            "py": "python3",
+            # Explicitely use the Python that contains the user
+            # dependencies (otherwise Popen could resolve to the Python
+            # inside the "orchestdependencies" environment).
+            "py": "/opt/conda/bin/python",
             "r": "Rscript",
             "sh": "sh",
             "jl": "julia",
