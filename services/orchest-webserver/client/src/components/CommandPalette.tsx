@@ -33,6 +33,7 @@ const CommandPalette: React.FC = () => {
   };
 
   const hideCommandPalette = () => {
+    refreshCache();
     setIsShowing(false);
   };
 
@@ -225,16 +226,12 @@ const CommandPalette: React.FC = () => {
       ];
     };
 
+    const pipelineName = pipeline.name + " [" + pipeline.path + "]";
     return [
       {
-        title: "Pipeline path: " + pipeline.path,
+        title: "Pipeline: " + pipelineName,
         action: "openList",
-        data: generatePipelineCommands(pipeline.path),
-      },
-      {
-        title: "Pipeline name: " + pipeline.name,
-        action: "openList",
-        data: generatePipelineCommands(pipeline.name),
+        data: generatePipelineCommands(pipelineName),
       },
     ];
   };
