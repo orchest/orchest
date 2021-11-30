@@ -127,7 +127,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
 
         setState((prevState) => ({
           ...prevState,
-          isDeleting: true,
+          isDeleting: false,
         }));
         return;
       }
