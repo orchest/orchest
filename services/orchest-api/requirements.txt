@@ -3,7 +3,7 @@ aiodocker==0.21.0
 aiohttp==3.7.4
 amqp==2.6.0
 celery==4.4.2
-croniter==1.0.2
+croniter==1.0.15
 docker>=4.3.0
 six>=1.13.0
 Flask==1.1.1
