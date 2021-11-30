@@ -332,7 +332,8 @@ const CommandPalette: React.FC = () => {
   const { setScope } = useHotKeys(
     {
       all: {
-        "ctrl+k, command+k": () => {
+        "ctrl+k, command+k": (event) => {
+          event.preventDefault();
           showCommandPalette();
           setRootCommands();
         },
