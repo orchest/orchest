@@ -1,18 +1,16 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import CloseIcon from "@mui/icons-material/Close";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import {
-  Box,
-  Flex,
-  IconButton,
-  IconCrossSolid,
-  styled,
-  Text,
-} from "@orchest/design-system";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import { AnimatePresence, m } from "framer-motion";
 import React from "react";
 import { PipelineDiagram } from "./assets";
@@ -26,59 +24,64 @@ import {
 } from "./OnboardingDialogCarousel";
 import { useOnboardingDialog } from "./use-onboarding-dialog";
 
-const CodeHeader = styled("header", { include: "box", textAlign: "right" });
-const CodeHeading = styled("h1", {
-  include: "box",
-  display: "inline-block",
-  padding: "$1 $2",
-  marginBottom: "-2px",
-  fontSize: "$xs",
-  borderTopLeftRadius: "$sm",
-  borderTopRightRadius: "$sm",
-  backgroundColor: "$primary",
-  color: "$white",
-});
-const CodeWindow = styled("div", {
-  include: "box",
-  border: "2px $gray300 solid",
-  borderRadius: "$md",
+const CodeHeader = styled(Box)({ textAlign: "right" });
+
+const CodeWindow = styled(Box)(({ theme }) => ({
+  border: `2px ${theme.palette.grey[300]} solid`,
+  borderRadius: theme.shape.borderRadius,
   borderTopRightRadius: 0,
-  padding: "$1",
-});
-const CodeList = styled("ul", {
-  include: "box",
+  padding: theme.spacing(1),
+}));
+const CodeList = styled("ul")(({ theme }) => ({
   fontFamily: "monospace",
   textAlign: "left",
-  backgroundColor: "$gray900",
-  borderRadius: "$sm",
+  backgroundColor: theme.palette.grey[900],
+  borderRadius: theme.shape.borderRadius,
   margin: 0,
-  padding: "$2",
-  paddingLeft: "$7",
-});
-const CodeListItem = styled("li", {
-  include: "box",
-  fontSize: "$sm",
+  padding: theme.spacing(2),
+  paddingLeft: theme.spacing(4),
+}));
+const CodeListItem = styled("li")(({ theme }) => ({
+  fontSize: theme.typography.fontSize,
   lineHeight: "$sm",
-  color: "$white",
+  color: theme.palette.common.white,
   "&::marker": {
-    color: "$gray500",
+    color: theme.palette.grey[500],
     content: "'$ '",
   },
-});
+}));
 
-const IconList = styled("ul", {
-  include: "box",
+const IconList = styled("ul")(({ theme }) => ({
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(0, 1fr))",
   gridAutoFlow: "column",
-});
-const IconListItem = styled("li", {
-  include: "box",
+  marginTop: theme.spacing(3),
+}));
+const IconListItem = styled("li")(({ theme }) => ({
   display: "flex",
   flexDirection: "column",
-  fontSize: "$sm",
-  "> i": { fontSize: "2rem", color: "$gray700", marginBottom: "$2" },
-});
+  fontSize: theme.typography.fontSize * 0.8,
+  "> i": {
+    fontSize: "2rem",
+    color: theme.palette.grey[700],
+    marginBottom: theme.spacing(1),
+  },
+}));
+
+const CloseButton = ({ onClose }: { onClose: () => void }) => (
+  <IconButton
+    onClick={onClose}
+    size="small"
+    sx={{
+      position: "absolute",
+      top: (theme) => theme.spacing(2),
+      right: (theme) => theme.spacing(2),
+    }}
+    data-test-id="onboarding-close"
+  >
+    <CloseIcon />
+  </IconButton>
+);
 
 export const OnboardingDialog: React.FC = () => {
   const { navigateTo } = useCustomRoute();
@@ -98,8 +101,6 @@ export const OnboardingDialog: React.FC = () => {
     isAnimating,
   } = useOnboardingDialogCarousel();
 
-  const onOpen = () => setIsOnboardingDialogOpen(true);
-
   const onClose = (loadQuickstart = false) => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide([0, 0]);
@@ -115,21 +116,17 @@ export const OnboardingDialog: React.FC = () => {
   };
 
   return (
-    <Dialog open={isOnboardingDialogOpen} onClose={onClose}>
+    <Dialog
+      open={isOnboardingDialogOpen}
+      onClose={onClose}
+      fullWidth
+      maxWidth="xs"
+    >
+      <CloseButton onClose={onClose} />
       <DialogContent
-        css={{ paddingTop: "$10", overflow: isAnimating && "hidden" }}
+        sx={{ paddingTop: (theme) => theme.spacing(4), overflow: "hidden" }}
         data-test-id="onboarding-dialog-content"
       >
-        <IconButton
-          variant="ghost"
-          rounded
-          title="Close"
-          onClick={() => onClose()}
-          css={{ position: "absolute", top: "$4", right: "$4" }}
-          data-test-id="onboarding-close"
-        >
-          <IconCrossSolid />
-        </IconButton>
         <OnboardingDialogCarousel>
           {onboardingDialogCarouselSlides.map(
             (item, i) =>
@@ -137,53 +134,34 @@ export const OnboardingDialog: React.FC = () => {
                 <OnboardingDialogCarouselSlide
                   key={`OnboardingDialogCarouselSlide-${i}`}
                 >
-                  <Flex
+                  <Stack
                     direction="column"
-                    css={{
+                    sx={{
                       minHeight: ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT,
                       justifyContent: "center",
                     }}
                   >
                     <DialogTitle
-                      css={{ fontSize: "$2xl", lineHeight: "$2xl" }}
+                      sx={{
+                        fontSize: "typography.h2",
+                        lineHeight: 2,
+                        textAlign: "center",
+                      }}
                       data-test-id="onboarding-title"
                     >
                       {item.title}
                     </DialogTitle>
                     <Box
-                      css={{
+                      sx={{
                         width: "100%",
                         margin: "0 auto",
-                        maxWidth: "$sm",
+                        maxWidth: "24rem",
                         textAlign: "center",
-                        [`> ${Text}`]: {
-                          margin: "0 auto",
-                          maxWidth: "$xs",
-                        },
-                        "> * + *": { marginTop: "$6" },
                       }}
                     >
-                      {item.variant === "code" && (
-                        <>
-                          <Text>{item.description}</Text>
-                          <article>
-                            <CodeHeader>
-                              <CodeHeading>{item.code.title}</CodeHeading>
-                            </CodeHeader>
-                            <CodeWindow>
-                              <CodeList role="list">
-                                {item.code.lines.map((line, i) => (
-                                  <CodeListItem key={line}>{line}</CodeListItem>
-                                ))}
-                              </CodeList>
-                            </CodeWindow>
-                          </article>
-                        </>
-                      )}
-
                       {item.variant === "icons" && (
-                        <React.Fragment>
-                          <Text>{item.description}</Text>
+                        <>
+                          <Typography>{item.description}</Typography>
                           <IconList>
                             {item.icons.map(({ icon, label }) => (
                               <IconListItem key={[icon, label].join("-")}>
@@ -197,7 +175,47 @@ export const OnboardingDialog: React.FC = () => {
                               </IconListItem>
                             ))}
                           </IconList>
-                        </React.Fragment>
+                        </>
+                      )}
+                      {item.variant === "code" && (
+                        <>
+                          <Typography
+                            sx={{ maxWidth: "20rem", margin: "0 auto 1.5rem" }}
+                          >
+                            {item.description}
+                          </Typography>
+                          <article>
+                            <CodeHeader>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  display: "inline-block",
+                                  padding: (theme) =>
+                                    `${theme.spacing(0.5)} ${theme.spacing(
+                                      1.5
+                                    )}`,
+                                  marginBottom: "-2px",
+                                  borderTopLeftRadius: (theme) =>
+                                    theme.shape.borderRadius,
+                                  borderTopRightRadius: (theme) =>
+                                    theme.shape.borderRadius,
+                                  backgroundColor: (theme) =>
+                                    theme.palette.primary.main,
+                                  color: (theme) => theme.palette.common.white,
+                                }}
+                              >
+                                {item.code.title}
+                              </Typography>
+                            </CodeHeader>
+                            <CodeWindow>
+                              <CodeList role="list">
+                                {item.code.lines.map((line, i) => (
+                                  <CodeListItem key={line}>{line}</CodeListItem>
+                                ))}
+                              </CodeList>
+                            </CodeWindow>
+                          </article>
+                        </>
                       )}
 
                       {item.variant === "pipeline-diagram" && (
@@ -205,61 +223,69 @@ export const OnboardingDialog: React.FC = () => {
                       )}
 
                       {item.variant === "end" && (
-                        <Text>
+                        <Typography>
                           {hasQuickstart
                             ? item.description.withQuickstart
                             : item.description.withoutQuickstart}
-                        </Text>
+                        </Typography>
                       )}
                     </Box>
-                  </Flex>
+                  </Stack>
                 </OnboardingDialogCarouselSlide>
               )
           )}
         </OnboardingDialogCarousel>
-        <DialogActions
-          css={{
-            flexDirection: "column",
-            paddingTop: "$8",
-            paddingBottom: "$8",
+      </DialogContent>
+      <Stack direction="column">
+        <OnboardingDialogCarouselIndicator />
+        <Box
+          sx={{
+            marginTop: (theme) => theme.spacing(4),
+            marginBottom: (theme) => theme.spacing(4),
+            width: "100%",
+            textAlign: "center",
           }}
         >
-          <OnboardingDialogCarouselIndicator />
-
-          <Box css={{ marginTop: "$6", width: "100%", textAlign: "center" }}>
-            <AnimatePresence initial={false}>
-              <m.div
-                key={isLastSlide ? "onboarding-end" : "onboarding-next"}
-                initial={{ y: 50, opacity: 0, height: 0 }}
-                animate={{ y: 0, opacity: 1, zIndex: 1, height: "auto" }}
-                exit={{ y: 0, opacity: 0, zIndex: 0, height: 0 }}
-                transition={{ type: "spring", damping: 15, stiffness: 150 }}
-              >
-                <MDCButtonReact
-                  {...(isLastSlide
-                    ? {
-                        icon: hasQuickstart && "open_in_new",
-                        label: hasQuickstart
-                          ? "Open Quickstart Pipeline"
-                          : "Get Started",
-                        classNames: ["mdc-button--raised", "themed-secondary"],
-                        onClick: () => onClose(hasQuickstart),
-                        "data-test-id": hasQuickstart
-                          ? "onboarding-complete-with-quickstart"
-                          : "onboarding-complete-without-quickstart",
-                      }
-                    : {
-                        label: "Next",
-                        classNames: ["mdc-button--outlined"],
-                        onClick: () => cycleSlide(1),
-                        "data-test-id": "onboarding-next",
-                      })}
-                />
-              </m.div>
-            </AnimatePresence>
-          </Box>
-        </DialogActions>
-      </DialogContent>
+          <AnimatePresence initial={false}>
+            <m.div
+              key={isLastSlide ? "onboarding-end" : "onboarding-next"}
+              initial={{ y: 50, opacity: 0, height: 0 }}
+              animate={{ y: 0, opacity: 1, zIndex: 1, height: "auto" }}
+              exit={{ y: 0, opacity: 0, zIndex: 0, height: 0 }}
+              transition={{ type: "spring", damping: 15, stiffness: 150 }}
+            >
+              <Button
+                {...(isLastSlide
+                  ? {
+                      startIcon: hasQuickstart && <OpenInNewIcon />,
+                      children: hasQuickstart
+                        ? "Open Quickstart Pipeline"
+                        : "Get Started",
+                      variant: "contained",
+                      color: "primary",
+                      onClick: () => onClose(hasQuickstart),
+                      "data-test-id": hasQuickstart
+                        ? "onboarding-complete-with-quickstart"
+                        : "onboarding-complete-without-quickstart",
+                    }
+                  : {
+                      children: "Next",
+                      color: "secondary",
+                      variant: "outlined",
+                      sx: {
+                        borderColor: (theme) => theme.palette.grey[400],
+                        "&:hover": {
+                          borderColor: (theme) => theme.palette.grey[400],
+                        },
+                      },
+                      onClick: () => cycleSlide(1),
+                      "data-test-id": "onboarding-next",
+                    })}
+              />
+            </m.div>
+          </AnimatePresence>
+        </Box>
+      </Stack>
     </Dialog>
   );
 };
