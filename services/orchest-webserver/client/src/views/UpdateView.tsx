@@ -1,10 +1,14 @@
+import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
+import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
+import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import {
   checkHeartbeat,
   makeCancelable,
@@ -121,39 +125,24 @@ const UpdateView: React.FC = () => {
 
   return (
     <Layout>
-      <div className={"view-page update-page"}>
-        <h2>Orchest updater</h2>
-        <p className="push-down">Update Orchest to the latest version.</p>
-
-        {(() => {
-          let elements = [];
-
-          if (state.updating) {
-            elements.push(<LinearProgress key="0" className="push-down" />);
-          }
-          if (state.updateOutput.length > 0) {
-            elements.push(
-              <div key="1" className="console-output">
-                {updateOutputLines.join("\n")}
-              </div>
-            );
-          }
-
-          return (
-            <React.Fragment>
-              <MDCButtonReact
-                classNames={["push-down"]}
-                label="Start update"
-                icon="system_update_alt"
-                disabled={state.updating}
-                onClick={startUpdateTrigger}
-              />
-
-              {elements}
-            </React.Fragment>
-          );
-        })()}
-      </div>
+      <Paper className={"view-page update-page"}>
+        <Typography variant="h5">Orchest updater</Typography>
+        <Typography sx={{ marginTop: 3, marginBottom: 3 }}>
+          Update Orchest to the latest version.
+        </Typography>
+        <Button
+          sx={{ marginBottom: 3 }}
+          startIcon={<SystemUpdateAltIcon />}
+          disabled={state.updating}
+          onClick={startUpdateTrigger}
+        >
+          Start update
+        </Button>
+        {state.updating && <LinearProgress sx={{ marginBottom: 3 }} />}
+        {state.updateOutput.length > 0 && (
+          <ConsoleOutput>{updateOutputLines.join("\n")}</ConsoleOutput>
+        )}
+      </Paper>
     </Layout>
   );
 };

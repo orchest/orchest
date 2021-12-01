@@ -461,13 +461,6 @@ a.button {
     padding-bottom: var(--space-5);
   }
 
-  &.update-page {
-    .console-output {
-      width: 100%;
-      max-width: 800px;
-    }
-  }
-
   .jobs-page {
     .mdc-data-table {
       width: 100%;
@@ -1290,16 +1283,6 @@ strong {
       width: 25%;
     }
   }
-}
-
-.console-output {
-  font-family: monospace;
-  font-size: 13px;
-  background: #000;
-  color: #fff;
-  padding: calc(var(--space-5) / 2);
-  white-space: pre-line;
-  overflow-x: auto;
 }
 
 button.themed-secondary {
