@@ -704,6 +704,32 @@ def register_views(app, db):
 
         return json_string, 200, {"content-type": "application/json"}
 
+    @app.route("/async/pipelines", methods=["GET"])
+    def pipelines_get_all():
+
+        pipelines = Pipeline.query.all()
+        pipelines_augmented = []
+
+        for pipeline in pipelines:
+
+            pipeline_augmented = {
+                "uuid": pipeline.uuid,
+                "path": pipeline.path,
+                "project_uuid": pipeline.project_uuid,
+            }
+
+            pipeline_json = get_pipeline_json(pipeline.uuid, pipeline.project_uuid)
+            if pipeline_json is not None:
+                pipeline_augmented["name"] = pipeline_json["name"]
+            else:
+                pipeline_augmented["name"] = "Warning: pipeline file was not found."
+
+            pipelines_augmented.append(pipeline_augmented)
+
+        json_string = json.dumps({"success": True, "result": pipelines_augmented})
+
+        return json_string, 200, {"content-type": "application/json"}
+
     @app.route(
         "/async/file-viewer/<project_uuid>/<pipeline_uuid>/<step_uuid>",
         methods=["GET"],

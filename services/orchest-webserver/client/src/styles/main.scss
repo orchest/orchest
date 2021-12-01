@@ -78,6 +78,8 @@ $codeSize: 14px;
 $defaultFontSize: 15px;
 $borderColor: rgba(0, 0, 0, 0.12);
 $stepBorderRadius: 6px;
+$mdcBorderRadius: 4px;
+$dialogBackground: rgba(0, 0, 0, 0.32);
 
 $pipelineStepHeight: 105px;
 $pipelineStepWidth: 190px;
@@ -108,6 +110,14 @@ p {
 
 .mdc-drawer__content {
   position: relative;
+}
+
+.main-drawer {
+  .mdc-drawer__content {
+    justify-content: space-between;
+    flex-direction: column;
+    display: flex;
+  }
 }
 
 .mdc-tooltip {
@@ -898,6 +908,8 @@ iframe.fullsize {
 a.text-button,
 button.text-button {
   border: 0;
+  color: #000;
+  text-decoration: none;
   border-bottom: 1px dotted #c6cbd1;
   background: none;
   &:hover {
@@ -1295,6 +1307,64 @@ strong {
   padding: calc(var(--space-5) / 2);
   white-space: pre-line;
   overflow-x: auto;
+}
+
+.command-palette-hint {
+  border: 1px solid $borderColor;
+  border-radius: 4px;
+  padding: 5px;
+  text-align: center;
+  position: relative;
+  user-select: none;
+  cursor: pointer;
+  font-size: 0.875em;
+  font-weight: 500;
+
+  .material-icons {
+    position: absolute;
+    left: 5px;
+    font-size: 1.4em;
+    margin-top: -1px;
+  }
+
+  color: #666;
+}
+
+.command-palette-holder {
+  background-color: $dialogBackground;
+  position: fixed;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .command-pallette {
+    margin-top: 20vh;
+    width: 100%;
+    max-width: 400px;
+
+    .mdc-text-field--filled:not(.mdc-text-field--disabled) {
+      background-color: white;
+    }
+    .mdc-deprecated-list--dense {
+      padding: 0;
+    }
+
+    .search-box {
+      margin-bottom: calc(var(--space-5) / 2);
+    }
+
+    .command-list {
+      background: #fff;
+      border-radius: $mdcBorderRadius;
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+  }
 }
 
 button.themed-secondary {
