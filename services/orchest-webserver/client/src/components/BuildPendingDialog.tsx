@@ -3,13 +3,13 @@ import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import { EnvironmentValidationData } from "@/types";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
-import { Box } from "@orchest/design-system";
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import { hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { checkGate } from "../utils/webserver-utils";
@@ -189,33 +189,27 @@ const BuildPendingDialog: React.FC = () => {
         <div>
           <p>{state?.message}</p>
           {state?.building && (
-            <Box css={{ marginTop: "$4" }}>
+            <Box sx={{ marginTop: 4 }}>
               <LinearProgress />
             </Box>
           )}
         </div>
       </DialogContent>
       <DialogActions>
-        <MDCButtonReact label="Cancel" onClick={cancel} />
+        <Button onClick={cancel}>Cancel</Button>
         {state?.showBuildStatus && (
-          <MDCButtonReact
-            submitButton
-            label="View build status"
-            classNames={
-              !state.allowBuild
-                ? ["push-left", "mdc-button--raised", "themed-secondary"]
-                : ["push-left"]
-            }
+          <Button
+            variant={!state?.allowBuild ? "contained" : undefined}
+            color={!state?.allowBuild ? "primary" : undefined}
             onClick={onViewBuildStatus}
-          />
+          >
+            View build status
+          </Button>
         )}
         {state?.allowBuild && (
-          <MDCButtonReact
-            submitButton
-            classNames={["mdc-button--raised", "themed-secondary", "push-left"]}
-            label="Build"
-            onClick={onBuild}
-          />
+          <Button variant="contained" color="primary" onClick={onBuild}>
+            Build
+          </Button>
         )}
       </DialogActions>
     </Dialog>
