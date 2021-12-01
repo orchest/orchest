@@ -1,3 +1,4 @@
+import { useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/Routes";
@@ -58,8 +59,12 @@ const fetcherCreator = (promiseManager: PromiseManager<any>) => {
 };
 
 const CommandPalette: React.FC = () => {
+  const {
+    state: { isCommandPaletteOpen },
+    dispatch,
+  } = useOrchest();
+
   const { navigateTo } = useCustomRoute();
-  const [isCommandMode, setIsCommandMode] = React.useState(false);
   const [isRefreshingCache, setIsRefreshingCache] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [selectedCommandIndex, setSelectedCommandIndex] = React.useState(0);
@@ -79,12 +84,17 @@ const CommandPalette: React.FC = () => {
   const fetcher = fetcherCreator(promiseManager);
 
   const showCommandPalette = () => {
-    setIsCommandMode(true);
+    dispatch({
+      type: "setIsCommandPaletteOpen",
+      payload: true,
+    });
   };
 
   const hideCommandPalette = () => {
-    refreshCache();
-    setIsCommandMode(false);
+    dispatch({
+      type: "setIsCommandPaletteOpen",
+      payload: false,
+    });
   };
 
   const setRootCommands = () => {
@@ -290,7 +300,10 @@ const CommandPalette: React.FC = () => {
 
     switch (command.action) {
       case "openPage":
-        setIsCommandMode(false);
+        dispatch({
+          type: "setIsCommandPaletteOpen",
+          payload: false,
+        });
         navigateTo(command.data.path, { query: command.data.query });
         break;
       case "openList":
@@ -395,13 +408,14 @@ const CommandPalette: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (isCommandMode) {
+    if (isCommandPaletteOpen) {
       refManager.refs.search.focus();
       enableCommandMode();
     } else {
       disableCommandMode();
+      refreshCache();
     }
-  }, [isCommandMode]);
+  }, [isCommandPaletteOpen]);
 
   React.useEffect(() => {
     setSelectedCommandIndex(0);
@@ -409,7 +423,7 @@ const CommandPalette: React.FC = () => {
 
   return (
     <div>
-      {isCommandMode && (
+      {isCommandPaletteOpen && (
         <div className="command-palette-holder">
           <div className="command-pallette">
             <div className="search-box">

@@ -112,6 +112,14 @@ p {
   position: relative;
 }
 
+.main-drawer {
+  .mdc-drawer__content {
+    justify-content: space-between;
+    flex-direction: column;
+    display: flex;
+  }
+}
+
 .mdc-tooltip {
   white-space: initial;
 }
@@ -1299,6 +1307,26 @@ strong {
   padding: calc(var(--space-5) / 2);
   white-space: pre-line;
   overflow-x: auto;
+}
+
+.command-palette-hint {
+  border: 1px solid $borderColor;
+  border-radius: 4px;
+  padding: 5px;
+  text-align: center;
+  position: relative;
+  user-select: none;
+  cursor: pointer;
+  font-size: 0.875em;
+  font-weight: 500;
+
+  .material-icons {
+    position: absolute;
+    left: 5px;
+    font-size: 1.4em;
+  }
+
+  color: #666;
 }
 
 .command-palette-holder {
