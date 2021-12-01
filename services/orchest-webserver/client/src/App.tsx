@@ -6,6 +6,7 @@ import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
+import CommandPalette from "./components/CommandPalette";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
@@ -145,6 +146,7 @@ const App = () => {
       <div className="dialogs">
         <Dialogs ref={dialogsRef} />
       </div>
+      <CommandPalette />
     </Router>
   );
 };

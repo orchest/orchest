@@ -61,15 +61,12 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   return (
     <header className="header-bar" ref={ref}>
       <div className="header-bar-left">
-        <button
+        <MDCIconButtonToggleReact
+          icon={"menu"}
           onClick={(e) => {
-            e.preventDefault();
             dispatch({ type: "drawerToggle" });
           }}
-          className="material-icons mdc-icon-button"
-        >
-          menu
-        </button>
+        />
         <img
           className="pointer logo"
           onClick={goToHome}
@@ -116,7 +113,6 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
 
         {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
           <MDCButtonReact
-            disabled={get.currentSession?.status !== "RUNNING"}
             classNames={["mdc-button--outlined"]}
             onClick={showJupyter}
             icon="science"

@@ -63,6 +63,7 @@ export interface IOrchestState
   alert?: string[];
   isLoading: boolean;
   drawerIsOpen: boolean;
+  isCommandPaletteOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
@@ -93,6 +94,10 @@ export type TOrchestAction =
   | {
       type: "pipelineSetSaveStatus";
       payload: IOrchestState["pipelineSaveStatus"];
+    }
+  | {
+      type: "setIsCommandPaletteOpen";
+      payload: boolean;
     }
   | {
       type: "projectSet";

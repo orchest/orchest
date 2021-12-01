@@ -145,9 +145,12 @@ describe("pipelines", () => {
       cy.findAllByTestId(
         TEST_ID.SESSION_TOGGLE_BUTTON
       ).contains("Start session", { timeout: 60000 });
+
+      // JupyterLab can be opened at any time (if no session
+      // is present the JupyterLab page will start it)
       cy.findAllByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB)
         .should("be.visible")
-        .should("be.disabled");
+        .should("be.enabled");
 
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
       // Expect a running session again.

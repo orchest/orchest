@@ -7,13 +7,15 @@ PATH="$BIN_PATH:$PATH"
 
 function index_template_fill() {
   # Template transform index.html
-  JS_PATH="{{JS_PATH}}"
-  CSS_PATH="{{CSS_PATH}}"
+  JS_PATH_PLACEHOLDER="{{JS_PATH}}"
+  CSS_PATH_PLACEHOLER="{{CSS_PATH}}"
+  JS_HASH_PLACEHOLDER="{{JS_HASH}}"
   JS_FILE_NAME="$1"
   CSS_FILE_NAME="$2"
 
-  cat public/index.html | sed "s/$JS_PATH/$JS_FILE_NAME/g" |
-    sed "s/$CSS_PATH/$CSS_FILE_NAME/g" >dist/index.html
+  cat public/index.html | sed "s/$JS_PATH_PLACEHOLDER/$JS_FILE_NAME/g" |
+    sed "s/$CSS_PATH_PLACEHOLER/$CSS_FILE_NAME/g" |
+    sed "s/$JS_HASH_PLACEHOLDER/$JS_FILE_NAME/g" >dist/index.html
 }
 
 WATCH=false
