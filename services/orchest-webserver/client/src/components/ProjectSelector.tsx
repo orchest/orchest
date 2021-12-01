@@ -97,7 +97,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
         onChangeProject(newProjectUuid);
       }
     }
-  }, [state.hasLoadedProjects, matchProjectRoot]);
+  }, [matchProjectRoot, state.hasLoadedProjects]);
 
   const selectItems = state.projects.map((project) => [
     project.uuid,

@@ -9,7 +9,7 @@ from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc, func
-from sqlalchemy.orm import joinedload, undefer
+from sqlalchemy.orm import joinedload, load_only, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -78,6 +78,38 @@ class JobList(Resource):
             return {"message": str(e)}, 500
 
         return marshal(job, schema.job), 201
+
+
+@api.route("/next_scheduled_job")
+class NextScheduledJob(Resource):
+    @api.doc("get_next_scheduled_job")
+    @api.marshal_with(schema.next_scheduled_job_data)
+    def get(self):
+        """Returns data about the next job to be scheduled."""
+        next_job = models.Job.query.options(
+            load_only(
+                "uuid",
+                "next_scheduled_time",
+            )
+        )
+        if "project_uuid" in request.args:
+            next_job = next_job.filter_by(project_uuid=request.args["project_uuid"])
+
+        next_job = (
+            next_job.filter(models.Job.status != "DRAFT")
+            .filter(models.Job.next_scheduled_time.isnot(None))
+            # Order by time ascending so that the job that will be
+            # scheduled next is returned, even if the scheduler is
+            # lagging behind and next_scheduled_time is in the past.
+            .order_by(models.Job.next_scheduled_time)
+            .first()
+        )
+        data = {"uuid": None, "next_scheduled_time": None}
+        if next_job is not None:
+            data["uuid"] = next_job.uuid
+            data["next_scheduled_time"] = next_job.next_scheduled_time
+
+        return data
 
 
 @api.route("/<string:job_uuid>")

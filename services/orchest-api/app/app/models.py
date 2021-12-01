@@ -234,6 +234,13 @@ class Job(BaseModel):
     __tablename__ = "jobs"
     __table_args__ = (
         Index("ix_jobs_project_uuid_pipeline_uuid", "project_uuid", "pipeline_uuid"),
+        Index("ix_jobs_next_scheduled_time_status", "next_scheduled_time", "status"),
+        Index(
+            "ix_jobs_project_uuid_next_scheduled_time_status",
+            "project_uuid",
+            "next_scheduled_time",
+            "status",
+        ),
     )
 
     name = db.Column(

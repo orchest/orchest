@@ -22,14 +22,8 @@
 }
 
 /* Algolia search overlay fix */
-.ds-dropdown-menu {
-  position: fixed !important;
-  top: auto !important;
-}
-
-.algolia-autocomplete .ds-dropdown-menu {
-  min-width: 0px !important;
-  max-width: 100% !important;
+.DocSearch-Button {
+  margin: 0 !important;
 }
 
 /* Color tweaking, this is not yet possible in conf.py so !important
