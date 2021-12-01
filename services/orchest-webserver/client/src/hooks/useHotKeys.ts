@@ -7,13 +7,13 @@ hotkeys.filter = function (event) {
 };
 
 type KeyActionPairs = { [key: string]: KeyHandler };
-type HotKeyConfig = { [scope: string]: KeyActionPairs };
+type HotKeyConfig<Scope extends string> = Record<Scope, KeyActionPairs>;
 
-export const useHotKeys = (
-  config: HotKeyConfig,
+export function useHotKeys<Scope extends string>(
+  config: HotKeyConfig<Scope | "all">,
   deps: React.DependencyList,
   shouldBind?: boolean
-) => {
+) {
   const unbindAll = () => {
     Object.entries(config).forEach(([scope, keyActionPairs]) => {
       Object.keys(keyActionPairs).forEach((key) => {
@@ -57,4 +57,4 @@ export const useHotKeys = (
     unbindAll,
     unbind: hotkeys.unbind,
   };
-};
+}
