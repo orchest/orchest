@@ -21,18 +21,25 @@ describe("file system interactions", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.exec(`rm -rf ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
     // Need to force a reload to discover.
-    cy.reload(true);
     cy.visit("/projects");
+    cy.reload(true);
     cy.findAllByTestId("projects-table-row").should("have.length", 0);
   });
 
   it("creates multiple projects through the FS", () => {
     let projects = Array.from(Array(20).keys());
-    projects.map((project) => {
-      cy.exec(`mkdir ${PROJECTS_DIR}/${project}`);
-    });
-    // Need to force a reload to discover.
+
+    cy.exec(
+      projects
+        .reduce((prev, project) => {
+          return [...prev, `mkdir ${PROJECTS_DIR}/${project}`];
+        }, [])
+        .join(" && ")
+    );
+
     cy.visit("/projects");
+    cy.reload(true);
+
     cy.findByTestId("projects-table-body", { timeout: 10000 }).should("exist");
     cy.findAllByTestId("projects-table-row", { timeout: 10000 }).should(
       "have.length",

@@ -25,7 +25,7 @@ export type TStatus =
 
 const StatusInlineRoot = styled(Text, {
   include: "box",
-  display: "inline-flex",
+  display: "block",
   alignItems: "center",
   "> *:first-child": { marginRight: "$2" },
 });

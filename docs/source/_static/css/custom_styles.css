@@ -9,11 +9,6 @@
   display: block;
 }
 
-.sidebar,
-.vp-sidebar {
-  position: static !important;
-}
-
 .sidebar form.search input[type="text"],
 .vp-sidebar form.search input[type="text"] {
   padding: 4px;
@@ -27,9 +22,8 @@
 }
 
 /* Algolia search overlay fix */
-.ds-dropdown-menu {
-  position: fixed !important;
-  top: auto !important;
+.DocSearch-Button {
+  margin: 0 !important;
 }
 
 /* Color tweaking, this is not yet possible in conf.py so !important
@@ -67,4 +61,10 @@ a:hover {
 .admonition.hint,
 .admonition.tip {
   border-color: var(--blue) !important;
+}
+
+@media (max-width: 800px) {
+  img {
+    width: 100% !important;
+  }
 }

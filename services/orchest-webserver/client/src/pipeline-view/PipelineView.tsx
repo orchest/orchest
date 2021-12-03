@@ -3,6 +3,7 @@
 import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHotKeys } from "@/hooks/useHotKeys";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
@@ -30,7 +31,6 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
-import { useHotKey } from "./hooks/useHotKey";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep, {
@@ -152,21 +152,23 @@ const PipelineView: React.FC = () => {
     pipelineUuid,
   });
 
-  const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
-    "ctrl+a, command+a",
-    "pipeline-editor",
-    () => {
-      state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
-      updateEventVars();
-    }
-  );
-
-  const [enableRunStepsHotkey, disableRunStepsHotkey] = useHotKey(
-    "ctrl+enter, command+enter",
-    "pipeline-editor",
-    () => {
-      runSelectedSteps();
-    }
+  const [isHoverEditor, setIsHoverEditor] = React.useState(false);
+  const { setScope } = useHotKeys(
+    {
+      "pipeline-editor": {
+        "ctrl+a, command+a, ctrl+enter, command+enter": (e, hotKeyEvent) => {
+          if (["ctrl+a", "command+a"].includes(hotKeyEvent.key)) {
+            e.preventDefault();
+            state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
+            updateEventVars();
+          }
+          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key))
+            runSelectedSteps();
+        },
+      },
+    },
+    [isHoverEditor],
+    isHoverEditor
   );
 
   const timersRef = useRef({
@@ -2035,14 +2037,13 @@ const PipelineView: React.FC = () => {
     };
   }, []);
 
-  const onMouseOverPipelineView = () => {
-    enableSelectAllHotkey();
-    enableRunStepsHotkey();
+  const enableHotKeys = () => {
+    setScope("pipeline-editor");
+    setIsHoverEditor(true);
   };
 
-  const disableHotkeys = () => {
-    disableSelectAllHotkey();
-    disableRunStepsHotkey();
+  const disableHotKeys = () => {
+    setIsHoverEditor(false);
   };
 
   const onPipelineStepsOuterHolderDown = (e) => {
@@ -2325,6 +2326,9 @@ const PipelineView: React.FC = () => {
         });
     }
 
+    // Start with hotkeys disabled
+    disableHotKeys();
+
     connectSocketIO();
     initializeResizeHandlers();
 
@@ -2344,6 +2348,8 @@ const PipelineView: React.FC = () => {
       clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
       clearTimeout(timersRef.current.doubleClickTimeout);
       clearTimeout(timersRef.current.saveIndicatorTimeout);
+
+      disableHotKeys();
 
       state.promiseManager.cancelCancelablePromises();
     };
@@ -2365,8 +2371,8 @@ const PipelineView: React.FC = () => {
         <div className="pipeline-view">
           <div
             className="pane pipeline-view-pane"
-            onMouseLeave={disableHotkeys}
-            onMouseOver={onMouseOverPipelineView}
+            onMouseOver={enableHotKeys}
+            onMouseLeave={disableHotKeys}
           >
             {jobUuidFromRoute && isReadOnly && (
               <div className="pipeline-actions top-left">

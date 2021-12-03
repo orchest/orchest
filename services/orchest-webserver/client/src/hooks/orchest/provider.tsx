@@ -36,6 +36,8 @@ const reducer = (state: IOrchestState, action: TOrchestAction) => {
       return { ...state, projectUuid: action.payload };
     case "projectsSet":
       return { ...state, projects: action.payload, hasLoadedProjects: true };
+    case "setIsCommandPaletteOpen":
+      return { ...state, isCommandPaletteOpen: action.payload };
     case "sessionToggle":
       return { ...state, _sessionsToggle: action.payload };
     case "_sessionsToggleClear":
@@ -65,6 +67,7 @@ const initialState: IOrchestState = {
   pipelineFetchHash: null,
   pipelineName: null,
   pipelineIsReadOnly: false,
+  isCommandPaletteOpen: false,
   pipelineSaveStatus: "saved",
   pipelineUuid: undefined,
   projectUuid: undefined,

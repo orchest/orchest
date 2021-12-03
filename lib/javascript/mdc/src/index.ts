@@ -7,6 +7,7 @@ export * from "./MDCDialogReact";
 export * from "./MDCDrawerReact";
 export * from "./MDCIconButtonToggleReact";
 export * from "./MDCLinearProgressReact";
+export * from "./MDCListReact";
 export * from "./MDCRadioReact";
 export * from "./MDCSelectReact";
 export * from "./MDCSwitchReact";
