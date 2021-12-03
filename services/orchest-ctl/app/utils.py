@@ -64,7 +64,7 @@ def fix_userdir_permissions() -> None:
         # NOTE: The exit code is only returned on Unix systems
         # (which includes macOS).
         exit_code = os.system(
-            "find /orchest-host/userdir -type d -exec chmod g+s {} \;"
+            "find /orchest-host/userdir -type d -not -perm -g+s -exec chmod g+s {} \;"
         )
     except Exception as e:
         logger.warning("Could not set gid permissions on '/orchest-host/userdir'.")
