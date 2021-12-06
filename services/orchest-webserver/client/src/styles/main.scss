@@ -1335,17 +1335,6 @@ strong {
     width: 100%;
     max-width: 400px;
 
-    .mdc-text-field--filled:not(.mdc-text-field--disabled) {
-      background-color: white;
-    }
-    .mdc-deprecated-list--dense {
-      padding: 0;
-    }
-
-    .search-box {
-      margin-bottom: calc(var(--space-5) / 2);
-    }
-
     .command-list {
       background: #fff;
       border-radius: $mdcBorderRadius;
