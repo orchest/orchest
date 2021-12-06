@@ -284,7 +284,7 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
           (state.focused ? "" : "hidden")
         }
       >
-        <ul className="mdc-list">
+        <ul className="mdc-deprecated-list">
           {directoryListFromNode(nodeFromPath(state.path, props.tree))}
         </ul>
       </div>

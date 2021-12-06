@@ -41,6 +41,7 @@ interactively or on a cron-like schedule.
    user_guide/sdk/index
    user_guide/other
    user_guide/glossary
+   user_guide/shortcuts
 
 
 .. toctree::

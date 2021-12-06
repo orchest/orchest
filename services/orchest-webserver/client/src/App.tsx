@@ -6,6 +6,7 @@ import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
 import BuildPendingDialog from "./components/BuildPendingDialog";
+import CommandPalette from "./components/CommandPalette";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
@@ -111,6 +112,7 @@ const App = () => {
       </div>
       <SystemDialog />
       <BuildPendingDialog />
+      <CommandPalette />
     </Router>
   );
 };

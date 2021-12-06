@@ -81,6 +81,7 @@ type AppContextState = {
   promptMessages: PromptMessage[];
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
+  isCommandPaletteOpen: boolean;
 };
 
 type Action =
@@ -98,6 +99,10 @@ type Action =
     }
   | {
       type: "SET_HAS_UNSAVED_CHANGES";
+      payload: boolean;
+    }
+  | {
+      type: "SET_IS_COMMAND_PALETTE_OPEN";
       payload: boolean;
     };
 
@@ -176,6 +181,13 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
       };
     }
 
+    case "SET_IS_COMMAND_PALETTE_OPEN": {
+      return {
+        ...state,
+        isCommandPaletteOpen: action.payload,
+      };
+    }
+
     default: {
       console.error(action);
       return state;
@@ -187,6 +199,7 @@ const initialState: AppContextState = {
   promptMessages: [],
   isLoaded: false,
   hasUnsavedChanges: false,
+  isCommandPaletteOpen: false,
 };
 
 export const AppContextProvider: React.FC = ({ children }) => {

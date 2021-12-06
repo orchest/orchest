@@ -108,7 +108,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
 
       if (selectedRows.length == 0) {
         setAlert("Error", "You haven't selected any jobs.");
-        setIsDeleting(true);
+        setIsDeleting(false);
 
         return;
       }

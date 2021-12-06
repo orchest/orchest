@@ -70,15 +70,13 @@ export const HeaderBar = (
   return (
     <header className="header-bar" ref={ref}>
       <div className="header-bar-left">
-        <button
+        <MDCIconButtonToggleReact
+          icon={"menu"}
           onClick={(e) => {
             e.preventDefault();
             toggleDrawer();
           }}
-          className="material-icons mdc-icon-button"
-        >
-          menu
-        </button>
+        />
         <img
           className="pointer logo"
           onClick={goToHome}

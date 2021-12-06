@@ -115,6 +115,16 @@ const useCustomRoute = () => {
     });
   };
 
+  /*
+    queryArguments (from useLocationQuery) returned below are assumed
+    to be static across the lifetime of mounted components.
+
+    Therefore in Routes.tsx we enforce a component remount
+    when the query string changes.
+
+    For now we want to limit this assumption to just View components.
+  */
+
   return {
     navigateTo,
     isReadOnly,

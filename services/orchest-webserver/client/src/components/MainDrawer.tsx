@@ -111,7 +111,10 @@ const MainDrawer: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
   }, []);
 
   return (
-    <aside className="mdc-drawer mdc-drawer--dismissible" ref={drawerRef}>
+    <aside
+      className="main-drawer mdc-drawer mdc-drawer--dismissible"
+      ref={drawerRef}
+    >
       <div className="mdc-drawer__content">
         <nav className="mdc-list">
           {projectMenuItems.map((item) => {
@@ -126,6 +129,20 @@ const MainDrawer: React.FC<{ isOpen: boolean }> = ({ isOpen }) => {
             return <MenuItem key={id} id={id} item={item} exact />;
           })}
         </nav>
+        <div
+          className="command-palette-hint"
+          onClick={() => {
+            appContext.dispatch({
+              type: "SET_IS_COMMAND_PALETTE_OPEN",
+              payload: true,
+            });
+          }}
+        >
+          <div className="material-icons">search</div>
+          {navigator.userAgent.toLowerCase().includes("macintosh")
+            ? "Command "
+            : "Ctrl" + " + K"}
+        </div>
       </div>
     </aside>
   );

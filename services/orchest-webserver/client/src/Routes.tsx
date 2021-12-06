@@ -1,7 +1,7 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
-import { orderedRoutes, siteMap, toQueryString } from "./routingConfig";
+import { getOrderedRoutes, siteMap, toQueryString } from "./routingConfig";
 
 const Routes = () => {
   let location = useLocation();
@@ -29,7 +29,7 @@ const Routes = () => {
       <Route exact path="/">
         <Redirect to={siteMap.projects.path} />
       </Route>
-      {orderedRoutes.map((route) => {
+      {getOrderedRoutes().map((route) => {
         const { name, path, component, title } = route;
         const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback, it cannot be exact
         return (
