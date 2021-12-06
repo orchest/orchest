@@ -3,11 +3,15 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
-import {
-  MDCButtonReact,
-  MDCCircularProgressReact,
-  MDCIconButtonToggleReact,
-} from "@orchest/lib-mdc";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
+import HelpIcon from "@mui/icons-material/Help";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
+import ScienceIcon from "@mui/icons-material/Science";
+import Button from "@mui/material/Button";
+import CircularProgress from "@mui/material/CircularProgress";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
 import ProjectSelector from "./ProjectSelector";
@@ -70,13 +74,14 @@ export const HeaderBar = (
   return (
     <header className="header-bar" ref={ref}>
       <div className="header-bar-left">
-        <MDCIconButtonToggleReact
-          icon={"menu"}
+        <IconButton
           onClick={(e) => {
             e.preventDefault();
             toggleDrawer();
           }}
-        />
+        >
+          <MenuIcon />
+        </IconButton>
         <img
           className="pointer logo"
           onClick={goToHome}
@@ -95,7 +100,7 @@ export const HeaderBar = (
                   check_circle
                 </i>
               ) : (
-                <MDCCircularProgressReact />
+                <CircularProgress />
               )}
             </div>
 
@@ -113,38 +118,39 @@ export const HeaderBar = (
         )}
 
         {state.pipelineName && matchJupyter && (
-          <MDCButtonReact
-            classNames={["mdc-button--outlined"]}
+          <Button
+            variant="outlined"
+            color="secondary"
             onClick={showPipeline}
-            icon="device_hub"
-            label="Switch to Pipeline"
-          />
+            startIcon={<DeviceHubIcon />}
+          >
+            Switch to Pipeline
+          </Button>
         )}
-
         {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
-          <MDCButtonReact
+          <Button
+            variant="outlined"
+            color="secondary"
             disabled={currentSession?.status !== "RUNNING"}
-            classNames={["mdc-button--outlined"]}
             onClick={showJupyter}
-            icon="science"
-            label="Switch to JupyterLab"
+            startIcon={<ScienceIcon />}
             data-test-id="switch-to-jupyterlab"
-          />
+          >
+            Switch to JupyterLab
+          </Button>
         )}
-
         {appContext.state.user_config?.AUTH_ENABLED && (
-          <MDCIconButtonToggleReact
-            icon="logout"
-            tooltipText="Logout"
-            onClick={logoutHandler}
-          />
+          <Tooltip title="Logout">
+            <IconButton onClick={logoutHandler} color="secondary">
+              <LogoutIcon />
+            </IconButton>
+          </Tooltip>
         )}
-
-        <MDCIconButtonToggleReact
-          icon="help"
-          tooltipText="Help"
-          onClick={showHelp}
-        />
+        <Tooltip title="Help">
+          <IconButton onClick={showHelp} color="secondary">
+            <HelpIcon />
+          </IconButton>
+        </Tooltip>
       </div>
     </header>
   );

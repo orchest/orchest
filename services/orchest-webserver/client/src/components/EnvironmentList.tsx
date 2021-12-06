@@ -2,12 +2,14 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  MDCButtonReact,
-  MDCDataTableReact,
-  MDCIconButtonToggleReact,
-} from "@orchest/lib-mdc";
+import Tooltip from "@mui/material/Tooltip";
+import { MDCDataTableReact } from "@orchest/lib-mdc";
 import {
   LANGUAGE_MAP,
   makeCancelable,
@@ -39,7 +41,6 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
 
   const BUILD_POLL_FREQUENCY = 3000;
 
-  const orchest = window.orchest;
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
 
@@ -331,24 +332,30 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
       {!state.environments && <LinearProgress />}
       {state.environments && (
         <>
-          <div className="push-down">
-            <MDCButtonReact
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              icon="add"
-              label="Create environment"
+          <Box sx={{ marginBottom: 3 }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
               onClick={onCreateClick}
               data-test-id="environments-create"
-            />
-          </div>
-          <div className={"environment-actions push-down"}>
-            <MDCIconButtonToggleReact
-              icon="delete"
-              tooltipText="Delete environment"
-              disabled={state.isDeleting}
-              onClick={onDeleteClick}
-              data-test-id="environments-delete"
-            />
-          </div>
+            >
+              Create environment
+            </Button>
+          </Box>
+          <Box
+            sx={{ marginLeft: (theme) => theme.spacing(0.5), marginBottom: 3 }}
+          >
+            <Tooltip title="Delete environment">
+              <IconButton
+                color="secondary"
+                disabled={state.isDeleting}
+                onClick={onDeleteClick}
+                data-test-id="environments-delete"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
+          </Box>
           <MDCDataTableReact
             ref={refManager.nrefs.environmentListView}
             selectable
