@@ -20,6 +20,11 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
     sessions.
     """
 
+    # Configuration option of `nbclient.client.NotebookClient` to skip
+    # cells with a given tag, which we subclass through
+    # `ExecutePreprocessor`.
+    skip_cells_with_tag = "skip"
+
     def __init__(
         self, log_file, nb_path, write_after_run, original_kernelspec_name, **kw
     ):
@@ -99,8 +104,7 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
 
     def preprocess_cell(self, cell, resources, cell_index):
         """
-        Executes cells without 'skip' tag only.
-        If the tag is not found cell is not executed.
+        Executes cells without "skip" tag only.
         """
 
         # write the notebook before each preprocess action
@@ -111,31 +115,25 @@ class PartialExecutePreprocessor(ExecutePreprocessor):
                 nbformat.write(self.nb_ref, f)
                 self.nb_ref.metadata.kernelspec.name = tmp_name
 
-        tags = cell.metadata.get("tags")
+        try:
 
-        if tags is not None and "skip" in tags:
+            self.current_cell = cell
+
+            cell, resources = super().preprocess_cell(cell, resources, cell_index)
+
+            # TODO: Evaluate whether we want to output anything for
+            # no output cells
+            # self.log_file.write(
+            # "%s" % ('<No output cell: %s >\n' % cell['cell_type'])
+            # )
+
             return cell, resources
-        else:
 
-            try:
+        except CellExecutionError as e:
 
-                self.current_cell = cell
+            logger.error(f"Cell failed to execute with kernel: {self.kernel_name}")
+            self.log_file.write("%s" % e)
+            self.log_file.flush()
 
-                cell, resources = super().preprocess_cell(cell, resources, cell_index)
-
-                # TODO: Evaluate whether we want to output anything for
-                # no output cells
-                # self.log_file.write(
-                # "%s" % ('<No output cell: %s >\n' % cell['cell_type'])
-                # )
-
-                return cell, resources
-
-            except CellExecutionError as e:
-
-                logger.error(f"Cell failed to execute with kernel: {self.kernel_name}")
-                self.log_file.write("%s" % e)
-                self.log_file.flush()
-
-                # raise CellExecutionError to avoid execution next cells
-                raise e
+            # raise CellExecutionError to avoid execution next cells
+            raise e
