@@ -16,13 +16,25 @@ import {
   getPipelineJSONEndpoint,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
+import CloseIcon from "@mui/icons-material/Close";
+import ListIcon from "@mui/icons-material/List";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import SaveIcon from "@mui/icons-material/Save";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  MDCButtonReact,
-  MDCRadioReact,
-  MDCTabBarReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
   makeRequest,
@@ -34,20 +46,57 @@ import _ from "lodash";
 import React, { useState } from "react";
 
 type EditJobState = {
-  selectedTabIndex: number;
   generatedPipelineRuns: any[];
   generatedPipelineRunRows: any[];
   selectedIndices: number[];
-  scheduleOption: "now" | "cron" | "scheduled";
   runJobLoading: boolean;
   runJobCompleted: boolean;
-  cronString: string | undefined;
   strategyJSON: Record<string, any>;
 };
 
+const DEFAULT_CRON_STRING = "* * * * *";
+
+const TabLabel: React.FC<{ icon: React.ReactNode }> = ({ children, icon }) => (
+  <Stack direction="row" alignItems="center">
+    {icon}
+    <Box sx={{ marginLeft: (theme) => theme.spacing(1) }}>{children}</Box>
+  </Stack>
+);
+
+const TabPanel: React.FC<{ value: number; index: number; name: string }> = (
+  props
+) => {
+  const { children, value, index, name, ...other } = props;
+
+  return (
+    <Box
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${name}`}
+      aria-labelledby={`tab-${name}`}
+      sx={{ flex: 1 }}
+      {...other}
+    >
+      {value === index && (
+        <Box
+          sx={{
+            paddingLeft: 2,
+            paddingRight: 2,
+            paddingTop: 4,
+            paddingBottom: 4,
+          }}
+        >
+          {children}
+        </Box>
+      )}
+    </Box>
+  );
+};
+
+type ScheduleOption = "now" | "cron" | "scheduled";
+
 const EditJobView: React.FC = () => {
   // global states
-
   const appContext = useAppContext();
   const { setAlert, setAsSaved } = appContext;
   useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
@@ -61,15 +110,22 @@ const EditJobView: React.FC = () => {
   const [envVariables, setEnvVariables] = useState<
     { name: string; value: string }[]
   >([]);
+  const [cronString, setCronString] = React.useState("");
+  const [scheduledDateTime, setScheduledDateTime] = React.useState<Date>(
+    new Date(new Date().getTime() + 60000)
+  );
+  const [scheduleOption, setScheduleOption] = React.useState<ScheduleOption>(
+    "now"
+  );
+
+  const [tabIndex, setTabIndex] = React.useState(0);
+
   const [state, setState] = React.useState<EditJobState>({
-    selectedTabIndex: 0,
     generatedPipelineRuns: [],
     generatedPipelineRunRows: [],
     selectedIndices: [],
-    scheduleOption: "now",
     runJobLoading: false,
     runJobCompleted: false,
-    cronString: undefined,
     strategyJSON: {},
   });
 
@@ -92,10 +148,11 @@ const EditJobView: React.FC = () => {
         }
         setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
 
+        setScheduleOption(!fetchedJob.schedule ? "now" : "cron");
+        setCronString(fetchedJob.schedule || DEFAULT_CRON_STRING);
+
         setState((prevState) => ({
           ...prevState,
-          cronString: fetchedJob.schedule || "* * * * *",
-          scheduleOption: fetchedJob.schedule === null ? "now" : "cron",
           strategyJSON:
             fetchedJob.status !== "DRAFT"
               ? fetchedJob.strategy_json
@@ -263,13 +320,6 @@ const EditJobView: React.FC = () => {
     return strategyJSON;
   };
 
-  const onSelectSubview = (index: number) => {
-    setState((prevState) => ({
-      ...prevState,
-      selectedTabIndex: index,
-    }));
-  };
-
   const handleJobNameChange = (name: string) => {
     setJob((prev) => (prev ? { ...prev, name } : prev));
   };
@@ -355,12 +405,12 @@ const EditJobView: React.FC = () => {
 
     // Valid cron string.
     try {
-      parser.parseExpression(state.cronString || "");
+      parser.parseExpression(cronString || "");
     } catch (err) {
       return {
         pass: false,
         selectView: 0,
-        reason: "Invalid cron schedule: " + state.cronString,
+        reason: "Invalid cron schedule: " + cronString,
       };
     }
 
@@ -386,7 +436,7 @@ const EditJobView: React.FC = () => {
     } else {
       setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
-        onSelectSubview(validation.selectView);
+        setTabIndex(validation.selectView);
       }
     }
   };
@@ -409,7 +459,7 @@ const EditJobView: React.FC = () => {
         ...prevState,
         runJobLoading: false,
       }));
-      onSelectSubview(1);
+      setTabIndex(1);
       return;
     }
 
@@ -424,8 +474,8 @@ const EditJobView: React.FC = () => {
       env_variables: updatedEnvVariables.value,
     };
 
-    if (state.scheduleOption === "scheduled") {
-      let formValueScheduledStart = refManager.refs.scheduledDateTime.getISOString();
+    if (scheduleOption === "scheduled") {
+      let formValueScheduledStart = scheduledDateTime.toISOString();
 
       // API doesn't accept ISO date strings with 'Z' suffix
       // Instead, endpoint assumes its passed a UTC datetime string.
@@ -438,9 +488,9 @@ const EditJobView: React.FC = () => {
 
       // @ts-ignore
       jobPUTData.next_scheduled_time = formValueScheduledStart;
-    } else if (state.scheduleOption === "cron") {
+    } else if (scheduleOption === "cron") {
       // @ts-ignore
-      jobPUTData.cron_schedule = state.cronString;
+      jobPUTData.cron_schedule = cronString;
     }
     // Else: both entries are undefined, the run is considered to be
     // started ASAP.
@@ -498,12 +548,11 @@ const EditJobView: React.FC = () => {
         state.selectedIndices
       );
 
-      let cronSchedule = state.cronString;
       let updatedEnvVariables = envVariablesArrayToDict(envVariables);
       // Do not go through if env variables are not correctly defined.
       if (updatedEnvVariables.status === "rejected") {
         setAlert("Error", updatedEnvVariables.error);
-        onSelectSubview(2);
+        setTabIndex(2);
         return;
       }
 
@@ -514,7 +563,7 @@ const EditJobView: React.FC = () => {
           type: "json",
           content: {
             name: job.name,
-            cron_schedule: cronSchedule,
+            cron_schedule: cronString,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
             env_variables: updatedEnvVariables,
@@ -538,7 +587,7 @@ const EditJobView: React.FC = () => {
     } else {
       setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
-        onSelectSubview(validation.selectView);
+        setTabIndex(validation.selectView);
       }
     }
   };
@@ -614,13 +663,9 @@ const EditJobView: React.FC = () => {
     return strategyJSON;
   };
 
-  const setCronSchedule = (cronString: string) => {
-    setState((prevState) => ({
-      ...prevState,
-      cronString,
-      scheduleOption: "cron",
-    }));
-
+  const setCronSchedule = (newCronString: string) => {
+    setCronString(newCronString);
+    setScheduleOption("cron");
     setAsSaved(false);
   };
 
@@ -692,215 +737,225 @@ const EditJobView: React.FC = () => {
     }
   }, [state.runJobCompleted]);
 
+  const handleChangeTab = (event, newValue: number) => {
+    setTabIndex(newValue);
+  };
+
   return (
     <Layout>
       <div className="view-page job-view">
-        <h2>Edit job</h2>
+        <Typography variant="h5">Edit job</Typography>
         {job && pipeline ? (
-          <React.Fragment>
-            <div className="columns">
-              <div className="column">
-                <MDCTextFieldReact
+          <>
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              sx={{ width: "100%", marginTop: (theme) => theme.spacing(4) }}
+            >
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: "300px",
+                  marginBottom: (theme) => theme.spacing(4),
+                }}
+              >
+                <TextField
+                  variant="filled"
                   label="Job name"
                   value={job.name}
-                  onChange={handleJobNameChange}
+                  onChange={(e) => handleJobNameChange(e.target.value)}
                 />
-              </div>
-              <div className="column">
-                <p>Pipeline</p>
-                <span className="largeText">{pipeline.name}</span>
-              </div>
-            </div>
-
-            <MDCTabBarReact
-              selectedIndex={state.selectedTabIndex}
-              ref={refManager.nrefs.tabBar}
-              items={[
-                "Scheduling",
-                "Parameters",
-                "Environment variables",
-                "Pipeline runs (" +
-                  state.selectedIndices.reduce((total, num) => total + num, 0) +
-                  "/" +
-                  state.generatedPipelineRuns.length +
-                  ")",
-              ]}
-              icons={["schedule", "tune", "view_comfy", "list"]}
-              onChange={onSelectSubview}
+              </Box>
+              <Stack
+                direction="column"
+                sx={{
+                  flex: 1,
+                  minWidth: "300px",
+                  marginBottom: (theme) => theme.spacing(4),
+                }}
+              >
+                <Typography variant="caption">Pipeline</Typography>
+                <Typography>{pipeline.name}</Typography>
+              </Stack>
+            </Stack>
+            <Tabs
+              value={tabIndex}
+              onChange={handleChangeTab}
+              aria-label="Edit Job Tabs"
               data-test-id="job-edit"
-            />
-
-            <div className="tab-view">
-              {
-                {
-                  0: (
-                    <div className="tab-view">
-                      {job.status === "DRAFT" && (
-                        <div>
-                          <div className="push-down">
-                            <MDCRadioReact
-                              label="Now"
-                              value="now"
-                              name="now"
-                              checked={state.scheduleOption === "now"}
-                              onChange={(e) => {
-                                setState((prevState) => ({
-                                  ...prevState,
-                                  scheduleOption: "now",
-                                }));
-                              }}
-                              data-test-id="job-edit-schedule-now"
-                            />
-                          </div>
-                          <div className="push-down">
-                            <MDCRadioReact
-                              label="Scheduled"
-                              value="scheduled"
-                              name="time"
-                              checked={state.scheduleOption === "scheduled"}
-                              onChange={(e) => {
-                                setState((prevState) => ({
-                                  ...prevState,
-                                  scheduleOption: "scheduled",
-                                }));
-                              }}
-                              data-test-id="job-edit-schedule-date"
-                            />
-                          </div>
-                          <div>
-                            <DateTimeInput
-                              disabled={state.scheduleOption !== "scheduled"}
-                              ref={refManager.nrefs.scheduledDateTime}
-                              onFocus={() =>
-                                setState((prevState) => ({
-                                  ...prevState,
-                                  scheduleOption: "scheduled",
-                                }))
-                              }
-                              data-test-id="job-edit-schedule-date-input"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {job.status === "DRAFT" && (
-                        <div className="push-down">
-                          <MDCRadioReact
-                            label="Cron job"
-                            value="cron"
-                            name="time"
-                            checked={state.scheduleOption === "cron"}
-                            onChange={(e) => {
-                              setState((prevState) => ({
-                                ...prevState,
-                                scheduleOption: "cron",
-                              }));
-                            }}
-                            data-test-id="job-edit-schedule-cronjob"
-                          />
-                        </div>
-                      )}
-
-                      <div>
-                        <CronScheduleInput
-                          cronString={state.cronString}
-                          onChange={setCronSchedule}
-                          disabled={state.scheduleOption !== "cron"}
-                          dataTestId="job-edit-schedule-cronjob-input"
-                        />
-                      </div>
-                    </div>
-                  ),
-                  1: (
-                    <div className="tab-view">
-                      <ParameterEditor
-                        pipelineName={pipeline.name}
-                        onParameterChange={(strategyJSON) => {
-                          let [
-                            generatedPipelineRuns,
-                            generatedPipelineRunRows,
-                            selectedIndices,
-                          ] = generateWithStrategy(strategyJSON);
-                          setState((prevState) => ({
-                            ...prevState,
-                            strategyJSON,
-                            generatedPipelineRuns,
-                            generatedPipelineRunRows,
-                            selectedIndices,
-                          }));
-
-                          setAsSaved(false);
-                        }}
-                        strategyJSON={_.cloneDeep(state.strategyJSON)}
-                        data-test-id="job-edit"
-                      />
-                    </div>
-                  ),
-                  2: (
-                    <div className="tab-view">
-                      <p className="push-down">
-                        Override any project or pipeline environment variables
-                        here.
-                      </p>
-                      <EnvVarList
-                        value={envVariables}
-                        onAdd={addEnvVariablePair}
-                        onChange={(e, idx, type) =>
-                          onEnvVariablesChange(e, idx, type)
-                        }
-                        onDelete={(idx) => onEnvVariablesDeletion(idx)}
-                        data-test-id="job-edit"
-                      />
-                    </div>
-                  ),
-                  3: (
-                    <div className="pipeline-tab-view pipeline-runs">
-                      <SearchableTable
-                        selectable={true}
-                        headers={["Run specification"]}
-                        detailRows={detailRows(
-                          state.generatedPipelineRuns,
-                          state.strategyJSON
-                        )}
-                        rows={state.generatedPipelineRunRows}
-                        selectedIndices={state.selectedIndices}
-                        onSelectionChanged={onPipelineRunsSelectionChanged}
-                        data-test-id="job-edit-pipeline-runs"
-                      />
-                    </div>
-                  ),
-                }[state.selectedTabIndex]
-              }
-            </div>
-
-            <div className="buttons">
+            >
+              <Tab
+                id="scheduling-tab"
+                label={<TabLabel icon={<ScheduleIcon />}>Scheduling</TabLabel>}
+                aria-controls="tabpanel-scheduling"
+              />
+              <Tab
+                id="parameters-tab"
+                label={<TabLabel icon={<TuneIcon />}>Parameters</TabLabel>}
+                aria-controls="tabpanel-parameters"
+              />
+              <Tab
+                id="environment-variables-tab"
+                label={
+                  <TabLabel icon={<ViewComfyIcon />}>
+                    Environment variables
+                  </TabLabel>
+                }
+                aria-controls="tabpanel-env-variables"
+              />
+              <Tab
+                id="runs-tab"
+                label={
+                  <Stack direction="row" alignItems="center">
+                    <ListIcon />
+                    {`Pipeline runs (${state.selectedIndices.reduce(
+                      (total, num) => total + num,
+                      0
+                    )}/${state.generatedPipelineRuns.length})`}
+                  </Stack>
+                }
+                aria-controls="tabpanel-runs"
+              />
+            </Tabs>
+            <TabPanel value={tabIndex} index={0} name="scheduling">
               {job.status === "DRAFT" && (
-                <MDCButtonReact
-                  disabled={state.runJobLoading}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={attemptRunJob}
-                  icon="play_arrow"
-                  label="Run job"
-                  data-test-id="job-run"
+                <FormControl
+                  component="fieldset"
+                  sx={{
+                    marginBottom: (theme) => theme.spacing(4),
+                    width: "100%",
+                  }}
+                >
+                  <RadioGroup
+                    row
+                    aria-label="Scheduling"
+                    defaultValue="now"
+                    name="scheduling-buttons-group"
+                    value={scheduleOption}
+                    onChange={(e) =>
+                      setScheduleOption(e.target.value as ScheduleOption)
+                    }
+                  >
+                    <FormControlLabel
+                      value="now"
+                      control={<Radio />}
+                      label="Now"
+                      data-test-id="job-edit-schedule-now"
+                    />
+                    <FormControlLabel
+                      value="scheduled"
+                      control={<Radio />}
+                      label="Scheduled"
+                      data-test-id="job-edit-schedule-date"
+                    />
+                    <FormControlLabel
+                      value="cron"
+                      control={<Radio />}
+                      label="Cron job"
+                      data-test-id="job-edit-schedule-cronjob"
+                    />
+                  </RadioGroup>
+                </FormControl>
+              )}
+              {scheduleOption === "scheduled" && (
+                <DateTimeInput
+                  disabled={scheduleOption !== "scheduled"}
+                  value={scheduledDateTime}
+                  onChange={setScheduledDateTime}
+                  data-test-id="job-edit-schedule-date-input"
                 />
+              )}
+              {scheduleOption === "cron" && (
+                <CronScheduleInput
+                  value={cronString}
+                  onChange={setCronSchedule}
+                  disabled={scheduleOption !== "cron"}
+                  dataTestId="job-edit-schedule-cronjob-input"
+                />
+              )}
+            </TabPanel>
+            <TabPanel value={tabIndex} index={1} name="parameters">
+              <ParameterEditor
+                pipelineName={pipeline.name}
+                onParameterChange={(strategyJSON) => {
+                  let [
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                    selectedIndices,
+                  ] = generateWithStrategy(strategyJSON);
+                  setState((prevState) => ({
+                    ...prevState,
+                    strategyJSON,
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                    selectedIndices,
+                  }));
+
+                  setAsSaved(false);
+                }}
+                strategyJSON={_.cloneDeep(state.strategyJSON)}
+                data-test-id="job-edit"
+              />
+            </TabPanel>
+            <TabPanel value={tabIndex} index={2} name="env-variables">
+              <p className="push-down">
+                Override any project or pipeline environment variables here.
+              </p>
+              <EnvVarList
+                value={envVariables}
+                onAdd={addEnvVariablePair}
+                onChange={(e, idx, type) => onEnvVariablesChange(e, idx, type)}
+                onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                data-test-id="job-edit"
+              />
+            </TabPanel>
+            <TabPanel value={tabIndex} index={3} name="runs">
+              <div className="pipeline-tab-view pipeline-runs">
+                <SearchableTable
+                  selectable={true}
+                  headers={["Run specification"]}
+                  detailRows={detailRows(
+                    state.generatedPipelineRuns,
+                    state.strategyJSON
+                  )}
+                  rows={state.generatedPipelineRunRows}
+                  selectedIndices={state.selectedIndices}
+                  onSelectionChanged={onPipelineRunsSelectionChanged}
+                  data-test-id="job-edit-pipeline-runs"
+                />
+              </div>
+            </TabPanel>
+            <Stack direction="row" spacing={2}>
+              {job.status === "DRAFT" && (
+                <Button
+                  disabled={state.runJobLoading}
+                  variant="contained"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={attemptRunJob}
+                  data-test-id="job-run"
+                >
+                  Run job
+                </Button>
               )}
               {job.status !== "DRAFT" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
                   onClick={putJobChanges}
-                  icon="save"
-                  label="Update job"
+                  startIcon={<SaveIcon />}
                   data-test-id="job-update"
-                />
+                >
+                  Update job
+                </Button>
               )}
-              <MDCButtonReact
+              <Button
                 onClick={cancel}
-                label="Cancel"
-                icon="close"
+                startIcon={<CloseIcon />}
                 data-test-id="update-job"
-              />
-            </div>
-          </React.Fragment>
+              >
+                Cancel
+              </Button>
+            </Stack>
+          </>
         ) : (
           <LinearProgress />
         )}
