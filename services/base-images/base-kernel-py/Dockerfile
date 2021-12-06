@@ -26,7 +26,7 @@ RUN chown $NB_USER -R /orchest/lib
 USER $NB_USER
 RUN pip install -r requirements-user.txt
 # Install Orchest dependencies in our own environment
-RUN conda create -y -n orchestdependencies && \
+RUN conda create -y python=$(python --version | tr -d "Python ") -n orchestdependencies && \
     # requirements.txt includes local install and thus we need to use pip
     conda install -y -n orchestdependencies pip && \
     conda run -n orchestdependencies pip install -r requirements.txt
