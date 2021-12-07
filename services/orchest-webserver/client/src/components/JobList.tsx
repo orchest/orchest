@@ -3,18 +3,25 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
 import { Job } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import FormControl from "@mui/material/FormControl";
+import IconButton from "@mui/material/IconButton";
+import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import { Box } from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCIconButtonToggleReact,
-  MDCSelectReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import {
   makeCancelable,
   makeRequest,
@@ -41,7 +48,12 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const [jobUuid, setJobUuid] = React.useState("");
 
   const [jobs, setJobs] = React.useState<Job[] | undefined>();
-  const [pipelines, setPipelines] = React.useState<any[] | undefined>();
+  const [pipelines, setPipelines] = React.useState<
+    { uuid: string; path: string; name: string }[]
+  >([]);
+  const [selectedPipeline, setSelectedPipeline] = React.useState<
+    string | undefined
+  >();
 
   const [projectSnapshotSize, setProjectSnapshotSize] = React.useState(0);
 
@@ -94,6 +106,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const onCreateClick = () => {
     if (pipelines !== undefined && pipelines.length > 0) {
       setIsCreateDialogOpen(true);
+      setJobName("");
     } else {
       setAlert("Error", "Could not find any pipelines for this project.");
     }
@@ -152,35 +165,14 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
     }
   };
 
-  const onSubmitModal = (
-    rerun?: Record<
-      "pipelineUuid" | "pipelineName" | "projectUuid" | "name",
-      string
-    >
-  ) => {
-    if (!rerun) {
-      if (refManager.current.refs.formJobName.mdc.value.length == 0) {
-        setAlert("Error", "Please enter a name for your job.");
-        return;
-      }
-
-      if (refManager.current.refs.formPipeline.mdc.value == "") {
-        setAlert("Error", "Please choose a pipeline.");
-        return;
-      }
-    }
-
-    const name = rerun?.name || refManager.current.refs.formJobName.mdc.value;
-    const pipelineUuid =
-      rerun?.pipelineUuid || refManager.current.refs.formPipeline.mdc.value;
-    const pipelineName =
-      rerun?.pipelineName ||
-      (pipelines || []).find((pipeline) => pipeline.uuid === pipelineUuid)
-        ?.name;
-
+  const createJob = (newJobName: string, pipelineUuid: string) => {
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
     setIsCreatingJob(true);
+
+    const pipelineName = pipelines.find(
+      (pipeline) => pipeline.uuid === pipelineUuid
+    )?.name;
 
     checkGate(projectUuid)
       .then(() => {
@@ -189,9 +181,9 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
             type: "json",
             content: {
               pipeline_uuid: pipelineUuid,
-              pipeline_name: pipelineName,
               project_uuid: projectUuid,
-              name,
+              pipeline_name: pipelineName, // ? Question: why pipeline_name is needed when pipeline_uuid is given?
+              name: newJobName,
               draft: true,
               pipeline_run_spec: {
                 run_type: "full",
@@ -234,12 +226,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
 
           requestBuild(projectUuid, result.data, "CreateJob", () => {
             setIsCreateDialogOpen(true);
-            onSubmitModal({
-              name,
-              pipelineName,
-              pipelineUuid,
-              projectUuid,
-            });
+            createJob(newJobName, pipelineUuid);
           });
         }
       });
@@ -268,6 +255,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const onCloseEditJobNameModal = () => {
     setIsSubmittingJobName(false);
     setIsEditingJobName(false);
+    setJobName("");
   };
 
   const onSubmitEditJobNameModal = () => {
@@ -298,12 +286,13 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
       >
         {job.name}{" "}
         <span className="consume-click">
-          <MDCIconButtonToggleReact
-            icon="edit"
+          <IconButton
             onClick={() => {
               onEditJobNameClick(job.uuid, job.name);
             }}
-          />
+          >
+            <EditIcon />
+          </IconButton>
         </span>
       </span>,
       job.pipeline_name,
@@ -343,60 +332,59 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
     return () => promiseManager.current.cancelCancelablePromises();
   }, [projectUuid]);
 
-  const pipelineOptions = (pipelines || []).map(({ uuid, name }) => [
-    uuid,
-    name,
-  ]);
+  const closeCreateDialog = () => {
+    setIsCreateDialogOpen(false);
+    setJobName("");
+    setSelectedPipeline(undefined);
+  };
 
   return (
     <div className={"jobs-page"}>
-      {isEditingJobName && (
-        <Dialog open={true} onClose={onCloseEditJobNameModal}>
-          <DialogTitle>Edit job name</DialogTitle>
-          <DialogContent>
-            <MDCTextFieldReact
-              classNames={["fullwidth push-down"]}
-              value={jobName}
-              label="Job name"
-              onChange={(value: string) => {
-                setJobName(value);
-              }}
-              data-test-id="job-edit-name-textfield"
-            />
-          </DialogContent>
-          <DialogActions>
-            <MDCButtonReact
-              icon="close"
-              label="Cancel"
-              classNames={["push-right"]}
-              onClick={onCloseEditJobNameModal}
-            />
-            <MDCButtonReact
-              icon="save"
-              disabled={isSubmittingJobName}
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              label="Save"
-              submitButton
-              onClick={onSubmitEditJobNameModal}
-            />
-          </DialogActions>
-        </Dialog>
-      )}
+      <Dialog open={isEditingJobName} onClose={onCloseEditJobNameModal}>
+        <DialogTitle>Edit job name</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="normal"
+            value={jobName}
+            label="Job name"
+            onChange={(e) => setJobName(e.target.value)}
+            data-test-id="job-edit-name-textfield"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button startIcon={<CloseIcon />} onClick={onCloseEditJobNameModal}>
+            Cancel
+          </Button>
+          <Button
+            startIcon={<SaveIcon />}
+            disabled={isSubmittingJobName}
+            variant="contained"
+            onClick={onSubmitEditJobNameModal}
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <h2>Jobs</h2>
 
       {jobs && pipelines ? (
         <>
-          <div className="push-down">
-            <MDCButtonReact
-              icon="add"
-              label="Create job"
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              onClick={() => onCreateClick()}
-              data-test-id="job-create"
-            />
-          </div>
-          <Dialog open={isCreateDialogOpen}>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={onCreateClick}
+            sx={{ marginBottom: (theme) => theme.spacing(2) }}
+            data-test-id="job-create"
+          >
+            Create job
+          </Button>
+          <Dialog
+            open={isCreateDialogOpen}
+            onClose={closeCreateDialog}
+            fullWidth
+            maxWidth="xs"
+          >
             <DialogTitle>Create a new job</DialogTitle>
             <DialogContent>
               <form
@@ -406,13 +394,22 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
                   e.preventDefault();
                   e.stopPropagation();
 
-                  onSubmitModal();
+                  if (jobName.length === 0) {
+                    setAlert("Error", "Please enter a name for your job.");
+                    return;
+                  }
+
+                  if (!selectedPipeline) {
+                    setAlert("Error", "Please choose a pipeline.");
+                    return;
+                  }
+
+                  createJob(jobName, selectedPipeline);
                 }}
               >
                 {isCreatingJob ? (
-                  <Box css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}>
+                  <Box sx={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}>
                     <LinearProgress />
-
                     <p>Copying pipeline directory...</p>
                   </Box>
                 ) : (
@@ -428,55 +425,69 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
                       </div>
                     )}
 
-                    <MDCTextFieldReact
-                      ref={refManager.current.nrefs.formJobName}
-                      classNames={["fullwidth push-down"]}
-                      label="Job name"
-                      data-test-id="job-create-name"
-                    />
+                    <FormControl fullWidth>
+                      <TextField
+                        margin="normal"
+                        value={jobName}
+                        onChange={(e) => setJobName(e.target.value)}
+                        label="Job name"
+                        data-test-id="job-create-name"
+                      />
+                    </FormControl>
 
-                    <MDCSelectReact
-                      ref={refManager.current.nrefs.formPipeline}
-                      label="Pipeline"
-                      classNames={["fullwidth"]}
-                      value={
-                        pipelineOptions &&
-                        pipelineOptions[0] &&
-                        pipelineOptions[0][0]
-                      }
-                      options={pipelineOptions}
-                    />
+                    <FormControl fullWidth>
+                      <InputLabel id="select-pipeline-label">
+                        Pipeline
+                      </InputLabel>
+                      <Select
+                        labelId="select-pipeline-label"
+                        id="select-pipeline"
+                        value={selectedPipeline}
+                        label="Pipeline"
+                        onChange={(e) => {
+                          setSelectedPipeline(e.target.value);
+                        }}
+                      >
+                        {pipelines.map((pipeline) => {
+                          return (
+                            <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
+                              {pipeline.name}
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
                   </>
                 )}
               </form>
-              <DialogActions>
-                <MDCButtonReact
-                  icon="close"
-                  classNames={["push-right"]}
-                  label="Cancel"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                />
-                <MDCButtonReact
-                  disabled={isCreatingJob}
-                  icon="add"
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  label="Create job"
-                  submitButton
-                  inputType="submit"
-                  form="create-job"
-                  data-test-id="job-create-ok"
-                />
-              </DialogActions>
             </DialogContent>
+            <DialogActions>
+              <Button startIcon={<CloseIcon />} onClick={closeCreateDialog}>
+                Cancel
+              </Button>
+              <Button
+                disabled={isCreatingJob}
+                startIcon={<AddIcon />}
+                variant="contained"
+                type="submit"
+                form="create-job"
+                data-test-id="job-create-ok"
+              >
+                Create job
+              </Button>
+            </DialogActions>
           </Dialog>
 
           <div className={"job-actions"}>
-            <MDCIconButtonToggleReact
-              icon="delete"
-              tooltipText="Delete job"
-              disabled={isDeleting}
-              onClick={onDeleteClick}
-            />
+            <Tooltip title="Delete job">
+              <IconButton
+                color="secondary"
+                disabled={isDeleting}
+                onClick={onDeleteClick}
+              >
+                <DeleteIcon />
+              </IconButton>
+            </Tooltip>
           </div>
 
           <SearchableTable
