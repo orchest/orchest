@@ -17,22 +17,7 @@ Please refer to the dedicated section on :ref:`data passing <data passing>`.
 
 Parameters
 ~~~~~~~~~~
-.. code-block:: python
-
-   import orchest
-
-   # Get the parameters of the current step and the pipeline.
-   fruit = orchest.get_step_param("fruit") # e.g. "apple"
-   vegetable = orchest.get_pipeline_param("vegetable") # e.g. "carrot"
-
-   # Update the step parameter. The updated parameter will be
-   # visible in the GUI, in the properties pane of the step.
-   fruit = "kiwi"
-   orchest.update_step_param("fruit", fruit)
-
-.. note::
-   Parameters are at the core of :ref:`jobs <jobs>`, giving a handle to try out different modeling
-   ideas based on a set of variable inputs.
+Check out an example in the :ref:`parameters section in jobs <jobs parameters>`.
 
 .. _r:
 
@@ -99,6 +84,7 @@ orchest.transfer
 .. automodule:: orchest.transfer
     :members:
 
+.. _api parameters:
 
 orchest.parameters
 ~~~~~~~~~~~~~~~~~~
@@ -106,6 +92,7 @@ orchest.parameters
 .. automodule:: orchest.parameters
     :members:
 
+.. _api services:
 
 orchest.services
 ~~~~~~~~~~~~~~~~~~

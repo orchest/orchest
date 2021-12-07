@@ -17,7 +17,8 @@ Please refer to the dedicated section on :ref:`using git inside Orchest <git ins
 
 Import a project
 ----------------
-WIP
+Check out our video: `importing a project
+<https://www.tella.tv/video/cknr7of9c000409jr5gx4efjy/view>`_.
 
 Share code between steps
 ------------------------

@@ -101,7 +101,7 @@ example we could change what step-1 is outputting:
 
    # Output the data so that step-3 can retrieve it.
    # But this time, don't give a name.
-   orchest.output(data)
+   orchest.output(data, name=None)
 
 The ``input_data`` in step-3 will now be equal to:
 
@@ -124,7 +124,7 @@ For example, we could change the code of step-2 to:
 
    data = [3, 1, 4]
 
-   orchest.output(data)
+   orchest.output(data, name=None)
 
 Making the ``input_data`` in step-3 equal to:
 

@@ -2,6 +2,11 @@
 
 Pipelines
 =========
+.. tip::
+   👉 Check out the `creating a pipeline from scratch video
+   <https://www.tella.tv/video/cknr7zwz2000408i7bngpd77q/view>`_ to learn how to create a pipeline
+   in the visual editor.
+
 Pipelines are the core unit of execution in Orchest. A pipeline can be thought of as a graph,
 where the nodes are executable files that execute within their own isolated environment (powered by
 containerization - see :ref:`environments <environments>`), and the edges define the execution order
@@ -17,6 +22,16 @@ different :ref:`environment <environments>` to execute the code.
    :align: center
 
    The :ref:`quickstart <quickstart>` pipeline.
+
+Additionally, pipelines can also be thought of as functions: given a set of parameters, the pipeline
+can produce different outputs. For example, a parameter can set the connection URL of a data source
+which obviously impacts the output of the pipeline. Parameters define the pipeline runs that are
+part of a :ref:`job <jobs>`, and to be able to easily build out your pipelines (and jobs) parameters
+can also be set and interacted with in the visual pipeline editor.
+
+.. tip::
+   👉 For secrets it is recommended to use :ref:`environment variables <environment variables>`
+   given that parameters are versioned.
 
 Running a pipeline
 ------------------

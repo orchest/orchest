@@ -34,7 +34,8 @@ the filesystem.
 Given that a project is a ``git`` repository you might be confused where to write data to, since
 git's best practices state that you should not upload large files, just source files. That is indeed
 a very good observation. For the use case of storing data locally, all code should store data to the
-``/data`` directory.
+``/data`` directory. Additionally, secrets should be set using :ref:`environment variables
+<environment variables>` as they would otherwise be versioned!
 
 .. note::
    💡 The ``/data`` directory is accessible by all pipelines across all projects, even by jobs.
@@ -55,10 +56,14 @@ There are numerous ways to get started on a new project in Orchest, you can:
 
 Using ``git`` inside Orchest
 ----------------------------
+.. tip::
+   👉 Would you rather watch a short video tutorial? Check it here: `versioning using git in Orchest
+   <https://www.tella.tv/video/cknr9z9x0000709kz7vzh0wdx/view>`_.
+
 WIP
 
 Importing private ``git`` repositories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To import private ``git`` repositories upload them directly through the *File manager* into the
-``projects/`` directory.
+``userdir/projects/`` directory.
 
