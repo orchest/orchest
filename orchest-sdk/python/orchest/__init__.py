@@ -1,3 +1,16 @@
+"""SDK to interact with Orchest.
+
+You can do things such as:
+* Pass data between pipeline steps.
+* Get the value of pipeline and pipeline step parameters.
+
+Data passing example:
+>>> import orchest
+>>> orchest.get_inputs()
+... {"extracted-data": ..., "unnamed": []}
+>>> orchest.output("Hello World!", name="welcome-msg")
+
+"""
 import os as __os
 
 from orchest._version import __version__

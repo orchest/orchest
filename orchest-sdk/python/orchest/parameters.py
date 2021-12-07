@@ -1,7 +1,7 @@
 """Module to interact with the parameter values of pipeline steps.
 
-Parameters are stored in the corresponding pipeline definition file,
-e.g. ``pipeline.orchest``.
+Handle to parameters that are stored in the corresponding pipeline
+definition file, e.g. ``pipeline.orchest``.
 
 """
 from typing import Any, Optional, Tuple
