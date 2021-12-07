@@ -47,7 +47,8 @@ Install Orchest
    ./orchest start
 
 .. tip::
-   👉 Be sure to check out the :ref:`quickstart tutorial <quickstart>` after installing Orchest.
+   🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
+   <quickstart>`.
 
 Additional language dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
