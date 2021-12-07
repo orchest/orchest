@@ -167,3 +167,7 @@ any service without the burden of interacting with Docker or pushing to an image
 Everything can be done through the easy interface of Orchest.
 
 See the :ref:`environments <environments>` section for details on how to build an environment.
+
+Creating a custom service
+=========================
+WIP
