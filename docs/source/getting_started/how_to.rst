@@ -7,7 +7,24 @@ Please refer to the dedicated section on :ref:`data passing <data passing>`.
 
 Install new packages
 --------------------
-WIP
+.. tip::
+    👉 Would you rather watch a short video tutorial? Check it our here: `installing additional
+    packages <https://app.tella.tv/story/cknr8owf4000308kzalsk11a5>`_.
+
+To install new packages, you should make use of :ref:`environments <environments>`. Simply build a
+new environment that contains your package and select it inside the pipeline editor. Installing
+packages is done using well known commands such as ``pip install`` and ``sudo apt-get install``.
+
+.. note::
+   💡 When updating an existing environment, the new environment will automatically be used inside
+   the visual editor (and for your :ref:`interactive pipeline runs <interactive pipeline run>`).
+   However, the JupyterLab kernel needs to be restarted if it was already running.
+
+What not to do
+~~~~~~~~~~~~~~
+Do **not** install new packages by running bash commands inside the Notebooks. This will require the
+packages to be installed every time you do a pipeline run, since the state of the kernel environment
+is ephemeral.
 
 Use ``git`` inside Orchest
 --------------------------
