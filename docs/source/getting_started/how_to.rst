@@ -44,7 +44,7 @@ Share code between steps
 
 WIP.
 
-``utils.py`` module for example inside the project.
+.. ``utils.py`` module for example inside the project.
 
 Minimalize Orchest's disk size
 ------------------------------

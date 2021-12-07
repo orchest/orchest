@@ -130,8 +130,8 @@ If Docker is installed directly within the WSL 2 follow the `CUDA on WSL User Gu
 <https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`_ provided by NVIDIA.
 
 .. warning::
-   Orchest's default installation recommends installing Docker Desktop and configuring it to use the
-   WSL 2 backend. Sadly, this does not yet support CUDA.
+   🚨 Orchest's default installation recommends installing Docker Desktop and configuring it to use
+   the WSL 2 backend. Sadly, this does not yet support CUDA.
 
 macOS (not supported)
 ~~~~~~~~~~~~~~~~~~~~~

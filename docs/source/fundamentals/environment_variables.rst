@@ -27,9 +27,9 @@ pipeline run>` is ``PIP_VALUE``.
    as ``postgres`` and ``"postgres"`` respectively.
 
 .. warning::
-   Environment variables are persisted within Orchest. Make sure only authorized people have access
-   to your instance and sensible data. See how to setup :ref:`authentication <authentication>` and
-   how to :ref:`self-host Orchest <self-host orchest>`.
+   🚨 Environment variables are persisted within Orchest. Make sure only authorized people have
+   access to your instance and sensible data. See how to setup :ref:`authentication
+   <authentication>` and how to :ref:`self-host Orchest <self-host orchest>`.
 
 Project environment variables
 -----------------------------

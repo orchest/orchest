@@ -40,6 +40,10 @@ a very good observation. For the use case of storing data locally, all code shou
 .. note::
    💡 The ``/data`` directory is accessible by all pipelines across all projects, even by jobs.
 
+Inside your code (that run inside :ref:`environments <environments>`) you can access your files
+using relative paths. In case your are looking to use absolute path, all files of a project are
+mounted to the ``/project-dir`` directory.
+
 Getting started
 ---------------
 .. tip::

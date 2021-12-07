@@ -95,7 +95,7 @@ To build the docs, run:
 Incremental development
 -----------------------
 .. warning::
-   For incremental development to work in WSL2, Docker must be installed within the WSL2
+   🚨 For incremental development to work in WSL2, Docker must be installed within the WSL2
    environment itself.
 
 Now that you have Orchest and all devevelopment dependencies installed you ready to start Orchest in
@@ -224,7 +224,7 @@ At this moment we only have unit tests for the Python code.
 Integration tests
 ~~~~~~~~~~~~~~~~~
 .. warning::
-   Running integration tests will remove all content of the ``userdir`` directory along with all
+   🚨 Running integration tests will remove all content of the ``userdir`` directory along with all
    built environments (the provided script will ask you to confirm before proceeding).
 
 The integration tests are build using `Cypress <http://cypress.io/>`_ and can be run using:
