@@ -4,7 +4,7 @@ Parameters are stored in the corresponding pipeline definition file,
 e.g. ``pipeline.orchest``.
 
 """
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
 from orchest.error import StepUUIDResolveError
 from orchest.pipeline import Pipeline, PipelineStep
@@ -31,7 +31,7 @@ def get_params() -> Tuple[dict, dict]:
     return step.get_params(), pipeline.get_params()
 
 
-def get_step_param(name: str) -> Any:
+def get_step_param(name: str, default: Optional[Any] = None) -> Any:
     """Gets a parameter of the current step by name.
 
     Args:
@@ -43,10 +43,10 @@ def get_step_param(name: str) -> Any:
     pipeline = get_pipeline()
     step = _get_current_step(pipeline)
     params = step.get_params()
-    return params[name]
+    return params.get(name, default)
 
 
-def get_pipeline_param(name: str) -> Any:
+def get_pipeline_param(name: str, default: Optional[Any] = None) -> Any:
     """Gets a pipeline parameter by name.
 
     Args:
@@ -57,4 +57,4 @@ def get_pipeline_param(name: str) -> Any:
     """
     pipeline = get_pipeline()
     params = pipeline.get_params()
-    return params[name]
+    return params.get(name, default)
