@@ -669,7 +669,7 @@ const EditJobView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const addEnvVariablePair = (e) => {
+  const addEnvVariablePair = (e: React.MouseEvent<Element, MouseEvent>) => {
     e.preventDefault();
 
     setEnvVariables((envVariables) => [
