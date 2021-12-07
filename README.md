@@ -22,46 +22,29 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
   <i>💡 Watch the <a target="_blank" href="https://vimeo.com/589879082">full narrated video</a> to learn more about building data pipelines in Orchest.</i>
  </p>
 
-Read the [docs](https://orchest.readthedocs.io/en/stable/); get the
-[code](https://github.com/orchest/orchest#installation); ask us
-[anything](https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w)!
+> **NOTE:** Orchest is in **beta**.
 
 ## Features
 
-> This is not a comprehensive list.
+* **Visually construct pipelines** through our user-friendly UI
+* **Code in Notebooks** and scripts ([quickstart](https://orchest.readthedocs.io/en/stable/))
+* Run any subset of a pipelines directly or periodically ([jobs](https://orchest.readthedocs.io/en/stable/))
+* Easily define your dependencies to run on **any machine** ([environments](https://orchest.readthedocs.io/en/stable/))
+* Spin up services whose lifetime spans across the entire pipeline run ([services](https://orchest.readthedocs.io/en/stable/))
+* Version your projects using git ([projects](https://orchest.readthedocs.io/en/stable/))
 
-- **Visually construct** pipelines through our user-friendly UI.
-- **Code in Notebooks**.
-- Run any subset of a pipeline directly or on a **cron-like schedule**.
-- Easily define your dependencies to run on **any machine**.
-
-#### Who should use Orchest?
-
-- Data Scientists who want to rapidly prototype.
-- Data Scientists who like to work in Notebooks.
-- Data Scientists who are looking to create pipelines through a visual interface instead of YAML.
+**Who should use Orchest?** Read it in the [docs](https://orchest.readthedocs.io/en/stable/).
 
 ## Installation
 
-> **NOTE:** Orchest is in **beta**.
-
-For GPU support, language dependencies other than Python, and other installation methods, such as
-building from source, please refer to our [installation
+For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
 docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html).
 
 #### Requirements
 
 - [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
 
-> ‼️ On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the
-> Linux environment and run Orchest CLI commands inside a WSL terminal. For more info and
-> installation steps for Docker with WSL 2 backend, please visit
-> https://docs.docker.com/docker-for-windows/wsl/.
-
-#### Linux, macOS and Windows
-
-> Alternatively, signup for the free-of-charge [Orchest Cloud](https://cloud.orchest.io/signup) and
-> get a fully configured Orchest instance out of the box!
+#### Linux and macOS
 
 ```bash
 git clone https://github.com/orchest/orchest.git && cd orchest
@@ -71,7 +54,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ./orchest start
 ```
 
-Now that you have installed Orchest, get started with our
+🎉 Now that you have installed Orchest, get started with our
 [quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
 check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
 users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
