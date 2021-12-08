@@ -131,6 +131,7 @@ export type Project = {
   session_count: number;
   job_count: number;
   environment_count: number;
+  project_snapshot_size: number;
 };
 
 export type Environment = {

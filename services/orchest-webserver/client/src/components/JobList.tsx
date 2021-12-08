@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Job } from "@/types";
+import { Job, Project } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,6 +23,7 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import {
+  fetcher,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -47,7 +48,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
 
-  const [jobs, setJobs] = React.useState<Job[] | undefined>();
+  const [jobs, setJobs] = React.useState<Job[]>([]);
   const [pipelines, setPipelines] = React.useState<
     { uuid: string; path: string; name: string }[]
   >([]);
@@ -63,44 +64,30 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const promiseManager = React.useRef(new PromiseManager());
   const refManager = React.useRef(new RefManager());
 
-  const fetchList = () => {
+  const fetchJobs = async () => {
     // in case jobTable exists, clear checks
     if (refManager.current.refs.jobTable) {
       refManager.current.refs.jobTable.setSelectedRowIds([]);
     }
 
-    let fetchListPromise = makeCancelable(
-      makeRequest(
-        "GET",
+    try {
+      const response = await fetcher<{ jobs: Job[] }>(
         `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      ),
-      promiseManager.current
-    );
-
-    fetchListPromise.promise
-      .then((response: string) => {
-        let result = JSON.parse(response);
-        setJobs(result.jobs);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
+      );
+      setJobs(response.jobs);
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const fetchProjectDirSize = () => {
-    let fetchProjectDirSizePromise = makeCancelable(
-      makeRequest("GET", `/async/projects/${projectUuid}`),
-      promiseManager.current
-    );
-
-    fetchProjectDirSizePromise.promise
-      .then((response: string) => {
-        let result = JSON.parse(response);
-        setProjectSnapshotSize(result["project_snapshot_size"]);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
+  const fetchProjectDirSize = async () => {
+    try {
+      const result = await fetcher<Project>(`/async/projects/${projectUuid}`);
+      setProjectSnapshotSize(result.project_snapshot_size);
+    } catch (e) {
+      // handle this error silently
+      console.error(e);
+    }
   };
 
   const onCreateClick = () => {
@@ -112,57 +99,48 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
     }
   };
 
-  const onDeleteClick = () => {
-    if (!isDeleting) {
-      setIsDeleting(true);
+  const deleteSelectedJobs = () => {
+    // this is just a precaution. the button is disabled when isDeleting is true.
+    if (isDeleting) {
+      console.error("Delete UI in progress.");
+      return;
+    }
 
-      // get job selection
-      let selectedRows = refManager.current.refs.jobTable.getSelectedRowIndices();
+    setIsDeleting(true);
 
-      if (selectedRows.length == 0) {
-        setAlert("Error", "You haven't selected any jobs.");
-        setIsDeleting(false);
+    // get job selection
+    let selectedRows = refManager.current.refs.jobTable.getSelectedRowIndices();
 
-        return;
-      }
+    if (selectedRows.length == 0) {
+      setAlert("Error", "You haven't selected any jobs.");
+      setIsDeleting(false);
 
-      setConfirm(
-        "Warning",
-        "Are you sure you want to delete these jobs? (This cannot be undone.)",
-        () => {
-          // delete indices
-          let promises = [];
+      return;
+    }
 
-          for (let x = 0; x < selectedRows.length; x++) {
-            promises.push(
-              // deleting the job will also
-              // take care of aborting it if necessary
-              makeRequest(
-                "DELETE",
-                "/catch/api-proxy/api/jobs/cleanup/" +
-                  jobs[selectedRows[x]].uuid
-              )
-            );
-          }
+    setConfirm(
+      "Warning",
+      "Are you sure you want to delete these jobs? (This cannot be undone.)",
+      async () => {
+        const promises = selectedRows.map((rowIndex: string) => {
+          return fetcher(
+            `/catch/api-proxy/api/jobs/cleanup/${jobs[rowIndex].uuid}`,
+            { method: "DELETE" }
+          );
+        });
 
-          Promise.all(promises)
-            .then(() => {
-              setIsDeleting(false);
-
-              fetchList();
-              refManager.current.refs.jobTable.setSelectedRowIds([]);
-            })
-            .catch(() => {
-              setIsDeleting(false);
-            });
-        },
-        () => {
+        try {
+          await Promise.all(promises);
+          setIsDeleting(false);
+          fetchJobs();
+          refManager.current.refs.jobTable.setSelectedRowIds([]);
+        } catch (e) {
+          setAlert("Error", `Failed to delete selected jobs: ${e}`);
           setIsDeleting(false);
         }
-      );
-    } else {
-      console.error("Delete UI in progress.");
-    }
+      },
+      () => setIsDeleting(false)
+    );
   };
 
   const createJob = (newJobName: string, pipelineUuid: string) => {
@@ -258,25 +236,29 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
     setJobName("");
   };
 
-  const onSubmitEditJobNameModal = () => {
+  const onSubmitEditJobNameModal = async () => {
     setIsSubmittingJobName(true);
 
-    makeRequest("PUT", `/catch/api-proxy/api/jobs/${jobUuid}`, {
-      type: "json",
-      content: { name: jobName },
-    })
-      .then((_) => {
-        fetchList();
-      })
-      .catch((e) => {
-        console.error(e);
-      })
-      .finally(() => {
-        onCloseEditJobNameModal();
+    try {
+      await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify({ name: jobName }),
       });
+      await fetchJobs();
+      onCloseEditJobNameModal();
+    } catch (e) {
+      setAlert(
+        "Error",
+        `Failed to update job name: ${JSON.stringify(e)}`,
+        onCloseEditJobNameModal
+      );
+    }
   };
 
-  const transformedJobs = (jobs || []).map((job) => {
+  const transformedJobs = jobs.map((job) => {
     // keep only jobs that are related to a project!
     return [
       <span
@@ -325,7 +307,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
       });
 
     // retrieve jobs
-    fetchList();
+    fetchJobs();
     // get size of project dir to show warning if necessary
     fetchProjectDirSize();
 
@@ -479,11 +461,11 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
           </Dialog>
 
           <div className={"job-actions"}>
-            <Tooltip title="Delete job">
+            <Tooltip title="Delete selected jobs">
               <IconButton
                 color="secondary"
                 disabled={isDeleting}
-                onClick={onDeleteClick}
+                onClick={deleteSelectedJobs}
               >
                 <DeleteIcon />
               </IconButton>
