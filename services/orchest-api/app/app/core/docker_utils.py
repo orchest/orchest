@@ -4,6 +4,7 @@ import time
 
 import docker
 
+from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
 from app.connections import docker_client
@@ -63,6 +64,7 @@ def build_docker_image(
             tag=image_name,
             rm=True,
             nocache=True,
+            container_limits={"cpushares": _config.USER_CONTAINERS_CPU_SHARES},
         )
 
         flag = __DOCKERFILE_RESERVED_FLAG + "\n"
