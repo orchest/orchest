@@ -1646,7 +1646,7 @@ const PipelineView: React.FC = () => {
         (STEP_WIDTH / STEP_HEIGHT),
       1 + spacingFactor,
       gridMargin,
-      gridMargin,
+      gridMargin * 4, // don't put steps behind top buttons
       gridMargin,
       STEP_HEIGHT
     );
