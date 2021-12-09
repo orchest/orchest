@@ -932,6 +932,7 @@ def _get_user_services_specs(
                     "tag": f"user-service-{service_name}-metadata-end",
                 },
             ),
+            "cpu_shares": _config.USER_CONTAINERS_CPU_SHARES,
         }
 
         if "entrypoint" in service:
