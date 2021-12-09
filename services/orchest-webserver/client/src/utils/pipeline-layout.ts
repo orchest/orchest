@@ -175,7 +175,7 @@ const traverseNode = (
   seenNodes: Set<string>,
   subGraph: IPipelineStepState[]
 ) => {
-  // BFS
+  // DFS
   step.outgoing_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
       seenNodes.add(stepUuid);
