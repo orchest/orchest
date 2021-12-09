@@ -175,15 +175,8 @@ const traverseNode = (
   seenNodes: Set<string>,
   subGraph: IPipelineStepState[]
 ) => {
+  // BFS
   step.outgoing_connections.forEach((stepUuid) => {
-    if (!seenNodes.has(stepUuid)) {
-      seenNodes.add(stepUuid);
-
-      subGraph.push(allSteps[stepUuid]);
-      traverseNode(allSteps[stepUuid], allSteps, seenNodes, subGraph);
-    }
-  });
-  step.incoming_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
       seenNodes.add(stepUuid);
 
@@ -209,7 +202,8 @@ const collectSubGraphs = (pipelineJson) => {
     // Start at unseen root nodes
     if (!seenNodes.has(stepUuid) && step.incoming_connections.length == 0) {
       // Found untraversed root node
-      let graphNodes = [];
+      let graphNodes = [step];
+      seenNodes.add(stepUuid);
       traverseNode(step, pipelineJson.steps, seenNodes, graphNodes);
 
       // Add to subGraphs
