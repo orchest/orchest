@@ -795,14 +795,18 @@ class UpdateJob(TwoPhaseFunction):
                     )
                 )
             # Trying to set `next_scheduled_time` on a cron job that is
-            # updated to be a scheduled job
+            # updated to be a scheduled job after duplicating it.
             if cron_schedule is None:
                 job.schedule = None
 
             job.next_scheduled_time = datetime.fromisoformat(next_scheduled_time)
 
         # The job needs to be scheduled now.
-        if next_scheduled_time is None and cron_schedule is None:
+        if (
+            job.status == "DRAFT"
+            and next_scheduled_time is None
+            and cron_schedule is None
+        ):
             job.schedule = None
             job.next_scheduled_time = None
 
