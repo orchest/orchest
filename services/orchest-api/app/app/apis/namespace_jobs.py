@@ -801,6 +801,11 @@ class UpdateJob(TwoPhaseFunction):
 
             job.next_scheduled_time = datetime.fromisoformat(next_scheduled_time)
 
+        # The job needs to be scheduled now.
+        if next_scheduled_time is None and cron_schedule is None:
+            job.schedule = None
+            job.next_scheduled_time = None
+
         if strategy_json is not None:
             if job.schedule is None and job.status != "DRAFT":
                 raise ValueError(
