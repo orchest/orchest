@@ -155,6 +155,8 @@ export type EnvironmentBuild = {
   uuid: string;
 };
 
+export type JobStatus = "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+
 export type Job = {
   created_time: string;
   env_variables: Record<string, string>;
@@ -189,7 +191,7 @@ export type Job = {
   pipeline_uuid: string;
   project_uuid: string;
   schedule: string;
-  status: "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+  status: JobStatus;
   strategy_json: Record<string, unknown>;
   total_scheduled_executions: number;
   uuid: string;

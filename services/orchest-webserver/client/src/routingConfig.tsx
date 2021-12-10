@@ -204,10 +204,10 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
   {} as Record<RouteName, RouteData>
 );
 
-const snakeCase = (str: string) =>
+const snakeCase = (str: string, divider = "_") =>
   str
     .split(/(?=[A-Z])/)
-    .join("_")
+    .join(divider)
     .toLowerCase();
 
 export const toQueryString = <T extends string>(

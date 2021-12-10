@@ -566,7 +566,7 @@ const EditJobView: React.FC = () => {
             cron_schedule: cronString,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
-            env_variables: updatedEnvVariables,
+            env_variables: updatedEnvVariables.value,
           },
         }),
         promiseManager

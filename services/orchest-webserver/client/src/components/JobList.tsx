@@ -1,12 +1,10 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Job, Project } from "@/types";
+import { Job, JobStatus, Project } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -15,27 +13,66 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
-import IconButton from "@mui/material/IconButton";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import { darken } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import {
   fetcher,
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import React from "react";
-import SearchableTable from "./SearchableTable";
-import { StatusInline } from "./Status";
+import { DataTable, DataTableRenders, HeadCell } from "./DataTable";
 
 export interface IJobListProps {
   projectUuid: string;
 }
+
+type DisplayedJob = {
+  name: string;
+  pipeline: string;
+  snapShotDate: string;
+  status: JobStatus;
+};
+
+const headCells: HeadCell<DisplayedJob>[] = [
+  { id: "name", label: "Job" },
+  { id: "pipeline", label: "Pipeline" },
+  { id: "snapShotDate", label: "Snapshot date" },
+  { id: "status", label: "Status" },
+];
+
+const createDataTableRenders = ({
+  onEditJobNameClick,
+}: {
+  onEditJobNameClick: (uuid: string, name: string) => void;
+}): DataTableRenders<DisplayedJob> => ({
+  name: (row) => (
+    <Box>
+      <Typography
+        component="span"
+        sx={{
+          marginRight: 2,
+          "&:hover": {
+            color: (theme) => darken(theme.palette.primary.main, 0.15),
+            textDecoration: "underline",
+          },
+        }}
+        onClick={(e: React.MouseEvent<unknown>) => {
+          e.stopPropagation();
+          onEditJobNameClick(row.uuid, row.name);
+        }}
+      >
+        {row.name}
+      </Typography>
+    </Box>
+  ),
+});
 
 const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
@@ -62,14 +99,8 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
   const promiseManager = React.useRef(new PromiseManager());
-  const refManager = React.useRef(new RefManager());
 
   const fetchJobs = async () => {
-    // in case jobTable exists, clear checks
-    if (refManager.current.refs.jobTable) {
-      refManager.current.refs.jobTable.setSelectedRowIds([]);
-    }
-
     try {
       const response = await fetcher<{ jobs: Job[] }>(
         `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
@@ -99,7 +130,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
     }
   };
 
-  const deleteSelectedJobs = () => {
+  const deleteSelectedJobs = (jobUuids: string[]) => {
     // this is just a precaution. the button is disabled when isDeleting is true.
     if (isDeleting) {
       console.error("Delete UI in progress.");
@@ -108,10 +139,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
 
     setIsDeleting(true);
 
-    // get job selection
-    let selectedRows = refManager.current.refs.jobTable.getSelectedRowIndices();
-
-    if (selectedRows.length == 0) {
+    if (jobUuids.length == 0) {
       setAlert("Error", "You haven't selected any jobs.");
       setIsDeleting(false);
 
@@ -122,18 +150,16 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
       "Warning",
       "Are you sure you want to delete these jobs? (This cannot be undone.)",
       async () => {
-        const promises = selectedRows.map((rowIndex: string) => {
-          return fetcher(
-            `/catch/api-proxy/api/jobs/cleanup/${jobs[rowIndex].uuid}`,
-            { method: "DELETE" }
-          );
+        const promises = jobUuids.map((uuid) => {
+          return fetcher(`/catch/api-proxy/api/jobs/cleanup/${uuid}`, {
+            method: "DELETE",
+          });
         });
 
         try {
           await Promise.all(promises);
           setIsDeleting(false);
           fetchJobs();
-          refManager.current.refs.jobTable.setSelectedRowIds([]);
         } catch (e) {
           setAlert("Error", `Failed to delete selected jobs: ${e}`);
           setIsDeleting(false);
@@ -210,25 +236,28 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
       });
   };
 
-  const onRowClick = (row, idx, event) => {
-    let job = jobs[idx];
-
+  const onRowClick = (uuid: string) => {
+    const foundJob = jobs.find((job) => job.uuid === uuid);
+    if (!foundJob) return;
     navigateTo(
-      job.status === "DRAFT" ? siteMap.editJob.path : siteMap.job.path,
+      foundJob.status === "DRAFT" ? siteMap.editJob.path : siteMap.job.path,
       {
         query: {
           projectUuid,
-          jobUuid: job.uuid,
+          jobUuid: uuid,
         },
       }
     );
   };
 
-  const onEditJobNameClick = (newJobUuid: string, newJobName: string) => {
-    setIsEditingJobName(true);
-    setJobName(newJobName);
-    setJobUuid(newJobUuid);
-  };
+  const dataTableRenders = React.useMemo(() => {
+    const onEditJobNameClick = (newJobUuid: string, newJobName: string) => {
+      setIsEditingJobName(true);
+      setJobName(newJobName);
+      setJobUuid(newJobUuid);
+    };
+    return createDataTableRenders({ onEditJobNameClick });
+  }, []);
 
   const onCloseEditJobNameModal = () => {
     setIsSubmittingJobName(false);
@@ -257,35 +286,6 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
       );
     }
   };
-
-  const transformedJobs = jobs.map((job) => {
-    // keep only jobs that are related to a project!
-    return [
-      <span
-        className="mdc-icon-table-wrapper"
-        key={`job-${job.name}`}
-        data-test-id={`job-${job.name}`}
-      >
-        {job.name}{" "}
-        <span className="consume-click">
-          <IconButton
-            onClick={() => {
-              onEditJobNameClick(job.uuid, job.name);
-            }}
-          >
-            <EditIcon />
-          </IconButton>
-        </span>
-      </span>,
-      job.pipeline_name,
-      formatServerDateTime(job.created_time),
-      <StatusInline
-        key={`${job.name}-status`}
-        css={{ verticalAlign: "bottom" }}
-        status={job.status}
-      />,
-    ];
-  });
 
   React.useEffect(() => {
     // retrieve pipelines once on component render
@@ -459,25 +459,24 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
               </Button>
             </DialogActions>
           </Dialog>
-
-          <div className={"job-actions"}>
-            <Tooltip title="Delete selected jobs">
-              <IconButton
-                color="secondary"
-                disabled={isDeleting}
-                onClick={deleteSelectedJobs}
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
-          </div>
-
-          <SearchableTable
-            ref={refManager.current.nrefs.jobTable}
-            selectable={true}
+          <DataTable<DisplayedJob>
+            id="job-list"
+            rows={jobs.map((job) => {
+              return {
+                uuid: job.uuid,
+                name: job.name,
+                pipeline: job.pipeline_name,
+                snapShotDate: formatServerDateTime(job.created_time),
+                status: job.status,
+              };
+            })}
+            headCells={headCells}
+            initialOrderBy="snapShotDate"
+            initialOrder="desc"
+            headKey="name"
             onRowClick={onRowClick}
-            rows={transformedJobs}
-            headers={["Job", "Pipeline", "Snapshot date", "Status"]}
+            deleteSelectedRows={deleteSelectedJobs}
+            renderers={dataTableRenders}
           />
         </>
       ) : (
