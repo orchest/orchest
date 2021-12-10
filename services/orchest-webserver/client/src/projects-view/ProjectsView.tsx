@@ -464,7 +464,9 @@ const ProjectsView: React.FC = () => {
                     classNames={["fullwidth"]}
                     label="Project name"
                     value={projectName}
-                    onChange={setProjectName}
+                    onChange={(value) => {
+                      setProjectName(value.replace(/[^\w\.]/g, "-"));
+                    }}
                     data-test-id="project-name-textfield"
                   />
                 }
