@@ -5,6 +5,7 @@ import { Job, JobStatus, Project } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -17,9 +18,10 @@ import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
 import { darken } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
+import Tooltip from "@mui/material/Tooltip";
 import {
   fetcher,
   makeCancelable,
@@ -28,10 +30,7 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { DataTable, DataTableRenders, HeadCell } from "./DataTable";
-
-export interface IJobListProps {
-  projectUuid: string;
-}
+import { StatusInline } from "./Status";
 
 type DisplayedJob = {
   name: string;
@@ -53,14 +52,18 @@ const createDataTableRenders = ({
   onEditJobNameClick: (uuid: string, name: string) => void;
 }): DataTableRenders<DisplayedJob> => ({
   name: (row) => (
-    <Box>
-      <Typography
+    <Tooltip title="Edit job name">
+      <Stack
+        direction="row"
+        alignItems="center"
         component="span"
         sx={{
           marginRight: 2,
+          svg: { visibility: "hidden" },
           "&:hover": {
             color: (theme) => darken(theme.palette.primary.main, 0.15),
-            textDecoration: "underline",
+            // textDecoration: "underline",
+            svg: { visibility: "visible" },
           },
         }}
         onClick={(e: React.MouseEvent<unknown>) => {
@@ -69,12 +72,22 @@ const createDataTableRenders = ({
         }}
       >
         {row.name}
-      </Typography>
-    </Box>
+        <EditIcon
+          sx={{
+            width: (theme) => theme.spacing(2),
+            marginLeft: (theme) => theme.spacing(0.5),
+          }}
+          color="primary"
+        />
+      </Stack>
+    </Tooltip>
   ),
+  status: (row) => {
+    return <StatusInline status={row.status} />;
+  },
 });
 
-const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
+const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
 
@@ -461,6 +474,7 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
           </Dialog>
           <DataTable<DisplayedJob>
             id="job-list"
+            selectable
             rows={jobs.map((job) => {
               return {
                 uuid: job.uuid,
@@ -473,7 +487,6 @@ const JobList: React.FC<IJobListProps> = ({ projectUuid }) => {
             headCells={headCells}
             initialOrderBy="snapShotDate"
             initialOrder="desc"
-            headKey="name"
             onRowClick={onRowClick}
             deleteSelectedRows={deleteSelectedJobs}
             renderers={dataTableRenders}

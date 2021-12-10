@@ -1,17 +1,14 @@
-import {
-  IconCheckCircleOutline,
-  IconCheckSolid,
-  IconClockOutline,
-  IconCrossCircleOutline,
-  IconCrossSolid,
-  IconDraftCircleOutline,
-  IconDraftOutline,
-  ICSSProp,
-  ITextProps,
-  styled,
-  Text,
-} from "@orchest/design-system";
-import * as React from "react";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import CheckIcon from "@mui/icons-material/Check";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
+import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
+import React from "react";
 
 export type TStatus =
   | "DRAFT"
@@ -23,146 +20,121 @@ export type TStatus =
   | "FAILURE"
   | (Record<string, unknown> & string);
 
-const StatusInlineRoot = styled(Text, {
-  include: "box",
-  display: "block",
-  alignItems: "center",
-  "> *:first-child": { marginRight: "$2" },
-});
+const StatusText = styled(Box)(({ theme }) => ({
+  marginLeft: theme.spacing(1),
+}));
 
-export interface IStatusInlineProps extends ICSSProp {
+export const StatusInline: React.FC<{
   status: TStatus;
-  className?: string;
-  size?: ITextProps["size"];
-}
-
-export const StatusInline: React.FC<IStatusInlineProps> = ({
-  status,
-  size = "sm",
-  ...props
-}) => (
-  <StatusInlineRoot as="span" size={size} {...props}>
-    {
+}> = ({ status }) => {
+  return (
+    <Stack component="span" direction="row" alignItems="center">
       {
-        ABORTED: (
-          <React.Fragment>
-            <IconCrossSolid css={{ color: "$error" }} />
-            Cancelled
-          </React.Fragment>
-        ),
-        DRAFT: (
-          <React.Fragment>
-            <IconDraftOutline css={{ color: "$gray500" }} />
-            Draft
-          </React.Fragment>
-        ),
-        STARTED: (
-          <React.Fragment>
-            <IconClockOutline css={{ color: "$warning" }} />
-            Running…
-          </React.Fragment>
-        ),
-        PAUSED: (
-          <React.Fragment>
-            <IconClockOutline css={{ color: "$gray500" }} />
-            Paused
-          </React.Fragment>
-        ),
-        PENDING: (
-          <React.Fragment>
-            <IconClockOutline css={{ color: "$warning" }} />
-            Pending…
-          </React.Fragment>
-        ),
-        FAILURE: (
-          <React.Fragment>
-            <IconCrossSolid css={{ color: "$error" }} />
-            Failed
-          </React.Fragment>
-        ),
-        SUCCESS: (
-          <React.Fragment>
-            <IconCheckSolid css={{ color: "$success" }} />
-            Success
-          </React.Fragment>
-        ),
-      }[status]
-    }
-  </StatusInlineRoot>
-);
+        {
+          ABORTED: (
+            <>
+              <CloseOutlinedIcon sx={{ color: "error.light" }} />
+              <StatusText>Cancelled</StatusText>
+            </>
+          ),
+          DRAFT: (
+            <>
+              <NoteAltOutlinedIcon
+                sx={{ color: (theme) => theme.palette.grey[500] }}
+              />
+              <StatusText>Draft</StatusText>
+            </>
+          ),
+          STARTED: (
+            <>
+              <AccessTimeIcon sx={{ color: "warning.light" }} />
+              <StatusText>Running…</StatusText>
+            </>
+          ),
+          PAUSED: (
+            <>
+              <AccessTimeIcon
+                sx={{ color: (theme) => theme.palette.grey[500] }}
+              />
+              <StatusText>Paused</StatusText>
+            </>
+          ),
+          PENDING: (
+            <>
+              <AccessTimeIcon sx={{ color: "warning.light" }} />
+              <StatusText>Pending…</StatusText>
+            </>
+          ),
+          FAILURE: (
+            <>
+              <CloseOutlinedIcon sx={{ color: "error.light" }} />
+              <StatusText>Failed</StatusText>
+            </>
+          ),
+          SUCCESS: (
+            <>
+              <CheckIcon sx={{ color: "success.light" }} />
+              <StatusText>Success</StatusText>
+            </>
+          ),
+        }[status]
+      }
+    </Stack>
+  );
+};
 
-const StatusGroupIcon = styled("dt", {
-  justifySelf: "center",
-  "> svg": {
-    verticalAlign: "initial",
-  },
-});
-const StatusGroupRoot = styled("dl", {
-  include: "box",
-  display: "grid",
-  gridTemplateColumns: "$space$6 minmax(0, 1fr)",
-  alignItems: "start",
-  columnGap: "$2",
-  [`${StatusGroupIcon}`]: { gridRow: "$$iconPosition" },
-  variants: {
-    rows: {
-      1: {
-        $$iconPosition: "span 1",
-      },
-      2: {
-        $$iconPosition: "span 2",
-      },
-    },
-  },
-});
-const StatusGroupTitle = styled(Text, { fontSize: "$xl" });
-const StatusGroupDescription = styled(Text, {
-  color: "$textSecondary",
-});
-
-export interface IStatusGroupProps
-  extends React.HTMLAttributes<HTMLDListElement>,
-    ICSSProp {
+export type IStatusGroupProps = {
   status: TStatus;
   icon?: React.ReactNode;
   title: string;
   description?: string;
-  size?: ITextProps["size"];
-}
+  ["data-test-id"]: string;
+};
 
 export const StatusGroup: React.FC<IStatusGroupProps> = ({
   title,
   description,
   icon,
   status,
-  ...props
+  ["data-test-id"]: testId,
 }) => (
-  <StatusGroupRoot
-    rows={description ? 2 : 1}
-    {...props}
-    data-test-id={props["data-test-id"]}
+  <Box
+    component="dl"
+    sx={{
+      display: "grid",
+      gridTemplateColumns: (theme) => `${theme.spacing(6)} minmax(0, 1fr)`,
+      alignItems: "start",
+      columnGap: (theme) => theme.spacing(2),
+    }}
+    data-test-id={testId}
   >
-    <StatusGroupIcon>
+    <Box component="dt" sx={{ justifySelf: "center" }}>
       {icon ||
         {
-          ABORTED: <IconCrossSolid size="full" css={{ color: "$error" }} />,
+          ABORTED: <CloseOutlinedIcon sx={{ color: "error" }} />,
           DRAFT: (
-            <IconDraftCircleOutline size="full" css={{ color: "$gray500" }} />
+            <NoteAltOutlinedIcon
+              sx={{ color: (theme) => theme.palette.grey[500] }}
+            />
           ),
-          STARTED: <IconClockOutline size="full" css={{ color: "$warning" }} />,
-          PAUSED: <IconClockOutline size="full" css={{ color: "$gray500" }} />,
-          PENDING: <IconClockOutline size="full" css={{ color: "$warning" }} />,
-          FAILURE: (
-            <IconCrossCircleOutline size="full" css={{ color: "$error" }} />
+          STARTED: <AccessTimeIcon sx={{ color: "warning" }} />,
+          PAUSED: (
+            <AccessTimeIcon
+              sx={{ color: (theme) => theme.palette.grey[500] }}
+            />
           ),
-          SUCCESS: (
-            <IconCheckCircleOutline size="full" css={{ color: "$success" }} />
-          ),
+          PENDING: <AccessTimeIcon sx={{ color: "warning" }} />,
+          FAILURE: <CancelOutlinedIcon sx={{ color: "error" }} />,
+          SUCCESS: <CheckCircleOutlineIcon sx={{ color: "$success" }} />,
         }[status]}
-    </StatusGroupIcon>
-    <StatusGroupTitle as="dt">{title}</StatusGroupTitle>
+    </Box>
+    <Typography component="dt" variant="h6">
+      {title}
+    </Typography>
     {description && (
-      <StatusGroupDescription as="dd">{description}</StatusGroupDescription>
+      <Typography sx={{ color: "secondary" }} component="dd">
+        {description}
+      </Typography>
     )}
-  </StatusGroupRoot>
+  </Box>
 );

@@ -1,3 +1,4 @@
+import { useDebounce } from "@/hooks/useDebounce";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import Box from "@mui/material/Box";
@@ -94,6 +95,7 @@ type EnhancedTableProps<T> = {
   orderBy: keyof T | "";
   rowCount: number;
   data: HeadCell<T>[];
+  selectable: boolean;
 };
 
 function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
@@ -104,6 +106,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
     numSelected,
     rowCount,
     onRequestSort,
+    selectable,
     data,
   } = props;
   const createSortHandler = (property: keyof T) => (
@@ -115,15 +118,17 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
   return (
     <TableHead>
       <TableRow>
-        <TableCell padding="checkbox">
-          <Checkbox
-            color="primary"
-            indeterminate={numSelected > 0 && numSelected < rowCount}
-            checked={rowCount > 0 && numSelected === rowCount}
-            onChange={onSelectAllClick}
-            inputProps={{ "aria-label": "select all desserts" }}
-          />
-        </TableCell>
+        {selectable && (
+          <TableCell padding="checkbox">
+            <Checkbox
+              color="primary"
+              indeterminate={numSelected > 0 && numSelected < rowCount}
+              checked={rowCount > 0 && numSelected === rowCount}
+              onChange={onSelectAllClick}
+              inputProps={{ "aria-label": "select all desserts" }}
+            />
+          </TableCell>
+        )}
         {data.map((headCell) => (
           <TableCell
             key={headCell.id.toString()}
@@ -156,17 +161,20 @@ export type DataTableRenders<T> = Partial<
 
 type DataTableProps<T> = {
   headCells: HeadCell<T>[];
-  headKey?: string;
   rows: (T & { uuid: string })[];
   id: string;
+  selectable?: boolean;
   initialOrderBy?: keyof T;
   initialOrder?: Order;
   deleteSelectedRows?: (rowUuids: string[]) => void;
   onRowClick?: (uuid: string) => void;
   renderers?: DataTableRenders<T>;
+  rowHeight?: number;
+  debounceTime?: number;
+  [key: string]: any;
 };
 
-export const DataTable = <T extends Record<string, string | number>>({
+export const DataTable = <T extends Record<string, any>>({
   id,
   headCells,
   rows: originalRows,
@@ -174,11 +182,14 @@ export const DataTable = <T extends Record<string, string | number>>({
   initialOrder,
   deleteSelectedRows,
   onRowClick,
-  headKey = "uuid",
+  selectable = false,
   renderers = {},
+  rowHeight = 57,
+  debounceTime = 250,
+  ...props
 }: DataTableProps<T>) => {
-  // TODO: debounce setSearchTerm
   const [searchTerm, setSearchTerm] = React.useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, debounceTime);
   const [order, setOrder] = React.useState<Order>(initialOrder || "asc");
   const [orderBy, setOrderBy] = React.useState<keyof T | "">(
     initialOrderBy || ""
@@ -194,14 +205,14 @@ export const DataTable = <T extends Record<string, string | number>>({
 
   // search is more expensive, should put later than sort
   const rows = React.useMemo(() => {
-    return !searchTerm
+    return !debouncedSearchTerm
       ? sortedRows
       : sortedRows.filter((unfilteredRow) => {
           return Object.entries(unfilteredRow).some(([, value]) =>
-            value.toString().toLowerCase().includes(searchTerm)
+            value.toString().toLowerCase().includes(debouncedSearchTerm)
           );
         });
-  }, [sortedRows, searchTerm]);
+  }, [sortedRows, debouncedSearchTerm]);
 
   React.useEffect(() => {
     setSelected((currentSelected) => {
@@ -230,6 +241,7 @@ export const DataTable = <T extends Record<string, string | number>>({
   };
 
   const handleClickCheckbox = (e: React.MouseEvent<unknown>, uuid: string) => {
+    if (!selectable) return;
     // prevent firing handleClickRow
     e.stopPropagation();
     setSelected((currentSelected) => {
@@ -250,6 +262,7 @@ export const DataTable = <T extends Record<string, string | number>>({
   };
 
   const handleClickRow = (e: React.MouseEvent<unknown>, uuid: string) => {
+    if (!selectable) return;
     // if onRowClick is not defined, select the row as default
     if (onRowClick) {
       e.preventDefault();
@@ -283,8 +296,10 @@ export const DataTable = <T extends Record<string, string | number>>({
 
   const tableTitleId = `${id}-title`;
 
+  const headKey = headCells[0].id;
+
   return (
-    <Box sx={{ width: "100%" }}>
+    <Box sx={{ width: "100%" }} {...props}>
       <Search>
         <SearchIconWrapper>
           <SearchIcon />
@@ -305,6 +320,7 @@ export const DataTable = <T extends Record<string, string | number>>({
             id={id}
           >
             <EnhancedTableHead
+              selectable={selectable}
               numSelected={selected.length}
               order={order}
               orderBy={orderBy}
@@ -317,47 +333,52 @@ export const DataTable = <T extends Record<string, string | number>>({
               {rows
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row: T & { uuid: string }) => {
-                  const { [headKey]: head, uuid, ...rowData } = row;
-
-                  const isItemSelected = isSelected(uuid);
-                  const labelId = `${id}-checkbox-${uuid}`;
+                  const isItemSelected = isSelected(row.uuid);
+                  const labelId = `${id}-checkbox-${row.uuid}`;
 
                   return (
                     <TableRow
                       hover
-                      onClick={(e) => handleClickRow(e, uuid)}
+                      onClick={(e) => handleClickRow(e, row.uuid)}
                       role="checkbox"
                       aria-checked={isItemSelected}
                       tabIndex={-1}
-                      key={uuid}
+                      key={row.uuid}
                       selected={isItemSelected}
-                      sx={{ cursor: "pointer" }}
+                      sx={selectable ? { cursor: "pointer" } : null}
                     >
-                      <TableCell padding="checkbox">
-                        <Checkbox
-                          color="primary"
-                          checked={isItemSelected}
-                          onClick={(e) => handleClickCheckbox(e, uuid)}
-                          inputProps={{ "aria-labelledby": labelId }}
-                        />
-                      </TableCell>
+                      {selectable && (
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            color="primary"
+                            checked={isItemSelected}
+                            onClick={(e) => handleClickCheckbox(e, row.uuid)}
+                            inputProps={{ "aria-labelledby": labelId }}
+                          />
+                        </TableCell>
+                      )}
                       <TableCell
                         component="th"
                         id={labelId}
                         scope="row"
                         padding="normal"
                       >
-                        {renderers[headKey] ? renderers[headKey](row) : head}
+                        {renderers[headKey]
+                          ? renderers[headKey](row)
+                          : row[headKey]}
                       </TableCell>
-                      {Object.entries(rowData).map(([key, cellValue]) => {
+                      {headCells.slice(1).map(({ id }) => {
+                        const cellValue = row[id];
+                        console.log("🥁");
+                        console.log(cellValue);
                         return (
                           <TableCell
-                            key={key}
+                            key={id.toString()}
                             align={
                               typeof cellValue === "number" ? "right" : "left"
                             }
                           >
-                            {renderers[key] ? renderers[key](row) : cellValue}
+                            {renderers[id] ? renderers[id](row) : cellValue}
                           </TableCell>
                         );
                       })}
@@ -365,7 +386,7 @@ export const DataTable = <T extends Record<string, string | number>>({
                   );
                 })}
               {emptyRows > 0 && (
-                <TableRow style={{ height: 53 * emptyRows }}>
+                <TableRow style={{ height: rowHeight * emptyRows }}>
                   <TableCell colSpan={6} />
                 </TableRow>
               )}

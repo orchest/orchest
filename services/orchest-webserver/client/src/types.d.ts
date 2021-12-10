@@ -1,4 +1,5 @@
 import React from "react";
+import { TStatus } from "./components/Status";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PartialRecord<K extends keyof any, T> = {
@@ -157,6 +158,23 @@ export type EnvironmentBuild = {
 
 export type JobStatus = "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
 
+export type PipelineRun = {
+  env_variables: Record<string, string>;
+  finished_time: string;
+  job_run_index: number;
+  job_run_pipeline_run_index: number;
+  job_uuid: string;
+  parameters: Record<string, any>;
+  pipeline_run_index: number;
+  pipeline_steps: Step[];
+  pipeline_uuid: string;
+  project_uuid: string;
+  server_time: string;
+  started_time: string;
+  status: TStatus;
+  uuid: string;
+};
+
 export type Job = {
   created_time: string;
   env_variables: Record<string, string>;
@@ -187,7 +205,7 @@ export type Job = {
     project_uuid: string | null;
     run_type: string;
   };
-  pipeline_runs: any[];
+  pipeline_runs: PipelineRun[];
   pipeline_uuid: string;
   project_uuid: string;
   schedule: string;

@@ -39,7 +39,6 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import _ from "lodash";
@@ -129,7 +128,6 @@ const EditJobView: React.FC = () => {
     strategyJSON: {},
   });
 
-  const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
 
   const fetchJob = () => {
