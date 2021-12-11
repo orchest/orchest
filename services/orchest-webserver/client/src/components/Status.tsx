@@ -1,7 +1,5 @@
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import CheckIcon from "@mui/icons-material/Check";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
 import Box from "@mui/material/Box";
@@ -17,68 +15,56 @@ export type TStatus =
   | "PAUSED"
   | "SUCCESS"
   | "ABORTED"
-  | "FAILURE"
-  | (Record<string, unknown> & string);
+  | "FAILURE";
+// | (Record<string, unknown> & string);
 
 const StatusText = styled(Box)(({ theme }) => ({
   marginLeft: theme.spacing(1),
 }));
+
+const statusMapping: Partial<Record<
+  TStatus,
+  { icon: React.ReactNode; text: string }
+>> = {
+  ABORTED: {
+    icon: <CloseOutlinedIcon sx={{ color: "error.light" }} />,
+    text: "Cancelled",
+  },
+  DRAFT: {
+    icon: (
+      <NoteAltOutlinedIcon sx={{ color: (theme) => theme.palette.grey[500] }} />
+    ),
+    text: "Draft",
+  },
+  FAILURE: {
+    icon: <CloseOutlinedIcon sx={{ color: "error.light" }} />,
+    text: "Failed",
+  },
+  PAUSED: {
+    icon: <AccessTimeIcon sx={{ color: (theme) => theme.palette.grey[500] }} />,
+    text: "Paused",
+  },
+  PENDING: {
+    icon: <AccessTimeIcon sx={{ color: "warning.light" }} />,
+    text: "Pending…",
+  },
+  STARTED: {
+    icon: <AccessTimeIcon sx={{ color: "warning.light" }} />,
+    text: "Running…",
+  },
+  SUCCESS: {
+    icon: <CheckIcon sx={{ color: "success.light" }} />,
+    text: "Success",
+  },
+};
 
 export const StatusInline: React.FC<{
   status: TStatus;
 }> = ({ status }) => {
   return (
     <Stack component="span" direction="row" alignItems="center">
-      {
-        {
-          ABORTED: (
-            <>
-              <CloseOutlinedIcon sx={{ color: "error.light" }} />
-              <StatusText>Cancelled</StatusText>
-            </>
-          ),
-          DRAFT: (
-            <>
-              <NoteAltOutlinedIcon
-                sx={{ color: (theme) => theme.palette.grey[500] }}
-              />
-              <StatusText>Draft</StatusText>
-            </>
-          ),
-          STARTED: (
-            <>
-              <AccessTimeIcon sx={{ color: "warning.light" }} />
-              <StatusText>Running…</StatusText>
-            </>
-          ),
-          PAUSED: (
-            <>
-              <AccessTimeIcon
-                sx={{ color: (theme) => theme.palette.grey[500] }}
-              />
-              <StatusText>Paused</StatusText>
-            </>
-          ),
-          PENDING: (
-            <>
-              <AccessTimeIcon sx={{ color: "warning.light" }} />
-              <StatusText>Pending…</StatusText>
-            </>
-          ),
-          FAILURE: (
-            <>
-              <CloseOutlinedIcon sx={{ color: "error.light" }} />
-              <StatusText>Failed</StatusText>
-            </>
-          ),
-          SUCCESS: (
-            <>
-              <CheckIcon sx={{ color: "success.light" }} />
-              <StatusText>Success</StatusText>
-            </>
-          ),
-        }[status]
-      }
+      {statusMapping[status].icon}
+      <StatusText>{statusMapping[status].text}</StatusText>
     </Stack>
   );
 };
@@ -86,9 +72,10 @@ export const StatusInline: React.FC<{
 export type IStatusGroupProps = {
   status: TStatus;
   icon?: React.ReactNode;
-  title: string;
+  title?: string;
   description?: string;
   ["data-test-id"]: string;
+  style?: React.CSSProperties;
 };
 
 export const StatusGroup: React.FC<IStatusGroupProps> = ({
@@ -96,43 +83,49 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
   description,
   icon,
   status,
+  style,
   ["data-test-id"]: testId,
 }) => (
   <Box
-    component="dl"
     sx={{
-      display: "grid",
-      gridTemplateColumns: (theme) => `${theme.spacing(6)} minmax(0, 1fr)`,
-      alignItems: "start",
-      columnGap: (theme) => theme.spacing(2),
+      display: "flex",
+      flexDirection: "column",
     }}
+    component="dl"
+    style={style}
     data-test-id={testId}
   >
-    <Box component="dt" sx={{ justifySelf: "center" }}>
-      {icon ||
-        {
-          ABORTED: <CloseOutlinedIcon sx={{ color: "error" }} />,
-          DRAFT: (
-            <NoteAltOutlinedIcon
-              sx={{ color: (theme) => theme.palette.grey[500] }}
-            />
-          ),
-          STARTED: <AccessTimeIcon sx={{ color: "warning" }} />,
-          PAUSED: (
-            <AccessTimeIcon
-              sx={{ color: (theme) => theme.palette.grey[500] }}
-            />
-          ),
-          PENDING: <AccessTimeIcon sx={{ color: "warning" }} />,
-          FAILURE: <CancelOutlinedIcon sx={{ color: "error" }} />,
-          SUCCESS: <CheckCircleOutlineIcon sx={{ color: "$success" }} />,
-        }[status]}
+    <Box
+      component="dt"
+      sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+    >
+      <Box
+        component="span"
+        sx={{
+          width: (theme) => theme.spacing(3),
+          height: (theme) => theme.spacing(3),
+        }}
+      >
+        {icon || statusMapping[status].icon}
+      </Box>
+      <Typography
+        component="span"
+        variant="h6"
+        sx={{
+          fontWeight: (theme) => theme.typography.fontWeightRegular,
+          flex: 1,
+          marginLeft: (theme) => theme.spacing(1),
+        }}
+      >
+        {title || statusMapping[status].text}
+      </Typography>
     </Box>
-    <Typography component="dt" variant="h6">
-      {title}
-    </Typography>
     {description && (
-      <Typography sx={{ color: "secondary" }} component="dd">
+      <Typography
+        component="dd"
+        sx={{ color: "secondary", marginLeft: (theme) => theme.spacing(4) }}
+        variant="body2"
+      >
         {description}
       </Typography>
     )}

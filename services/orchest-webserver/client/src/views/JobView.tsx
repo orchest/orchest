@@ -19,9 +19,9 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
-import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
-import { Flex, Text } from "@orchest/design-system";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
@@ -30,24 +30,13 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
-import React, { useState } from "react";
+import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
 
-type TSharedStatus = Extract<
-  TStatus,
-  "PENDING" | "STARTED" | "PAUSED" | "SUCCESS" | "FAILURE" | "ABORTED"
->;
-type TJobStatus = TStatus | "DRAFT";
-
-interface IJobStatusProps {
-  status?: TJobStatus;
+const JobStatus: React.FC<{
+  status?: TStatus;
   pipeline_runs?: PipelineRun[];
-}
-
-const JobStatus: React.FC<IJobStatusProps> = ({
-  status,
-  pipeline_runs = [],
-}) => {
+}> = ({ status, pipeline_runs = [] }) => {
   const count = pipeline_runs.reduce(
     (acc, cv, i) =>
       cv && {
@@ -85,18 +74,15 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   };
 
   const variant = getJobStatusVariant();
-  // TODO: fix StatusGroup
   return (
     <StatusGroup
-      css={{ marginTop: "$2" }}
       status={status}
       icon={
-        // ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
-        <Box sx={{ padding: "calc($1 / 2)" }}>
+        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
           <PieChart
             startAngle={270}
             background={theme.palette.background.default}
-            lineWidth={30}
+            lineWidth={40}
             animate={true}
             data={[
               {
@@ -116,7 +102,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
               },
             ]}
           />
-        </Box>
+        )
       }
       title={
         {
@@ -131,7 +117,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
         }[variant]
       }
       description={
-        // ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
+        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
         [
           commaSeparatedString(
             [
@@ -201,15 +187,15 @@ const JobView: React.FC = () => {
   const { navigateTo, projectUuid, jobUuid } = useCustomRoute();
 
   // data states
-  const [job, setJob] = useState<Job>();
-  const [pipeline, setPipeline] = useState<PipelineJson>();
-  const [envVariables, setEnvVariables] = useState<
+  const [job, setJob] = React.useState<Job>();
+  const [pipeline, setPipeline] = React.useState<PipelineJson>();
+  const [envVariables, setEnvVariables] = React.useState<
     { name: string; value: string }[]
   >([]);
 
   // UI states
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [selectedTab, setSelectedTab] = React.useState(0);
 
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
@@ -558,14 +544,27 @@ const JobView: React.FC = () => {
                 {
                   term: "Schedule",
                   details: (
-                    <Flex as="span" css={{ flexDirection: "column" }}>
-                      {job.schedule === null ? "Run once" : job.schedule}
+                    <Stack component="span" direction="column">
+                      <Typography
+                        variant="h6"
+                        component="span"
+                        sx={{
+                          fontWeight: (theme) =>
+                            theme.typography.fontWeightRegular,
+                        }}
+                      >
+                        {job.schedule === null ? "Run once" : job.schedule}
+                      </Typography>
                       {job.schedule !== null && (
-                        <Text as="em" css={{ lineHeight: "normal" }}>
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{ lineHeight: "normal" }}
+                        >
                           {cronstrue.toString(job.schedule) + " (UTC)"}
-                        </Text>
+                        </Typography>
                       )}
-                    </Flex>
+                    </Stack>
                   ),
                 },
                 {
