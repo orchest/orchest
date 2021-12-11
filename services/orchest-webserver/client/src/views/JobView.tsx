@@ -1,3 +1,4 @@
+import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
@@ -9,7 +10,8 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Job, PipelineJson } from "@/types";
+import theme from "@/theme";
+import type { Job, PipelineJson, PipelineRun } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
 import {
   checkGate,
@@ -17,8 +19,9 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
+import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
-import { Box, Flex, Text } from "@orchest/design-system";
+import { Flex, Text } from "@orchest/design-system";
 import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
@@ -36,11 +39,9 @@ type TSharedStatus = Extract<
 >;
 type TJobStatus = TStatus | "DRAFT";
 
-type TPipelineRun = { status: TSharedStatus };
-
 interface IJobStatusProps {
   status?: TJobStatus;
-  pipeline_runs?: TPipelineRun[];
+  pipeline_runs?: PipelineRun[];
 }
 
 const JobStatus: React.FC<IJobStatusProps> = ({
@@ -84,43 +85,38 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   };
 
   const variant = getJobStatusVariant();
-
+  // TODO: fix StatusGroup
   return (
     <StatusGroup
       css={{ marginTop: "$2" }}
       status={status}
       icon={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
-          <Box
-            css={{
-              padding: "calc($1 / 2)",
-            }}
-          >
-            <PieChart
-              startAngle={270}
-              background="var(--colors-background)"
-              lineWidth={30}
-              animate={true}
-              data={[
-                {
-                  title: "Pending",
-                  color: "var(--colors-yellow300)",
-                  value: count.PENDING + count.STARTED,
-                },
-                {
-                  title: "Failed",
-                  color: "var(--colors-error)",
-                  value: count.FAILURE + count.ABORTED,
-                },
-                {
-                  title: "Success",
-                  color: "var(--colors-success)",
-                  value: count.SUCCESS,
-                },
-              ]}
-            />
-          </Box>
-        )
+        // ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
+        <Box sx={{ padding: "calc($1 / 2)" }}>
+          <PieChart
+            startAngle={270}
+            background={theme.palette.background.default}
+            lineWidth={30}
+            animate={true}
+            data={[
+              {
+                title: "Pending",
+                color: theme.palette.warning.main,
+                value: count.PENDING + count.STARTED,
+              },
+              {
+                title: "Failed",
+                color: theme.palette.error.main,
+                value: count.FAILURE + count.ABORTED,
+              },
+              {
+                title: "Success",
+                color: theme.palette.success.main,
+                value: count.SUCCESS,
+              },
+            ]}
+          />
+        </Box>
       }
       title={
         {
@@ -135,7 +131,7 @@ const JobStatus: React.FC<IJobStatusProps> = ({
         }[variant]
       }
       description={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
+        // ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
         [
           commaSeparatedString(
             [
@@ -151,6 +147,50 @@ const JobStatus: React.FC<IJobStatusProps> = ({
     />
   );
 };
+
+const formatPipelineParams = (parameters) => {
+  let keyValuePairs = [];
+
+  for (let strategyJSONKey in parameters) {
+    for (let parameter in parameters[strategyJSONKey]) {
+      keyValuePairs.push(
+        parameter +
+          ": " +
+          JSON.stringify(parameters[strategyJSONKey][parameter])
+      );
+    }
+  }
+
+  if (keyValuePairs.length == 0) {
+    return <i>Parameterless run</i>;
+  }
+
+  return keyValuePairs.join(", ");
+};
+
+const columns: DataTableColumn<PipelineRun>[] = [
+  { id: "pipeline_run_index", label: "ID" },
+  {
+    id: "parameters",
+    label: "Parameters",
+    render: (row) => formatPipelineParams(row.parameters),
+  },
+  {
+    id: "status",
+    label: "Status",
+    render: (row) => <StatusInline status={row.status} />,
+  },
+  {
+    id: "started_time",
+    label: "Started at",
+    render: (row) =>
+      row.started_time ? (
+        formatServerDateTime(row.started_time)
+      ) : (
+        <i>Not yet started</i>
+      ),
+  },
+];
 
 const JobView: React.FC = () => {
   // global states
@@ -170,10 +210,6 @@ const JobView: React.FC = () => {
   // UI states
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedIndices, setSelectedIndices] = useState<[number, number]>([
-    0,
-    0,
-  ]);
 
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
@@ -232,52 +268,6 @@ const JobView: React.FC = () => {
   const reload = () => {
     setIsRefreshing(true);
     fetchJob();
-  };
-
-  const onPipelineRunsSelectionChanged = (newIndices) => {
-    setSelectedIndices(newIndices);
-  };
-
-  const formatPipelineParams = (parameters) => {
-    let keyValuePairs = [];
-
-    for (let strategyJSONKey in parameters) {
-      for (let parameter in parameters[strategyJSONKey]) {
-        keyValuePairs.push(
-          parameter +
-            ": " +
-            JSON.stringify(parameters[strategyJSONKey][parameter])
-        );
-      }
-    }
-
-    if (keyValuePairs.length == 0) {
-      return <i>Parameterless run</i>;
-    }
-
-    return keyValuePairs.join(", ");
-  };
-
-  const pipelineRunsToTableData = (pipelineRuns) => {
-    let rows = [];
-
-    for (let x = 0; x < pipelineRuns.length; x++) {
-      rows.push([
-        pipelineRuns[x].pipeline_run_index,
-        formatPipelineParams(pipelineRuns[x].parameters),
-        <StatusInline
-          key={pipelineRuns[x].pipeline_run_index}
-          status={pipelineRuns[x].status}
-        />,
-        pipelineRuns[x].started_time ? (
-          formatServerDateTime(pipelineRuns[x].started_time)
-        ) : (
-          <i>Not yet started</i>
-        ),
-      ]);
-    }
-
-    return rows;
   };
 
   const parameterValueOverride = (strategyJSON, parameters) => {
@@ -500,13 +490,19 @@ const JobView: React.FC = () => {
     <div className="tab-view">
       {selectedTab === 0 && (
         <div className="pipeline-tab-view existing-pipeline-runs">
-          <SearchableTable
-            rows={pipelineRunsToTableData(job.pipeline_runs)}
-            detailRows={detailRows(job.pipeline_runs)}
-            headers={["ID", "Parameters", "Status", "Started at"]}
-            selectedIndices={selectedIndices}
-            onSelectionChanged={onPipelineRunsSelectionChanged}
+          <DataTable<PipelineRun>
+            id="job-pipeline-runs"
             data-test-id="job-pipeline-runs"
+            // TODO: make it collapse-able
+            rows={job.pipeline_runs.map((run) => ({
+              ...run,
+              searchIndex: `${
+                run.status === "STARTED" ? "Running" : ""
+              }${JSON.stringify(formatPipelineParams(run.parameters))}`,
+            }))}
+            columns={columns}
+            initialOrderBy="pipeline_run_index"
+            initialOrder="desc"
           />
         </div>
       )}

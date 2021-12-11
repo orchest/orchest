@@ -29,7 +29,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
-import { DataTable, DataTableRenders, HeadCell } from "./DataTable";
+import { DataTable, DataTableColumn } from "./DataTable";
 import { StatusInline } from "./Status";
 
 type DisplayedJob = {
@@ -39,53 +39,54 @@ type DisplayedJob = {
   status: JobStatus;
 };
 
-const headCells: HeadCell<DisplayedJob>[] = [
-  { id: "name", label: "Job" },
-  { id: "pipeline", label: "Pipeline" },
-  { id: "snapShotDate", label: "Snapshot date" },
-  { id: "status", label: "Status" },
-];
-
-const createDataTableRenders = ({
+const createColumns = ({
   onEditJobNameClick,
 }: {
   onEditJobNameClick: (uuid: string, name: string) => void;
-}): DataTableRenders<DisplayedJob> => ({
-  name: (row) => (
-    <Tooltip title="Edit job name">
-      <Stack
-        direction="row"
-        alignItems="center"
-        component="span"
-        sx={{
-          marginRight: 2,
-          svg: { visibility: "hidden" },
-          "&:hover": {
-            color: (theme) => darken(theme.palette.primary.main, 0.15),
-            // textDecoration: "underline",
-            svg: { visibility: "visible" },
-          },
-        }}
-        onClick={(e: React.MouseEvent<unknown>) => {
-          e.stopPropagation();
-          onEditJobNameClick(row.uuid, row.name);
-        }}
-      >
-        {row.name}
-        <EditIcon
+}): DataTableColumn<DisplayedJob>[] => [
+  {
+    id: "name",
+    label: "Job",
+    render: (row) => (
+      <Tooltip title="Edit job name">
+        <Stack
+          direction="row"
+          alignItems="center"
+          component="span"
           sx={{
-            width: (theme) => theme.spacing(2),
-            marginLeft: (theme) => theme.spacing(0.5),
+            marginRight: 2,
+            svg: { visibility: "hidden" },
+            "&:hover": {
+              color: (theme) => darken(theme.palette.primary.main, 0.15),
+              // textDecoration: "underline",
+              svg: { visibility: "visible" },
+            },
           }}
-          color="primary"
-        />
-      </Stack>
-    </Tooltip>
-  ),
-  status: (row) => {
-    return <StatusInline status={row.status} />;
+          onClick={(e: React.MouseEvent<unknown>) => {
+            e.stopPropagation();
+            onEditJobNameClick(row.uuid, row.name);
+          }}
+        >
+          {row.name}
+          <EditIcon
+            sx={{
+              width: (theme) => theme.spacing(2),
+              marginLeft: (theme) => theme.spacing(0.5),
+            }}
+            color="primary"
+          />
+        </Stack>
+      </Tooltip>
+    ),
   },
-});
+  { id: "pipeline", label: "Pipeline" },
+  { id: "snapShotDate", label: "Snapshot date" },
+  {
+    id: "status",
+    label: "Status",
+    render: (row) => <StatusInline status={row.status} />,
+  },
+];
 
 const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
@@ -263,13 +264,13 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     );
   };
 
-  const dataTableRenders = React.useMemo(() => {
+  const columns = React.useMemo(() => {
     const onEditJobNameClick = (newJobUuid: string, newJobName: string) => {
       setIsEditingJobName(true);
       setJobName(newJobName);
       setJobUuid(newJobUuid);
     };
-    return createDataTableRenders({ onEditJobNameClick });
+    return createColumns({ onEditJobNameClick });
   }, []);
 
   const onCloseEditJobNameModal = () => {
@@ -482,14 +483,15 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                 pipeline: job.pipeline_name,
                 snapShotDate: formatServerDateTime(job.created_time),
                 status: job.status,
+                searchIndex:
+                  job.status === "STARTED" ? "Running..." : undefined,
               };
             })}
-            headCells={headCells}
+            columns={columns}
             initialOrderBy="snapShotDate"
             initialOrder="desc"
             onRowClick={onRowClick}
             deleteSelectedRows={deleteSelectedJobs}
-            renderers={dataTableRenders}
           />
         </>
       ) : (

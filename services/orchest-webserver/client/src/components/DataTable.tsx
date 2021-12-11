@@ -80,11 +80,20 @@ function getComparator<Key extends keyof any>(
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
 
-export type HeadCell<T> = {
+export type DataTableColumn<T> = {
   disablePadding?: boolean;
   id: keyof T;
   label: string;
   numeric?: boolean;
+  align?: "inherit" | "left" | "center" | "right" | "justify";
+  render?: (row: T & { uuid: string }) => React.ReactNode;
+};
+
+export type DataTableRow<T> = T & {
+  uuid: string;
+  // in case you're rendering something totally different from the data
+  // provide a searchIndex for matching user's search term
+  searchIndex?: string;
 };
 
 type EnhancedTableProps<T> = {
@@ -94,7 +103,7 @@ type EnhancedTableProps<T> = {
   order: Order;
   orderBy: keyof T | "";
   rowCount: number;
-  data: HeadCell<T>[];
+  data: DataTableColumn<T>[];
   selectable: boolean;
 };
 
@@ -155,35 +164,36 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
   );
 }
 
-export type DataTableRenders<T> = Partial<
-  Record<keyof T, (row: T & { uuid: string }) => React.ReactNode>
->;
-
 type DataTableProps<T> = {
-  headCells: HeadCell<T>[];
-  rows: (T & { uuid: string })[];
+  columns: DataTableColumn<T>[];
+  rows: DataTableRow<T>[];
   id: string;
   selectable?: boolean;
   initialOrderBy?: keyof T;
   initialOrder?: Order;
   deleteSelectedRows?: (rowUuids: string[]) => void;
   onRowClick?: (uuid: string) => void;
-  renderers?: DataTableRenders<T>;
   rowHeight?: number;
   debounceTime?: number;
   [key: string]: any;
 };
 
+export function renderCell<T>(
+  column: DataTableColumn<T>,
+  row: DataTableRow<T>
+) {
+  return column.render ? column.render(row) : row[column.id];
+}
+
 export const DataTable = <T extends Record<string, any>>({
   id,
-  headCells,
+  columns,
   rows: originalRows,
   initialOrderBy,
   initialOrder,
   deleteSelectedRows,
   onRowClick,
   selectable = false,
-  renderers = {},
   rowHeight = 57,
   debounceTime = 250,
   ...props
@@ -208,9 +218,14 @@ export const DataTable = <T extends Record<string, any>>({
     return !debouncedSearchTerm
       ? sortedRows
       : sortedRows.filter((unfilteredRow) => {
-          return Object.entries(unfilteredRow).some(([, value]) =>
-            value.toString().toLowerCase().includes(debouncedSearchTerm)
-          );
+          return columns.some((column) => {
+            const value = `${unfilteredRow[column.id]}${
+              unfilteredRow.searchIndex || ""
+            }`;
+            return value
+              .toLowerCase()
+              .includes(debouncedSearchTerm.toLowerCase());
+          });
         });
   }, [sortedRows, debouncedSearchTerm]);
 
@@ -262,7 +277,6 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleClickRow = (e: React.MouseEvent<unknown>, uuid: string) => {
-    if (!selectable) return;
     // if onRowClick is not defined, select the row as default
     if (onRowClick) {
       e.preventDefault();
@@ -296,7 +310,7 @@ export const DataTable = <T extends Record<string, any>>({
 
   const tableTitleId = `${id}-title`;
 
-  const headKey = headCells[0].id;
+  const head = columns[0];
 
   return (
     <Box sx={{ width: "100%" }} {...props}>
@@ -327,12 +341,12 @@ export const DataTable = <T extends Record<string, any>>({
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
               rowCount={rows.length}
-              data={headCells}
+              data={columns}
             />
             <TableBody>
               {rows
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row: T & { uuid: string }) => {
+                .map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
                   const labelId = `${id}-checkbox-${row.uuid}`;
 
@@ -345,7 +359,9 @@ export const DataTable = <T extends Record<string, any>>({
                       tabIndex={-1}
                       key={row.uuid}
                       selected={isItemSelected}
-                      sx={selectable ? { cursor: "pointer" } : null}
+                      sx={
+                        selectable || onRowClick ? { cursor: "pointer" } : null
+                      }
                     >
                       {selectable && (
                         <TableCell padding="checkbox">
@@ -357,28 +373,20 @@ export const DataTable = <T extends Record<string, any>>({
                           />
                         </TableCell>
                       )}
-                      <TableCell
-                        component="th"
-                        id={labelId}
-                        scope="row"
-                        padding="normal"
-                      >
-                        {renderers[headKey]
-                          ? renderers[headKey](row)
-                          : row[headKey]}
+                      <TableCell component="th" id={labelId} scope="row">
+                        {renderCell(head, row)}
                       </TableCell>
-                      {headCells.slice(1).map(({ id }) => {
-                        const cellValue = row[id];
-                        console.log("🥁");
-                        console.log(cellValue);
+                      {columns.slice(1).map((column) => {
+                        const cellValue = row[column.id];
                         return (
                           <TableCell
-                            key={id.toString()}
+                            key={column.id.toString()}
                             align={
-                              typeof cellValue === "number" ? "right" : "left"
+                              column.align ||
+                              (typeof cellValue === "number" ? "right" : "left")
                             }
                           >
-                            {renderers[id] ? renderers[id](row) : cellValue}
+                            {renderCell(column, row)}
                           </TableCell>
                         );
                       })}
