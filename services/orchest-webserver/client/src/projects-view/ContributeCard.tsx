@@ -1,4 +1,9 @@
-import { MDCButtonReact, MDCCardReact } from "@orchest/lib-mdc";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import Button from "@mui/material/Button";
+import Card from "@mui/material/Card";
+import CardActions from "@mui/material/CardActions";
+import CardContent from "@mui/material/CardContent";
+import Typography from "@mui/material/Typography";
 import React from "react";
 
 const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
@@ -12,24 +17,58 @@ const ContributeCard: React.FC<{ style?: React.CSSProperties }> = ({
     );
   };
   return (
-    <MDCCardReact className="contribute-card" style={style}>
-      <h4 className="contribute-card-title">Contribute your own example!</h4>
-      <div className="contribute-card-description">
-        <p>
+    <Card
+      style={style}
+      sx={{
+        backgroundColor: (theme) => theme.palette.primary.main,
+        color: (theme) => theme.palette.common.white,
+        width: "28rem",
+        height: "20rem",
+        display: "flex",
+        flexDirection: "column",
+        padding: (theme) => theme.spacing(2),
+        marginTop: (theme) => theme.spacing(4),
+        marginRight: (theme) => theme.spacing(4),
+      }}
+    >
+      <CardContent sx={{ flex: 1 }}>
+        <Typography
+          variant="h5"
+          component="h3"
+          sx={{
+            fontWeight: (theme) => theme.typography.fontWeightBold,
+            marginBottom: (theme) => theme.spacing(2),
+            width: "60%",
+          }}
+        >
+          Contribute your own example!
+        </Typography>
+        <Typography sx={{ marginBottom: (theme) => theme.spacing(1) }}>
           Help others get started by sharing your Orchest pipelines. The best
           pipelines will get featured.
-        </p>
-        <p>Start sharing simply by uploading your project to GitHub.</p>
-      </div>
-      <div className="contribute-button-container">
-        <MDCButtonReact
-          label="SUBMIT EXAMPLE"
-          icon="open_in_new"
-          classNames={["contribute-button"]}
+        </Typography>
+        <Typography sx={{ marginBottom: (theme) => theme.spacing(1) }}>
+          Start sharing simply by uploading your project to GitHub.
+        </Typography>
+      </CardContent>
+      <CardActions sx={{ justifyContent: "flex-end" }}>
+        <Button
+          variant="contained"
+          startIcon={<OpenInNewIcon />}
           onClick={onClick}
-        />
-      </div>
-    </MDCCardReact>
+          sx={{
+            backgroundColor: (theme) => theme.palette.common.white,
+            ":hover": {
+              backgroundColor: (theme) => theme.palette.common.white,
+              color: (theme) => theme.palette.grey[600],
+            },
+            color: (theme) => theme.palette.grey[800],
+          }}
+        >
+          SUBMIT EXAMPLE
+        </Button>
+      </CardActions>
+    </Card>
   );
 };
 

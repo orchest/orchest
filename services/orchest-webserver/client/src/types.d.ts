@@ -1,6 +1,22 @@
 import React from "react";
 import { TStatus } from "./components/Status";
 
+type CommonColorScales =
+  | "50"
+  | "100"
+  | "200"
+  | "300"
+  | "400"
+  | "500"
+  | "600"
+  | "700"
+  | "800"
+  | "900"
+  | "A100"
+  | "A200"
+  | "A400"
+  | "A700";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type PartialRecord<K extends keyof any, T> = {
   [P in K]?: T;
