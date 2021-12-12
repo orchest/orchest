@@ -1,9 +1,6 @@
 import { Example } from "@/types";
-import {
-  MDCButtonReact,
-  MDCCardReact,
-  MDCTooltipReact,
-} from "@orchest/lib-mdc";
+import Tooltip from "@mui/material/Tooltip";
+import { MDCButtonReact, MDCCardReact } from "@orchest/lib-mdc";
 import classNames from "classnames";
 import React from "react";
 import GitHubButton from "react-github-btn";
@@ -39,20 +36,18 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
           </span>
         ))}
         {restNumber > 0 && (
-          <>
+          <Tooltip
+            title={extraTags.map((extraTag) => (
+              <div key={extraTag} className="example-tag__tooltip">
+                {extraTag.toUpperCase()}
+              </div>
+            ))}
+          >
             <span
               className="example-tag__extra"
               aria-describedby={extraTagTooltipId}
             >{`+${restNumber}`}</span>
-            <MDCTooltipReact
-              tooltipID={extraTagTooltipId}
-              tooltip={extraTags.map((extraTag) => (
-                <div key={extraTag} className="example-tag__tooltip">
-                  {extraTag.toUpperCase()}
-                </div>
-              ))}
-            />
-          </>
+          </Tooltip>
         )}
       </div>
       <h4 className="example-card-title truncate">

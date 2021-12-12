@@ -144,7 +144,6 @@ const ExamplesView: React.FC = () => {
           onChange={changeTabByIndex}
         />
         {/* TODO: we need a loading skeleton */}
-        {/* {status === "PENDING" && <MDCCircularProgressReact />} */}
         <div className="example-cards-container">
           {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}
           {examples[selectedTab].map((item) => {

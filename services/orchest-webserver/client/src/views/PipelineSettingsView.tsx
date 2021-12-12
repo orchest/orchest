@@ -19,6 +19,7 @@ import {
   validatePipeline,
 } from "@/utils/webserver-utils";
 import LinearProgress from "@mui/material/LinearProgress";
+import Tooltip from "@mui/material/Tooltip";
 import {
   Alert,
   AlertDescription,
@@ -34,7 +35,6 @@ import {
   MDCIconButtonToggleReact,
   MDCTabBarReact,
   MDCTextFieldReact,
-  MDCTooltipReact,
 } from "@orchest/lib-mdc";
 import {
   makeCancelable,
@@ -781,16 +781,14 @@ const PipelineSettingsView: React.FC = () => {
                             classNames={["push-down", "push-up"]}
                             data-test-id="pipeline-settings-configuration-memory-eviction"
                           />
-                          <i
-                            className="material-icons inline-icon push-up"
-                            aria-describedby="tooltip-memory-eviction"
-                          >
-                            info
-                          </i>
-                          <MDCTooltipReact
-                            tooltipID="tooltip-memory-eviction"
-                            tooltip="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input."
-                          />
+                          <Tooltip title="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input.">
+                            <i
+                              className="material-icons inline-icon push-up"
+                              aria-describedby="tooltip-memory-eviction"
+                            >
+                              info
+                            </i>
+                          </Tooltip>
                         </div>
 
                         {!isReadOnly && (
