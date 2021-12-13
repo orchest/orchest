@@ -1,3 +1,4 @@
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
@@ -18,7 +19,12 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import ListIcon from "@mui/icons-material/List";
+import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import LinearProgress from "@mui/material/LinearProgress";
+import { styled } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
 import Tooltip from "@mui/material/Tooltip";
 import {
   Alert,
@@ -33,7 +39,6 @@ import {
   MDCCheckboxReact,
   MDCDataTableReact,
   MDCIconButtonToggleReact,
-  MDCTabBarReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
@@ -47,6 +52,10 @@ import _ from "lodash";
 import React, { useRef, useState } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(4, 0),
+}));
+
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
@@ -56,6 +65,24 @@ const tabMapping: Record<string, number> = {
   "environment-variables": 1,
   services: 2,
 };
+
+const tabs = [
+  {
+    id: "configuration-tab",
+    label: "Configuration",
+    icon: <ListIcon />,
+  },
+  {
+    id: "environment-variables-tab",
+    label: "Environment variables",
+    icon: <ViewComfyIcon />,
+  },
+  {
+    id: "services-tab",
+    label: "Services",
+    icon: <MiscellaneousServicesIcon />,
+  },
+];
 
 const PipelineSettingsView: React.FC = () => {
   // global states
@@ -85,7 +112,7 @@ const PipelineSettingsView: React.FC = () => {
   } = useCustomRoute();
 
   // local states
-  const [selectedTabIndex, setSelectedTabIndex] = useState<number>(
+  const [tabIndex, setTabIndex] = useState<number>(
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
 
@@ -233,8 +260,11 @@ const PipelineSettingsView: React.FC = () => {
 
   const attachResizeListener = () => overflowListener.attach();
 
-  const onSelectSubview = (index: number) => {
-    setSelectedTabIndex(index);
+  const onSelectTab = (
+    e: React.SyntheticEvent<Element, Event>,
+    index: number
+  ) => {
+    setTabIndex(index);
   };
 
   const fetchPipeline = () => {
@@ -561,7 +591,7 @@ const PipelineSettingsView: React.FC = () => {
     // Do not go through if env variables are not correctly defined.
     if (envVariables.status === "rejected") {
       setAlert("Error", envVariables.error);
-      onSelectSubview(1);
+      setTabIndex(1);
       return;
     }
 
@@ -572,7 +602,7 @@ const PipelineSettingsView: React.FC = () => {
           "Error",
           `Invalid environment variable name: "${envVariableName}".`
         );
-        onSelectSubview(1);
+        setTabIndex(1);
         return;
       }
     }
@@ -677,19 +707,24 @@ const PipelineSettingsView: React.FC = () => {
           <div className="pipeline-settings">
             <h2>Pipeline settings</h2>
 
-            <div className="push-down">
-              <MDCTabBarReact
-                selectedIndex={selectedTabIndex}
-                ref={refManager.nrefs.tabBar}
-                items={["Configuration", "Environment variables", "Services"]}
-                icons={["list", "view_comfy", "miscellaneous_services"]}
-                onChange={onSelectSubview}
-                data-test-id="pipeline-settings"
-              />
-            </div>
+            <Tabs
+              value={tabIndex}
+              onChange={onSelectTab}
+              label="View pipeline settings"
+              data-test-id="pipeline-settings"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                />
+              ))}
+            </Tabs>
 
             <div className="tab-view trigger-overflow">
-              {selectedTabIndex === 0 && (
+              <CustomTabPanel value={tabIndex} index={0} name="configuration">
                 <div className="configuration">
                   <form
                     onSubmit={(e) => {
@@ -859,54 +894,54 @@ const PipelineSettingsView: React.FC = () => {
                     </div>
                   )}
                 </div>
-              )}
-              {selectedTabIndex === 1 && (
-                <div>
-                  {state.environmentVariablesChanged && session && (
-                    <div className="warning push-down">
-                      <i className="material-icons">warning</i>
-                      Note: changes to environment variables require a session
-                      restart to take effect.
-                    </div>
-                  )}
-                  {isReadOnly ? (
+              </CustomTabPanel>
+              <CustomTabPanel
+                value={tabIndex}
+                index={1}
+                name="environment-variables"
+              >
+                {state.environmentVariablesChanged && session && (
+                  <div className="warning push-down">
+                    <i className="material-icons">warning</i>
+                    Note: changes to environment variables require a session
+                    restart to take effect.
+                  </div>
+                )}
+                {isReadOnly ? (
+                  <EnvVarList
+                    value={state.envVariables}
+                    readOnly={true}
+                    data-test-id="pipeline-read-only"
+                  />
+                ) : (
+                  <>
+                    <h3 className="push-down">Project environment variables</h3>
+                    <EnvVarList
+                      value={state.projectEnvVariables}
+                      readOnly={true}
+                      data-test-id="project-read-only"
+                    />
+
+                    <h3 className="push-down">
+                      Pipeline environment variables
+                    </h3>
+                    <p className="push-down">
+                      Pipeline environment variables take precedence over
+                      project environment variables.
+                    </p>
                     <EnvVarList
                       value={state.envVariables}
-                      readOnly={true}
-                      data-test-id="pipeline-read-only"
+                      onAdd={addEnvVariablePair}
+                      onChange={(e, idx, type) =>
+                        onEnvVariablesChange(e, idx, type)
+                      }
+                      onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                      data-test-id="pipeline"
                     />
-                  ) : (
-                    <>
-                      <h3 className="push-down">
-                        Project environment variables
-                      </h3>
-                      <EnvVarList
-                        value={state.projectEnvVariables}
-                        readOnly={true}
-                        data-test-id="project-read-only"
-                      />
-
-                      <h3 className="push-down">
-                        Pipeline environment variables
-                      </h3>
-                      <p className="push-down">
-                        Pipeline environment variables take precedence over
-                        project environment variables.
-                      </p>
-                      <EnvVarList
-                        value={state.envVariables}
-                        onAdd={addEnvVariablePair}
-                        onChange={(e, idx, type) =>
-                          onEnvVariablesChange(e, idx, type)
-                        }
-                        onDelete={(idx) => onEnvVariablesDeletion(idx)}
-                        data-test-id="pipeline"
-                      />
-                    </>
-                  )}
-                </div>
-              )}
-              {selectedTabIndex === 2 && (
+                  </>
+                )}
+              </CustomTabPanel>
+              <CustomTabPanel value={tabIndex} index={2} name="services">
                 <Box css={{ "> * + *": { marginTop: "$4" } }}>
                   {state.servicesChanged && session && (
                     <div className="warning push-up">
@@ -999,7 +1034,7 @@ const PipelineSettingsView: React.FC = () => {
                     />
                   )}
                 </Box>
-              )}
+              </CustomTabPanel>
             </div>
 
             <div className="top-buttons">

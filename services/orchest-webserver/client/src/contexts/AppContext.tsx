@@ -337,7 +337,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
           setAsSaved,
         }}
       >
-        {children}
+        {state.isLoaded ? children : null}
       </Context.Provider>
     </IntercomProvider>
   );

@@ -8,5 +8,4 @@ export * from "./MDCListReact";
 export * from "./MDCRadioReact";
 export * from "./MDCSelectReact";
 export * from "./MDCSwitchReact";
-export * from "./MDCTabBarReact";
 export * from "./MDCTextFieldReact";

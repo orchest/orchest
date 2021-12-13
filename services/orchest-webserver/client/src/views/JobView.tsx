@@ -1,3 +1,4 @@
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
@@ -19,10 +20,15 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
+import ListIcon from "@mui/icons-material/List";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
-import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
+import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -32,6 +38,10 @@ import {
 import cronstrue from "cronstrue";
 import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
+
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(3, 0),
+}));
 
 const JobStatus: React.FC<{
   status?: TStatus;
@@ -195,7 +205,7 @@ const JobView: React.FC = () => {
 
   // UI states
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [selectedTab, setSelectedTab] = React.useState(0);
+  const [tabIndex, setTabIndex] = React.useState(0);
 
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
@@ -205,8 +215,8 @@ const JobView: React.FC = () => {
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
-  const onSelectSubview = (index: number) => {
-    setSelectedTab(index);
+  const onSelectSubview = (e, index: number) => {
+    setTabIndex(index);
   };
 
   const fetchJob = () => {
@@ -390,6 +400,31 @@ const JobView: React.FC = () => {
     });
   };
 
+  const tabs = React.useMemo(() => {
+    if (!job) return [];
+    return [
+      {
+        id: "pipeline-runs-tab",
+        label: `Pipeline runs (${
+          job.pipeline_runs.filter(({ status }) =>
+            ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
+          ).length
+        }/${job.pipeline_runs.length})`,
+        icon: <ListIcon />,
+      },
+      {
+        id: "parameters-tab",
+        label: "Parameters",
+        icon: <TuneIcon />,
+      },
+      {
+        id: "environment-variables-tab",
+        label: "Environment variables",
+        icon: <ViewComfyIcon />,
+      },
+    ];
+  }, [job?.pipeline_runs]);
+
   const detailRows = (pipelineRuns) => {
     let detailElements = [];
 
@@ -473,48 +508,41 @@ const JobView: React.FC = () => {
   const isLoading = !pipeline || !job;
 
   const tabView = isLoading ? null : (
-    <div className="tab-view">
-      {selectedTab === 0 && (
-        <div className="pipeline-tab-view existing-pipeline-runs">
-          <DataTable<PipelineRun>
-            id="job-pipeline-runs"
-            data-test-id="job-pipeline-runs"
-            // TODO: make it collapse-able
-            rows={job.pipeline_runs.map((run) => ({
-              ...run,
-              searchIndex: `${
-                run.status === "STARTED" ? "Running" : ""
-              }${JSON.stringify(formatPipelineParams(run.parameters))}`,
-            }))}
-            columns={columns}
-            initialOrderBy="pipeline_run_index"
-            initialOrder="desc"
+    <>
+      <CustomTabPanel value={tabIndex} index={0} name="pipeline-runs-tab">
+        <DataTable<PipelineRun>
+          id="job-pipeline-runs"
+          data-test-id="job-pipeline-runs"
+          // TODO: make it collapse-able
+          rows={job.pipeline_runs.map((run) => ({
+            ...run,
+            searchIndex: `${
+              run.status === "STARTED" ? "Running" : ""
+            }${JSON.stringify(formatPipelineParams(run.parameters))}`,
+          }))}
+          columns={columns}
+          initialOrderBy="pipeline_run_index"
+          initialOrder="desc"
+        />
+      </CustomTabPanel>
+      <CustomTabPanel value={tabIndex} index={1} name="parameters-tab">
+        <ParameterEditor
+          readOnly
+          pipelineName={pipeline.name}
+          strategyJSON={job.strategy_json}
+        />
+        <div className="pipeline-runs push-up">
+          <SearchableTable
+            selectable={false}
+            headers={["Run specification"]}
+            rows={generatedParametersToTableData(job.parameters)}
           />
         </div>
-      )}
-      {selectedTab === 1 && (
-        <div className="pipeline-tab-view">
-          <ParameterEditor
-            readOnly
-            pipelineName={pipeline.name}
-            strategyJSON={job.strategy_json}
-          />
-
-          <div className="pipeline-runs push-up">
-            <SearchableTable
-              selectable={false}
-              headers={["Run specification"]}
-              rows={generatedParametersToTableData(job.parameters)}
-            />
-          </div>
-        </div>
-      )}
-      {selectedTab === 2 && (
-        <div className="pipeline-tab-view">
-          <EnvVarList value={envVariables} readOnly={true} />
-        </div>
-      )}
-    </div>
+      </CustomTabPanel>
+      <CustomTabPanel value={tabIndex} index={2} name="pipeline-runs-tab">
+        <EnvVarList value={envVariables} readOnly={true} />
+      </CustomTabPanel>
+    </>
   );
 
   return (
@@ -584,25 +612,21 @@ const JobView: React.FC = () => {
                 },
               ]}
             />
-
-            <MDCTabBarReact
-              selectedIndex={selectedTab}
-              /** @ts-ignore */
-              ref={refManager.nrefs.tabBar}
-              items={[
-                "Pipeline runs (" +
-                  job.pipeline_runs.filter(({ status }) =>
-                    ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
-                  ).length +
-                  "/" +
-                  +job.pipeline_runs.length +
-                  ")",
-                "Parameters",
-                "Environment variables",
-              ]}
-              icons={["list", "tune", "view_comfy"]}
+            <Tabs
+              value={tabIndex}
               onChange={onSelectSubview}
-            />
+              label="View Job Tabs"
+              data-test-id="job-view"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                />
+              ))}
+            </Tabs>
 
             {tabView}
 

@@ -182,7 +182,13 @@ export type PipelineRun = {
   job_uuid: string;
   parameters: Record<string, any>;
   pipeline_run_index: number;
-  pipeline_steps: Step[];
+  pipeline_steps: {
+    finished_time: string;
+    run_uuid: string;
+    started_time: string;
+    status: TStatus;
+    step_uuid: string;
+  }[];
   pipeline_uuid: string;
   project_uuid: string;
   server_time: string;
@@ -231,19 +237,16 @@ export type Job = {
   uuid: string;
 };
 
-export type Step = Record<
-  string,
-  {
-    environment: string;
-    file_path: string;
-    incoming_connections: string[];
-    kernel: { display_name: string; name: string };
-    meta_data: { hidden: boolean; position: [number, number] };
-    parameters: Record<string, any>;
-    title: string;
-    uuid: string;
-  }
->;
+export type Step = {
+  environment: string;
+  file_path: string;
+  incoming_connections: string[];
+  kernel: { display_name: string; name: string };
+  meta_data: { hidden: boolean; position: [number, number] };
+  parameters: Record<string, any>;
+  title: string;
+  uuid: string;
+};
 
 export type PipelineJson = {
   name: string;
@@ -252,7 +255,7 @@ export type PipelineJson = {
     auto_eviction?: boolean;
     data_passing_memory_size?: string;
   };
-  steps: Step;
+  steps: Record<string, Step>;
   uuid: string;
   version: string;
   services?: Record<string, any>;

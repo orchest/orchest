@@ -51,7 +51,6 @@ const App = () => {
   } = useAppContext();
 
   const jupyterRef = useRef(null);
-  const dialogsRef = useRef(null);
 
   // Each client provides an heartbeat, used for telemetry and idle
   // checking.

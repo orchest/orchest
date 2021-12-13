@@ -1,3 +1,4 @@
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -5,16 +6,23 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
+import CloseIcon from "@mui/icons-material/Close";
+import MemoryIcon from "@mui/icons-material/Memory";
+import SaveIcon from "@mui/icons-material/Save";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Tab from "@mui/material/Tab";
 import {
   MDCButtonReact,
   MDCCheckboxReact,
   MDCSelectReact,
-  MDCTabBarReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
@@ -31,6 +39,19 @@ import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
+
+const tabs = [
+  {
+    id: "environment-properties",
+    label: "Properties",
+    icon: <TuneIcon />,
+  },
+  {
+    id: "environment-build",
+    label: "Build",
+    icon: <ViewHeadlineIcon />,
+  },
+];
 
 const EnvironmentEditView: React.FC = () => {
   // global states
@@ -60,8 +81,9 @@ const EnvironmentEditView: React.FC = () => {
     setIsShowingAddCustomImageDialog,
   ] = React.useState(false);
 
+  const [tabIndex, setTabIndex] = React.useState(0);
+
   const [state, setState] = React.useState({
-    subviewIndex: 0,
     baseImages: [...DEFAULT_BASE_IMAGES],
     ignoreIncomingLogs: false,
     building: false,
@@ -156,7 +178,7 @@ const EnvironmentEditView: React.FC = () => {
     ).promise;
   };
 
-  const onSave = (e: MouseEvent) => {
+  const onSave = (e: React.MouseEvent) => {
     const validEnvironmentName = (name: string) => {
       if (!name) {
         return false;
@@ -247,14 +269,11 @@ const EnvironmentEditView: React.FC = () => {
     setIsShowingAddCustomImageDialog(true);
   };
 
-  const onSelectSubview = (index) => {
-    setState((prevState) => ({
-      ...prevState,
-      subviewIndex: index,
-    }));
+  const onSelectSubview = (e, index: number) => {
+    setTabIndex(index);
   };
 
-  const build = (e) => {
+  const build = (e: React.MouseEvent) => {
     e.nativeEvent.preventDefault();
     refManager.refs.tabBar.tabBar.activateTab(1);
 
@@ -422,219 +441,224 @@ const EnvironmentEditView: React.FC = () => {
             </div>
 
             <div className="push-down-7">
-              <MDCTabBarReact
-                ref={refManager.nrefs.tabBar}
-                selectedIndex={state.subviewIndex}
-                items={["Properties", "Build"]}
-                icons={["tune", "view_headline"]}
+              <Tabs
+                value={tabIndex}
                 onChange={onSelectSubview}
+                label="environment-tabs"
                 data-test-id="environments"
-              />
-            </div>
-
-            {
-              {
-                0: (
-                  <React.Fragment>
-                    <div className="environment-properties">
-                      <MDCTextFieldReact
-                        classNames={["fullwidth", "push-down-7"]}
-                        label="Environment name"
-                        onChange={onChangeName}
-                        value={environment.name}
-                        data-test-id="environments-env-name"
-                      />
-
-                      <div className="select-button-columns">
-                        <MDCSelectReact
-                          ref={refManager.nrefs.environmentName}
-                          classNames={["fullwidth"]}
-                          label="Base image"
-                          onChange={onChangeBaseImage}
-                          value={environment.base_image}
-                          options={state.baseImages.map((el) => [el])}
-                        />
-                        <MDCButtonReact
-                          icon="add"
-                          label="Custom image"
-                          onClick={onAddCustomBaseImage}
-                        />
-                        <div className="clear"></div>
-                      </div>
-                      <div className="form-helper-text push-down-7">
-                        The base image will be the starting point from which the
-                        environment will be built.
-                      </div>
-
-                      <MDCSelectReact
-                        label="Language"
-                        classNames={["fullwidth"]}
-                        ref={refManager.nrefs.environmentLanguage}
-                        onChange={onChangeLanguage}
-                        options={[
-                          ["python", LANGUAGE_MAP["python"]],
-                          ["r", LANGUAGE_MAP["r"]],
-                          ["julia", LANGUAGE_MAP["julia"]],
-                        ]}
-                        value={environment.language}
-                      />
-                      <div className="form-helper-text push-down-7">
-                        The language determines for which kernel language this
-                        environment can be used. This only affects pipeline
-                        steps that point to a Notebook.
-                      </div>
-
-                      {state.languageDocsNotice === true && (
-                        <div className="docs-notice push-down-7">
-                          Language explanation
-                        </div>
-                      )}
-
-                      <MDCCheckboxReact
-                        onChange={onGPUChange}
-                        label="GPU support"
-                        classNames={["push-down-7"]}
-                        value={environment.gpu_support}
-                        ref={refManager.nrefs.environmentGPUSupport}
-                      />
-
-                      {(() => {
-                        if (environment.gpu_support === true) {
-                          let enabledBlock = (
-                            <p className="push-down-7">
-                              If enabled, the environment will request GPU
-                              capabilities when in use.
-                            </p>
-                          );
-                          if (config.GPU_ENABLED_INSTANCE !== true) {
-                            if (config.CLOUD === true) {
-                              return (
-                                <div className="docs-notice push-down-7">
-                                  <p>
-                                    This instance is not configured with a GPU.
-                                    Change the instance type to a GPU enabled
-                                    one if you need GPU pass-through. Steps
-                                    using this environment will work regardless,
-                                    but no GPU pass-through will take place.
-                                  </p>
-                                </div>
-                              );
-                            } else {
-                              return (
-                                <div className="docs-notice push-down-7">
-                                  {enabledBlock}
-                                  <p>
-                                    Could not detect a GPU. Check out{" "}
-                                    <a
-                                      target="_blank"
-                                      href={
-                                        config.ORCHEST_WEB_URLS.readthedocs +
-                                        "/getting_started/installation.html#gpu-support"
-                                      }
-                                      rel="noreferrer"
-                                    >
-                                      the documentation
-                                    </a>{" "}
-                                    to make sure Orchest is properly configured
-                                    for environments with GPU support. In
-                                    particular, make sure the selected base
-                                    image supports GPU pass through. Steps using
-                                    this environment will work regardless, but
-                                    no GPU pass-through will take place.
-                                  </p>
-                                </div>
-                              );
-                            }
-                          } else {
-                            return (
-                              <div className="docs-notice push-down-7">
-                                {enabledBlock}
-                              </div>
-                            );
-                          }
-                        }
-                      })()}
-                    </div>
-                  </React.Fragment>
-                ),
-                1: (
-                  <>
-                    <h3>Environment set-up script</h3>
-                    <div className="form-helper-text push-down-7">
-                      This will execute when you build the environment. Use it
-                      to include your dependencies.
-                    </div>
-                    <div className="push-down-7">
-                      <CodeMirror
-                        value={environment.setup_script}
-                        options={{
-                          mode: "application/x-sh",
-                          theme: "jupyter",
-                          lineNumbers: true,
-                          viewportMargin: Infinity,
-                        }}
-                        onBeforeChange={(editor, data, value) => {
-                          setEnvironment((prev) => ({
-                            ...prev,
-                            setup_script: value,
-                          }));
-
-                          setAsSaved(false);
-                        }}
-                      />
-                    </div>
-                    {environment && !isNewEnvironment && (
-                      <ImageBuildLog
-                        buildFetchHash={state.buildFetchHash}
-                        buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
-                        buildsKey="environment_builds"
-                        socketIONamespace={
-                          config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
-                        }
-                        streamIdentity={projectUuid + "-" + environment.uuid}
-                        onUpdateBuild={onUpdateBuild}
-                        onBuildStart={onBuildStart}
-                        ignoreIncomingLogs={state.ignoreIncomingLogs}
-                        build={state.environmentBuild}
-                        building={state.building}
-                      />
-                    )}
-                  </>
-                ),
-              }[state.subviewIndex]
-            }
-
-            <div className="multi-button">
-              <MDCButtonReact
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                onClick={onSave}
-                label={hasUnsavedChanges ? "Save*" : "Save"}
-                icon="save"
-                data-test-id="environments-save"
-              />
-
-              {state.subviewIndex === 1 &&
-                !isNewEnvironment &&
-                (!state.building ? (
-                  <MDCButtonReact
-                    disabled={state.buildRequestInProgress}
-                    classNames={["mdc-button--raised"]}
-                    onClick={build}
-                    label="Build"
-                    icon="memory"
-                    data-test-id="environments-start-build"
-                  />
-                ) : (
-                  <MDCButtonReact
-                    disabled={state.cancelBuildRequestInProgress}
-                    classNames={["mdc-button--raised"]}
-                    onClick={cancelBuild}
-                    label="Cancel build"
-                    icon="close"
-                    data-test-id="environments-cancel-build"
+              >
+                {tabs.map((tab) => (
+                  <Tab
+                    key={tab.id}
+                    id={tab.id}
+                    label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                    aria-controls={tab.id}
                   />
                 ))}
+              </Tabs>
             </div>
+            <TabPanel value={tabIndex} index={0} name="properties">
+              <div className="environment-properties">
+                <MDCTextFieldReact
+                  classNames={["fullwidth", "push-down-7"]}
+                  label="Environment name"
+                  onChange={onChangeName}
+                  value={environment.name}
+                  data-test-id="environments-env-name"
+                />
+
+                <div className="select-button-columns">
+                  <MDCSelectReact
+                    ref={refManager.nrefs.environmentName}
+                    classNames={["fullwidth"]}
+                    label="Base image"
+                    onChange={onChangeBaseImage}
+                    value={environment.base_image}
+                    options={state.baseImages.map((el) => [el])}
+                  />
+                  <MDCButtonReact
+                    icon="add"
+                    label="Custom image"
+                    onClick={onAddCustomBaseImage}
+                  />
+                  <div className="clear"></div>
+                </div>
+                <div className="form-helper-text push-down-7">
+                  The base image will be the starting point from which the
+                  environment will be built.
+                </div>
+
+                <MDCSelectReact
+                  label="Language"
+                  classNames={["fullwidth"]}
+                  ref={refManager.nrefs.environmentLanguage}
+                  onChange={onChangeLanguage}
+                  options={[
+                    ["python", LANGUAGE_MAP["python"]],
+                    ["r", LANGUAGE_MAP["r"]],
+                    ["julia", LANGUAGE_MAP["julia"]],
+                  ]}
+                  value={environment.language}
+                />
+                <div className="form-helper-text push-down-7">
+                  The language determines for which kernel language this
+                  environment can be used. This only affects pipeline steps that
+                  point to a Notebook.
+                </div>
+
+                {state.languageDocsNotice === true && (
+                  <div className="docs-notice push-down-7">
+                    Language explanation
+                  </div>
+                )}
+
+                <MDCCheckboxReact
+                  onChange={onGPUChange}
+                  label="GPU support"
+                  classNames={["push-down-7"]}
+                  value={environment.gpu_support}
+                  ref={refManager.nrefs.environmentGPUSupport}
+                />
+
+                {(() => {
+                  if (environment.gpu_support === true) {
+                    let enabledBlock = (
+                      <p className="push-down-7">
+                        If enabled, the environment will request GPU
+                        capabilities when in use.
+                      </p>
+                    );
+                    if (config.GPU_ENABLED_INSTANCE !== true) {
+                      if (config.CLOUD === true) {
+                        return (
+                          <div className="docs-notice push-down-7">
+                            <p>
+                              This instance is not configured with a GPU. Change
+                              the instance type to a GPU enabled one if you need
+                              GPU pass-through. Steps using this environment
+                              will work regardless, but no GPU pass-through will
+                              take place.
+                            </p>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="docs-notice push-down-7">
+                            {enabledBlock}
+                            <p>
+                              Could not detect a GPU. Check out{" "}
+                              <a
+                                target="_blank"
+                                href={
+                                  config.ORCHEST_WEB_URLS.readthedocs +
+                                  "/getting_started/installation.html#gpu-support"
+                                }
+                                rel="noreferrer"
+                              >
+                                the documentation
+                              </a>{" "}
+                              to make sure Orchest is properly configured for
+                              environments with GPU support. In particular, make
+                              sure the selected base image supports GPU pass
+                              through. Steps using this environment will work
+                              regardless, but no GPU pass-through will take
+                              place.
+                            </p>
+                          </div>
+                        );
+                      }
+                    } else {
+                      return (
+                        <div className="docs-notice push-down-7">
+                          {enabledBlock}
+                        </div>
+                      );
+                    }
+                  }
+                })()}
+              </div>
+            </TabPanel>
+            <TabPanel value={tabIndex} index={1} name="build">
+              <h3>Environment set-up script</h3>
+              <div className="form-helper-text push-down-7">
+                This will execute when you build the environment. Use it to
+                include your dependencies.
+              </div>
+              <div className="push-down-7">
+                <CodeMirror
+                  value={environment.setup_script}
+                  options={{
+                    mode: "application/x-sh",
+                    theme: "jupyter",
+                    lineNumbers: true,
+                    viewportMargin: Infinity,
+                  }}
+                  onBeforeChange={(editor, data, value) => {
+                    setEnvironment((prev) => ({
+                      ...prev,
+                      setup_script: value,
+                    }));
+
+                    setAsSaved(false);
+                  }}
+                />
+              </div>
+              {environment && !isNewEnvironment && (
+                <ImageBuildLog
+                  buildFetchHash={state.buildFetchHash}
+                  buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
+                  buildsKey="environment_builds"
+                  socketIONamespace={
+                    config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
+                  }
+                  streamIdentity={projectUuid + "-" + environment.uuid}
+                  onUpdateBuild={onUpdateBuild}
+                  onBuildStart={onBuildStart}
+                  ignoreIncomingLogs={state.ignoreIncomingLogs}
+                  build={state.environmentBuild}
+                  building={state.building}
+                />
+              )}
+            </TabPanel>
+            <Stack
+              spacing={2}
+              direction="row"
+              sx={{ padding: (theme) => theme.spacing(1) }}
+            >
+              <Button
+                variant="contained"
+                onClick={onSave}
+                startIcon={<SaveIcon />}
+                data-test-id="environments-save"
+              >
+                {hasUnsavedChanges ? "Save*" : "Save"}
+              </Button>
+              {tabIndex === 1 &&
+                !isNewEnvironment &&
+                (!state.building ? (
+                  <Button
+                    disabled={state.buildRequestInProgress}
+                    variant="contained"
+                    color="secondary"
+                    onClick={build}
+                    startIcon={<MemoryIcon />}
+                    data-test-id="environments-start-build"
+                  >
+                    Build
+                  </Button>
+                ) : (
+                  <Button
+                    disabled={state.cancelBuildRequestInProgress}
+                    variant="contained"
+                    color="secondary"
+                    onClick={cancelBuild}
+                    startIcon={<CloseIcon />}
+                    data-test-id="environments-cancel-build"
+                  >
+                    Cancel build
+                  </Button>
+                ))}
+            </Stack>
           </>
         )}
       </div>

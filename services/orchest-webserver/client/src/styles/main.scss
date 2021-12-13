@@ -1785,19 +1785,8 @@ span.code {
   }
 
   .pipeline-details {
-    height: 100%;
-    padding: var(--space-5) 0;
-    background: #fff;
-    border-left: 1px solid $borderColor;
-    z-index: 12;
-    width: 0;
-
     .CodeMirror {
       height: 100%;
-    }
-
-    .overflowable {
-      padding: 0 var(--space-5);
     }
 
     .mdc-select__anchor {
@@ -1867,43 +1856,6 @@ span.code {
         font-size: $defaultFontSize;
       }
       width: 100%;
-    }
-
-    display: flex;
-    flex-direction: column;
-
-    .overflowable {
-      overflow-y: auto;
-      overflow-x: hidden;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-
-      &.overflown {
-        padding-right: var(--space-10);
-      }
-    }
-
-    .action-buttons-bottom {
-      padding: var(--space-5);
-      padding-bottom: 0;
-
-      .file-actions {
-        margin-bottom: var(--space-5);
-
-        button {
-          display: block;
-
-          margin-bottom: var(--space-5);
-          &:last-child {
-            margin-bottom: 0;
-          }
-        }
-      }
-
-      button {
-        margin-right: var(--space-5);
-      }
     }
 
     h3 {

@@ -1,12 +1,70 @@
+import { Overflowable } from "@/components/common/Overflowable";
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import { useDragElement } from "@/hooks/useDragElement";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
-import { RefManager } from "@orchest/lib-utils";
+import { Step } from "@/types";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
+import LaunchIcon from "@mui/icons-material/Launch";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
 import React from "react";
 import PipelineDetailsLogs from "./PipelineDetailsLogs";
 import PipelineDetailsProperties from "./PipelineDetailsProperties";
 
-const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(4, 3),
+}));
+
+const ResizeBar = styled("div")(({ theme }) => ({
+  position: "absolute",
+  top: 0,
+  height: "100%",
+  width: theme.spacing(1),
+  marginLeft: theme.spacing(-0.5),
+  userSelect: "none",
+  cursor: "col-resize",
+}));
+
+const PipelineDetailsContainer = styled("div")(({ theme }) => ({
+  height: "100%",
+  backgroundColor: theme.palette.common.white,
+  borderLeft: `1px solid ${theme.palette.background.default}`,
+  zIndex: 12,
+  width: 0,
+  display: "flex",
+  flexDirection: "column",
+}));
+
+const PipelineDetails: React.FC<{
+  onOpenNotebook: () => void;
+  onOpenFilePreviewView?: (uuid: string) => void;
+  onChangeView: (index: number) => void;
+  onClose: () => void;
+  onDelete: () => void;
+  defaultViewIndex?: number;
+  step: Step;
+  readOnly?: boolean;
+  project_uuid: string;
+  [key: string]: any;
+}> = ({
+  defaultViewIndex = 0,
+  onOpenNotebook,
+  onOpenFilePreviewView,
+  onChangeView,
+  step,
+  readOnly,
+  onClose,
+  onDelete,
+  project_uuid,
+  ...props
+}) => {
   const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
     "pipelinedetails.panelWidth",
     450
@@ -21,11 +79,8 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
 
   const [subViewIndex, setSubViewIndex] = React.useState(defaultViewIndex);
 
-  const [refManager] = React.useState(new RefManager());
-
-  const onOpenNotebook = () => props.onOpenNotebook();
-  const onOpenFilePreviewView = (step_uuid: string) =>
-    props.onOpenFilePreviewView && props.onOpenFilePreviewView(step_uuid);
+  const openFilePreviewView = (step_uuid: string) =>
+    onOpenFilePreviewView && onOpenFilePreviewView(step_uuid);
 
   const onStartDragging = React.useCallback((e: React.MouseEvent) => {
     eventVars.current.prevClientX = e.clientX;
@@ -59,114 +114,125 @@ const PipelineDetails: React.FC<any> = ({ defaultViewIndex = 0, ...props }) => {
     onStopDragging,
   });
 
-  const overflowable = React.useRef<HTMLDivElement>();
-  const onOverflown = React.useCallback(() => {
-    if (overflowable.current) {
-      overflowable.current.classList.add("overflown");
-    }
-  }, []);
-
-  React.useEffect(() => {
-    window.addEventListener("overflow", onOverflown, false);
-    const overflowableElement = overflowable.current;
-    return () => {
-      window.removeEventListener("overflow", onOverflown);
-      if (overflowableElement) {
-        overflowableElement.classList.remove("overflown");
-      }
-    };
-  }, [onOverflown]);
-
-  const onSelectSubView = (index) => {
+  const onSelectSubView = (
+    e: React.SyntheticEvent<Element, Event>,
+    index: number
+  ) => {
     setSubViewIndex(index);
-    props.onChangeView(index);
+    onChangeView(index);
   };
 
+  const tabs = [
+    {
+      id: "pipeline-properties",
+      label: "Properties",
+      icon: <TuneIcon />,
+    },
+    {
+      id: "pipeline-logs",
+      label: "Logs",
+      icon: <ViewHeadlineIcon />,
+    },
+  ];
+
   return (
-    <div className="pipeline-details pane" style={{ width: panelWidth + "px" }}>
-      <div className="col-drag-resize" onMouseDown={startDragging} />
-      <div ref={overflowable} className={"overflowable"}>
-        <div className="input-group">
-          <MDCTabBarReact
-            ref={refManager.nrefs.tabBar}
-            selectedIndex={subViewIndex}
-            items={["Properties", "Logs"]}
-            icons={["tune", "view_headline"]}
-            onChange={onSelectSubView}
+    <PipelineDetailsContainer
+      style={{ width: panelWidth + "px" }}
+      className="pipeline-details pane"
+    >
+      <ResizeBar onMouseDown={startDragging} />
+      <Overflowable sx={{ display: "flex", flexDirection: "column" }}>
+        <Tabs
+          label="pipeline-details"
+          value={subViewIndex}
+          onChange={onSelectSubView}
+        >
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.id}
+              id={tab.id}
+              label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+              aria-controls={tab.id}
+            />
+          ))}
+        </Tabs>
+        <CustomTabPanel value={subViewIndex} index={0} name="pipeline-details">
+          <PipelineDetailsProperties
+            project_uuid={project_uuid}
+            pipeline_uuid={props.pipeline.uuid}
+            pipelineCwd={props.pipelineCwd}
+            readOnly={readOnly}
+            onNameUpdate={props.onNameUpdate}
+            onSave={props.onSave}
+            connections={props.connections}
+            step={step}
+            onChange={props.onChange}
+            saveHash={props.saveHash}
           />
-        </div>
-
-        {
-          {
-            0: (
-              <PipelineDetailsProperties
-                project_uuid={props.project_uuid}
-                pipeline_uuid={props.pipeline.uuid}
-                pipelineCwd={props.pipelineCwd}
-                readOnly={props.readOnly}
-                onNameUpdate={props.onNameUpdate}
-                onSave={props.onSave}
-                connections={props.connections}
-                step={props.step}
-                onChange={props.onChange}
-                saveHash={props.saveHash}
-              />
-            ),
-            1: (
-              <PipelineDetailsLogs
-                sio={props.sio}
-                projectUuid={props.project_uuid}
-                jobUuid={props.job_uuid}
-                runUuid={props.run_uuid}
-                stepUuid={props.step.uuid}
-                pipelineUuid={props.pipeline.uuid}
-              />
-            ),
-          }[subViewIndex]
-        }
-      </div>
-
-      <div className={"action-buttons-bottom"}>
-        <div className={"file-actions"}>
-          {!props.readOnly && (
-            <MDCButtonReact
-              icon="launch"
-              classNames={[
-                "mdc-button--raised",
-                "themed-secondary",
-                "push-right",
-              ]}
-              label="Edit in JupyterLab"
+        </CustomTabPanel>
+        <CustomTabPanel value={subViewIndex} index={1} name="pipeline-logs">
+          <PipelineDetailsLogs
+            sio={props.sio}
+            projectUuid={project_uuid}
+            jobUuid={props.job_uuid}
+            runUuid={props.run_uuid}
+            stepUuid={step.uuid}
+            pipelineUuid={props.pipeline.uuid}
+          />
+        </CustomTabPanel>
+      </Overflowable>
+      <Box sx={{ padding: (theme) => theme.spacing(2, 3, 0) }}>
+        <Stack
+          spacing={2}
+          alignItems="flex-start"
+          sx={{ marginBottom: (theme) => theme.spacing(2) }}
+        >
+          {!readOnly && (
+            <Button
+              startIcon={<LaunchIcon />}
+              variant="contained"
               onClick={onOpenNotebook}
               data-test-id="step-view-in-jupyterlab"
-            />
+            >
+              Edit in JupyterLab
+            </Button>
           )}
-          <MDCButtonReact
-            icon="visibility"
-            classNames={["mdc-button--raised"]}
-            label="View file"
-            onClick={() => onOpenFilePreviewView(props.step.uuid)}
+          <Button
+            startIcon={<VisibilityIcon />}
+            variant="contained"
+            color="secondary"
+            onClick={() => openFilePreviewView(step.uuid)}
             data-test-id="step-view-file"
-          />
-        </div>
-        <div className={"general-actions"}>
-          <MDCButtonReact
-            icon="close"
-            label="Close"
-            onClick={props.onClose}
+          >
+            View file
+          </Button>
+        </Stack>
+        <Stack
+          spacing={2}
+          direction="row"
+          sx={{ marginBottom: (theme) => theme.spacing(3) }}
+        >
+          <Button
+            startIcon={<CloseIcon />}
+            color="secondary"
+            onClick={onClose}
             data-test-id="step-close-details"
-          />
-          {!props.readOnly && (
-            <MDCButtonReact
-              icon="delete"
-              label="Delete"
-              onClick={props.onDelete}
+          >
+            Close
+          </Button>
+          {!readOnly && (
+            <Button
+              startIcon={<DeleteIcon />}
+              color="secondary"
+              onClick={onDelete}
               data-test-id="step-delete"
-            />
+            >
+              Delete
+            </Button>
           )}
-        </div>
-      </div>
-    </div>
+        </Stack>
+      </Box>
+    </PipelineDetailsContainer>
   );
 };
 

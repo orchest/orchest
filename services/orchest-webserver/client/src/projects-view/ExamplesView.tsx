@@ -1,3 +1,5 @@
+import { LogoIcon } from "@/components/common/LogoIcon";
+import { TabLabel, Tabs } from "@/components/common/Tabs";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -5,7 +7,10 @@ import { useTransition } from "@/hooks/useTransition";
 import { siteMap } from "@/routingConfig";
 import { Example } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
-import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import GroupIcon from "@mui/icons-material/Group";
+import Button from "@mui/material/Button";
+import Tab from "@mui/material/Tab";
 import React from "react";
 import { CommunityWarning } from "./CommunityWarning";
 import { ContributeCard } from "./ContributeCard";
@@ -26,6 +31,19 @@ const isCuratedByOrchest = (owner: string) =>
   ["orchest", "orchest-example"].includes(owner.toLowerCase());
 
 type ImportingState = "READY" | "IMPORTING" | "DONE";
+
+const tabs = [
+  {
+    id: "curated-examples",
+    label: "Curated Examples",
+    icon: <LogoIcon />,
+  },
+  {
+    id: "community-contributed",
+    label: "Community contributed",
+    icon: <GroupIcon />,
+  },
+];
 
 const ExamplesView: React.FC = () => {
   // global states
@@ -56,7 +74,6 @@ const ExamplesView: React.FC = () => {
     mountedStyle,
     unmountedStyle,
   } = useTransition(selectedTab === EXAMPLES_TAB.COMMUNITY);
-  // the index of this array represents the tab index of MDCTabBarReact
   const examples = React.useMemo<[Example[], Example[]]>(() => {
     if (!data) return [[], []];
 
@@ -78,7 +95,10 @@ const ExamplesView: React.FC = () => {
     navigateTo(siteMap.pipelines.path, { query: { projectUuid } });
   };
 
-  const changeTabByIndex = (index: EXAMPLES_TAB) => {
+  const changeTabByIndex = (
+    e: React.SyntheticEvent<Element, Event>,
+    index: EXAMPLES_TAB
+  ) => {
     setSelectedTab(index);
   };
 
@@ -119,11 +139,9 @@ const ExamplesView: React.FC = () => {
         goToPipelines={goToSelectedProject}
       />
       <div className="push-down">
-        <MDCButtonReact
-          label="Back to projects"
-          icon="arrow_back"
-          onClick={goToProjects}
-        />
+        <Button startIcon={<ArrowBackIcon />} onClick={goToProjects}>
+          Back to projects
+        </Button>
       </div>
       <div className="examples-view-heading-section">
         <div className="examples-view-heading-section_main">
@@ -137,12 +155,21 @@ const ExamplesView: React.FC = () => {
         />
       </div>
       <div className="example-view-tabs-container">
-        <MDCTabBarReact
-          selectedIndex={selectedTab}
-          items={["Curated Examples", "Community contributed"]}
-          icons={["/image/logo.svg", "group"]}
+        <Tabs
+          value={selectedTab}
           onChange={changeTabByIndex}
-        />
+          label="Example Tabs"
+          data-test-id="example-tabs"
+        >
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.id}
+              id={tab.id}
+              label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+              aria-controls={tab.id}
+            />
+          ))}
+        </Tabs>
         {/* TODO: we need a loading skeleton */}
         <div className="example-cards-container">
           {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}

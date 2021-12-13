@@ -1,3 +1,4 @@
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList from "@/components/EnvVarList";
@@ -32,7 +33,6 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
@@ -54,43 +54,6 @@ type EditJobState = {
 };
 
 const DEFAULT_CRON_STRING = "* * * * *";
-
-const TabLabel: React.FC<{ icon: React.ReactNode }> = ({ children, icon }) => (
-  <Stack direction="row" alignItems="center">
-    {icon}
-    <Box sx={{ marginLeft: (theme) => theme.spacing(1) }}>{children}</Box>
-  </Stack>
-);
-
-const TabPanel: React.FC<{ value: number; index: number; name: string }> = (
-  props
-) => {
-  const { children, value, index, name, ...other } = props;
-
-  return (
-    <Box
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${name}`}
-      aria-labelledby={`tab-${name}`}
-      sx={{ flex: 1 }}
-      {...other}
-    >
-      {value === index && (
-        <Box
-          sx={{
-            paddingLeft: 2,
-            paddingRight: 2,
-            paddingTop: 4,
-            paddingBottom: 4,
-          }}
-        >
-          {children}
-        </Box>
-      )}
-    </Box>
-  );
-};
 
 type ScheduleOption = "now" | "cron" | "scheduled";
 
@@ -735,9 +698,40 @@ const EditJobView: React.FC = () => {
     }
   }, [state.runJobCompleted]);
 
-  const handleChangeTab = (event, newValue: number) => {
+  const handleChangeTab = (
+    event: React.SyntheticEvent<Element, Event>,
+    newValue: number
+  ) => {
     setTabIndex(newValue);
   };
+
+  const tabs = React.useMemo(() => {
+    return [
+      {
+        id: "scheduling-tab",
+        label: "Scheduling",
+        icon: <ScheduleIcon />,
+      },
+      {
+        id: "parameters-tab",
+        label: "Parameters",
+        icon: <TuneIcon />,
+      },
+      {
+        id: "environment-variables-tab",
+        label: "Environment variables",
+        icon: <ViewComfyIcon />,
+      },
+      {
+        id: "runs-tab",
+        label: `Pipeline runs (${state.selectedIndices.reduce(
+          (total, num) => total + num,
+          0
+        )}/${state.generatedPipelineRuns.length})`,
+        icon: <ListIcon />,
+      },
+    ];
+  }, [state.selectedIndices, state.generatedPipelineRuns.length]);
 
   return (
     <Layout>
@@ -779,43 +773,24 @@ const EditJobView: React.FC = () => {
             <Tabs
               value={tabIndex}
               onChange={handleChangeTab}
-              aria-label="Edit Job Tabs"
+              label="Edit Job Tabs"
               data-test-id="job-edit"
             >
-              <Tab
-                id="scheduling-tab"
-                label={<TabLabel icon={<ScheduleIcon />}>Scheduling</TabLabel>}
-                aria-controls="tabpanel-scheduling"
-              />
-              <Tab
-                id="parameters-tab"
-                label={<TabLabel icon={<TuneIcon />}>Parameters</TabLabel>}
-                aria-controls="tabpanel-parameters"
-              />
-              <Tab
-                id="environment-variables-tab"
-                label={
-                  <TabLabel icon={<ViewComfyIcon />}>
-                    Environment variables
-                  </TabLabel>
-                }
-                aria-controls="tabpanel-env-variables"
-              />
-              <Tab
-                id="runs-tab"
-                label={
-                  <Stack direction="row" alignItems="center">
-                    <ListIcon />
-                    {`Pipeline runs (${state.selectedIndices.reduce(
-                      (total, num) => total + num,
-                      0
-                    )}/${state.generatedPipelineRuns.length})`}
-                  </Stack>
-                }
-                aria-controls="tabpanel-runs"
-              />
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                />
+              ))}
             </Tabs>
-            <TabPanel value={tabIndex} index={0} name="scheduling">
+            <TabPanel
+              value={tabIndex}
+              index={0}
+              name="scheduling"
+              sx={{ padding: (theme) => theme.spacing(3, 1) }}
+            >
               {job.status === "DRAFT" && (
                 <FormControl
                   component="fieldset"
@@ -872,7 +847,12 @@ const EditJobView: React.FC = () => {
                 />
               )}
             </TabPanel>
-            <TabPanel value={tabIndex} index={1} name="parameters">
+            <TabPanel
+              value={tabIndex}
+              index={1}
+              name="parameters"
+              sx={{ padding: (theme) => theme.spacing(3, 1) }}
+            >
               <ParameterEditor
                 pipelineName={pipeline.name}
                 onParameterChange={(strategyJSON) => {
@@ -895,7 +875,12 @@ const EditJobView: React.FC = () => {
                 data-test-id="job-edit"
               />
             </TabPanel>
-            <TabPanel value={tabIndex} index={2} name="env-variables">
+            <TabPanel
+              value={tabIndex}
+              index={2}
+              name="env-variables"
+              sx={{ padding: (theme) => theme.spacing(3, 1) }}
+            >
               <p className="push-down">
                 Override any project or pipeline environment variables here.
               </p>
@@ -907,7 +892,12 @@ const EditJobView: React.FC = () => {
                 data-test-id="job-edit"
               />
             </TabPanel>
-            <TabPanel value={tabIndex} index={3} name="runs">
+            <TabPanel
+              value={tabIndex}
+              index={3}
+              name="runs"
+              sx={{ padding: (theme) => theme.spacing(3, 1) }}
+            >
               <div className="pipeline-tab-view pipeline-runs">
                 <SearchableTable
                   selectable={true}
