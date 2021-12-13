@@ -175,8 +175,15 @@ const traverseNode = (
   seenNodes: Set<string>,
   subGraph: IPipelineStepState[]
 ) => {
-  // DFS
   step.outgoing_connections.forEach((stepUuid) => {
+    if (!seenNodes.has(stepUuid)) {
+      seenNodes.add(stepUuid);
+
+      subGraph.push(allSteps[stepUuid]);
+      traverseNode(allSteps[stepUuid], allSteps, seenNodes, subGraph);
+    }
+  });
+  step.incoming_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
       seenNodes.add(stepUuid);
 

@@ -116,7 +116,11 @@ export function addOutgoingConnections(
       if (!steps[incomingConnectionUuid].outgoing_connections) {
         steps[incomingConnectionUuid].outgoing_connections = [];
       }
-      steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      if (
+        !steps[incomingConnectionUuid].outgoing_connections.includes(stepUuid)
+      ) {
+        steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      }
     });
   });
 }
