@@ -108,19 +108,11 @@ export function addOutgoingConnections(
   */
 
   Object.keys(steps).forEach((stepUuid) => {
-    // assign an empty array as initial value if possible
-    steps[stepUuid].outgoing_connections =
-      steps[stepUuid].outgoing_connections || [];
-
     steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
       if (!steps[incomingConnectionUuid].outgoing_connections) {
         steps[incomingConnectionUuid].outgoing_connections = [];
       }
-      if (
-        !steps[incomingConnectionUuid].outgoing_connections.includes(stepUuid)
-      ) {
-        steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
-      }
+      steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
     });
   });
 }
