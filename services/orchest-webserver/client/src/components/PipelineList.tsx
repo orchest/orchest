@@ -1,13 +1,16 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import SaveIcon from "@mui/icons-material/Save";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
-  MDCButtonReact,
   MDCDataTableReact,
   MDCIconButtonToggleReact,
   MDCTextFieldReact,
@@ -417,20 +420,22 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           </>
         </DialogContent>
         <DialogActions>
-          <MDCButtonReact
-            icon="close"
-            label="Cancel"
-            classNames={["push-right"]}
+          <Button
+            startIcon={<CloseIcon />}
+            color="secondary"
             onClick={onCloseCreatePipelineModal}
-          />
-          <MDCButtonReact
-            icon="add"
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            label="Create pipeline"
-            submitButton
+          >
+            Cancel
+          </Button>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            type="submit"
             onClick={onSubmitModal}
             data-test-id="pipeline-create-ok"
-          />
+          >
+            Create pipeline
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -455,33 +460,36 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           />
         </DialogContent>
         <DialogActions>
-          <MDCButtonReact
-            icon="close"
-            label="Cancel"
-            classNames={["push-right"]}
+          <Button
+            startIcon={<CloseIcon />}
+            color="secondary"
             onClick={onCloseEditPipelineModal}
-          />
-          <MDCButtonReact
-            icon="save"
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
             disabled={isSubmittingPipelinePath}
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            label="Save"
-            submitButton
+            type="submit"
             onClick={onSubmitEditPipelinePathModal}
             data-test-id="pipeline-edit-path-save"
-          />
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
 
       <h2>Pipelines</h2>
       <div className="push-down">
-        <MDCButtonReact
-          classNames={["mdc-button--raised", "themed-secondary"]}
-          icon="add"
-          label="Create pipeline"
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
           onClick={onCreateClick}
           data-test-id="pipeline-create"
-        />
+        >
+          Create pipeline
+        </Button>
       </div>
       <div className={"pipeline-actions push-down"}>
         <MDCIconButtonToggleReact
