@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
@@ -16,7 +17,7 @@ const PrefilledWarning = () => {
     <div className="push-down warning">
       <p>
         <i className="material-icons">warning</i> The import URL was not from
-        Orchest. Make sure you trust the <span className="code">git</span>
+        Orchest. Make sure you trust the <Code>git</Code>
         {" repository you're importing."}
       </p>
     </div>
@@ -149,8 +150,8 @@ const ImportDialog: React.FC<{
         <div data-test-id="import-project-dialog">
           {shouldShowWarning && <PrefilledWarning />}
           <p className="push-down">
-            Import a <span className="code">git</span> repository by specifying
-            the <span className="code">HTTPS</span> URL below:
+            Import a <Code>git</Code> repository by specifying the{" "}
+            <Code>HTTPS</Code> URL below:
           </p>
           <MDCTextFieldReact
             classNames={["fullwidth push-down"]}
@@ -171,9 +172,8 @@ const ImportDialog: React.FC<{
 
           <p className="push-up">
             To import <b>private </b>
-            <span className="code">git</span> repositories upload them directly
-            through the File Manager into the{" "}
-            <span className="code">projects/</span> directory.
+            <Code>git</Code> repositories upload them directly through the File
+            Manager into the <Code>projects/</Code> directory.
           </p>
         </div>
       </DialogContent>

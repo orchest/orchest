@@ -9,8 +9,12 @@ import {
   getPipelineStepParents,
   setWithRetry,
 } from "@/utils/webserver-utils";
+import CloseIcon from "@mui/icons-material/Close";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import Button from "@mui/material/Button";
+import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import Tooltip from "@mui/material/Tooltip";
 import {
   makeCancelable,
   makeRequest,
@@ -178,13 +182,13 @@ const FilePreviewView: React.FC = () => {
 
   const renderNavStep = (steps) => {
     return steps.map((step) => (
-      <button
+      <Button
+        variant="text"
         key={step.uuid}
         onClick={() => stepNavigate(step.uuid)}
-        className="text-button"
       >
         {step.title}
-      </button>
+      </Button>
     ));
   };
 
@@ -295,16 +299,16 @@ const FilePreviewView: React.FC = () => {
         ref={refManager.nrefs.fileViewer}
       >
         <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["refresh-button"]}
-            icon="refresh"
-            onClick={loadFile}
-          />
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
-            onClick={loadPipelineView}
-          />
+          <Tooltip title="refresh">
+            <IconButton onClick={loadFile}>
+              <RefreshIcon />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="close">
+            <IconButton onClick={loadPipelineView}>
+              <CloseIcon />
+            </IconButton>
+          </Tooltip>
         </div>
 
         {(() => {

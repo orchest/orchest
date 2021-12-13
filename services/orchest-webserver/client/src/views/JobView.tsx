@@ -23,6 +23,8 @@ import {
 import ListIcon from "@mui/icons-material/List";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
@@ -441,13 +443,14 @@ const JobView: React.FC = () => {
       detailElements.push(
         <div className="pipeline-run-detail">
           <ParamTree strategyJSON={strategyJSON} pipelineName={pipeline.name} />
-          <MDCButtonReact
-            label="View pipeline"
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            icon="visibility"
+          <Button
+            variant="contained"
+            startIcon={<VisibilityIcon />}
             onClick={() => onDetailPipelineView(pipelineRun)}
             data-test-id={`job-pipeline-runs-row-view-pipeline-${x}`}
-          />
+          >
+            View pipeline
+          </Button>
         </div>
       );
     }

@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
@@ -755,7 +756,7 @@ const PipelineSettingsView: React.FC = () => {
                       <div className="column">
                         {state.pipeline_path && (
                           <p className="push-down">
-                            <span className="code">{state.pipeline_path}</span>
+                            <Code>{state.pipeline_path}</Code>
                           </p>
                         )}
                       </div>
@@ -830,7 +831,7 @@ const PipelineSettingsView: React.FC = () => {
                           <p className="push-down">
                             Change the size of the memory server for data
                             passing. For units use KB, MB, or GB, e.g.{" "}
-                            <span className="code">1GB</span>.{" "}
+                            <Code>1GB</Code>.{" "}
                           </p>
                         )}
 

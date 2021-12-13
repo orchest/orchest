@@ -10,8 +10,10 @@ import {
   isValidEnvironmentVariableName,
   OverflowListener,
 } from "@/utils/webserver-utils";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SaveIcon from "@mui/icons-material/Save";
+import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -178,11 +180,13 @@ const ProjectSettingsView: React.FC = () => {
           }}
         >
           <div className="push-down">
-            <MDCButtonReact
-              label="Back to projects"
-              icon="arrow_back"
+            <Button
+              color="secondary"
+              startIcon={<ArrowBackIcon />}
               onClick={returnToProjects}
-            />
+            >
+              Back to projects
+            </Button>
           </div>
 
           <h2>Project settings</h2>
@@ -244,13 +248,14 @@ const ProjectSettingsView: React.FC = () => {
                 />
               </div>
               <div className="bottom-buttons observe-overflow">
-                <MDCButtonReact
-                  label={hasUnsavedChanges ? "SAVE*" : "SAVE"}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
                   onClick={saveGeneralForm}
-                  icon="save"
                   data-test-id="project-settings-save"
-                />
+                >
+                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                </Button>
               </div>
             </>
           ) : (

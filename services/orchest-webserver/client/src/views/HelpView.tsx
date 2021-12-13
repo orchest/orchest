@@ -2,7 +2,8 @@ import { Layout, useLayout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import Button from "@mui/material/Button";
 import React from "react";
 
 const HelpView: React.FC = () => {
@@ -99,14 +100,13 @@ const HelpView: React.FC = () => {
           </a>
         </div>
         <h2 className="push-up">Introduction</h2>
-        <MDCButtonReact
+        <Button
           data-test-id="onboarding-open"
-          onClick={() => {
-            setIsOnboardingDialogOpen(true);
-          }}
-          label="Show onboarding"
-          icon="play_arrow"
-        />
+          onClick={() => setIsOnboardingDialogOpen(true)}
+          startIcon={<PlayArrowIcon />}
+        >
+          Show onboarding
+        </Button>
       </div>
     </Layout>
   );

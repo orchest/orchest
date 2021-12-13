@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -14,7 +15,7 @@ import {
   uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
-import * as React from "react";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
@@ -244,25 +245,17 @@ const ConfigureJupyterLabView: React.FC = () => {
             <p className="push-down">
               For example, you can install the Jupyterlab Code Formatter
               extension by executing{" "}
-              <span className="code">
-                pip install jupyterlab_code_formatter
-              </span>
-              .
+              <Code>pip install jupyterlab_code_formatter</Code>.
             </p>
 
             <p className="push-down">
               In addition, you can configure the JupyterLab environment to
-              include settings such as your <span className="code">git</span>{" "}
-              username and email.
+              include settings such as your <Code>git</Code> username and email.
               <br />
               <br />
-              <span className="code">
-                {`git config --global user.name "John Doe"`}
-              </span>
+              <Code>{`git config --global user.name "John Doe"`}</Code>
               <br />
-              <span className="code">
-                {`git config --global user.email "john@example.org"`}
-              </span>
+              <Code>{`git config --global user.email "john@example.org"`}</Code>
             </p>
 
             <div className="push-down">

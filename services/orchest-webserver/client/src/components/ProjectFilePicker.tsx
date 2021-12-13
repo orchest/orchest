@@ -17,7 +17,8 @@ import {
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
+import { Code } from "./common/Code";
 import FilePicker from "./FilePicker";
 
 const ProjectFilePicker: React.FC<any> = (props) => {
@@ -240,7 +241,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
     return ALLOWED_STEP_EXTENSIONS.map((el, index) => {
       return (
         <span key={el}>
-          <span className="code">.{el}</span>
+          <Code>.{el}</Code>
           {index < ALLOWED_STEP_EXTENSIONS.length - 1 ? (
             <React.Fragment>&nbsp;, </React.Fragment>
           ) : (
