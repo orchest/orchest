@@ -6,7 +6,7 @@ import os
 import re
 import time
 import uuid
-from collections import ChainMap, abc
+from collections import ChainMap
 from copy import deepcopy
 from typing import Any, Dict, Optional, Tuple
 
@@ -34,15 +34,15 @@ class GlobalOrchestConfig:
             "default": 4,
             "type": int,
             "requires-restart": True,
-            "condition": lambda x: x > 0,
-            "condition-msg": "strictly larger than zero",
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
             "default": 4,
             "type": int,
             "requires-restart": True,
-            "condition": lambda x: x > 0,
-            "condition-msg": "strictly larger than zero",
+            "condition": lambda x: 0 < x <= 25,
+            "condition-msg": "within the range [1, 25]",
         },
         "AUTH_ENABLED": {
             "default": False,
@@ -69,7 +69,7 @@ class GlobalOrchestConfig:
             "condition": None,
         },
     }
-    _cloud_unmodifiable_config_values = [
+    _cloud_unmodifiable_config_opts = [
         "TELEMETRY_UUID",
         "TELEMETRY_DISABLED",
         "AUTH_ENABLED",
@@ -82,7 +82,7 @@ class GlobalOrchestConfig:
         Uses a collections.ChainMap under the hood to provide fallback
         to default values where needed. And when running with `--cloud`,
         it won't allow you to update config values of the keys defined
-        in `self._cloud_unmodifiable_config_values`.
+        in `self._cloud_unmodifiable_config_opts`.
 
         Raises:
             CorruptedFileError: The global user config file is
@@ -201,7 +201,7 @@ class GlobalOrchestConfig:
             # Changes to unmodifiable config options won't take effect
             # anyways and so they should not account towards requiring
             # a restart yes or no.
-            if self._cloud and k in self._cloud_unmodifiable_config_values:
+            if self._cloud and k in self._cloud_unmodifiable_config_opts:
                 continue
 
             old_val = flask_app.config[k]
@@ -210,13 +210,21 @@ class GlobalOrchestConfig:
 
         return res
 
-    def _validate_dict(self, d: abc.Mapping) -> None:
+    def _validate_dict(self, d: dict, migrate=False) -> None:
         """Validates the types and values of the values of the dict.
 
         Validates whether the types of the values of the given dict
         equal the types of the respective key's values of the
         `self._config_values` and additional key specific rules are
         satisfied, e.g. parallelism > 0.
+
+        Args:
+            d: The dictionary to validate the types and values of.
+            migrate: If `True`, then the options for which the type
+                and/or value are invalidated get assigned their default
+                value. However, `self._cloud_unmodifiable_config_opts`
+                are never migrated if `self._cloud==True` as that could
+                cause authentication to get disabled.
 
         Note:
             Keys in the given dict that are not in the
@@ -230,21 +238,33 @@ class GlobalOrchestConfig:
                 # We let it pass silently because it won't break the
                 # application in any way as we will later fall back on
                 # default values.
-                logger.debug("Dictionary missing values for required config options.")
+                logger.debug(f"Missing value for required config option: {k}.")
                 continue
 
             if type(given_val) is not val["type"]:
-                given_val_type = type(given_val).__name__
-                correct_val_type = val["type"].__name__
-                raise TypeError(
-                    f'{k} has to be a "{correct_val_type}" but "{given_val_type}"'
-                    " was given."
+                not_allowed_to_migrate = (
+                    self._cloud and k in self._cloud_unmodifiable_config_opts
                 )
+                if not migrate or not_allowed_to_migrate:
+                    given_val_type = type(given_val).__name__
+                    correct_val_type = val["type"].__name__
+                    raise TypeError(
+                        f'{k} has to be a "{correct_val_type}" but "{given_val_type}"'
+                        " was given."
+                    )
+
+                d[k] = val["default"]
 
             if val["condition"] is not None and not val["condition"].__call__(
                 given_val
             ):
-                raise ValueError(f"{k} has to be {val['condition-msg']}.")
+                not_allowed_to_migrate = (
+                    self._cloud and k in self._cloud_unmodifiable_config_opts
+                )
+                if not migrate or not_allowed_to_migrate:
+                    raise ValueError(f"{k} has to be {val['condition-msg']}.")
+
+                d[k] = val["default"]
 
     def _get_current_configs(self) -> Tuple[dict, dict]:
         """Gets the dicts needed to initialize this class.
@@ -258,16 +278,18 @@ class GlobalOrchestConfig:
         current_config = self._read_raw_current_config()
 
         try:
-            self._validate_dict(current_config)
+            # Make sure invalid values are migrated to default values,
+            # because the application can not start with invalid values.
+            self._validate_dict(current_config, migrate=True)
         except (TypeError, ValueError):
             raise _errors.CorruptedFileError(
-                f'The values defined in the global user config ("{self._path}") have'
-                + " incorrect types and/or values."
+                f'Option(s) defined in the global user config ("{self._path}") has'
+                + " incorrect type and/or value."
             )
 
         unmodifiable_config = {}
         if self._cloud:
-            for k in self._cloud_unmodifiable_config_values:
+            for k in self._cloud_unmodifiable_config_opts:
                 try:
                     unmodifiable_config[k] = deepcopy(current_config[k])
                 except KeyError:

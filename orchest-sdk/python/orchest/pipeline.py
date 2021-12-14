@@ -53,22 +53,6 @@ class PipelineStep:
     def get_params(self) -> Dict[str, Any]:
         return self.properties.get("parameters", {})
 
-    def update_params(self, params) -> None:
-        for param in params:
-            if not isinstance(param, str):
-                raise TypeError(
-                    (
-                        f"Parameter keys can only be of type string. Key {param} "
-                        f"of type {type(param)} is invalid."
-                    )
-                )
-        try:
-            self.properties["parameters"].update(params)
-        except KeyError:
-            self.properties["parameters"] = params
-
-        return
-
     def __str__(self) -> str:
         if self.properties:
             return f'<PipelineStep: {self.properties["name"]}>'
@@ -150,22 +134,6 @@ class Pipeline:
 
     def get_params(self) -> Dict[str, Any]:
         return self.properties.get("parameters", {})
-
-    def update_params(self, params) -> None:
-        for param in params:
-            if not isinstance(param, str):
-                raise TypeError(
-                    (
-                        f"Parameter keys can only be of type string. Key {param} "
-                        f"of type {type(param)} is invalid."
-                    )
-                )
-        try:
-            self.properties["parameters"].update(params)
-        except KeyError:
-            self.properties["parameters"] = params
-
-        return
 
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"
