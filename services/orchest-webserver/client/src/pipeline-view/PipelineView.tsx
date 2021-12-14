@@ -1667,13 +1667,14 @@ const PipelineView: React.FC = () => {
     const gridMargin = 20;
 
     const _pipelineJson = layoutPipeline(
-      state.pipelineJson,
+      // Use the pipeline definition from the editor
+      getPipelineJSON(),
       STEP_HEIGHT,
       (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
         (STEP_WIDTH / STEP_HEIGHT),
       1 + spacingFactor,
       gridMargin,
-      gridMargin,
+      gridMargin * 4, // don't put steps behind top buttons
       gridMargin,
       STEP_HEIGHT
     );
