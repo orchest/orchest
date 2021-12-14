@@ -643,7 +643,7 @@ const JobView: React.FC = () => {
               />
 
               <MDCButtonReact
-                label="Duplicate job"
+                label="Copy config to new job"
                 icon="file_copy"
                 onClick={onJobDuplicate}
               />
