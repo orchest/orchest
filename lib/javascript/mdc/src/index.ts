@@ -3,7 +3,6 @@ export * from "./MDCCardReact";
 export * from "./MDCCheckboxReact";
 export * from "./MDCDataTableReact";
 export * from "./MDCDrawerReact";
-export * from "./MDCIconButtonToggleReact";
 export * from "./MDCListReact";
 export * from "./MDCRadioReact";
 export * from "./MDCSelectReact";

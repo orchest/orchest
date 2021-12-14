@@ -1,3 +1,4 @@
+import { IconButton } from "@/components/common/IconButton";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import CloseIcon from "@mui/icons-material/Close";
@@ -7,7 +8,6 @@ import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import IconButton from "@mui/material/IconButton";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
@@ -70,6 +70,7 @@ const IconListItem = styled("li")(({ theme }) => ({
 
 const CloseButton = ({ onClose }: { onClose: () => void }) => (
   <IconButton
+    title="Close"
     onClick={onClose}
     size="small"
     sx={{

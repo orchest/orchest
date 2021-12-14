@@ -1,4 +1,6 @@
 import EnvVarList from "@/components/EnvVarList";
+import CheckIcon from "@mui/icons-material/Check";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -7,7 +9,6 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Tooltip from "@mui/material/Tooltip";
 import { Box } from "@orchest/design-system";
 import {
-  MDCButtonReact,
   MDCCheckboxReact,
   MDCSelectReact,
   MDCTextFieldReact,
@@ -179,16 +180,13 @@ const ServiceForm: React.FC<any> = (props) => {
           </div>
         </DialogContent>
         <DialogActions>
-          <MDCButtonReact
-            classNames={["push-right"]}
-            label="Cancel"
-            onClick={onCloseEditImageName}
-          />
-          <MDCButtonReact
-            label="Save"
-            icon="check"
-            classNames={["mdc-button--raised"]}
-            submitButton
+          <Button color="secondary" onClick={onCloseEditImageName}>
+            Cancel
+          </Button>
+          <Button
+            startIcon={<CheckIcon />}
+            variant="contained"
+            type="submit"
             onClick={() => {
               if (editImageEnvironmentUUID == "") {
                 handleServiceChange("image", editImageName);
@@ -201,7 +199,9 @@ const ServiceForm: React.FC<any> = (props) => {
               onCloseEditImageName();
             }}
             data-test-id="service-image-name-dialog-save"
-          />
+          >
+            Save
+          </Button>
         </DialogActions>
       </Dialog>
 

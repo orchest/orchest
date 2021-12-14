@@ -1,29 +1,34 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
+import { IOrchestSession } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import { darken } from "@mui/material";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import {
-  MDCDataTableReact,
-  MDCIconButtonToggleReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
-import {
+  fetcher,
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import React from "react";
 import { siteMap } from "../Routes";
 import { checkGate } from "../utils/webserver-utils";
+import { DataTable, DataTableColumn } from "./DataTable";
 import SessionToggleButton from "./SessionToggleButton";
 
 const INITIAL_PIPELINE_NAME = "Main";
@@ -39,10 +44,154 @@ const getErrorMessages = (path: string) => ({
   6: "Can't move the pipeline outside of the project.",
 });
 
+type PipelineMetaData = {
+  name: string;
+  path: string;
+  uuid: string;
+};
+
+type SessionStatus = IOrchestSession["status"] | "";
+
+type PipelineRowData = PipelineMetaData & {
+  sessionStatus: SessionStatus;
+};
+
+const fetchPipelines = (projectUuid: string) =>
+  fetcher<{ success: boolean; result: PipelineMetaData[] }>(
+    `/async/pipelines/${projectUuid}`
+  ).then((response) => response.result);
+
+const requestDeletePipelines = (projectUuid: string, pipelineUuid: string) => {
+  return fetcher(`/async/pipelines/delete/${projectUuid}/${pipelineUuid}`, {
+    method: "DELETE",
+  });
+};
+
+const getColumns = (
+  projectUuid: string,
+  onEditPath: (uuid: string, path: string) => void
+): DataTableColumn<PipelineRowData>[] => [
+  { id: "name", label: "Pipeline" },
+  {
+    id: "path",
+    label: "Path",
+    render: (row) => (
+      <Tooltip title="Edit pipeline path">
+        <Stack
+          direction="row"
+          alignItems="center"
+          component="span"
+          sx={{
+            display: "inline-flex",
+            svg: { visibility: "hidden" },
+            "&:hover": {
+              color: (theme) => darken(theme.palette.primary.main, 0.15),
+              // textDecoration: "underline",
+              svg: { visibility: "visible" },
+            },
+          }}
+          onClick={(e: React.MouseEvent<unknown>) => {
+            e.stopPropagation();
+            onEditPath(row.uuid, row.path);
+          }}
+        >
+          {row.path}
+          <EditIcon
+            sx={{
+              width: (theme) => theme.spacing(2),
+              marginLeft: (theme) => theme.spacing(1),
+            }}
+            color="primary"
+          />
+        </Stack>
+      </Tooltip>
+    ),
+  },
+  {
+    id: "sessionStatus",
+    label: "Session",
+    render: (row) => (
+      <Box sx={{ width: (theme) => theme.spacing(26) }}>
+        <SessionToggleButton
+          projectUuid={projectUuid}
+          pipelineUuid={row.uuid}
+          status={row.sessionStatus}
+          isSwitch
+        />
+      </Box>
+    ),
+  },
+];
+
+const PipelinePathTextField: React.FC<{
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ value, onChange }) => {
+  const pathInputRef = React.useRef<HTMLInputElement>();
+  const initializedRef = React.useRef(false);
+  React.useEffect(() => {
+    if (pathInputRef.current && value && !initializedRef.current) {
+      initializedRef.current = true;
+      pathInputRef.current.focus();
+      pathInputRef.current.setSelectionRange(
+        value.indexOf(".orchest"),
+        value.indexOf(".orchest")
+      );
+    }
+  }, [value]);
+
+  return (
+    <TextField
+      margin="normal"
+      fullWidth
+      value={value}
+      label="Pipeline path"
+      inputRef={pathInputRef}
+      onChange={(e) => {
+        const value = e.target.value;
+        onChange(value);
+      }}
+      data-test-id="pipeline-edit-path-textfield"
+    />
+  );
+};
+
 const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
+  const { getSession } = useSessionsContext();
   useSessionsPoller();
+
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const { run, data: pipelines, error, status } = useAsync<
+    PipelineMetaData[]
+  >();
+
+  const requestFetchPipeline = () => run(fetchPipelines(projectUuid));
+
+  React.useEffect(() => {
+    requestFetchPipeline();
+  }, []);
+
+  React.useEffect(() => {
+    if (status === "REJECTED" && error) {
+      setAlert("Error", `Failed to fetch pipelines: ${error}`);
+      navigateTo(siteMap.projects.path);
+    }
+  }, [status, error]);
+
+  const pipelineRows = React.useMemo(() => {
+    return (pipelines || []).map((pipeline) => {
+      return {
+        ...pipeline,
+        sessionStatus: (getSession({
+          pipelineUuid: pipeline.uuid,
+          projectUuid,
+        })?.status || "") as SessionStatus,
+      };
+    });
+  }, [pipelines, projectUuid, getSession]);
 
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
     uuid: string;
@@ -52,7 +201,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
   const [isEditingPipelinePath, setIsEditingPipelinePath] = React.useState(
-    false
+    true
   );
 
   const [
@@ -61,170 +210,59 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   ] = React.useState(false);
 
   const [state, setState] = React.useState({
-    loading: true,
-    isDeleting: false,
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
-    // editPipelinePath: undefined,
-    // editPipelinePathUUID: undefined,
-    listData: null,
-    pipelines: null,
   });
 
   const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
 
-  const processListData = (pipelines) => {
-    let listData = pipelines.map((pipeline) => [
-      <span
-        key={`pipeline-${pipeline.name}`}
-        data-test-id={`pipeline-${pipeline.name}`}
-      >
-        {pipeline.name}
-      </span>,
-      <span key="pipeline-edit-path" className="mdc-icon-table-wrapper">
-        {pipeline.path}{" "}
-        <span className="consume-click">
-          <MDCIconButtonToggleReact
-            icon="edit"
-            onClick={() => {
-              onEditClick(pipeline.uuid, pipeline.path);
-            }}
-            data-test-id="pipeline-edit-path"
-          />
-        </span>
-      </span>,
-      <SessionToggleButton
-        key={pipeline.uuid}
-        projectUuid={projectUuid}
-        pipelineUuid={pipeline.uuid}
-        switch={true}
-        className="consume-click"
-      />,
-    ]);
-
-    return listData;
-  };
-
-  const fetchList = (onComplete) => {
-    // initialize REST call for pipelines
-    let fetchListPromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${projectUuid}`),
-      promiseManager
-    );
-
-    fetchListPromise.promise
-      .then((response: string) => {
-        let data = JSON.parse(response);
-        setState((prevState) => ({
-          ...prevState,
-          listData: processListData(data.result),
-          pipelines: data.result,
-        }));
-
-        if (refManager.refs.pipelineListView) {
-          refManager.refs.pipelineListView.setSelectedRowIds([]);
-        }
-
-        onComplete();
-      })
-      .catch((e) => {
-        if (e && e.status == 404) {
-          navigateTo(siteMap.projects.path);
-        }
-      });
-  };
-
-  const openPipeline = (pipeline, isReadOnly: boolean) => {
+  const openPipeline = (pipelineUuid: string, isReadOnly: boolean) => {
     navigateTo(siteMap.pipeline.path, {
-      query: {
-        projectUuid,
-        pipelineUuid: pipeline.uuid,
-      },
+      query: { projectUuid, pipelineUuid },
       state: { isReadOnly },
     });
   };
 
-  const onClickListItem = (row, idx, e) => {
-    let pipeline = state.pipelines[idx];
-
-    let checkGatePromise = checkGate(projectUuid);
-    checkGatePromise
-      .then(() => {
-        openPipeline(pipeline, false);
-      })
-      .catch(() => {
-        openPipeline(pipeline, true);
-      });
+  const onRowClick = async (pipelineUuid: string) => {
+    try {
+      await checkGate(projectUuid);
+      openPipeline(pipelineUuid, false);
+    } catch (error) {
+      openPipeline(pipelineUuid, true);
+    }
   };
 
-  const onDeleteClick = () => {
-    if (!state.isDeleting) {
-      setState((prevState) => ({
-        ...prevState,
-        isDeleting: true,
-      }));
-
-      let selectedIndices = refManager.refs.pipelineListView.getSelectedRowIndices();
-
-      if (selectedIndices.length === 0) {
-        setAlert("Error", "You haven't selected a pipeline.");
-
-        setState((prevState) => ({
-          ...prevState,
-          isDeleting: false,
-        }));
-
-        return;
-      }
-
-      setConfirm(
-        "Warning",
-        "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
-        () => {
-          setState((prevState) => ({
-            ...prevState,
-            loading: true,
-          }));
-
-          selectedIndices.forEach((index) => {
-            let pipeline_uuid = state.pipelines[index].uuid;
-
-            // deleting the pipeline will also take care of running
-            // sessions, runs, jobs
-            makeRequest(
-              "DELETE",
-              `/async/pipelines/delete/${projectUuid}/${pipeline_uuid}`
-            )
-              .then((_) => {
-                // reload list once removal succeeds
-                fetchList(() => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    loading: false,
-                    isDeleting: false,
-                  }));
-                });
-              })
-              .catch(() => {
-                setState((prevState) => ({
-                  ...prevState,
-                  loading: false,
-                  isDeleting: false,
-                }));
-              });
-          });
-        },
-        () => {
-          setState((prevState) => ({
-            ...prevState,
-            isDeleting: false,
-          }));
-        }
-      );
-    } else {
+  const deletePipelines = (pipelineUuids: string[]) => {
+    if (isDeleting) {
       console.error("Delete UI in progress.");
+      return;
     }
+    setIsDeleting(true);
+
+    if (pipelineUuids.length === 0) {
+      setAlert("Error", "You haven't selected a pipeline.");
+      setIsDeleting(false);
+
+      return;
+    }
+
+    setConfirm(
+      "Warning",
+      "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
+      async () => {
+        try {
+          await Promise.all(
+            pipelineUuids.map((uuid) =>
+              requestDeletePipelines(projectUuid, uuid)
+            )
+          );
+          requestFetchPipeline();
+        } catch (error) {
+          setAlert("Error", `Failed to delete pipeline: ${error}`);
+        }
+        setIsDeleting(false);
+      }
+    );
   };
 
   const onCloseEditPipelineModal = () => {
@@ -253,12 +291,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       }
     )
       .then((_) => {
-        fetchList(() => {
-          setState((prevState) => ({
-            ...prevState,
-            loading: false,
-          }));
-        });
+        requestFetchPipeline();
       })
       .catch((e) => {
         try {
@@ -274,12 +307,15 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       });
   };
 
+  // const [, setCounter] = React.useState(0);
+  // const forceRerender = () => setCounter((current) => current + 1);
+
+  // console.log("HEY");
+  // console.log(pathInputRef.current);
+
   const onEditClick = (uuid: string, path: string) => {
     setIsEditingPipelinePath(true);
-    setPipelineInEdit({
-      uuid,
-      path,
-    });
+    setPipelineInEdit({ uuid, path });
   };
 
   const onCreateClick = () => {
@@ -305,11 +341,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       return;
     }
 
-    setState((prevState) => ({
-      ...prevState,
-      loading: true,
-    }));
-
     let createPipelinePromise = makeCancelable(
       makeRequest("POST", `/async/pipelines/create/${projectUuid}`, {
         type: "json",
@@ -323,12 +354,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
     createPipelinePromise.promise
       .then((_) => {
-        fetchList(() => {
-          setState((prevState) => ({
-            ...prevState,
-            loading: false,
-          }));
-        });
+        requestFetchPipeline();
       })
       .catch((response) => {
         if (!response.isCanceled) {
@@ -339,11 +365,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           } catch {
             setAlert("Error", "Could not create pipeline. Reason unknown.");
           }
-
-          setState((prevState) => ({
-            ...prevState,
-            loading: false,
-          }));
         }
       })
       .finally(() => {
@@ -362,24 +383,16 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     setIsCreateDialogOpen(false);
     setState((prevState) => ({
       ...prevState,
-
       createPipelineName: INITIAL_PIPELINE_NAME,
       createPipelinePath: INITIAL_PIPELINE_PATH,
     }));
   };
 
-  React.useEffect(() => {
-    fetchList(() => {
-      setState((prevState) => ({
-        ...prevState,
-        loading: false,
-      }));
-    });
+  const columns = React.useMemo(() => getColumns(projectUuid, onEditClick), [
+    projectUuid,
+  ]);
 
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
-
-  return state.loading ? (
+  return !["RESOLVED", "REJECTED"].includes(status) ? (
     <div className={"pipelines-view"}>
       <h2>Pipelines</h2>
       <LinearProgress />
@@ -389,35 +402,36 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       <Dialog open={isCreateDialogOpen} onClose={onCloseCreatePipelineModal}>
         <DialogTitle>Create a new pipeline</DialogTitle>
         <DialogContent>
-          <>
-            <MDCTextFieldReact
-              classNames={["fullwidth push-down"]}
-              value={state.createPipelineName}
-              label="Pipeline name"
-              onChange={(value) => {
-                setState((prevState) => ({
-                  ...prevState,
-                  createPipelinePath:
-                    value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
-                  createPipelineName: value,
-                }));
-              }}
-              data-test-id="pipeline-name-textfield"
-            />
-            <MDCTextFieldReact
-              ref={refManager.nrefs.createPipelinePathField}
-              classNames={["fullwidth"]}
-              label="Pipeline path"
-              onChange={(value) => {
-                setState((prevState) => ({
-                  ...prevState,
-                  createPipelinePath: value,
-                }));
-              }}
-              value={state.createPipelinePath}
-              data-test-id="pipeline-path-textfield"
-            />
-          </>
+          <TextField
+            margin="normal"
+            fullWidth
+            value={state.createPipelineName}
+            label="Pipeline name"
+            onChange={(e) => {
+              const value = e.target.value;
+              setState((prevState) => ({
+                ...prevState,
+                createPipelinePath:
+                  value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
+                createPipelineName: value,
+              }));
+            }}
+            data-test-id="pipeline-name-textfield"
+          />
+          <TextField
+            margin="normal"
+            fullWidth
+            label="Pipeline path"
+            onChange={(e) => {
+              const value = e.target.value;
+              setState((prevState) => ({
+                ...prevState,
+                createPipelinePath: value,
+              }));
+            }}
+            value={state.createPipelinePath}
+            data-test-id="pipeline-path-textfield"
+          />
         </DialogContent>
         <DialogActions>
           <Button
@@ -438,25 +452,17 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Dialog
         open={isEditingPipelinePath && pipelineInEdit !== null}
         onClose={onCloseEditPipelineModal}
       >
         <DialogTitle>Edit pipeline path</DialogTitle>
         <DialogContent>
-          <MDCTextFieldReact
-            classNames={["fullwidth push-down"]}
+          <PipelinePathTextField
             value={pipelineInEdit?.path}
-            label="Pipeline path"
-            initialCursorPosition={pipelineInEdit?.path.indexOf(".orchest")}
-            onChange={(value) => {
-              setState((prevState) => ({
-                ...prevState,
-                editPipelinePath: value,
-              }));
+            onChange={(newPath) => {
+              setPipelineInEdit((current) => ({ ...current, path: newPath }));
             }}
-            data-test-id="pipeline-edit-path-textfield"
           />
         </DialogContent>
         <DialogActions>
@@ -479,7 +485,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
       <h2>Pipelines</h2>
       <div className="push-down">
         <Button
@@ -491,24 +496,15 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           Create pipeline
         </Button>
       </div>
-      <div className={"pipeline-actions push-down"}>
-        <MDCIconButtonToggleReact
-          icon="delete"
-          tooltipText="Delete pipeline"
-          disabled={state.isDeleting}
-          onClick={onDeleteClick}
-          data-test-id="pipeline-delete"
-        />
-      </div>
 
-      <MDCDataTableReact
-        ref={refManager.nrefs.pipelineListView}
+      <DataTable<PipelineRowData>
+        id="pipeline-list"
         selectable
-        onRowClick={onClickListItem}
-        classNames={["fullwidth"]}
-        headers={["Pipeline", "Path", "Session"]}
-        rows={state.listData}
-        data-test-id="pipelines-table"
+        hideSearch
+        columns={columns}
+        rows={pipelineRows}
+        onRowClick={onRowClick}
+        deleteSelectedRows={deletePipelines}
       />
     </div>
   );

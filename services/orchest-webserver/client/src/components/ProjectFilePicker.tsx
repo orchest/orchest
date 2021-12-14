@@ -1,13 +1,12 @@
 import { useAppContext } from "@/contexts/AppContext";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import {
-  MDCButtonReact,
-  MDCSelectReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import {
   absoluteToRelativePath,
   ALLOWED_STEP_EXTENSIONS,
@@ -300,20 +299,22 @@ const ProjectFilePicker: React.FC<any> = (props) => {
           </div>
         </DialogContent>
         <DialogActions>
-          <MDCButtonReact
-            icon="close"
-            label="Cancel"
-            classNames={["push-right"]}
+          <Button
+            startIcon={<CloseIcon />}
+            color="secondary"
             onClick={onCloseCreateFileModal}
-          />
-          <MDCButtonReact
-            icon="add"
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            label="Create file"
-            submitButton
+          >
+            Cancel
+          </Button>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            type="submit"
             onClick={onSubmitModal}
             data-test-id="project-file-picker-create-file"
-          />
+          >
+            Create file
+          </Button>
         </DialogActions>
       </Dialog>
       {state.cwd && state.tree && (

@@ -1,3 +1,4 @@
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -12,9 +13,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
-import Tooltip from "@mui/material/Tooltip";
 import {
   makeCancelable,
   makeRequest,
@@ -299,16 +298,12 @@ const FilePreviewView: React.FC = () => {
         ref={refManager.nrefs.fileViewer}
       >
         <div className="top-buttons">
-          <Tooltip title="refresh">
-            <IconButton onClick={loadFile}>
-              <RefreshIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="close">
-            <IconButton onClick={loadPipelineView}>
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
+          <IconButton title="refresh" onClick={loadFile}>
+            <RefreshIcon />
+          </IconButton>
+          <IconButton title="Close" onClick={loadPipelineView}>
+            <CloseIcon />
+          </IconButton>
         </div>
 
         {(() => {

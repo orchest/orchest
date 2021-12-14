@@ -6,9 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
-import Tooltip from "@mui/material/Tooltip";
 import { MDCDataTableReact } from "@orchest/lib-mdc";
 import {
   LANGUAGE_MAP,
@@ -18,6 +16,7 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import * as React from "react";
+import { IconButton } from "./common/IconButton";
 
 export interface IEnvironmentListProps {
   projectUuid: string;
@@ -345,16 +344,15 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
           <Box
             sx={{ marginLeft: (theme) => theme.spacing(0.5), marginBottom: 3 }}
           >
-            <Tooltip title="Delete environment">
-              <IconButton
-                color="secondary"
-                disabled={state.isDeleting}
-                onClick={onDeleteClick}
-                data-test-id="environments-delete"
-              >
-                <DeleteIcon />
-              </IconButton>
-            </Tooltip>
+            <IconButton
+              title="Delete environment"
+              color="secondary"
+              disabled={state.isDeleting}
+              onClick={onDeleteClick}
+              data-test-id="environments-delete"
+            >
+              <DeleteIcon />
+            </IconButton>
           </Box>
           <MDCDataTableReact
             ref={refManager.nrefs.environmentListView}

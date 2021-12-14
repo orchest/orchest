@@ -2,10 +2,9 @@ import { isValidEnvironmentVariableName } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Button from "@mui/material/Button";
-import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import React from "react";
+import { IconButton } from "./common/IconButton";
 
 export interface IEnvVarListProps {
   value?: { name: string | null; value: string | null }[];
@@ -53,11 +52,12 @@ export const EnvVarList: React.FC<IEnvVarListProps> = (props) => {
                 }
               />
               {!props.readOnly && (
-                <Tooltip title="Delete entry">
-                  <IconButton onClick={() => props.onDelete(idx)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
+                <IconButton
+                  title="Delete entry"
+                  onClick={() => props.onDelete(idx)}
+                >
+                  <DeleteIcon />
+                </IconButton>
               )}
             </li>
           );

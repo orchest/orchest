@@ -54,7 +54,7 @@ const createColumns = ({
           alignItems="center"
           component="span"
           sx={{
-            marginRight: 2,
+            display: "inline-flex",
             svg: { visibility: "hidden" },
             "&:hover": {
               color: (theme) => darken(theme.palette.primary.main, 0.15),
@@ -71,7 +71,7 @@ const createColumns = ({
           <EditIcon
             sx={{
               width: (theme) => theme.spacing(2),
-              marginLeft: (theme) => theme.spacing(0.5),
+              marginLeft: (theme) => theme.spacing(1),
             }}
             color="primary"
           />

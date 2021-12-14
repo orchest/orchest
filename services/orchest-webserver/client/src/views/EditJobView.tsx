@@ -1,5 +1,6 @@
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
+import { DataTable, DataTableColumn } from "@/components/DataTable";
 import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
@@ -32,6 +33,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
@@ -43,6 +45,10 @@ import {
 import parser from "cron-parser";
 import _ from "lodash";
 import React, { useState } from "react";
+
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(3, 1),
+}));
 
 type EditJobState = {
   generatedPipelineRuns: any[];
@@ -56,6 +62,37 @@ type EditJobState = {
 const DEFAULT_CRON_STRING = "* * * * *";
 
 type ScheduleOption = "now" | "cron" | "scheduled";
+
+// TODO: should be converted to map/reduce style
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+function recursivelyGenerate(params: Json, accum: any[], unpacked: any[]) {
+  // deep clone unpacked
+  unpacked = JSON.parse(JSON.stringify(unpacked));
+
+  for (const fullParam in params) {
+    if (unpacked.indexOf(fullParam) === -1) {
+      unpacked.push(fullParam);
+
+      for (const idx in params[fullParam]) {
+        // deep clone params
+        let localParams = JSON.parse(JSON.stringify(params));
+
+        // collapse param list to paramValue
+        localParams[fullParam] = params[fullParam][idx];
+
+        recursivelyGenerate(localParams, accum, unpacked);
+      }
+      return;
+    }
+  }
+
+  accum.push(params);
+}
+
+type PipelineRun = { uuid: string; spec: string };
+const columns: DataTableColumn<PipelineRun>[] = [
+  { id: "spec", label: "Run specification" },
+];
 
 const EditJobView: React.FC = () => {
   // global states
@@ -81,6 +118,8 @@ const EditJobView: React.FC = () => {
   );
 
   const [tabIndex, setTabIndex] = React.useState(0);
+
+  const [pipelineRuns, setPipelineRuns] = React.useState<PipelineRun[]>([]);
 
   const [state, setState] = React.useState<EditJobState>({
     generatedPipelineRuns: [],
@@ -166,6 +205,7 @@ const EditJobView: React.FC = () => {
           generatedPipelineRuns,
           generatedPipelineRunRows,
           selectedIndices,
+          newRows,
         ] = generateWithStrategy(strategyJSON);
 
         // Account for the fact that a job might have a list of
@@ -178,6 +218,13 @@ const EditJobView: React.FC = () => {
             generatedPipelineRuns
           );
         }
+
+        setPipelineRuns(
+          newRows.map((entry, index) => ({
+            uuid: index.toString(),
+            spec: entry,
+          }))
+        );
 
         setState((prevState) => ({
           ...prevState,
@@ -299,58 +346,55 @@ const EditJobView: React.FC = () => {
       }
     }
 
-    let recursivelyGenerate = function (params, accum, unpacked) {
-      // deep clone unpacked
-      unpacked = JSON.parse(JSON.stringify(unpacked));
-
-      for (const fullParam in params) {
-        if (unpacked.indexOf(fullParam) === -1) {
-          unpacked.push(fullParam);
-
-          for (const idx in params[fullParam]) {
-            // deep clone params
-            let localParams = JSON.parse(JSON.stringify(params));
-
-            // collapse param list to paramValue
-            localParams[fullParam] = params[fullParam][idx];
-
-            recursivelyGenerate(localParams, accum, unpacked);
-          }
-          return;
-        }
-      }
-
-      accum.push(params);
-    };
-
-    let generatedPipelineRuns = [];
+    let generatedPipelineRuns: Record<string, any>[] = [];
 
     recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
 
     // transform pipelineRuns for generatedPipelineRunRows DataTable format
-    let generatedPipelineRunRows = [];
-
-    for (let idx in generatedPipelineRuns) {
-      let params = generatedPipelineRuns[idx];
-
-      let pipelineRunRow = [];
-
-      for (let fullParam in params) {
-        let paramName = fullParam.split("#").slice(1).join("");
-        pipelineRunRow.push(
-          paramName + ": " + JSON.stringify(params[fullParam])
+    const generatedPipelineRunRows = generatedPipelineRuns.map(
+      (params: Record<string, any>) => {
+        let pipelineRunRow = Object.entries(params).map(
+          ([fullParam, value]) => {
+            // pipeline_parameters#something: "some-value"
+            let paramName = fullParam.split("#").slice(1);
+            return `${paramName}: ${JSON.stringify(value)}`;
+          }
         );
+
+        if (pipelineRunRow.length > 0) {
+          return [pipelineRunRow.join(", ")];
+        } else {
+          return [<i>Parameterless run</i>]; // eslint-disable-line react/jsx-key
+        }
       }
-      if (pipelineRunRow.length > 0) {
-        generatedPipelineRunRows.push([pipelineRunRow.join(", ")]);
-      } else {
-        generatedPipelineRunRows.push([<i>Parameterless run</i>]); // eslint-disable-line react/jsx-key
+    );
+
+    const newRows: string[] = generatedPipelineRuns.map(
+      (params: Record<string, any>) => {
+        let pipelineRunRow = Object.entries(params).map(
+          ([fullParam, value]) => {
+            // pipeline_parameters#something: "some-value"
+            let paramName = fullParam.split("#").slice(1);
+            return `${paramName}: ${JSON.stringify(value)}`;
+          }
+        );
+
+        if (pipelineRunRow.length > 0) {
+          return pipelineRunRow.join(", ");
+        } else {
+          return `Parameterless run`; // eslint-disable-line react/jsx-key
+        }
       }
-    }
+    );
 
     let selectedIndices = Array(generatedPipelineRunRows.length).fill(1);
 
-    return [generatedPipelineRuns, generatedPipelineRunRows, selectedIndices];
+    return [
+      generatedPipelineRuns,
+      generatedPipelineRunRows,
+      selectedIndices,
+      newRows,
+    ];
   };
 
   const validateJobConfig = () => {
@@ -785,12 +829,7 @@ const EditJobView: React.FC = () => {
                 />
               ))}
             </Tabs>
-            <TabPanel
-              value={tabIndex}
-              index={0}
-              name="scheduling"
-              sx={{ padding: (theme) => theme.spacing(3, 1) }}
-            >
+            <CustomTabPanel value={tabIndex} index={0} name="scheduling">
               {job.status === "DRAFT" && (
                 <FormControl
                   component="fieldset"
@@ -846,13 +885,8 @@ const EditJobView: React.FC = () => {
                   dataTestId="job-edit-schedule-cronjob-input"
                 />
               )}
-            </TabPanel>
-            <TabPanel
-              value={tabIndex}
-              index={1}
-              name="parameters"
-              sx={{ padding: (theme) => theme.spacing(3, 1) }}
-            >
+            </CustomTabPanel>
+            <CustomTabPanel value={tabIndex} index={1} name="parameters">
               <ParameterEditor
                 pipelineName={pipeline.name}
                 onParameterChange={(strategyJSON) => {
@@ -874,13 +908,8 @@ const EditJobView: React.FC = () => {
                 strategyJSON={_.cloneDeep(state.strategyJSON)}
                 data-test-id="job-edit"
               />
-            </TabPanel>
-            <TabPanel
-              value={tabIndex}
-              index={2}
-              name="env-variables"
-              sx={{ padding: (theme) => theme.spacing(3, 1) }}
-            >
+            </CustomTabPanel>
+            <CustomTabPanel value={tabIndex} index={2} name="env-variables">
               <p className="push-down">
                 Override any project or pipeline environment variables here.
               </p>
@@ -891,13 +920,8 @@ const EditJobView: React.FC = () => {
                 onDelete={(idx) => onEnvVariablesDeletion(idx)}
                 data-test-id="job-edit"
               />
-            </TabPanel>
-            <TabPanel
-              value={tabIndex}
-              index={3}
-              name="runs"
-              sx={{ padding: (theme) => theme.spacing(3, 1) }}
-            >
+            </CustomTabPanel>
+            <CustomTabPanel value={tabIndex} index={3} name="runs">
               <div className="pipeline-tab-view pipeline-runs">
                 <SearchableTable
                   selectable={true}
@@ -911,8 +935,14 @@ const EditJobView: React.FC = () => {
                   onSelectionChanged={onPipelineRunsSelectionChanged}
                   data-test-id="job-edit-pipeline-runs"
                 />
+                <DataTable<PipelineRun>
+                  id="job-edit-pipeline-runs"
+                  columns={columns}
+                  rows={pipelineRuns}
+                  data-test-id="job-edit-pipeline-runs"
+                />
               </div>
-            </TabPanel>
+            </CustomTabPanel>
             <Stack direction="row" spacing={2}>
               {job.status === "DRAFT" && (
                 <Button
@@ -938,6 +968,7 @@ const EditJobView: React.FC = () => {
               <Button
                 onClick={cancel}
                 startIcon={<CloseIcon />}
+                color="secondary"
                 data-test-id="update-job"
               >
                 Cancel

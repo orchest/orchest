@@ -5,11 +5,11 @@ import {
   useAppContext,
 } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import { hasValue, typedIncludes } from "@orchest/lib-utils";
 import React from "react";
 
@@ -70,13 +70,14 @@ export const SystemDialog: React.FC = () => {
       <DialogTitle>{promptMessage.title || "Error"}</DialogTitle>
       <DialogContent>{promptMessage.content}</DialogContent>
       <DialogActions>
-        {isCancellable && <MDCButtonReact label="Cancel" onClick={cancel} />}
-        <MDCButtonReact
-          classNames={["mdc-button--raised", "themed-secondary"]}
-          submitButton
-          label="Confirm"
-          onClick={confirm}
-        />
+        {isCancellable && (
+          <Button color="secondary" onClick={cancel}>
+            Cancel
+          </Button>
+        )}
+        <Button type="submit" onClick={confirm}>
+          Confirm
+        </Button>
       </DialogActions>
     </Dialog>
   );

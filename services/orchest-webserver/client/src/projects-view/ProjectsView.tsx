@@ -1,3 +1,4 @@
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -7,6 +8,9 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
+import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import SettingsIcon from "@mui/icons-material/Settings";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -15,7 +19,6 @@ import LinearProgress from "@mui/material/LinearProgress";
 import {
   MDCButtonReact,
   MDCDataTableReact,
-  MDCIconButtonToggleReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
@@ -126,12 +129,13 @@ const ProjectsView: React.FC = () => {
       <span key="toggle-row" className="mdc-icon-table-wrapper">
         {project.path}{" "}
         <span className="consume-click">
-          <MDCIconButtonToggleReact
-            icon="edit"
+          <IconButton
             onClick={() => {
               onEditProjectName(project.uuid, project.path);
             }}
-          />
+          >
+            <EditIcon />
+          </IconButton>
         </span>
       </span>,
       <span key="pipeline-count">{project.pipeline_count}</span>,
@@ -139,13 +143,13 @@ const ProjectsView: React.FC = () => {
       <span key="job-count">{project.job_count}</span>,
       <span key="env-count">{project.environment_count}</span>,
       <span key="setting" className="consume-click">
-        <MDCIconButtonToggleReact
-          icon={"settings"}
-          onClick={() => {
-            openSettings(project);
-          }}
+        <IconButton
+          title="settings"
+          onClick={() => openSettings(project)}
           data-test-id={`settings-button-${project.path}`}
-        />
+        >
+          <SettingsIcon />
+        </IconButton>
       </span>,
     ]);
   };
@@ -513,13 +517,14 @@ const ProjectsView: React.FC = () => {
               />
             </div>
             <div className={"pipeline-actions push-down"}>
-              <MDCIconButtonToggleReact
-                icon="delete"
+              <IconButton
+                title="Delete project"
                 disabled={state.isDeleting}
-                tooltipText="Delete project"
                 onClick={onDeleteClick}
                 data-test-id="delete-project"
-              />
+              >
+                <DeleteIcon />
+              </IconButton>
             </div>
             <MDCDataTableReact
               ref={refManager.nrefs.projectListView}

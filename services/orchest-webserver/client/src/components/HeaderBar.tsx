@@ -10,20 +10,19 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ScienceIcon from "@mui/icons-material/Science";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
-import IconButton from "@mui/material/IconButton";
-import Tooltip from "@mui/material/Tooltip";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
+import { IconButton } from "./common/IconButton";
 import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
-// HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
-export type THeaderBarRef = HTMLDivElement;
-
-export const HeaderBar = (
-  { toggleDrawer }: { toggleDrawer: () => void },
-  ref: React.MutableRefObject<null>
-) => {
+export const HeaderBar = ({
+  toggleDrawer,
+  isDrawerOpen,
+}: {
+  toggleDrawer: () => void;
+  isDrawerOpen: boolean;
+}) => {
   const { navigateTo } = useCustomRoute();
   const { state } = useProjectsContext();
   const appContext = useAppContext();
@@ -72,9 +71,10 @@ export const HeaderBar = (
   };
 
   return (
-    <header className="header-bar" ref={ref}>
+    <header className="header-bar">
       <div className="header-bar-left">
         <IconButton
+          title={`${isDrawerOpen ? "Close" : "Open"} navigation`}
           onClick={(e) => {
             e.preventDefault();
             toggleDrawer();
@@ -140,20 +140,16 @@ export const HeaderBar = (
           </Button>
         )}
         {appContext.state.user_config?.AUTH_ENABLED && (
-          <Tooltip title="Logout">
-            <IconButton onClick={logoutHandler} color="secondary">
-              <LogoutIcon />
-            </IconButton>
-          </Tooltip>
-        )}
-        <Tooltip title="Help">
-          <IconButton onClick={showHelp} color="secondary">
-            <HelpIcon />
+          <IconButton title="Logout" onClick={logoutHandler} color="secondary">
+            <LogoutIcon />
           </IconButton>
-        </Tooltip>
+        )}
+        <IconButton title="Help" onClick={showHelp} color="secondary">
+          <HelpIcon />
+        </IconButton>
       </div>
     </header>
   );
 };
 
-export default React.forwardRef(HeaderBar);
+export default HeaderBar;

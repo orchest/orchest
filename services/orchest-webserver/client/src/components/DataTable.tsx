@@ -1,9 +1,8 @@
 import { useDebounce } from "@/hooks/useDebounce";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
-import Box from "@mui/material/Box";
+import Box, { BoxProps } from "@mui/material/Box";
 import Checkbox from "@mui/material/Checkbox";
-import IconButton from "@mui/material/IconButton";
 import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -16,10 +15,10 @@ import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
 import React from "react";
+import { IconButton } from "./common/IconButton";
 
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
@@ -175,8 +174,8 @@ type DataTableProps<T> = {
   onRowClick?: (uuid: string) => void;
   rowHeight?: number;
   debounceTime?: number;
-  [key: string]: any;
-};
+  hideSearch?: boolean;
+} & BoxProps;
 
 export function renderCell<T>(
   column: DataTableColumn<T>,
@@ -185,6 +184,7 @@ export function renderCell<T>(
   return column.render ? column.render(row) : row[column.id];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTable = <T extends Record<string, any>>({
   id,
   columns,
@@ -196,6 +196,7 @@ export const DataTable = <T extends Record<string, any>>({
   selectable = false,
   rowHeight = 57,
   debounceTime = 250,
+  hideSearch,
   ...props
 }: DataTableProps<T>) => {
   const [searchTerm, setSearchTerm] = React.useState("");
@@ -227,7 +228,7 @@ export const DataTable = <T extends Record<string, any>>({
               .includes(debouncedSearchTerm.toLowerCase());
           });
         });
-  }, [sortedRows, debouncedSearchTerm]);
+  }, [sortedRows, debouncedSearchTerm, columns]);
 
   React.useEffect(() => {
     setSelected((currentSelected) => {
@@ -314,17 +315,19 @@ export const DataTable = <T extends Record<string, any>>({
 
   return (
     <Box sx={{ width: "100%" }} {...props}>
-      <Search>
-        <SearchIconWrapper>
-          <SearchIcon />
-        </SearchIconWrapper>
-        <StyledInputBase
-          placeholder="Search"
-          inputProps={{ "aria-label": "search" }}
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </Search>
+      {!hideSearch && (
+        <Search>
+          <SearchIconWrapper>
+            <SearchIcon />
+          </SearchIconWrapper>
+          <StyledInputBase
+            placeholder="Search"
+            inputProps={{ "aria-label": "search" }}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </Search>
+      )}
       <Paper sx={{ width: "100%", mb: 2 }}>
         <TableContainer>
           <Table
@@ -419,11 +422,9 @@ export const DataTable = <T extends Record<string, any>>({
                 {selected.length > 0 ? `${selected.length} selected` : ""}
               </Typography>
               {deleteSelectedRows && (
-                <Tooltip title="Delete">
-                  <IconButton onClick={handleDeleteSelectedRows}>
-                    <DeleteIcon />
-                  </IconButton>
-                </Tooltip>
+                <IconButton title="Delete" onClick={handleDeleteSelectedRows}>
+                  <DeleteIcon />
+                </IconButton>
               )}
             </Stack>
           )}

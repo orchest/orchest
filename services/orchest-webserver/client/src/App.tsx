@@ -12,7 +12,6 @@ import MainDrawer from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
 import Jupyter from "./jupyter/Jupyter";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -41,8 +40,6 @@ const App = () => {
   const { setConfirm } = useAppContext();
 
   const toggleDrawer = () => setIsDrawerOpen((currentValue) => !currentValue);
-
-  const sendEvent = useSendAnalyticEvent();
 
   // load server side config populated by flask template
   const {
@@ -101,7 +98,7 @@ const App = () => {
       }}
     >
       <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
-      <HeaderBar toggleDrawer={toggleDrawer} />
+      <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
       <div className="app-container" data-test-id="app">
         <MainDrawer isOpen={isDrawerOpen} />
         <main className="main-content" id="main-content">

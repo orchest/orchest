@@ -1,4 +1,5 @@
 import { Code } from "@/components/common/Code";
+import { IconButton } from "@/components/common/IconButton";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
@@ -20,6 +21,7 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
@@ -39,7 +41,6 @@ import {
   MDCButtonReact,
   MDCCheckboxReact,
   MDCDataTableReact,
-  MDCIconButtonToggleReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
@@ -972,8 +973,8 @@ const PipelineSettingsView: React.FC = () => {
                           .sort()
                           .join(", "),
                         <div className="consume-click" key={service.name}>
-                          <MDCIconButtonToggleReact
-                            icon="delete"
+                          <IconButton
+                            title="Delete"
                             disabled={isReadOnly}
                             onClick={() => {
                               setConfirm(
@@ -986,7 +987,9 @@ const PipelineSettingsView: React.FC = () => {
                                 }
                               );
                             }}
-                          />
+                          >
+                            <DeleteIcon />
+                          </IconButton>
                         </div>,
                       ])}
                     detailRows={Object.keys(state.pipelineJson.services)
@@ -995,21 +998,23 @@ const PipelineSettingsView: React.FC = () => {
                           state.pipelineJson.services[serviceName]
                       )
                       .sort((a, b) => a.order - b.order)
-                      .map((service, i) => (
-                        <ServiceForm
-                          key={["ServiceForm", i].join("-")}
-                          service={service}
-                          disabled={isReadOnly}
-                          updateService={onChangeService}
-                          nameChangeService={nameChangeService}
-                          pipeline_uuid={pipelineUuid}
-                          project_uuid={projectUuid}
-                          run_uuid={runUuid}
-                        />
-                      ))}
+                      .map((service, i) => {
+                        return null;
+                        return (
+                          <ServiceForm
+                            key={["ServiceForm", i].join("-")}
+                            service={service}
+                            disabled={isReadOnly}
+                            updateService={onChangeService}
+                            nameChangeService={nameChangeService}
+                            pipeline_uuid={pipelineUuid}
+                            project_uuid={projectUuid}
+                            run_uuid={runUuid}
+                          />
+                        );
+                      })}
                     data-test-id="pipeline-services"
                   />
-
                   <Alert status="info">
                     <AlertHeader>
                       <IconLightBulbOutline />
@@ -1026,7 +1031,6 @@ const PipelineSettingsView: React.FC = () => {
                       about how to expand your pipeline’s capabilities.
                     </AlertDescription>
                   </Alert>
-
                   {!isReadOnly && (
                     <ServiceTemplatesDialog
                       onSelection={(template) =>
@@ -1037,7 +1041,6 @@ const PipelineSettingsView: React.FC = () => {
                 </Box>
               </CustomTabPanel>
             </div>
-
             <div className="top-buttons">
               <MDCButtonReact
                 classNames={["close-button"]}
