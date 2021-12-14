@@ -1,4 +1,4 @@
-import { Json } from "@/types";
+import { StrategyJson } from "@/types";
 import Alert from "@mui/material/Alert";
 import Typography from "@mui/material/Typography";
 import "codemirror/mode/javascript/javascript";
@@ -7,14 +7,16 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
 
 interface IParameterEditorProps {
-  strategyJSON: Json;
+  strategyJSON: StrategyJson;
   pipelineName: string;
   readOnly?: boolean;
-  onParameterChange?: (value: Json) => void;
+  onParameterChange?: (
+    value: Record<string, { parameters: Record<string, string> }>
+  ) => void;
 }
 
 const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
-  const [strategyJSON, setStrategyJson] = React.useState<Json>(
+  const [strategyJSON, setStrategyJson] = React.useState<StrategyJson>(
     props.strategyJSON
   );
   const [activeParameter, setActiveParameter] = React.useState<{
@@ -75,7 +77,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
               />
               {(() => {
                 try {
-                  JSON.parse(codeMirrorValue);
+                  if (codeMirrorValue) JSON.parse(codeMirrorValue);
                 } catch {
                   return (
                     <Alert

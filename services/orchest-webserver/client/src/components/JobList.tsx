@@ -7,6 +7,7 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -16,12 +17,14 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import { darken } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import {
   fetcher,
   makeCancelable,
@@ -138,6 +141,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const onCreateClick = () => {
     if (pipelines !== undefined && pipelines.length > 0) {
       setIsCreateDialogOpen(true);
+      setSelectedPipeline(pipelines[0].uuid);
       setJobName("");
     } else {
       setAlert("Error", "Could not find any pipelines for this project.");
@@ -343,6 +347,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             margin="normal"
             value={jobName}
             label="Job name"
+            autoFocus
             onChange={(e) => setJobName(e.target.value)}
             data-test-id="job-edit-name-textfield"
           />
@@ -381,32 +386,34 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             fullWidth
             maxWidth="xs"
           >
-            <DialogTitle>Create a new job</DialogTitle>
-            <DialogContent>
-              <form
-                id="create-job"
-                className="create-job-modal"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
+            <form
+              id="create-job"
+              className="create-job-modal"
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
 
-                  if (jobName.length === 0) {
-                    setAlert("Error", "Please enter a name for your job.");
-                    return;
-                  }
+                if (jobName.length === 0) {
+                  setAlert("Error", "Please enter a name for your job.");
+                  return;
+                }
 
-                  if (!selectedPipeline) {
-                    setAlert("Error", "Please choose a pipeline.");
-                    return;
-                  }
+                if (!selectedPipeline) {
+                  setAlert("Error", "Please choose a pipeline.");
+                  return;
+                }
 
-                  createJob(jobName, selectedPipeline);
-                }}
-              >
+                createJob(jobName, selectedPipeline);
+              }}
+            >
+              <DialogTitle>Create a new job</DialogTitle>
+              <DialogContent>
                 {isCreatingJob ? (
-                  <Box sx={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}>
+                  <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
                     <LinearProgress />
-                    <p>Copying pipeline directory...</p>
+                    <Typography sx={{ margin: (theme) => theme.spacing(1, 0) }}>
+                      Copying pipeline directory...
+                    </Typography>
                   </Box>
                 ) : (
                   <>
@@ -420,58 +427,67 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                         .
                       </div>
                     )}
-
-                    <FormControl fullWidth>
-                      <TextField
-                        margin="normal"
-                        value={jobName}
-                        onChange={(e) => setJobName(e.target.value)}
-                        label="Job name"
-                        data-test-id="job-create-name"
-                      />
-                    </FormControl>
-
-                    <FormControl fullWidth>
-                      <InputLabel id="select-pipeline-label">
-                        Pipeline
-                      </InputLabel>
-                      <Select
-                        labelId="select-pipeline-label"
-                        id="select-pipeline"
-                        value={selectedPipeline}
-                        label="Pipeline"
-                        onChange={(e) => {
-                          setSelectedPipeline(e.target.value);
-                        }}
-                      >
-                        {pipelines.map((pipeline) => {
-                          return (
-                            <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
-                              {pipeline.name}
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
+                    <Stack direction="column" spacing={2}>
+                      {projectSnapshotSize > 50 && (
+                        <Alert severity="warning">
+                          {`Snapshot size exceeds 50MB. Please refer to the `}
+                          <Link href="https://docs.orchest.io/en/latest/user_guide/jobs.html">
+                            docs
+                          </Link>
+                          .
+                        </Alert>
+                      )}
+                      <FormControl fullWidth>
+                        <TextField
+                          margin="normal"
+                          value={jobName}
+                          autoFocus
+                          onChange={(e) => setJobName(e.target.value)}
+                          label="Job name"
+                          data-test-id="job-create-name"
+                        />
+                      </FormControl>
+                      <FormControl fullWidth>
+                        <InputLabel id="select-pipeline-label">
+                          Pipeline
+                        </InputLabel>
+                        <Select
+                          labelId="select-pipeline-label"
+                          id="select-pipeline"
+                          value={selectedPipeline}
+                          label="Pipeline"
+                          onChange={(e) => setSelectedPipeline(e.target.value)}
+                        >
+                          {pipelines.map((pipeline) => {
+                            return (
+                              <MenuItem
+                                key={pipeline.uuid}
+                                value={pipeline.uuid}
+                              >
+                                {pipeline.name}
+                              </MenuItem>
+                            );
+                          })}
+                        </Select>
+                      </FormControl>
+                    </Stack>
                   </>
                 )}
-              </form>
-            </DialogContent>
-            <DialogActions>
-              <Button startIcon={<CloseIcon />} onClick={closeCreateDialog}>
-                Cancel
-              </Button>
-              <Button
-                disabled={isCreatingJob}
-                startIcon={<AddIcon />}
-                variant="contained"
-                type="submit"
-                form="create-job"
-                data-test-id="job-create-ok"
-              >
-                Create job
-              </Button>
-            </DialogActions>
+              </DialogContent>
+              <DialogActions>
+                <Button color="secondary" onClick={closeCreateDialog}>
+                  Cancel
+                </Button>
+                <Button
+                  disabled={isCreatingJob}
+                  type="submit"
+                  form="create-job"
+                  data-test-id="job-create-ok"
+                >
+                  Create
+                </Button>
+              </DialogActions>
+            </form>
           </Dialog>
           <DataTable<DisplayedJob>
             id="job-list"

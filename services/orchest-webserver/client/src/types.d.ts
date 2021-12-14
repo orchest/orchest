@@ -1,5 +1,14 @@
 import React from "react";
+import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | Json[]
+  | { [key: string]: Json };
 
 type CommonColorScales =
   | "50"
@@ -197,6 +206,11 @@ export type PipelineRun = {
   uuid: string;
 };
 
+export type StrategyJson = Record<
+  string,
+  { parameters: Record<string, string> }
+>;
+
 export type Job = {
   created_time: string;
   env_variables: Record<string, string>;
@@ -232,7 +246,7 @@ export type Job = {
   project_uuid: string;
   schedule: string;
   status: JobStatus;
-  strategy_json: Record<string, unknown>;
+  strategy_json: StrategyJson;
   total_scheduled_executions: number;
   uuid: string;
 };

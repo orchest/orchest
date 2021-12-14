@@ -1,4 +1,5 @@
 import { useDebounce } from "@/hooks/useDebounce";
+import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import Box, { BoxProps } from "@mui/material/Box";
@@ -167,6 +168,9 @@ type DataTableProps<T> = {
   columns: DataTableColumn<T>[];
   rows: DataTableRow<T>[];
   id: string;
+  initialSelectedRows?: string[];
+  selectedRows?: string[];
+  onChangeSelection?: (rowUuids: string[]) => void;
   selectable?: boolean;
   initialOrderBy?: keyof T;
   initialOrder?: Order;
@@ -197,16 +201,34 @@ export const DataTable = <T extends Record<string, any>>({
   rowHeight = 57,
   debounceTime = 250,
   hideSearch,
+  initialSelectedRows = [],
+  selectedRows,
+  onChangeSelection,
   ...props
 }: DataTableProps<T>) => {
+  const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, debounceTime);
   const [order, setOrder] = React.useState<Order>(initialOrder || "asc");
   const [orderBy, setOrderBy] = React.useState<keyof T | "">(
     initialOrderBy || ""
   );
-  const [selected, setSelected] = React.useState<string[]>([]);
+
+  const [_selected, _setSelected] = React.useState<string[]>(
+    initialSelectedRows
+  );
   const [page, setPage] = React.useState(0);
+
+  const selected = selectedRows || _selected;
+  const setSelected = (
+    action: string[] | ((current: string[]) => string[])
+  ) => {
+    _setSelected((current) => {
+      const value = action instanceof Function ? action(current) : action;
+      if (onChangeSelection && mounted) onChangeSelection(value);
+      return value;
+    });
+  };
 
   const [rowsPerPage, setRowsPerPage] = React.useState<number>(10);
 
