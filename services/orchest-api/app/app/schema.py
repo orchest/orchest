@@ -186,7 +186,7 @@ session_config = Model(
         "host_userdir": fields.String(
             required=True, description="Host path to userdir"
         ),
-        "services": services,
+        "services": fields.Nested(services),
     },
 )
 
