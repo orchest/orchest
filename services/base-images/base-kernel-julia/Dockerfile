@@ -1,5 +1,5 @@
 # Ubuntu 18.04.1 LTS Bionic
-FROM orchest/kernel-julia:2.3.0
+FROM orchest/kernel-julia:2.5.2
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # --------------------------------------------------
