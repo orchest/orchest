@@ -18,7 +18,7 @@ jobs:
 
       - name: Close linked issues
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
           PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           python scripts/close_associated_issues.py
