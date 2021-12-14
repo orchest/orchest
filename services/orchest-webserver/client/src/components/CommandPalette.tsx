@@ -389,12 +389,7 @@ const CommandPalette: React.FC = () => {
   };
 
   React.useEffect(() => {
-    // Load cache on page load
-    refreshCache();
-
-    return () => {
-      disableCommandMode();
-    };
+    return () => disableCommandMode();
   }, []);
 
   React.useEffect(() => {
@@ -423,7 +418,8 @@ const CommandPalette: React.FC = () => {
           }}
         >
           <TextField
-            sx={{ width: "100%" }}
+            fullWidth
+            color="secondary"
             onChange={onQueryChange}
             value={query}
             autoFocus
