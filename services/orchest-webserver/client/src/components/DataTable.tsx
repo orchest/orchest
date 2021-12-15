@@ -4,6 +4,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SearchIcon from "@mui/icons-material/Search";
 import Box, { BoxProps } from "@mui/material/Box";
 import Checkbox from "@mui/material/Checkbox";
+import Collapse from "@mui/material/Collapse";
 import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
@@ -94,6 +95,7 @@ export type DataTableRow<T> = T & {
   // in case you're rendering something totally different from the data
   // provide a searchIndex for matching user's search term
   searchIndex?: string;
+  details?: React.ReactNode;
 };
 
 type EnhancedTableProps<T> = {
@@ -170,6 +172,9 @@ type DataTableProps<T> = {
   id: string;
   initialSelectedRows?: string[];
   selectedRows?: string[];
+  setSelectedRows?: (
+    action: string[] | ((current: string[]) => string[])
+  ) => void;
   onChangeSelection?: (rowUuids: string[]) => void;
   selectable?: boolean;
   initialOrderBy?: keyof T;
@@ -188,6 +193,89 @@ export function renderCell<T>(
   return column.render ? column.render(row) : row[column.id];
 }
 
+function Row<T>({
+  columns,
+  data,
+  isSelected,
+  selectable,
+  onRowClick,
+  onClickCheckbox,
+}: {
+  columns: DataTableColumn<T>[];
+  data: DataTableRow<T>;
+
+  onClickCheckbox: (
+    e: React.MouseEvent<HTMLButtonElement>,
+    uuid: string
+  ) => void;
+  isSelected: boolean;
+  selectable: boolean;
+  onRowClick?: (e: React.MouseEvent<unknown>, uuid: string) => void;
+}) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const handleClickRow = (e: React.MouseEvent<unknown>) => {
+    setIsOpen((current) => !current);
+    onRowClick(e, data.uuid);
+  };
+
+  const labelId = `checkbox-${data.uuid}`;
+
+  return (
+    <>
+      <TableRow
+        hover
+        onClick={(e) => handleClickRow(e)}
+        role="checkbox"
+        aria-checked={isSelected}
+        tabIndex={-1}
+        key={data.uuid}
+        selected={isSelected}
+        sx={selectable || onRowClick ? { cursor: "pointer" } : null}
+      >
+        {selectable && (
+          <TableCell padding="checkbox">
+            <Checkbox
+              color="primary"
+              checked={isSelected}
+              onClick={(e) => onClickCheckbox(e, data.uuid)}
+              inputProps={{ "aria-labelledby": labelId }}
+            />
+          </TableCell>
+        )}
+        <TableCell component="th" id={labelId} scope="row">
+          {renderCell(columns[0], data)}
+        </TableCell>
+        {columns.slice(1).map((column) => {
+          const cellValue = data[column.id];
+          return (
+            <TableCell
+              key={column.id.toString()}
+              align={
+                column.align ||
+                (typeof cellValue === "number" ? "right" : "left")
+              }
+            >
+              {renderCell(column, data)}
+            </TableCell>
+          );
+        })}
+      </TableRow>
+      {data.details && (
+        <TableRow>
+          <TableCell
+            style={{ paddingBottom: 0, paddingTop: 0 }}
+            colSpan={selectable ? columns.length + 1 : columns.length}
+          >
+            <Collapse in={isOpen} timeout="auto" unmountOnExit>
+              {data.details}
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      )}
+    </>
+  );
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTable = <T extends Record<string, any>>({
   id,
@@ -203,6 +291,7 @@ export const DataTable = <T extends Record<string, any>>({
   hideSearch,
   initialSelectedRows = [],
   selectedRows,
+  setSelectedRows,
   onChangeSelection,
   ...props
 }: DataTableProps<T>) => {
@@ -214,21 +303,23 @@ export const DataTable = <T extends Record<string, any>>({
     initialOrderBy || ""
   );
 
-  const [_selected, _setSelected] = React.useState<string[]>(
+  const [localSelected, setLocalSelected] = React.useState<string[]>(
     initialSelectedRows
   );
   const [page, setPage] = React.useState(0);
 
-  const selected = selectedRows || _selected;
-  const setSelected = (
-    action: string[] | ((current: string[]) => string[])
-  ) => {
-    _setSelected((current) => {
-      const value = action instanceof Function ? action(current) : action;
-      if (onChangeSelection && mounted) onChangeSelection(value);
-      return value;
-    });
-  };
+  const selected = selectedRows || localSelected;
+  const setSelected = React.useCallback(
+    (action: string[] | ((current: string[]) => string[])) => {
+      const dispatcher = setSelectedRows || setLocalSelected;
+      dispatcher((current) => {
+        const value = action instanceof Function ? action(current) : action;
+        if (onChangeSelection && mounted) onChangeSelection(value);
+        return value;
+      });
+    },
+    [mounted, setSelectedRows, onChangeSelection]
+  );
 
   const [rowsPerPage, setRowsPerPage] = React.useState<number>(10);
 
@@ -253,12 +344,15 @@ export const DataTable = <T extends Record<string, any>>({
   }, [sortedRows, debouncedSearchTerm, columns]);
 
   React.useEffect(() => {
-    setSelected((currentSelected) => {
-      return currentSelected.filter((selectedRowUuid) =>
-        rows.some((row) => row.uuid === selectedRowUuid)
-      );
-    });
-  }, [rows]);
+    if (mounted) {
+      setSelected((currentSelected) => {
+        return currentSelected.filter((selectedRowUuid) =>
+          rows.some((row) => row.uuid === selectedRowUuid)
+        );
+      });
+    }
+    // we only want to filter selected when row is updated
+  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -282,30 +376,19 @@ export const DataTable = <T extends Record<string, any>>({
     if (!selectable) return;
     // prevent firing handleClickRow
     e.stopPropagation();
-    setSelected((currentSelected) => {
-      const selectedIndex = currentSelected.indexOf(uuid);
 
-      if (selectedIndex === -1) return [...currentSelected, uuid];
-
-      if (selectedIndex === 0) return currentSelected.slice(1);
-
-      if (selectedIndex === selected.length - 1)
-        return currentSelected.slice(0, -1);
-
-      return [
-        ...selected.slice(0, selectedIndex),
-        ...selected.slice(selectedIndex + 1),
-      ];
+    setSelected((currentValue) => {
+      const isChecked = (e.target as HTMLInputElement).checked;
+      return isChecked
+        ? [...currentValue, uuid]
+        : currentValue.filter((checkedUuid) => checkedUuid !== uuid);
     });
   };
 
   const handleClickRow = (e: React.MouseEvent<unknown>, uuid: string) => {
-    // if onRowClick is not defined, select the row as default
     if (onRowClick) {
       e.preventDefault();
       onRowClick(uuid);
-    } else {
-      handleClickCheckbox(e, uuid);
     }
   };
 
@@ -332,8 +415,6 @@ export const DataTable = <T extends Record<string, any>>({
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
 
   const tableTitleId = `${id}-title`;
-
-  const head = columns[0];
 
   return (
     <Box sx={{ width: "100%" }} {...props}>
@@ -373,49 +454,18 @@ export const DataTable = <T extends Record<string, any>>({
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
-                  const labelId = `${id}-checkbox-${row.uuid}`;
+                  // const labelId = `${id}-checkbox-${row.uuid}`;
 
                   return (
-                    <TableRow
-                      hover
-                      onClick={(e) => handleClickRow(e, row.uuid)}
-                      role="checkbox"
-                      aria-checked={isItemSelected}
-                      tabIndex={-1}
+                    <Row<T>
+                      data={row}
+                      columns={columns}
+                      isSelected={isItemSelected}
+                      onRowClick={handleClickRow}
+                      onClickCheckbox={handleClickCheckbox}
+                      selectable={selectable}
                       key={row.uuid}
-                      selected={isItemSelected}
-                      sx={
-                        selectable || onRowClick ? { cursor: "pointer" } : null
-                      }
-                    >
-                      {selectable && (
-                        <TableCell padding="checkbox">
-                          <Checkbox
-                            color="primary"
-                            checked={isItemSelected}
-                            onClick={(e) => handleClickCheckbox(e, row.uuid)}
-                            inputProps={{ "aria-labelledby": labelId }}
-                          />
-                        </TableCell>
-                      )}
-                      <TableCell component="th" id={labelId} scope="row">
-                        {renderCell(head, row)}
-                      </TableCell>
-                      {columns.slice(1).map((column) => {
-                        const cellValue = row[column.id];
-                        return (
-                          <TableCell
-                            key={column.id.toString()}
-                            align={
-                              column.align ||
-                              (typeof cellValue === "number" ? "right" : "left")
-                            }
-                          >
-                            {renderCell(column, row)}
-                          </TableCell>
-                        );
-                      })}
-                    </TableRow>
+                    />
                   );
                 })}
               {emptyRows > 0 && (

@@ -5,7 +5,6 @@ import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import ParamTree from "@/components/ParamTree";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -50,7 +49,7 @@ const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
 }));
 
 type EditJobState = {
-  generatedPipelineRuns: any[];
+  generatedPipelineRuns: Record<string, Json>[];
   runJobLoading: boolean;
   runJobCompleted: boolean;
   strategyJSON: StrategyJson;
@@ -63,7 +62,7 @@ type ScheduleOption = "now" | "cron" | "scheduled";
 // TODO: should be converted to map/reduce style
 
 function recursivelyGenerate(
-  params: Record<string, Json>,
+  params: Record<string, Record<string, Json>>,
   accum: any[],
   unpacked: any[]
 ) {
@@ -113,7 +112,7 @@ const generateJobParameters = (
 
 const findParameterization = (
   parameterization: Record<string, any>,
-  parameters: Record<string, any>
+  parameters: Record<string, Json>[]
 ) => {
   let JSONstring = JSON.stringify(parameterization);
   for (let x = 0; x < parameters.length; x++) {
@@ -125,69 +124,105 @@ const findParameterization = (
 };
 
 const parseParameters = (
-  parameters: Record<string, any>,
-  generatedPipelineRuns: Record<string, any>
+  parameters: Record<string, Json>[],
+  generatedPipelineRuns: Record<string, Json>[]
 ) => {
   let _parameters = _.cloneDeep(parameters);
-  let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
-
-  for (let x = 0; x < generatedPipelineRuns.length; x++) {
-    let run = generatedPipelineRuns[x];
-    let encodedParameterization = generateJobParameters([run], [1])[0];
+  let selectedIndices = new Set<string>();
+  generatedPipelineRuns.forEach((run, index) => {
+    let encodedParameterization = generateJobParameters([run], ["0"])[0];
 
     let needleIndex = findParameterization(
       encodedParameterization,
       _parameters
     );
     if (needleIndex >= 0) {
-      selectedIndices[x] = 1;
+      selectedIndices.add(index.toString());
       // remove found parameterization from _parameters, as to not count duplicates
       _parameters.splice(needleIndex, 1);
     } else {
-      selectedIndices[x] = 0;
+      selectedIndices.delete(index.toString());
     }
-  }
+  });
 
-  return selectedIndices;
+  return Array.from(selectedIndices);
 };
 
-const parameterValueOverride = (strategyJSON, parameters) => {
+const parameterValueOverride = (
+  strategyJSON: StrategyJson,
+  parameters: Record<string, string>
+) => {
   for (let key in parameters) {
     let splitKey = key.split("#");
     let strategyJSONKey = splitKey[0];
     let paramKey = splitKey.slice(1).join("#");
     let paramValue = parameters[key];
 
-    strategyJSON[strategyJSONKey]["parameters"][paramKey] = paramValue;
+    strategyJSON[strategyJSONKey].parameters[paramKey] = paramValue;
   }
 
   return strategyJSON;
 };
 
-// @ts-ignore
-const detailRows = (pipelineName: string, pipelineParameters, strategyJSON) => {
-  let detailElements = [];
+const generateWithStrategy = (
+  pipelineName: string,
+  strategyJSON: Record<string, { parameters: Record<string, string> }>
+) => {
+  // flatten and JSONify strategyJSON to prep data structure for algo
+  let flatParameters = {};
 
-  // override values in fields through param fields
-  for (let x = 0; x < pipelineParameters.length; x++) {
-    let parameters = pipelineParameters[x];
-    strategyJSON = _.cloneDeep(strategyJSON);
-    strategyJSON = parameterValueOverride(strategyJSON, parameters);
+  for (const strategyJSONKey in strategyJSON) {
+    for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
+      let fullParam = strategyJSONKey + "#" + paramKey;
 
-    detailElements.push(
-      <div className="pipeline-run-detail">
-        <ParamTree
-          pipelineName={pipelineName || ""}
-          strategyJSON={strategyJSON}
-        />
-      </div>
-    );
+      flatParameters[fullParam] = JSON.parse(
+        strategyJSON[strategyJSONKey].parameters[paramKey]
+      );
+    }
   }
 
-  return detailElements;
+  let generatedPipelineRuns: Record<string, Json>[] = [];
+
+  recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
+
+  // transform pipelineRuns for generatedPipelineRunRows DataTable format
+  const generatedPipelineRunRows: PipelineRun[] = generatedPipelineRuns.map(
+    (params: Record<string, Json>, index: number) => {
+      const pipelineRunSpec = Object.entries(params).map(
+        ([fullParam, value]) => {
+          // pipeline_parameters#something#another_something: "some-value"
+          let paramName = fullParam.split("#").slice(1).join("");
+          return `${paramName}: ${JSON.stringify(value)}`;
+        }
+      );
+      return {
+        uuid: index.toString(),
+        spec: pipelineRunSpec.join(", ") || `Parameterless run`,
+        details: (
+          <Stack
+            direction="column"
+            sx={{ padding: (theme) => theme.spacing(2, 1) }}
+          >
+            <Typography variant="body2">{pipelineName}</Typography>
+            {pipelineRunSpec.map((param, index) => (
+              <Typography
+                variant="caption"
+                key={index}
+                sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+              >
+                {param}
+              </Typography>
+            ))}
+          </Stack>
+        ),
+      };
+    }
+  );
+
+  return [generatedPipelineRuns, generatedPipelineRunRows] as const;
 };
 
-type PipelineRun = { uuid: string; spec: string };
+type PipelineRun = { uuid: string; spec: string; details: React.ReactNode };
 const columns: DataTableColumn<PipelineRun>[] = [
   { id: "spec", label: "Run specification" },
 ];
@@ -301,22 +336,20 @@ const EditJobView: React.FC = () => {
         const [
           generatedPipelineRuns,
           generatedPipelineRunRows,
-        ] = generateWithStrategy(strategyJSON);
+        ] = generateWithStrategy(fetchedPipeline?.name, strategyJSON);
 
-        // TODO:  Check this!!!!!
+        setPipelineRuns(generatedPipelineRunRows);
+
         // Account for the fact that a job might have a list of
         // parameters already defined, i.e. when editing a non draft
         // job or when duplicating a job.
-        // if (fetchedJob.parameters.length > 0) {
-        //   // Determine selection based on strategyJSON
-        //   selectedIndices = parseParameters(
-        //     fetchedJob.parameters,
-        //     generatedPipelineRuns
-        //   );
-        // }
+        // if fetchedJob has no set parameters, we select all parameters as default
+        setSelectedRuns(
+          fetchedJob.parameters.length > 0
+            ? parseParameters(fetchedJob.parameters, generatedPipelineRuns)
+            : generatedPipelineRunRows.map((run) => run.uuid)
+        );
 
-        setPipelineRuns(generatedPipelineRunRows);
-        setSelectedRuns(generatedPipelineRunRows.map((run) => run.uuid));
         setState((prevState) => ({
           ...prevState,
           strategyJSON,
@@ -379,46 +412,6 @@ const EditJobView: React.FC = () => {
 
   const handleJobNameChange = (name: string) => {
     setJob((prev) => (prev ? { ...prev, name } : prev));
-  };
-
-  const generateWithStrategy = (
-    strategyJSON: Record<string, { parameters: Record<string, string> }>
-  ) => {
-    // flatten and JSONify strategyJSON to prep data structure for algo
-    let flatParameters = {};
-
-    for (const strategyJSONKey in strategyJSON) {
-      for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
-        let fullParam = strategyJSONKey + "#" + paramKey;
-
-        flatParameters[fullParam] = JSON.parse(
-          strategyJSON[strategyJSONKey].parameters[paramKey]
-        );
-      }
-    }
-
-    let generatedPipelineRuns: Record<string, any>[] = [];
-
-    recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
-
-    // transform pipelineRuns for generatedPipelineRunRows DataTable format
-    const generatedPipelineRunRows: PipelineRun[] = generatedPipelineRuns.map(
-      (params: Record<string, any>, index: number) => {
-        const pipelineRunSpec = Object.entries(params)
-          .map(([fullParam, value]) => {
-            // pipeline_parameters#something: "some-value"
-            let paramName = fullParam.split("#").slice(1);
-            return `${paramName}: ${JSON.stringify(value)}`;
-          })
-          .join(", ");
-        return {
-          uuid: index.toString(),
-          spec: pipelineRunSpec || `Parameterless run`,
-        };
-      }
-    );
-
-    return [generatedPipelineRuns, generatedPipelineRunRows] as const;
   };
 
   const validateJobConfig = () => {
@@ -628,11 +621,6 @@ const EditJobView: React.FC = () => {
       });
   };
 
-  const onPipelineRunsSelectionChanged = (pipelineRunIndices: string[]) => {
-    setSelectedRuns(pipelineRunIndices);
-    setAsSaved(false);
-  };
-
   const setCronSchedule = (newCronString: string) => {
     setCronString(newCronString);
     setScheduleOption("cron");
@@ -832,7 +820,7 @@ const EditJobView: React.FC = () => {
                   let [
                     generatedPipelineRuns,
                     generatedPipelineRunRows,
-                  ] = generateWithStrategy(strategyJSON);
+                  ] = generateWithStrategy(pipeline?.name, strategyJSON);
 
                   setPipelineRuns(generatedPipelineRunRows);
                   setSelectedRuns(
@@ -872,7 +860,8 @@ const EditJobView: React.FC = () => {
                     (pipelineRun) => pipelineRun.uuid
                   )}
                   selectedRows={selectedRuns}
-                  onChangeSelection={onPipelineRunsSelectionChanged}
+                  setSelectedRows={setSelectedRuns}
+                  onChangeSelection={() => setAsSaved(false)}
                   rows={pipelineRuns}
                   data-test-id="job-edit-pipeline-runs"
                 />

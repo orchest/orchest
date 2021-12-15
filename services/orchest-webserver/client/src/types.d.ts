@@ -217,7 +217,7 @@ export type Job = {
   last_scheduled_time: string;
   name: string;
   next_scheduled_time: string;
-  parameters: Record<string, unknown>[];
+  parameters: Record<string, Json>[];
   pipeline_definition: {
     name: string;
     parameters: Record<string, unknown>;
