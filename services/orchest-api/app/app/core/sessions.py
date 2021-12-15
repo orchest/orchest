@@ -1115,11 +1115,6 @@ def _get_orchest_services_specs(
             jupyer_server_image = user_jupyer_server_image
 
         # Run Jupyter server container.
-        base_url = "/%s" % _config.JUPYTER_SERVER_NAME.format(
-            project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
-            pipeline_uuid=pipeline_uuid[: _config.TRUNCATED_UUID_LENGTH],
-        )
-
         orchest_services_specs["jupyter-server"] = {
             "image": jupyer_server_image,
             "detach": True,
