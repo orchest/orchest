@@ -22,7 +22,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
   const [activeParameter, setActiveParameter] = React.useState<{
     key: string;
     strategyJSONKey: string;
-  }>(null);
+  }>(undefined);
 
   const [codeMirrorValue, setCodeMirrorValue] = React.useState("");
 
@@ -102,7 +102,10 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
                   lineNumbers: true,
                 }}
               />
-              <Typography sx={{ marginTop: (theme) => theme.spacing(2) }}>
+              <Typography
+                variant="caption"
+                sx={{ marginTop: (theme) => theme.spacing(2) }}
+              >
                 <i>Read only</i>
               </Typography>
             </>

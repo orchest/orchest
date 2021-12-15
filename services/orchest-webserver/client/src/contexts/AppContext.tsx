@@ -49,8 +49,8 @@ export type Confirm = {
   type: "confirm";
   title: string | JSX.Element;
   content: string | JSX.Element | JSX.Element[];
-  onConfirm: () => void; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
-  onCancel?: () => void;
+  onConfirm: () => Promise<boolean>; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
+  onCancel?: () => Promise<false>;
 };
 
 export type PromptMessage = Alert | Confirm;
@@ -64,8 +64,8 @@ type AlertConverter = (
 type ConfirmConverter = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => void,
-  onCancel?: () => void
+  onConfirm: () => Promise<boolean>,
+  onCancel?: () => Promise<false>
 ) => Confirm;
 
 type PromptMessageConverter<T extends PromptMessage> = T extends Alert
@@ -119,9 +119,9 @@ type AlertDispatcher = (
 export type ConfirmDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => void,
-  onCancel?: () => void
-) => void;
+  onConfirm: () => Promise<boolean>,
+  onCancel?: () => Promise<false>
+) => Promise<boolean>;
 
 export type RequestBuildDispatcher = (
   projectUuid: string,
@@ -245,8 +245,8 @@ export const AppContextProvider: React.FC = ({ children }) => {
       const dispatcher = (
         title: string,
         content: string | JSX.Element | JSX.Element[],
-        onConfirm?: () => void, // is required for 'confirm'
-        onCancel?: () => void
+        onConfirm?: () => Promise<boolean>, // is required for 'confirm'
+        onCancel?: () => Promise<false>
       ) => {
         const message = convert(title, content, onConfirm, onCancel);
         dispatch((store) => {
@@ -281,8 +281,8 @@ export const AppContextProvider: React.FC = ({ children }) => {
     (
       title: string,
       content: string | JSX.Element | JSX.Element[],
-      onConfirm: () => void,
-      onCancel?: () => void
+      onConfirm: () => Promise<boolean>,
+      onCancel?: () => Promise<false>
     ) => {
       return {
         type: "confirm",

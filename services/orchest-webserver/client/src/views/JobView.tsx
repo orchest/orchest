@@ -4,8 +4,7 @@ import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import ParamTree from "@/components/ParamTree";
-import SearchableTable from "@/components/SearchableTable";
+import ParamTree, { NoParameterAlert } from "@/components/ParamTree";
 import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -147,7 +146,7 @@ const JobStatus: React.FC<{
 };
 
 const formatPipelineParams = (parameters) => {
-  let keyValuePairs = [];
+  let keyValuePairs: string[] = [];
 
   for (let strategyJSONKey in parameters) {
     for (let parameter in parameters[strategyJSONKey]) {
@@ -163,7 +162,7 @@ const formatPipelineParams = (parameters) => {
     return <i>Parameterless run</i>;
   }
 
-  return keyValuePairs.join(", ");
+  return keyValuePairs;
 };
 
 const columns: DataTableColumn<PipelineRun>[] = [
@@ -171,7 +170,11 @@ const columns: DataTableColumn<PipelineRun>[] = [
   {
     id: "parameters",
     label: "Parameters",
-    render: (row) => formatPipelineParams(row.parameters),
+    render: (row) => {
+      const formattedParams = formatPipelineParams(row.parameters);
+      if (!Array.isArray(formattedParams)) return formattedParams;
+      return formattedParams.join(", ");
+    },
   },
   {
     id: "status",
@@ -189,6 +192,27 @@ const columns: DataTableColumn<PipelineRun>[] = [
       ),
   },
 ];
+
+type PipelineRunRow = { uuid: string; spec: string };
+
+const runSpecTableColumns: DataTableColumn<PipelineRunRow>[] = [
+  {
+    id: "spec",
+    label: "Run specification",
+    render: (row) =>
+      row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec,
+  },
+];
+
+const RunSpecTable = ({ rows }: { rows: PipelineRunRow[] }) => {
+  return (
+    <DataTable<PipelineRunRow>
+      id="run-spec-list"
+      columns={runSpecTableColumns}
+      rows={rows}
+    />
+  );
+};
 
 const JobView: React.FC = () => {
   // global states
@@ -360,31 +384,6 @@ const JobView: React.FC = () => {
       });
   };
 
-  const generatedParametersToTableData = (jobGeneratedParameters) => {
-    let rows = [];
-
-    for (let idx in jobGeneratedParameters) {
-      let params = jobGeneratedParameters[idx];
-
-      let pipelineRunRow = [];
-
-      for (let fullParam in params) {
-        for (let paramKey in params[fullParam]) {
-          pipelineRunRow.push(
-            paramKey + ": " + JSON.stringify(params[fullParam][paramKey])
-          );
-        }
-      }
-      if (pipelineRunRow.length > 0) {
-        rows.push([pipelineRunRow.join(", ")]);
-      } else {
-        rows.push([<i>Parameterless run</i>]); // eslint-disable-line react/jsx-key
-      }
-    }
-
-    return rows;
-  };
-
   const editJob = () => {
     navigateTo(siteMap.editJob.path, {
       query: {
@@ -510,19 +509,77 @@ const JobView: React.FC = () => {
 
   const isLoading = !pipeline || !job;
 
+  if (job?.parameters)
+    console.log(
+      job.parameters.map((param, index) => {
+        return {
+          uuid: index.toString(),
+          spec: Object.entries(param.pipeline_parameters)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(", "),
+        };
+      })
+    );
+
   const tabView = isLoading ? null : (
     <>
       <CustomTabPanel value={tabIndex} index={0} name="pipeline-runs-tab">
         <DataTable<PipelineRun>
           id="job-pipeline-runs"
           data-test-id="job-pipeline-runs"
-          // TODO: make it collapse-able
-          rows={job.pipeline_runs.map((run) => ({
-            ...run,
-            searchIndex: `${
-              run.status === "STARTED" ? "Running" : ""
-            }${JSON.stringify(formatPipelineParams(run.parameters))}`,
-          }))}
+          rows={job.pipeline_runs.map((run, index) => {
+            const formattedRunParams = formatPipelineParams(run.parameters);
+            const hasParameters = Array.isArray(formattedRunParams);
+            const formattedRunParamsAsString = hasParameters
+              ? formattedRunParams.join(", ")
+              : JSON.stringify(formattedRunParams);
+
+            const paramDetails = !hasParameters ? (
+              <>
+                <NoParameterAlert />
+                <Button
+                  variant="contained"
+                  startIcon={<VisibilityIcon />}
+                  onClick={() => onDetailPipelineView(run)}
+                  sx={{ marginTop: (theme) => theme.spacing(2) }}
+                  data-test-id={`job-pipeline-runs-row-view-pipeline-${index}`}
+                >
+                  View pipeline
+                </Button>
+              </>
+            ) : (
+              <>
+                <Typography variant="body2">
+                  Pipeline: {pipeline.name}
+                </Typography>
+                {formattedRunParams.map((param, index) => (
+                  <Typography
+                    variant="caption"
+                    key={index}
+                    sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+                  >
+                    {param}
+                  </Typography>
+                ))}
+              </>
+            );
+
+            return {
+              ...run,
+              searchIndex: `${
+                run.status === "STARTED" ? "Running" : ""
+              }${formattedRunParamsAsString}`,
+              details: (
+                <Stack
+                  direction="column"
+                  alignItems="flex-start"
+                  sx={{ padding: (theme) => theme.spacing(2, 1) }}
+                >
+                  {paramDetails}
+                </Stack>
+              ),
+            };
+          })}
           columns={columns}
           initialOrderBy="pipeline_run_index"
           initialOrder="desc"
@@ -535,10 +592,19 @@ const JobView: React.FC = () => {
           strategyJSON={job.strategy_json}
         />
         <div className="pipeline-runs push-up">
-          <SearchableTable
-            selectable={false}
-            headers={["Run specification"]}
-            rows={generatedParametersToTableData(job.parameters)}
+          <RunSpecTable
+            rows={
+              job.parameters
+                ? job.parameters.map((param, index) => {
+                    return {
+                      uuid: index.toString(),
+                      spec: Object.entries(param.pipeline_parameters)
+                        .map(([key, value]) => `${key}: "${value}"`)
+                        .join(", "),
+                    };
+                  })
+                : []
+            }
           />
         </div>
       </CustomTabPanel>

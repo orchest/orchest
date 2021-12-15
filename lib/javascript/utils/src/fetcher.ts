@@ -5,7 +5,7 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
     const jsonResponse = await response.json();
 
     throw {
-      code: response.status,
+      status: response.status,
       message: response.statusText,
       body: jsonResponse.body || jsonResponse,
     };

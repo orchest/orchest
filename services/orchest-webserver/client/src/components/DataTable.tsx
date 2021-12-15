@@ -179,7 +179,7 @@ type DataTableProps<T> = {
   selectable?: boolean;
   initialOrderBy?: keyof T;
   initialOrder?: Order;
-  deleteSelectedRows?: (rowUuids: string[]) => void;
+  deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
   onRowClick?: (uuid: string) => void;
   rowHeight?: number;
   debounceTime?: number;
@@ -403,9 +403,11 @@ export const DataTable = <T extends Record<string, any>>({
     setPage(0);
   };
 
-  const handleDeleteSelectedRows = () => {
-    if (deleteSelectedRows) deleteSelectedRows(selected);
-    setSelected([]);
+  const handleDeleteSelectedRows = async () => {
+    if (deleteSelectedRows) {
+      const success = await deleteSelectedRows(selected);
+      if (success) setSelected([]);
+    }
   };
 
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;

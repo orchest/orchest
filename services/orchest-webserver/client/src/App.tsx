@@ -89,9 +89,10 @@ const App = () => {
           setConfirm(
             "Warning",
             "There are unsaved changes. Are you sure you want to navigate away?",
-            () => {
+            async () => {
               setAsSaved();
               callback(true);
+              return true;
             }
           );
         }

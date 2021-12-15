@@ -7,13 +7,35 @@ import {
   Link,
 } from "@orchest/design-system";
 import _ from "lodash";
-import * as React from "react";
+import React from "react";
 
 export interface IParamTreeProps {
   pipelineName: string;
   editParameter?: (parameterKey: any, key: any) => void;
   strategyJSON: any;
 }
+
+export const NoParameterAlert = () => {
+  return (
+    <Alert status="info">
+      <AlertHeader>
+        <IconLightBulbOutline />
+        {`This pipeline doesn't have any parameters defined`}
+      </AlertHeader>
+      <AlertDescription>
+        <>
+          <Link
+            target="_blank"
+            href="https://docs.orchest.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
+          >
+            Learn more
+          </Link>{" "}
+          about parametrizing your pipelines and steps.
+        </>
+      </AlertDescription>
+    </Alert>
+  );
+};
 
 const ParamTree: React.FC<IParamTreeProps> = (props) => {
   const {
@@ -114,25 +136,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
 
   return (
     <div className="parameter-tree">
-      {Object.keys(props.strategyJSON).length == 0 && (
-        <Alert status="info">
-          <AlertHeader>
-            <IconLightBulbOutline />
-            {`This pipeline doesn't have any parameters defined`}
-          </AlertHeader>
-          <AlertDescription>
-            <>
-              <Link
-                target="_blank"
-                href="https://docs.orchest.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
-              >
-                Learn more
-              </Link>{" "}
-              about parametrizing your pipelines and steps.
-            </>
-          </AlertDescription>
-        </Alert>
-      )}
+      {Object.keys(props.strategyJSON).length == 0 && <NoParameterAlert />}
 
       {pipelineParameterElement !== undefined && (
         <div className="param-block">

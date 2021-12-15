@@ -5,6 +5,7 @@ import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
+import { NoParameterAlert } from "@/components/ParamTree";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -186,7 +187,7 @@ const generateWithStrategy = (
   recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
 
   // transform pipelineRuns for generatedPipelineRunRows DataTable format
-  const generatedPipelineRunRows: PipelineRun[] = generatedPipelineRuns.map(
+  const generatedPipelineRunRows: PipelineRunRow[] = generatedPipelineRuns.map(
     (params: Record<string, Json>, index: number) => {
       const pipelineRunSpec = Object.entries(params).map(
         ([fullParam, value]) => {
@@ -195,24 +196,32 @@ const generateWithStrategy = (
           return `${paramName}: ${JSON.stringify(value)}`;
         }
       );
+
       return {
         uuid: index.toString(),
-        spec: pipelineRunSpec.join(", ") || `Parameterless run`,
+        spec: pipelineRunSpec.join(", ") || "Parameterless run",
         details: (
           <Stack
             direction="column"
+            alignItems="flex-start"
             sx={{ padding: (theme) => theme.spacing(2, 1) }}
           >
-            <Typography variant="body2">{pipelineName}</Typography>
-            {pipelineRunSpec.map((param, index) => (
-              <Typography
-                variant="caption"
-                key={index}
-                sx={{ paddingLeft: (theme) => theme.spacing(1) }}
-              >
-                {param}
-              </Typography>
-            ))}
+            {pipelineRunSpec.length === 0 ? (
+              <NoParameterAlert />
+            ) : (
+              <>
+                <Typography variant="body2">{pipelineName}</Typography>
+                {pipelineRunSpec.map((param, index) => (
+                  <Typography
+                    variant="caption"
+                    key={index}
+                    sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+                  >
+                    {param}
+                  </Typography>
+                ))}
+              </>
+            )}
           </Stack>
         ),
       };
@@ -222,9 +231,14 @@ const generateWithStrategy = (
   return [generatedPipelineRuns, generatedPipelineRunRows] as const;
 };
 
-type PipelineRun = { uuid: string; spec: string; details: React.ReactNode };
-const columns: DataTableColumn<PipelineRun>[] = [
-  { id: "spec", label: "Run specification" },
+type PipelineRunRow = { uuid: string; spec: string; details: React.ReactNode };
+const columns: DataTableColumn<PipelineRunRow>[] = [
+  {
+    id: "spec",
+    label: "Run specification",
+    render: (row) =>
+      row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec,
+  },
 ];
 
 const EditJobView: React.FC = () => {
@@ -252,7 +266,7 @@ const EditJobView: React.FC = () => {
 
   const [tabIndex, setTabIndex] = React.useState(0);
 
-  const [pipelineRuns, setPipelineRuns] = React.useState<PipelineRun[]>([]);
+  const [pipelineRuns, setPipelineRuns] = React.useState<PipelineRunRow[]>([]);
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
 
   const [state, setState] = React.useState<EditJobState>({
@@ -852,7 +866,7 @@ const EditJobView: React.FC = () => {
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={3} name="runs">
               <div className="pipeline-tab-view pipeline-runs">
-                <DataTable<PipelineRun>
+                <DataTable<PipelineRunRow>
                   selectable
                   id="job-edit-pipeline-runs"
                   columns={columns}
