@@ -26,7 +26,7 @@ const ImportSuccessDialog: React.FC<{
         <MDCButtonReact
           classNames={["push-right"]}
           label="Continue browsing"
-          onClick={close}
+          onClick={onClose}
         />
         <MDCButtonReact
           label="View pipelines"

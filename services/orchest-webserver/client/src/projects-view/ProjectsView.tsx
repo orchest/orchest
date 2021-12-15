@@ -1,34 +1,48 @@
-import { IconButton } from "@/components/common/IconButton";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableRow,
+} from "@/components/DataTable";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
+import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
-import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
-import DeleteIcon from "@mui/icons-material/Delete";
-import EditIcon from "@mui/icons-material/Edit";
-import SettingsIcon from "@mui/icons-material/Settings";
+import { BackgroundTask } from "@/utils/webserver-utils";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  MDCButtonReact,
-  MDCDataTableReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  RefManager,
-} from "@orchest/lib-utils";
+import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import { fetcher, makeRequest } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
 import { ImportDialog } from "./ImportDialog";
+
+type ProjectRow = Pick<
+  Project,
+  | "path"
+  | "pipeline_count"
+  | "session_count"
+  | "job_count"
+  | "environment_count"
+> & {
+  settings: string;
+};
+
+const columns: DataTableColumn<ProjectRow>[] = [
+  { id: "path", label: "Project" },
+  { id: "pipeline_count", label: "Pipelines" },
+  { id: "session_count", label: "Active sessions" },
+  { id: "job_count", label: "Jobs" },
+  { id: "environment_count", label: "Environments" },
+  { id: "settings", label: "Settings" },
+];
 
 const ProjectsView: React.FC = () => {
   const { setAlert, setConfirm } = useAppContext();
@@ -47,9 +61,7 @@ const ProjectsView: React.FC = () => {
 
   const [state, setState] = React.useState({
     isDeleting: false,
-    loading: true,
     projects: null,
-    listData: null,
     importResult: undefined,
     fetchListAndSetProject: "",
     editProjectPathModal: false,
@@ -57,11 +69,6 @@ const ProjectsView: React.FC = () => {
     editProjectPathUUID: undefined,
     editProjectPath: undefined,
   });
-
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
-  const [backgroundTaskPoller] = React.useState(new BackgroundTaskPoller());
-  backgroundTaskPoller.POLL_FREQUENCY = 1000;
 
   const onEditProjectName = (projectUUID, projectPath) => {
     setState((prevState) => ({
@@ -97,7 +104,7 @@ const ProjectsView: React.FC = () => {
       },
     })
       .then((_) => {
-        fetchList();
+        fetchProjects();
       })
       .catch((e) => {
         try {
@@ -124,78 +131,70 @@ const ProjectsView: React.FC = () => {
       });
   };
 
-  const processListData = (projects: Project[]) => {
-    return projects.map((project) => [
-      <span key="toggle-row" className="mdc-icon-table-wrapper">
-        {project.path}{" "}
-        <span className="consume-click">
-          <IconButton
-            onClick={() => {
-              onEditProjectName(project.uuid, project.path);
-            }}
-          >
-            <EditIcon />
-          </IconButton>
-        </span>
-      </span>,
-      <span key="pipeline-count">{project.pipeline_count}</span>,
-      <span key="session-count">{project.session_count}</span>,
-      <span key="job-count">{project.job_count}</span>,
-      <span key="env-count">{project.environment_count}</span>,
-      <span key="setting" className="consume-click">
-        <IconButton
-          title="settings"
-          onClick={() => openSettings(project)}
-          data-test-id={`settings-button-${project.path}`}
-        >
-          <SettingsIcon />
-        </IconButton>
-      </span>,
-    ]);
-  };
+  // const processListData = (projects: Project[]) => {
+  //   return projects.map((project) => [
+  //     <span key="toggle-row" className="mdc-icon-table-wrapper">
+  //       {project.path}{" "}
+  //       <span className="consume-click">
+  //         <IconButton
+  //           onClick={() => {
+  //             onEditProjectName(project.uuid, project.path);
+  //           }}
+  //         >
+  //           <EditIcon />
+  //         </IconButton>
+  //       </span>
+  //     </span>,
+  //     <span key="pipeline-count">{project.pipeline_count}</span>,
+  //     <span key="session-count">{project.session_count}</span>,
+  //     <span key="job-count">{project.job_count}</span>,
+  //     <span key="env-count">{project.environment_count}</span>,
+  //     <span key="setting" className="consume-click">
+  //       <IconButton
+  //         title="settings"
+  //         onClick={() => openSettings(project)}
+  //         data-test-id={`settings-button-${project.path}`}
+  //       >
+  //         <SettingsIcon />
+  //       </IconButton>
+  //     </span>,
+  //   ]);
+  // };
 
-  const fetchList = (fetchListAndSetProject?: string) => {
-    // initialize REST call for pipelines
-    let fetchListPromise = makeCancelable(
-      makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
-      promiseManager
-    );
+  const {
+    data: projects = [],
+    revalidate: fetchProjects,
+    error: fetchProjectsError,
+    isValidating,
+  } = useSWR<Project[]>(
+    "/async/projects?session_counts=true&job_counts=true",
+    fetcher
+  );
 
-    fetchListPromise.promise
-      .then((response: string) => {
-        let projects: Project[] = JSON.parse(response);
+  const mounted = useMounted();
 
-        dispatch({
-          type: "projectsSet",
-          payload: projects,
-        });
+  React.useEffect(() => {
+    if (mounted && fetchProjectsError)
+      setAlert("Error", "Error fetching projects");
+  }, [fetchProjectsError]);
 
-        setState((prevState) => ({
-          ...prevState,
-          fetchListAndSetProject,
-          listData: processListData(projects),
-          projects: projects,
-          loading: false,
-        }));
+  React.useEffect(() => {
+    if (mounted && !isValidating && !fetchProjectsError && projects) {
+      dispatch({
+        type: "projectsSet",
+        payload: projects,
+      });
+    }
+  }, [projects]);
 
-        // Verify selected project UUID
-        // TODO: do we still need this?
-        if (
-          !projectUuid ||
-          !projects.some((project) => project.uuid === projectUuid)
-        ) {
-          dispatch({
-            type: "projectSet",
-            payload: projects.length > 0 ? projects[0].uuid : undefined,
-          });
-        }
-
-        if (refManager.refs.projectListView) {
-          refManager.refs.projectListView.setSelectedRowIds([]);
-        }
-      })
-      .catch(console.log);
-  };
+  const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
+    return projects.map((project) => {
+      return {
+        ...project,
+        settings: project.path,
+      };
+    });
+  }, [projects]);
 
   const openSettings = (project: Project) => {
     navigateTo(siteMap.projectSettings.path, {
@@ -203,24 +202,20 @@ const ProjectsView: React.FC = () => {
     });
   };
 
-  const onClickListItem = (row, idx, e) => {
-    let project = state.projects[idx];
-
+  const onRowClick = (projectUuid: string) => {
     navigateTo(siteMap.pipelines.path, {
-      query: { projectUuid: project.uuid },
+      query: { projectUuid },
     });
   };
 
-  const onDeleteClick = async () => {
+  const deleteSelectedRows = async (projectUuids: string[]) => {
     if (!state.isDeleting) {
       setState((prevState) => ({
         ...prevState,
         isDeleting: true,
       }));
 
-      let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
-
-      if (selectedIndices.length === 0) {
+      if (projectUuids.length === 0) {
         setAlert("Error", "You haven't selected a project.");
 
         setState((prevState) => ({
@@ -233,19 +228,17 @@ const ProjectsView: React.FC = () => {
 
       return setConfirm(
         "Warning",
-        "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+        "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
         async () => {
           // Start actual delete
-          let deletePromises = [];
-
-          selectedIndices.forEach((index) => {
-            let project_uuid = state.projects[index].uuid;
-            deletePromises.push(deleteProjectRequest(project_uuid));
-          });
 
           try {
-            await Promise.all(deletePromises);
-            fetchList();
+            await Promise.all(
+              projectUuids.map((projectUuid) =>
+                deleteProjectRequest(projectUuid)
+              )
+            );
+            fetchProjects();
             // Clear isDeleting
             setState((prevState) => ({
               ...prevState,
@@ -319,7 +312,8 @@ const ProjectsView: React.FC = () => {
     })
       .then((_) => {
         // reload list once creation succeeds
-        fetchList(projectName);
+        // fetchList(projectName);
+        fetchProjects();
       })
       .catch((response) => {
         try {
@@ -376,17 +370,10 @@ const ProjectsView: React.FC = () => {
   };
 
   const onImportComplete = (result: BackgroundTask) => {
-    if (result.status === "SUCCESS") fetchList(result.result);
+    if (result.status === "SUCCESS") {
+      fetchProjects();
+    }
   };
-
-  React.useEffect(() => {
-    fetchList();
-
-    return () => {
-      promiseManager.cancelCancelablePromises();
-      backgroundTaskPoller.removeAllTasks();
-    };
-  }, []);
 
   React.useEffect(() => {
     if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
@@ -420,6 +407,7 @@ const ProjectsView: React.FC = () => {
           projectName={projectName}
           setProjectName={setProjectName}
           onImportComplete={onImportComplete}
+          importUrl={importUrl}
           setImportUrl={setImportUrl}
           open={isImporting}
           onClose={() => setIsImporting(false)}
@@ -490,7 +478,7 @@ const ProjectsView: React.FC = () => {
         </Dialog>
 
         <h2>Projects</h2>
-        {state.loading ? (
+        {projectRows.length === 0 && isValidating ? (
           <LinearProgress />
         ) : (
           <>
@@ -521,30 +509,14 @@ const ProjectsView: React.FC = () => {
                 data-test-id="explore-examples"
               />
             </div>
-            <div className={"pipeline-actions push-down"}>
-              <IconButton
-                title="Delete project"
-                disabled={state.isDeleting}
-                onClick={onDeleteClick}
-                data-test-id="delete-project"
-              >
-                <DeleteIcon />
-              </IconButton>
-            </div>
-            <MDCDataTableReact
-              ref={refManager.nrefs.projectListView}
+            <DataTable<ProjectRow>
+              id="project-list"
               selectable
-              onRowClick={onClickListItem}
-              classNames={["fullwidth"]}
-              headers={[
-                "Project",
-                "Pipelines",
-                "Active sessions",
-                "Jobs",
-                "Environments",
-                "Settings",
-              ]}
-              rows={state.listData}
+              hideSearch
+              onRowClick={onRowClick}
+              deleteSelectedRows={deleteSelectedRows}
+              columns={columns}
+              rows={projectRows}
               data-test-id="projects-table"
             />
           </>

@@ -46,7 +46,7 @@ const validateImportData = ({
 const useImportProject = (
   projectName = "",
   importUrl: string,
-  onComplete: (result: BackgroundTask) => void
+  onComplete: (result?: BackgroundTask) => void
 ) => {
   const { setAlert } = useAppContext();
   const backgroundTaskPollerRef = React.useRef(new BackgroundTaskPoller());
@@ -74,7 +74,10 @@ const useImportProject = (
 
   const startImport = () => {
     const isValid = validateImportData({ importUrl, projectName, setAlert });
-    if (!isValid) return;
+    if (!isValid) {
+      onComplete();
+      return;
+    }
     const jsonData =
       projectName.length > 0
         ? { url: importUrl, project_name: projectName }

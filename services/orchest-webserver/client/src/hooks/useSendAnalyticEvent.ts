@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { makeRequest } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
 
@@ -23,14 +23,17 @@ const useSendAnalyticEvent = (
   const send = React.useCallback(
     (innerEvent: string, innerProps?: Record<string, unknown>) => {
       if (shouldSend) {
-        makeRequest("POST", "/analytics", {
-          type: "json",
-          content: innerProps
-            ? {
-                event: innerEvent,
-                properties: innerProps,
-              }
-            : { event: innerEvent },
+        fetcher("/analytics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            innerProps
+              ? {
+                  event: innerEvent,
+                  properties: innerProps,
+                }
+              : { event: innerEvent }
+          ),
         });
       }
     },

@@ -88,6 +88,11 @@ const ImportDialog: React.FC<{
     projectName,
     importUrl,
     async (result) => {
+      if (!result) {
+        // failed to import
+        setIsAllowedToClose(true);
+        return;
+      }
       if (result.status === "SUCCESS") {
         setImportUrl("");
         setProjectName("");

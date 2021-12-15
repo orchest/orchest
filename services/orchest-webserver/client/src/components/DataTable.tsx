@@ -246,14 +246,10 @@ function Row<T>({
           {renderCell(columns[0], data)}
         </TableCell>
         {columns.slice(1).map((column) => {
-          const cellValue = data[column.id];
           return (
             <TableCell
               key={column.id.toString()}
-              align={
-                column.align ||
-                (typeof cellValue === "number" ? "right" : "left")
-              }
+              align={column.align || (column.numeric ? "right" : "left")}
             >
               {renderCell(column, data)}
             </TableCell>
