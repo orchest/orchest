@@ -148,11 +148,11 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     }
   };
 
-  const deleteSelectedJobs = (jobUuids: string[]) => {
+  const deleteSelectedJobs = async (jobUuids: string[]) => {
     // this is just a precaution. the button is disabled when isDeleting is true.
     if (isDeleting) {
       console.error("Delete UI in progress.");
-      return;
+      return false;
     }
 
     setIsDeleting(true);
@@ -161,10 +161,10 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       setAlert("Error", "You haven't selected any jobs.");
       setIsDeleting(false);
 
-      return;
+      return false;
     }
 
-    setConfirm(
+    return setConfirm(
       "Warning",
       "Are you sure you want to delete these jobs? (This cannot be undone.)",
       async () => {
@@ -178,12 +178,17 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           await Promise.all(promises);
           setIsDeleting(false);
           fetchJobs();
+          return true;
         } catch (e) {
           setAlert("Error", `Failed to delete selected jobs: ${e}`);
           setIsDeleting(false);
+          return false;
         }
       },
-      () => setIsDeleting(false)
+      async () => {
+        setIsDeleting(false);
+        return false;
+      }
     );
   };
 

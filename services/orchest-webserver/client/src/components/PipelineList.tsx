@@ -232,10 +232,10 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     }
   };
 
-  const deletePipelines = (pipelineUuids: string[]) => {
+  const deletePipelines = async (pipelineUuids: string[]) => {
     if (isDeleting) {
       console.error("Delete UI in progress.");
-      return;
+      return false;
     }
     setIsDeleting(true);
 
@@ -243,10 +243,10 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       setAlert("Error", "You haven't selected a pipeline.");
       setIsDeleting(false);
 
-      return;
+      return false;
     }
 
-    setConfirm(
+    return setConfirm(
       "Warning",
       "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
       async () => {
@@ -257,10 +257,13 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             )
           );
           requestFetchPipeline();
+          setIsDeleting(false);
+          return true;
         } catch (error) {
           setAlert("Error", `Failed to delete pipeline: ${error}`);
+          setIsDeleting(false);
+          return false;
         }
-        setIsDeleting(false);
       }
     );
   };

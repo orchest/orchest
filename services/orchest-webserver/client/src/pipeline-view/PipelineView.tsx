@@ -1396,7 +1396,7 @@ const PipelineView: React.FC = () => {
         "Warning",
         "A deleted step and its logs cannot be recovered once deleted, are you" +
           " sure you want to proceed?",
-        () => {
+        async () => {
           closeMultistepView();
           closeDetailsView();
 
@@ -1410,13 +1410,13 @@ const PipelineView: React.FC = () => {
           state.eventVars.selectedSteps = [];
           state.eventVars.isDeletingStep = false;
           updateEventVars();
-          setState({
-            saveHash: uuidv4(),
-          });
+          setState({ saveHash: uuidv4() });
+          return true;
         },
         () => {
           state.eventVars.isDeletingStep = false;
           updateEventVars();
+          return false;
         }
       );
     }
@@ -1469,14 +1469,13 @@ const PipelineView: React.FC = () => {
       "Warning",
       "A deleted step and its logs cannot be recovered once deleted, are you" +
         " sure you want to proceed?",
-      () => {
+      async () => {
         state.eventVars.openedStep = undefined;
         state.eventVars.selectedSteps = [];
         updateEventVars();
         deleteStep(uuid);
-        setState({
-          saveHash: uuidv4(),
-        });
+        setState({ saveHash: uuidv4() });
+        return true;
       }
     );
   };

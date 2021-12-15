@@ -31,35 +31,37 @@ const UpdateView: React.FC = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const startUpdateTrigger = () => {
-    setConfirm(
+    return setConfirm(
       "Warning",
       "Are you sure you want to update Orchest? This will kill all active sessions and ongoing runs.",
-      () => {
+      async () => {
         setState({
           updating: true,
           updateOutput: "",
         });
 
-        makeRequest("GET", "/async/spawn-update-server", {})
-          .then(() => {
-            console.log("Spawned update-server, start polling update-server.");
+        try {
+          await makeRequest("GET", "/async/spawn-update-server", {});
+          console.log("Spawned update-server, start polling update-server.");
 
-            checkHeartbeat("/update-server/heartbeat")
-              .then(() => {
-                console.log("Update service available");
-                requestUpdate();
-              })
-              .catch((retries) => {
-                console.log(
-                  "Update service heartbeat checking timed out after " +
-                    retries +
-                    " retries."
-                );
-              });
-          })
-          .catch((e) => {
-            console.log("Failed to trigger update", e);
-          });
+          checkHeartbeat("/update-server/heartbeat")
+            .then(() => {
+              console.log("Update service available");
+              requestUpdate();
+            })
+            .catch((retries) => {
+              console.log(
+                "Update service heartbeat checking timed out after " +
+                  retries +
+                  " retries."
+              );
+            });
+
+          return true;
+        } catch (error) {
+          console.log("Failed to trigger update", error);
+          return false;
+        }
       }
     );
   };

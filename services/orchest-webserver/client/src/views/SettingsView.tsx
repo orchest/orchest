@@ -214,42 +214,43 @@ const SettingsView: React.FC = () => {
   };
 
   const restartOrchest = () => {
-    setConfirm(
+    return setConfirm(
       "Warning",
       "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
-      () => {
+      async () => {
         setState((prevState) => ({
           ...prevState,
           restarting: true,
           status: "restarting",
           requiresRestart: [],
         }));
+        try {
+          await makeRequest("POST", "/async/restart");
 
-        makeRequest("POST", "/async/restart")
-          .then(() => {
-            setTimeout(() => {
-              checkHeartbeat("/heartbeat")
-                .then(() => {
-                  console.log("Orchest available");
-                  setState((prevState) => ({
-                    ...prevState,
-                    restarting: false,
-                    status: "online",
-                  }));
-                })
-                .catch((retries) => {
-                  console.log(
-                    "Update service heartbeat checking timed out after " +
-                      retries +
-                      " retries."
-                  );
-                });
-            }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
-          })
-          .catch((e) => {
-            console.log(e);
-            console.error("Could not trigger restart.");
-          });
+          setTimeout(() => {
+            checkHeartbeat("/heartbeat")
+              .then(() => {
+                console.log("Orchest available");
+                setState((prevState) => ({
+                  ...prevState,
+                  restarting: false,
+                  status: "online",
+                }));
+              })
+              .catch((retries) => {
+                console.log(
+                  "Update service heartbeat checking timed out after " +
+                    retries +
+                    " retries."
+                );
+              });
+          }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
+          return true;
+        } catch (error) {
+          console.log(error);
+          console.error("Could not trigger restart.");
+          return false;
+        }
       }
     );
   };

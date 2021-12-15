@@ -248,7 +248,7 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const deleteService = (serviceName) => {
+  const deleteService = async (serviceName: string) => {
     let pipelineJson = _.cloneDeep(state.pipelineJson);
     delete pipelineJson.services[serviceName];
 
@@ -258,6 +258,7 @@ const PipelineSettingsView: React.FC = () => {
       pipelineJson: pipelineJson,
     }));
     setAsSaved(false);
+    return truncate;
   };
 
   const attachResizeListener = () => overflowListener.attach();
@@ -982,8 +983,9 @@ const PipelineSettingsView: React.FC = () => {
                                 "Are you sure you want to delete the service: " +
                                   service.name +
                                   "?",
-                                () => {
-                                  deleteService(service.name);
+                                async () => {
+                                  await deleteService(service.name);
+                                  return true;
                                 }
                               );
                             }}

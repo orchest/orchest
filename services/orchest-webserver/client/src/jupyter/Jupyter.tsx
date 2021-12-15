@@ -202,16 +202,16 @@ class Jupyter {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
               // @ts-ignore
-              this.setConfirm("Warning", warningMessage, () => {
-                sessionContext
-                  .changeKernel({ name: kernel })
-                  .then(() => {
-                    this.setKernelChangePending(notebook, kernel, false);
-                  })
-                  .catch((error) => {
-                    this.setKernelChangePending(notebook, kernel, false);
-                    console.error(error);
-                  });
+              this.setConfirm("Warning", warningMessage, async () => {
+                try {
+                  await sessionContext.changeKernel({ name: kernel });
+                  this.setKernelChangePending(notebook, kernel, false);
+                  return true;
+                } catch (error) {
+                  this.setKernelChangePending(notebook, kernel, false);
+                  console.error(error);
+                  return false;
+                }
               });
             }
           }
@@ -225,16 +225,19 @@ class Jupyter {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
                   // @ts-ignore
-                  this.setConfirm("Warning", warningMessage, () => {
-                    docManager.services.sessions
-                      .shutdown(notebookSession.id)
-                      .then(() => {
-                        this.setKernelChangePending(notebook, kernel, false);
-                      })
-                      .catch((error) => {
-                        this.setKernelChangePending(notebook, kernel, false);
-                        console.error(error);
-                      });
+                  this.setConfirm("Warning", warningMessage, async () => {
+                    try {
+                      await docManager.services.sessions.shutdown(
+                        notebookSession.id
+                      );
+
+                      this.setKernelChangePending(notebook, kernel, false);
+                      return true;
+                    } catch (error) {
+                      this.setKernelChangePending(notebook, kernel, false);
+                      console.error(error);
+                      return false;
+                    }
                   });
                 }
               }

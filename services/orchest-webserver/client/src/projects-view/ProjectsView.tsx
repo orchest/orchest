@@ -211,7 +211,7 @@ const ProjectsView: React.FC = () => {
     });
   };
 
-  const onDeleteClick = () => {
+  const onDeleteClick = async () => {
     if (!state.isDeleting) {
       setState((prevState) => ({
         ...prevState,
@@ -228,13 +228,13 @@ const ProjectsView: React.FC = () => {
           isDeleting: false,
         }));
 
-        return;
+        return false;
       }
 
-      setConfirm(
+      return setConfirm(
         "Warning",
         "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-        () => {
+        async () => {
           // Start actual delete
           let deletePromises = [];
 
@@ -243,25 +243,30 @@ const ProjectsView: React.FC = () => {
             deletePromises.push(deleteProjectRequest(project_uuid));
           });
 
-          Promise.all(deletePromises).then(() => {
+          try {
+            await Promise.all(deletePromises);
             fetchList();
-
             // Clear isDeleting
             setState((prevState) => ({
               ...prevState,
               isDeleting: false,
             }));
-          });
+            return true;
+          } catch (error) {
+            return false;
+          }
         },
-        () => {
+        async () => {
           setState((prevState) => ({
             ...prevState,
             isDeleting: false,
           }));
+          return false;
         }
       );
     } else {
       console.error("Delete UI in progress.");
+      return false;
     }
   };
 
