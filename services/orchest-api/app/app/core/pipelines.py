@@ -298,6 +298,7 @@ class PipelineStepRunner:
             # NOTE: the `'tests-uuid'` key is only used for tests and
             # gets ignored by the `docker_client`.
             "tests-uuid": self.properties["uuid"],
+            "CpuShares": _config.USER_CONTAINERS_CPU_SHARES,
         }
 
         # Starts the container asynchronously, however, it does not wait

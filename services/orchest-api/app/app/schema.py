@@ -186,7 +186,7 @@ session_config = Model(
         "host_userdir": fields.String(
             required=True, description="Host path to userdir"
         ),
-        "services": services,
+        "services": fields.Nested(services),
     },
 )
 
@@ -393,6 +393,7 @@ job_spec = Model(
     "Jobspecification",
     {
         "uuid": fields.String(required=True, description="UUID for job"),
+        "name": fields.String(required=True, description="Name for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "pipeline_definitions": fields.List(

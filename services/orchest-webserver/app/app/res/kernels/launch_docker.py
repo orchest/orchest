@@ -80,6 +80,7 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     kwargs["network"] = docker_network
     kwargs["group_add"] = [param_env.get("ORCHEST_HOST_GID")]
     kwargs["detach"] = True
+    kwargs["cpu_shares"] = _config.USER_CONTAINERS_CPU_SHARES
     if param_env.get("KERNEL_WORKING_DIR"):
         kwargs["working_dir"] = param_env.get("KERNEL_WORKING_DIR")
 

@@ -1,4 +1,4 @@
-FROM elyra/enterprise-gateway:2.3.0
+FROM elyra/enterprise-gateway:2.5.2
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Overwrite the standard Python 3 kernel to indicate it should not

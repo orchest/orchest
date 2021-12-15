@@ -14,7 +14,7 @@ import {
   clearOutgoingConnections,
 } from "./webserver-utils";
 
-type SubGraph = {
+type Component = {
   uuid: string;
   incoming_connections: string[];
 }[];
@@ -62,7 +62,13 @@ const collectNodes = (
 
   roots.forEach((root) => {
     const id = root.data.id;
-    nodes[id] = nodes[id] || { x: root.x, y: root.y };
+
+    // Traversed already
+    if (nodes[id] !== undefined) {
+      return;
+    }
+
+    nodes[id] = { x: root.x, y: root.y };
 
     root.dataChildren.forEach((childDag) =>
       collectNodes(childDag.child, nodes)
@@ -70,8 +76,8 @@ const collectNodes = (
   });
 };
 
-const generateDagData = (subGraph: SubGraph) => {
-  return subGraph.map((step) => {
+const generateDagData = (component: Component) => {
+  return component.map((step) => {
     return {
       id: step.uuid,
       parentIds: step.incoming_connections,
@@ -129,8 +135,8 @@ const moveNodesTopLeft = (nodes: Record<string, Point>) => {
   translateNodes(nodes, -boundingBox.minX, -boundingBox.minY);
 };
 
-const layoutSubGraph = (
-  subGraph: SubGraph,
+const layoutComponent = (
+  component: Component,
   nodeRadius: number,
   scaleX: number,
   scaleY: number,
@@ -138,7 +144,7 @@ const layoutSubGraph = (
   offsetY: number
 ): Record<string, Point> => {
   const stratify = dagStratify();
-  const dag = stratify(generateDagData(subGraph));
+  const dag = stratify(generateDagData(component));
 
   const layering = layeringSimplex();
   const decrossing = decrossOpt();
@@ -169,61 +175,62 @@ const layoutSubGraph = (
   return nodes;
 };
 
-const traverseNode = (
+const traverseGraph = (
   step: IPipelineStepState,
   allSteps: { [uuid: string]: IPipelineStepState },
   seenNodes: Set<string>,
-  subGraph: IPipelineStepState[]
+  component: IPipelineStepState[]
 ) => {
   step.outgoing_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
       seenNodes.add(stepUuid);
 
-      subGraph.push(allSteps[stepUuid]);
-      traverseNode(allSteps[stepUuid], allSteps, seenNodes, subGraph);
+      component.push(allSteps[stepUuid]);
+      traverseGraph(allSteps[stepUuid], allSteps, seenNodes, component);
     }
   });
   step.incoming_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
       seenNodes.add(stepUuid);
 
-      subGraph.push(allSteps[stepUuid]);
-      traverseNode(allSteps[stepUuid], allSteps, seenNodes, subGraph);
+      component.push(allSteps[stepUuid]);
+      traverseGraph(allSteps[stepUuid], allSteps, seenNodes, component);
     }
   });
 };
 
-const collectSubGraphs = (pipelineJson) => {
-  // Return subGraphs in sorted order (number of nodes, in descending order)
-
+/**
+ * Returns all (connected) components of the given graph in sorted order.
+ *
+ * Sorted by the number of nodes in descending order.
+ */
+const collectComponents = (pipelineJson) => {
   // Augment pipelineJson
   addOutgoingConnections(pipelineJson.steps);
 
-  // Traverse root nodes
+  // Traverse graph
   let seenNodes: Set<string> = new Set();
-  let subGraphs: { uuid: string; incoming_connections: string[] }[][] = [];
+  let components: { uuid: string; incoming_connections: string[] }[][] = [];
 
   Object.keys(pipelineJson.steps).forEach((stepUuid) => {
     let step = pipelineJson.steps[stepUuid];
 
-    // Start at unseen root nodes
-    if (!seenNodes.has(stepUuid) && step.incoming_connections.length == 0) {
-      // Found untraversed root node
-      let graphNodes = [];
-      traverseNode(step, pipelineJson.steps, seenNodes, graphNodes);
+    if (!seenNodes.has(stepUuid)) {
+      let graphNodes = [step];
+      seenNodes.add(stepUuid);
+      traverseGraph(step, pipelineJson.steps, seenNodes, graphNodes);
 
-      // Add to subGraphs
-      subGraphs.push(graphNodes);
+      components.push(graphNodes);
     }
   });
 
-  // Sort subGraphs (big to small)
-  subGraphs.sort((a, b) => b.length - a.length);
+  // Sort components (big to small)
+  components.sort((a, b) => b.length - a.length);
 
   // Remove annotations after being done with them
   clearOutgoingConnections(pipelineJson.steps);
 
-  return subGraphs;
+  return components;
 };
 
 export const layoutPipeline = (
@@ -238,20 +245,20 @@ export const layoutPipeline = (
 ) => {
   const _pipelineJson = _.cloneDeep(pipelineJson);
 
-  const subGraphs = collectSubGraphs(_pipelineJson);
+  const components = collectComponents(_pipelineJson);
 
-  // layout each subgraph top left
-  let laidOutSubGraphs = subGraphs.map((subGraph) =>
-    layoutSubGraph(subGraph, nodeRadius, scaleX, scaleY, 0, 0)
+  // layout each component top left
+  let laidOutComponents = components.map((component) =>
+    layoutComponent(component, nodeRadius, scaleX, scaleY, 0, 0)
   );
 
-  // use layout results to vertically stack subgraphs
+  // use layout results to vertically stack components
   let x = offsetX;
   let y = offsetY;
-  for (let laidOutSubGraph of laidOutSubGraphs) {
-    translateNodes(laidOutSubGraph, x, y);
+  for (let laidOutComponent of laidOutComponents) {
+    translateNodes(laidOutComponent, x, y);
 
-    let boundingBox = computeBoundingBox(laidOutSubGraph);
+    let boundingBox = computeBoundingBox(laidOutComponent);
 
     // Vertically stack, so only move the y 'pointer'
     // stepHeight is needed because the alignment only includes the center coordinates
@@ -259,8 +266,8 @@ export const layoutPipeline = (
     y += boundingBox.maxY - boundingBox.minY + stepHeight + verticalGraphMargin;
 
     // Write node positions to _pipelineJson
-    Object.entries(laidOutSubGraph).forEach((subgraph) => {
-      const [stepUuid, node] = subgraph;
+    Object.entries(laidOutComponent).forEach((component) => {
+      const [stepUuid, node] = component;
       _pipelineJson.steps[stepUuid].meta_data.position[0] = node.x;
       _pipelineJson.steps[stepUuid].meta_data.position[1] = node.y;
     });

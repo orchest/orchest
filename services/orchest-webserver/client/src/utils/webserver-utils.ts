@@ -108,7 +108,7 @@ export function addOutgoingConnections(
   */
 
   Object.keys(steps).forEach((stepUuid) => {
-    // assign an empty array as initial value if possible
+    // Every step NEEDs to have an `.outgoing_connections` defined.
     steps[stepUuid].outgoing_connections =
       steps[stepUuid].outgoing_connections || [];
 

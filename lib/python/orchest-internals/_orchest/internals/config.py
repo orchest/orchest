@@ -10,6 +10,15 @@ PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "True"
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
+# This represents a container priority w.r.t. CPU time. By default,
+# containers run with a value of 1024. User code/containers such as
+# steps, services, kernels, environment builds are made to run with a
+# lower value so that in conditions of high cpu contention core Orchest
+# services have priority, which helps in being responsive under high
+# load. This is only enforced when CPU cycles are constrained. For more
+# information, see
+# https://docs.docker.com/config/containers/resource_constraints/.
+USER_CONTAINERS_CPU_SHARES = 500
 
 # Databases
 database_naming_convention = {

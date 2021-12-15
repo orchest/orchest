@@ -1209,6 +1209,30 @@ const PipelineView: React.FC = () => {
     }
   };
 
+  /**
+   * Get position for new step so it doesn't spawn on top of other
+   * new steps.
+   * @param defaultPosition Default position of new steps.
+   * @param baseOffset The offset to use for X and Y.
+   */
+  const getNewStepPos = (defaultPosition: Array, baseOffset = 15) => {
+    const pipelineJson = getPipelineJSON();
+
+    const stepPositions = new Set();
+    for (const val of Object.values(pipelineJson.steps)) {
+      // Make position hashable.
+      pos = String(val.meta_data.position);
+
+      stepPositions.add(pos);
+    }
+
+    let currPos = defaultPosition;
+    while (stepPositions.has(String(currPos))) {
+      currPos = [currPos[0] + baseOffset, currPos[1] + baseOffset];
+    }
+    return currPos;
+  };
+
   const newStep = () => {
     deselectSteps();
 
@@ -1258,7 +1282,10 @@ const PipelineView: React.FC = () => {
         // Assumes step.uuid doesn't change
         let _step = state.eventVars.steps[step.uuid];
 
-        _step["meta_data"]["position"] = [
+        // When new steps are successively created then we don't want
+        // them to be spawned on top of each other. NOTE: we use the
+        // same offset for X and Y position.
+        const defaultPos = [
           -state.pipelineOffset[0] +
             state.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
             STEP_WIDTH / 2,
@@ -1266,6 +1293,7 @@ const PipelineView: React.FC = () => {
             state.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
             STEP_HEIGHT / 2,
         ];
+        _step["meta_data"]["position"] = getNewStepPos(defaultPos);
 
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
         _step["meta_data"]["hidden"] = false;
@@ -1639,13 +1667,14 @@ const PipelineView: React.FC = () => {
     const gridMargin = 20;
 
     const _pipelineJson = layoutPipeline(
-      state.pipelineJson,
+      // Use the pipeline definition from the editor
+      getPipelineJSON(),
       STEP_HEIGHT,
       (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
         (STEP_WIDTH / STEP_HEIGHT),
       1 + spacingFactor,
       gridMargin,
-      gridMargin,
+      gridMargin * 4, // don't put steps behind top buttons
       gridMargin,
       STEP_HEIGHT
     );
