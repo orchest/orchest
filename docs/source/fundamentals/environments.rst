@@ -87,8 +87,10 @@ interact with your project files from within the script. For example:
    #!/bin/bash
    pip install -r requirements.txt
 
-Creating a custom environment
------------------------------
-WIP
-
-.. Custom images must have USER `root` or ``sudo`` must be installed, ``find`` must also be installed.
+Creating a custom environment image
+-----------------------------------
+Bringing your own fully custom environment image is not recommended as Orchest requires a certain
+structure of the image to work correctly. Due to the dependency on the Jupyter Docker stacks and the
+ability of the environments to work for pipeline runs and to host active Jupyter kernels, we
+recommend using :ref:`environments <environments>` instead and using its *set-up script* instead to
+customize it further.
