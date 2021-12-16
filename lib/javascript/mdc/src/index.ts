@@ -1,7 +1,6 @@
 export * from "./MDCButtonReact";
 export * from "./MDCCardReact";
 export * from "./MDCCheckboxReact";
-export * from "./MDCDataTableReact";
 export * from "./MDCDrawerReact";
 export * from "./MDCListReact";
 export * from "./MDCRadioReact";

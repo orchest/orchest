@@ -12,15 +12,11 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { IconServicesSolid } from "@orchest/design-system";
 import React from "react";
-import { IServiceTemplate, templates } from "./content";
+import { ServiceTemplate, templates } from "./content";
 
-export interface IServiceTemplatesDialogProps {
-  onSelection?: (templateConfig: IServiceTemplate["config"]) => void;
-}
-
-export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
-  onSelection,
-}) => {
+export const ServiceTemplatesDialog: React.FC<{
+  onSelection: (templateConfig: ServiceTemplate["config"]) => void;
+}> = ({ onSelection }) => {
   const [isOpen, setIsOpen] = React.useState(false);
   return (
     <>
@@ -37,12 +33,11 @@ export const ServiceTemplatesDialog: React.FC<IServiceTemplatesDialogProps> = ({
         <DialogTitle>Select service</DialogTitle>
         <DialogContent>
           <List>
-            {Object.keys(templates).map((item) => {
-              const template = templates[item];
+            {Object.entries(templates).map(([key, template]) => {
               return (
-                <ListItem disablePadding key={item}>
+                <ListItem disablePadding key={key}>
                   <ListItemButton
-                    data-test-id={`pipeline-service-template-${item}`}
+                    data-test-id={`pipeline-service-template-${key}`}
                     disabled={!template.config}
                     onClick={(e) => {
                       e.preventDefault();

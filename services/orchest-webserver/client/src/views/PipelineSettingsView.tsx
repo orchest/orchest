@@ -1,10 +1,16 @@
 import { Code } from "@/components/common/Code";
 import { IconButton } from "@/components/common/IconButton";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableRow,
+} from "@/components/DataTable";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
+import { ServiceTemplate } from "@/components/ServiceTemplatesDialog/content";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -12,7 +18,11 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  Service,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -40,19 +50,19 @@ import {
 import {
   MDCButtonReact,
   MDCCheckboxReact,
-  MDCDataTableReact,
   MDCTextFieldReact,
 } from "@orchest/lib-mdc";
 import {
+  fetcher,
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import _ from "lodash";
 import React, { useRef, useState } from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import useSWR, { MutatorCallback } from "swr";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
@@ -86,6 +96,52 @@ const tabs = [
   },
 ];
 
+const getOrderValue = () => {
+  const lsKey = "_monotonic_getOrderValue";
+  // returns monotinically increasing digit
+  if (!window.localStorage.getItem(lsKey)) {
+    window.localStorage.setItem(lsKey, "0");
+  }
+  let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
+  window.localStorage.setItem(lsKey, value + "");
+  return value;
+};
+
+const fetchPipelineJson = async (url: string) => {
+  const response = await fetcher<{ pipeline_json: string }>(url);
+  const pipelineObj = JSON.parse(response.pipeline_json) as PipelineJson;
+  // as settings are optional, populate defaults if no values exist
+  if (pipelineObj.settings === undefined) {
+    pipelineObj.settings = {};
+  }
+  if (pipelineObj.settings.auto_eviction === undefined) {
+    pipelineObj.settings.auto_eviction = false;
+  }
+  if (pipelineObj.settings.data_passing_memory_size === undefined) {
+    pipelineObj.settings.data_passing_memory_size = "1GB";
+  }
+  if (pipelineObj.parameters === undefined) {
+    pipelineObj.parameters = {};
+  }
+  if (pipelineObj.services === undefined) {
+    pipelineObj.services = {};
+  }
+
+  // Augment services with order key
+  for (let service in pipelineObj.services) {
+    pipelineObj.services[service].order = getOrderValue();
+  }
+  return pipelineObj;
+};
+
+const isValidMemorySize = (value: string) =>
+  value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
+
+const scopeMap = {
+  interactive: "Interactive sessions",
+  noninteractive: "Job sessions",
+};
+
 const PipelineSettingsView: React.FC = () => {
   // global states
   const projectsContext = useProjectsContext();
@@ -114,19 +170,37 @@ const PipelineSettingsView: React.FC = () => {
   } = useCustomRoute();
 
   // local states
+  const {
+    data: pipelineJson,
+    mutate,
+    revalidate: fetchPipeline,
+    error,
+  } = useSWR<PipelineJson>(
+    getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid),
+    fetchPipelineJson
+  );
+
+  // use mutate to act like local state setter
+  const setPipelineJson = (
+    data?: PipelineJson | Promise<PipelineJson> | MutatorCallback<PipelineJson>
+  ) => mutate(data, false);
+
   const [tabIndex, setTabIndex] = useState<number>(
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
+
+  // const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
+  const [servicesChanged, setServicesChanged] = React.useState(false);
 
   const [state, setState] = React.useState({
     inputParameters: JSON.stringify({}, null, 2),
     restartingMemoryServer: false,
     pipeline_path: undefined,
-    dataPassingMemorySize: "1GB",
-    pipelineJson: undefined,
+    // dataPassingMemorySize: "1GB",
+    // pipelineJson: undefined,
     envVariables: [],
     projectEnvVariables: [],
-    servicesChanged: false,
+    // servicesChanged: false,
     environmentVariablesChanged: false,
   });
 
@@ -137,18 +211,17 @@ const PipelineSettingsView: React.FC = () => {
   if (
     !session &&
     !hasUnsavedChanges &&
-    (state.servicesChanged || state.environmentVariablesChanged)
+    (servicesChanged || state.environmentVariablesChanged)
   ) {
+    setServicesChanged(false);
     setState((prevState) => ({
       ...prevState,
-      servicesChanged: false,
       environmentVariablesChanged: false,
     }));
   }
 
   const [overflowListener] = React.useState(new OverflowListener());
   const promiseManagerRef = useRef(new PromiseManager<string>());
-  const [refManager] = React.useState(new RefManager());
 
   const fetchPipelineData = () => {
     fetchPipeline();
@@ -157,7 +230,7 @@ const PipelineSettingsView: React.FC = () => {
 
   const hasLoaded = () => {
     return (
-      state.pipelineJson &&
+      pipelineJson &&
       state.envVariables &&
       (isReadOnly || state.projectEnvVariables)
     );
@@ -186,25 +259,14 @@ const PipelineSettingsView: React.FC = () => {
       },
     });
 
-  const getOrderValue = () => {
-    const lsKey = "_monotonic_getOrderValue";
-    // returns monotinically increasing digit
-    if (!window.localStorage.getItem(lsKey)) {
-      window.localStorage.setItem(lsKey, "0");
-    }
-    let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
-    window.localStorage.setItem(lsKey, value + "");
-    return value;
-  };
-
-  const addServiceFromTemplate = (service) => {
+  const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
     let clonedService = _.cloneDeep(service);
 
     // Take care of service name collisions
     let x = 1;
     let baseServiceName = clonedService.name;
     while (x < 100) {
-      if (state.pipelineJson.services[clonedService.name] == undefined) {
+      if (pipelineJson.services[clonedService.name] == undefined) {
         break;
       }
       clonedService.name = baseServiceName + x;
@@ -214,51 +276,37 @@ const PipelineSettingsView: React.FC = () => {
     onChangeService(clonedService);
   };
 
-  const onChangeService = (service) => {
-    let pipelineJson = _.cloneDeep(state.pipelineJson);
-    pipelineJson.services[service.name] = service;
+  const onChangeService = (service: Service) => {
+    setPipelineJson((current) => {
+      // Maintain client side order key
+      if (service.order === undefined) service.order = getOrderValue();
+      current.services[service.name] = service;
+      return current;
+    });
 
-    // Maintain client side order key
-    if (service.order === undefined) {
-      service.order = getOrderValue();
-    }
-
-    setState((prevState) => ({
-      ...prevState,
-      servicesChanged: true,
-      pipelineJson: pipelineJson,
-    }));
-
+    setServicesChanged(true);
     setAsSaved(false);
   };
 
-  const nameChangeService = (oldName, newName) => {
-    let pipelineJson = _.cloneDeep(state.pipelineJson);
-    let service = pipelineJson.services[oldName];
-    service.name = newName;
-    pipelineJson.services[newName] = service;
-    delete pipelineJson.services[oldName];
-
-    setState((prevState) => ({
-      ...prevState,
-      servicesChanged: true,
-      pipelineJson: pipelineJson,
-    }));
-
+  const nameChangeService = (oldName: string, newName: string) => {
+    setPipelineJson((current) => {
+      current[newName] = current[oldName];
+      delete current.services[oldName];
+      return current;
+    });
+    setServicesChanged(true);
     setAsSaved(false);
   };
 
   const deleteService = async (serviceName: string) => {
-    let pipelineJson = _.cloneDeep(state.pipelineJson);
-    delete pipelineJson.services[serviceName];
+    setPipelineJson((current) => {
+      delete current.services[serviceName];
+      return current;
+    });
 
-    setState((prevState) => ({
-      ...prevState,
-      servicesChanged: true,
-      pipelineJson: pipelineJson,
-    }));
+    setServicesChanged(true);
     setAsSaved(false);
-    return truncate;
+    return true;
   };
 
   const attachResizeListener = () => overflowListener.attach();
@@ -268,68 +316,6 @@ const PipelineSettingsView: React.FC = () => {
     index: number
   ) => {
     setTabIndex(index);
-  };
-
-  const fetchPipeline = () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineUuid,
-      projectUuid,
-      jobUuid,
-      runUuid
-    );
-
-    let pipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineJSONEndpoint),
-      promiseManagerRef.current
-    );
-
-    pipelinePromise.promise
-      .then((response: string) => {
-        let result: {
-          pipeline_json: string;
-          success: boolean;
-        } = JSON.parse(response);
-
-        if (result.success) {
-          let pipelineJson: PipelineJson = JSON.parse(result["pipeline_json"]);
-
-          // as settings are optional, populate defaults if no values exist
-          if (pipelineJson.settings === undefined) {
-            pipelineJson.settings = {};
-          }
-          if (pipelineJson.settings.auto_eviction === undefined) {
-            pipelineJson.settings.auto_eviction = false;
-          }
-          if (pipelineJson.settings.data_passing_memory_size === undefined) {
-            pipelineJson.settings.data_passing_memory_size =
-              state.dataPassingMemorySize;
-          }
-          if (pipelineJson.parameters === undefined) {
-            pipelineJson.parameters = {};
-          }
-          if (pipelineJson.services === undefined) {
-            pipelineJson.services = {};
-          }
-
-          // Augment services with order key
-          for (let service in pipelineJson.services) {
-            pipelineJson.services[service].order = getOrderValue();
-          }
-
-          setHeaderComponent(pipelineJson?.name);
-          setState((prevState) => ({
-            ...prevState,
-            inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
-            pipelineJson: pipelineJson,
-            dataPassingMemorySize:
-              pipelineJson?.settings.data_passing_memory_size,
-          }));
-        } else {
-          console.warn("Could not load pipeline.json");
-          console.log(result);
-        }
-      })
-      .catch((err) => console.log(err));
   };
 
   const fetchPipelineMetadata = () => {
@@ -424,13 +410,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangeName = (value: string) => {
-    setState((prevState) => ({
-      ...prevState,
-      pipelineJson: {
-        ...prevState.pipelineJson,
-        name: value,
-      },
-    }));
+    setPipelineJson((current) => ({ ...current, name: value }));
     setAsSaved(false);
   };
 
@@ -442,67 +422,37 @@ const PipelineSettingsView: React.FC = () => {
 
     try {
       const parametersJSON = JSON.parse(value);
-
-      setState((prevState) => ({
-        ...prevState,
-        pipelineJson: {
-          ...prevState?.pipelineJson,
-          parameters: parametersJSON,
-        },
+      setPipelineJson((current) => ({
+        ...current,
+        parameters: parametersJSON,
       }));
 
       setAsSaved(false);
     } catch (err) {
-      // console.log("JSON did not parse")
+      console.log("JSON did not parse");
     }
   };
 
-  const isValidMemorySize = (value) =>
-    value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
-
-  const onChangeDataPassingMemorySize = (value) => {
-    setState((prevState) => ({
-      ...prevState,
-      dataPassingMemorySize: value,
-    }));
-
+  const onChangeDataPassingMemorySize = (value: string) => {
     if (isValidMemorySize(value)) {
-      setState((prevState) => ({
-        ...prevState,
-        pipelineJson: {
-          ...prevState.pipelineJson,
-          settings: {
-            ...prevState.pipelineJson?.settings,
-            data_passing_memory_size: value,
-          },
-        },
-      }));
+      setPipelineJson((current) => {
+        return {
+          ...current,
+          settings: { ...current.settings, data_passing_memory_size: value },
+        };
+      });
       setAsSaved(false);
     }
   };
 
-  const onChangeEviction = (value) => {
-    // create settings object if it doesn't exist
-    if (!state.pipelineJson?.settings) {
-      setState((prevState) => ({
-        ...prevState,
-        pipelineJson: {
-          ...prevState.pipelineJson,
-          settings: {},
-        },
-      }));
-    }
+  const onChangeEviction = (value: boolean) => {
+    setPipelineJson((current) => {
+      return {
+        ...current,
+        settings: { ...current.settings, auto_eviction: value },
+      };
+    });
 
-    setState((prevState) => ({
-      ...prevState,
-      pipelineJson: {
-        ...prevState.pipelineJson,
-        settings: {
-          ...prevState.pipelineJson?.settings,
-          auto_eviction: value,
-        },
-      },
-    }));
     setAsSaved(false);
   };
 
@@ -544,7 +494,7 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const cleanPipelineJson = (pipelineJson) => {
+  const cleanPipelineJson = (pipelineJson: PipelineJson) => {
     let pipelineCopy = _.cloneDeep(pipelineJson);
     for (let serviceName in pipelineCopy.services) {
       delete pipelineCopy.services[serviceName].order;
@@ -577,16 +527,16 @@ const PipelineSettingsView: React.FC = () => {
     e.preventDefault();
 
     // Remove order property from services
-    let pipelineJson = cleanPipelineJson(state.pipelineJson);
+    let requestPayload = cleanPipelineJson(pipelineJson);
 
-    let validationResult = validatePipeline(pipelineJson);
+    let validationResult = validatePipeline(requestPayload);
     if (!validationResult.valid) {
       setAlert("Error", validationResult.errors[0]);
       return;
     }
 
     // Validate environment variables of services
-    if (!validateServiceEnvironmentVariables(pipelineJson)) {
+    if (!validateServiceEnvironmentVariables(requestPayload)) {
       return;
     }
 
@@ -611,15 +561,12 @@ const PipelineSettingsView: React.FC = () => {
     }
 
     let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(pipelineJson));
+    formData.append("pipeline_json", JSON.stringify(requestPayload));
 
     makeRequest(
       "POST",
       `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-      {
-        type: "FormData",
-        content: formData,
-      }
+      { type: "FormData", content: formData }
     )
       .then((response: string) => {
         let result = JSON.parse(response);
@@ -703,6 +650,59 @@ const PipelineSettingsView: React.FC = () => {
     }
   };
 
+  type ServiceRow = { name: string; scope: string; remove: string };
+
+  const columns: DataTableColumn<ServiceRow>[] = [
+    { id: "name", label: "Service" },
+    { id: "scope", label: "Scope" },
+    {
+      id: "remove",
+      label: "Delete",
+      render: (row) => (
+        <IconButton
+          title="Delete"
+          disabled={isReadOnly}
+          onClick={() => {
+            setConfirm(
+              "Warning",
+              "Are you sure you want to delete the service: " + row.name + "?",
+              async () => deleteService(row.name)
+            );
+          }}
+        >
+          <DeleteIcon />
+        </IconButton>
+      ),
+    },
+  ];
+
+  const serviceRows: DataTableRow<ServiceRow>[] = !pipelineJson
+    ? []
+    : Object.entries(pipelineJson.services)
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([key, service]) => {
+          return {
+            uuid: key,
+            name: key,
+            scope: service.scope
+              .map((scopeAsString) => scopeMap[scopeAsString])
+              .join(", "),
+            remove: key,
+            details: (
+              <ServiceForm
+                key={`ServiceForm-${key}`}
+                service={service}
+                disabled={isReadOnly}
+                updateService={onChangeService}
+                nameChangeService={nameChangeService}
+                pipeline_uuid={pipelineUuid}
+                project_uuid={projectUuid}
+                run_uuid={runUuid}
+              />
+            ),
+          };
+        });
+
   return (
     <Layout>
       <div className="view-page pipeline-settings-view">
@@ -740,7 +740,7 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="column">
                         <MDCTextFieldReact
-                          value={state.pipelineJson?.name}
+                          value={pipelineJson?.name}
                           onChange={onChangeName}
                           label="Pipeline name"
                           disabled={isReadOnly}
@@ -812,7 +812,7 @@ const PipelineSettingsView: React.FC = () => {
 
                         <div className="checkbox-tooltip-holder">
                           <MDCCheckboxReact
-                            value={state.pipelineJson?.settings?.auto_eviction}
+                            value={pipelineJson?.settings?.auto_eviction}
                             onChange={onChangeEviction}
                             label="Automatic memory eviction"
                             disabled={isReadOnly}
@@ -839,7 +839,9 @@ const PipelineSettingsView: React.FC = () => {
 
                         <div>
                           <MDCTextFieldReact
-                            value={state.dataPassingMemorySize}
+                            value={
+                              pipelineJson.settings.data_passing_memory_size
+                            }
                             onChange={onChangeDataPassingMemorySize}
                             label="Data passing memory size"
                             disabled={isReadOnly}
@@ -847,7 +849,11 @@ const PipelineSettingsView: React.FC = () => {
                           />
                         </div>
                         {(() => {
-                          if (!isValidMemorySize(state.dataPassingMemorySize)) {
+                          if (
+                            !isValidMemorySize(
+                              pipelineJson.settings.data_passing_memory_size
+                            )
+                          ) {
                             return (
                               <div className="warning push-up">
                                 <i className="material-icons">warning</i> Not a
@@ -946,76 +952,18 @@ const PipelineSettingsView: React.FC = () => {
               </CustomTabPanel>
               <CustomTabPanel value={tabIndex} index={2} name="services">
                 <Box css={{ "> * + *": { marginTop: "$4" } }}>
-                  {state.servicesChanged && session && (
+                  {servicesChanged && session && (
                     <div className="warning push-up">
                       <i className="material-icons">warning</i>
                       Note: changes to services require a session restart to
                       take effect.
                     </div>
                   )}
-                  <MDCDataTableReact
-                    headers={["Service", "Scope", "Delete"]}
-                    rows={Object.keys(state.pipelineJson.services)
-                      .map(
-                        (serviceName) =>
-                          state.pipelineJson.services[serviceName]
-                      )
-                      .sort((a, b) => a.order - b.order)
-                      .map((service) => [
-                        service.name,
-                        service.scope
-                          .map((scope) => {
-                            const scopeMap = {
-                              interactive: "Interactive sessions",
-                              noninteractive: "Job sessions",
-                            };
-                            return scopeMap[scope];
-                          })
-                          .sort()
-                          .join(", "),
-                        <div className="consume-click" key={service.name}>
-                          <IconButton
-                            title="Delete"
-                            disabled={isReadOnly}
-                            onClick={() => {
-                              setConfirm(
-                                "Warning",
-                                "Are you sure you want to delete the service: " +
-                                  service.name +
-                                  "?",
-                                async () => {
-                                  await deleteService(service.name);
-                                  return true;
-                                }
-                              );
-                            }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </div>,
-                      ])}
-                    detailRows={Object.keys(state.pipelineJson.services)
-                      .map(
-                        (serviceName) =>
-                          state.pipelineJson.services[serviceName]
-                      )
-                      .sort((a, b) => a.order - b.order)
-                      .map((service, i) => {
-                        return null;
-                        return (
-                          <ServiceForm
-                            key={["ServiceForm", i].join("-")}
-                            service={service}
-                            disabled={isReadOnly}
-                            updateService={onChangeService}
-                            nameChangeService={nameChangeService}
-                            pipeline_uuid={pipelineUuid}
-                            project_uuid={projectUuid}
-                            run_uuid={runUuid}
-                          />
-                        );
-                      })}
-                    data-test-id="pipeline-services"
+                  <DataTable<ServiceRow>
+                    hideSearch
+                    id="service-list"
+                    columns={columns}
+                    rows={serviceRows}
                   />
                   <Alert status="info">
                     <AlertHeader>

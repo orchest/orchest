@@ -262,9 +262,24 @@ export type Step = {
   uuid: string;
 };
 
+export type Service = {
+  image: string;
+  name: string;
+  scope: ("interactive" | "noninteractive")[];
+  entrypoint?: string;
+  binds?: Record<string, string>;
+  ports?: number[];
+  command: string;
+  preserve_base_path?: boolean;
+  env_variables?: Record<string, string>;
+  env_variables_inherit?: any[];
+  requires_authentication?: boolean;
+  order?: number;
+};
+
 export type PipelineJson = {
   name: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, Json>;
   settings: {
     auto_eviction?: boolean;
     data_passing_memory_size?: string;
@@ -272,7 +287,7 @@ export type PipelineJson = {
   steps: Record<string, Step>;
   uuid: string;
   version: string;
-  services?: Record<string, any>;
+  services?: Record<string, Service>;
 };
 
 export type Example = {

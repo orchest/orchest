@@ -1,3 +1,4 @@
+import { PipelineJson } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -16,7 +17,7 @@ export function isValidEnvironmentVariableName(name) {
   return /^[0-9a-zA-Z\-_]+$/gm.test(name);
 }
 
-export function validatePipeline(pipelineJson) {
+export function validatePipeline(pipelineJson: PipelineJson) {
   let errors = [];
 
   let valid = pipelineValidator(pipelineJson);
