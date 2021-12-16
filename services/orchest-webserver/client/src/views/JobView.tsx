@@ -4,7 +4,7 @@ import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import ParamTree, { NoParameterAlert } from "@/components/ParamTree";
+import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -34,7 +34,6 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
 import React from "react";
@@ -234,7 +233,6 @@ const JobView: React.FC = () => {
   const [tabIndex, setTabIndex] = React.useState(0);
 
   const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
 
   React.useEffect(() => {
     fetchJob();
@@ -290,17 +288,6 @@ const JobView: React.FC = () => {
   const reload = () => {
     setIsRefreshing(true);
     fetchJob();
-  };
-
-  const parameterValueOverride = (strategyJSON, parameters) => {
-    for (let strategyJSONKey in parameters) {
-      for (let parameter in parameters[strategyJSONKey]) {
-        strategyJSON[strategyJSONKey]["parameters"][parameter] =
-          parameters[strategyJSONKey][parameter];
-      }
-    }
-
-    return strategyJSON;
   };
 
   const onDetailPipelineView = (pipelineRun) => {
@@ -426,37 +413,6 @@ const JobView: React.FC = () => {
     ];
   }, [job?.pipeline_runs]);
 
-  const detailRows = (pipelineRuns) => {
-    let detailElements = [];
-
-    // override values in fields through param fields
-    for (let x = 0; x < pipelineRuns.length; x++) {
-      let pipelineRun = pipelineRuns[x];
-      let strategyJSON = JSON.parse(JSON.stringify(job.strategy_json));
-
-      strategyJSON = parameterValueOverride(
-        strategyJSON,
-        pipelineRun.parameters
-      );
-
-      detailElements.push(
-        <div className="pipeline-run-detail">
-          <ParamTree strategyJSON={strategyJSON} pipelineName={pipeline.name} />
-          <Button
-            variant="contained"
-            startIcon={<VisibilityIcon />}
-            onClick={() => onDetailPipelineView(pipelineRun)}
-            data-test-id={`job-pipeline-runs-row-view-pipeline-${x}`}
-          >
-            View pipeline
-          </Button>
-        </div>
-      );
-    }
-
-    return detailElements;
-  };
-
   const onJobDuplicate = () => {
     if (!job) {
       return;
@@ -508,18 +464,6 @@ const JobView: React.FC = () => {
   };
 
   const isLoading = !pipeline || !job;
-
-  if (job?.parameters)
-    console.log(
-      job.parameters.map((param, index) => {
-        return {
-          uuid: index.toString(),
-          spec: Object.entries(param.pipeline_parameters)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join(", "),
-        };
-      })
-    );
 
   const tabView = isLoading ? null : (
     <>
@@ -598,9 +542,11 @@ const JobView: React.FC = () => {
                 ? job.parameters.map((param, index) => {
                     return {
                       uuid: index.toString(),
-                      spec: Object.entries(param.pipeline_parameters)
-                        .map(([key, value]) => `${key}: "${value}"`)
-                        .join(", "),
+                      spec: param.pipeline_parameters
+                        ? Object.entries(param.pipeline_parameters)
+                            .map(([key, value]) => `${key}: "${value}"`)
+                            .join(", ")
+                        : "Parameterless run",
                     };
                   })
                 : []

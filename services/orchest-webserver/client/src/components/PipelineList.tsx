@@ -168,7 +168,9 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     PipelineMetaData[]
   >();
 
-  const requestFetchPipeline = () => run(fetchPipelines(projectUuid));
+  const requestFetchPipeline = async () => {
+    run(fetchPipelines(projectUuid));
+  };
 
   React.useEffect(() => {
     requestFetchPipeline();
@@ -310,12 +312,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       });
   };
 
-  // const [, setCounter] = React.useState(0);
-  // const forceRerender = () => setCounter((current) => current + 1);
-
-  // console.log("HEY");
-  // console.log(pathInputRef.current);
-
   const onEditClick = (uuid: string, path: string) => {
     setIsEditingPipelinePath(true);
     setPipelineInEdit({ uuid, path });
@@ -325,7 +321,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     setIsCreateDialogOpen(true);
   };
 
-  const onSubmitModal = () => {
+  const onSubmitCreatePipeline = () => {
     let pipelineName = state.createPipelineName;
     let pipelinePath = state.createPipelinePath;
 
@@ -363,7 +359,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         if (!response.isCanceled) {
           try {
             let data = JSON.parse(response.body);
-
             setAlert("Error", `Could not create pipeline. ${data.message}`);
           } catch {
             setAlert("Error", "Could not create pipeline. Reason unknown.");
@@ -395,6 +390,10 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     projectUuid,
   ]);
 
+  const isNameTaken = pipelineRows.some(
+    (row) => row.name === state.createPipelineName
+  );
+
   return !["RESOLVED", "REJECTED"].includes(status) ? (
     <div className={"pipelines-view"}>
       <h2>Pipelines</h2>
@@ -403,57 +402,70 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   ) : (
     <div className={"pipelines-view"}>
       <Dialog open={isCreateDialogOpen} onClose={onCloseCreatePipelineModal}>
-        <DialogTitle>Create a new pipeline</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="normal"
-            fullWidth
-            value={state.createPipelineName}
-            label="Pipeline name"
-            onChange={(e) => {
-              const value = e.target.value;
-              setState((prevState) => ({
-                ...prevState,
-                createPipelinePath:
-                  value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
-                createPipelineName: value,
-              }));
-            }}
-            data-test-id="pipeline-name-textfield"
-          />
-          <TextField
-            margin="normal"
-            fullWidth
-            label="Pipeline path"
-            onChange={(e) => {
-              const value = e.target.value;
-              setState((prevState) => ({
-                ...prevState,
-                createPipelinePath: value,
-              }));
-            }}
-            value={state.createPipelinePath}
-            data-test-id="pipeline-path-textfield"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={onCloseCreatePipelineModal}
-          >
-            Cancel
-          </Button>
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            type="submit"
-            onClick={onSubmitModal}
-            data-test-id="pipeline-create-ok"
-          >
-            Create pipeline
-          </Button>
-        </DialogActions>
+        <form
+          id="create-pipeline"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSubmitCreatePipeline();
+          }}
+        >
+          <DialogTitle>Create a new pipeline</DialogTitle>
+          <DialogContent>
+            <TextField
+              margin="normal"
+              fullWidth
+              autoFocus
+              value={state.createPipelineName}
+              label="Pipeline name"
+              onChange={(e) => {
+                const value = e.target.value;
+                setState((prevState) => ({
+                  ...prevState,
+                  createPipelinePath:
+                    value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
+                  createPipelineName: value,
+                }));
+              }}
+              error={isNameTaken}
+              helperText={isNameTaken ? "This name has been used" : ""}
+              data-test-id="pipeline-name-textfield"
+            />
+            <TextField
+              margin="normal"
+              fullWidth
+              label="Pipeline path"
+              onChange={(e) => {
+                const value = e.target.value;
+                setState((prevState) => ({
+                  ...prevState,
+                  createPipelinePath: value,
+                }));
+              }}
+              value={state.createPipelinePath}
+              data-test-id="pipeline-path-textfield"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              startIcon={<CloseIcon />}
+              color="secondary"
+              onClick={onCloseCreatePipelineModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              type="submit"
+              form="create-pipeline"
+              disabled={isNameTaken}
+              data-test-id="pipeline-create-ok"
+            >
+              Create pipeline
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
       <Dialog
         open={isEditingPipelinePath && pipelineInEdit !== null}
