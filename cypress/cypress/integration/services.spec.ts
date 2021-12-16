@@ -188,15 +188,21 @@ describe("services", () => {
     cy.readFile(`${DATA_DIR}/test1.txt`);
     cy.wait("@jobData")
       .its("response.body")
-      .then((data) => {
-        let dirPath = getJobProjectDirPath(
-          data.project_uuid,
-          data.pipeline_uuid,
-          // uuid of the job.
-          data.uuid,
-          data.pipeline_runs[0].uuid
-        );
-        cy.readFile(`${dirPath}/test2.txt`);
+      .then((job_data) => {
+        cy.request(
+          "GET",
+          `/catch/api-proxy/api/jobs/${job_data.uuid}/pipeline_runs`
+        ).then((response) => {
+          let job_runs_data = response.body;
+          let dirPath = getJobProjectDirPath(
+            job_data.project_uuid,
+            job_data.pipeline_uuid,
+            // uuid of the job.
+            job_data.uuid,
+            job_runs_data.pipeline_runs[0].uuid
+          );
+          cy.readFile(`${dirPath}/test2.txt`);
+        });
       });
   });
 
