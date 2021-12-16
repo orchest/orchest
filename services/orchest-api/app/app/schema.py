@@ -448,10 +448,6 @@ job = Model(
             description="Total number of times the job was run.",
         ),
         "pipeline_definition": fields.Raw(description="Pipeline definition"),
-        "pipeline_runs": fields.List(
-            fields.Nested(non_interactive_run),
-            description="Collection of pipeline runs part of the job",
-        ),
         "next_scheduled_time": fields.String(
             required=True,
             description="Next time at which the job is scheduled to start.",
