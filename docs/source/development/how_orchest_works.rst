@@ -3,7 +3,9 @@
 How Orchest works
 =================
 .. note::
-   WIP!
+   WIP (Should be readable for engineers and non-technical people)!
+   Notion that Orchest's views are just views on top of the project directory that lives on the
+   filesystem.
 
 A pipeline in Orchest can be thought of as a graph, where the nodes are executable files that
 execute within their own isolated environment (powered by containerization), and the edges define
