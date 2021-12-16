@@ -27,13 +27,19 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
 ## Features
 
 - **Visually construct pipelines** through our user-friendly UI
-- **Code in Notebooks** and scripts ([quickstart](https://orchest.readthedocs.io/en/stable/))
-- Run any subset of a pipelines directly or periodically ([jobs](https://orchest.readthedocs.io/en/stable/))
-- Easily define your dependencies to run on **any machine** ([environments](https://orchest.readthedocs.io/en/stable/))
-- Spin up services whose lifetime spans across the entire pipeline run ([services](https://orchest.readthedocs.io/en/stable/))
-- Version your projects using git ([projects](https://orchest.readthedocs.io/en/stable/))
+- **Code in Notebooks** and scripts
+  ([quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html))
+- Run any subset of a pipelines directly or periodically
+  ([jobs](https://docs.orchest.io/en/stable/fundamentals/jobs.html))
+- Easily define your dependencies to run on **any machine**
+  ([environments](https://docs.orchest.io/en/stable/fundamentals/environments.html))
+- Spin up services whose lifetime spans across the entire pipeline run
+  ([services](https://docs.orchest.io/en/stable/fundamentals/services.html))
+- Version your projects using git
+  ([projects](https://docs.orchest.io/en/stable/fundamentals/projects.html))
 
-**Who should use Orchest?** Read it in the [docs](https://orchest.readthedocs.io/en/stable/).
+**When to use Orchest?** Read it in the
+[docs](https://docs.orchest.io/en/stable/getting_started/when_to_use_orchest.html).
 
 ## Installation
 
@@ -55,7 +61,7 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ```
 
 🎉 Now that you have installed Orchest, get started with our
-[quickstart](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) tutorial,
+[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
 check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
 users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
 explaining some of Orchest's core concepts.
