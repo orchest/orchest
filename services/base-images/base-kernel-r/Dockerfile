@@ -43,6 +43,11 @@ COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runn
 ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
 
+# Environment variable that can be set to specify the conda environment
+# to use to start Jupyter kernels. Empty string will use the default
+# conda env.
+ENV CONDA_ENV=""
+
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 

@@ -51,11 +51,17 @@ def main():
 
     elif file_extension in ["py", "r", "sh", "jl", ""]:
 
+        # Explicitely use the Python that contains the user dependencies
+        # (otherwise Popen could resolve to the Python inside the
+        # "orchestdependencies" environment).
+        python_env = os.environ.get("CONDA_ENV")
+        if python_env:
+            python_env = f"/opt/conda/envs/{python_env}"
+        else:
+            python_env = "/opt/conda"
+
         extension_script_mapping = {
-            # Explicitely use the Python that contains the user
-            # dependencies (otherwise Popen could resolve to the Python
-            # inside the "orchestdependencies" environment).
-            "py": "/opt/conda/bin/python",
+            "py": f"{python_env}/bin/python",
             "r": "Rscript",
             "sh": "sh",
             "jl": "julia",
