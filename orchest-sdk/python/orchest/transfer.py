@@ -891,7 +891,22 @@ def _resolve(
     )
 
 
-def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str, Any]:
+_times_get_inputs_called = 0
+_GET_INPUTS_CALLED_TWICE_WARNING = (
+    "WARNING: `get_inputs()` should only be called once. By default, in interactive "
+    "mode you can call it multiple times per step for ease of development, while in "
+    "non-interactive mode (jobs) you should always only call it once per step. The "
+    "reason is that, for efficiency, in non-interactive mode the inputs of a step are "
+    "deallocated the first time they are retrieved. To silence this warning, call "
+    "`get_inputs` with ``silence_multiple_calls_warning`` set to ``True``."
+)
+
+
+def get_inputs(
+    ignore_failure: bool = False,
+    verbose: bool = False,
+    silence_multiple_calls_warning: bool = False,
+) -> Dict[str, Any]:
     """Gets all data sent from incoming steps.
 
     Args:
@@ -903,6 +918,8 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             :exc:`OutputNotFoundError`
         verbose: If ``True`` print all the steps from which the current
             step has retrieved data.
+        silence_multiple_calls_warning: If ``True`` the function will
+            print a warning when being called multiple times per step.
 
     Returns:
         Dictionary with input data for this step. We differentiate
@@ -946,6 +963,11 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
         data or maintain a copy yourself.
 
     """
+    global _times_get_inputs_called
+    _times_get_inputs_called += 1
+    if not silence_multiple_calls_warning and _times_get_inputs_called > 1:
+        print(_GET_INPUTS_CALLED_TWICE_WARNING, flush=True)
+
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
             pipeline_definition = json.load(f)
