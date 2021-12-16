@@ -16,6 +16,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
@@ -291,7 +292,12 @@ class PipelineRunsList(Resource):
 
 @api.route(
     "/<string:job_uuid>/<string:run_uuid>",
-    doc={"description": ("Set and get execution status of pipeline runs " "in a job.")},
+    doc={
+        "description": (
+            "Set and get execution status of pipeline runs in a job. Also allows to "
+            "abort a specific pipeline run."
+        )
+    },
 )
 @api.param("job_uuid", "UUID of Job")
 @api.param("run_uuid", "UUID of Run")
@@ -329,6 +335,22 @@ class PipelineRun(Resource):
             return {"message": str(e)}, 500
 
         return {"message": "Status was updated successfully"}, 200
+
+    @api.doc("delete_run")
+    @api.response(200, "Run terminated")
+    def delete(self, job_uuid, run_uuid):
+        """Stops a job pipeline run given its UUID."""
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_abort = AbortPipelineRun(tpe).transaction(run_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_abort:
+            return {"message": "Run termination was successful."}, 200
+        else:
+            return {"message": "Run does not exist or is not running."}, 400
 
 
 @api.route(
