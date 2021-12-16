@@ -12,6 +12,7 @@
 
 ```sh
 npm i -g @vercel/ncc
+npm i
 ncc build src/index.js
 ```
 

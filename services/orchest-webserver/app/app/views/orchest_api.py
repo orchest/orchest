@@ -625,3 +625,18 @@ def register_orchest_api_views(app, db):
         except Exception as e:
             msg = f"Error during job deletion:{e}"
             return {"message": msg}, 500
+
+    @app.route("/catch/api-proxy/api/jobs/next_scheduled_job", methods=["get"])
+    def catch_api_proxy_jobs_next_scheduled_job():
+        resp = requests.get(
+            f'http://{app.config["ORCHEST_API_ADDRESS"]}/api/jobs/next_scheduled_job'
+            + request_args_to_string(request.args)
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
+    @app.route("/catch/api-proxy/idle", methods=["GET"])
+    def catch_idle_check_get():
+        resp = requests.get(
+            (f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/info/idle')
+        )
+        return resp.content, resp.status_code, resp.headers.items()

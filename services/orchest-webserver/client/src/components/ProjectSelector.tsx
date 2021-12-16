@@ -14,8 +14,6 @@ import React from "react";
 
 export type TProjectSelectorRef = any;
 
-[siteMap];
-
 const ProjectSelector = (_, ref: TProjectSelectorRef) => {
   const { state, dispatch } = useOrchest();
   const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
@@ -98,7 +96,7 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
         onChangeProject(newProjectUuid);
       }
     }
-  }, [state.hasLoadedProjects, projectUuidFromRoute]);
+  }, [matchProjectRoot, state.hasLoadedProjects]);
 
   const selectItems = state.projects.map((project) => [
     project.uuid,

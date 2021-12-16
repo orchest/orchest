@@ -31,7 +31,8 @@ const SettingsView: React.FC = () => {
     configJSON: undefined,
     version: undefined,
     hostInfo: undefined,
-    requiresRestart: false,
+    // changed config options that require an Orchest restart
+    requiresRestart: [],
   });
 
   const [promiseManager] = React.useState(new PromiseManager());
@@ -59,8 +60,6 @@ const SettingsView: React.FC = () => {
       .catch(console.error);
   };
 
-  const REQUIRES_RESTART_ON_CHANGE = ["MAX_JOB_RUNS_PARALLELISM"];
-
   const getConfig = () => {
     let getConfigPromise = makeCancelable(
       makeRequest("GET", "/async/user-config"),
@@ -71,6 +70,7 @@ const SettingsView: React.FC = () => {
       .then((data) => {
         try {
           let configJSON = JSON.parse(data);
+          configJSON = configJSON.user_config;
           let visibleJSON = configToVisibleConfig(configJSON);
 
           setState((prevState) => ({
@@ -137,14 +137,9 @@ const SettingsView: React.FC = () => {
 
       formData.append("config", JSON.stringify(joinedConfig));
 
-      let authWasEnabled = state.configJSON.AUTH_ENABLED;
-
       setState((prevState) => ({
         ...prevState,
         configJSON: joinedConfig,
-        requiresRestart: REQUIRES_RESTART_ON_CHANGE.some(
-          (key) => state.configJSON[key] != joinedConfig[key]
-        ),
       }));
 
       context.dispatch({
@@ -158,31 +153,26 @@ const SettingsView: React.FC = () => {
       })
         .catch((e) => {
           console.error(e);
+          orchest.alert("Error", JSON.parse(e.body).message);
         })
         .then((data: string) => {
-          let shouldReload = false;
-
           try {
-            let configJSON = JSON.parse(data);
+            let responseJSON = JSON.parse(data);
+            let requiresRestart = responseJSON.requires_restart;
+            let configJSON = responseJSON.user_config;
 
             setState((prevState) => ({
               ...prevState,
               configJSON,
+              requiresRestart,
               config: JSON.stringify(
                 configToVisibleConfig(configJSON),
                 null,
                 2
               ),
             }));
-
-            // Refresh the page when auth gets enabled in the config.
-            shouldReload = configJSON.AUTH_ENABLED && !authWasEnabled;
           } catch (error) {
             console.warn("Received invalid JSON config from the server.");
-          }
-
-          if (shouldReload) {
-            location.reload();
           }
         });
     } catch (error) {
@@ -224,7 +214,7 @@ const SettingsView: React.FC = () => {
           ...prevState,
           restarting: true,
           status: "restarting",
-          requiresRestart: false,
+          requiresRestart: [],
         }));
 
         makeRequest("POST", "/async/restart")
@@ -273,13 +263,6 @@ const SettingsView: React.FC = () => {
         <h2>Orchest settings</h2>
         <div className="push-down">
           <div>
-            <p className="push-down">
-              Enabling authentication through{" "}
-              <span className="code">AUTH_ENABLED</span> will automatically
-              redirect you to the login page, so make sure you have set up a
-              user first!
-            </p>
-
             {(() => {
               if (state.config === undefined) {
                 return <p>Loading config...</p>;
@@ -345,11 +328,14 @@ const SettingsView: React.FC = () => {
                       }
                     })()}
                     {(() => {
-                      if (state.requiresRestart) {
+                      if (state.requiresRestart.length > 0) {
+                        let vals = state.requiresRestart.map(
+                          (val) => `"${val}" `
+                        );
                         return (
                           <div className="warning push-up">
                             <i className="material-icons">info</i> Restart
-                            Orchest to have the changes take effect.
+                            Orchest for the changes to {vals} to take effect.
                           </div>
                         );
                       }

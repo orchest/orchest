@@ -5,8 +5,8 @@
 
 umask 002
 
-if [ "$1" = "runnable" ]; then 
-    python run.py "$2" "$3"
+if [ "$1" = "runnable" ]; then
+    /opt/conda/envs/orchestdependencies/bin/python run.py "$2" "$3"
 else
     /usr/local/bin/bootstrap-kernel.sh
 fi

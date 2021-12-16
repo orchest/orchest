@@ -1,6 +1,6 @@
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Set
 
 import requests
@@ -16,6 +16,7 @@ from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_s
 from app import errors as self_errors
 from app import schema
 from app.connections import db, docker_client
+from app.core import sessions
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -592,12 +593,18 @@ def get_logger() -> logging.Logger:
     return get_task_logger(__name__)
 
 
-def process_stale_environment_images(project_uuid: Optional[str] = None) -> None:
-    """Make stale environments unavailable to the user.
+def process_stale_environment_images(
+    project_uuid: Optional[str] = None, only_marked_for_removal: bool = True
+) -> None:
+    """Makes stale environments unavailable to the user.
 
     Args:
         project_uuid: If specified, only this project environment images
             will be processed.
+        only_marked_for_removal: Only consider images that have been
+            marked for removal. Setting this to False allows the caller
+            to, essentially, cleanup environments that are no longer in
+            use.
 
     After an update, all environment images are invalidated to avoid the
     user having an environment with an SDK not compatible with the
@@ -611,7 +618,7 @@ def process_stale_environment_images(project_uuid: Optional[str] = None) -> None
     removed, so that the environment will have to be rebuilt to be
     available to the user for new runs.  The invalidation semantics are
     tied with the semantics of the validation module, which considers an
-    environment as existing based on the existance of the orchest-env-*
+    environment as existing based on the existence of the orchest-env-*
     name.
 
     """
@@ -621,10 +628,10 @@ def process_stale_environment_images(project_uuid: Optional[str] = None) -> None
 
     env_imgs = docker_images_list_safe(docker_client, filters=filters)
     for img in env_imgs:
-        _process_stale_environment_image(img)
+        _process_stale_environment_image(img, only_marked_for_removal)
 
 
-def _process_stale_environment_image(img) -> None:
+def _process_stale_environment_image(img, only_marked_for_removal) -> None:
     pr_uuid = img.labels.get("_orchest_project_uuid")
     env_uuid = img.labels.get("_orchest_environment_uuid")
     build_uuid = img.labels.get("_orchest_env_build_task_uuid")
@@ -645,25 +652,127 @@ def _process_stale_environment_image(img) -> None:
         # The image has not been marked for removal. This will happen
         # everytime Orchest is started except for a start which is
         # following an update.
-        f"{removal_name}:latest" not in img.tags
+        (f"{removal_name}:latest" not in img.tags and only_marked_for_removal)
         # Note that we can't check for env_name:latest not being in
         # img.tags because it might not be there if the image has
-        # "survived" two updates in a row because a job is still
-        # using that.
+        # "survived" two updates in a row because a job is still using
+        # that.
     ):
         return
 
-    # This will just remove the orchest-env-* name/tag from the
-    # image, the image will still be available for jobs that are
-    # making use of that because the image still have the
-    # <removal_name>.
-    if f"{env_name}:latest" in img.tags:
-        docker_images_rm_safe(docker_client, env_name)
+    has_env_name = f"{env_name}:latest" in img.tags
+    if has_env_name:
+        if only_marked_for_removal:
+            # This will just remove the orchest-env-* name/tag from the
+            # image, the image will still be available for jobs that are
+            # making use of that because the image still has the
+            # <removal_name>.
+            docker_images_rm_safe(docker_client, env_name)
+        else:
+            # The image is not dangling, e.g. it has not been
+            # substituted by a more up to date version of the same
+            # environment.
+            return
 
     if not is_docker_image_in_use(img.id):
-        # Delete through id, hence deleting the image regardless
-        # of the fact that it has other tags. force=True is used to
-        # delete regardless of the existence of stopped containers, this
-        # is required because pipeline runs PUT to the orchest-api their
+        # Delete through id, hence deleting the image regardless of the
+        # fact that it has other tags. force=True is used to delete
+        # regardless of the existence of stopped containers, this is
+        # required because pipeline runs PUT to the orchest-api their
         # finished state before deleting their stopped containers.
         docker_images_rm_safe(docker_client, img.id, attempt_count=20, force=True)
+
+
+def delete_dangling_orchest_images() -> None:
+    """Deletes dangling Orchest images.
+
+    After an update there could be old Orchest images dangling, for two
+    reasons:
+    - running containers during update, e.g. when running in "web" mode.
+    - existing environmens making use of those images.
+
+    After an update, all services are restarted, and at the start of
+    this service, all user environment images coming from a previous
+    Orchest version are deleted, which means those dangling images can
+    now be deleted.
+
+    """
+    filters = {
+        "label": ["maintainer=Orchest B.V. https://www.orchest.io"],
+        # Note: a dangling image has no tags and no dependent child
+        # images. A base image with no tags which is being used by an
+        # environment, even a dangling one, will not be removed.
+        "dangling": True,
+    }
+    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    for img in env_imgs:
+        # Since environment images might be built using Orchest base
+        # images, make sure to not delete environment images by mistake
+        # because of the filtering.
+        env_uuid = img.labels.get("_orchest_environment_uuid")
+        if env_uuid is None:
+            docker_images_rm_safe(docker_client, img.id)
+
+
+def is_orchest_idle() -> dict:
+    """Checks if the orchest-api is idle.
+
+    Returns:
+        See schema.idleness_check_result for details.
+    """
+    data = {}
+
+    # Active clients.
+    threshold = (
+        datetime.now(timezone.utc)
+        - current_app.config["CLIENT_HEARTBEATS_IDLENESS_THRESHOLD"]
+    )
+    data["active_clients"] = db.session.query(
+        db.session.query(models.ClientHeartbeat)
+        .filter(models.ClientHeartbeat.timestamp > threshold)
+        .exists()
+    ).scalar()
+
+    # Find busy kernels.
+    data["busy_kernels"] = False
+    isessions = models.InteractiveSession.query.filter(
+        models.InteractiveSession.status.in_(["RUNNING"])
+    ).all()
+    for session in isessions:
+        session_obj = sessions.InteractiveSession.from_container_IDs(
+            docker_client,
+            container_IDs=session.container_ids,
+            network=_config.DOCKER_NETWORK,
+            notebook_server_info=session.notebook_server_info,
+        )
+        session_has_busy_kernels = session_obj.has_busy_kernels(
+            {
+                "project_uuid": session.project_uuid,
+                "pipeline_uuid": session.pipeline_uuid,
+            }
+        )
+        if session_has_busy_kernels:
+            data["busy_kernels"] = True
+            break
+
+    # Assumes the model has a uuid field and its lifecycle contains the
+    # PENDING and STARTED statuses. NOTE: we could be stopping earlier
+    # on truthy values since we already know the orchest-api is idle at
+    # this point, but providing all details might allow to further build
+    # on this "feature" in the future without fragmenting users due to
+    # different versions.
+    for name, model in [
+        ("ongoing_environment_builds", models.EnvironmentBuild),
+        ("ongoing_jupyterlab_builds", models.JupyterBuild),
+        ("ongoing_interactive_runs", models.InteractivePipelineRun),
+        ("ongoing_job_runs", models.NonInteractivePipelineRun),
+    ]:
+        data[name] = db.session.query(
+            db.session.query(model)
+            .filter(model.status.in_(["PENDING", "STARTED"]))
+            .exists()
+        ).scalar()
+
+    result = {"details": data}
+    result["idle"] = not any(data.values())
+    return result

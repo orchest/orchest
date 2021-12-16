@@ -71,8 +71,8 @@ const getItemKey = (item: { label: string; icon: string; path: string }) =>
   `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
 
 const MainDrawer: React.FC = () => {
-  const context = useOrchest();
-  const projectUuid = context.state.projectUuid;
+  const { dispatch, state } = useOrchest();
+  const projectUuid = state.projectUuid;
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
 
@@ -81,26 +81,22 @@ const MainDrawer: React.FC = () => {
 
   React.useEffect(() => {
     if (drawerRef.current) {
-      if (macDrawerRef.current)
-        macDrawerRef.current.open = context.state.drawerIsOpen;
+      if (macDrawerRef.current) macDrawerRef.current.open = state.drawerIsOpen;
 
-      if (
-        context.state?.config?.CLOUD === true &&
-        window.Intercom !== undefined
-      ) {
+      if (state?.config?.CLOUD === true && window.Intercom !== undefined) {
         // show Intercom widget
         window.Intercom("update", {
-          hide_default_launcher: !context.state?.drawerIsOpen,
+          hide_default_launcher: !state?.drawerIsOpen,
         });
       }
     }
-  }, [context.state.drawerIsOpen]);
+  }, [state.drawerIsOpen]);
 
   React.useEffect(() => {
     if (drawerRef.current) {
       const initMDCDrawer = new MDCDrawer(drawerRef.current);
 
-      initMDCDrawer.open = context.state.drawerIsOpen;
+      initMDCDrawer.open = state.drawerIsOpen;
       initMDCDrawer.list.singleSelection = true;
 
       initMDCDrawer.listen("MDCDrawer:opened", () => {
@@ -112,7 +108,10 @@ const MainDrawer: React.FC = () => {
   }, []);
 
   return (
-    <aside className="mdc-drawer mdc-drawer--dismissible" ref={drawerRef}>
+    <aside
+      className="main-drawer mdc-drawer mdc-drawer--dismissible"
+      ref={drawerRef}
+    >
       <div className="mdc-drawer__content">
         <nav className="mdc-list">
           {projectMenuItems.map((item) => {
@@ -127,6 +126,20 @@ const MainDrawer: React.FC = () => {
             return <MenuItem key={id} id={id} item={item} exact />;
           })}
         </nav>
+        <div
+          className="command-palette-hint"
+          onClick={() => {
+            dispatch({
+              type: "setIsCommandPaletteOpen",
+              payload: true,
+            });
+          }}
+        >
+          <div className="material-icons">search</div>
+          {navigator.userAgent.toLowerCase().includes("macintosh")
+            ? "Command "
+            : "Ctrl" + " + K"}
+        </div>
       </div>
     </aside>
   );

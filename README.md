@@ -6,9 +6,9 @@
 
 <p align="center">
 <a href=https://orchest.io><img src="https://img.shields.io/badge/Website-violet?style=flat&logo=webflow&labelColor=5c5c5c"></a>
-<a href=https://orchest.readthedocs.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
+<a href=https://docs.orchest.io/en/stable><img src="https://readthedocs.org/projects/orchest/badge/?version=stable&style=flat"></a>
 <a href=https://www.orchest.io/video-tutorials><img src="https://img.shields.io/badge/Video tutorials-blue?style=flat&logo=airplayvideo&labelColor=5c5c5c"></a>
-<a href=https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
+<a href=https://docs.orchest.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 <a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-blue?style=flat&logo=slack&labelColor=5c5c5c"></a>
 </p>
 
@@ -26,19 +26,19 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
 
 ## Features
 
-* **Visually construct pipelines** through our user-friendly UI
-* **Code in Notebooks** and scripts ([quickstart](https://orchest.readthedocs.io/en/stable/))
-* Run any subset of a pipelines directly or periodically ([jobs](https://orchest.readthedocs.io/en/stable/))
-* Easily define your dependencies to run on **any machine** ([environments](https://orchest.readthedocs.io/en/stable/))
-* Spin up services whose lifetime spans across the entire pipeline run ([services](https://orchest.readthedocs.io/en/stable/))
-* Version your projects using git ([projects](https://orchest.readthedocs.io/en/stable/))
+- **Visually construct pipelines** through our user-friendly UI
+- **Code in Notebooks** and scripts ([quickstart](https://orchest.readthedocs.io/en/stable/))
+- Run any subset of a pipelines directly or periodically ([jobs](https://orchest.readthedocs.io/en/stable/))
+- Easily define your dependencies to run on **any machine** ([environments](https://orchest.readthedocs.io/en/stable/))
+- Spin up services whose lifetime spans across the entire pipeline run ([services](https://orchest.readthedocs.io/en/stable/))
+- Version your projects using git ([projects](https://orchest.readthedocs.io/en/stable/))
 
 **Who should use Orchest?** Read it in the [docs](https://orchest.readthedocs.io/en/stable/).
 
 ## Installation
 
 For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
-docs](https://orchest.readthedocs.io/en/stable/getting_started/installation.html).
+docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 #### Requirements
 
@@ -77,7 +77,7 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 ## Contributing
 
 Contributions are more than welcome! Please see our
-[contributor guides](https://orchest.readthedocs.io/en/stable/developer_guide/contributing.html)
+[contributor guides](https://docs.orchest.io/en/stable/developer_guide/contributing.html)
 for more details.
 
 ## Contributors

@@ -9,6 +9,15 @@ import {
   sugiyama,
 } from "d3-dag";
 import _ from "lodash";
+import {
+  addOutgoingConnections,
+  clearOutgoingConnections,
+} from "./webserver-utils";
+
+type Component = {
+  uuid: string;
+  incoming_connections: string[];
+}[];
 
 type Point = { x: number; y: number };
 type Data = { id: string; parentIds: string[] };
@@ -20,6 +29,14 @@ type TransformedDag = {
   x: number;
   y: number;
 };
+
+type DagRoots = {
+  proots: TransformedDag[];
+};
+
+function isDagRoots(value: DagRoots | TransformedDag): value is DagRoots {
+  return value.hasOwnProperty("proots");
+}
 
 const degreesToRadians = (angle: number) => {
   return (angle * Math.PI) / 180;
@@ -37,17 +54,30 @@ const rotate = (point: Point, angle: number) => {
 };
 
 // Extract solution from dag
-const collectNodes = (dag: TransformedDag, nodes: Record<string, Point>) => {
-  const id = dag.data.id;
-  if (nodes[id] === undefined) {
-    nodes[id] = { x: dag.x, y: dag.y };
-  }
+const collectNodes = (
+  dag: TransformedDag | DagRoots,
+  nodes: Record<string, Point>
+) => {
+  const roots = isDagRoots(dag) ? dag.proots : [dag];
 
-  dag.dataChildren.forEach((childDag) => collectNodes(childDag.child, nodes));
+  roots.forEach((root) => {
+    const id = root.data.id;
+
+    // Traversed already
+    if (nodes[id] !== undefined) {
+      return;
+    }
+
+    nodes[id] = { x: root.x, y: root.y };
+
+    root.dataChildren.forEach((childDag) =>
+      collectNodes(childDag.child, nodes)
+    );
+  });
 };
 
-const generateDagData = (pipelineJson: PipelineJson) => {
-  return Object.values(pipelineJson.steps).map((step: IPipelineStepState) => {
+const generateDagData = (component: Component) => {
+  return component.map((step) => {
     return {
       id: step.uuid,
       parentIds: step.incoming_connections,
@@ -84,36 +114,37 @@ const translateNodes = (
   }
 };
 
-const moveNodesTopLeft = (nodes: Record<string, Point>) => {
-  // Find lowest x coordinate
-  // Find lowest y coordinate
-  let lowestX = Number.MAX_VALUE;
-  let lowestY = Number.MAX_VALUE;
+const computeBoundingBox = (nodes: Record<string, Point>) => {
+  let minX = Number.MAX_VALUE;
+  let minY = Number.MAX_VALUE;
+  let maxX = Number.MIN_VALUE;
+  let maxY = Number.MIN_VALUE;
 
-  for (let node of Object.values(nodes)) {
-    if (node.x < lowestX) {
-      lowestX = node.x;
-    }
-    if (node.y < lowestY) {
-      lowestY = node.y;
-    }
-  }
+  Object.values(nodes).forEach((node) => {
+    minX = Math.min(node.x, minX);
+    minY = Math.min(node.y, minY);
+    maxX = Math.max(node.x, maxX);
+    maxY = Math.max(node.y, maxY);
+  });
 
-  translateNodes(nodes, -lowestX, -lowestY);
+  return { minX, minY, maxX, maxY };
 };
 
-export const layoutPipeline = (
-  pipelineJson: PipelineJson,
+const moveNodesTopLeft = (nodes: Record<string, Point>) => {
+  let boundingBox = computeBoundingBox(nodes);
+  translateNodes(nodes, -boundingBox.minX, -boundingBox.minY);
+};
+
+const layoutComponent = (
+  component: Component,
   nodeRadius: number,
   scaleX: number,
   scaleY: number,
   offsetX: number,
   offsetY: number
-) => {
-  const _pipelineJson = _.cloneDeep(pipelineJson);
-
+): Record<string, Point> => {
   const stratify = dagStratify();
-  const dag = stratify(generateDagData(_pipelineJson));
+  const dag = stratify(generateDagData(component));
 
   const layering = layeringSimplex();
   const decrossing = decrossOpt();
@@ -141,10 +172,105 @@ export const layoutPipeline = (
   scaleNodes(nodes, scaleX, scaleY);
   translateNodes(nodes, offsetX, offsetY);
 
-  // Change values in _pipelineJson
-  for (let stepUUID of Object.keys(nodes)) {
-    _pipelineJson.steps[stepUUID].meta_data.position[0] = nodes[stepUUID].x;
-    _pipelineJson.steps[stepUUID].meta_data.position[1] = nodes[stepUUID].y;
+  return nodes;
+};
+
+const traverseGraph = (
+  step: IPipelineStepState,
+  allSteps: { [uuid: string]: IPipelineStepState },
+  seenNodes: Set<string>,
+  component: IPipelineStepState[]
+) => {
+  step.outgoing_connections.forEach((stepUuid) => {
+    if (!seenNodes.has(stepUuid)) {
+      seenNodes.add(stepUuid);
+
+      component.push(allSteps[stepUuid]);
+      traverseGraph(allSteps[stepUuid], allSteps, seenNodes, component);
+    }
+  });
+  step.incoming_connections.forEach((stepUuid) => {
+    if (!seenNodes.has(stepUuid)) {
+      seenNodes.add(stepUuid);
+
+      component.push(allSteps[stepUuid]);
+      traverseGraph(allSteps[stepUuid], allSteps, seenNodes, component);
+    }
+  });
+};
+
+/**
+ * Returns all (connected) components of the given graph in sorted order.
+ *
+ * Sorted by the number of nodes in descending order.
+ */
+const collectComponents = (pipelineJson) => {
+  // Augment pipelineJson
+  addOutgoingConnections(pipelineJson.steps);
+
+  // Traverse graph
+  let seenNodes: Set<string> = new Set();
+  let components: { uuid: string; incoming_connections: string[] }[][] = [];
+
+  Object.keys(pipelineJson.steps).forEach((stepUuid) => {
+    let step = pipelineJson.steps[stepUuid];
+
+    if (!seenNodes.has(stepUuid)) {
+      let graphNodes = [step];
+      seenNodes.add(stepUuid);
+      traverseGraph(step, pipelineJson.steps, seenNodes, graphNodes);
+
+      components.push(graphNodes);
+    }
+  });
+
+  // Sort components (big to small)
+  components.sort((a, b) => b.length - a.length);
+
+  // Remove annotations after being done with them
+  clearOutgoingConnections(pipelineJson.steps);
+
+  return components;
+};
+
+export const layoutPipeline = (
+  pipelineJson: PipelineJson,
+  nodeRadius: number,
+  scaleX: number,
+  scaleY: number,
+  offsetX: number,
+  offsetY: number,
+  verticalGraphMargin: number,
+  stepHeight: number
+) => {
+  const _pipelineJson = _.cloneDeep(pipelineJson);
+
+  const components = collectComponents(_pipelineJson);
+
+  // layout each component top left
+  let laidOutComponents = components.map((component) =>
+    layoutComponent(component, nodeRadius, scaleX, scaleY, 0, 0)
+  );
+
+  // use layout results to vertically stack components
+  let x = offsetX;
+  let y = offsetY;
+  for (let laidOutComponent of laidOutComponents) {
+    translateNodes(laidOutComponent, x, y);
+
+    let boundingBox = computeBoundingBox(laidOutComponent);
+
+    // Vertically stack, so only move the y 'pointer'
+    // stepHeight is needed because the alignment only includes the center coordinates
+    // of the steps
+    y += boundingBox.maxY - boundingBox.minY + stepHeight + verticalGraphMargin;
+
+    // Write node positions to _pipelineJson
+    Object.entries(laidOutComponent).forEach((component) => {
+      const [stepUuid, node] = component;
+      _pipelineJson.steps[stepUuid].meta_data.position[0] = node.x;
+      _pipelineJson.steps[stepUuid].meta_data.position[1] = node.y;
+    });
   }
 
   return _pipelineJson;

@@ -64,7 +64,7 @@ def fix_userdir_permissions() -> None:
         # NOTE: The exit code is only returned on Unix systems
         # (which includes macOS).
         exit_code = os.system(
-            "find /orchest-host/userdir -type d -exec chmod g+s {} \;"
+            "find /orchest-host/userdir -type d -not -perm -g+s -exec chmod g+s {} \;"
         )
     except Exception as e:
         logger.warning("Could not set gid permissions on '/orchest-host/userdir'.")
@@ -104,13 +104,22 @@ def do_proxy_certs_exist_on_host() -> bool:
     return crt_exists and key_exists
 
 
-def update_git_repo():
+def update_git_repo(verbose: bool = True):
     """Pulls the latest changes from the Orchest git repository."""
     logger.info("Updating Orchest git repository to get the latest userdir changes...")
     script_path = os.path.join(
         "/orchest", "services", "orchest-ctl", "app", "scripts", "git-update.sh"
     )
-    script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+    if verbose:
+        script_process = subprocess.Popen([script_path], cwd="/orchest-host", bufsize=0)
+    else:
+        script_process = subprocess.Popen(
+            [script_path],
+            cwd="/orchest-host",
+            bufsize=0,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     exit_code = script_process.wait()
 
     return exit_code
@@ -170,18 +179,6 @@ def retry_func(func, _retries=10, _sleep_duration=1, _wait_msg=None, **kwargs) -
         )
 
     return func_result
-
-
-def get_orchest_config() -> dict:
-    try:
-        with open("/config/config.json") as input_json_file:
-            return json.load(input_json_file)
-    except FileNotFoundError:
-        logger.info("Could not find Orchest's global configuration file.")
-        return {}
-    except json.decoder.JSONDecodeError:
-        logger.info("Malformed Orchest global configuration file.")
-        return {}
 
 
 # orchest <arguments> cmd <arguments>, excluding the use of cmd as an

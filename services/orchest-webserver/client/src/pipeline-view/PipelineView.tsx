@@ -3,9 +3,11 @@
 import { Layout } from "@/components/Layout";
 import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHotKeys } from "@/hooks/useHotKeys";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
+  addOutgoingConnections,
   checkGate,
   filterServices,
   getPipelineJSONEndpoint,
@@ -29,7 +31,6 @@ import _ from "lodash";
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
-import { useHotKey } from "./hooks/useHotKey";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep, {
@@ -131,12 +132,13 @@ const PipelineView: React.FC = () => {
   } = useCustomRoute();
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
-  const setIsReadOnly = (readOnly) => {
+  const setIsReadOnly = (readOnly: boolean) => {
     dispatch({
       type: "pipelineUpdateReadOnlyState",
       payload: readOnly,
     });
     _setIsReadOnly(readOnly);
+    if (!readOnly) initializePipelineEditListeners();
   };
 
   const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
@@ -150,21 +152,23 @@ const PipelineView: React.FC = () => {
     pipelineUuid,
   });
 
-  const [enableSelectAllHotkey, disableSelectAllHotkey] = useHotKey(
-    "ctrl+a, command+a",
-    "pipeline-editor",
-    () => {
-      state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
-      updateEventVars();
-    }
-  );
-
-  const [enableRunStepsHotkey, disableRunStepsHotkey] = useHotKey(
-    "ctrl+enter, command+enter",
-    "pipeline-editor",
-    () => {
-      runSelectedSteps();
-    }
+  const [isHoverEditor, setIsHoverEditor] = React.useState(false);
+  const { setScope } = useHotKeys(
+    {
+      "pipeline-editor": {
+        "ctrl+a, command+a, ctrl+enter, command+enter": (e, hotKeyEvent) => {
+          if (["ctrl+a", "command+a"].includes(hotKeyEvent.key)) {
+            e.preventDefault();
+            state.eventVars.selectedSteps = Object.keys(state.eventVars.steps);
+            updateEventVars();
+          }
+          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key))
+            runSelectedSteps();
+        },
+      },
+    },
+    [isHoverEditor],
+    isHoverEditor
   );
 
   const timersRef = useRef({
@@ -586,26 +590,7 @@ const PipelineView: React.FC = () => {
         startNodeUUID
       ) - 1;
 
-    // augment incoming_connections with outgoing_connections to be able to traverse from root nodes
-
-    // reset outgoing_connections state (creates 2N algorithm, but makes for guaranteerd clean state.eventVars.steps data structure)
-    for (let step_uuid in state.eventVars.steps) {
-      if (state.eventVars.steps.hasOwnProperty(step_uuid)) {
-        state.eventVars.steps[step_uuid].outgoing_connections = [];
-      }
-    }
-
-    for (let step_uuid in state.eventVars.steps) {
-      if (state.eventVars.steps.hasOwnProperty(step_uuid)) {
-        let incoming_connections =
-          state.eventVars.steps[step_uuid].incoming_connections;
-        for (let x = 0; x < incoming_connections.length; x++) {
-          state.eventVars.steps[
-            incoming_connections[x]
-          ].outgoing_connections.push(step_uuid);
-        }
-      }
-    }
+    addOutgoingConnections(state.eventVars.steps);
 
     let whiteSet = new Set(Object.keys(state.eventVars.steps));
     let greySet = new Set();
@@ -1224,6 +1209,30 @@ const PipelineView: React.FC = () => {
     }
   };
 
+  /**
+   * Get position for new step so it doesn't spawn on top of other
+   * new steps.
+   * @param defaultPosition Default position of new steps.
+   * @param baseOffset The offset to use for X and Y.
+   */
+  const getNewStepPos = (defaultPosition: Array, baseOffset = 15) => {
+    const pipelineJson = getPipelineJSON();
+
+    const stepPositions = new Set();
+    for (const val of Object.values(pipelineJson.steps)) {
+      // Make position hashable.
+      pos = String(val.meta_data.position);
+
+      stepPositions.add(pos);
+    }
+
+    let currPos = defaultPosition;
+    while (stepPositions.has(String(currPos))) {
+      currPos = [currPos[0] + baseOffset, currPos[1] + baseOffset];
+    }
+    return currPos;
+  };
+
   const newStep = () => {
     deselectSteps();
 
@@ -1273,7 +1282,10 @@ const PipelineView: React.FC = () => {
         // Assumes step.uuid doesn't change
         let _step = state.eventVars.steps[step.uuid];
 
-        _step["meta_data"]["position"] = [
+        // When new steps are successively created then we don't want
+        // them to be spawned on top of each other. NOTE: we use the
+        // same offset for X and Y position.
+        const defaultPos = [
           -state.pipelineOffset[0] +
             state.refManager.refs.pipelineStepsOuterHolder.clientWidth / 2 -
             STEP_WIDTH / 2,
@@ -1281,6 +1293,7 @@ const PipelineView: React.FC = () => {
             state.refManager.refs.pipelineStepsOuterHolder.clientHeight / 2 -
             STEP_HEIGHT / 2,
         ];
+        _step["meta_data"]["position"] = getNewStepPos(defaultPos);
 
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
         _step["meta_data"]["hidden"] = false;
@@ -1654,13 +1667,16 @@ const PipelineView: React.FC = () => {
     const gridMargin = 20;
 
     const _pipelineJson = layoutPipeline(
-      state.pipelineJson,
+      // Use the pipeline definition from the editor
+      getPipelineJSON(),
       STEP_HEIGHT,
       (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
         (STEP_WIDTH / STEP_HEIGHT),
       1 + spacingFactor,
       gridMargin,
-      gridMargin
+      gridMargin * 4, // don't put steps behind top buttons
+      gridMargin,
+      STEP_HEIGHT
     );
 
     // TODO: make the step position state less duplicated.
@@ -2050,14 +2066,13 @@ const PipelineView: React.FC = () => {
     };
   }, []);
 
-  const onMouseOverPipelineView = () => {
-    enableSelectAllHotkey();
-    enableRunStepsHotkey();
+  const enableHotKeys = () => {
+    setScope("pipeline-editor");
+    setIsHoverEditor(true);
   };
 
-  const disableHotkeys = () => {
-    disableSelectAllHotkey();
-    disableRunStepsHotkey();
+  const disableHotKeys = () => {
+    setIsHoverEditor(false);
   };
 
   const onPipelineStepsOuterHolderDown = (e) => {
@@ -2214,7 +2229,7 @@ const PipelineView: React.FC = () => {
   let connections_list = {};
   if (state.eventVars.openedStep) {
     const step = state.eventVars.steps[state.eventVars.openedStep];
-    const { incoming_connections } = step;
+    const { incoming_connections = [] } = step;
 
     incoming_connections.forEach((id: string) => {
       connections_list[id] = [
@@ -2340,6 +2355,9 @@ const PipelineView: React.FC = () => {
         });
     }
 
+    // Start with hotkeys disabled
+    disableHotKeys();
+
     connectSocketIO();
     initializeResizeHandlers();
 
@@ -2359,6 +2377,8 @@ const PipelineView: React.FC = () => {
       clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
       clearTimeout(timersRef.current.doubleClickTimeout);
       clearTimeout(timersRef.current.saveIndicatorTimeout);
+
+      disableHotKeys();
 
       state.promiseManager.cancelCancelablePromises();
     };
@@ -2380,8 +2400,8 @@ const PipelineView: React.FC = () => {
         <div className="pipeline-view">
           <div
             className="pane pipeline-view-pane"
-            onMouseLeave={disableHotkeys}
-            onMouseOver={onMouseOverPipelineView}
+            onMouseOver={enableHotKeys}
+            onMouseLeave={disableHotKeys}
           >
             {jobUuidFromRoute && isReadOnly && (
               <div className="pipeline-actions top-left">
@@ -2535,7 +2555,7 @@ const PipelineView: React.FC = () => {
                 {state.eventVars.stepSelector.active && (
                   <Rectangle
                     {...getStepSelectorRectangle(state.eventVars.stepSelector)}
-                  ></Rectangle>
+                  />
                 )}
                 {pipelineSteps}
                 <div className="connections">{connectionComponents}</div>

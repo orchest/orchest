@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.connections import db
 from app.models import Token, User
-from app.utils import get_auth_cache, get_user_conf, set_auth_cache
+from app.utils import get_auth_cache, set_auth_cache
 
 # This auth_cache is shared between requests
 # within the same Flask process
@@ -44,10 +44,9 @@ def register_views(app):
         )
 
     def is_authenticated(request):
-
-        # if auth_enabled request is always authenticated
-        config_data = get_user_conf()
-        if not config_data["AUTH_ENABLED"]:
+        # If authentication is not enabled then the request is always
+        # authenticated (by definition).
+        if not app.config["AUTH_ENABLED"]:
             return True
 
         cookie_token = request.cookies.get("auth_token")
@@ -215,6 +214,9 @@ def register_views(app):
             username = request.form.get("username")
             password = request.form.get("password")
 
+            if username == app.config.get("ORCHEST_CLOUD_RESERVED_USER"):
+                return jsonify({"error": "User is reserved."}), 409
+
             user = User.query.filter(User.username == username).first()
             if user is not None:
                 return jsonify({"error": "User already exists."}), 409
@@ -242,7 +244,8 @@ def register_views(app):
         data_json = {"users": []}
         users = User.query.all()
         for user in users:
-            data_json["users"].append({"username": user.username})
+            if user.username != app.config.get("ORCHEST_CLOUD_RESERVED_USER"):
+                data_json["users"].append({"username": user.username})
 
         return jsonify(data_json), 200
 

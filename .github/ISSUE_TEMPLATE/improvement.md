@@ -6,14 +6,12 @@ labels: improvement
 assignees: ""
 ---
 
-**Describe the solution you'd like**  
-A clear and concise description of what you want to happen.
+**Describe the problem this improvement solves**
+For example: When I create a new project, I expect invalid characters to be substituted with dashes so I
+don't have to learn about the naming rules.
 
-**What does your solution aim to solve?**  
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Describe the solution you'd like**
+...
 
-**Describe alternatives you've considered**  
-A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**  
-Add any other context or screenshots about the feature request here.
+**Screenshots**
+If applicable, add screenshots to help explain what you mean.

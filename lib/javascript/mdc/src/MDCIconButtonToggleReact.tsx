@@ -42,6 +42,7 @@ export class MDCIconButtonToggleReact extends React.Component<any> {
         type={this.props.submitButton ? "submit" : "button"}
         data-test-id={this.props["data-test-id"]}
       >
+        <div className="mdc-icon-button__ripple"></div>
         {this.props.icon}
       </button>
     );

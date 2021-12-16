@@ -24,7 +24,7 @@ setuptools.setup(
     url="https://github.com/orchest/orchest",
     project_urls={
         "Documentation": (
-            "https://orchest.readthedocs.io/en/stable/user_guide/sdk/python.html"
+            "https://docs.orchest.io/en/stable/user_guide/sdk/python.html"
         ),
         "Source Code": (
             "https://github.com/orchest/orchest/tree/master/orchest-sdk/python"
@@ -37,5 +37,5 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
-    license="",
+    license="Apache 2.0",
 )

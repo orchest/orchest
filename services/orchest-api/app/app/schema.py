@@ -186,7 +186,7 @@ session_config = Model(
         "host_userdir": fields.String(
             required=True, description="Host path to userdir"
         ),
-        "services": services,
+        "services": fields.Nested(services),
     },
 )
 
@@ -393,6 +393,7 @@ job_spec = Model(
     "Jobspecification",
     {
         "uuid": fields.String(required=True, description="UUID for job"),
+        "name": fields.String(required=True, description="Name for job"),
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "pipeline_definitions": fields.List(
@@ -656,6 +657,56 @@ validation_environments_result = Model(
             fields.String(),
             required=True,
             description="Environment UUIDs that passed the validation",
+        ),
+    },
+)
+
+next_scheduled_job_data = Model(
+    "NextScheduledJobData",
+    {
+        "uuid": fields.String(required=False, description="UUID of the job."),
+        "next_scheduled_time": fields.String(
+            required=False,
+            description=("Time at which the job is scheduled to start. UTC."),
+        ),
+    },
+)
+
+_idleness_check_result_details = Model(
+    "IdlenessCheckResultDetails",
+    {
+        "active_clients": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_environment_builds": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_jupyterlab_builds": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_interactive_runs": fields.Boolean(
+            required=True,
+        ),
+        "ongoing_job_runs": fields.Boolean(
+            required=True,
+        ),
+        "busy_kernels": fields.Boolean(
+            required=True,
+        ),
+    },
+)
+
+idleness_check_result = Model(
+    "IdlenessCheckResult",
+    {
+        "idle": fields.Boolean(
+            required=True,
+            description="True if the Orchest-api is idle.",
+        ),
+        "details": fields.Nested(
+            _idleness_check_result_details,
+            required=True,
+            description="Details of the idleness check.",
         ),
     },
 )

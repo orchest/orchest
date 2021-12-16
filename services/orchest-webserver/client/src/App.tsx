@@ -1,9 +1,12 @@
 import { useOrchest } from "@/hooks/orchest";
+import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
+import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
+import CommandPalette from "./components/CommandPalette";
 import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
 import MainDrawer from "./components/MainDrawer";
@@ -43,6 +46,12 @@ const App = () => {
   // load server side config populated by flask template
   const { config, user_config } = context.state;
 
+  // Each client provides an heartbeat, used for telemetry and idle
+  // checking.
+  useInterval(() => {
+    makeRequest("GET", "/heartbeat");
+  }, 5000);
+
   React.useEffect(() => {
     if (config.FLASK_ENV === "development") {
       console.log("Orchest is running with --dev.");
@@ -80,14 +89,12 @@ const App = () => {
   const requestBuild = (
     project_uuid: string,
     environmentValidationData,
-    requestedFromView,
-    onBuildComplete,
+    requestedFromView: string,
+    onBuildComplete: () => void,
     onCancel: () => void
   ) => {
     // Analytics call
-    sendEvent("build request", {
-      requestedFromView: requestedFromView,
-    });
+    sendEvent("build request", { requestedFromView });
 
     dialogsRef.current.requestBuild(
       project_uuid,
@@ -139,6 +146,7 @@ const App = () => {
       <div className="dialogs">
         <Dialogs ref={dialogsRef} />
       </div>
+      <CommandPalette />
     </Router>
   );
 };
