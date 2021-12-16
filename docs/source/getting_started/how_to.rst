@@ -54,12 +54,98 @@ Use a GPU in Orchest
 --------------------
 WIP
 
-Use the pipeline editor like a pro
-----------------------------------
-* Hold down ``<Space>`` inside the pipeline editor to drag the canvas (similar to design tools such
-  as Sketch).
-* To select a specific selection of pipeline steps: hold ``<Ctrl>`` and click on  pipeline steps you
-  want to select.
+Use the Orchest CLI
+-------------------
+Below you will find the most important CLI commands that you need to know (you can also get all this
+information by running ``./orchest --help``:
+
+.. code-block:: sh
+
+   # Start Orchest (on port 8000)
+   ./orchest start
+
+   # Start Orchest and forward its port to port 80 on the host.
+   ./orchest start --port=80
+
+   # Stop Orchest (shuts down Orchest completely).
+   ./orchest stop
+
+   # Install Orchest (check out the dedicated `Installation` guide in
+   # the `Getting started` section).
+   ./orchest install
+
+   # Update Orchest to a newer version (NOTE: this can also be done
+   # through the settings in the UI).
+   ./orchest update
+
+   # Get extensive version information. Useful to see whether the
+   # installation was successful.
+   ./orchest version --ext
+
+   # Create a one-off job for a pipeline through the CLI.
+   ./orchest run --job='my-job' --project=quickstart --pipeline='california-housing'
+
+
+Use Orchest shortcuts like a pro
+--------------------------------
+
+Command palette
+~~~~~~~~~~~~~~~
+.. list-table::
+   :widths: 25 25
+   :header-rows: 1
+   :align: left
+
+   * - Key(s)
+     - Action
+
+   * - :kbd:`Control`/:kbd:`Command` + :kbd:`K`
+     - Open command palette
+
+   * - :kbd:`↑`/:kbd:`↓`
+     - Navigate command palette commands
+
+   * - :kbd:`PageUp`/:kbd:`PageDown`
+     - Navigate command palette commands
+
+   * - :kbd:`Escape`
+     - Dismiss command palette
+
+Pipeline editor
+~~~~~~~~~~~~~~~
+.. list-table::
+   :widths: 25 25
+   :header-rows: 1
+   :align: left
+
+   * - Key(s)
+     - Action
+
+   * - :kbd:`Space` + click + drag
+     - Pan canvas*
+
+   * - :kbd:`Ctrl` + click
+     - Select multiple steps
+
+   * - :kbd:`Ctrl` + :kbd:`A`
+     - Select all steps*
+
+   * - :kbd:`Ctrl` + :kbd:`Enter`
+     - Run selected steps*
+
+   * - :kbd:`H`
+     - Center view and reset zoom
+
+   * - :kbd:`Escape`
+     - Deselect steps
+
+   * - :kbd:`Delete`/:kbd:`Backspace`
+     - Delete selected step(s)
+
+   * - Double click a step
+     - Open file in JupyterLab
+
+\* Requires mouse to hover the canvas
 
 .. _skip notebook cells:
 
