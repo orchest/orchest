@@ -44,7 +44,7 @@ Interactive session
     inside the pipeline editor, or in the list pipelines. A session is automatically started for you
     when opening up a pipeline.
 
-    * Automatically boots: Jupyter environment and ``memory-server``.
+    * Automatically boots and manages: JupyterLab, jupyter-enterprise-gateway and ``memory-server``.
     * Required in order to start an :ref:`interactive pipeline run <interactive pipeline run>`.
 
 .. _pipeline run:
@@ -61,7 +61,7 @@ Pipeline run
 Interactive (pipeline) run
     A pipeline run that runs instantly and that actively changes the pipeline directory’s filesystem.
     These interactive pipeline runs can only be run during an :ref:`interactive session <interactive
-    session>`.
+    session>` inside the pipeline editor.
 
 .. _non-interactive pipeline run:
 
@@ -89,12 +89,12 @@ Environment
     install additional packages and make changes to the base image directly.
 
 Edit mode
-    Edit, create and run your :ref:`pipelines <pipeline>`.
+    Edit, create and run your :ref:`pipelines <pipeline>` inside the pipeline editor.
 
 .. _read-only mode:
 
 Read-only mode
-    View your pipeline and its results from a past run.
+    View your pipeline and its results from a past run (mainly applicable in :ref:`jobs <jobs>`).
 
     * A pipeline from read-only mode can be created into a pipeline in edit mode. This can be useful if
       you want to actively play with the environment that produced the results (state is not stored

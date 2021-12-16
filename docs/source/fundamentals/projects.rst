@@ -64,10 +64,20 @@ Using ``git`` inside Orchest
    👉 Would you rather watch a short video tutorial? Check it here: `versioning using git in Orchest
    <https://www.tella.tv/video/cknr9z9x0000709kz7vzh0wdx/view>`_.
 
-WIP
+Using ``git`` inside Orchest works using the `jupyterlab-git
+<https://github.com/jupyterlab/jupyterlab-git>`_ extension which we ship pre-installed. All that you
+to do is :ref:`configure JupyterLab <configuration jupyterlab>` (go to *settings* > *configure
+JupyterLab*) and set your ``user.name`` and ``user.email``, for example:
+
+.. code-block:: sh
+
+   git config --global user.name "John Doe"
+   git config --global user.email "john@example.org"
+
+Now you can version using ``git`` through a JupyterLab terminal or use the extension through the
+JupyterLab UI.
 
 Importing private ``git`` repositories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To import private ``git`` repositories upload them directly through the *File manager* into the
-``userdir/projects/`` directory.
-
+``userdir/projects/`` directory. Orchest will then pick up the project automatically.

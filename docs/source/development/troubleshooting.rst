@@ -22,6 +22,19 @@ Some other Docker commands that can be useful when debugging Orchest:
    # Attach a shell in a particular service
    docker exec -it orchest-webserver /bin/bash
 
+Inspecting the ``orchest-api`` API schema
+-----------------------------------------
+To develop against the API it can be useful to have a look at the swagger documentation. This can be
+done by:
+
+.. code-block:: sh
+
+   # Start Orchest using --dev so that the orchest-api is exposed at
+   # port 8080
+   ./orchest start --dev
+
+   # Now you can visit `localhost:8080`
+
 Breaking schema changes
 -----------------------
 **What it looks like**

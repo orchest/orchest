@@ -168,3 +168,14 @@ the data in ``unnamed`` has changed!):
    }
 
 Top-to-bottom in the UI corresponds with left-to-right in ``unnamed``.
+
+Memory footprint
+----------------
+When passing data between steps, by default it is passed through memory and kept it memory for the
+lifetime of the :ref:`session <interactive session>`. This makes it easy to develop your pipeline
+without having to rerun it in its entirety again. The data is essentially cached in memory.
+
+If you are passing large amounts of data between steps, then you might have to increase the size of
+the cache. This can be done through the :ref:`pipeline settings <pipeline settings>`. Alternatively,
+you might want to enable ``auto-eviction`` so that cached data is removed once all receiving steps
+have obtained the passed data.

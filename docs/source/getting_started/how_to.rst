@@ -187,4 +187,5 @@ HTTPS:
    ./orchest start --port=80
 
 .. tip::
-   👉 Refer to the :ref:`authentication section <authentication>` to enable the authentication.
+   👉 Refer to ``AUTH_ENABLED`` in the :ref:`Orchest settings section <orchest settings>` to enable
+   the authentication.
