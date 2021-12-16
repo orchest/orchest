@@ -42,17 +42,42 @@ Share code between steps
 .. note::
    💡 This approach also works to share code between pipelines.
 
-WIP.
+There are multiple answers to this question. One being that you can make that code into a package
+which you can then install in your environment, just like other packages such as ``numpy``. Of
+course the development cycle would be highly reduced with this approach and so an alternative would
+be to add the files to the project directory directly and import them in your scripts.
 
-.. ``utils.py`` module for example inside the project.
+For example, you could create a ``utils.py`` file in your project directory and use its functions
+from within your scripts by:
 
-Minimalize Orchest's disk size
-------------------------------
-WIP
+.. code-block:: python
+
+   import utils
+
+   utils.transform(...)
+
+Minimize Orchest's disk size
+----------------------------
+To keep Orchest's disk footprint to a minimal you can use the following best practices:
+
+* Are you persisting data to disk? Then write it to the ``/data`` directory instead of the project
+  directory. :ref:`Jobs <jobs>` create a snapshot (for reproducibility reasons) of your project
+  directory and would copy data in your project directory for every pipeline run, consuming large
+  amounts of storage. The smaller the size of your project directory, the smaller the size of your
+  jobs.
+* Do you have many pipeline runs as part of jobs? You can periodically delete old pipeline runs of
+  your jobs. Currently you will have to do this through the *File manager* but in the future (see
+  `#601 <https://github.com/orchest/orchest/issues/601>`_) this will become possible through the UI
+  directly.
 
 Use a GPU in Orchest
 --------------------
-WIP
+Make sure you have read the instructions in the :ref:`GPU support section <installation gpu
+support>` of the installation process. Next, you need to create an :ref:`environment <environments>`
+that uses the ``orchest/base-kernel-py-gpu`` (or your custom image with GPU capabilities) as its
+base image and tick the *GPU support* checkbox.
+
+Now you can use the GPU from within your environments.
 
 Use the Orchest CLI
 -------------------

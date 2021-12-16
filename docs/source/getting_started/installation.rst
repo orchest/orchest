@@ -84,6 +84,8 @@ Alternatively, you can disable IPv6 at the kernel level using a boot directive l
 <https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_ describes
 how to do that for Ubuntu Linux.
 
+.. _installation gpu support:
+
 GPU support
 -----------
 You can install our provided GPU images for the programming language you want using either the UI
@@ -111,10 +113,13 @@ within the container it reports the CUDA Toolkit version installed on the *host*
 CUDA Toolkit version installed in the container image run ``cat /usr/local/cuda/version.txt``.
 
 Additionally, we require the ``nvidia-container`` package to make sure Docker is able to provide GPU
-enabled containers. Installation of the nvidia-container is done using:
+enabled containers. Installation of the nvidia-container is done using (`source
+<https://github.com/NVIDIA/nvidia-container-runtime#installation>`_):
 
 .. code-block:: sh
 
+   # Make sure you have first configured the nvidia-container-runtime
+   # repository: https://nvidia.github.io/nvidia-container-runtime/
    sudo apt install nvidia-container-runtime
 
 .. seealso::
