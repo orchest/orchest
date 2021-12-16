@@ -89,7 +89,7 @@ export const DEFAULT_BASE_IMAGES = [
 export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
 
 // used in orchest-webserver only
-export function collapseDoubleDots(path) {
+export function collapseDoubleDots(path: string) {
   /*
    * arg `path` can be a directory or a file.
    * (directory ends in `/`)

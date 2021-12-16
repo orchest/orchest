@@ -1,4 +1,12 @@
-import { MDCSelectReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   collapseDoubleDots,
   extensionFromFilename,
@@ -10,7 +18,7 @@ import {
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import _ from "lodash";
-import * as React from "react";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ProjectFilePicker from "../components/ProjectFilePicker";
 
@@ -30,13 +38,16 @@ const ConnectionItem = ({
 };
 
 const KERNEL_OPTIONS = [
-  ["python", "Python"],
-  ["r", "R"],
-  ["julia", "Julia"],
+  { value: "python", label: "Python" },
+  { value: "r", label: "R" },
+  { value: "julia", label: "Julia" },
 ];
 
-const PipelineDetailsProperties: React.FC<any> = (props) => {
-  const { $, orchest } = window;
+const PipelineDetailsProperties: React.FC<{
+  [key: string]: any;
+  menuMaxWidth?: string;
+}> = (props) => {
+  const { $ } = window;
 
   const [state, setState] = React.useState({
     environmentOptions: [],
@@ -48,13 +59,13 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
 
-  const isNotebookStep = () =>
-    extensionFromFilename(props.step.file_path) == "ipynb";
+  const isNotebookStep =
+    extensionFromFilename(props.step.file_path) === "ipynb";
 
   const fetchEnvironmentOptions = () => {
     let environmentsEndpoint = `/store/environments/${props.project_uuid}`;
 
-    if (isNotebookStep()) {
+    if (isNotebookStep) {
       environmentsEndpoint +=
         "?language=" + kernelNameToLanguage(props.step.kernel.name);
     }
@@ -76,14 +87,17 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
           if (environment.uuid == props.step.environment) {
             currentEnvironmentInEnvironments = true;
           }
-          environmentOptions.push([environment.uuid, environment.name]);
+          environmentOptions.push({
+            value: environment.uuid,
+            label: environment.name,
+          });
         }
 
         if (!currentEnvironmentInEnvironments) {
           // update environment
           onChangeEnvironment(
-            environmentOptions.length > 0 ? environmentOptions[0][0] : "",
-            environmentOptions.length > 0 ? environmentOptions[0][1] : ""
+            environmentOptions.length > 0 ? environmentOptions[0].value : "",
+            environmentOptions.length > 0 ? environmentOptions[0].label : ""
           );
         }
 
@@ -131,8 +145,8 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
   };
 
   const onChangeEnvironment = (
-    updatedEnvironmentUUID,
-    updatedEnvironmentName
+    updatedEnvironmentUUID: string,
+    updatedEnvironmentName: string
   ) => {
     props.onSave(
       {
@@ -153,12 +167,10 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
     }
   };
 
-  const onChangeKernel = (updatedKernel) => {
+  const onChangeKernel = (updatedKernel: string) => {
     props.onSave(
       {
-        kernel: {
-          name: updatedKernel,
-        },
+        kernel: { name: updatedKernel },
       },
       props.step.uuid
     );
@@ -343,113 +355,140 @@ const PipelineDetailsProperties: React.FC<any> = (props) => {
 
   return (
     <div className={"detail-subview"}>
-      <div className="input-group">
-        <MDCTextFieldReact
+      <Stack direction="column" spacing={3}>
+        <TextField
           value={props.step.title}
-          onChange={onChangeTitle}
+          onChange={(e) => onChangeTitle(e.target.value)}
           label="Title"
           disabled={props.readOnly}
-          classNames={["fullwidth", "push-down"]}
+          fullWidth
           ref={refManager.nrefs.titleTextField}
           data-test-id="step-title-textfield"
         />
-
-        <div className="push-down">
-          {props.readOnly ? (
-            <MDCTextFieldReact
-              value={props.step.file_path}
-              label="File name"
+        {props.readOnly ? (
+          <TextField
+            value={props.step.file_path}
+            label="File name"
+            disabled={props.readOnly}
+            fullWidth
+            margin="normal"
+            data-test-id="step-file-name-textfield"
+          />
+        ) : (
+          <ProjectFilePicker
+            cwd="/"
+            value={props.step.file_path}
+            project_uuid={props.project_uuid}
+            pipeline_uuid={props.pipeline_uuid}
+            step_uuid={props.step.uuid}
+            onChange={onChangeFileName}
+            menuMaxWidth={props.menuMaxWidth}
+          />
+        )}
+        {!isNotebookStep && (
+          <FormControl fullWidth>
+            <InputLabel id="kernel-language-label">Kernel language</InputLabel>
+            <Select
+              label="Kernel language"
+              labelId="kernel-language-label"
+              id="kernel-language"
+              value={props.step.kernel.name}
               disabled={props.readOnly}
-              classNames={["fullwidth", "push-down"]}
-              data-test-id="step-file-name-textfield"
-            />
-          ) : (
-            <ProjectFilePicker
-              cwd="/"
-              value={props.step.file_path}
-              project_uuid={props.project_uuid}
-              pipeline_uuid={props.pipeline_uuid}
-              step_uuid={props.step.uuid}
-              onChange={onChangeFileName}
-            />
-          )}
-        </div>
-
-        <MDCSelectReact
-          label="Kernel language"
-          onChange={onChangeKernel}
-          options={KERNEL_OPTIONS}
-          value={props.step.kernel.name}
-          disabled={props.readOnly}
-          classNames={(() => {
-            let classes = ["push-down", "fullwidth"];
-            if (!isNotebookStep()) {
-              classes.push("hidden");
-            }
-            return classes;
-          })()}
-        />
-
-        <MDCSelectReact
-          label="Environment"
-          disabled={props.readOnly}
-          classNames={["fullwidth"]}
-          onChange={onChangeEnvironment}
-          options={state.environmentOptions}
-          value={props.step.environment}
-        />
-      </div>
-
-      <div className="input-group">
-        <h3>Parameters</h3>
-
-        <CodeMirror
-          value={state.editableParameters}
-          options={{
-            mode: "application/json",
-            theme: "jupyter",
-            lineNumbers: true,
-            readOnly: props.readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
-          }}
-          onBeforeChange={(editor, data, value) => {
-            onChangeParameterJSON(value);
-          }}
-        />
-
-        {(() => {
-          try {
-            JSON.parse(state.editableParameters);
-          } catch {
-            return (
-              <div className="warning push-up push-down">
-                <i className="material-icons">warning</i> Your input is not
-                valid JSON.
-              </div>
-            );
-          }
-        })()}
-      </div>
-
-      {props.step.incoming_connections.length != 0 && (
-        <div className="input-group">
-          <h3>Connections</h3>
-
-          <div
-            className="connection-list"
-            ref={refManager.nrefs.connectionList}
+              onChange={(e) => onChangeKernel(e.target.value)}
+            >
+              {KERNEL_OPTIONS.map((option) => {
+                return (
+                  <MenuItem key={option.value} value={option.value}>
+                    {option.label}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
+        )}
+        <FormControl fullWidth>
+          <InputLabel id="environment-label">Environment</InputLabel>
+          <Select
+            label="Kernel language"
+            labelId="environment-label"
+            id="environment"
+            value={props.step.environment}
+            disabled={props.readOnly}
+            onChange={(e) => {
+              const selected = state.environmentOptions.find(
+                (option) => option.value === e.target.value
+              );
+              onChangeEnvironment(selected.value, selected.label);
+            }}
           >
-            {props.step.incoming_connections.map((item: string) => (
-              <ConnectionItem
-                connection={{
-                  name: props.connections[item],
-                  uuid: item,
-                }}
-                key={item}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+            {state.environmentOptions.map((option) => {
+              return (
+                <MenuItem key={option.value} value={option.value}>
+                  {option.label}
+                </MenuItem>
+              );
+            })}
+          </Select>
+        </FormControl>
+
+        <Box>
+          <Typography
+            component="h3"
+            variant="subtitle2"
+            sx={{ marginBottom: (theme) => theme.spacing(1) }}
+          >
+            Parameters
+          </Typography>
+          <CodeMirror
+            value={state.editableParameters}
+            options={{
+              mode: "application/json",
+              theme: "jupyter",
+              lineNumbers: true,
+              readOnly: props.readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
+            }}
+            onBeforeChange={(editor, data, value) => {
+              onChangeParameterJSON(value);
+            }}
+          />
+          {(() => {
+            try {
+              JSON.parse(state.editableParameters);
+            } catch {
+              return (
+                <Alert severity="warning">Your input is not valid JSON.</Alert>
+              );
+            }
+          })()}
+        </Box>
+
+        {props.step.incoming_connections.length != 0 && (
+          <Box>
+            <Typography
+              component="h3"
+              variant="subtitle2"
+              sx={{ marginBottom: (theme) => theme.spacing(1) }}
+            >
+              Connections
+            </Typography>
+
+            <div
+              className="connection-list"
+              ref={refManager.nrefs.connectionList}
+            >
+              {props.step.incoming_connections.map((item: string) => (
+                <ConnectionItem
+                  connection={{
+                    name: props.connections[item],
+                    uuid: item,
+                  }}
+                  key={item}
+                />
+              ))}
+            </div>
+          </Box>
+        )}
+      </Stack>
     </div>
   );
 };

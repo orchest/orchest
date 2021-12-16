@@ -1,161 +1,107 @@
-import { MDCTextFieldReact } from "@orchest/lib-mdc";
-import {
-  absoluteToRelativePath,
-  collapseDoubleDots,
-  RefManager,
-} from "@orchest/lib-utils";
-import * as React from "react";
+import { useClickOutside } from "@/hooks/useClickOutside";
+import { FileTree } from "@/types";
+import AddIcon from "@mui/icons-material/Add";
+import FolderIcon from "@mui/icons-material/Folder";
+import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
+import InputAdornment from "@mui/material/InputAdornment";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import MenuList from "@mui/material/MenuList";
+import TextField from "@mui/material/TextField";
+import { absoluteToRelativePath, collapseDoubleDots } from "@orchest/lib-utils";
+import React from "react";
 
-/**
- * @typedef {{
- *  cwd: any;
- *  icon?: any;
- *  iconTitle?: any;
- *  onChangeValue?: (value: TFilePickerProps['value']) => void;
- *  onCreateFile?: (path: any) => void;
- *  onFocus?: () => void;
- *  tree: any;
- *  value: any;
- * }} TFilePickerProps
- *
- * @type React.FC<TFilePickerProps>
- */
+const validatePathInTree = (path: string, tree: FileTree) => {
+  // path assumed to start with /
 
-export interface IFilePickerProps {
-  cwd: any;
-  icon?: any;
-  iconTitle?: any;
-  onChangeValue?: (value: IFilePickerProps["value"]) => void;
-  onCreateFile?: (path: any) => void;
-  onFocus?: () => void;
-  tree: any;
-  value: any;
-}
+  // Valid inputs
+  // /def/def
+  // /def
+  // /abc/
 
-const FilePicker: React.FC<IFilePickerProps> = (props) => {
-  const validatePathInTree = (path, tree) => {
-    // path assumed to start with /
+  // Invalid inputs:
+  // //asd (empty directory component)
+  // asd/asd.py (doesn't start with /)
+  if (path === undefined || tree === undefined) {
+    return false;
+  }
+  if (tree.type !== "directory") {
+    return false;
+  }
+  if (path[0] !== "/") {
+    return false;
+  }
 
-    // Valid inputs
-    // /def/def
-    // /def
-    // /abc/
+  let pathComponents = path.split("/");
+  let isFirstComponentDir = pathComponents.length > 2;
 
-    // Invalid inputs:
-    // //asd (empty directory component)
-    // asd/asd.py (doesn't start with /)
-    if (path === undefined || tree === undefined) {
-      return false;
-    }
-    if (tree.type != "directory") {
-      return false;
-    }
-    if (path[0] !== "/") {
-      return false;
-    }
-
-    let pathComponents = path.split("/");
-    let isFirstComponentDir = pathComponents.length > 2;
-
-    if (isFirstComponentDir) {
-      for (let x = 0; x < tree.children.length; x++) {
-        let child = tree.children[x];
-        if (child.name == pathComponents[1] && child.type == "directory") {
-          // Path ends in directory
-          if (pathComponents[2] == "") {
-            return true;
-          }
-          return validatePathInTree(
-            "/" + pathComponents.slice(2).join("/"),
-            child
-          );
-        }
-      }
-      return false;
-    } else {
-      for (let x = 0; x < tree.children.length; x++) {
-        let child = tree.children[x];
-        if (child.name == pathComponents[1] && child.type == "file") {
+  if (isFirstComponentDir) {
+    for (let x = 0; x < tree.children.length; x++) {
+      let child = tree.children[x];
+      if (child.name == pathComponents[1] && child.type == "directory") {
+        // Path ends in directory
+        if (pathComponents[2] == "") {
           return true;
         }
+        return validatePathInTree(
+          "/" + pathComponents.slice(2).join("/"),
+          child
+        );
       }
     }
-  };
-
-  const computeInitialPath = (props) => {
-    let cwd = props.cwd ? props.cwd : "/";
-    let fullPath = collapseDoubleDots(cwd + props.value);
-    let directoryPath = fullPath.split("/").slice(0, -1).join("/") + "/";
-
-    // check if directoryPath is in tree
-    if (!validatePathInTree(directoryPath, props.tree)) {
-      directoryPath = "/";
+    return false;
+  } else {
+    for (let x = 0; x < tree.children.length; x++) {
+      let child = tree.children[x];
+      if (child.name == pathComponents[1] && child.type == "file") {
+        return true;
+      }
     }
+  }
+};
 
-    return directoryPath;
-  };
+type FilePickerProps = {
+  cwd: string;
+  icon?: React.ReactNode;
+  helperText: string;
+  onChangeValue?: (value: FilePickerProps["value"]) => void;
+  onCreateFile?: (path: string) => void;
+  onFocus?: () => void;
+  tree: FileTree;
+  value: string;
+  menuMaxWidth?: string;
+};
 
-  const [blurTimeout, setBlurTimeout] = React.useState(null);
-  const [state, setState] = React.useState({
-    focused: false,
-    path: computeInitialPath(props),
-  });
+const computeInitialPath = ({
+  cwd,
+  value,
+  tree,
+}: Pick<FilePickerProps, "cwd" | "value" | "tree">) => {
+  let fullPath = collapseDoubleDots(`${!cwd ? "/" : cwd}${value}`);
+  let directoryPath = fullPath.split("/").slice(0, -1).join("/") + "/";
 
-  const [refManager] = React.useState(new RefManager());
+  // check if directoryPath is in tree
+  if (!validatePathInTree(directoryPath, tree)) {
+    directoryPath = "/";
+  }
 
-  const directoryListFromNode = (node) => {
-    let nodes = [];
+  return directoryPath;
+};
 
-    // handle edge case of no nodes
-    if (!node.children) {
-      return nodes;
-    }
+const ITEM_HEIGHT = 48;
 
-    // add create file and move up directory
-    nodes.push(
-      <li
-        key="create"
-        className="mdc-deprecated-list-item"
-        onClick={onCreateFile}
-        data-test-id="file-picker-new-file"
-      >
-        <i className="material-icons">add</i> New file
-      </li>
-    );
-
-    if (node.root !== true) {
-      nodes.push(
-        <li
-          key=".."
-          className="mdc-deprecated-list-item"
-          onClick={onNavigateUp}
-        >
-          ..
-        </li>
-      );
-    }
-
-    for (let childNode of node.children) {
-      nodes.push(
-        <li
-          key={childNode.name}
-          className="mdc-deprecated-list-item"
-          onClick={() => onSelectListItem(childNode)}
-        >
-          {childNode.type == "directory" && (
-            <i className="material-icons">folder</i>
-          )}
-          {childNode.name + (childNode.type == "directory" ? "/" : "")}
-        </li>
-      );
-    }
-
-    return nodes;
-  };
+const FilePicker: React.FC<FilePickerProps> = (props) => {
+  const [path, setPath] = React.useState(() => computeInitialPath(props));
+  const inputRef = React.useRef<HTMLInputElement>();
+  const [anchorEl, setAnchorEl] = React.useState<null | Element>(null);
+  const isOpen = Boolean(anchorEl);
+  useClickOutside(inputRef, () => setAnchorEl(null));
 
   const onCreateFile = () => {
     if (props.onCreateFile) {
-      props.onCreateFile(state.path);
+      props.onCreateFile(path);
     }
   };
 
@@ -164,44 +110,43 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
   };
 
   const onNavigateUp = () => {
-    refManager.refs.filePathTextField.focusAtEnd();
-
-    setState((prevState) => {
-      let newPath = prevState.path.slice(
-        0,
-        prevState.path.slice(0, -1).lastIndexOf("/") + 1
-      );
-
-      return {
-        ...prevState,
-        path: newPath,
-      };
+    setPath((oldPath) => {
+      return oldPath.slice(0, oldPath.slice(0, -1).lastIndexOf("/") + 1);
     });
   };
 
-  const onSelectListItem = (node) => {
-    // override focus on list item click
+  const onSelectListItem = (node: FileTree) => {
     if (node.type == "directory") {
-      refManager.refs.filePathTextField.focusAtEnd();
-
-      setState((prevState) => {
-        let newPath = prevState.path + node.name + "/";
-
-        return {
-          ...prevState,
-          path: newPath,
-        };
+      setPath((oldPath) => {
+        return `${oldPath}${node.name}/`;
       });
     } else {
-      props.onChangeValue(visualizePath(state.path + node.name, props.cwd));
-      setState((prevState) => ({ ...prevState, focused: false }));
+      props.onChangeValue(visualizePath(`${path}${node.name}`, props.cwd));
     }
   };
 
-  const nodeFromPath = (path, tree) => {
-    // a path should always start with a root of "/"
+  const onClickTextField = () => {
+    setAnchorEl(inputRef.current);
+  };
+
+  React.useEffect(() => {
+    let propBasedBath = computeInitialPath(props);
+
+    // If the state.path doesn't match prop based path we need to update
+    // the value of the FilePicker field to be the directory
+    // we navigated to through the change to state.path
+    // (to help the user find out their current path by displaying
+    // the relative path in the textfield - hence we update the value)
+    // that was triggered from within the component.
+    // state.path is modified when navigating the directory.
+    if (path != propBasedBath) {
+      props.onChangeValue(visualizePath(path, props.cwd));
+    }
+  }, [path]);
+
+  const node = React.useMemo(() => {
     let pathComponents = path.split("/").slice(1);
-    let currentNode = tree;
+    let currentNode = props.tree;
 
     // traverse to the right directory node
     for (let component of pathComponents) {
@@ -214,80 +159,76 @@ const FilePicker: React.FC<IFilePickerProps> = (props) => {
     }
 
     return currentNode;
-  };
-
-  const onBlurMenu = (e) => {
-    setState((prevState) => ({ ...prevState, focused: false }));
-  };
-
-  const onFocusTextField = (e) => {
-    setBlurTimeout(null);
-    setState((prevState) => ({ ...prevState, focused: true }));
-
-    if (props.onFocus) {
-      props.onFocus();
-    }
-  };
-
-  const onBlurTextField = (e) => {
-    setBlurTimeout(0);
-  };
-
-  React.useEffect(() => {
-    if (blurTimeout === null) return;
-
-    const manageFileMenuFocus = setTimeout(() => {
-      if (document.activeElement !== refManager.refs.fileMenu)
-        setState((prevState) => ({ ...prevState, focused: false }));
-    }, blurTimeout);
-
-    return () => clearTimeout(manageFileMenuFocus);
-  }, [blurTimeout]);
-
-  React.useEffect(() => {
-    let propBasedBath = computeInitialPath(props);
-
-    // If the state.path doesn't match prop based path we need to update
-    // the value of the FilePicker field to be the directory
-    // we navigated to through the change to state.path
-    // (to help the user find out their current path by displaying
-    // the relative path in the textfield - hence we update the value)
-    // that was triggered from within the component.
-    // state.path is modified when navigating the directory.
-    if (state.path != propBasedBath) {
-      props.onChangeValue(visualizePath(state.path, props.cwd));
-    }
-  }, [state.path]);
+  }, [path, props.tree]);
 
   return (
     <div className="dropdown-file-picker">
-      <MDCTextFieldReact
-        onFocus={onFocusTextField}
-        onBlur={onBlurTextField}
-        onChange={props.onChangeValue}
+      <TextField
+        onClick={onClickTextField}
+        onChange={(e) => props.onChangeValue(e.target.value)}
         value={props.value}
         label="File path"
-        icon={props.icon}
-        iconTitle={props.iconTitle}
-        ref={refManager.nrefs.filePathTextField}
-        classNames={["fullwidth"]}
+        fullWidth
+        inputRef={inputRef}
         data-test-id="file-picker-file-path-textfield"
+        helperText={props.helperText}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">{props.icon}</InputAdornment>
+          ),
+        }}
       />
-      <div
-        ref={refManager.nrefs.fileMenu}
-        onBlur={onBlurMenu}
-        // tabIndex is REQUIRED for proper blur/focus events
-        // for the dropdown mdc-list.
-        tabIndex={0}
-        className={
-          "mdc-menu mdc-menu-surface mdc-menu-surface--open " +
-          (state.focused ? "" : "hidden")
-        }
+      <Menu
+        open={isOpen}
+        anchorEl={anchorEl}
+        PaperProps={{
+          style: {
+            maxHeight: ITEM_HEIGHT * 4.5,
+            width: props.menuMaxWidth || "24ch",
+          },
+        }}
       >
-        <ul className="mdc-deprecated-list">
-          {directoryListFromNode(nodeFromPath(state.path, props.tree))}
-        </ul>
-      </div>
+        <MenuList dense>
+          {node.children && (
+            <>
+              <MenuItem
+                onClick={onCreateFile}
+                data-test-id="file-picker-new-file"
+              >
+                <ListItemIcon>
+                  <AddIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>New file</ListItemText>
+              </MenuItem>
+              {!node.root && (
+                <MenuItem onClick={onNavigateUp}>
+                  <ListItemIcon>
+                    <TurnLeftOutlinedIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Navigate up</ListItemText>
+                </MenuItem>
+              )}
+              {node.children.map((childNode) => (
+                <MenuItem
+                  key={childNode.name}
+                  onClick={() => onSelectListItem(childNode)}
+                >
+                  {childNode.type === "directory" && (
+                    <ListItemIcon>
+                      <FolderIcon fontSize="small" />
+                    </ListItemIcon>
+                  )}
+                  <ListItemText inset={childNode.type !== "directory"}>
+                    {`${childNode.name}${
+                      childNode.type === "directory" ? "/" : ""
+                    }`}
+                  </ListItemText>
+                </MenuItem>
+              ))}
+            </>
+          )}
+        </MenuList>
+      </Menu>
     </div>
   );
 };

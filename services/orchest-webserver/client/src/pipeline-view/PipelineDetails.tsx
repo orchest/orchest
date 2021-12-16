@@ -168,6 +168,7 @@ const PipelineDetails: React.FC<{
             step={step}
             onChange={props.onChange}
             saveHash={props.saveHash}
+            menuMaxWidth={`${panelWidth - 48}px`}
           />
         </CustomTabPanel>
         <CustomTabPanel value={subViewIndex} index={1} name="pipeline-logs">

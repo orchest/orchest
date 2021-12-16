@@ -277,6 +277,13 @@ export type Service = {
   order?: number;
 };
 
+export type FileTree = {
+  type: "directory" | "file";
+  name: string;
+  root?: boolean;
+  children: FileTree[];
+};
+
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
