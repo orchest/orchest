@@ -56,22 +56,27 @@ passing, for example, you would do the following:
 
 .. code-block:: r
 
- library(reticulate);
- python_path <- system("which python", intern=TRUE);
- use_python(python_path);
- orchest <- import("orchest");
- orchest$transfer$output(2, name="Test");
+   library(reticulate);
+   python_path <- system("which python", intern=TRUE);
+   use_python(python_path);
+   orchest <- import("orchest");
+   orchest$transfer$output(2, name="Test");
 
 In a child step you will be able to retrieve the output:
 
 .. code-block:: r
 
- library(reticulate);
- python_path <- system("which python", intern=TRUE);
- use_python(python_path);
- orchest <- import("orchest")
- step_inputs = orchest$transfer$get_inputs()
- step_inputs$Test
+   library(reticulate);
+   python_path <- system("which python", intern=TRUE);
+   use_python(python_path);
+   orchest <- import("orchest")
+   step_inputs = orchest$transfer$get_inputs()
+   step_inputs$Test
+
+Julia
+-----
+Refer to the `Julia example project <https://github.com/orchest-examples/julia-orchest-sdk>`_
+showcasing **Julia** in Orchest (:ref:`how to import a project <how to import a project>`).
 
 API reference
 -------------
