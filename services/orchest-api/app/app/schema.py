@@ -10,6 +10,21 @@ import datetime
 
 from flask_restx import Model, fields
 
+pagination_data = Model(
+    "PaginationData",
+    {
+        "has_next_page": fields.Boolean(required=True),
+        "has_prev_page": fields.Boolean(required=True),
+        "next_page_num": fields.Integer(required=True),
+        "prev_page_num": fields.Integer(required=True),
+        "items_per_page": fields.Integer(required=True),
+        "items_in_this_page": fields.Integer(required=True),
+        "total_items": fields.Integer(required=True),
+        "total_pages": fields.Integer(required=True),
+    },
+)
+
+
 # Namespace: Sessions
 server = Model(
     "Server",
@@ -386,6 +401,27 @@ non_interactive_run = pipeline_run.inherit(
             attribute=lambda x: datetime.datetime.now(datetime.timezone.utc),
             description="Server time to be used when calculating run durations.",
         ),
+    },
+)
+
+job_pipeline_runs = Model(
+    "JobPipelineRuns",
+    {
+        "pipeline_runs": fields.List(
+            fields.Nested(non_interactive_run),
+            description="Collection of pipeline runs part of a job",
+        ),
+    },
+)
+
+paginated_job_pipeline_runs = Model(
+    "PaginatedJobPipelineRuns",
+    {
+        "pipeline_runs": fields.List(
+            fields.Nested(non_interactive_run),
+            description="Collection of pipeline runs part of a job",
+        ),
+        "pagination_data": fields.Nested(pagination_data, required=False),
     },
 )
 
