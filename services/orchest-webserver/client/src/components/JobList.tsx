@@ -21,9 +21,7 @@ import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
-import { darken } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   fetcher,
@@ -32,6 +30,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
+import { IconButton } from "./common/IconButton";
 import { DataTable, DataTableColumn } from "./DataTable";
 import { StatusInline } from "./Status";
 
@@ -51,35 +50,31 @@ const createColumns = ({
     id: "name",
     label: "Job",
     render: (row) => (
-      <Tooltip title="Edit job name">
-        <Stack
-          direction="row"
-          alignItems="center"
-          component="span"
-          sx={{
-            display: "inline-flex",
-            svg: { visibility: "hidden" },
-            "&:hover": {
-              color: (theme) => darken(theme.palette.primary.main, 0.15),
-              // textDecoration: "underline",
-              svg: { visibility: "visible" },
-            },
-          }}
+      <Stack
+        direction="row"
+        alignItems="center"
+        component="span"
+        sx={{
+          display: "inline-flex",
+          button: { visibility: "hidden" },
+          "&:hover": {
+            button: { visibility: "visible" },
+          },
+        }}
+      >
+        {row.name}
+        <IconButton
+          title="Edit job name"
+          size="small"
+          sx={{ marginLeft: (theme) => theme.spacing(2) }}
           onClick={(e: React.MouseEvent<unknown>) => {
             e.stopPropagation();
             onEditJobNameClick(row.uuid, row.name);
           }}
         >
-          {row.name}
-          <EditIcon
-            sx={{
-              width: (theme) => theme.spacing(2),
-              marginLeft: (theme) => theme.spacing(1),
-            }}
-            color="primary"
-          />
-        </Stack>
-      </Tooltip>
+          <EditIcon />
+        </IconButton>
+      </Stack>
     ),
   },
   { id: "pipeline", label: "Pipeline" },

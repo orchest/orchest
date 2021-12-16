@@ -1,3 +1,4 @@
+import { IconButton } from "@/components/common/IconButton";
 import {
   DataTable,
   DataTableColumn,
@@ -13,11 +14,14 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
+import EditIcon from "@mui/icons-material/Edit";
+import SettingsIcon from "@mui/icons-material/Settings";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
 import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
 import { fetcher, makeRequest } from "@orchest/lib-utils";
 import React from "react";
@@ -34,15 +38,6 @@ type ProjectRow = Pick<
 > & {
   settings: string;
 };
-
-const columns: DataTableColumn<ProjectRow>[] = [
-  { id: "path", label: "Project" },
-  { id: "pipeline_count", label: "Pipelines" },
-  { id: "session_count", label: "Active sessions" },
-  { id: "job_count", label: "Jobs" },
-  { id: "environment_count", label: "Environments" },
-  { id: "settings", label: "Settings" },
-];
 
 const ProjectsView: React.FC = () => {
   const { setAlert, setConfirm } = useAppContext();
@@ -70,14 +65,77 @@ const ProjectsView: React.FC = () => {
     editProjectPath: undefined,
   });
 
-  const onEditProjectName = (projectUUID, projectPath) => {
-    setState((prevState) => ({
-      ...prevState,
-      editProjectPathUUID: projectUUID,
-      editProjectPath: projectPath,
-      editProjectPathModal: true,
-    }));
+  const openSettings = (projectUuid: string) => {
+    navigateTo(siteMap.projectSettings.path, {
+      query: { projectUuid },
+    });
   };
+
+  const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
+    const onEditProjectName = (projectUUID: string, projectPath: string) => {
+      setState((prevState) => ({
+        ...prevState,
+        editProjectPathUUID: projectUUID,
+        editProjectPath: projectPath,
+        editProjectPathModal: true,
+      }));
+    };
+    return [
+      {
+        id: "path",
+        label: "Project",
+        render: (row) => (
+          <Stack
+            direction="row"
+            alignItems="center"
+            component="span"
+            sx={{
+              display: "inline-flex",
+              button: { visibility: "hidden" },
+              "&:hover": {
+                button: { visibility: "visible" },
+              },
+            }}
+          >
+            {row.path}
+            <IconButton
+              title="Edit job name"
+              size="small"
+              sx={{ marginLeft: (theme) => theme.spacing(2) }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditProjectName(row.uuid, row.path);
+              }}
+            >
+              <EditIcon />
+            </IconButton>
+          </Stack>
+        ),
+      },
+      { id: "pipeline_count", label: "Pipelines" },
+      { id: "session_count", label: "Active sessions" },
+      { id: "job_count", label: "Jobs" },
+      { id: "environment_count", label: "Environments" },
+      {
+        id: "settings",
+        label: "Settings",
+        render: (row) => {
+          return (
+            <IconButton
+              title="settings"
+              data-test-id={`settings-button-${row.path}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                openSettings(row.uuid);
+              }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          );
+        },
+      },
+    ];
+  }, [setState]);
 
   const onCloseEditProjectPathModal = () => {
     setState((prevState) => ({
@@ -131,36 +189,6 @@ const ProjectsView: React.FC = () => {
       });
   };
 
-  // const processListData = (projects: Project[]) => {
-  //   return projects.map((project) => [
-  //     <span key="toggle-row" className="mdc-icon-table-wrapper">
-  //       {project.path}{" "}
-  //       <span className="consume-click">
-  //         <IconButton
-  //           onClick={() => {
-  //             onEditProjectName(project.uuid, project.path);
-  //           }}
-  //         >
-  //           <EditIcon />
-  //         </IconButton>
-  //       </span>
-  //     </span>,
-  //     <span key="pipeline-count">{project.pipeline_count}</span>,
-  //     <span key="session-count">{project.session_count}</span>,
-  //     <span key="job-count">{project.job_count}</span>,
-  //     <span key="env-count">{project.environment_count}</span>,
-  //     <span key="setting" className="consume-click">
-  //       <IconButton
-  //         title="settings"
-  //         onClick={() => openSettings(project)}
-  //         data-test-id={`settings-button-${project.path}`}
-  //       >
-  //         <SettingsIcon />
-  //       </IconButton>
-  //     </span>,
-  //   ]);
-  // };
-
   const {
     data: projects = [],
     revalidate: fetchProjects,
@@ -195,12 +223,6 @@ const ProjectsView: React.FC = () => {
       };
     });
   }, [projects]);
-
-  const openSettings = (project: Project) => {
-    navigateTo(siteMap.projectSettings.path, {
-      query: { projectUuid: project.uuid },
-    });
-  };
 
   const onRowClick = (projectUuid: string) => {
     navigateTo(siteMap.pipelines.path, {

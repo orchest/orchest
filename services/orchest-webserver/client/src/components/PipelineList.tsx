@@ -8,7 +8,6 @@ import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
-import { darken } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -18,7 +17,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import {
   fetcher,
   makeCancelable,
@@ -28,6 +26,7 @@ import {
 import React from "react";
 import { siteMap } from "../Routes";
 import { checkGate } from "../utils/webserver-utils";
+import { IconButton } from "./common/IconButton";
 import { DataTable, DataTableColumn } from "./DataTable";
 import SessionToggleButton from "./SessionToggleButton";
 
@@ -76,35 +75,31 @@ const getColumns = (
     id: "path",
     label: "Path",
     render: (row) => (
-      <Tooltip title="Edit pipeline path">
-        <Stack
-          direction="row"
-          alignItems="center"
-          component="span"
-          sx={{
-            display: "inline-flex",
-            svg: { visibility: "hidden" },
-            "&:hover": {
-              color: (theme) => darken(theme.palette.primary.main, 0.15),
-              // textDecoration: "underline",
-              svg: { visibility: "visible" },
-            },
-          }}
+      <Stack
+        direction="row"
+        alignItems="center"
+        component="span"
+        sx={{
+          display: "inline-flex",
+          button: { visibility: "hidden" },
+          "&:hover": {
+            button: { visibility: "visible" },
+          },
+        }}
+      >
+        {row.path}
+        <IconButton
+          title="Edit pipeline path"
+          size="small"
+          sx={{ marginLeft: (theme) => theme.spacing(2) }}
           onClick={(e: React.MouseEvent<unknown>) => {
             e.stopPropagation();
             onEditPath(row.uuid, row.path);
           }}
         >
-          {row.path}
-          <EditIcon
-            sx={{
-              width: (theme) => theme.spacing(2),
-              marginLeft: (theme) => theme.spacing(1),
-            }}
-            color="primary"
-          />
-        </Stack>
-      </Tooltip>
+          <EditIcon />
+        </IconButton>
+      </Stack>
     ),
   },
   {
