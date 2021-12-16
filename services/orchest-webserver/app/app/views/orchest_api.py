@@ -5,6 +5,7 @@ from app import analytics, error
 from app.core import jobs
 from app.models import Pipeline, Project
 from app.utils import (
+    get_environment,
     get_environments,
     get_pipeline_json,
     get_project_directory,
@@ -117,12 +118,18 @@ def register_orchest_api_views(app, db):
         )
 
         for environment_build_request in environment_build_requests:
+            environment_uuid = environment_build_request["environment_uuid"]
+            project_uuid = environment_build_request["project_uuid"]
+            env = get_environment(environment_uuid, project_uuid)
             analytics.send_event(
                 app,
                 analytics.Event.ENVIRONMENT_BUILD_START,
                 {
-                    "environment_uuid": environment_build_request["environment_uuid"],
-                    "project_uuid": environment_build_request["project_uuid"],
+                    "environment_uuid": environment_uuid,
+                    "project_uuid": project_uuid,
+                    "language": env.language,
+                    "gpu_support": env.gpu_support,
+                    "base_image": env.base_image,
                 },
             )
         return resp.content, resp.status_code, resp.headers.items()
