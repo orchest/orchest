@@ -6,8 +6,11 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/routingConfig";
+import CloseIcon from "@mui/icons-material/Close";
+import MemoryIcon from "@mui/icons-material/Memory";
+import SaveIcon from "@mui/icons-material/Save";
+import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -296,37 +299,38 @@ const ConfigureJupyterLabView: React.FC = () => {
               building={state.building}
             />
 
-            <MDCButtonReact
-              label={appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
-              icon="save"
-              classNames={[
-                "mdc-button--raised",
-                "themed-secondary",
-                "push-right",
-              ]}
-              submitButton
+            <Button
+              startIcon={<SaveIcon />}
+              variant="contained"
+              type="submit"
               onClick={() => save(undefined)}
-            />
+            >
+              {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
+            </Button>
 
             {!state.building ? (
-              <MDCButtonReact
-                label="Build"
+              <Button
                 disabled={
                   state.buildRequestInProgress ||
                   typeof state.sessionKillStatus !== "undefined"
                 }
-                icon="memory"
-                classNames={["mdc-button--raised"]}
+                startIcon={<MemoryIcon />}
+                color="secondary"
+                variant="contained"
                 onClick={buildImage}
-              />
+              >
+                Build
+              </Button>
             ) : (
-              <MDCButtonReact
-                label="Cancel build"
+              <Button
                 disabled={state.cancelBuildRequestInProgress}
-                icon="close"
-                classNames={["mdc-button--raised"]}
+                startIcon={<CloseIcon />}
+                color="secondary"
+                variant="contained"
                 onClick={cancelImageBuild}
-              />
+              >
+                Cancel build
+              </Button>
             )}
           </>
         ) : (

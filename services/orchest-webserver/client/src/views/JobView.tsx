@@ -19,7 +19,13 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloseIcon from "@mui/icons-material/Close";
+import FileCopyIcon from "@mui/icons-material/FileCopy";
 import ListIcon from "@mui/icons-material/List";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -29,7 +35,6 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -568,11 +573,13 @@ const JobView: React.FC = () => {
         ) : (
           <div className="view-page job-view">
             <div className="push-down">
-              <MDCButtonReact
-                label="Back to jobs"
-                icon="arrow_back"
+              <Button
+                color="secondary"
+                startIcon={<ArrowBackIcon />}
                 onClick={returnToJobs}
-              />
+              >
+                Back to jobs
+              </Button>
             </div>
 
             <DescriptionList
@@ -646,55 +653,65 @@ const JobView: React.FC = () => {
             {tabView}
 
             <div className="separated">
-              <MDCButtonReact
+              <Button
                 disabled={isRefreshing}
-                label="Refresh"
-                icon="refresh"
+                color="secondary"
+                startIcon={<RefreshIcon />}
                 onClick={reload}
                 data-test-id="job-refresh"
-              />
+              >
+                Refresh
+              </Button>
 
-              <MDCButtonReact
-                label="Copy config to new job"
-                icon="file_copy"
+              <Button
+                startIcon={<FileCopyIcon />}
                 onClick={onJobDuplicate}
-              />
+                color="secondary"
+              >
+                Copy config to new job
+              </Button>
 
               {job.schedule !== null &&
                 ["STARTED", "PAUSED", "PENDING"].includes(job.status) && (
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised", "themed-secondary"]}
+                  <Button
+                    variant="contained"
                     onClick={editJob}
-                    icon="tune"
-                    label="Edit"
-                  />
+                    startIcon={<TuneIcon />}
+                  >
+                    Edit
+                  </Button>
                 )}
 
               {job.schedule !== null && job.status === "STARTED" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  icon="pause"
-                  label="Pause"
+                <Button
+                  color="secondary"
+                  variant="contained"
+                  startIcon={<PauseIcon />}
                   onClick={pauseCronJob}
-                />
+                >
+                  Pause
+                </Button>
               )}
 
               {job.schedule !== null && job.status === "PAUSED" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
                   onClick={resumeCronJob}
-                  icon="play_arrow"
-                  label="Resume"
-                />
+                  startIcon={<PlayArrowIcon />}
+                >
+                  Resume
+                </Button>
               )}
 
               {["STARTED", "PAUSED", "PENDING"].includes(job.status) && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  label="Cancel job"
-                  icon="close"
+                <Button
+                  color="secondary"
+                  variant="contained"
+                  startIcon={<CloseIcon />}
                   onClick={cancelJob}
-                />
+                >
+                  Cancel job
+                </Button>
               )}
             </div>
           </div>
