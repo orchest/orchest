@@ -108,7 +108,9 @@ const getOrderValue = () => {
   return value;
 };
 
-const fetchPipelineJson = async (url: string) => {
+const fetchPipelineJson = (callback: (data: PipelineJson) => void) => async (
+  url: string
+) => {
   const response = await fetcher<{ pipeline_json: string }>(url);
   const pipelineObj = JSON.parse(response.pipeline_json) as PipelineJson;
   // as settings are optional, populate defaults if no values exist
@@ -132,6 +134,9 @@ const fetchPipelineJson = async (url: string) => {
   for (let service in pipelineObj.services) {
     pipelineObj.services[service].order = getOrderValue();
   }
+
+  callback(pipelineObj);
+
   return pipelineObj;
 };
 
@@ -170,15 +175,22 @@ const PipelineSettingsView: React.FC = () => {
     isReadOnly,
   } = useCustomRoute();
 
+  const setHeaderComponent = (pipelineName: string) =>
+    projectsContext.dispatch({
+      type: "pipelineSet",
+      payload: {
+        pipelineUuid,
+        projectUuid,
+        pipelineName,
+      },
+    });
+
   // local states
-  const {
-    data: pipelineJson,
-    mutate,
-    revalidate: fetchPipeline,
-    error,
-  } = useSWR<PipelineJson>(
+  const { data: pipelineJson, mutate, revalidate: fetchPipeline } = useSWR<
+    PipelineJson
+  >(
     getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid),
-    fetchPipelineJson
+    fetchPipelineJson((data) => setHeaderComponent(data.name))
   );
 
   // use mutate to act like local state setter
@@ -253,17 +265,6 @@ const PipelineSettingsView: React.FC = () => {
       attachResizeListener();
     }
   }, [state]);
-
-  // TODO: check this!
-  const setHeaderComponent = (pipelineName: string) =>
-    projectsContext.dispatch({
-      type: "pipelineSet",
-      payload: {
-        pipelineUuid,
-        projectUuid,
-        pipelineName,
-      },
-    });
 
   const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
     let clonedService = _.cloneDeep(service);
