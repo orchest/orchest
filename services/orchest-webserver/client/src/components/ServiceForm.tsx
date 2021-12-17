@@ -424,39 +424,16 @@ const ServiceForm: React.FC<{
                 <EnvVarList
                   value={envVarsDictToList(props.service.env_variables || {})}
                   readOnly={props.disabled}
-                  onChange={(value, idx, changeType) => {
-                    let envVarsList = envVarsDictToList(
-                      props.service.env_variables || {}
+                  setValue={(dispatcher) => {
+                    const updated = dispatcher(
+                      envVarsDictToList(props.service.env_variables || {})
                     );
-                    envVarsList[idx][changeType] = value;
-
-                    let envVars = {};
-                    for (let x = 0; x < envVarsList.length; x++) {
-                      envVars[envVarsList[x]["name"]] = envVarsList[x]["value"];
-                    }
-
-                    handleServiceChange("env_variables", envVars);
-                  }}
-                  onAdd={() => {
-                    handleServiceChange("env_variables", {
-                      ...(props.service.env_variables || {}),
-                      "": "",
-                    });
-                  }}
-                  onDelete={(idx) => {
-                    let envVarsList = envVarsDictToList(
-                      props.service.env_variables
-                        ? props.service.env_variables
-                        : {}
+                    handleServiceChange(
+                      "env_variables",
+                      updated.reduce((obj, current) => {
+                        return { ...obj, [current.name]: current.value };
+                      }, {})
                     );
-                    envVarsList.splice(idx, 1);
-
-                    let envVars = {};
-                    for (let x = 0; x < envVarsList.length; x++) {
-                      envVars[envVarsList[x]["name"]] = envVarsList[x]["value"];
-                    }
-
-                    handleServiceChange("env_variables", envVars);
                   }}
                   data-test-id={`service-${props.service.name}`}
                 />

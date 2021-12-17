@@ -1,4 +1,4 @@
-import EnvVarList from "@/components/EnvVarList";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -35,9 +35,15 @@ const ProjectSettingsView: React.FC = () => {
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
 
+  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+    _setEnvVariables(value);
+    setAsSaved(false);
+  };
+
   // local states
   const [state, setState] = React.useState({
-    envVariables: null,
+    // envVariables: null,
     pipeline_count: null,
     job_count: null,
     environment_count: null,
@@ -61,9 +67,11 @@ const ProjectSettingsView: React.FC = () => {
       .then((response) => {
         let result = JSON.parse(response);
 
+        _setEnvVariables(envVariablesDictToArray(result["env_variables"]));
+
         setState((prevState) => ({
           ...prevState,
-          envVariables: envVariablesDictToArray(result["env_variables"]),
+          // envVariables: envVariablesDictToArray(result["env_variables"]),
           pipeline_count: result["pipeline_count"],
           job_count: result["job_count"],
           environment_count: result["environment_count"],
@@ -80,15 +88,15 @@ const ProjectSettingsView: React.FC = () => {
   const saveGeneralForm = (e) => {
     e.preventDefault();
 
-    let envVariables = envVariablesArrayToDict(state.envVariables);
+    let envVariablesObj = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (envVariables.status === "rejected") {
-      setAlert("Error", envVariables.error);
+    if (envVariablesObj.status === "rejected") {
+      setAlert("Error", envVariablesObj.error);
       return;
     }
 
     // Validate environment variable names
-    for (let envVariableName of Object.keys(envVariables.value)) {
+    for (let envVariableName of Object.keys(envVariablesObj.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
         setAlert(
           "Error",
@@ -101,7 +109,7 @@ const ProjectSettingsView: React.FC = () => {
     // perform PUT to update
     makeRequest("PUT", "/async/projects/" + projectUuid, {
       type: "json",
-      content: { env_variables: envVariables.value },
+      content: { env_variables: envVariablesObj.value },
     })
       .then(() => {
         setAsSaved();
@@ -109,43 +117,6 @@ const ProjectSettingsView: React.FC = () => {
       .catch((response) => {
         console.error(response);
       });
-  };
-
-  const handleChange = (value, idx, type) => {
-    const envVariables = state.envVariables.slice();
-    envVariables[idx][type] = value;
-
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables,
-    }));
-    setAsSaved(false);
-  };
-
-  const addEnvPair = (e) => {
-    e.preventDefault();
-
-    const envVariables = state.envVariables.slice();
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables.concat([
-        {
-          name: null,
-          value: null,
-        },
-      ]),
-    }));
-  };
-
-  const onDelete = (idx) => {
-    const envVariables = state.envVariables.slice();
-    envVariables.splice(idx, 1);
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables,
-    }));
-
-    setAsSaved(false);
   };
 
   React.useEffect(() => {
@@ -191,7 +162,7 @@ const ProjectSettingsView: React.FC = () => {
 
           <h2>Project settings</h2>
 
-          {state?.envVariables ? (
+          {envVariables ? (
             <>
               <div className="project-settings trigger-overflow">
                 <div className="columns four push-down top-labels">
@@ -239,11 +210,8 @@ const ProjectSettingsView: React.FC = () => {
                 <h3 className="push-down">Project environment variables</h3>
 
                 <EnvVarList
-                  value={state.envVariables}
-                  onChange={(e, idx, type) => handleChange(e, idx, type)}
-                  onDelete={(idx) => onDelete(idx)}
-                  readOnly={false}
-                  onAdd={addEnvPair}
+                  value={envVariables}
+                  setValue={setEnvVariables}
                   data-test-id="project"
                 />
               </div>

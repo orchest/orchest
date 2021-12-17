@@ -2,7 +2,7 @@ import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import DateTimeInput from "@/components/DateTimeInput";
-import EnvVarList from "@/components/EnvVarList";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
 import { NoParameterAlert } from "@/components/ParamTree";
@@ -43,7 +43,7 @@ import {
 } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import _ from "lodash";
-import React, { useState } from "react";
+import React from "react";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 1),
@@ -251,11 +251,8 @@ const EditJobView: React.FC = () => {
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();
 
   // local states
-  const [job, setJob] = useState<Job>();
-  const [pipeline, setPipeline] = useState<PipelineJson>();
-  const [envVariables, setEnvVariables] = useState<
-    { name: string; value: string }[]
-  >([]);
+  const [job, setJob] = React.useState<Job>();
+  const [pipeline, setPipeline] = React.useState<PipelineJson>();
   const [cronString, setCronString] = React.useState("");
   const [scheduledDateTime, setScheduledDateTime] = React.useState<Date>(
     new Date(new Date().getTime() + 60000)
@@ -263,6 +260,12 @@ const EditJobView: React.FC = () => {
   const [scheduleOption, setScheduleOption] = React.useState<ScheduleOption>(
     "now"
   );
+
+  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+    _setEnvVariables(value);
+    setAsSaved(false);
+  };
 
   const [tabIndex, setTabIndex] = React.useState(0);
 
@@ -292,7 +295,7 @@ const EditJobView: React.FC = () => {
         if (fetchedJob.pipeline_uuid && fetchedJob.uuid) {
           fetchPipeline(fetchedJob);
         }
-        setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
+        _setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
 
         setScheduleOption(!fetchedJob.schedule ? "now" : "cron");
         setCronString(fetchedJob.schedule || DEFAULT_CRON_STRING);
@@ -641,37 +644,6 @@ const EditJobView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const addEnvVariablePair = (e: React.MouseEvent<Element, MouseEvent>) => {
-    e.preventDefault();
-
-    setEnvVariables((envVariables) => [
-      ...envVariables,
-      { name: null, value: null },
-    ]);
-
-    setAsSaved(false);
-  };
-
-  const onEnvVariablesChange = (value, idx: number, type) => {
-    setEnvVariables((prev) => {
-      const copiedEnvVariables = [...prev];
-      copiedEnvVariables[idx][type] = value;
-      return copiedEnvVariables;
-    });
-
-    setAsSaved(false);
-  };
-
-  const onEnvVariablesDeletion = (idx: number) => {
-    setEnvVariables((prev) => {
-      const copiedEnvVariables = [...prev];
-      copiedEnvVariables.splice(idx, 1);
-      return copiedEnvVariables;
-    });
-
-    setAsSaved(false);
-  };
-
   React.useEffect(() => {
     fetchJob();
   }, []);
@@ -858,9 +830,7 @@ const EditJobView: React.FC = () => {
               </p>
               <EnvVarList
                 value={envVariables}
-                onAdd={addEnvVariablePair}
-                onChange={(e, idx, type) => onEnvVariablesChange(e, idx, type)}
-                onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                setValue={setEnvVariables}
                 data-test-id="job-edit"
               />
             </CustomTabPanel>

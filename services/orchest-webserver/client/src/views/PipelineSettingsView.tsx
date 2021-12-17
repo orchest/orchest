@@ -6,7 +6,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
-import EnvVarList from "@/components/EnvVarList";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
@@ -60,9 +60,10 @@ import {
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import _ from "lodash";
-import React, { useRef, useState } from "react";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import useSWR, { MutatorCallback } from "swr";
+import useSWR from "swr";
+import { MutatorCallback } from "swr/dist/types";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
@@ -185,12 +186,18 @@ const PipelineSettingsView: React.FC = () => {
     data?: PipelineJson | Promise<PipelineJson> | MutatorCallback<PipelineJson>
   ) => mutate(data, false);
 
-  const [tabIndex, setTabIndex] = useState<number>(
+  const [tabIndex, setTabIndex] = React.useState<number>(
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
 
   // const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [servicesChanged, setServicesChanged] = React.useState(false);
+
+  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+    _setEnvVariables(value);
+    setAsSaved(false);
+  };
 
   const [state, setState] = React.useState({
     inputParameters: JSON.stringify({}, null, 2),
@@ -198,7 +205,7 @@ const PipelineSettingsView: React.FC = () => {
     pipeline_path: undefined,
     // dataPassingMemorySize: "1GB",
     // pipelineJson: undefined,
-    envVariables: [],
+    // envVariables: [],
     projectEnvVariables: [],
     // servicesChanged: false,
     environmentVariablesChanged: false,
@@ -221,7 +228,7 @@ const PipelineSettingsView: React.FC = () => {
   }
 
   const [overflowListener] = React.useState(new OverflowListener());
-  const promiseManagerRef = useRef(new PromiseManager<string>());
+  const promiseManagerRef = React.useRef(new PromiseManager<string>());
 
   const fetchPipelineData = () => {
     fetchPipeline();
@@ -230,9 +237,7 @@ const PipelineSettingsView: React.FC = () => {
 
   const hasLoaded = () => {
     return (
-      pipelineJson &&
-      state.envVariables &&
-      (isReadOnly || state.projectEnvVariables)
+      pipelineJson && envVariables && (isReadOnly || state.projectEnvVariables)
     );
   };
 
@@ -249,6 +254,7 @@ const PipelineSettingsView: React.FC = () => {
     }
   }, [state]);
 
+  // TODO: check this!
   const setHeaderComponent = (pipelineName: string) =>
     projectsContext.dispatch({
       type: "pipelineSet",
@@ -332,10 +338,11 @@ const PipelineSettingsView: React.FC = () => {
       cancelableRequest.promise.then((response: string) => {
         let pipeline = JSON.parse(response);
 
+        _setEnvVariables(envVariablesDictToArray(pipeline["env_variables"]));
+
         setState((prevState) => ({
           ...prevState,
           pipeline_path: pipeline.path,
-          envVariables: envVariablesDictToArray(pipeline["env_variables"]),
         }));
       });
 
@@ -387,10 +394,10 @@ const PipelineSettingsView: React.FC = () => {
       ])
         .then((values) => {
           let [pipeline_path, envVariables] = values;
+          _setEnvVariables(envVariables);
           setState((prevState) => ({
             ...prevState,
             pipeline_path,
-            envVariables,
           }));
         })
         .catch((err) => console.log(err));
@@ -456,44 +463,6 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const addEnvVariablePair = (e) => {
-    e.preventDefault();
-
-    setState((prevState) => {
-      const envVariables = prevState.envVariables.slice();
-
-      return {
-        ...prevState,
-        envVariables: envVariables.concat([
-          {
-            name: null,
-            value: null,
-          },
-        ]),
-      };
-    });
-  };
-
-  const onEnvVariablesChange = (value, idx, type) => {
-    setState((prevState) => {
-      const envVariables = prevState.envVariables.slice();
-      envVariables[idx][type] = value;
-
-      return { ...prevState, envVariables, environmentVariablesChanged: true };
-    });
-    setAsSaved(false);
-  };
-
-  const onEnvVariablesDeletion = (idx) => {
-    setState((prevState) => {
-      const envVariables = prevState.envVariables.slice();
-      envVariables.splice(idx, 1);
-
-      return { ...prevState, envVariables };
-    });
-    setAsSaved(false);
-  };
-
   const cleanPipelineJson = (pipelineJson: PipelineJson) => {
     let pipelineCopy = _.cloneDeep(pipelineJson);
     for (let serviceName in pipelineCopy.services) {
@@ -540,7 +509,7 @@ const PipelineSettingsView: React.FC = () => {
       return;
     }
 
-    let envVariables = envVariablesArrayToDict(state.envVariables);
+    let envVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
     if (envVariables.status === "rejected") {
       setAlert("Error", envVariables.error);
@@ -918,8 +887,8 @@ const PipelineSettingsView: React.FC = () => {
                 )}
                 {isReadOnly ? (
                   <EnvVarList
-                    value={state.envVariables}
-                    readOnly={true}
+                    value={envVariables}
+                    readOnly
                     data-test-id="pipeline-read-only"
                   />
                 ) : (
@@ -927,7 +896,7 @@ const PipelineSettingsView: React.FC = () => {
                     <h3 className="push-down">Project environment variables</h3>
                     <EnvVarList
                       value={state.projectEnvVariables}
-                      readOnly={true}
+                      readOnly
                       data-test-id="project-read-only"
                     />
 
@@ -939,12 +908,8 @@ const PipelineSettingsView: React.FC = () => {
                       project environment variables.
                     </p>
                     <EnvVarList
-                      value={state.envVariables}
-                      onAdd={addEnvVariablePair}
-                      onChange={(e, idx, type) =>
-                        onEnvVariablesChange(e, idx, type)
-                      }
-                      onDelete={(idx) => onEnvVariablesDeletion(idx)}
+                      value={envVariables}
+                      setValue={setEnvVariables}
                       data-test-id="pipeline"
                     />
                   </>

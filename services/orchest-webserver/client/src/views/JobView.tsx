@@ -555,7 +555,7 @@ const JobView: React.FC = () => {
         </div>
       </CustomTabPanel>
       <CustomTabPanel value={tabIndex} index={2} name="pipeline-runs-tab">
-        <EnvVarList value={envVariables} readOnly={true} />
+        <EnvVarList value={envVariables} readOnly />
       </CustomTabPanel>
     </>
   );

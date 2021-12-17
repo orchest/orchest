@@ -13,7 +13,7 @@ const ajv = new Ajv({
 
 const pipelineValidator = ajv.compile(pipelineSchema);
 
-export function isValidEnvironmentVariableName(name) {
+export function isValidEnvironmentVariableName(name: string) {
   return /^[0-9a-zA-Z\-_]+$/gm.test(name);
 }
 

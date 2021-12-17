@@ -2,76 +2,115 @@ import { isValidEnvironmentVariableName } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import React from "react";
 import { IconButton } from "./common/IconButton";
 
-export interface IEnvVarListProps {
-  value?: { name: string | null; value: string | null }[];
-  onChange?: (value: string, index: number, type: string) => void;
-  onAdd?: (e: React.MouseEvent<Element, MouseEvent>) => void;
-  onDelete?: (index: number) => void;
+export type EnvVarPair = {
+  name: string;
+  value: string;
+};
+
+export const EnvVarList: React.FC<{
+  value: EnvVarPair[];
+  setValue?: (callback: (currentValue: EnvVarPair[]) => EnvVarPair[]) => void;
   readOnly?: boolean;
-}
+  ["data-test-id"]?: string;
+}> = ({
+  value: variables,
+  setValue,
+  readOnly,
+  ["data-test-id"]: testId = "",
+}) => {
+  const onChange = (payload: string, index: number, type: "name" | "value") => {
+    setValue((current) => {
+      const found = current[index];
+      const updated = { ...found, [type]: payload };
+      return [...current.slice(0, index), updated, ...current.slice(index + 1)];
+    });
+  };
 
-export const EnvVarList: React.FC<IEnvVarListProps> = (props) => {
+  const onAdd = () => {
+    setValue((current) => [...current, { name: "", value: "" }]);
+  };
+
+  const remove = (index: number) => {
+    setValue((current) => {
+      if (index < 0 || index >= current.length) return current;
+      return [...current.slice(0, index), ...current.slice(index + 1)];
+    });
+  };
+
   return (
-    <div className="environment-variables-list">
-      {(!props.value || props.value.length == 0) && (
-        <p className="push-down">
+    <Stack direction="column" spacing={3} alignItems="flex-start">
+      {variables.length === 0 && (
+        <Typography>
           <i>No environment variables have been defined.</i>
-        </p>
+        </Typography>
       )}
-      <ul>
-        {props.value.map((pair, idx) => {
-          if (!pair) return;
-
-          return (
-            <li key={pair.name}>
+      {variables.map((pair, idx) => {
+        if (!pair) return null;
+        const elementKey = `env-variable-${idx}`;
+        const isValidName =
+          pair.name.length === 0 || isValidEnvironmentVariableName(pair.name);
+        return (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{ maxWidth: "40rem" }}
+            key={elementKey}
+          >
+            <Tooltip
+              title="Must be numbers or alphabets concatenate with underscores or hyphen"
+              open={!isValidName}
+              arrow
+            >
               <TextField
-                error={!isValidEnvironmentVariableName(pair.name)}
+                key={`${elementKey}-name`}
+                error={!isValidName}
                 value={pair.name || ""}
                 onChange={(e) => {
-                  props.onChange(e.target.value, idx, "name");
+                  onChange(e.target.value, idx, "name");
                 }}
                 label="Name"
-                disabled={props.readOnly === true}
-                data-test-id={props["data-test-id"] + "-env-var-name"}
-                data-test-title={
-                  props["data-test-id"] + `-env-var-${pair.name}-name`
-                }
+                autoFocus
+                disabled={readOnly === true}
+                data-test-id={`${testId}-env-var-name`}
+                data-test-title={`${testId}-env-var-${pair.name}-name`}
               />
-              <TextField
-                value={pair.value || ""}
-                onChange={(e) => props.onChange(e.target.value, idx, "value")}
-                label="Value"
-                disabled={props.readOnly === true}
-                data-test-id={props["data-test-id"] + "-env-var-value"}
-                data-test-title={
-                  props["data-test-id"] + `-env-var-${pair.name}-value`
-                }
-              />
-              {!props.readOnly && (
-                <IconButton
-                  title="Delete entry"
-                  onClick={() => props.onDelete(idx)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {!props.readOnly && (
+            </Tooltip>
+            <TextField
+              key={`${elementKey}-value`}
+              value={pair.value || ""}
+              onChange={(e) => onChange(e.target.value, idx, "value")}
+              label="Value"
+              disabled={readOnly === true}
+              data-test-id={`${testId}-env-var-value`}
+              data-test-title={`${testId}-env-var-${pair.name}-value`}
+            />
+            {!readOnly && (
+              <IconButton title="Delete entry" onClick={() => remove(idx)}>
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </Stack>
+        );
+      })}
+      {!readOnly && (
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={props.onAdd}
-          data-test-id={props["data-test-id"] + "-env-var-add"}
-        />
+          onClick={onAdd}
+          data-test-id={`${testId}-env-var-add`}
+        >
+          Create new variable
+        </Button>
       )}
-    </div>
+    </Stack>
   );
 };
 
