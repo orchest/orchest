@@ -1063,7 +1063,20 @@ def get_inputs(
     return data
 
 
-def output(data: Any, name: Optional[str]) -> None:
+_times_output_called = 0
+_OUTPUT_CALLED_TWICE_WARNING = (
+    "WARNING: Calling `output` multiple times within the same step will overwrite the "
+    "output, even when using a different output ``name``. You therefore want to be "
+    "calling the function once. To silence this warning, call `output` with "
+    "`silence_multiple_calls_warning` set to ``True``."
+)
+
+
+def output(
+    data: Any,
+    name: Optional[str],
+    silence_multiple_calls_warning: bool = False,
+) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
@@ -1092,12 +1105,17 @@ def output(data: Any, name: Optional[str]) -> None:
         >>> output(data, name="my_data")
 
     Note:
-        Calling :meth:`output` multiple times within the same script
+        Calling :meth:`output` multiple times within the same step
         will overwrite the output, even when using a different output
         ``name``. You therefore want to be only calling the function
         once.
 
     """
+    global _times_output_called
+    _times_output_called += 1
+    if not silence_multiple_calls_warning and _times_output_called > 1:
+        print(_OUTPUT_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
