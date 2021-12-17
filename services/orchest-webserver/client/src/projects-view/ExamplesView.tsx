@@ -1,4 +1,4 @@
-import { LogoIcon } from "@/components/common/LogoIcon";
+import { LogoIcon } from "@/components/common/icons/LogoIcon";
 import { TabLabel, Tabs } from "@/components/common/Tabs";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";

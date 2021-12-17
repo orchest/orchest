@@ -1,5 +1,5 @@
 // @ts-nocheck
-
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -20,7 +20,18 @@ import {
   serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloseIcon from "@mui/icons-material/Close";
+import CropFreeIcon from "@mui/icons-material/CropFree";
+import DeleteIcon from "@mui/icons-material/Delete";
+import RemoveIcon from "@mui/icons-material/Remove";
+import SettingsIcon from "@mui/icons-material/Settings";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import Button from "@mui/material/Button";
 import {
   activeElementIsInput,
   collapseDoubleDots,
@@ -2413,29 +2424,35 @@ const PipelineView: React.FC = () => {
         >
           {jobUuidFromRoute && isReadOnly && (
             <div className="pipeline-actions top-left">
-              <MDCButtonReact
-                classNames={["mdc-button--outlined"]}
-                label="Back to job"
-                icon="arrow_back"
+              <Button
+                variant="outlined"
+                startIcon={<ArrowBackIcon />}
                 onClick={returnToJob}
                 data-test-id="pipeline-back-to-job"
-              />
+              >
+                Back to job
+              </Button>
             </div>
           )}
 
           <div className="pipeline-actions bottom-left">
             <div className="navigation-buttons">
-              <MDCButtonReact
-                onClick={centerView}
-                icon="crop_free"
+              <IconButton
+                title="Center"
                 data-test-id="pipeline-center"
-              />
-              <MDCButtonReact onClick={zoomOut} icon="remove" />
-              <MDCButtonReact onClick={zoomIn} icon="add" />
-              <MDCButtonReact
-                onClick={autoLayoutPipeline}
-                icon={<div className="custom-icon pipeline">pipeline</div>}
-              />
+                onClick={centerView}
+              >
+                <CropFreeIcon />
+              </IconButton>
+              <IconButton title="Zoom out" onClick={zoomOut}>
+                <RemoveIcon />
+              </IconButton>
+              <IconButton title="Zoom in" onClick={zoomIn}>
+                <AddIcon />
+              </IconButton>
+              <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
+                <AccountTreeOutlinedIcon />
+              </IconButton>
             </div>
 
             {!isReadOnly &&
@@ -2443,76 +2460,86 @@ const PipelineView: React.FC = () => {
               state.eventVars.selectedSteps.length > 0 &&
               !state.eventVars.stepSelector.active && (
                 <div className="selection-buttons">
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised", "themed-secondary"]}
+                  <Button
+                    variant="contained"
                     onClick={runSelectedSteps}
-                    label="Run selected steps"
                     data-test-id="interactive-run-run-selected-steps"
-                  />
+                  >
+                    Run selected steps
+                  </Button>
                   {selectedStepsHasIncoming && (
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised", "themed-secondary"]}
+                    <Button
+                      variant="contained"
                       onClick={onRunIncoming}
-                      label="Run incoming steps"
                       data-test-id="interactive-run-run-incoming-steps"
-                    />
+                    >
+                      Run incoming steps
+                    </Button>
                   )}
                 </div>
               )}
             {!isReadOnly && state.pipelineRunning && (
               <div className="selection-buttons">
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
+                <Button
+                  variant="contained"
+                  color="secondary"
                   onClick={cancelRun}
-                  icon="close"
+                  startIcon={<CloseIcon />}
                   disabled={state.waitingOnCancel}
-                  label="Cancel run"
                   data-test-id="interactive-run-cancel"
-                />
+                >
+                  Cancel run
+                </Button>
               </div>
             )}
           </div>
 
           <div className={"pipeline-actions top-right"}>
             {!isReadOnly && (
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
+              <Button
+                variant="contained"
+                color="secondary"
                 onClick={newStep}
-                icon={"add"}
-                label={"NEW STEP"}
+                startIcon={<AddIcon />}
                 data-test-id="step-create"
-              />
+              >
+                NEW STEP
+              </Button>
             )}
 
             {isReadOnly && (
-              <MDCButtonReact
-                label={"Read only"}
-                disabled={true}
-                icon={"visibility"}
-              />
+              <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
+                Read only
+              </Button>
             )}
 
-            <MDCButtonReact
-              classNames={["mdc-button--raised"]}
+            <Button
+              variant="contained"
+              color="secondary"
               onClick={openLogs}
-              label={"Logs"}
-              icon="view_headline"
-            />
+              startIcon={<ViewHeadlineIcon />}
+            >
+              Logs
+            </Button>
 
-            <MDCButtonReact
-              classNames={["mdc-button--raised"]}
+            <Button
+              variant="contained"
+              color="secondary"
               onClick={showServices}
-              label={"Services"}
-              icon="settings"
-            />
+              startIcon={<SettingsIcon />}
+            >
+              Services
+            </Button>
 
-            <MDCButtonReact
-              classNames={["mdc-button--raised"]}
+            <Button
+              variant="contained"
+              color="secondary"
               onClick={() => openSettings()}
-              label={"Settings"}
-              icon="tune"
+              startIcon={<TuneIcon />}
               data-test-id="pipeline-settings"
-            />
+            >
+              Settings
+            </Button>
 
             {state.eventVars.showServices && (
               <div className="services-status">
@@ -2524,11 +2551,11 @@ const PipelineView: React.FC = () => {
                 )}
 
                 <div className="edit-button-holder">
-                  <MDCButtonReact
-                    icon="tune"
-                    label={`${!isReadOnly ? "Edit" : "View"} services`}
+                  <Button
+                    startIcon={<TuneIcon />}
+                    color="secondary"
                     onClick={() => openSettings("services")}
-                  />
+                  >{`${!isReadOnly ? "Edit" : "View"} services`}</Button>
                 </div>
               </div>
             )}
@@ -2596,13 +2623,15 @@ const PipelineView: React.FC = () => {
 
         {state.eventVars.openedMultistep && !isReadOnly && (
           <div className={"pipeline-actions bottom-right"}>
-            <MDCButtonReact
-              classNames={["mdc-button--raised"]}
-              label={"Delete"}
+            <Button
+              variant="contained"
+              color="secondary"
               onClick={onDeleteMultistep}
-              icon={"delete"}
+              startIcon={<DeleteIcon />}
               data-test-id="step-delete-multi"
-            />
+            >
+              Delete
+            </Button>
           </div>
         )}
       </div>
