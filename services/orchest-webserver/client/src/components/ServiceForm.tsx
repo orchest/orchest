@@ -1,22 +1,28 @@
 import EnvVarList from "@/components/EnvVarList";
-import { Service } from "@/types";
+import { Environment, Service } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import InfoIcon from "@mui/icons-material/Info";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
+import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import Link from "@mui/material/Link";
+import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
-import { MDCCheckboxReact, MDCSelectReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -64,7 +70,9 @@ const ServiceForm: React.FC<{
   const environmentPrefix = "environment@";
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
-  let [environmentOptions, setEnvironmentOptions] = React.useState(undefined);
+  let [environmentOptions, setEnvironmentOptions] = React.useState<
+    Environment[]
+  >([]);
   let [editImageName, setEditImageName] = React.useState(
     props.service.image.startsWith(environmentPrefix) ? "" : props.service.image
   );
@@ -137,15 +145,8 @@ const ServiceForm: React.FC<{
 
     fetchEnvironmentOptionsPromise.promise
       .then((response) => {
-        let result = JSON.parse(response);
-
-        let environmentOptions = [["", ""]];
-
-        for (let environment of result) {
-          environmentOptions.push([environment.uuid, environment.name]);
-        }
-
-        setEnvironmentOptions(environmentOptions);
+        let result: Environment[] = JSON.parse(response);
+        setEnvironmentOptions(result);
       })
       .catch((error) => {
         console.log(error);
@@ -156,14 +157,14 @@ const ServiceForm: React.FC<{
     setShowImageDialog(false);
   };
 
-  const resolveEnvironmentName = (environmentImageName) => {
+  const resolveEnvironmentName = (environmentImageName: string) => {
     let environmentUUID = environmentImageName.replace(environmentPrefix, "");
     let environments = environmentOptions.filter(
-      (el) => el[0] == environmentUUID
+      (el) => el.uuid === environmentUUID
     );
 
     if (environments.length > 0) {
-      return "Environment: " + environments[0][1];
+      return "Environment: " + environments[0].name;
     } else {
       return environmentImageName;
     }
@@ -342,52 +343,89 @@ const ServiceForm: React.FC<{
                   <FormSectionTitle title="When you preserve the base path the first component of the path https://<hostname>/1/2/... will be passed to the service when the request is proxied by Orchest.">
                     Preserve base path
                   </FormSectionTitle>
-                  <MDCCheckboxReact
-                    onChange={(isChecked: boolean) => {
-                      handleServiceChange("preserve_base_path", isChecked);
-                    }}
-                    disabled={props.disabled}
-                    label="Preserve base path"
-                    value={props.service?.preserve_base_path === true}
-                  />
+                  <FormGroup>
+                    <FormControlLabel
+                      label="Preserve base path"
+                      control={
+                        <Checkbox
+                          checked={props.service?.preserve_base_path === true}
+                          onChange={(e) => {
+                            handleServiceChange(
+                              "preserve_base_path",
+                              e.target.checked
+                            );
+                          }}
+                        />
+                      }
+                    />
+                  </FormGroup>
                 </Stack>
                 <Stack direction="column" flex={1}>
                   <FormSectionTitle title="Require authentication for the exposed service endpoints.">
                     Authentication required
                   </FormSectionTitle>
-                  <MDCCheckboxReact
-                    onChange={(isChecked) => {
-                      handleServiceChange("requires_authentication", isChecked);
-                    }}
-                    disabled={props.disabled}
-                    label="Authentication required"
-                    value={props.service.requires_authentication !== false}
-                  />
+                  <FormGroup>
+                    <FormControlLabel
+                      label="Authentication required"
+                      disabled={props.disabled}
+                      control={
+                        <Checkbox
+                          checked={
+                            props.service.requires_authentication !== false
+                          }
+                          onChange={(e) => {
+                            handleServiceChange(
+                              "requires_authentication",
+                              e.target.checked
+                            );
+                          }}
+                        />
+                      }
+                    />
+                  </FormGroup>
                 </Stack>
               </Stack>
-
               <Stack direction="row" spacing={2}>
                 <Stack direction="column" flex={1}>
                   <FormSectionTitle title="Scope defines whether a service will run during interactive sessions, in job sessions, or both.">
                     Scope
                   </FormSectionTitle>
-                  <MDCCheckboxReact
-                    disabled={props.disabled}
-                    onChange={(isChecked) => {
-                      handleScopeCheckbox(isChecked, "interactive");
-                    }}
-                    label="Interactive sessions"
-                    value={props.service.scope.indexOf("interactive") >= 0}
-                  />
-                  <br />
-                  <MDCCheckboxReact
-                    disabled={props.disabled}
-                    onChange={(isChecked) => {
-                      handleScopeCheckbox(isChecked, "noninteractive");
-                    }}
-                    label="Job sessions"
-                    value={props.service.scope.indexOf("noninteractive") >= 0}
-                  />
+                  <FormGroup>
+                    <FormControlLabel
+                      label="Interactive sessions"
+                      disabled={props.disabled}
+                      control={
+                        <Checkbox
+                          checked={
+                            props.service.scope.indexOf("interactive") >= 0
+                          }
+                          onChange={(e) => {
+                            handleScopeCheckbox(
+                              e.target.checked,
+                              "interactive"
+                            );
+                          }}
+                        />
+                      }
+                    />
+                    <FormControlLabel
+                      label="Job sessions"
+                      disabled={props.disabled}
+                      control={
+                        <Checkbox
+                          checked={
+                            props.service.scope.indexOf("noninteractive") >= 0
+                          }
+                          onChange={(e) => {
+                            handleScopeCheckbox(
+                              e.target.checked,
+                              "noninteractive"
+                            );
+                          }}
+                        />
+                      }
+                    />
+                  </FormGroup>
                 </Stack>
                 <Stack direction="column" flex={1}>
                   <FormSectionTitle title="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level.">
@@ -445,7 +483,7 @@ const ServiceForm: React.FC<{
       <Dialog open={showImageDialog} onClose={onCloseEditImageName}>
         <DialogTitle>Edit service image</DialogTitle>
         <DialogContent>
-          <div>
+          <Box sx={{ marginTop: (theme) => theme.spacing(2) }}>
             <Tooltip title="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`">
               <TextField
                 label="Image name"
@@ -465,19 +503,31 @@ const ServiceForm: React.FC<{
             <p className="push-up push-down">
               Or choose an environment as your image:
             </p>
-            <MDCSelectReact
-              label="Environment"
-              classNames={["fullwidth"]}
-              onChange={(environmentUUID) => {
-                setEditImageEnvironmentUUID(environmentUUID);
-                if (environmentUUID.length > 0) {
-                  setEditImageName("");
-                }
-              }}
-              value={editImageEnvironmentUUID}
-              options={environmentOptions}
-            />
-          </div>
+            <FormControl fullWidth>
+              <InputLabel id="select-environment-label">Environment</InputLabel>
+              <Select
+                labelId="select-environment-label"
+                id="select-environment"
+                value={editImageEnvironmentUUID}
+                label="Environment"
+                onChange={(e) => {
+                  const environmentUUID = e.target.value;
+                  setEditImageEnvironmentUUID(environmentUUID);
+                  if (environmentUUID.length > 0) {
+                    setEditImageName("");
+                  }
+                }}
+              >
+                {environmentOptions.map((element) => {
+                  return (
+                    <MenuItem key={element.uuid} value={element.uuid}>
+                      {element.name}
+                    </MenuItem>
+                  );
+                })}
+              </Select>
+            </FormControl>
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button color="secondary" onClick={onCloseEditImageName}>

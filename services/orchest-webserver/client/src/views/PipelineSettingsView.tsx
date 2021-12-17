@@ -448,11 +448,6 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangeDataPassingMemorySize = (value: string) => {
-    console.log("HMM");
-    console.log(value);
-    console.log(isValidMemorySize(value));
-
-    // if (isValidMemorySize(value)) {
     setPipelineJson((current) => {
       return {
         ...current,
@@ -460,7 +455,6 @@ const PipelineSettingsView: React.FC = () => {
       };
     });
     setAsSaved(false);
-    // }
   };
 
   const onChangeEviction = (value: boolean) => {

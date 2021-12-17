@@ -4,8 +4,11 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCSelectReact } from "@orchest/lib-mdc";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import {
   makeCancelable,
   makeRequest,
@@ -13,9 +16,7 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 
-export type TProjectSelectorRef = any;
-
-const ProjectSelector = (_, ref: TProjectSelectorRef) => {
+const ProjectSelector = () => {
   const { state, dispatch } = useProjectsContext();
   const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
   const matchProjectRoot = useMatchProjectRoot();
@@ -99,26 +100,30 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     }
   }, [matchProjectRoot, state.hasLoadedProjects]);
 
-  const selectItems = state.projects.map((project) => [
-    project.uuid,
-    project.path,
-  ]);
-
   if (!matchProjectRoot) return null;
   return state.projects ? (
-    <MDCSelectReact
-      ref={ref}
-      label="Project"
-      notched={true}
-      classNames={["project-selector", "fullwidth"]}
-      options={selectItems}
-      onChange={onChangeProject}
-      value={state.projectUuid}
-      data-test-id="project-selector"
-    />
+    <FormControl fullWidth sx={{ width: "250px" }}>
+      <InputLabel id="select-project-label">Project</InputLabel>
+      <Select
+        labelId="select-project-label"
+        id="select-project"
+        value={state.projectUuid || ""}
+        label="Project"
+        onChange={(e) => onChangeProject(e.target.value)}
+        data-test-id="project-selector"
+      >
+        {state.projects.map((project) => {
+          return (
+            <MenuItem key={project.uuid} value={project.uuid}>
+              {project.path}
+            </MenuItem>
+          );
+        })}
+      </Select>
+    </FormControl>
   ) : (
-    <LinearProgress ref={ref} />
+    <LinearProgress />
   );
 };
 
-export default React.forwardRef(ProjectSelector);
+export default ProjectSelector;
