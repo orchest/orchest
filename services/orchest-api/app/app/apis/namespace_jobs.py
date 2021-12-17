@@ -350,7 +350,7 @@ class PipelineRun(Resource):
         if could_abort:
             return {"message": "Run termination was successful."}, 200
         else:
-            return {"message": "Run does not exist or is not running."}, 400
+            return {"message": "Run does not exist or is not running."}, 404
 
 
 @api.route(
@@ -424,6 +424,32 @@ class JobDeletion(Resource):
             return {"message": "Job deletion was successful."}, 200
         else:
             return {"message": "Job does not exist."}, 404
+
+
+@api.route("/cleanup/<string:job_uuid>/<string:run_uuid>")
+@api.param("job_uuid", "UUID of job")
+@api.param("run_uuid", "UUID of pipeline run")
+@api.response(404, "Job pipeline run not found")
+class JobPipelineRunDeletion(Resource):
+    @api.doc("delete_job_pipeline_run")
+    @api.response(200, "Job pipeline run deleted")
+    def delete(self, job_uuid, run_uuid):
+        """Delete a job pipeline run.
+
+        The pipeline run is stopped if its running, related entities are
+        then removed from the db.
+        """
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_delete = DeleteJobPipelineRun(tpe).transaction(job_uuid, run_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_delete:
+            return {"message": "Job pipelune run deletion was successful."}, 200
+        else:
+            return {"message": "Job pipeline run does not exist."}, 404
 
 
 @api.route("/cronjobs/pause/<string:job_uuid>")
@@ -1004,6 +1030,36 @@ class DeleteJob(TwoPhaseFunction):
             )
 
 
+class DeleteJobPipelineRun(TwoPhaseFunction):
+    """Delete a job pipeline run."""
+
+    def _transaction(self, job_uuid, run_uuid):
+        if not db.session.query(
+            db.session.query(models.Job).filter_by(uuid=job_uuid).exists()
+        ).scalar():
+            return False
+
+        run = models.NonInteractivePipelineRun.query.filter_by(
+            uuid=run_uuid
+        ).one_or_none()
+        if run is None:
+            return False
+
+        # This will take care of updating the job status thus freeing
+        # locked env images, and processing stale ones.
+        AbortJobPipelineRun(self.tpe).transaction(job_uuid, run_uuid)
+
+        # Deletes cascade to: non interactive runs -> non interactive
+        # run image mapping, non interactive runs -> pipeline run step.
+        db.session.delete(run)
+        return True
+
+    def _collateral(self):
+        # The job run directory is removed by the webserver, since it
+        # owns it.
+        pass
+
+
 class UpdateJobPipelineRun(TwoPhaseFunction):
     """Update a pipeline run of a job."""
 
@@ -1041,25 +1097,29 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
-
-                completed_runs = (
+                # Check how many runs still need to get to an end state.
+                # Checking this way is necessary because a run could
+                # have been deleted by the DB through the
+                # DeleteJobPipelineRun 2PF, so we can't rely on how many
+                # runs have finished. Note that this is possible because
+                # one off jobs create all their runs in a batch.
+                runs_to_complete = (
                     models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
                     .filter(
                         models.NonInteractivePipelineRun.status.in_(
-                            ["SUCCESS", "FAILURE", "ABORTED"]
+                            ["PENDING", "STARTED"]
                         )
                     )
                     .count()
                 )
-
                 current_app.logger.info(
                     (
                         f"Non recurring job {job_uuid} has completed "
-                        f"{completed_runs}/{job[2]} runs."
+                        f"{job[2] - runs_to_complete}/{job[2]} runs."
                     )
                 )
 
-                if completed_runs == job[2]:
+                if runs_to_complete == 0:
                     models.Job.query.filter_by(uuid=job_uuid).update(
                         {"status": "SUCCESS"}
                     )
