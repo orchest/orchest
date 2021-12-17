@@ -2,6 +2,7 @@
 import json
 import os
 import pickle
+import sys
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
@@ -966,7 +967,7 @@ def get_inputs(
     global _times_get_inputs_called
     _times_get_inputs_called += 1
     if not silence_multiple_calls_warning and _times_get_inputs_called > 1:
-        print(_GET_INPUTS_CALLED_TWICE_WARNING, flush=True)
+        print(_GET_INPUTS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
 
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
