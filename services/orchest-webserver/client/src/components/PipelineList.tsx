@@ -302,10 +302,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       return;
     }
 
-    if (
-      !pipelinePath ||
-      (pipelinePath.startsWith(".orchest") && pipelinePath.endsWith(".orchest"))
-    ) {
+    if (!pipelinePath || pipelinePath === ".orchest") {
       orchest.alert("Error", "Please enter the path for the pipeline.");
       return;
     }
