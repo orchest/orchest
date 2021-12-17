@@ -1120,9 +1120,12 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 )
 
                 if runs_to_complete == 0:
-                    models.Job.query.filter_by(uuid=job_uuid).update(
-                        {"status": "SUCCESS"}
-                    )
+                    models.Job.query.filter_by(uuid=job_uuid).filter(
+                        # This is needed because aborted runs that are
+                        # running will report reaching an end state,
+                        # which will trigger a call to this 2PF.
+                        models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
+                    ).update({"status": "SUCCESS"})
                     # The job is completed.
                     self.collateral_kwargs["completed"] = True
 
