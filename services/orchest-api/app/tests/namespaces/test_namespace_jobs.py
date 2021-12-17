@@ -363,8 +363,10 @@ def test_pipelinerun_set(client, celery, pipeline):
 
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
 
+
 def test_pipelinerun_delete_non_existent(client, celery):
     assert client.delete("/api/jobs/job_uuid/pipeline_uuid").status_code == 404
+
 
 def test_pipelinerun_delete_one_run(
     client,
@@ -399,6 +401,7 @@ def test_pipelinerun_delete_one_run(
     assert pipeline_runs[1]["status"] == "PENDING"
     assert pipeline_runs[2]["status"] == "PENDING"
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "STARTED"
+
 
 def test_pipelinerun_delete_all_runs(
     client,
@@ -435,6 +438,7 @@ def test_pipelinerun_delete_all_runs(
 def test_pipelinerundeletion_non_existent(client, celery):
     assert client.delete("/api/jobs/cleanup/job_uuid/pipeline_uuid").status_code == 404
 
+
 def test_pipelinerundeletion_one_run(
     client,
     celery,
@@ -464,10 +468,11 @@ def test_pipelinerundeletion_one_run(
     pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
         "pipeline_runs"
     ]
-    assert pipeline_runs[0]["status"] == "ABORTED"
+    assert len(pipeline_runs) == 2
+    assert pipeline_runs[0]["status"] == "PENDING"
     assert pipeline_runs[1]["status"] == "PENDING"
-    assert pipeline_runs[2]["status"] == "PENDING"
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "STARTED"
+
 
 def test_pipelinerundeletion_all_runs(
     client,
@@ -498,4 +503,5 @@ def test_pipelinerundeletion_all_runs(
     pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
         "pipeline_runs"
     ]
+    assert not pipeline_runs
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
