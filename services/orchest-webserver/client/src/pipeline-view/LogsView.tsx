@@ -7,15 +7,26 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  Step,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import {
   addOutgoingConnections,
   filterServices,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCDrawerReact } from "@orchest/lib-mdc";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
   makeRequest,
@@ -48,8 +59,8 @@ const LogsView: React.FC = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const [selectedLog, setSelectedLog] = React.useState(undefined);
-  const [logType, setLogType] = React.useState(undefined);
-  const [sortedSteps, setSortedSteps] = React.useState(undefined);
+  const [logType, setLogType] = React.useState<"step" | "service">(undefined);
+  const [sortedSteps, setSortedSteps] = React.useState<Step[]>([]);
   const [pipelineJson, setPipelineJson] = React.useState(undefined);
   const [sio, setSio] = React.useState(undefined);
   const [job, setJob] = React.useState(undefined);
@@ -168,7 +179,7 @@ const LogsView: React.FC = () => {
     });
   };
 
-  const getServices = () => {
+  const getServices = (): Record<string, { name: string; image: string }> => {
     let services = {};
 
     // If there is no job_uuid use the session for
@@ -266,18 +277,9 @@ const LogsView: React.FC = () => {
     });
   };
 
-  const clickLog = (_, item) => {
-    setSelectedLog(item.identifier);
-    setLogType(item.type);
-  };
-
-  const getItemIndex = (items, access, value) => {
-    for (let x = 0; x < items.length; x++) {
-      if (access(items[x]) == value) {
-        return x;
-      }
-    }
-    return -1;
+  const onClickLog = (uuid: string, type: "step" | "service") => {
+    setSelectedLog(uuid);
+    setLogType(type);
   };
 
   let rootView = undefined;
@@ -312,48 +314,95 @@ const LogsView: React.FC = () => {
 
     rootView = (
       <div className="logs">
-        <div className="log-selector">
-          <div className="log-section">
-            <i className="material-icons">device_hub</i>
-            Step logs
-          </div>
-          {sortedSteps.length == 0 && (
-            <i className="note">There are no steps defined.</i>
-          )}
-          <MDCDrawerReact
-            items={steps}
-            selectedIndex={
-              logType == "step"
-                ? getItemIndex(steps, (step) => step.identifier, selectedLog)
-                : -1
+        <Box
+          sx={{
+            width: "20%",
+            minWidth: "250px",
+          }}
+        >
+          <List
+            dense
+            sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+            subheader={<ListSubheader component="div">Step logs</ListSubheader>}
+          >
+            {sortedSteps.length == 0 && (
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Typography component="i">
+                      There are no steps defined.
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            )}
+            {sortedSteps.map((sortedStep) => {
+              return (
+                <ListItem key={sortedStep.uuid}>
+                  <ListItemButton
+                    selected={
+                      logType === "step" && selectedLog === sortedStep.uuid
+                    }
+                    onClick={() => onClickLog(sortedStep.uuid, "step")}
+                  >
+                    <ListItemText
+                      primary={sortedStep.title}
+                      secondary={sortedStep.file_path}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+            <Divider />
+          </List>
+          <List
+            dense
+            sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+            subheader={
+              <ListSubheader component="div">Service logs</ListSubheader>
             }
-            action={clickLog}
-          />
-          <div role="separator" className="mdc-deprecated-list-divider" />
-          <div className="log-section">
-            <i className="material-icons">settings</i>
-            Service logs
-          </div>
-          {!session && !job && (
-            <i className="note">There is no active session.</i>
-          )}
-          {(session || job) && services.length == 0 && (
-            <i className="note">There are no services defined.</i>
-          )}
-          <MDCDrawerReact
-            items={services}
-            selectedIndex={
-              logType == "service"
-                ? getItemIndex(
-                    services,
-                    (service) => service.identifier,
-                    selectedLog
-                  )
-                : -1
-            }
-            action={clickLog}
-          />
-        </div>
+          >
+            {!session && !job && (
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Typography component="i">
+                      There is no active session.
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            )}
+            {(session || job) && services.length == 0 && (
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Typography component="i" variant="subtitle2">
+                      There are no services defined.
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            )}
+            {Object.entries(getServices()).map(([key, service]) => {
+              return (
+                <ListItem key={service.name}>
+                  <ListItemButton
+                    selected={
+                      logType === "service" && selectedLog === service.name
+                    }
+                    onClick={() => onClickLog(service.name, "service")}
+                  >
+                    <ListItemText
+                      primary={service.name}
+                      secondary={service.image}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              );
+            })}
+          </List>
+        </Box>
         <div className="logs-xterm-holder">
           {selectedLog && logType && (
             <LogViewer
