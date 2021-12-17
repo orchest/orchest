@@ -182,5 +182,37 @@ Everything can be done through the easy interface of Orchest.
 See the :ref:`environments <environments>` section for details on how to build an environment.
 
 Creating a custom service
--------------------------
-WIP
+~~~~~~~~~~~~~~~~~~~~~~~~~
+We will explain how to add a custom service by following an example: creating your custom
+`streamlit <https://github.com/streamlit/streamlit>`_ service.
+
+As was said in the previous section, we will create a new environment containing streamlit, which we
+will then configure as a service. So first, create an :ref:`environment <environments>` and install
+the needed dependencies (in this example I am using ``orchest/base-kernel-py`` as the base image) in
+the *set-up script*:
+
+.. code-block:: bash
+
+   pip install --upgrade protobuf
+   pip install streamlit
+
+Now we can configure a custom service with hot reloading of a ``streamlit.py`` file in our project
+directory. Open up the pipeline for which you want to create the service and follow the steps below:
+
+1. Go to *Services* > *Edit Services* > *Add service* > *Streamlit*. Next we will change the
+   configuration of the service.
+2. Replace the *Image* by your custom environment.
+3. Change the *Command (optional)* in *Start behavior* to: ``-c 'umask 002 && streamlit run
+   /project-dir/streamlit.py'``
+4. Change *Project directory (optional)* under *Mounts* to: ``/project-dir``
+5. Add a file called ``streamlit.py`` in your project directory. You can do this through the
+   JupyterLab UI.
+6. Restart the session for the changes to your service configuration to take effect.
+7. You should now be able to visit your streamlit dashboard.
+
+Example ``streamlit.py``:
+
+.. code-block:: python
+
+   import streamlit as st
+   st.title("Hello Streamlit")
