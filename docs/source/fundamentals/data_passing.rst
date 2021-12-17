@@ -69,6 +69,11 @@ Now that data is in memory, step-3 can be executed and get the data for further 
    # Get the input for step-3, i.e. the output of step-1 and step-2.
    input_data = orchest.get_inputs()
 
+.. warning::
+   🚨 Only call :meth:`orchest.transfer.get_inputs` and :meth:`orchest.transfer.output` once.
+   Otherwise your code will break in :ref:`jobs <jobs>` and cause data to get overwritten
+   respectively.
+
 The ``input_data`` in step-3 will be as follows:
 
 .. code-block:: json
