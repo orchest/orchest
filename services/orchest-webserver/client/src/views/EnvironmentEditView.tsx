@@ -6,25 +6,31 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
+import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
-import {
-  MDCButtonReact,
-  MDCCheckboxReact,
-  MDCSelectReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import TextField from "@mui/material/TextField";
 import {
   DEFAULT_BASE_IMAGES,
   LANGUAGE_MAP,
@@ -403,41 +409,55 @@ const EnvironmentEditView: React.FC = () => {
               open={isShowingAddCustomImageDialog}
               onClose={onCloseAddCustomBaseImageDialog}
             >
-              <DialogTitle>Add custom base image</DialogTitle>
-              <DialogContent>
-                <MDCTextFieldReact
-                  label="Base image name"
-                  value={state.customBaseImageName}
-                  onChange={(value) =>
-                    setState((nestedPrevState) => ({
-                      ...nestedPrevState,
-                      customBaseImageName: value,
-                    }))
-                  }
-                />
-              </DialogContent>
-              <DialogActions>
-                <MDCButtonReact
-                  classNames={["push-right"]}
-                  label="Cancel"
-                  onClick={onCloseAddCustomBaseImageDialog}
-                />
-                <MDCButtonReact
-                  label="Add"
-                  icon="check"
-                  classNames={["mdc-button--raised"]}
-                  submitButton
-                  onClick={submitAddCustomBaseImage}
-                />
-              </DialogActions>
+              <form
+                id="add-custom-base-image-form"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitAddCustomBaseImage();
+                }}
+              >
+                <DialogTitle>Add custom base image</DialogTitle>
+                <DialogContent>
+                  <Box sx={{ marginTop: (theme) => theme.spacing(2) }}>
+                    <TextField
+                      label="Base image name"
+                      autoFocus
+                      value={state.customBaseImageName}
+                      onChange={(e) =>
+                        setState((nestedPrevState) => ({
+                          ...nestedPrevState,
+                          customBaseImageName: e.target.value,
+                        }))
+                      }
+                    />
+                  </Box>
+                </DialogContent>
+                <DialogActions>
+                  <Button
+                    color="secondary"
+                    onClick={onCloseAddCustomBaseImageDialog}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    startIcon={<CheckIcon />}
+                    type="submit"
+                    form="add-custom-base-image-form"
+                  >
+                    Add
+                  </Button>
+                </DialogActions>
+              </form>
             </Dialog>
 
             <div className="push-down">
-              <MDCButtonReact
-                label="Back to environments"
-                icon="arrow_back"
+              <Button
+                startIcon={<ArrowBackIcon />}
+                color="secondary"
                 onClick={returnToEnvironments}
-              />
+              >
+                Back to environments
+              </Button>
             </div>
 
             <div className="push-down-7">
@@ -458,48 +478,79 @@ const EnvironmentEditView: React.FC = () => {
               </Tabs>
             </div>
             <TabPanel value={tabIndex} index={0} name="properties">
-              <div className="environment-properties">
-                <MDCTextFieldReact
-                  classNames={["fullwidth", "push-down-7"]}
+              <Stack
+                direction="column"
+                spacing={2}
+                alignItems="flex-start"
+                maxWidth={(theme) => theme.spacing(80)}
+                marginBottom={(theme) => theme.spacing(4)}
+              >
+                <TextField
+                  fullWidth
                   label="Environment name"
-                  onChange={onChangeName}
+                  onChange={(e) => onChangeName(e.target.value)}
                   value={environment.name}
                   data-test-id="environments-env-name"
                 />
-
-                <div className="select-button-columns">
-                  <MDCSelectReact
-                    ref={refManager.nrefs.environmentName}
-                    classNames={["fullwidth"]}
-                    label="Base image"
-                    onChange={onChangeBaseImage}
-                    value={environment.base_image}
-                    options={state.baseImages.map((el) => [el])}
-                  />
-                  <MDCButtonReact
-                    icon="add"
-                    label="Custom image"
+                <Stack
+                  direction="row"
+                  sx={{ width: "100%" }}
+                  alignItems="center"
+                  spacing={2}
+                >
+                  <FormControl fullWidth>
+                    <InputLabel id="select-base-image-label">
+                      Base image
+                    </InputLabel>
+                    <Select
+                      labelId="select-base-image-label"
+                      id="select-base-image"
+                      value={environment.base_image}
+                      label="Base image"
+                      onChange={(e) => onChangeBaseImage(e.target.value)}
+                    >
+                      {state.baseImages.map((element) => {
+                        return (
+                          <MenuItem key={element} value={element}>
+                            {element}
+                          </MenuItem>
+                        );
+                      })}
+                    </Select>
+                  </FormControl>
+                  <Button
+                    startIcon={<AddIcon />}
+                    color="secondary"
                     onClick={onAddCustomBaseImage}
-                  />
-                  <div className="clear"></div>
-                </div>
+                    sx={{ minWidth: (theme) => theme.spacing(20) }}
+                  >
+                    Custom image
+                  </Button>
+                </Stack>
                 <div className="form-helper-text push-down-7">
                   The base image will be the starting point from which the
                   environment will be built.
                 </div>
 
-                <MDCSelectReact
-                  label="Language"
-                  classNames={["fullwidth"]}
-                  ref={refManager.nrefs.environmentLanguage}
-                  onChange={onChangeLanguage}
-                  options={[
-                    ["python", LANGUAGE_MAP["python"]],
-                    ["r", LANGUAGE_MAP["r"]],
-                    ["julia", LANGUAGE_MAP["julia"]],
-                  ]}
-                  value={environment.language}
-                />
+                <FormControl fullWidth>
+                  <InputLabel id="select-language-label">Language</InputLabel>
+                  <Select
+                    labelId="select-language-label"
+                    id="select-language"
+                    value={environment.language}
+                    label="Base image"
+                    onChange={(e) => onChangeLanguage(e.target.value)}
+                  >
+                    {Object.entries(LANGUAGE_MAP).map(([value, label]) => {
+                      return (
+                        <MenuItem key={value} value={value}>
+                          {label}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+
                 <div className="form-helper-text push-down-7">
                   The language determines for which kernel language this
                   environment can be used. This only affects pipeline steps that
@@ -512,13 +563,20 @@ const EnvironmentEditView: React.FC = () => {
                   </div>
                 )}
 
-                <MDCCheckboxReact
-                  onChange={onGPUChange}
-                  label="GPU support"
-                  classNames={["push-down-7"]}
-                  value={environment.gpu_support}
-                  ref={refManager.nrefs.environmentGPUSupport}
-                />
+                <FormGroup>
+                  <FormControlLabel
+                    label="GPU support"
+                    data-test-id="pipeline-settings-configuration-memory-eviction"
+                    control={
+                      <Checkbox
+                        checked={environment.gpu_support}
+                        onChange={(e) => {
+                          onGPUChange(e.target.checked);
+                        }}
+                      />
+                    }
+                  />
+                </FormGroup>
 
                 {(() => {
                   if (environment.gpu_support === true) {
@@ -576,7 +634,7 @@ const EnvironmentEditView: React.FC = () => {
                     }
                   }
                 })()}
-              </div>
+              </Stack>
             </TabPanel>
             <TabPanel value={tabIndex} index={1} name="build">
               <h3>Environment set-up script</h3>
