@@ -78,6 +78,8 @@ export const LANGUAGE_MAP = {
 };
 
 // used in orchest-webserver only
+// Related to the analytics.py module, "environment_build_start" event,
+// which checks for the base image to start with "orchest/".
 export const DEFAULT_BASE_IMAGES = [
   "orchest/base-kernel-py",
   "orchest/base-kernel-py-gpu",
