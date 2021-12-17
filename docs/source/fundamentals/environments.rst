@@ -94,3 +94,34 @@ structure of the image to work correctly. Due to the dependency on the Jupyter D
 ability of the environments to work for pipeline runs and to host active Jupyter kernels, we
 recommend using :ref:`environments <environments>` instead and using its *set-up script* instead to
 customize it further.
+
+Using a different Python version
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+It might be the case that your code requires another Python version than we are offering. Luckily
+with environments it is easy to set up the Python version you require. Below follows an example of
+how to setup an environment to use Python 3.8 using conda:
+
+.. code-block:: bash
+
+   #!/bin/bash
+   # Install Python3.8 and get minimum set of dependencies.
+   conda create -y -n py38 python=3.8 future
+   conda install -y -n py38 ipykernel jupyter_client ipython_genutils pycryptodomex future
+   conda run -n py38 pip install orchest
+
+Lastly, you need to set project (or pipeline) :ref:`environment variables <environment variables>`
+so that the new Python environment is used:
+
+.. list-table::
+   :widths: 25 25
+   :header-rows: 1
+   :align: left
+
+   * - Name
+     - Value
+
+   * - ``JUPYTER_PATH``
+     - ``/opt/conda/envs/py38/share/jupyter``
+
+   * - ``CONDA_ENV``
+     - ``py38``
