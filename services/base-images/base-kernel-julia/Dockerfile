@@ -44,9 +44,8 @@ ENV JUPYTER_PATH=/opt/conda/share/jupyter
 ENV HOME=/home/$NB_USER
 
 # Environment variable that can be set to specify the conda environment
-# to use to start Jupyter kernels. Empty string will use the default
-# conda env.
-ENV CONDA_ENV=""
+# to use to start Jupyter kernels.
+ENV CONDA_ENV="base"
 
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}

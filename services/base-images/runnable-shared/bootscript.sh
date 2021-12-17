@@ -9,6 +9,5 @@ if [ "$1" = "runnable" ]; then
     /opt/conda/envs/orchestdependencies/bin/python run.py "$2" "$3"
 else
     # Use the Python specified by $CONDA_ENV to start the kernel.
-    [ -n "$CONDA_ENV" ] && export PATH="/opt/conda/envs/$CONDA_ENV/bin:$PATH"
-    /usr/local/bin/bootstrap-kernel.sh
+    conda run -n "$CONDA_ENV" /usr/local/bin/bootstrap-kernel.sh
 fi

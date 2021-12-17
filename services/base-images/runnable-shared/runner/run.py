@@ -55,10 +55,10 @@ def main():
         # (otherwise Popen could resolve to the Python inside the
         # "orchestdependencies" environment).
         python_env = os.environ.get("CONDA_ENV")
-        if python_env:
-            python_env = f"/opt/conda/envs/{python_env}"
-        else:
+        if python_env == "base":
             python_env = "/opt/conda"
+        else:
+            python_env = f"/opt/conda/envs/{python_env}"
 
         extension_script_mapping = {
             "py": f"{python_env}/bin/python",
