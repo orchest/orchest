@@ -25,6 +25,7 @@ export const ServiceTemplatesDialog: React.FC<{
         variant="contained"
         color="secondary"
         onClick={() => setIsOpen(true)}
+        sx={{ marginTop: (theme) => theme.spacing(2) }}
         data-test-id="pipeline-service-add"
       >
         Add Service

@@ -1,3 +1,4 @@
+import { EnvVarPair } from "@/components/EnvVarList";
 import { PipelineJson } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
@@ -424,11 +425,11 @@ export function tryUntilTrue(action, retries, delay, interval?) {
 
 // Will return undefined if the envVariables are ill defined.
 export function envVariablesArrayToDict(
-  envVariables
+  envVariables: EnvVarPair[]
 ):
   | { status: "resolved"; value: Record<string, unknown> }
   | { status: "rejected"; error: string } {
-  const result = {};
+  const result = {} as Record<string, string>;
   const seen = new Set();
   for (const pair of envVariables) {
     if (!pair) {

@@ -31,27 +31,33 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InfoIcon from "@mui/icons-material/Info";
 import ListIcon from "@mui/icons-material/List";
+import MemoryIcon from "@mui/icons-material/Memory";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
+import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
 import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import {
-  Alert,
+  Alert as CustomAlert,
   AlertDescription,
   AlertHeader,
-  Box,
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCCheckboxReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
 import {
   fetcher,
   makeCancelable,
@@ -442,15 +448,19 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangeDataPassingMemorySize = (value: string) => {
-    if (isValidMemorySize(value)) {
-      setPipelineJson((current) => {
-        return {
-          ...current,
-          settings: { ...current.settings, data_passing_memory_size: value },
-        };
-      });
-      setAsSaved(false);
-    }
+    console.log("HMM");
+    console.log(value);
+    console.log(isValidMemorySize(value));
+
+    // if (isValidMemorySize(value)) {
+    setPipelineJson((current) => {
+      return {
+        ...current,
+        settings: { ...current.settings, data_passing_memory_size: value },
+      };
+    });
+    setAsSaved(false);
+    // }
   };
 
   const onChangeEviction = (value: boolean) => {
@@ -464,7 +474,9 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const cleanPipelineJson = (pipelineJson: PipelineJson) => {
+  const cleanPipelineJson = (
+    pipelineJson: PipelineJson
+  ): Omit<PipelineJson, "order"> => {
     let pipelineCopy = _.cloneDeep(pipelineJson);
     for (let serviceName in pipelineCopy.services) {
       delete pipelineCopy.services[serviceName].order;
@@ -493,33 +505,33 @@ const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
-  const saveGeneralForm = (e: MouseEvent) => {
+  const saveGeneralForm = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     // Remove order property from services
-    let requestPayload = cleanPipelineJson(pipelineJson);
+    let cleanedPipelineJson = cleanPipelineJson(pipelineJson);
 
-    let validationResult = validatePipeline(requestPayload);
+    let validationResult = validatePipeline(cleanedPipelineJson);
     if (!validationResult.valid) {
       setAlert("Error", validationResult.errors[0]);
       return;
     }
 
     // Validate environment variables of services
-    if (!validateServiceEnvironmentVariables(requestPayload)) {
+    if (!validateServiceEnvironmentVariables(cleanedPipelineJson)) {
       return;
     }
 
-    let envVariables = envVariablesArrayToDict(envVariables);
+    let envVariablesObj = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (envVariables.status === "rejected") {
-      setAlert("Error", envVariables.error);
+    if (envVariablesObj.status === "rejected") {
+      setAlert("Error", envVariablesObj.error);
       setTabIndex(1);
       return;
     }
 
     // Validate pipeline level environment variables
-    for (let envVariableName of Object.keys(envVariables.value)) {
+    for (let envVariableName of Object.keys(envVariablesObj.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
         setAlert(
           "Error",
@@ -531,7 +543,7 @@ const PipelineSettingsView: React.FC = () => {
     }
 
     let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(requestPayload));
+    formData.append("pipeline_json", JSON.stringify(cleanedPipelineJson));
 
     makeRequest(
       "POST",
@@ -562,7 +574,7 @@ const PipelineSettingsView: React.FC = () => {
 
     makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
       type: "json",
-      content: { env_variables: envVariables.value },
+      content: { env_variables: envVariablesObj.value },
     }).catch((response) => {
       console.error(response);
     });
@@ -673,6 +685,10 @@ const PipelineSettingsView: React.FC = () => {
           };
         });
 
+  const isMemorySizeValid = isValidMemorySize(
+    pipelineJson?.settings?.data_passing_memory_size || ""
+  );
+
   return (
     <Layout>
       <div className="view-page pipeline-settings-view">
@@ -709,12 +725,12 @@ const PipelineSettingsView: React.FC = () => {
                         <h3>Name</h3>
                       </div>
                       <div className="column">
-                        <MDCTextFieldReact
+                        <TextField
                           value={pipelineJson?.name}
-                          onChange={onChangeName}
+                          margin="normal"
+                          onChange={(e) => onChangeName(e.target.value)}
                           label="Pipeline name"
                           disabled={isReadOnly}
-                          classNames={["push-down"]}
                           data-test-id="pipeline-settings-configuration-pipeline-name"
                         />
                       </div>
@@ -770,69 +786,79 @@ const PipelineSettingsView: React.FC = () => {
                       <div className="column">
                         <h3>Data passing</h3>
                       </div>
-                      <div className="column">
+                      <Stack
+                        direction="column"
+                        spacing={2}
+                        alignItems="flex-start"
+                      >
                         {!isReadOnly && (
-                          <p className="push-up">
-                            <i>
-                              For these changes to take effect you have to
-                              restart the memory-server (see button below).
-                            </i>
-                          </p>
+                          <Alert severity="info">
+                            For these changes to take effect you have to restart
+                            the memory-server (see button below).
+                          </Alert>
                         )}
-
-                        <div className="checkbox-tooltip-holder">
-                          <MDCCheckboxReact
-                            value={pipelineJson?.settings?.auto_eviction}
-                            onChange={onChangeEviction}
-                            label="Automatic memory eviction"
-                            disabled={isReadOnly}
-                            classNames={["push-down", "push-up"]}
-                            data-test-id="pipeline-settings-configuration-memory-eviction"
-                          />
-                          <Tooltip title="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input.">
-                            <i
-                              className="material-icons inline-icon push-up"
-                              aria-describedby="tooltip-memory-eviction"
-                            >
-                              info
-                            </i>
-                          </Tooltip>
-                        </div>
-
-                        {!isReadOnly && (
-                          <p className="push-down">
-                            Change the size of the memory server for data
-                            passing. For units use KB, MB, or GB, e.g.{" "}
-                            <Code>1GB</Code>.{" "}
-                          </p>
-                        )}
-
-                        <div>
-                          <MDCTextFieldReact
-                            value={
-                              pipelineJson.settings.data_passing_memory_size
+                        <FormGroup>
+                          <FormControlLabel
+                            label={
+                              <Typography
+                                component="span"
+                                variant="body1"
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                Automatic memory eviction
+                                <Tooltip title="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input.">
+                                  <InfoIcon
+                                    fontSize="small"
+                                    aria-describedby="tooltip-memory-eviction"
+                                    sx={{
+                                      marginLeft: (theme) => theme.spacing(1),
+                                    }}
+                                  />
+                                </Tooltip>
+                              </Typography>
                             }
-                            onChange={onChangeDataPassingMemorySize}
-                            label="Data passing memory size"
+                            data-test-id="pipeline-settings-configuration-memory-eviction"
                             disabled={isReadOnly}
-                            data-test-id="pipeline-settings-configuration-memory-size"
+                            control={
+                              <Checkbox
+                                checked={pipelineJson?.settings?.auto_eviction}
+                                onChange={(e) => {
+                                  onChangeEviction(e.target.checked);
+                                }}
+                              />
+                            }
                           />
-                        </div>
-                        {(() => {
-                          if (
-                            !isValidMemorySize(
-                              pipelineJson.settings.data_passing_memory_size
-                            )
-                          ) {
-                            return (
-                              <div className="warning push-up">
-                                <i className="material-icons">warning</i> Not a
-                                valid memory size.
-                              </div>
-                            );
+                        </FormGroup>
+
+                        {!isReadOnly && (
+                          <Typography
+                            sx={{ marginBottom: (theme) => theme.spacing(2) }}
+                          >
+                            {`Change the size of the memory server for data
+                            passing. For units use KB, MB, or GB, e.g. `}
+                            <Code>1GB</Code>.
+                          </Typography>
+                        )}
+
+                        <TextField
+                          value={pipelineJson.settings.data_passing_memory_size}
+                          onChange={(e) =>
+                            onChangeDataPassingMemorySize(e.target.value)
                           }
-                        })()}
-                      </div>
+                          margin="normal"
+                          label="Data passing memory size"
+                          disabled={isReadOnly}
+                          data-test-id="pipeline-settings-configuration-memory-size"
+                        />
+                        {!isMemorySizeValid && (
+                          <Alert severity="warning">
+                            Not a valid memory size.
+                          </Alert>
+                        )}
+                      </Stack>
                       <div className="clear"></div>
                     </div>
                   </form>
@@ -859,14 +885,16 @@ const PipelineSettingsView: React.FC = () => {
                             }
                           })()}
 
-                          <MDCButtonReact
+                          <Button
                             disabled={state.restartingMemoryServer}
-                            label="Restart memory-server"
-                            icon="memory"
-                            classNames={["mdc-button--raised push-down"]}
+                            color="secondary"
+                            variant="contained"
+                            startIcon={<MemoryIcon />}
                             onClick={restartMemoryServer}
                             data-test-id="pipeline-settings-configuration-restart-memory-server"
-                          />
+                          >
+                            Restart memory-server
+                          </Button>
                         </div>
                       </div>
                       <div className="clear"></div>
@@ -880,11 +908,10 @@ const PipelineSettingsView: React.FC = () => {
                 name="environment-variables"
               >
                 {state.environmentVariablesChanged && session && (
-                  <div className="warning push-down">
-                    <i className="material-icons">warning</i>
+                  <Alert severity="warning">
                     Note: changes to environment variables require a session
                     restart to take effect.
-                  </div>
+                  </Alert>
                 )}
                 {isReadOnly ? (
                   <EnvVarList
@@ -917,13 +944,17 @@ const PipelineSettingsView: React.FC = () => {
                 )}
               </CustomTabPanel>
               <CustomTabPanel value={tabIndex} index={2} name="services">
-                <Box css={{ "> * + *": { marginTop: "$4" } }}>
+                <Stack
+                  direction="column"
+                  spacing={2}
+                  alignItems="flex-start"
+                  sx={{ padding: (theme) => theme.spacing(1) }}
+                >
                   {servicesChanged && session && (
-                    <div className="warning push-up">
-                      <i className="material-icons">warning</i>
-                      Note: changes to services require a session restart to
-                      take effect.
-                    </div>
+                    <Alert severity="warning">
+                      Note: changes to environment variables require a session
+                      restart to take effect.
+                    </Alert>
                   )}
                   <DataTable<ServiceRow>
                     hideSearch
@@ -931,7 +962,7 @@ const PipelineSettingsView: React.FC = () => {
                     columns={columns}
                     rows={serviceRows}
                   />
-                  <Alert status="info">
+                  <CustomAlert status="info">
                     <AlertHeader>
                       <IconLightBulbOutline />
                       Want to start using Services?
@@ -942,11 +973,11 @@ const PipelineSettingsView: React.FC = () => {
                         href="https://docs.orchest.io/en/stable/user_guide/services.html"
                         rel="noopener noreferrer"
                       >
-                        Learn more
-                      </Link>{" "}
-                      about how to expand your pipeline’s capabilities.
+                        Learn more about how to expand your pipeline’s
+                        capabilities.
+                      </Link>
                     </AlertDescription>
-                  </Alert>
+                  </CustomAlert>
                   {!isReadOnly && (
                     <ServiceTemplatesDialog
                       onSelection={(template) =>
@@ -954,26 +985,30 @@ const PipelineSettingsView: React.FC = () => {
                       }
                     />
                   )}
-                </Box>
+                </Stack>
               </CustomTabPanel>
             </div>
             <div className="top-buttons">
-              <MDCButtonReact
-                classNames={["close-button"]}
-                icon="close"
+              <IconButton
+                title="Close"
+                className="close-button"
                 onClick={closeSettings}
                 data-test-id="pipeline-settings-close"
-              />
+              >
+                <CloseIcon />
+              </IconButton>
             </div>
             {!isReadOnly && (
               <div className="bottom-buttons observe-overflow">
-                <MDCButtonReact
-                  label={hasUnsavedChanges ? "SAVE*" : "SAVE"}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
                   onClick={saveGeneralForm}
-                  icon="save"
+                  startIcon={<SaveIcon />}
+                  disabled={!isMemorySizeValid}
                   data-test-id="pipeline-settings-save"
-                />
+                >
+                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                </Button>
               </div>
             )}
           </div>
