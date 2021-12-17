@@ -343,7 +343,7 @@ class PipelineRun(Resource):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                could_abort = AbortPipelineRun(tpe).transaction(run_uuid)
+                could_abort = AbortJobPipelineRun(tpe).transaction(job_uuid, run_uuid)
         except Exception as e:
             return {"message": str(e)}, 500
 
@@ -1025,7 +1025,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         )
 
         # See if the job is done running (all its runs are done).
-        if status_update["status"] in ["SUCCESS", "FAILURE"]:
+        if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
 
             # The job has 1 run for every parameters set.
             job = (
@@ -1046,7 +1046,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                     models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
                     .filter(
                         models.NonInteractivePipelineRun.status.in_(
-                            ["SUCCESS", "FAILURE"]
+                            ["SUCCESS", "FAILURE", "ABORTED"]
                         )
                     )
                     .count()
@@ -1073,6 +1073,25 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
+
+
+class AbortJobPipelineRun(TwoPhaseFunction):
+    """Aborts a job pipeline run."""
+
+    def _transaction(self, job_uuid, run_uuid):
+        could_abort = AbortPipelineRun(self.tpe).transaction(run_uuid)
+        if not could_abort:
+            return False
+
+        # This will take care of updating the job status thus freeing
+        # locked env images, and processing stale ones.
+        UpdateJobPipelineRun(self.tpe).transaction(
+            job_uuid, run_uuid, {"status": "ABORTED"}
+        )
+        return True
+
+    def _collateral(self):
+        pass
 
 
 class PauseCronJob(TwoPhaseFunction):
