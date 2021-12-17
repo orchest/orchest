@@ -38,6 +38,8 @@ class Event(Enum):
     JOB_CREATE = "job create"
     JOB_DELETE = "job delete"
     JOB_DUPLICATE = "job duplicate"
+    JOB_PIPELINE_RUN_CANCEL = "job pipeline-run cancel"
+    JOB_PIPELINE_RUN_DELETE = "job pipeline-run delete"
     JOB_UPDATE = "job update"
     JUPYTER_BUILD_START = "jupyter-build start"
     JUPYTER_BUILD_CANCEL = "jupyter-build cancel"

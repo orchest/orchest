@@ -572,6 +572,11 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jobs/%s/%s" % (job_uuid, run_uuid),
         )
+        analytics.send_event(
+            app,
+            analytics.Event.JOB_PIPELINE_RUN_CANCEL,
+            {"job_uuid": job_uuid, "run_uuid": run_uuid},
+        )
 
         return resp.content, resp.status_code, resp.headers.items()
 
@@ -678,6 +683,11 @@ def register_orchest_api_views(app, db):
 
                 remove_job_pipeline_run_directory(
                     run_uuid, job_uuid, pipeline_uuid, project_uuid
+                )
+                analytics.send_event(
+                    app,
+                    analytics.Event.JOB_PIPELINE_RUN_DELETE,
+                    {"job_uuid": job_uuid, "run_uuid": run_uuid},
                 )
                 return resp.content, resp.status_code, resp.headers.items()
 
