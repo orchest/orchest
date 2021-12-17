@@ -211,7 +211,7 @@ class _Anonymizer:
     """Anonymizes the event properties of the given event.
 
     !Note: if you are implementing a function to anonymize some event
-    propeties be aware that you are in charge of modifying the passed
+    properties be aware that you are in charge of modifying the passed
     `event_properties` object to anonymize it.
     """
 
