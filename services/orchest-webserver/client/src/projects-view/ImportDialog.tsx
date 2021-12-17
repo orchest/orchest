@@ -184,7 +184,9 @@ const ImportDialog: React.FC<{
             classNames={["fullwidth"]}
             label="Project name (optional)"
             value={projectName}
-            onChange={setProjectName}
+            onChange={(value) => {
+              setProjectName(value.replace(/[^\w\.]/g, "-"));
+            }}
             data-test-id="project-name-textfield"
           />
 

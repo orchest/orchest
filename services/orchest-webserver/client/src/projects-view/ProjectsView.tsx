@@ -358,6 +358,8 @@ const ProjectsView: React.FC = () => {
 
   const onCancelModal = () => {
     refManager.refs.createProjectDialog.close();
+    // Don't prefill the name next time the modal is opened.
+    setProjectName("");
   };
 
   const onCloseCreateProjectModal = () => {
