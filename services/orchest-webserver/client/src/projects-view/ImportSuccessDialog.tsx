@@ -1,8 +1,8 @@
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import { MDCButtonReact } from "@orchest/lib-mdc";
 import React from "react";
 
 const ImportSuccessDialog: React.FC<{
@@ -23,16 +23,10 @@ const ImportSuccessDialog: React.FC<{
         </div>
       </DialogContent>
       <DialogActions>
-        <MDCButtonReact
-          classNames={["push-right"]}
-          label="Continue browsing"
-          onClick={onClose}
-        />
-        <MDCButtonReact
-          label="View pipelines"
-          classNames={["mdc-button--raised", "themed-secondary"]}
-          onClick={goToPipelines}
-        />
+        <Button color="secondary" onClick={onClose}>
+          Continue browsing
+        </Button>
+        <Button onClick={goToPipelines}>View pipelines</Button>
       </DialogActions>
     </Dialog>
   );

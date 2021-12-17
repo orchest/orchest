@@ -1,3 +1,4 @@
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -12,8 +13,9 @@ import {
   filterServices,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
+import CloseIcon from "@mui/icons-material/Close";
 import LinearProgress from "@mui/material/LinearProgress";
-import { MDCButtonReact, MDCDrawerReact } from "@orchest/lib-mdc";
+import { MDCDrawerReact } from "@orchest/lib-mdc";
 import {
   makeCancelable,
   makeRequest,
@@ -367,11 +369,9 @@ const LogsView: React.FC = () => {
         </div>
 
         <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
-            onClick={close}
-          />
+          <IconButton color="secondary" title="Close" onClick={close}>
+            <CloseIcon />
+          </IconButton>
         </div>
       </div>
     );

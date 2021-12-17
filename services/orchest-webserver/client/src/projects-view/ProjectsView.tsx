@@ -14,15 +14,22 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import InputIcon from "@mui/icons-material/Input";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import SaveIcon from "@mui/icons-material/Save";
 import SettingsIcon from "@mui/icons-material/Settings";
+import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import TextField from "@mui/material/TextField";
 import { fetcher, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
@@ -328,9 +335,7 @@ const ProjectsView: React.FC = () => {
 
     makeRequest("POST", "/async/projects", {
       type: "json",
-      content: {
-        name: projectName,
-      },
+      content: { name: projectName },
     })
       .then((_) => {
         // reload list once creation succeeds
@@ -434,69 +439,90 @@ const ProjectsView: React.FC = () => {
           open={isImporting}
           onClose={() => setIsImporting(false)}
         />
-
         <Dialog
           open={state.editProjectPathModal}
           onClose={onCloseEditProjectPathModal}
         >
-          <DialogTitle>Edit project name</DialogTitle>
-          <DialogContent>
-            <MDCTextFieldReact
-              classNames={["fullwidth push-down"]}
-              value={state.editProjectPath}
-              label="Project name"
-              onChange={(value) => {
-                setState((prevState) => ({
-                  ...prevState,
-                  editProjectPath: value,
-                }));
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <MDCButtonReact
-              icon="close"
-              label="Cancel"
-              classNames={["push-right"]}
-              onClick={onCloseEditProjectPathModal}
-            />
-            <MDCButtonReact
-              icon="save"
-              disabled={state.editProjectPathModalBusy}
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              label="Save"
-              submitButton
-              onClick={onSubmitEditProjectPathModal}
-            />
-          </DialogActions>
+          <form
+            id="edit-name"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSubmitEditProjectPathModal();
+            }}
+          >
+            <DialogTitle>Edit project name</DialogTitle>
+            <DialogContent>
+              <TextField
+                fullWidth
+                autoFocus
+                sx={{ marginTop: (theme) => theme.spacing(2) }}
+                value={state.editProjectPath}
+                label="Project name"
+                onChange={(e) => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    editProjectPath: e.target.value,
+                  }));
+                }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                color="secondary"
+                startIcon={<CloseIcon />}
+                onClick={onCloseEditProjectPathModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                startIcon={<SaveIcon />}
+                disabled={state.editProjectPathModalBusy}
+                type="submit"
+                form="edit-name"
+              >
+                Save
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
         <Dialog open={isShowingCreateModal} onClose={onCloseCreateProjectModal}>
-          <DialogTitle>Create a new project</DialogTitle>
-          <DialogContent>
-            <MDCTextFieldReact
-              classNames={["fullwidth"]}
-              label="Project name"
-              value={projectName}
-              onChange={setProjectName}
-              data-test-id="project-name-textfield"
-            />
-          </DialogContent>
-          <DialogActions>
-            <MDCButtonReact
-              icon="close"
-              label="Cancel"
-              classNames={["push-right"]}
-              onClick={onCloseCreateProjectModal}
-            />
-            <MDCButtonReact
-              icon="format_list_bulleted"
-              classNames={["mdc-button--raised", "themed-secondary"]}
-              label="Create project"
-              submitButton
-              onClick={onClickCreateProject}
-              data-test-id="create-project"
-            />
-          </DialogActions>
+          <form
+            id="create-project"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onClickCreateProject();
+            }}
+          >
+            <DialogTitle>Create a new project</DialogTitle>
+            <DialogContent>
+              <TextField
+                fullWidth
+                autoFocus
+                sx={{ marginTop: (theme) => theme.spacing(2) }}
+                label="Project name"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                data-test-id="project-name-textfield"
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                startIcon={<CloseIcon />}
+                color="secondary"
+                onClick={onCloseCreateProjectModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                startIcon={<FormatListBulletedIcon />}
+                type="submit"
+                form="create-project"
+                data-test-id="create-project"
+              >
+                Create project
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
 
         <h2>Projects</h2>
@@ -504,33 +530,38 @@ const ProjectsView: React.FC = () => {
           <LinearProgress />
         ) : (
           <>
-            <div className="push-down">
-              <MDCButtonReact
-                classNames={[
-                  "mdc-button--raised",
-                  "themed-secondary",
-                  "push-right",
-                ]}
-                icon="add"
-                label="Add project"
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{ margin: (theme) => theme.spacing(2, 0) }}
+            >
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
                 onClick={onCreateClick}
                 data-test-id="add-project"
-              />
-              <MDCButtonReact
-                classNames={["mdc-button--raised", "push-right"]}
-                icon="input"
-                label="Import project"
+              >
+                Add project
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<InputIcon />}
                 onClick={onImport}
                 data-test-id="import-project"
-              />
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                icon="lightbulb"
-                label="Explore Examples"
+              >
+                Import project
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<LightbulbIcon />}
                 onClick={goToExamples}
                 data-test-id="explore-examples"
-              />
-            </div>
+              >
+                Explore Examples
+              </Button>
+            </Stack>
             <DataTable<ProjectRow>
               id="project-list"
               selectable

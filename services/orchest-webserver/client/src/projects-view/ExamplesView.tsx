@@ -131,7 +131,6 @@ const ExamplesView: React.FC = () => {
         setImportUrl={setImportUrl}
         onImportComplete={onImportComplete}
       />
-
       <ImportSuccessDialog
         projectName={projectName}
         open={importingState === "DONE"}
