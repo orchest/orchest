@@ -334,11 +334,24 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           setState((prevState) => ({
             ...prevState,
             loading: false,
+            createModal: false,
           }));
         });
+        setState((prevState) => ({
+          ...prevState,
+          createPipelineName: INITIAL_PIPELINE_NAME,
+          createPipelinePath: INITIAL_PIPELINE_PATH,
+        }));
       })
       .catch((response) => {
         if (!response.isCanceled) {
+          // Make the alert pop up in front of the modal. So that the
+          // user isn't scared they've lost state.
+          setState((prevState) => ({
+            ...prevState,
+            loading: false,
+          }));
+
           try {
             let data = JSON.parse(response.body);
 
@@ -352,30 +365,17 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               "Could not create pipeline. Reason unknown."
             );
           }
-
-          setState((prevState) => ({
-            ...prevState,
-            loading: false,
-          }));
         }
-      })
-      .finally(() => {
-        // reload list once creation succeeds
-        setState((prevState) => ({
-          ...prevState,
-          createPipelineName: INITIAL_PIPELINE_NAME,
-          createPipelinePath: INITIAL_PIPELINE_PATH,
-        }));
       });
-
-    setState((prevState) => ({
-      ...prevState,
-      createModal: false,
-    }));
   };
 
   const onCancelModal = () => {
     refManager.refs.createPipelineDialog.close();
+    setState((prevState) => ({
+      ...prevState,
+      createPipelineName: INITIAL_PIPELINE_NAME,
+      createPipelinePath: INITIAL_PIPELINE_PATH,
+    }));
   };
 
   const onCloseCreatePipelineModal = () => {
