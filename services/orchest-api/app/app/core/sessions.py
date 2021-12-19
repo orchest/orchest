@@ -1062,6 +1062,12 @@ def _get_orchest_services_specs(
     process_env_whitelist += ",".join([key for key in env_variables.keys()])
 
     if session_type == SessionType.INTERACTIVE:
+
+        base_url = "/%s" % _config.JUPYTER_SERVER_NAME.format(
+            project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
+            pipeline_uuid=pipeline_uuid[: _config.TRUNCATED_UUID_LENGTH],
+        )
+
         orchest_services_specs["jupyter-EG"] = {
             "image": "orchest/jupyter-enterprise-gateway",
             "detach": True,
@@ -1076,6 +1082,7 @@ def _get_orchest_services_specs(
                 'EG_UNAUTHORIZED_USERS=["dummy"]',
                 'EG_UID_BLACKLIST=["-1"]',
                 "EG_ALLOW_ORIGIN=*",
+                "EG_BASE_URL=%s" % base_url,
                 process_env_whitelist,
                 f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
                 f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
@@ -1099,11 +1106,6 @@ def _get_orchest_services_specs(
             "labels": {"session_identity_uuid": uuid, "project_uuid": project_uuid},
         }
 
-        jupyter_hostname = _config.JUPYTER_SERVER_NAME.format(
-            project_uuid=project_uuid[: _config.TRUNCATED_UUID_LENGTH],
-            pipeline_uuid=uuid[: _config.TRUNCATED_UUID_LENGTH],
-        )
-
         jupyer_server_image = "orchest/jupyter-server:latest"
 
         # Check if user tweaked JupyterLab image exists
@@ -1124,16 +1126,16 @@ def _get_orchest_services_specs(
                 mounts["jupyterlab"].get("user-settings"),
                 mounts["jupyterlab"].get("data"),
             ],
-            "name": jupyter_hostname,
+            "name": base_url[1:],  # Drop leading /
             "network": network,
             "group_add": [os.environ.get("ORCHEST_HOST_GID")],
             "command": [
                 "--allow-root",
                 "--port=8888",
                 "--no-browser",
-                f"--gateway-url={'http://' + gateway_hostname}:8888",
+                f"--gateway-url={'http://' + gateway_hostname}:8888{base_url}",
                 f"--notebook-dir={_config.PROJECT_DIR}",
-                f"--ServerApp.base_url=/{jupyter_hostname}",
+                f"--ServerApp.base_url={base_url}",
             ],
             # Labels are used to have a way of keeping track of the
             # containers attributes through

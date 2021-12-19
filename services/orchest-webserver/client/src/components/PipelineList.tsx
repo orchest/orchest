@@ -325,7 +325,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       return;
     }
 
-    if (!pipelinePath) {
+    if (!pipelinePath || pipelinePath === ".orchest") {
       setAlert("Error", "Please enter the path for the pipeline.");
       return;
     }

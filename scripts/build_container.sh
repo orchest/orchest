@@ -182,6 +182,14 @@ function cleanup() {
         fi
         D=$(expr $D + 1)
     done
+
+    # Clean up any jupyter-server-user-configured images
+    JUPYTER_USER_IMAGES=$(docker images -q orchest-jupyter-server-user-configured)
+
+    if ! [ -z "$JUPYTER_USER_IMAGES" ]; then
+        docker rmi $JUPYTER_USER_IMAGES >/dev/null
+    fi
+    
 }
 
 trap cleanup SIGINT
