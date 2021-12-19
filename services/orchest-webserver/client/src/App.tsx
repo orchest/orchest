@@ -8,11 +8,12 @@ import { useIntercom } from "react-use-intercom";
 import BuildPendingDialog from "./components/BuildPendingDialog";
 import CommandPalette from "./components/CommandPalette";
 import HeaderBar from "./components/HeaderBar";
-import MainDrawer from "./components/MainDrawer";
+import { AppDrawer } from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import Jupyter from "./jupyter/Jupyter";
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 $.fn.overflowing = function () {
@@ -101,7 +102,7 @@ const App = () => {
       <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
       <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
       <div className="app-container" data-test-id="app">
-        <MainDrawer isOpen={isDrawerOpen} />
+        <AppDrawer isOpen={isDrawerOpen} toggle={toggleDrawer} />
         <main className="main-content" id="main-content">
           <Routes />
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />
