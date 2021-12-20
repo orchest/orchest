@@ -117,7 +117,9 @@ const ProjectSelector = () => {
     }
   }, [matchProjectRoot, state.hasLoadedProjects]);
 
-  if (!matchProjectRoot || !state.projects) return null;
+  if (!matchProjectRoot || !state.projects || state.projects.length === 0)
+    return null;
+
   return (
     <FormControl
       fullWidth

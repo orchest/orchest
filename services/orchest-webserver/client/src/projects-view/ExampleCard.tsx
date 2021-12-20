@@ -35,6 +35,8 @@ const ExtraTag = styled("span")(({ theme }) => ({
   border: `1px solid ${theme.palette.grey[400]}`,
   borderRadius: "100%",
   padding: theme.spacing(0.5),
+  display: "flex",
+  alignItems: "center",
 }));
 
 const GitHubStarButtonContainer = styled("div")(({ theme }) => ({
@@ -50,7 +52,7 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
   startImport,
 }) => {
   const importExample = () => startImport(url);
-  const isOwnedByOrchest = owner === "orchest";
+  const isOwnedByOrchest = ["orchest", "orchest-examples"].includes(owner);
 
   const restNumber = Math.max(tags.length - MAX_TAG_NUMBER, 0);
   const shownTags = restNumber > 0 ? tags.slice(0, MAX_TAG_NUMBER) : tags;
