@@ -964,7 +964,7 @@ const PipelineSettingsView: React.FC = () => {
                     <AlertDescription>
                       <Link
                         target="_blank"
-                        href="https://docs.orchest.io/en/stable/user_guide/services.html"
+                        href="https://docs.orchest.io/en/stable/fundamentals/services.html"
                         rel="noopener noreferrer"
                       >
                         Learn more about how to expand your pipeline’s

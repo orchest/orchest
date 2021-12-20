@@ -26,7 +26,7 @@ export const NoParameterAlert = () => {
         <>
           <Link
             target="_blank"
-            href="https://docs.orchest.io/en/stable/user_guide/jobs.html#parametrizing-your-pipeline-and-steps"
+            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
           >
             Learn more
           </Link>{" "}

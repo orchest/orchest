@@ -390,6 +390,7 @@ const ProjectsView: React.FC = () => {
 
   const onCloseCreateProjectModal = () => {
     setIsShowingCreateModal(false);
+    setProjectName("");
   };
 
   const onImport = () => {

@@ -416,62 +416,47 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                     </Typography>
                   </Box>
                 ) : (
-                  <>
+                  <Stack direction="column" spacing={2}>
                     {projectSnapshotSize > 50 && (
-                      <div className="warning push-down">
-                        <i className="material-icons">warning</i> Snapshot size
-                        exceeds 50MB. Please refer to the{" "}
-                        <a href="https://docs.orchest.io/en/latest/user_guide/jobs.html">
+                      <Alert severity="warning">
+                        {`Snapshot size exceeds 50MB. Please refer to the `}
+                        <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
                           docs
-                        </a>
+                        </Link>
                         .
-                      </div>
+                      </Alert>
                     )}
-                    <Stack direction="column" spacing={2}>
-                      {projectSnapshotSize > 50 && (
-                        <Alert severity="warning">
-                          {`Snapshot size exceeds 50MB. Please refer to the `}
-                          <Link href="https://docs.orchest.io/en/latest/user_guide/jobs.html">
-                            docs
-                          </Link>
-                          .
-                        </Alert>
-                      )}
-                      <FormControl fullWidth>
-                        <TextField
-                          margin="normal"
-                          value={jobName}
-                          autoFocus
-                          onChange={(e) => setJobName(e.target.value)}
-                          label="Job name"
-                          data-test-id="job-create-name"
-                        />
-                      </FormControl>
-                      <FormControl fullWidth>
-                        <InputLabel id="select-pipeline-label">
-                          Pipeline
-                        </InputLabel>
-                        <Select
-                          labelId="select-pipeline-label"
-                          id="select-pipeline"
-                          value={selectedPipeline}
-                          label="Pipeline"
-                          onChange={(e) => setSelectedPipeline(e.target.value)}
-                        >
-                          {pipelines.map((pipeline) => {
-                            return (
-                              <MenuItem
-                                key={pipeline.uuid}
-                                value={pipeline.uuid}
-                              >
-                                {pipeline.name}
-                              </MenuItem>
-                            );
-                          })}
-                        </Select>
-                      </FormControl>
-                    </Stack>
-                  </>
+                    <FormControl fullWidth>
+                      <TextField
+                        margin="normal"
+                        value={jobName}
+                        autoFocus
+                        onChange={(e) => setJobName(e.target.value)}
+                        label="Job name"
+                        data-test-id="job-create-name"
+                      />
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <InputLabel id="select-pipeline-label">
+                        Pipeline
+                      </InputLabel>
+                      <Select
+                        labelId="select-pipeline-label"
+                        id="select-pipeline"
+                        value={selectedPipeline}
+                        label="Pipeline"
+                        onChange={(e) => setSelectedPipeline(e.target.value)}
+                      >
+                        {pipelines.map((pipeline) => {
+                          return (
+                            <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
+                              {pipeline.name}
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
+                  </Stack>
                 )}
               </DialogContent>
               <DialogActions>

@@ -31,6 +31,15 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
     setCodeMirrorValue(strategyJSON[strategyJSONKey].parameters[key]);
   };
 
+  const isJsonValid = React.useMemo(() => {
+    try {
+      if (codeMirrorValue) JSON.parse(codeMirrorValue);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [codeMirrorValue]);
+
   return (
     <div className="parameter-editor">
       <div className="columns">
@@ -75,20 +84,14 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
                   });
                 }}
               />
-              {(() => {
-                try {
-                  if (codeMirrorValue) JSON.parse(codeMirrorValue);
-                } catch {
-                  return (
-                    <Alert
-                      severity="warning"
-                      sx={{ marginTop: (theme) => theme.spacing(2) }}
-                    >
-                      Your input is not valid JSON.
-                    </Alert>
-                  );
-                }
-              })()}
+              {isJsonValid && (
+                <Alert
+                  severity="warning"
+                  sx={{ marginTop: (theme) => theme.spacing(2) }}
+                >
+                  Your input is not valid JSON.
+                </Alert>
+              )}
             </>
           )}
           {activeParameter !== undefined && props.readOnly === true && (
