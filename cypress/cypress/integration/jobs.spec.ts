@@ -7,6 +7,7 @@ import {
   mergeEnvVariables,
   piped_click,
   PROJECTS,
+  reset,
   SAMPLE_JOB_NAMES,
   setJobParameter,
   TEST_ID,
@@ -86,6 +87,7 @@ function verifyJobRunsParameters(
 
 describe("jobs", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
   });
 

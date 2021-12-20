@@ -1,5 +1,6 @@
 import {
   PROJECTS_DIR,
+  reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
   TEST_ID,
@@ -7,6 +8,7 @@ import {
 
 describe("file system interactions", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
   });
 
@@ -14,7 +16,7 @@ describe("file system interactions", () => {
     cy.exec(`mkdir ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
     // Need to force a reload to discover.
     cy.visit("/projects");
-    cy.findAllByTestId("projects-table-row").should("have.length", 1);
+    cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
   });
 
   it("deletes a project through the FS", () => {
@@ -23,7 +25,7 @@ describe("file system interactions", () => {
     // Need to force a reload to discover.
     cy.visit("/projects");
     cy.reload(true);
-    cy.findAllByTestId("projects-table-row").should("have.length", 0);
+    cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 0);
   });
 
   it("creates multiple projects through the FS", () => {
@@ -40,11 +42,11 @@ describe("file system interactions", () => {
     cy.visit("/projects");
     cy.reload(true);
 
-    cy.findByTestId("projects-table-body", { timeout: 10000 }).should("exist");
-    cy.findAllByTestId("projects-table-row", { timeout: 10000 }).should(
-      "have.length",
-      projects.length
-    );
+    cy.findByTestId("project-list", { timeout: 10000 }).should("exist");
+    // ! This can break if MUI implementation changes
+    cy.findAllByTestId("project-list-pagination", { timeout: 10000 })
+      .find(".MuiTablePagination-displayedRows")
+      .contains(` of ${projects.length}`); // 1–10 of 20
   });
 
   it("deletes multiple projects through the FS", () => {
@@ -55,7 +57,7 @@ describe("file system interactions", () => {
     cy.cleanProjectsDir();
     // Need to force a reload to discover.
     cy.visit("/projects");
-    cy.findAllByTestId("projects-table-row").should("have.length", 0);
+    cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 0);
   });
 
   context("requires an existing project", () => {
@@ -85,8 +87,8 @@ describe("file system interactions", () => {
         `mv ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1} ${PROJECTS_DIR}/move-project`
       );
       cy.visit("/projects");
-      cy.findAllByTestId("projects-table-row").should("have.length", 1);
-      cy.findByTestId("projects-table-row").should(
+      cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
+      cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(
         "contain.text",
         "move-project"
       );

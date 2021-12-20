@@ -1,21 +1,20 @@
-import { TEST_ID } from "../support/common";
+import { reset, TEST_ID } from "../support/common";
 
 const ORCHEST_EXECUTABLE_PATH = "../orchest";
 
 describe("app", () => {
   beforeEach(() => {
+    reset();
     cy.visit("/");
   });
 
   it("renders", () => {
-    // cy.findByTestId("root")
-    //   .should("exist")
-    //   .and("be.visible")
-    //   .within(() => {
-    //     cy.findByTestId("app").should("exist").and("be.visible");
-    //   });
-
-    cy.findByTestId("root").should("exist");
+    cy.findByTestId("root")
+      .should("exist")
+      .and("be.visible")
+      .within(() => {
+        cy.findByTestId("app").should("exist").and("be.visible");
+      });
   });
 
   it("restarts", () => {

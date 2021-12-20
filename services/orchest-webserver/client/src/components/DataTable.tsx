@@ -100,6 +100,7 @@ export type DataTableRow<T> = T & {
 };
 
 type EnhancedTableProps<T> = {
+  tableId: string;
   numSelected: number;
   onRequestSort: (event: React.MouseEvent<unknown>, property: keyof T) => void;
   onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -112,6 +113,7 @@ type EnhancedTableProps<T> = {
 
 function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
   const {
+    tableId,
     onSelectAllClick,
     order,
     orderBy,
@@ -138,6 +140,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
               checked={rowCount > 0 && numSelected === rowCount}
               onChange={onSelectAllClick}
               inputProps={{ "aria-label": "select all desserts" }}
+              data-test-id={`${tableId}-toggle-all-rows`}
             />
           </TableCell>
         )}
@@ -201,6 +204,7 @@ export function renderCell<T>(
 }
 
 function Row<T>({
+  tableId,
   columns,
   data,
   isSelected,
@@ -208,6 +212,7 @@ function Row<T>({
   onRowClick,
   onClickCheckbox,
 }: {
+  tableId: string;
   columns: DataTableColumn<T>[];
   data: DataTableRow<T>;
 
@@ -238,6 +243,7 @@ function Row<T>({
         key={data.uuid}
         selected={isSelected}
         sx={selectable || onRowClick ? { cursor: "pointer" } : null}
+        data-test-id={`${tableId}-row`}
       >
         {selectable && (
           <TableCell padding="checkbox">
@@ -346,6 +352,10 @@ export const DataTable = <T extends Record<string, any>>({
         });
   }, [sortedRows, debouncedSearchTerm, columns]);
 
+  const rowsInPage = React.useMemo(() => {
+    return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [rows, page, rowsPerPage]);
+
   React.useEffect(() => {
     if (mounted) {
       setSelected((currentSelected) => {
@@ -367,12 +377,20 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.checked) {
-      const newSelectedRows = rows.map((n) => n.uuid);
-      setSelected(newSelectedRows);
-      return;
-    }
-    setSelected([]);
+    // we only allow select all entries in the same page
+    // and when user change page, the selection will be cleaned up.
+    setSelected((current) => {
+      if (current.length < rowsInPage.length) {
+        const newSelectedRows = rowsInPage.map((n) => n.uuid);
+        return newSelectedRows;
+      }
+      const selectedAllItemsInPage =
+        event.target.checked && event.target.dataset.indeterminate;
+
+      if (selectedAllItemsInPage && current.length === rowsInPage.length) {
+        return [];
+      }
+    });
   };
 
   const handleClickCheckbox = (e: React.MouseEvent<unknown>, uuid: string) => {
@@ -396,6 +414,7 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
+    setSelected([]);
     setPage(newPage);
   };
 
@@ -443,8 +462,10 @@ export const DataTable = <T extends Record<string, any>>({
             aria-labelledby={tableTitleId}
             size="medium"
             id={id}
+            data-test-id={id}
           >
             <EnhancedTableHead
+              tableId={id}
               selectable={selectable}
               numSelected={selected.length}
               order={order}
@@ -455,14 +476,14 @@ export const DataTable = <T extends Record<string, any>>({
               data={columns}
             />
             <TableBody>
-              {rows
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              {rowsInPage
+                // .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row: DataTableRow<T>) => {
                   const isItemSelected = isSelected(row.uuid);
-                  // const labelId = `${id}-checkbox-${row.uuid}`;
 
                   return (
                     <Row<T>
+                      tableId={id}
                       data={row}
                       columns={columns}
                       isSelected={isItemSelected}
@@ -499,7 +520,11 @@ export const DataTable = <T extends Record<string, any>>({
                 {selected.length > 0 ? `${selected.length} selected` : ""}
               </Typography>
               {deleteSelectedRows && (
-                <IconButton title="Delete" onClick={handleDeleteSelectedRows}>
+                <IconButton
+                  title="Delete"
+                  data-test-id={`${id}-delete`}
+                  onClick={handleDeleteSelectedRows}
+                >
                   <DeleteIcon />
                 </IconButton>
               )}
@@ -514,6 +539,7 @@ export const DataTable = <T extends Record<string, any>>({
             page={page}
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
+            data-test-id={`${id}-pagination`}
           />
         </Stack>
       </Paper>

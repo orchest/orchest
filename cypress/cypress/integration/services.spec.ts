@@ -6,6 +6,7 @@ import {
   mergeEnvVariables,
   PROJECTS,
   PROJECTS_DIR,
+  reset,
   SAMPLE_JOB_NAMES,
   SAMPLE_PROJECT_NAMES,
   TEST_ID,
@@ -24,6 +25,7 @@ function verifyExternalConnectivity(externalConnData: { string: [string] }) {
 
 describe("services", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
   });
 

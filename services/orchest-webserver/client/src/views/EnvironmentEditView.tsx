@@ -37,7 +37,6 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
   uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
@@ -101,7 +100,6 @@ const EnvironmentEditView: React.FC = () => {
     languageDocsNotice: false,
   });
 
-  const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
 
   const fetchEnvironment = () => {
@@ -281,7 +279,6 @@ const EnvironmentEditView: React.FC = () => {
 
   const build = (e: React.MouseEvent) => {
     e.nativeEvent.preventDefault();
-    refManager.refs.tabBar.tabBar.activateTab(1);
 
     setState((prevState) => ({
       ...prevState,
@@ -473,6 +470,7 @@ const EnvironmentEditView: React.FC = () => {
                     id={tab.id}
                     label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
                     aria-controls={tab.id}
+                    data-test-id={`${tab.id}-tab`}
                   />
                 ))}
               </Tabs>
@@ -700,7 +698,7 @@ const EnvironmentEditView: React.FC = () => {
                     color="secondary"
                     onClick={build}
                     startIcon={<MemoryIcon />}
-                    data-test-id="environments-start-build"
+                    data-test-id="environment-start-build"
                   >
                     Build
                   </Button>

@@ -75,7 +75,11 @@ export const SystemDialog: React.FC = () => {
             Cancel
           </Button>
         )}
-        <Button type="submit" onClick={confirm}>
+        <Button
+          type="submit"
+          onClick={confirm}
+          data-test-id="confirm-dialog-ok"
+        >
           Confirm
         </Button>
       </DialogActions>

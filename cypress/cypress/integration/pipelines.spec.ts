@@ -2,6 +2,7 @@ import {
   assertEnvIsBuilt,
   piped_click,
   PROJECTS_DIR,
+  reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
   SAMPLE_STEP_NAMES,
@@ -23,6 +24,7 @@ let pathTestCases = [
 
 describe("pipelines", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.goToMenu("pipelines");

@@ -1,11 +1,13 @@
 import {
   QUICKSTART_URL,
+  reset,
   SAMPLE_PROJECT_NAMES,
   TEST_ID,
 } from "../support/common";
 
 describe("projects", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.goToMenu("projects");
   });

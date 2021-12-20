@@ -3,6 +3,7 @@ import {
   mergeEnvVariables,
   piped_click,
   PIPELINES,
+  reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
   SAMPLE_STEP_NAMES,
@@ -13,6 +14,7 @@ import {
 
 describe("interactive runs", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     assertEnvIsBuilt();

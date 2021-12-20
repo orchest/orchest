@@ -2,7 +2,6 @@ import "@testing-library/cypress/add-commands";
 import "cypress-localstorage-commands";
 import "cypress-pipe";
 import {
-  assertTotalEnvironmentImages,
   DATA_DIR,
   LOCAL_STORAGE_KEY,
   piped_click,
@@ -54,6 +53,7 @@ declare global {
       getProjectUUID(project: string): Chainable<string>;
       goToMenu(entry: string): Chainable<string>;
       importProject(url: string, name?: string): Chainable<undefined>;
+      reset(): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
       totalEnvironmentImages(
         project?: string,
@@ -214,7 +214,7 @@ Cypress.Commands.add(
       .should("be.visible")
       .type("{selectall}{backspace}" + name);
 
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).scrollIntoView().click();
+    cy.findByTestId(TEST_ID.ENVIRONMENT_TAB_BUILD).scrollIntoView().click();
     cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE)
       .scrollIntoView()
       .should("be.visible")
@@ -227,7 +227,7 @@ Cypress.Commands.add(
       cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).scrollIntoView().click();
     }
     if (build) {
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_START_BUILD)
+      cy.findByTestId(TEST_ID.ENVIRONMENT_START_BUILD)
         .scrollIntoView()
         .should("be.visible")
         .click();
@@ -254,10 +254,9 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
     .type("{selectall}{backspace}")
     .type(name);
   let expected_path = name.toLowerCase().replace(/[\W]/g, "_") + ".orchest";
-  cy.findByTestId(TEST_ID.PIPELINE_PATH_TEXTFIELD).should(
-    "have.value",
-    expected_path
-  );
+  cy.findByTestId(TEST_ID.PIPELINE_PATH_TEXTFIELD)
+    .find("input")
+    .should("have.value", expected_path);
   if (path !== undefined) {
     cy.findByTestId(TEST_ID.PIPELINE_PATH_TEXTFIELD)
       .type("{selectall}{backspace}")
@@ -325,7 +324,6 @@ Cypress.Commands.add("deleteAllPipelines", () => {
   cy.goToMenu("pipelines");
   // se rows != 0 then deleta
   cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
-  cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
   cy.findByTestId(TEST_ID.PIPELINE_DELETE).click();
   cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
   cy.wait("@allDeletes");
@@ -369,6 +367,7 @@ Cypress.Commands.add("goToMenu", (entry: string) => {
   );
   entry = `menu-${entry}`;
   cy.findByTestId(entry).click();
+  cy.wait(100);
 });
 
 //Assumes environment names are unique.
@@ -394,7 +393,7 @@ Cypress.Commands.add(
           { log: false }
         )
         .its("stdout", { log: false })
-        .then((stdout) => cy.wrap(parseInt(stdout), { log: false }));
+        .then((stdout) => cy.wrap(parseInt(stdout), { log: true }));
     } else if (project !== undefined && environment === undefined) {
       cy.getProjectUUID(project).then((proj_uuid) => {
         return cy
@@ -422,14 +421,6 @@ Cypress.Commands.add(
     }
   }
 );
-
-beforeEach(() => {
-  cy.cleanDataDir();
-  cy.cleanProjectsDir();
-  // Force rediscovery of deleted projects.
-  cy.visit("/projects", { log: false });
-  assertTotalEnvironmentImages(0);
-});
 
 // Unhandled promise rejections will cause seemingly random errors that
 // are very hard to debug. This will help in understanding if you are

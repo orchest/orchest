@@ -1,11 +1,13 @@
 import {
   assertTotalEnvironmentImages,
+  reset,
   SAMPLE_PROJECT_NAMES,
   TEST_ID,
 } from "../support/common";
 
 describe("environments", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     // Delete the environment that has been created with the project.

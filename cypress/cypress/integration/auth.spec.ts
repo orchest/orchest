@@ -1,7 +1,8 @@
-import { TEST_ID } from "../support/common";
+import { reset, TEST_ID } from "../support/common";
 
 describe("auth system", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
   });
 
