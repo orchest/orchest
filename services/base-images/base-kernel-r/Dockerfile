@@ -29,10 +29,12 @@ USER $NB_USER
 WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements-user.txt
 # Install Orchest dependencies in our own environment
-RUN conda create -y python=$(python --version | tr -d "Python ") -n orchestdependencies && \
+RUN conda create -y python=$(python --version | tr -d "Python ") -n orchestdependencies \
     # requirements.txt includes local install and thus we need to use pip
-    conda install -y -n orchestdependencies pip && \
-    conda run -n orchestdependencies pip install -r requirements.txt
+    && eval "$(conda shell.bash hook)" \
+    && conda activate orchestdependencies \
+    && pip install -r requirements.txt \
+    && deactivate
 
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
