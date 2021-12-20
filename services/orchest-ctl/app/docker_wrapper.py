@@ -503,7 +503,7 @@ class OrchestResourceManager:
                 " To disable it, please refer to:",
             )
             utils.echo(
-                "\thttps://docs.orchest.io/en/stable/user_guide/other.html#configuration",  # noqa: E501, W505
+                "\thttps://docs.orchest.io/en/stable/fundamentals/configuration.html",  # noqa: E501, W505
                 wrap=100,
             )
 

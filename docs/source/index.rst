@@ -4,52 +4,56 @@ Orchest
 .. tip::
    👉 Get started with the :ref:`quickstart <quickstart>`!
 
-Orchest is a tool for building data pipelines, made to be easy to use.
+.. figure:: img/pipeline-editor.png
+   :width: 800
+   :align: center
 
-A pipeline in Orchest can be thought of as a graph, where the nodes are executable files that
-execute within their own
-isolated environment (powered by containerization), and the edges/connections define the way the data flows. All defined through our visual pipeline editor.
+   💡 Watch the `video <https://vimeo.com/589879082>`_ to learn more.
 
-After coding your Notebooks and scripts, Orchest let's you run any subset of the pipeline either
-interactively or on a cron-like schedule.
+**Orchest is a tool for building data pipelines, made to be easy to use.**
 
-.. note::
-   Orchest is in alpha.
+* Visually construct pipelines through our user-friendly UI
+* Code in Notebooks and scripts (:ref:`quickstart <quickstart>`)
+* Run any subset of a pipelines directly or periodically (:ref:`jobs <jobs>`)
+* Easily define your dependencies to run on any machine (:ref:`environments <environments>`)
+* Spin up services whose lifetime spans across the entire pipeline run (:ref:`services <services>`)
+* Version your projects using git (:ref:`projects <projects>`)
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
    :caption: Getting started
 
-   getting_started/overview
    getting_started/installation
-   getting_started/starting_orchest
    getting_started/quickstart
-   getting_started/help
+   getting_started/when_to_use_orchest
+   getting_started/how_to
 
 
 .. toctree::
    :maxdepth: 1
-   :caption: User guide
+   :hidden:
+   :caption: Fundamentals
 
-   user_guide/how_orchest_works
-   user_guide/data_passing
-   user_guide/environments
-   user_guide/jobs
-   user_guide/environment_variables
-   user_guide/services
-   user_guide/configure_jupyterlab
-   user_guide/sdk/index
-   user_guide/other
-   user_guide/glossary
-   user_guide/shortcuts
+   fundamentals/projects
+   fundamentals/pipelines
+   fundamentals/data_passing
+   fundamentals/jobs
+   fundamentals/environments
+   fundamentals/environment_variables
+   fundamentals/services
+   fundamentals/sdk/index
+   fundamentals/configuration
+   fundamentals/glossary
 
 
 .. toctree::
    :maxdepth: 1
-   :caption: Developer guide
+   :hidden:
+   :caption: Development
 
-   developer_guide/contributing
-   developer_guide/development_workflow
-   developer_guide/front_end
-   developer_guide/implementation_details
-   developer_guide/testing
+   development/contributing
+   development/development_workflow
+   development/how_orchest_works
+   development/troubleshooting
+   development/implementation_best_practices
