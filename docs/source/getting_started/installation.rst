@@ -1,30 +1,43 @@
+.. _installation:
+
 Installation
 ============
 
-.. tip::
-   Be sure to check out the :ref:`quickstart tutorial <quickstart>` after installing Orchest.
+.. note::
+   Orchest is in beta.
 
-Orchest can be run on Linux, macOS and Windows (using the exact same steps!).
+.. tip::
+   👉 Get a fully configured Orchest instance out of the box on our `Orchest Cloud
+   <https://cloud.orchest.io/signup>`_, for free!
 
 Prerequisites
 -------------
-* Docker (`Engine version <https://docs.docker.com/engine/install/>`_ of ``>= 20.10.7``; run ``docker version`` to check.)
+We only have one prerequisite:
 
-If you do not yet have Docker installed, please visit https://docs.docker.com/get-docker/.
+* `Docker <https://docs.docker.com/get-docker/>`_
 
-.. warning::
-   On Windows, Docker has to be configured to use WSL 2. Make sure to clone Orchest inside the Linux
-   environment and run Orchest CLI commands inside a WSL terminal. For more info and installation
-   steps for Docker with WSL 2 backend, please visit
-   https://docs.docker.com/docker-for-windows/wsl/.
+Make sure your `Docker Engine version <https://docs.docker.com/engine/install/>`_ is at least
+``20.10.7``:
+
+.. code-block:: sh
+
+   # Get installed Docker Engine version
+   docker version -f "{{ .Client.Version }}"
+
+Windows
+~~~~~~~
+For Orchest to work on Windows, Docker has to be configured to use WSL 2 (`Docker Desktop WSL 2
+backend <https://docs.docker.com/desktop/windows/wsl/>`_).
+
+.. caution::
+   For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
+   opening the distribution using the Start menu or by `setting up the Windows Terminal
+   <https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
 
 .. _regular installation:
 
-Linux, macOS and Windows
-------------------------
-Simply follow the steps below to install Orchest or signup for the free-of-charge `Orchest Cloud
-<https://cloud.orchest.io/signup>`_ and get a fully configured Orchest instance out of the box!
-
+Install Orchest
+---------------
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
@@ -33,81 +46,58 @@ Simply follow the steps below to install Orchest or signup for the free-of-charg
    # Start Orchest.
    ./orchest start
 
-Now that you have installed Orchest, get started with the :ref:`quickstart <quickstart>` tutorial.
-
-.. note::
-   For Linux/WSL 2 users, please take the following into account regarding the Docker
-   networking configuration.
-
-   Docker has `some network interruption issues <https://github.com/docker/for-linux/issues/914>`_,
-   if you're connecting to Orchest from the same machine on which you're running it
-   (e.g. using ``localhost``) it's recommended to disable IPv6 networking.
-
-   It's recommended to disable IPv6 at the kernel level using a boot directive like ``ipv6.disable=1``.
-   `This article <https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_
-   describes how to do that for Ubuntu Linux.
-
-.. note::
-   By default, running ``./orchest install``, installs only the language dependencies for Python.
-   Other language dependencies can be installed as follows:
-
-   .. code-block:: bash
-
-      # To install R dependencies.
-      ./orchest install --lang=r
-
-      # To install all languages: Python, R and Julia.
-      ./orchest install --lang=all
-
-      # Check out all available options.
-      ./orchest install --help
-
 .. tip::
-   Add Orchest to your ``PATH`` to gain the ability to invoke the ``orchest`` script from anywhere,
-   e.g.  from your home directory: ``orchest status``. Depending on your shell add ``export
-   PATH="$HOME/<orchest-install-directory-path>:$PATH"`` to the corresponding ``.profile`` file. You
-   need to logout and login again for the changes to take effect.
+   🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
+   <quickstart>`.
 
-Build from source
------------------
-You can expect the build to finish in roughly 15 minutes.
+Additional language dependencies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+By default, running ``./orchest install``, installs only the language dependencies for Python.
+Other language dependencies can be installed as follows:
 
 .. code-block:: bash
 
-   git clone https://github.com/orchest/orchest.git && cd orchest
+   # To install R dependencies.
+   ./orchest install --lang=r
 
-   # Check out the version you would like to build.
-   git checkout v2021.05.0
-
-   # Build Orchest's Docker containers from source (in parallel).
-   scripts/build_container.sh
-
-   # Finish the Orchest installation by pulling additionally required
-   # images, e.g. postgres, and installing the Orchest Docker network.
-   ./orchest install
-
-   # Start Orchest.
-   ./orchest start
+   # To install all languages: Python, R and Julia.
+   ./orchest install --lang=all
 
 .. tip::
+   👉 Language dependencies can also be installed through the Orchest UI, simply select the
+   corresponding base image when building a new :ref:`environment <environments>`.
 
-    We recommend building a tagged commit indicating a stable release. Sadly, releases before
-    ``v2021.05.0`` can not be build due to a dependency mismatch.
+Networking issues
+~~~~~~~~~~~~~~~~~
+Docker has some known `network interruption issues
+<https://github.com/docker/for-linux/issues/914>`_ that impact the host network of the machine that
+Orchest is running on. To sidestep the issue it is recommended to disable IPv6 networking.
+
+You can disable IPv6 using:
+
+.. code-block:: bash
+
+   echo "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" | sudo tee -a /etc/sysctl.conf
+
+Alternatively, you can disable IPv6 at the kernel level using a boot directive like
+``ipv6.disable=1``.  `This article
+<https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_ describes
+how to do that for Ubuntu Linux.
+
+.. _installation gpu support:
 
 GPU support
 -----------
+You can install our provided GPU images for the programming language you want using either the UI
+(recommended) or CLI. Using the CLI:
 
-.. note::
-   Make sure you have installed our GPU images for the programming language you want to use. For
-   example:
+.. code-block:: bash
 
-   .. code-block:: bash
+  # Install the image with GPU passthrough for Python.
+  ./orchest install --lang=python --gpu
 
-      # Install the image with GPU passthrough for Python.
-      ./orchest install --lang=python --gpu
-
-**Linux** (supported)
-
+Linux (supported)
+~~~~~~~~~~~~~~~~~
 For GPU images the host on which Orchest is running is required to have a GPU driver that is
 compatible with the CUDA version installed in the image.  Compatible version pairs can be found
 `here
@@ -123,45 +113,56 @@ within the container it reports the CUDA Toolkit version installed on the *host*
 CUDA Toolkit version installed in the container image run ``cat /usr/local/cuda/version.txt``.
 
 Additionally, we require the ``nvidia-container`` package to make sure Docker is able to provide GPU
-enabled containers. Installation of the nvidia-container is done using ``apt install
-nvidia-container-runtime``.
+enabled containers. Installation of the nvidia-container is done using (`source
+<https://github.com/NVIDIA/nvidia-container-runtime#installation>`_):
+
+.. code-block:: sh
+
+   # Make sure you have first configured the nvidia-container-runtime
+   # repository: https://nvidia.github.io/nvidia-container-runtime/
+   sudo apt install nvidia-container-runtime
 
 .. seealso::
 
     `Docker GPU documentation <https://docs.docker.com/config/containers/resource_constraints/#gpu>`_
         Most up to date instructions on installing Docker with NVIDIA GPU passthrough support.
 
-**Windows WSL 2** (supported)
+Windows WSL 2 (supported)
+~~~~~~~~~~~~~~~~~~~~~~~~~
+In order to use GPUs using WSL 2, Docker has to be installed directly within the WSL 2 environment
+(this is different from our configuring Docker Desktop to use the WSL 2 backend).
 
-For WSL 2 follow the `CUDA on WSL User Guide
+If Docker is installed directly within the WSL 2 follow the `CUDA on WSL User Guide
 <https://docs.nvidia.com/cuda/wsl-user-guide/index.html>`_ provided by NVIDIA.
 
-Please note that the "Docker Desktop WSL 2 backend" (meaning, you've installed Docker not
-directly in the WSL 2 environment but on the Windows host itself) does not
-support CUDA yet.
+.. warning::
+   🚨 Orchest's default installation recommends installing Docker Desktop and configuring it to use
+   the WSL 2 backend. Sadly, this does not yet support CUDA.
 
-**macOS** (not supported)
-
+macOS (not supported)
+~~~~~~~~~~~~~~~~~~~~~
 Unfortunately, ``nvidia-docker`` does not support GPU enabled images on macOS (see `FAQ
 <https://github.com/NVIDIA/nvidia-docker/wiki/Frequently-Asked-Questions#is-macos-supported>`_ on
 ``nvidia-docker``).
 
-.. _cloud installation:
+Build from source
+-----------------
+.. tip::
+   👉 We recommend building a tagged commit indicating a stable release. Sadly, releases before
+   ``v2021.05.0`` can not be build due to a dependency mismatch.
 
-Run Orchest on the cloud
-------------------------
-Running Orchest on a cloud hosted VM (such as EC2) does not require a special installation. Simply
-follow the :ref:`regular installation process <regular installation>`.
-
-To enable SSL you first need to get the SSL certificates for your domain and put the certificates in
-the correct place so that Orchest recognizes them. Luckily, this can all be done using:
-``scripts/letsencrypt-nginx.sh <domain> <email>``. For the changes to take effect you need to
-start Orchest on port ``80`` (as otherwise the default port ``8000`` is used):
+You can expect the build to finish in roughly 15 minutes.
 
 .. code-block:: bash
 
-   ./orchest start --port=80
+   git clone https://github.com/orchest/orchest.git && cd orchest
 
-.. tip::
-   Refer to the :ref:`authentication section <authentication>` to enable the authentication server,
-   giving you a login screen requiring a username and password before you can access Orchest.
+   # Check out the version you would like to build.
+   git checkout v2021.11.2
+
+   # Build Orchest's Docker containers from source (in parallel).
+   scripts/build_container.sh
+
+   # Start Orchest. Note that it will pull additional containers that
+   # Orchest depends on, such as `postgres`.
+   ./orchest start

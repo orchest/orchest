@@ -24,7 +24,7 @@ setuptools.setup(
     url="https://github.com/orchest/orchest",
     project_urls={
         "Documentation": (
-            "https://docs.orchest.io/en/stable/user_guide/sdk/python.html"
+            "https://docs.orchest.io/en/stable/fundamentals/sdk/index.html"
         ),
         "Source Code": (
             "https://github.com/orchest/orchest/tree/master/orchest-sdk/python"

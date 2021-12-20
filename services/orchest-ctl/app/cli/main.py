@@ -200,7 +200,12 @@ def install(
 def update(
     mode: Optional[str] = typer.Option(None, hidden=True),
     dev: bool = typer.Option(
-        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
+        False,
+        show_default="--no-dev",
+        help=(
+            "Don't update the git repo. Useful for development as"
+            " the 'master' branch does not need to be checked out."
+        ),
     ),
 ):
     """

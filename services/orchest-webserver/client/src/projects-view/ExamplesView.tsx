@@ -28,7 +28,7 @@ enum EXAMPLES_TAB {
 }
 
 const isCuratedByOrchest = (owner: string) =>
-  ["orchest", "orchest-example"].includes(owner.toLowerCase());
+  ["orchest", "orchest-examples"].includes(owner.toLowerCase());
 
 type ImportingState = "READY" | "IMPORTING" | "DONE";
 
