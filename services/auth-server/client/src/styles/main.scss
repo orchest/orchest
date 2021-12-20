@@ -1,66 +1,5 @@
 @use "vars";
 
-// =============================================================================
-// start of @material
-//
-
-@use "@material/theme" with (
-  $primary: vars.$primary,
-  $secondary: vars.$secondary,
-  $on-primary: vars.$on-primary,
-  $on-secondary: vars.$on-secondary,
-);
-
-@use "@material/typography" with (
-    $font-family: ("Inter", sans-serif)
-);
-
-// Use used packages
-@use '@material/button/mdc-button';
-@use '@material/card/mdc-card';
-@use '@material/checkbox/mdc-checkbox';
-@use '@material/chips/deprecated/mdc-chips';
-@use '@material/circular-progress/mdc-circular-progress';
-// Select's styles must be emitted before datatable's due to equal specificity.
-@use '@material/select/mdc-select';
-@use '@material/data-table/mdc-data-table';
-@use '@material/dialog/mdc-dialog';
-@use '@material/drawer/mdc-drawer';
-@use '@material/elevation/mdc-elevation';
-@use '@material/fab/mdc-fab';
-@use '@material/floating-label/mdc-floating-label';
-@use '@material/form-field/mdc-form-field';
-@use '@material/icon-button/mdc-icon-button';
-@use '@material/image-list/mdc-image-list';
-@use '@material/layout-grid/mdc-layout-grid';
-@use '@material/line-ripple/mdc-line-ripple';
-@use '@material/linear-progress/mdc-linear-progress';
-@use '@material/list/mdc-list';
-@use '@material/menu/mdc-menu';
-@use '@material/menu-surface/mdc-menu-surface';
-@use '@material/notched-outline/mdc-notched-outline';
-@use '@material/radio/mdc-radio';
-@use '@material/ripple/mdc-ripple';
-@use '@material/segmented-button/styles' as segmented-button-styles;
-@use '@material/slider/styles' as slider-styles;
-@use '@material/snackbar/mdc-snackbar';
-@use '@material/switch/styles';
-@use '@material/tab/mdc-tab';
-@use '@material/tab-bar/mdc-tab-bar';
-@use '@material/tab-indicator/mdc-tab-indicator';
-@use '@material/tab-scroller/mdc-tab-scroller';
-@use '@material/textfield/mdc-text-field';
-@use '@material/theme/mdc-theme';
-@use '@material/tooltip/styles' as tooltip-styles;
-@use '@material/top-app-bar/mdc-top-app-bar';
-@use '@material/typography/mdc-typography';
-
-// Used mixins
-@use '@material/icon-button';
-
-// end of @material
-// =============================================================================
-
 @import "fonts";
 
 input:-webkit-autofill::first-line {
@@ -217,16 +156,6 @@ h3 {
 
 .error {
   color: red;
-}
-
-button.themed-secondary {
-  &:not(:disabled) {
-    background-color: theme.$secondary;
-  }
-
-  &:disabled {
-    background: rgba(0, 0, 0, 0.12);
-  }
 }
 
 @media screen and (max-width: 700px), screen and (max-height: 700px) {

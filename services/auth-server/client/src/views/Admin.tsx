@@ -111,7 +111,6 @@ const Admin = () => {
         </Typography>
         <Stack direction="column" alignItems="flex-start">
           <TextField
-            variant="filled"
             value={newUsername}
             onChange={(e) => setNewUsername(e.target.value)}
             label="Username"
@@ -120,7 +119,6 @@ const Admin = () => {
             data-test-id="new-user-name"
           />
           <TextField
-            variant="filled"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             label="Password"

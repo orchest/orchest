@@ -68,7 +68,6 @@ const DateTimeInput: React.FC<{
     <Stack spacing={4}>
       <Box>
         <TextField
-          variant="filled"
           type="date"
           label="Date"
           value={dateString}
@@ -80,7 +79,6 @@ const DateTimeInput: React.FC<{
       </Box>
       <Box>
         <TextField
-          variant="filled"
           type="time"
           label="Time"
           value={timeString}

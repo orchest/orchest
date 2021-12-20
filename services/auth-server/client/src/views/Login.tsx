@@ -84,7 +84,6 @@ const Login: React.FC<{
             <form method="post" onSubmit={submitLogin}>
               <Stack direction="column">
                 <TextField
-                  variant="filled"
                   label="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -92,7 +91,6 @@ const Login: React.FC<{
                   margin="normal"
                 />
                 <TextField
-                  variant="filled"
                   label="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

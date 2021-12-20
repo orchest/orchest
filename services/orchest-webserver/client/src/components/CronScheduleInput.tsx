@@ -71,7 +71,6 @@ export const CronScheduleInput: React.FC<{
       </Stack>
       <TextField
         error={!cronDescription}
-        variant="filled"
         disabled={disabled}
         label="Cron expression"
         value={value}

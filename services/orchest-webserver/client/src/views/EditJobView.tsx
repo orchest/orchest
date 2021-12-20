@@ -709,7 +709,6 @@ const EditJobView: React.FC = () => {
                 }}
               >
                 <TextField
-                  variant="filled"
                   label="Job name"
                   value={job.name}
                   onChange={(e) => handleJobNameChange(e.target.value)}
