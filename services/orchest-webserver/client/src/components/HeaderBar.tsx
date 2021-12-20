@@ -3,13 +3,22 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import HelpIcon from "@mui/icons-material/Help";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import ScienceIcon from "@mui/icons-material/Science";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
+import MuiIconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Toolbar from "@mui/material/Toolbar";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
 import { IconButton } from "./common/IconButton";
@@ -71,84 +80,101 @@ export const HeaderBar = ({
   };
 
   return (
-    <header className="header-bar">
-      <div className="header-bar-left">
-        <IconButton
-          title={`${isDrawerOpen ? "Close" : "Open"} navigation`}
+    <AppBar
+      position="fixed"
+      color="default"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backgroundColor: (theme) => theme.palette.background.paper,
+      }}
+    >
+      <Toolbar>
+        <MuiIconButton
+          title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
           onClick={(e) => {
             e.preventDefault();
             toggleDrawer();
           }}
+          sx={{ marginLeft: (theme) => theme.spacing(-2) }}
         >
           <MenuIcon />
-        </IconButton>
-        <img
-          className="pointer logo"
+        </MuiIconButton>
+        <Box
+          component="img"
           onClick={goToHome}
           src="/image/logo.svg"
           data-test-id="orchest-logo"
+          sx={{
+            cursor: "pointer",
+            width: (theme) => theme.spacing(5),
+            margin: (theme) => theme.spacing(0, 1, 0, 3),
+          }}
         />
         <ProjectSelector />
-      </div>
-
-      {state.pipelineName && (
-        <div className="pipeline-header-component">
-          <div className="pipeline-name">
-            <div className="pipelineStatusIndicator">
+        <LinearProgress />
+        <Box sx={{ flex: 1 }}>
+          {state.pipelineName && (
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="center"
+              spacing={2}
+            >
               {state.pipelineSaveStatus === "saved" ? (
-                <i title="Pipeline saved" className="material-icons">
-                  check_circle
-                </i>
+                <Tooltip title="Pipeline saved">
+                  <CheckCircleIcon />
+                </Tooltip>
               ) : (
                 <CircularProgress />
               )}
-            </div>
-
-            {state.pipelineName}
-          </div>
-        </div>
-      )}
-
-      <div className="header-bar-actions">
-        {state.pipelineName && !state.pipelineIsReadOnly && (
-          <SessionToggleButton
-            pipelineUuid={state.pipelineUuid}
-            projectUuid={state.projectUuid}
-          />
-        )}
-
-        {state.pipelineName && matchJupyter && (
-          <Button
-            variant="outlined"
-            color="secondary"
-            onClick={showPipeline}
-            startIcon={<DeviceHubIcon />}
-          >
-            Switch to Pipeline
-          </Button>
-        )}
-        {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
-          <Button
-            variant="outlined"
-            color="secondary"
-            disabled={currentSession?.status !== "RUNNING"}
-            onClick={showJupyter}
-            startIcon={<ScienceIcon />}
-            data-test-id="switch-to-jupyterlab"
-          >
-            Switch to JupyterLab
-          </Button>
-        )}
-        {appContext.state.user_config?.AUTH_ENABLED && (
-          <IconButton title="Logout" onClick={logoutHandler} color="secondary">
-            <LogoutIcon />
+              <Typography variant="h6">{state.pipelineName}</Typography>
+            </Stack>
+          )}
+        </Box>
+        <Stack spacing={2} direction="row">
+          {state.pipelineName && !state.pipelineIsReadOnly && (
+            <SessionToggleButton
+              pipelineUuid={state.pipelineUuid}
+              projectUuid={state.projectUuid}
+            />
+          )}
+          {state.pipelineName && matchJupyter && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={showPipeline}
+              startIcon={<DeviceHubIcon />}
+            >
+              Switch to Pipeline
+            </Button>
+          )}
+          {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              disabled={currentSession?.status !== "RUNNING"}
+              onClick={showJupyter}
+              startIcon={<ScienceIcon />}
+              data-test-id="switch-to-jupyterlab"
+            >
+              Switch to JupyterLab
+            </Button>
+          )}
+          {appContext.state.user_config?.AUTH_ENABLED && (
+            <IconButton
+              title="Logout"
+              onClick={logoutHandler}
+              color="secondary"
+            >
+              <LogoutIcon />
+            </IconButton>
+          )}
+          <IconButton title="Help" onClick={showHelp} color="secondary">
+            <HelpIcon />
           </IconButton>
-        )}
-        <IconButton title="Help" onClick={showHelp} color="secondary">
-          <HelpIcon />
-        </IconButton>
-      </div>
-    </header>
+        </Stack>
+      </Toolbar>
+    </AppBar>
   );
 };
 

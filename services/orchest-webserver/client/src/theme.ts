@@ -1,4 +1,4 @@
-import { blue, grey, red } from "@mui/material/colors";
+import { blue, common, grey, red } from "@mui/material/colors";
 import { createTheme } from "@mui/material/styles";
 
 const ORCHEST_BLUE = "#4381ff";
@@ -8,7 +8,7 @@ const theme = createTheme({
     primary: { main: ORCHEST_BLUE, ...blue },
     secondary: { main: grey[900], ...grey },
     error: { main: red.A400, ...red },
-    background: { default: grey[100] },
+    background: { default: common.white },
   },
   typography: {
     fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',

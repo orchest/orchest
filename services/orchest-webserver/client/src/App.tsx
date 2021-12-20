@@ -1,5 +1,8 @@
 import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
+import Box from "@mui/material/Box";
+import CssBaseline from "@mui/material/CssBaseline";
+import Toolbar from "@mui/material/Toolbar";
 import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
 import React, { useRef } from "react";
@@ -99,15 +102,30 @@ const App = () => {
         }
       }}
     >
-      <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
-      <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
-      <div className="app-container" data-test-id="app">
+      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <CssBaseline />
+        <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
         <AppDrawer isOpen={isDrawerOpen} toggle={toggleDrawer} />
-        <main className="main-content" id="main-content">
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            padding: 3,
+            position: "relative",
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+          id="main-content"
+          data-test-id="app"
+        >
+          <Toolbar />
           <Routes />
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />
-        </main>
-      </div>
+        </Box>
+      </Box>
+      <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
       <SystemDialog />
       <BuildPendingDialog />
       <CommandPalette />

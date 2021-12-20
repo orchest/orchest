@@ -5,16 +5,33 @@ import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
 import FormControl from "@mui/material/FormControl";
+import InputBase from "@mui/material/InputBase";
 import InputLabel from "@mui/material/InputLabel";
-import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import { styled } from "@mui/material/styles";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
+
+const CustomInput = styled(InputBase)(({ theme }) => ({
+  "&.Mui-focused .MuiInputBase-input": {
+    borderColor: theme.palette.grey[500],
+  },
+  "& .MuiInputBase-input": {
+    position: "relative",
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.background.paper}`,
+    fontSize: 20,
+    padding: theme.spacing(1, 2),
+    transition: theme.transitions.create(["border-color", "box-shadow"]),
+    "&:hover": { borderColor: theme.palette.grey[500] },
+    "&:focus": { borderColor: theme.palette.grey[500] },
+  },
+}));
 
 const ProjectSelector = () => {
   const { state, dispatch } = useProjectsContext();
@@ -100,17 +117,43 @@ const ProjectSelector = () => {
     }
   }, [matchProjectRoot, state.hasLoadedProjects]);
 
-  if (!matchProjectRoot) return null;
-  return state.projects ? (
-    <FormControl fullWidth sx={{ width: "250px" }}>
-      <InputLabel id="select-project-label">Project</InputLabel>
+  if (!matchProjectRoot || !state.projects) return null;
+  return (
+    <FormControl
+      fullWidth
+      sx={{
+        width: "250px",
+        "&:hover label": {
+          color: (theme) => theme.palette.grey[700],
+        },
+      }}
+    >
+      <InputLabel
+        sx={{
+          backgroundColor: (theme) => theme.palette.background.paper,
+          padding: (theme) => theme.spacing(0, 1),
+          color: (theme) => theme.palette.background.paper,
+          "&.Mui-focused": {
+            color: (theme) => theme.palette.grey[700],
+          },
+        }}
+        id="select-project-label"
+      >
+        Project
+      </InputLabel>
       <Select
         labelId="select-project-label"
         id="select-project"
         value={state.projectUuid || ""}
         label="Project"
         onChange={(e) => onChangeProject(e.target.value)}
+        input={<CustomInput />}
         data-test-id="project-selector"
+        sx={{
+          "&.Mui-Focused .MuiSelect-select": {
+            borderColor: (theme) => theme.palette.grey[500],
+          },
+        }}
       >
         {state.projects.map((project) => {
           return (
@@ -121,8 +164,6 @@ const ProjectSelector = () => {
         })}
       </Select>
     </FormControl>
-  ) : (
-    <LinearProgress />
   );
 };
 

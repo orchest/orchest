@@ -1,8 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
@@ -11,12 +9,12 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Divider from "@mui/material/Divider";
 import MuiDrawer from "@mui/material/Drawer";
-import IconButton from "@mui/material/IconButton";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { CSSObject, styled, Theme } from "@mui/material/styles";
+import ToolBar from "@mui/material/ToolBar";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { siteMap, toQueryString } from "../routingConfig";
@@ -57,7 +55,7 @@ const rootMenuItems: ItemData[] = [
     icon: <SettingsIcon />,
     path: siteMap.settings.path,
   },
-] as const;
+];
 
 const getItemKey = (item: { label: string; path: string }) =>
   `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
@@ -81,15 +79,6 @@ const closedMixin = (theme: Theme): CSSObject => ({
   overflowX: "hidden",
   width: `calc(${theme.spacing(7)} + 1px)`,
 });
-
-const DrawerHeader = styled("div")(({ theme }) => ({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-}));
 
 const Drawer = styled(MuiDrawer, {
   shouldForwardProp: (prop) => prop !== "open",
@@ -148,12 +137,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean; toggle?: () => void }> = ({
 
   return (
     <Drawer variant="permanent" open={open}>
-      <DrawerHeader>
-        <IconButton onClick={renderedToggle}>
-          {open ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-        </IconButton>
-      </DrawerHeader>
-      <Divider />
+      <ToolBar />
       <List>
         {projectMenuItems.map((item) => {
           const id = getItemKey(item);
