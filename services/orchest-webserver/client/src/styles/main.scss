@@ -113,36 +113,8 @@ p {
   }
 }
 
-.mdc-drawer__content {
-  position: relative;
-}
-
-.main-drawer {
-  .mdc-drawer__content {
-    justify-content: space-between;
-    flex-direction: column;
-    display: flex;
-  }
-}
-
-.mdc-tooltip {
-  white-space: initial;
-}
-
 .float-right {
   float: right;
-}
-
-.mdc-drawer .mdc-deprecated-list-item {
-  font-weight: 400;
-}
-
-aside.mdc-drawer {
-  h1 {
-    position: absolute;
-    bottom: 0;
-    width: 100%;
-  }
 }
 
 h1,
@@ -152,14 +124,6 @@ h3 {
 
 h2 {
   font-weight: 500;
-}
-
-.mdc-checkbox {
-  --mdc-theme-primary: #{theme.$secondary};
-}
-
-.mdc-drawer--dismissible {
-  position: relative;
 }
 
 #root {
@@ -186,13 +150,6 @@ h2 {
       &:first-child {
         margin-left: 0;
       }
-    }
-  }
-
-  .header-bar-left {
-    button.mdc-icon-button {
-      font-size: 32px;
-      padding: 8px;
     }
   }
 
@@ -227,15 +184,6 @@ h2 {
       flex-direction: column;
       justify-content: center;
       margin-top: 1px;
-
-      .mdc-circular-progress {
-        width: 24px;
-        height: 24px;
-      }
-
-      .mdc-circular-progress__indeterminate-circle-graphic {
-        stroke: black;
-      }
     }
 
     button {
@@ -256,23 +204,10 @@ h2 {
   flex: 1;
   overflow: hidden;
 
-  > .mdc-drawer {
-    flex: initial;
-    --mdc-drawer-width: 325px;
-    min-width: 325px;
-    padding: 20px;
-    height: 100%;
-    text-align: center;
-  }
-
   > main {
     overflow: hidden;
     flex: 1;
   }
-}
-
-.mdc-data-table__table-container {
-  overflow: visible;
 }
 
 .checkbox-tooltip-holder {
@@ -286,17 +221,6 @@ h2 {
     right: calc(-1 * var(--space-5) / 2);
     top: 0;
     transform: translateX(100%);
-  }
-}
-
-.mdc-data-table {
-  &.row-clickable {
-    .mdc-data-table__row {
-      &:hover {
-        box-shadow: 0px 2px 2px 0px rgb(0 0 0 / 12%);
-      }
-      cursor: pointer;
-    }
   }
 }
 
@@ -316,12 +240,6 @@ h2 {
   position: absolute;
   &.push-left {
     margin-left: calc(var(--space-5) / 2);
-  }
-}
-
-.help-list {
-  .mdc-list {
-    font-size: $defaultFontSize;
   }
 }
 
@@ -378,10 +296,6 @@ a.button {
         font-weight: 500;
       }
 
-      .mdc-deprecated-list-divider {
-        margin: var(--space-5) 0;
-      }
-
       .log-section {
         line-height: 24px;
         padding: 0 8px;
@@ -404,21 +318,6 @@ a.button {
         i.note {
           font-size: 14px;
           padding: 8px;
-        }
-
-        .mdc-drawer {
-          width: auto;
-          border: 0;
-          padding: 0;
-          height: auto;
-
-          .mdc-deprecated-list-item__graphic {
-            margin-right: 12px;
-          }
-
-          .mdc-deprecated-list-item {
-            height: 56px;
-          }
         }
       }
 
@@ -472,14 +371,6 @@ a.button {
   }
 
   .jobs-page {
-    .mdc-data-table {
-      width: 100%;
-    }
-
-    .mdc-text-field--outlined.search {
-      margin-bottom: var(--space-5);
-    }
-
     .job-actions {
       margin-bottom: var(--space-5);
     }
@@ -536,30 +427,6 @@ a.button {
   }
 }
 
-.projects-view {
-  .mdc-data-table__table {
-    table-layout: auto;
-  }
-  .mdc-data-table {
-    .mdc-button {
-      color: theme.$secondary;
-      font-weight: 500;
-    }
-
-    .mdc-data-table__header-cell:nth-child(1),
-    .mdc-data-table__header-cell:nth-child(2),
-    .mdc-data-table__cell:nth-child(1),
-    .mdc-data-table__cell:nth-child(2) {
-      text-align: left;
-    }
-
-    .mdc-data-table__header-cell,
-    .mdc-data-table__cell {
-      text-align: center;
-    }
-  }
-}
-
 p > i.material-icons.float-left {
   float: left;
   margin-right: 10px;
@@ -573,128 +440,17 @@ p > i.material-icons.float-left {
 
 .select-button-columns {
   display: flex;
-
-  .mdc-button {
-    height: 56px;
-    min-width: 200px;
-    margin-left: $mdcComponentPadding;
-  }
 }
 
 .create-file-input {
   .field-select-combo {
     display: flex;
-
-    .mdc-text-field {
-      width: 70%;
-      margin-right: $mdcComponentPadding;
-    }
-    .mdc-select {
-      flex: 1;
-    }
-  }
-}
-
-.mdc-dialog {
-  z-index: 99;
-}
-
-/* override title styling on overflow */
-.mdc-dialog--scrollable .mdc-dialog__title {
-  padding-bottom: 9px;
-}
-.mdc-dialog.mdc-dialog--scrollable .mdc-dialog__title,
-.mdc-dialog.mdc-dialog--scrollable .mdc-dialog__actions {
-  border-color: transparent;
-}
-.mdc-dialog--scrollable .mdc-dialog__content {
-  padding-top: 0;
-  padding-bottom: 20px;
-}
-
-.mdc-dialog__surface {
-  overflow: visible;
-
-  .mdc-dialog__actions {
-    padding: var(--space-5);
-    padding-top: 0;
-  }
-
-  .mdc-dialog__content {
-    overflow: visible;
-    line-height: inherit;
-  }
-
-  .mdc-select__menu {
-    position: absolute;
   }
 }
 
 .largeText {
   font-size: var(--fontSizes-xl);
   line-height: var(--lineHeights-xl);
-}
-
-.mdc-dialog .mdc-dialog__title {
-  font-size: var(--fontSizes-xl);
-  line-height: var(--lineHeights-xl);
-  border-bottom: none;
-}
-
-.mdc-dialog .mdc-dialog__content {
-  color: var(--colors-gray800);
-  letter-spacing: normal;
-}
-
-.mdc-dialog .mdc-dialog__surface {
-  border-radius: var(--radii-md);
-  box-shadow: var(--shadows-2xl);
-}
-
-.mdc-dialog {
-  .mdc-dialog__title,
-  .mdc-dialog__content,
-  .mdc-dialog__actions {
-    padding: 0 var(--space-4) var(--space-4);
-  }
-}
-
-.mdc-dialog .mdc-dialog__content {
-  padding-bottom: var(--space-5);
-}
-
-.mdc-text-field.invalid {
-  &:not(.mdc-text-field--disabled) .mdc-text-field__input,
-  &:not(.mdc-text-field--disabled) .mdc-floating-label {
-    color: var(--colors-red700);
-  }
-}
-
-// rounded notched buttons
-.mdc-text-field--outlined {
-  .mdc-text-field__input {
-    padding: 0 $mdcComponentPadding;
-  }
-
-  .mdc-notched-outline {
-    .mdc-notched-outline__leading {
-      border-radius: 28px 0 0 28px;
-      width: 28px;
-    }
-
-    .mdc-notched-outline__trailing {
-      border-radius: 0 28px 28px 0;
-    }
-  }
-}
-
-.mdc-tab-bar-holder {
-  display: flex;
-  border-bottom: 1px solid $borderColor;
-
-  .mdc-tab-bar {
-    width: auto;
-  }
 }
 
 .form-helper-text {
@@ -704,27 +460,6 @@ p > i.material-icons.float-left {
 
 .CodeMirror {
   font-size: $codeSize;
-}
-
-.environments-page {
-  .mdc-data-table {
-    span {
-      i.material-icons {
-        float: left;
-        margin-right: 8px;
-        margin-top: 3px;
-
-        &.lens-button {
-          color: #7dd467;
-          font-size: 15px;
-
-          &.disabled {
-            color: #999;
-          }
-        }
-      }
-    }
-  }
 }
 
 .xterm-holder {
@@ -1006,10 +741,6 @@ button.text-button {
   ul {
     list-style-type: none;
   }
-
-  div.mdc-text-field {
-    width: 40%;
-  }
 }
 
 h2.header {
@@ -1066,10 +797,6 @@ span.floating-button {
     padding-top: 3px;
   }
 
-  .mdc-circular-progress {
-    transform: scale(0.888888);
-  }
-
   &.pipeline-save-status {
     i {
       color: #999;
@@ -1106,42 +833,6 @@ span.floating-button {
   }
 
   .existing-pipeline-runs {
-    .mdc-data-table {
-      $sizes: 10%, 30%, 30%, 30%;
-
-      @for $i from 1 through length($sizes) {
-        .mdc-data-table__header-cell:nth-child(#{$i}) {
-          width: nth($sizes, $i);
-        }
-      }
-
-      @for $i from 1 through length($sizes) {
-        .mdc-data-table__cell:nth-child(#{$i}) {
-          width: nth($sizes, $i);
-        }
-      }
-
-      .pipeline-run-detail {
-        button {
-          margin-top: var(--space-5);
-        }
-      }
-
-      table {
-        width: 100%;
-        table-layout: fixed;
-      }
-      th {
-      }
-      th,
-      td {
-        overflow: hidden;
-        display: inline-block;
-        max-width: 100%;
-        padding: $mdcComponentPadding;
-      }
-    }
-
     button {
       margin-top: var(--space-5);
     }
@@ -1160,10 +851,6 @@ span.floating-button {
     h3 {
       font-size: 21px;
     }
-  }
-
-  .mdc-tab-bar {
-    margin-top: var(--space-5);
   }
 }
 
@@ -1239,44 +926,8 @@ strong {
   }
 }
 
-.mdc-data-table {
-  a {
-    color: theme.$secondary;
-    text-decoration: underline;
-  }
-
-  .mdc-icon-button {
-    @include icon-button.size(38px);
-  }
-}
-
-.mdc-circular-progress {
-  width: 36px;
-  height: 36px;
-}
-
-.mdc-data-table__table {
-  width: 100%;
-}
-
 .dropdown-file-picker {
   position: relative;
-
-  .mdc-deprecated-list-item {
-    .material-icons {
-      margin-right: math.div($mdcComponentPadding, 2);
-      font-size: 1.3rem;
-    }
-
-    line-height: 2.25rem;
-    height: auto;
-  }
-
-  .mdc-menu {
-    position: absolute;
-    left: 0;
-    top: 100%;
-  }
 }
 
 .columns {
@@ -1384,35 +1035,11 @@ button.themed-secondary {
   }
 }
 
-.mdc-icon-table-wrapper {
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  justify-content: space-between;
-  .mdc-icon-button {
-    margin-left: 10px;
-  }
-}
-
-.mdc-switch-wrapper {
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-
-  label {
-    padding-left: 10px;
-  }
-}
-
 .pipeline-view {
   position: relative;
   height: 100%;
   display: flex;
   flex-direction: row;
-
-  .mdc-button--outlined {
-    background: #fff;
-  }
 
   .pipeline-actions {
     position: absolute;
@@ -1780,10 +1407,6 @@ button.themed-secondary {
       height: 100%;
     }
 
-    .mdc-select__anchor {
-      width: 100%;
-    }
-
     .detail-subview {
       flex: 1;
     }
@@ -1840,48 +1463,9 @@ button.themed-secondary {
       }
     }
 
-    .mdc-text-field--textarea {
-      textarea {
-        font: inherit;
-        font-family: monospace;
-        font-size: $defaultFontSize;
-      }
-      width: 100%;
-    }
-
     .multi-field-input {
       padding-bottom: 20px;
     }
-  }
-}
-
-.pipelines-view {
-  .mdc-deprecated-list-item {
-    .material-icons {
-      font-size: 20px;
-      margin-left: 10px;
-      color: #34ef34;
-    }
-  }
-}
-
-table {
-  .mdc-data-table__header-cell.mdc-data-table__header-cell--checkbox,
-  .mdc-data-table__cell.mdc-data-table__cell--checkbox {
-    width: 56px;
-  }
-}
-
-.mdc-select {
-  &.fullwidth {
-    .mdc-select__anchor {
-      width: 100%;
-    }
-  }
-
-  .mdc-select__selected-text {
-    text-overflow: ellipsis;
-    overflow: hidden;
   }
 }
 
@@ -1904,9 +1488,6 @@ table {
 .commit-form {
   width: 50%;
 
-  .mdc-select__anchor {
-    width: 100%;
-  }
   > div {
     width: 100%;
   }
@@ -1918,15 +1499,6 @@ table {
   > div {
     width: 100%;
   }
-  .mdc-select__anchor {
-    width: 100%;
-  }
-}
-
-.mdc-drawer-app-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
 }
 
 .main-content {

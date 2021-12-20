@@ -1,11 +1,9 @@
-import * as React from "react";
-import { OnboardingDialog } from "./OnboardingDialog";
+import Box from "@mui/material/Box";
+import { styled } from "@mui/material/styles";
 
-export const Layout: React.FC = (props) => {
-  return (
-    <React.Fragment>
-      {props.children}
-      <OnboardingDialog />
-    </React.Fragment>
-  );
-};
+export const Layout = styled(Box)<{ disablePadding?: boolean }>(
+  ({ theme, disablePadding }) => ({
+    flex: 1,
+    padding: disablePadding ? 0 : theme.spacing(3),
+  })
+);

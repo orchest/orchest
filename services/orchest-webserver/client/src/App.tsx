@@ -11,6 +11,7 @@ import { useIntercom } from "react-use-intercom";
 import BuildPendingDialog from "./components/BuildPendingDialog";
 import CommandPalette from "./components/CommandPalette";
 import HeaderBar from "./components/HeaderBar";
+import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
 import { AppDrawer } from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
@@ -110,8 +111,7 @@ const App = () => {
           component="main"
           sx={{
             flex: 1,
-            overflow: "hidden",
-            padding: 3,
+            overflow: "auto",
             position: "relative",
             minHeight: 0,
             display: "flex",
@@ -128,6 +128,7 @@ const App = () => {
       <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
       <SystemDialog />
       <BuildPendingDialog />
+      <OnboardingDialog />
       <CommandPalette />
     </Router>
   );

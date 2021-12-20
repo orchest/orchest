@@ -2415,7 +2415,7 @@ const PipelineView: React.FC = () => {
   }, [state.eventVars.scaleFactor, state.pipelineOffset]);
 
   return (
-    <Layout>
+    <Layout disablePadding>
       <div className="pipeline-view">
         <div
           className="pane pipeline-view-pane"

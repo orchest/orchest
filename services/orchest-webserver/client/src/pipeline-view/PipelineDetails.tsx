@@ -35,7 +35,7 @@ const ResizeBar = styled("div")(({ theme }) => ({
 const PipelineDetailsContainer = styled("div")(({ theme }) => ({
   height: "100%",
   backgroundColor: theme.palette.common.white,
-  borderLeft: `1px solid ${theme.palette.background.default}`,
+  borderLeft: `1px solid ${theme.palette.grey[300]}`,
   zIndex: 12,
   width: 0,
   display: "flex",
