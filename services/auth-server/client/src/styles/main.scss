@@ -6,6 +6,7 @@ input:-webkit-autofill::first-line {
   font-size: 17px;
 }
 
+$font-family: "Inter", sans-serif;
 $generalPadding: 20px;
 $mdcComponentPadding: 16px;
 
@@ -22,7 +23,7 @@ $mdcComponentPadding: 16px;
 html,
 body {
   font-size: 17px;
-  font-family: typography.$font-family;
+  font-family: $font-family;
   height: 100%;
   padding: 0;
   margin: 0;

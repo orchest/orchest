@@ -63,7 +63,6 @@
     "@mui/material": "^5.2.3",
     "@mui/utils": "^5.2.3",
     "@orchest/design-system": "workspace:*",
-    "@orchest/lib-mdc": "workspace:*",
     "@orchest/lib-utils": "workspace:*",
     "ajv": "^8.6.0",
     "classnames": "^2.3.1",

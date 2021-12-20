@@ -85,115 +85,6 @@ importers:
       tsconfig-paths: 3.9.0
       typescript: 4.5.2
 
-  lib/javascript/mdc:
-    specifiers:
-      '@material/animation': ^13.0.0
-      '@material/auto-init': ^13.0.0
-      '@material/base': ^13.0.0
-      '@material/button': ^13.0.0
-      '@material/card': ^13.0.0
-      '@material/checkbox': ^13.0.0
-      '@material/chips': ^13.0.0
-      '@material/circular-progress': ^13.0.0
-      '@material/data-table': ^13.0.0
-      '@material/density': ^13.0.0
-      '@material/dialog': ^13.0.0
-      '@material/dom': ^13.0.0
-      '@material/drawer': ^13.0.0
-      '@material/elevation': ^13.0.0
-      '@material/fab': ^13.0.0
-      '@material/feature-targeting': ^13.0.0
-      '@material/floating-label': ^13.0.0
-      '@material/form-field': ^13.0.0
-      '@material/icon-button': ^13.0.0
-      '@material/image-list': ^13.0.0
-      '@material/layout-grid': ^13.0.0
-      '@material/line-ripple': ^13.0.0
-      '@material/linear-progress': ^13.0.0
-      '@material/list': ^13.0.0
-      '@material/menu': ^13.0.0
-      '@material/menu-surface': ^13.0.0
-      '@material/notched-outline': ^13.0.0
-      '@material/radio': ^13.0.0
-      '@material/ripple': ^13.0.0
-      '@material/rtl': ^13.0.0
-      '@material/segmented-button': ^13.0.0
-      '@material/select': ^13.0.0
-      '@material/shape': ^13.0.0
-      '@material/slider': ^13.0.0
-      '@material/snackbar': ^13.0.0
-      '@material/switch': ^13.0.0
-      '@material/tab': ^13.0.0
-      '@material/tab-bar': ^13.0.0
-      '@material/tab-indicator': ^13.0.0
-      '@material/tab-scroller': ^13.0.0
-      '@material/textfield': ^13.0.0
-      '@material/theme': ^13.0.0
-      '@material/tokens': ^13.0.0
-      '@material/tooltip': ^13.0.0
-      '@material/top-app-bar': ^13.0.0
-      '@material/touch-target': ^13.0.0
-      '@material/typography': ^13.0.0
-      '@orchest/lib-utils': workspace:*
-      '@types/react': 17.0.3
-      react: ^16.13.1
-      react-dom: ^16.13.1
-      typescript: 4.5.2
-    dependencies:
-      '@material/animation': 13.0.0
-      '@material/auto-init': 13.0.0
-      '@material/base': 13.0.0
-      '@material/button': 13.0.0
-      '@material/card': 13.0.0
-      '@material/checkbox': 13.0.0
-      '@material/chips': 13.0.0
-      '@material/circular-progress': 13.0.0
-      '@material/data-table': 13.0.0
-      '@material/density': 13.0.0
-      '@material/dialog': 13.0.0
-      '@material/dom': 13.0.0
-      '@material/drawer': 13.0.0
-      '@material/elevation': 13.0.0
-      '@material/fab': 13.0.0
-      '@material/feature-targeting': 13.0.0
-      '@material/floating-label': 13.0.0
-      '@material/form-field': 13.0.0
-      '@material/icon-button': 13.0.0
-      '@material/image-list': 13.0.0
-      '@material/layout-grid': 13.0.0
-      '@material/line-ripple': 13.0.0
-      '@material/linear-progress': 13.0.0
-      '@material/list': 13.0.0
-      '@material/menu': 13.0.0
-      '@material/menu-surface': 13.0.0
-      '@material/notched-outline': 13.0.0
-      '@material/radio': 13.0.0
-      '@material/ripple': 13.0.0
-      '@material/rtl': 13.0.0
-      '@material/segmented-button': 13.0.0
-      '@material/select': 13.0.0
-      '@material/shape': 13.0.0
-      '@material/slider': 13.0.0
-      '@material/snackbar': 13.0.0
-      '@material/switch': 13.0.0
-      '@material/tab': 13.0.0
-      '@material/tab-bar': 13.0.0
-      '@material/tab-indicator': 13.0.0
-      '@material/tab-scroller': 13.0.0
-      '@material/textfield': 13.0.0
-      '@material/theme': 13.0.0
-      '@material/tokens': 13.0.0
-      '@material/tooltip': 13.0.0
-      '@material/top-app-bar': 13.0.0
-      '@material/touch-target': 13.0.0
-      '@material/typography': 13.0.0
-      '@orchest/lib-utils': link:../utils
-      react: 16.14.0
-      react-dom: 16.14.0_react@16.14.0
-    devDependencies:
-      '@types/react': 17.0.3
-      typescript: 4.5.2
-
   lib/javascript/utils:
     specifiers:
       '@types/react': 17.0.3
@@ -261,7 +152,6 @@ importers:
       '@material/typography': ^13.0.0
       '@mui/icons-material': ^5.2.1
       '@mui/material': ^5.2.3
-      '@orchest/lib-mdc': workspace:*
       '@orchest/lib-utils': workspace:*
       '@types/jest': ^27.0.3
       '@types/react': 17.0.3
@@ -324,7 +214,6 @@ importers:
       '@material/typography': 13.0.0
       '@mui/icons-material': 5.2.1_2b6134563dcdd5b4255e3cf15823295c
       '@mui/material': 5.2.3_9926d2ec1973e46f98f106627704ab1f
-      '@orchest/lib-mdc': link:../../../lib/javascript/mdc
       '@orchest/lib-utils': link:../../../lib/javascript/utils
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
@@ -393,7 +282,6 @@ importers:
       '@mui/material': ^5.2.3
       '@mui/utils': ^5.2.3
       '@orchest/design-system': workspace:*
-      '@orchest/lib-mdc': workspace:*
       '@orchest/lib-utils': workspace:*
       '@types/codemirror': ^5.60.5
       '@types/jest': ^27.0.3
@@ -487,7 +375,6 @@ importers:
       '@mui/material': 5.2.3_9926d2ec1973e46f98f106627704ab1f
       '@mui/utils': 5.2.3_react@17.0.2
       '@orchest/design-system': link:../../../lib/design-system/package
-      '@orchest/lib-mdc': link:../../../lib/javascript/mdc
       '@orchest/lib-utils': link:../../../lib/javascript/utils
       ajv: 8.8.2
       classnames: 2.3.1
@@ -4840,18 +4727,6 @@ packages:
       react: 17.0.2
     dev: false
 
-  /react-dom/16.14.0_react@16.14.0:
-    resolution: {integrity: sha512-1gCeQXDLoIqMgqD3IO2Ah9bnf0w9kzhwN5q4FGnHZ67hBm9yePzB5JJAIQCc8x3pFnNlwFq4RidZggNAAkzWWw==}
-    peerDependencies:
-      react: ^16.14.0
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-      prop-types: 15.7.2
-      react: 16.14.0
-      scheduler: 0.19.1
-    dev: false
-
   /react-dom/17.0.2_react@17.0.2:
     resolution: {integrity: sha512-s4h96KtLDUQlsENhMn1ar8t2bEa+q/YAtj8pPPdIjPDGBDIVNsrD9aXNWqspUe6AzKCIG0C1HZZLqLV7qpOBGA==}
     peerDependencies:
@@ -5001,6 +4876,7 @@ packages:
       loose-envify: 1.4.0
       object-assign: 4.1.1
       prop-types: 15.7.2
+    dev: true
 
   /react/17.0.2:
     resolution: {integrity: sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA==}
@@ -5221,13 +5097,6 @@ packages:
       sass-bin-windows-32: 1.43.2
       sass-bin-windows-64: 1.43.2
     dev: true
-
-  /scheduler/0.19.1:
-    resolution: {integrity: sha512-n/zwRWRYSUj0/3g/otKDRPMh6qv2SYMWNq85IEa8iZyAv8od9zDYpGSnpBEjNgcMNq6Scbu5KfIPxNF72R/2EA==}
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-    dev: false
 
   /scheduler/0.20.2:
     resolution: {integrity: sha512-2eWfGgAqqWFGqtdMmcL5zCMK1U8KlXv8SQFGglL3CEtd0aDVDWgeF/YoCmvln55m5zSk3J/20hTaSBeSObsQDQ==}

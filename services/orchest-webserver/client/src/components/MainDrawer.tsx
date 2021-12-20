@@ -14,7 +14,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
 import { CSSObject, styled, Theme } from "@mui/material/styles";
-import ToolBar from "@mui/material/ToolBar";
+import Toolbar from "@mui/material/Toolbar";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { siteMap, toQueryString } from "../routingConfig";
@@ -137,7 +137,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean; toggle?: () => void }> = ({
 
   return (
     <Drawer variant="permanent" open={open}>
-      <ToolBar />
+      <Toolbar />
       <List>
         {projectMenuItems.map((item) => {
           const id = getItemKey(item);

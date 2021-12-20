@@ -279,7 +279,7 @@ export const PROJECTS = {
 export function assertTotalEnvironmentImages(expected: number, retries = 50) {
   cy.log(`Asserting that the number of environment images is ${expected}.`);
   cy.totalEnvironmentImages().then((total) => {
-    if (total != expected) {
+    if (total !== expected) {
       retries--;
       if (retries > 0) {
         cy.wait(200, { log: false });
