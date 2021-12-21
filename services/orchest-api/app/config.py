@@ -15,6 +15,7 @@ class Config:
 
     # TODO: for now this is put here.
     ORCHEST_API_ADDRESS = "http://orchest-api:80/api"
+    ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:80"
 
     # How often to run the scheduling logic when the process is running
     # as scheduler, in seconds.
