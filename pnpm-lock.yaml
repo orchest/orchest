@@ -36,7 +36,7 @@ importers:
       cypress-localstorage-commands: 1.5.0
       cypress-pipe: 2.0.0
       deep-equal: 2.0.5
-      react: ^16.13.1
+      react: ^17.0.0
       typescript: 4.5.2
     devDependencies:
       '@testing-library/cypress': 7.0.7_cypress@8.6.0
@@ -45,7 +45,7 @@ importers:
       cypress-localstorage-commands: 1.5.0_cypress@8.6.0
       cypress-pipe: 2.0.0
       deep-equal: 2.0.5
-      react: 16.14.0
+      react: 17.0.2
       typescript: 4.5.2
 
   lib/design-system/package:
@@ -4868,15 +4868,6 @@ packages:
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
     dev: false
-
-  /react/16.14.0:
-    resolution: {integrity: sha512-0X2CImDkJGApiAlcf0ODKIneSwBPhqJawOa5wCtKbu7ZECrmS26NvtSILynQ66cgkT/RJ4LidJOc3bUESwmU8g==}
-    engines: {node: '>=0.10.0'}
-    dependencies:
-      loose-envify: 1.4.0
-      object-assign: 4.1.1
-      prop-types: 15.7.2
-    dev: true
 
   /react/17.0.2:
     resolution: {integrity: sha512-gnhPt75i/dq/z3/6q/0asP78D0u592D5L1pd7M8P+dck6Fu/jJeL6iVVK23fptSUZj8Vjf++7wXA8UNclGQcbA==}

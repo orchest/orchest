@@ -88,7 +88,7 @@ export type DataTableColumn<T> = {
   numeric?: boolean;
   sortable?: boolean;
   align?: "inherit" | "left" | "center" | "right" | "justify";
-  render?: (row: T & { uuid: string }) => React.ReactNode;
+  render?: (row: T & { uuid: string }) => JSX.Element | string;
 };
 
 export type DataTableRow<T> = T & {
