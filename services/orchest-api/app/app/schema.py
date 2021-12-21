@@ -497,6 +497,10 @@ job = Model(
             required=True,
             description="Total number of times the job was run.",
         ),
+        "total_scheduled_pipeline_runs": fields.Integer(
+            required=True,
+            description="Total number of scheduled pipeline runs.",
+        ),
         "pipeline_definition": fields.Raw(description="Pipeline definition"),
         "pipeline_runs": fields.List(
             fields.Nested(non_interactive_run),

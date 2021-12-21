@@ -320,6 +320,19 @@ class Job(BaseModel):
         server_default=text("0"),
     )
 
+    # Total scheduled pipeline runs across all job run triggers. This is
+    # used to "stamp" every job pipeline run with a pipeline_run_index.
+    # This is is needed because a job could be modified with new
+    # parameters and all existing job runs could be deleted because of
+    # max_retained_pipeline_runs or manual deletion, making it not
+    # possible to get back to this number otherwise.
+    total_scheduled_pipeline_runs = db.Column(
+        db.Integer,
+        unique=False,
+        server_default=text("0"),
+        nullable=False,
+    )
+
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
         lazy="select",

@@ -502,6 +502,7 @@ def _delete_non_retained_pipeline_runs(job_uuid: str) -> None:
     job = (
         db.session.query(
             models.Job.max_retained_pipeline_runs,
+            models.Job.total_scheduled_pipeline_runs,
         )
         .filter_by(uuid=job_uuid)
         .one()
@@ -515,12 +516,6 @@ def _delete_non_retained_pipeline_runs(job_uuid: str) -> None:
         current_app.logger.info("Nothing to do.")
         return
 
-    # How many runs have been created for the job up to now.
-    max_job_runs_index = (
-        db.session.query(func.max(models.NonInteractivePipelineRun.pipeline_run_index))
-        .filter_by(job_uuid=job_uuid)
-        .one()
-    )[0]
     runs_to_be_deleted = (
         db.session.query(models.NonInteractivePipelineRun.uuid)
         .filter(
@@ -537,7 +532,10 @@ def _delete_non_retained_pipeline_runs(job_uuid: str) -> None:
             # for runs which have an index lower or equal if some are
             # already completed.
             models.NonInteractivePipelineRun.pipeline_run_index
-            <= max_job_runs_index - max_retained_pipeline_runs,
+            # -1 because the field is incremented by one for every
+            # scheduled pipeline run, so pipeline run 0 would make this
+            # go to 1.
+            <= (job.total_scheduled_pipeline_runs - 1) - max_retained_pipeline_runs,
         )
         .all()
     )
@@ -594,24 +592,6 @@ class RunJob(TwoPhaseFunction):
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
-        # The number of pipeline runs of a job, across all job runs. We
-        # could use 'count' but 'max' is safer, if for any reason a
-        # pipeline run is not there, e.g. if pipeline runs 0 and 2 are
-        # there, but not 1, 'count' would keep returning 2, and no runs
-        # could be launched anymore because of the (job_uuid,
-        # pipeline_run_index) constraint.
-        pipeline_run_index = (
-            db.session.query(
-                func.max(models.NonInteractivePipelineRun.pipeline_run_index)
-            )
-            .filter_by(job_uuid=job_uuid)
-            .one()
-        )[0]
-        if pipeline_run_index is None:
-            pipeline_run_index = 0
-        else:
-            pipeline_run_index += 1
-
         # run_index is the index of the run within the runs of this job
         # scheduling/execution.
         for run_index, run_parameters in enumerate(job.parameters):
@@ -648,10 +628,10 @@ class RunJob(TwoPhaseFunction):
                 "parameters": run_parameters,
                 "job_run_index": job.total_scheduled_executions,
                 "job_run_pipeline_run_index": run_index,
-                "pipeline_run_index": pipeline_run_index,
+                "pipeline_run_index": job.total_scheduled_pipeline_runs,
                 "env_variables": job.env_variables,
             }
-            pipeline_run_index += 1
+            job.total_scheduled_pipeline_runs += 1
 
             db.session.add(models.NonInteractivePipelineRun(**non_interactive_run))
             # Need to flush because otherwise the bulk insertion of
