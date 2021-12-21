@@ -122,7 +122,7 @@ export enum TEST_ID {
   PIPELINE_ENV_VAR_VALUE = "pipeline-env-var-value",
   PIPELINE_NAME_TEXTFIELD = "pipeline-name-textfield",
   PIPELINE_PATH_TEXTFIELD = "pipeline-path-textfield",
-  PIPELINE_SERVICES_ROW = "pipeline-services-row",
+  PIPELINE_SERVICES_ROW = "service-list-row",
   PIPELINE_SERVICE_ADD = "pipeline-service-add",
   PIPELINE_SETTINGS = "pipeline-settings",
   PIPELINE_SETTINGS_CLOSE = "pipeline-settings-close",

@@ -115,11 +115,18 @@ Cypress.Commands.add(
     assert(names.length == values.length);
     cy.goToMenu("projects");
     cy.findByTestId(`settings-button-${project}`).click();
+    cy.wait(100);
     for (let i = 0; i < names.length; i++) {
       cy.findByTestId(TEST_ID.PROJECT_ENV_VAR_ADD).click();
       // Would not support concurrent adds.
-      cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_NAME).last().type(names[i]);
-      cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE).last().type(values[i]);
+      cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_NAME)
+        .last()
+        .find("input")
+        .type(names[i]);
+      cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE)
+        .last()
+        .find("input")
+        .type(values[i]);
     }
     cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
     cy.wait("@allPuts");

@@ -427,7 +427,11 @@ const ServiceForm: React.FC<{
                     />
                   </FormGroup>
                 </Stack>
-                <Stack direction="column" flex={1}>
+                <Stack
+                  direction="column"
+                  flex={1}
+                  data-test-id={`service-${props.service.name}-inherited-env-vars`}
+                >
                   <FormSectionTitle title="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level.">
                     Inherited environment variables
                   </FormSectionTitle>

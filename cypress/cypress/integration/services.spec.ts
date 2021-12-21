@@ -35,6 +35,7 @@ describe("services", () => {
       cy.exec(
         `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} ../userdir/projects/`
       );
+      cy.reload();
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
@@ -50,6 +51,7 @@ describe("services", () => {
           TEST_ID.SESSION_TOGGLE_BUTTON
         ).contains("Stop session", { timeout: 60000 });
       });
+
       it("tests for services connectivity in interactive runs", () => {
         cy.get(
           `[data-test-title=${PROJECTS.SERVICES_CONNECTIVITY.name}]`
@@ -88,7 +90,10 @@ describe("services", () => {
 
       it("tests for services connectivity in jobs", () => {
         cy.findByTestId(TEST_ID.JOB_RUN).click();
-        cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
+        cy.findByTestId(`job-list`)
+          .first()
+          .contains(SAMPLE_JOB_NAMES.J1)
+          .click();
         waitForJobStatus(JOB_STATUS.SUCCESS);
 
         // Check that the internal connectivity check has gone well.
@@ -105,6 +110,7 @@ describe("services", () => {
       });
     });
   });
+
   it("tests services data mounting for interactive runs", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.createPipeline(SAMPLE_PROJECT_NAMES.P1);
@@ -180,7 +186,7 @@ describe("services", () => {
     cy.findByTestId(TEST_ID.JOB_CREATE_NAME).type(SAMPLE_JOB_NAMES.J1);
     cy.findByTestId(TEST_ID.JOB_CREATE_OK).click();
     cy.findByTestId(TEST_ID.JOB_RUN).click();
-    cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
+    cy.findByTestId(`job-list`).first().contains(SAMPLE_JOB_NAMES.J1).click();
     waitForJobStatus(JOB_STATUS.SUCCESS);
     cy.intercept("GET", "/catch/api-proxy/api/jobs/*").as("jobData");
     cy.reload();
@@ -304,9 +310,11 @@ describe("services", () => {
       for (let i = 0; i < envVars.service_env_vars_names.length; i++) {
         cy.findByTestId(`service-${name}-env-var-add`).scrollIntoView().click();
         cy.findByTestId(`service-${name}-env-var-name`)
+          .find("input")
           .last()
           .type(envVars.service_env_vars_names[i]);
         cy.findByTestId(`service-${name}-env-var-value`)
+          .find("input")
           .last()
           .type(envVars.service_env_vars_values[i]);
       }
@@ -315,6 +323,7 @@ describe("services", () => {
       for (let i = 0; i < envVars.service_inherited_env_vars.length; i++) {
         cy.findByTestId(`service-${name}-inherited-env-vars`)
           .scrollIntoView()
+          .find("input")
           .type(envVars.service_inherited_env_vars[i]);
         // Typing {enter} won't work to define an env var, need to save.
         cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
@@ -450,6 +459,7 @@ describe("services", () => {
       for (let i = 0; i < envVars.service_inherited_env_vars.length; i++) {
         cy.findByTestId(`service-${name}-inherited-env-vars`)
           .scrollIntoView()
+          .find("input")
           .type(envVars.service_inherited_env_vars[i]);
         // Typing {enter} won't work to define an env var, need to save.
         cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
@@ -492,7 +502,7 @@ describe("services", () => {
       }
 
       cy.findByTestId(TEST_ID.JOB_RUN).click();
-      cy.findByTestId(`job-${SAMPLE_JOB_NAMES.J1}`).click();
+      cy.findByTestId(`job-list`).first().contains(SAMPLE_JOB_NAMES.J1).click();
       waitForJobStatus(JOB_STATUS.SUCCESS);
 
       let expectedFileContent = expectedValues.map(String).join(",") + "\n";
