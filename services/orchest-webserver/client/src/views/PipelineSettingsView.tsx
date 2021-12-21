@@ -87,17 +87,17 @@ const tabMapping: Record<string, number> = {
 
 const tabs = [
   {
-    id: "configuration-tab",
+    id: "configuration",
     label: "Configuration",
     icon: <ListIcon />,
   },
   {
-    id: "environment-variables-tab",
+    id: "environment-variables",
     label: "Environment variables",
     icon: <ViewComfyIcon />,
   },
   {
-    id: "services-tab",
+    id: "services",
     label: "Services",
     icon: <MiscellaneousServicesIcon />,
   },
@@ -688,7 +688,22 @@ const PipelineSettingsView: React.FC = () => {
       <div className="view-page pipeline-settings-view">
         {hasLoaded() ? (
           <div className="pipeline-settings">
-            <h2>Pipeline settings</h2>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="h6" component="h2">
+                Pipeline settings
+              </Typography>
+              <IconButton
+                title="Close"
+                onClick={closeSettings}
+                data-test-id="pipeline-settings-close"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Stack>
 
             <Tabs
               value={tabIndex}
@@ -702,6 +717,7 @@ const PipelineSettingsView: React.FC = () => {
                   id={tab.id}
                   label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
                   aria-controls={tab.id}
+                  data-test-id={`${tab.id}-tab`}
                 />
               ))}
             </Tabs>
@@ -982,16 +998,7 @@ const PipelineSettingsView: React.FC = () => {
                 </Stack>
               </CustomTabPanel>
             </div>
-            <div className="top-buttons">
-              <IconButton
-                title="Close"
-                className="close-button"
-                onClick={closeSettings}
-                data-test-id="pipeline-settings-close"
-              >
-                <CloseIcon />
-              </IconButton>
-            </div>
+
             {!isReadOnly && (
               <div className="bottom-buttons observe-overflow">
                 <Button

@@ -110,6 +110,7 @@ Cypress.Commands.add("importProject", (url, name) => {
 Cypress.Commands.add(
   "addProjectEnvVars",
   (project: string, names: string[], values: string[]) => {
+    cy.log("======= Start adding project env vars.");
     cy.intercept("PUT", /.*/).as("allPuts");
     assert(names.length == values.length);
     cy.goToMenu("projects");
@@ -122,6 +123,7 @@ Cypress.Commands.add(
     }
     cy.findByTestId(TEST_ID.PROJECT_SETTINGS_SAVE).click();
     cy.wait("@allPuts");
+    cy.log("======= Done adding project env vars.");
   }
 );
 
@@ -129,21 +131,25 @@ Cypress.Commands.add(
   "addPipelineEnvVars",
   (pipeline: string, names: string[], values: string[]) => {
     assert(names.length == values.length);
+    cy.log("======= Start adding pipeline env vars.");
     cy.intercept("PUT", /.*/).as("allPuts");
     cy.goToMenu("pipelines");
-    cy.findByTestId(`pipeline-${pipeline}`).click();
+    cy.findByTestId(`pipeline-list-row`).first().click();
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
     cy.findByTestId(
       TEST_ID.PIPELINE_SETTINGS_TAB_ENVIRONMENT_VARIABLES
     ).click();
-    for (let i = 0; i < names.length; i++) {
+
+    names.forEach((name, i) => {
       cy.findByTestId(TEST_ID.PIPELINE_ENV_VAR_ADD).click();
       // Would not support concurrent adds.
-      cy.findAllByTestId(TEST_ID.PIPELINE_ENV_VAR_NAME).last().type(names[i]);
+      cy.findAllByTestId(TEST_ID.PIPELINE_ENV_VAR_NAME).last().type(name);
       cy.findAllByTestId(TEST_ID.PIPELINE_ENV_VAR_VALUE).last().type(values[i]);
-    }
+    });
+
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
     cy.wait("@allPuts");
+    cy.log("======= Done adding pipeline env vars.");
   }
 );
 

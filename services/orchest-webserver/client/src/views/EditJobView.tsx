@@ -738,6 +738,7 @@ const EditJobView: React.FC = () => {
                   id={tab.id}
                   label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
                   aria-controls={tab.id}
+                  data-test-id={`${tab.id}-tab`}
                 />
               ))}
             </Tabs>
