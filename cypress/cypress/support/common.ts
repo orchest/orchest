@@ -37,7 +37,7 @@ export enum TEST_ID {
   AUTH_ADMIN_IFRAME = "auth-admin-iframe",
   CONFIRM_DIALOG_OK = "confirm-dialog-ok",
   CREATE_PROJECT = "create-project",
-  DELETE_PROJECT = "delete-project",
+  DELETE_PROJECT = "project-list-delete",
   ENVIRONMENTS_BUILD_STATUS = "environments-build-status",
   ENVIRONMENTS_CANCEL_BUILD = "environments-cancel-build",
   ENVIRONMENTS_CREATE = "environments-create",
