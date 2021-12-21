@@ -633,21 +633,25 @@ const PipelineSettingsView: React.FC = () => {
     {
       id: "remove",
       label: "Delete",
-      render: (row) => (
-        <IconButton
-          title="Delete"
-          disabled={isReadOnly}
-          onClick={() => {
-            setConfirm(
-              "Warning",
-              "Are you sure you want to delete the service: " + row.name + "?",
-              async () => deleteService(row.name)
-            );
-          }}
-        >
-          <DeleteIcon />
-        </IconButton>
-      ),
+      render: function ServiceDeleteButton(row) {
+        return (
+          <IconButton
+            title="Delete"
+            disabled={isReadOnly}
+            onClick={() => {
+              setConfirm(
+                "Warning",
+                "Are you sure you want to delete the service: " +
+                  row.name +
+                  "?",
+                async () => deleteService(row.name)
+              );
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        );
+      },
     },
   ];
 

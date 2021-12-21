@@ -91,33 +91,35 @@ const ProjectsView: React.FC = () => {
       {
         id: "path",
         label: "Project",
-        render: (row) => (
-          <Stack
-            direction="row"
-            alignItems="center"
-            component="span"
-            sx={{
-              display: "inline-flex",
-              button: { visibility: "hidden" },
-              "&:hover": {
-                button: { visibility: "visible" },
-              },
-            }}
-          >
-            {row.path}
-            <IconButton
-              title="Edit job name"
-              size="small"
-              sx={{ marginLeft: (theme) => theme.spacing(2) }}
-              onClick={(e) => {
-                e.stopPropagation();
-                onEditProjectName(row.uuid, row.path);
+        render: function ProjectPath(row) {
+          return (
+            <Stack
+              direction="row"
+              alignItems="center"
+              component="span"
+              sx={{
+                display: "inline-flex",
+                button: { visibility: "hidden" },
+                "&:hover": {
+                  button: { visibility: "visible" },
+                },
               }}
             >
-              <EditIcon />
-            </IconButton>
-          </Stack>
-        ),
+              {row.path}
+              <IconButton
+                title="Edit job name"
+                size="small"
+                sx={{ marginLeft: (theme) => theme.spacing(2) }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditProjectName(row.uuid, row.path);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Stack>
+          );
+        },
       },
       { id: "pipeline_count", label: "Pipelines" },
       { id: "session_count", label: "Active sessions" },
@@ -126,7 +128,7 @@ const ProjectsView: React.FC = () => {
       {
         id: "settings",
         label: "Settings",
-        render: (row) => {
+        render: function ProjectSettingsButton(row) {
           return (
             <IconButton
               title="settings"

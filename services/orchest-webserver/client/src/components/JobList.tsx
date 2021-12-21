@@ -49,40 +49,44 @@ const createColumns = ({
   {
     id: "name",
     label: "Job",
-    render: (row) => (
-      <Stack
-        direction="row"
-        alignItems="center"
-        component="span"
-        sx={{
-          display: "inline-flex",
-          button: { visibility: "hidden" },
-          "&:hover": {
-            button: { visibility: "visible" },
-          },
-        }}
-      >
-        {row.name}
-        <IconButton
-          title="Edit job name"
-          size="small"
-          sx={{ marginLeft: (theme) => theme.spacing(2) }}
-          onClick={(e: React.MouseEvent<unknown>) => {
-            e.stopPropagation();
-            onEditJobNameClick(row.uuid, row.name);
+    render: function JobName(row) {
+      return (
+        <Stack
+          direction="row"
+          alignItems="center"
+          component="span"
+          sx={{
+            display: "inline-flex",
+            button: { visibility: "hidden" },
+            "&:hover": {
+              button: { visibility: "visible" },
+            },
           }}
         >
-          <EditIcon />
-        </IconButton>
-      </Stack>
-    ),
+          {row.name}
+          <IconButton
+            title="Edit job name"
+            size="small"
+            sx={{ marginLeft: (theme) => theme.spacing(2) }}
+            onClick={(e: React.MouseEvent<unknown>) => {
+              e.stopPropagation();
+              onEditJobNameClick(row.uuid, row.name);
+            }}
+          >
+            <EditIcon />
+          </IconButton>
+        </Stack>
+      );
+    },
   },
   { id: "pipeline", label: "Pipeline" },
   { id: "snapShotDate", label: "Snapshot date" },
   {
     id: "status",
     label: "Status",
-    render: (row) => <StatusInline status={row.status} />,
+    render: function SnapshotDate(row) {
+      return <StatusInline status={row.status} />;
+    },
   },
 ];
 

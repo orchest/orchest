@@ -236,8 +236,9 @@ const columns: DataTableColumn<PipelineRunRow>[] = [
   {
     id: "spec",
     label: "Run specification",
-    render: (row) =>
-      row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec,
+    render: function RunSpec(row) {
+      return row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec;
+    },
   },
 ];
 

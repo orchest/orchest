@@ -54,7 +54,7 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
   {
     id: "gpu_support",
     label: "GPU Support",
-    render: ({ gpu_support }) => {
+    render: function GpuSupport({ gpu_support }) {
       return (
         <Typography
           variant="body2"

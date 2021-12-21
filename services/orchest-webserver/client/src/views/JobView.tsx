@@ -174,7 +174,7 @@ const columns: DataTableColumn<PipelineRun>[] = [
   {
     id: "parameters",
     label: "Parameters",
-    render: (row) => {
+    render: function RunParameters(row) {
       const formattedParams = formatPipelineParams(row.parameters);
       if (!Array.isArray(formattedParams)) return formattedParams;
       return formattedParams.join(", ");
@@ -183,17 +183,20 @@ const columns: DataTableColumn<PipelineRun>[] = [
   {
     id: "status",
     label: "Status",
-    render: (row) => <StatusInline status={row.status} />,
+    render: function RunStatus(row) {
+      return <StatusInline status={row.status} />;
+    },
   },
   {
     id: "started_time",
     label: "Started at",
-    render: (row) =>
-      row.started_time ? (
+    render: function RunStartedTime(row) {
+      return row.started_time ? (
         formatServerDateTime(row.started_time)
       ) : (
         <i>Not yet started</i>
-      ),
+      );
+    },
   },
 ];
 
@@ -203,8 +206,9 @@ const runSpecTableColumns: DataTableColumn<PipelineRunRow>[] = [
   {
     id: "spec",
     label: "Run specification",
-    render: (row) =>
-      row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec,
+    render: function RunSpec(row) {
+      return row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec;
+    },
   },
 ];
 

@@ -74,49 +74,53 @@ const getColumns = (
   {
     id: "path",
     label: "Path",
-    render: (row) => (
-      <Stack
-        direction="row"
-        alignItems="center"
-        component="span"
-        sx={{
-          display: "inline-flex",
-          button: { visibility: "hidden" },
-          "&:hover": {
-            button: { visibility: "visible" },
-          },
-        }}
-        data-test-id="pipeline-path"
-      >
-        {row.path}
-        <IconButton
-          title="Edit pipeline path"
-          size="small"
-          sx={{ marginLeft: (theme) => theme.spacing(2) }}
-          onClick={(e: React.MouseEvent<unknown>) => {
-            e.stopPropagation();
-            onEditPath(row.uuid, row.path);
+    render: function PipelineName(row) {
+      return (
+        <Stack
+          direction="row"
+          alignItems="center"
+          component="span"
+          sx={{
+            display: "inline-flex",
+            button: { visibility: "hidden" },
+            "&:hover": {
+              button: { visibility: "visible" },
+            },
           }}
-          data-test-id="pipeline-edit-path"
+          data-test-id="pipeline-path"
         >
-          <EditIcon />
-        </IconButton>
-      </Stack>
-    ),
+          {row.path}
+          <IconButton
+            title="Edit pipeline path"
+            size="small"
+            sx={{ marginLeft: (theme) => theme.spacing(2) }}
+            onClick={(e: React.MouseEvent<unknown>) => {
+              e.stopPropagation();
+              onEditPath(row.uuid, row.path);
+            }}
+            data-test-id="pipeline-edit-path"
+          >
+            <EditIcon />
+          </IconButton>
+        </Stack>
+      );
+    },
   },
   {
     id: "sessionStatus",
     label: "Session",
-    render: (row) => (
-      <Box sx={{ width: (theme) => theme.spacing(26) }}>
-        <SessionToggleButton
-          projectUuid={projectUuid}
-          pipelineUuid={row.uuid}
-          status={row.sessionStatus}
-          isSwitch
-        />
-      </Box>
-    ),
+    render: function SessionStatus(row) {
+      return (
+        <Box sx={{ width: (theme) => theme.spacing(26) }}>
+          <SessionToggleButton
+            projectUuid={projectUuid}
+            pipelineUuid={row.uuid}
+            status={row.sessionStatus}
+            isSwitch
+          />
+        </Box>
+      );
+    },
   },
 ];
 
