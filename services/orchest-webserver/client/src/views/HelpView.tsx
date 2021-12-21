@@ -9,11 +9,11 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-const HelpItem: React.FC<{ link: string; image: string }> = ({
-  link,
-  children,
-  image,
-}) => {
+const HelpItem: React.FC<{
+  link: string;
+  image: string;
+  imageStyle?: React.CSSProperties;
+}> = ({ link, children, image, imageStyle }) => {
   return (
     <Stack
       component="a"
@@ -23,7 +23,10 @@ const HelpItem: React.FC<{ link: string; image: string }> = ({
       href={link}
       target="_blank"
       rel="noreferrer"
-      sx={{ color: (theme) => theme.palette.text.primary }}
+      sx={{
+        color: (theme) => theme.palette.text.primary,
+        height: (theme) => theme.spacing(4),
+      }}
     >
       <Box
         sx={{
@@ -31,7 +34,7 @@ const HelpItem: React.FC<{ link: string; image: string }> = ({
           height: (theme) => theme.spacing(3),
         }}
       >
-        <img src={image} width="100%" />
+        <img src={image} style={{ width: "100%", ...imageStyle }} />
       </Box>
       <Typography>{children}</Typography>
     </Stack>
@@ -62,20 +65,27 @@ const HelpView: React.FC = () => {
         <Stack
           direction="column"
           spacing={3}
+          alignItems="flex-start"
           sx={{ marginLeft: (theme) => theme.spacing(3) }}
         >
           <HelpItem
             link={`${readthedocs}/getting_started/quickstart.html`}
             image="/image/readthedocs.png"
+            imageStyle={{ width: "18px", margin: "0 auto" }}
           >
             Quickstart
           </HelpItem>
-          <HelpItem link={readthedocs} image="/image/readthedocs.png">
+          <HelpItem
+            link={readthedocs}
+            image="/image/readthedocs.png"
+            imageStyle={{ width: "18px", margin: "0 auto" }}
+          >
             Documentation
           </HelpItem>
           <HelpItem
             link={`${website}/video-tutorials`}
-            image="/image/favicon.png"
+            image="/image/logo.svg"
+            imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
           >
             Video tutorials
           </HelpItem>
@@ -85,7 +95,11 @@ const HelpView: React.FC = () => {
           <HelpItem link={github} image="/image/github.png">
             GitHub
           </HelpItem>
-          <HelpItem link={website} image="/image/favicon.png">
+          <HelpItem
+            link={website}
+            image="/image/logo.svg"
+            imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
+          >
             Website
           </HelpItem>
         </Stack>
