@@ -6,7 +6,7 @@ Revises: 7c2f9f12f9ca
 Create Date: 2021-12-21 15:11:58.657960
 
 """
-from app.models import Job, NonInteractivePipelineRun
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = "da828f0ba13b"
@@ -16,14 +16,19 @@ depends_on = None
 
 
 def upgrade():
-    jobs = Job.query.all()
-    # There is for sure a more elegant way.
-    for job in jobs:
-        count = NonInteractivePipelineRun.query.filter_by(job_uuid=job.uuid).count()
-        if count is None:
-            count = 0
-        job.total_scheduled_pipeline_runs = count
+    op.execute(
+        """
+        WITH tmp as (
+        SELECT jobs.uuid, runs.count FROM jobs JOIN (SELECT job_uuid, count(*) FROM
+        pipeline_runs WHERE job_uuid IS NOT NULL GROUP BY job_uuid) AS runs ON
+        jobs.uuid = runs.job_uuid)
+        UPDATE jobs
+        SET total_scheduled_pipeline_runs = tmp.count
+        FROM tmp
+        WHERE jobs.uuid = tmp.uuid;
+        """
+    )
 
 
 def downgrade():
-    Job.query.update({"total_scheduled_pipeline_runs": 0})
+    op.execute("UPDATE jobs set total_scheduled_pipeline_runs = 0;")
