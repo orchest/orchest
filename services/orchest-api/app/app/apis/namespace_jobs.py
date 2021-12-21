@@ -153,12 +153,13 @@ class Job(Resource):
 
         job_update = request.get_json()
 
-        name = job_update.get("name", None)
-        cron_schedule = job_update.get("cron_schedule", None)
-        parameters = job_update.get("parameters", None)
-        env_variables = job_update.get("env_variables", None)
-        next_scheduled_time = job_update.get("next_scheduled_time", None)
-        strategy_json = job_update.get("strategy_json", None)
+        name = job_update.get("name")
+        cron_schedule = job_update.get("cron_schedule")
+        parameters = job_update.get("parameters")
+        env_variables = job_update.get("env_variables")
+        next_scheduled_time = job_update.get("next_scheduled_time")
+        strategy_json = job_update.get("strategy_json")
+        max_retained_pipeline_runs = job_update.get("max_retained_pipeline_runs")
         confirm_draft = "confirm_draft" in job_update
 
         try:
@@ -171,6 +172,7 @@ class Job(Resource):
                     env_variables,
                     next_scheduled_time,
                     strategy_json,
+                    max_retained_pipeline_runs,
                     confirm_draft,
                 )
         except Exception as e:
@@ -822,6 +824,10 @@ class CreateJob(TwoPhaseFunction):
             "status": "DRAFT",
             "strategy_json": job_spec.get("strategy_json", {}),
             "created_time": datetime.now(timezone.utc),
+            # If not specified -> no max limit -> -1.
+            "max_retained_pipeline_runs": job_spec.get(
+                "max_retained_pipeline_runs", -1
+            ),
         }
         db.session.add(models.Job(**job))
 
@@ -860,6 +866,7 @@ class UpdateJob(TwoPhaseFunction):
         env_variables: Dict[str, str],
         next_scheduled_time: str,
         strategy_json: Dict[str, Any],
+        max_retained_pipeline_runs: int,
         confirm_draft,
     ):
         job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
@@ -953,6 +960,17 @@ class UpdateJob(TwoPhaseFunction):
                     )
                 )
             job.strategy_json = strategy_json
+
+        if max_retained_pipeline_runs is not None:
+            if job.schedule is None and job.status != "DRAFT":
+                raise ValueError(
+                    (
+                        "Failed update operation. Cannot update the "
+                        "max_retained_pipeline_runs of a job which is not a draft nor "
+                        "a cron job."
+                    )
+                )
+            job.max_retained_pipeline_runs = max_retained_pipeline_runs
 
         if confirm_draft:
             if job.status != "DRAFT":
