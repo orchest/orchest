@@ -70,8 +70,14 @@ describe("pipelines", () => {
   it("creates a pipeline, edits the path", () => {
     cy.intercept("PUT", /.*/).as("allPuts");
     cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
+
+    // a known issue of Cypress; however the workaround doesn't always work
+    // https://docs.cypress.io/api/commands/hover#Workarounds
+    // cy.findByTestId("pipeline-path").trigger("mouseover");
+    // cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).should("be.visible");
+
+    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click({ force: true });
     let path = `my-super-test.orchest`;
-    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
     cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
       .should("be.visible")
       .type("{selectall}{backspace}")
@@ -85,7 +91,7 @@ describe("pipelines", () => {
     cy.intercept("PUT", /.*/).as("allPuts");
     let path = `/a/b/c/my-super-test.orchest`;
     cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
-    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
+    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click({ force: true });
     cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
       .should("be.visible")
       .type("{selectall}{backspace}")
@@ -102,10 +108,11 @@ describe("pipelines", () => {
         `${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/${input[1]}.orchest`
       );
     });
+
     it(`tests pipelines path edit normalization (${input[0]} to ${input[1]})`, () => {
       cy.intercept("PUT", /.*/).as("allPuts");
       cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
-      cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
+      cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click({ force: true });
       cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
         .should("be.visible")
         .type("{selectall}{backspace}")
@@ -200,6 +207,7 @@ describe("pipelines", () => {
           TEST_ID.SESSION_TOGGLE_BUTTON
         ).contains("Stop session", { timeout: 60000 });
       });
+
       it("tests getting into Jupyterlab", () => {
         cy.findByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB).click();
         waitForJupyterlab();

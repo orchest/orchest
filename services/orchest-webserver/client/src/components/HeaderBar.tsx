@@ -152,7 +152,6 @@ export const HeaderBar = ({
             <Button
               variant="outlined"
               color="secondary"
-              disabled={currentSession?.status !== "RUNNING"}
               onClick={showJupyter}
               startIcon={<ScienceIcon />}
               data-test-id="switch-to-jupyterlab"

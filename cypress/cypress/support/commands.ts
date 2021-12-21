@@ -253,6 +253,7 @@ Cypress.Commands.add(
 );
 
 Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
+  cy.log("======== Start creating pipeline");
   cy.goToMenu("pipelines");
   cy.findByTestId(TEST_ID.PIPELINE_CREATE).should("be.visible").click();
   cy.findByTestId(TEST_ID.PIPELINE_NAME_TEXTFIELD)
@@ -270,12 +271,14 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
   }
   cy.findByTestId(TEST_ID.PIPELINE_CREATE_OK).click();
   cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 1);
+  cy.log("======== Done creating pipeline");
 });
 
 // Assumes to be in the pipeline editor, in edit mode (not read-only).
 Cypress.Commands.add(
   "createStep",
   (title: string, createNewFile?: boolean, fileName?: string) => {
+    cy.log("========= Start creating step");
     cy.location("pathname").should("eq", "/pipeline");
     cy.intercept("POST", /.*/).as("allPosts");
     cy.findByTestId(TEST_ID.STEP_CREATE).should("be.visible").pipe(piped_click);
@@ -283,7 +286,10 @@ Cypress.Commands.add(
       .type("{selectall}{backspace}")
       .type(title);
     cy.wait("@allPosts");
-    cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).pipe(piped_click);
+
+    cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD)
+      .find("input")
+      .focus();
     if (createNewFile) {
       cy.findByTestId(TEST_ID.FILE_PICKER_NEW_FILE).pipe(piped_click);
       cy.findByTestId(
@@ -311,6 +317,7 @@ Cypress.Commands.add(
     cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS)
       .should("be.visible")
       .pipe(piped_click);
+    cy.log("========= Done creating step");
   }
 );
 

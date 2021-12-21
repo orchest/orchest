@@ -86,6 +86,7 @@ const getColumns = (
             button: { visibility: "visible" },
           },
         }}
+        data-test-id="pipeline-path"
       >
         {row.path}
         <IconButton
@@ -96,6 +97,7 @@ const getColumns = (
             e.stopPropagation();
             onEditPath(row.uuid, row.path);
           }}
+          data-test-id="pipeline-edit-path"
         >
           <EditIcon />
         </IconButton>
