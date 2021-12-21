@@ -1,10 +1,13 @@
 import datetime
 
 import pytest
+import requests
 from tests.test_utils import create_job_spec
 
 from _orchest.internals.test_utils import raise_exception_function
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app.apis import namespace_jobs
+from app.connections import db
 
 
 @pytest.mark.parametrize(
@@ -352,14 +355,13 @@ def test_pipelinerun_set(client, celery, pipeline):
 
     pipeline_runs = client.get(f"/api/jobs/{job_uuid}").get_json()["pipeline_runs"]
     for run in pipeline_runs:
-        resp = client.put(
+        client.put(
             f'/api/jobs/{job_uuid}/{run["uuid"]}',
             json={
                 "status": "SUCCESS",
                 "finished_time": datetime.datetime.now().isoformat(),
             },
         )
-        print(resp.status_code)
 
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
 
@@ -505,3 +507,213 @@ def test_pipelinerundeletion_all_runs(
     ]
     assert not pipeline_runs
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
+
+
+def test_delete_non_retained_pipeline_runs_on_job_run_retain_all(
+    test_app, client, celery, pipeline, abortable_async_res, monkeypatch, mocker
+):
+    mocker.patch("requests.delete")
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        assert run["status"] == "SUCCESS"
+
+    # Trigger another job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # The previously existing pipeline runs should still be there.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert len(pipeline_runs) == 6
+    requests.delete.assert_not_called()
+
+
+@pytest.mark.parametrize("max_retained_pipeline_runs", [0, 1, 2, 3, 6, 9])
+def test_delete_non_retained_pipeline_runs_on_job_run_retain_n(
+    max_retained_pipeline_runs,
+    test_app,
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+    monkeypatch,
+    mocker,
+):
+    mocker.patch("requests.delete")
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid,
+        pipeline.uuid,
+        parameters=[{}, {}, {}],
+        max_retained_pipeline_runs=max_retained_pipeline_runs,
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+
+    # A job run entering an end state will trigger a deletion, reset
+    # the mock to make sure we are only counting the deletes triggered
+    # by RunJob.
+    requests.delete.reset_mock()
+
+    # Trigger another job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert len(pipeline_runs) == 6
+    # Can't delete more than 3 times since we have 3 times.
+    assert requests.delete.call_count == max(0, min(3, 6 - max_retained_pipeline_runs))
+
+
+def test_delete_non_retained_pipeline_runs_on_job_run_update_retain_all(
+    test_app, client, celery, pipeline, abortable_async_res, monkeypatch, mocker
+):
+    mocker.patch("requests.delete")
+
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        assert run["status"] == "SUCCESS"
+
+    requests.delete.assert_not_called()
+
+
+@pytest.mark.parametrize("max_retained_pipeline_runs", [0, 1, 2, 3, 6])
+def test_delete_non_retained_pipeline_runs_on_job_run_update_retain_n(
+    max_retained_pipeline_runs,
+    test_app,
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+    monkeypatch,
+    mocker,
+):
+    mocker.patch("requests.delete")
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid,
+        pipeline.uuid,
+        parameters=[{}, {}, {}],
+        max_retained_pipeline_runs=max_retained_pipeline_runs,
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+
+    # Can't delete more than 3 times since we have 3 times.
+    expected_calls = 0
+    for i in range(1, 4):
+        # This is needed because only the last run will see all other
+        # runs in an end state, i.e. Sum(calls triggered by every run
+        # finishing).
+        expected_calls += max(0, (i - max_retained_pipeline_runs))
+    assert requests.delete.call_count == expected_calls
