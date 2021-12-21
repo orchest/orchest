@@ -65,7 +65,7 @@ describe("interactive runs", () => {
         d: { e: ["f"], g: {} },
       },
     ].forEach((parameters) => {
-      it("creates and runs a step with parameters", () => {
+      xit("creates and runs a step with parameters", () => {
         // Copy the step file (notebook).
         cy.exec(
           `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
@@ -100,7 +100,7 @@ describe("interactive runs", () => {
         d: { e: ["f"], g: {} },
       },
     ].forEach((parameters) => {
-      it("creates and runs a step with pipeline parameters", () => {
+      xit("creates and runs a step with pipeline parameters", () => {
         cy.intercept("POST", /.*/).as("allPosts");
         // Change the pipeline parameters.
         cy.findByTestId(TEST_ID.PIPELINE_SETTINGS).click();
@@ -162,7 +162,7 @@ describe("interactive runs", () => {
           [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
         ].forEach((x) => assert(x[0].length == x[1].length));
 
-        it("creates and runs a step with project and pipeline env vars", () => {
+        xit("creates and runs a step with project and pipeline env vars", () => {
           cy.addProjectEnvVars(
             SAMPLE_PROJECT_NAMES.P1,
             envVars.project_env_vars_names,
@@ -257,7 +257,7 @@ describe("interactive runs", () => {
         input_data_name: "output_name",
       },
     ].forEach((paramsA) => {
-      it(`tests data passing - ${
+      xit(`tests data passing - ${
         paramsA.input_data_name === undefined ? "unnamed" : "named"
       }`, () => {
         cy.findByTestId(TEST_ID.PIPELINE_CENTER);
@@ -322,7 +322,7 @@ describe("interactive runs", () => {
         },
       },
     ].forEach((testData) => {
-      it(`tests memory eviction - unnamed - eviction=${testData.eviction})`, () => {
+      xit(`tests memory eviction - unnamed - eviction=${testData.eviction})`, () => {
         cy.findByTestId(TEST_ID.PIPELINE_CENTER);
 
         // Activate memory eviction and restart the memory server.

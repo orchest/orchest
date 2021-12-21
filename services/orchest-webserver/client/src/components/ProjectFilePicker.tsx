@@ -279,71 +279,81 @@ const ProjectFilePicker: React.FC<{
         onClose={onCloseCreateFileModal}
         data-test-id="project-file-picker-create-new-file-dialog"
       >
-        <DialogTitle>Create a new file</DialogTitle>
-        <DialogContent>
-          <div className="create-file-input">
-            <div className="push-down">
-              Supported file extensions are:&nbsp;
-              {allowedExtensionsMarkup()}.
-            </div>
-            <Stack direction="row" spacing={2}>
+        <form
+          id="create-file"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSubmitModal();
+          }}
+        >
+          <DialogTitle>Create a new file</DialogTitle>
+          <DialogContent>
+            <div className="create-file-input">
+              <div className="push-down">
+                Supported file extensions are:&nbsp;
+                {allowedExtensionsMarkup()}.
+              </div>
+              <Stack direction="row" spacing={2}>
+                <TextField
+                  label="File name"
+                  autoFocus
+                  value={state.fileName}
+                  fullWidth
+                  onChange={(e) => onChangeNewFilename(e.target.value)}
+                  data-test-id="project-file-picker-file-name-textfield"
+                />
+                <FormControl fullWidth>
+                  <InputLabel id="project-file-picker-file-extension-label">
+                    Extension
+                  </InputLabel>
+                  <Select
+                    label="Extension"
+                    labelId="project-file-picker-file-extension-label"
+                    id="project-file-picker-file-extension"
+                    value={state.selectedExtension}
+                    onChange={(e) =>
+                      onChangeNewFilenameExtension(e.target.value)
+                    }
+                  >
+                    {ALLOWED_STEP_EXTENSIONS.map((el) => {
+                      const value = `.${el}`;
+                      return (
+                        <MenuItem key={value} value={value}>
+                          {value}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              </Stack>
               <TextField
-                label="File name"
-                value={state.fileName}
+                label="Path in project"
+                value={getFullProjectPath()}
                 fullWidth
-                onChange={(e) => onChangeNewFilename(e.target.value)}
-                data-test-id="project-file-picker-file-name-textfield"
+                margin="normal"
+                disabled
               />
-              <FormControl fullWidth>
-                <InputLabel id="project-file-picker-file-extension-label">
-                  Extension
-                </InputLabel>
-                <Select
-                  label="Extension"
-                  labelId="project-file-picker-file-extension-label"
-                  id="project-file-picker-file-extension"
-                  value={state.selectedExtension}
-                  onChange={(e) => onChangeNewFilenameExtension(e.target.value)}
-                >
-                  {ALLOWED_STEP_EXTENSIONS.map((el) => {
-                    const value = `.${el}`;
-                    return (
-                      <MenuItem key={value} value={value}>
-                        {value}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-            </Stack>
-            <TextField
-              label="Path in project"
-              value={getFullProjectPath()}
-              fullWidth
-              margin="normal"
-              disabled
-            />
-          </div>
-        </DialogContent>
-        <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={onCloseCreateFileModal}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            type="submit"
-            onClick={onSubmitModal}
-            data-test-id="project-file-picker-create-file"
-          >
-            Create file
-          </Button>
-        </DialogActions>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              startIcon={<CloseIcon />}
+              color="secondary"
+              onClick={onCloseCreateFileModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              startIcon={<AddIcon />}
+              type="submit"
+              form="create-file"
+              data-test-id="project-file-picker-create-file"
+            >
+              Create file
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
       {state.cwd && state.tree && (
         <FilePicker

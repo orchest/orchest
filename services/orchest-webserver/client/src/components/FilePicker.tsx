@@ -3,12 +3,13 @@ import { FileTree } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
 import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
+import Box from "@mui/material/Box";
 import InputAdornment from "@mui/material/InputAdornment";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import MenuList from "@mui/material/MenuList";
+import Paper from "@mui/material/Paper";
 import TextField from "@mui/material/TextField";
 import { absoluteToRelativePath, collapseDoubleDots } from "@orchest/lib-utils";
 import React from "react";
@@ -92,21 +93,31 @@ const computeInitialPath = ({
 
 const ITEM_HEIGHT = 48;
 
+const visualizePath = (path: string, cwd: string) => {
+  return absoluteToRelativePath(path, cwd).slice(1);
+};
+
+// TODO: use MUI Dropdown when it is released
+
 const FilePicker: React.FC<FilePickerProps> = (props) => {
   const [path, setPath] = React.useState(() => computeInitialPath(props));
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
-  const [anchorEl, setAnchorEl] = React.useState<null | Element>(null);
-  const isOpen = Boolean(anchorEl);
-  useClickOutside(inputRef, () => setAnchorEl(null));
+  const menuRef = React.useRef<HTMLDivElement>();
+  useClickOutside(menuRef, () => setIsDropdownOpen(false));
+
+  const isBlurAllowed = React.useRef(true);
+  const onMouseOverMenu = () => {
+    isBlurAllowed.current = false;
+  };
+  const onMouseLeaveMenu = () => {
+    isBlurAllowed.current = true;
+  };
 
   const onCreateFile = () => {
     if (props.onCreateFile) {
       props.onCreateFile(path);
     }
-  };
-
-  const visualizePath = (path, cwd) => {
-    return absoluteToRelativePath(path, cwd).slice(1);
   };
 
   const onNavigateUp = () => {
@@ -122,11 +133,16 @@ const FilePicker: React.FC<FilePickerProps> = (props) => {
       });
     } else {
       props.onChangeValue(visualizePath(`${path}${node.name}`, props.cwd));
+      setIsDropdownOpen(false);
     }
   };
 
-  const onClickTextField = () => {
-    setAnchorEl(inputRef.current);
+  const onFocusTextField = () => {
+    setIsDropdownOpen(true);
+  };
+
+  const onBlurTextField = () => {
+    if (isBlurAllowed.current) setIsDropdownOpen(false);
   };
 
   React.useEffect(() => {
@@ -162,14 +178,15 @@ const FilePicker: React.FC<FilePickerProps> = (props) => {
   }, [path, props.tree]);
 
   return (
-    <div className="dropdown-file-picker">
+    <Box sx={{ position: "relative" }}>
       <TextField
-        onClick={onClickTextField}
+        inputRef={inputRef}
+        onFocusCapture={onFocusTextField}
+        onBlur={onBlurTextField}
         onChange={(e) => props.onChangeValue(e.target.value)}
         value={props.value}
         label="File path"
         fullWidth
-        inputRef={inputRef}
         data-test-id="file-picker-file-path-textfield"
         helperText={props.helperText}
         InputProps={{
@@ -178,58 +195,64 @@ const FilePicker: React.FC<FilePickerProps> = (props) => {
           ),
         }}
       />
-      <Menu
-        open={isOpen}
-        anchorEl={anchorEl}
-        PaperProps={{
-          style: {
+      {isDropdownOpen && (
+        <Paper
+          ref={menuRef}
+          elevation={4}
+          onMouseOver={onMouseOverMenu}
+          onMouseLeave={onMouseLeaveMenu}
+          sx={{
             maxHeight: ITEM_HEIGHT * 4.5,
+            overflowY: "auto",
             width: props.menuMaxWidth || "24ch",
-          },
-        }}
-      >
-        <MenuList dense>
-          {node.children && (
-            <>
-              <MenuItem
-                onClick={onCreateFile}
-                data-test-id="file-picker-new-file"
-              >
-                <ListItemIcon>
-                  <AddIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>New file</ListItemText>
-              </MenuItem>
-              {!node.root && (
-                <MenuItem onClick={onNavigateUp}>
-                  <ListItemIcon>
-                    <TurnLeftOutlinedIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>Navigate up</ListItemText>
-                </MenuItem>
-              )}
-              {node.children.map((childNode) => (
+            position: "absolute",
+            top: (theme) => theme.spacing(7),
+            zIndex: 10,
+          }}
+        >
+          <MenuList dense>
+            {node.children && (
+              <>
                 <MenuItem
-                  key={childNode.name}
-                  onClick={() => onSelectListItem(childNode)}
+                  onClick={onCreateFile}
+                  data-test-id="file-picker-new-file"
                 >
-                  {childNode.type === "directory" && (
-                    <ListItemIcon>
-                      <FolderIcon fontSize="small" />
-                    </ListItemIcon>
-                  )}
-                  <ListItemText inset={childNode.type !== "directory"}>
-                    {`${childNode.name}${
-                      childNode.type === "directory" ? "/" : ""
-                    }`}
-                  </ListItemText>
+                  <ListItemIcon>
+                    <AddIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>New file</ListItemText>
                 </MenuItem>
-              ))}
-            </>
-          )}
-        </MenuList>
-      </Menu>
-    </div>
+                {!node.root && (
+                  <MenuItem onClick={onNavigateUp}>
+                    <ListItemIcon>
+                      <TurnLeftOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Navigate up</ListItemText>
+                  </MenuItem>
+                )}
+                {node.children.map((childNode) => (
+                  <MenuItem
+                    key={childNode.name}
+                    onClick={() => onSelectListItem(childNode)}
+                  >
+                    {childNode.type === "directory" && (
+                      <ListItemIcon>
+                        <FolderIcon fontSize="small" />
+                      </ListItemIcon>
+                    )}
+                    <ListItemText inset={childNode.type !== "directory"}>
+                      {`${childNode.name}${
+                        childNode.type === "directory" ? "/" : ""
+                      }`}
+                    </ListItemText>
+                  </MenuItem>
+                ))}
+              </>
+            )}
+          </MenuList>
+        </Paper>
+      )}
+    </Box>
   );
 };
 

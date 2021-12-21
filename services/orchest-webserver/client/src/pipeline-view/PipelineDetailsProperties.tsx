@@ -357,6 +357,7 @@ const PipelineDetailsProperties: React.FC<{
     <div className={"detail-subview"}>
       <Stack direction="column" spacing={3}>
         <TextField
+          autoFocus
           value={props.step.title}
           onChange={(e) => onChangeTitle(e.target.value)}
           label="Title"

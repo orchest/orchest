@@ -120,7 +120,7 @@ export function collapseDoubleDots(path: string) {
 }
 
 // used in orchest-webserver only
-export function absoluteToRelativePath(path, cwd) {
+export function absoluteToRelativePath(path: string, cwd: string) {
   // to simplify algorithm, path always end with a '/' (also for files)
   let isFile = !path.endsWith("/");
   if (isFile) {
