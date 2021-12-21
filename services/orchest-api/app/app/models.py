@@ -567,6 +567,13 @@ class NonInteractivePipelineRun(PipelineRun):
     }
 
 
+Index(
+    "ix_type_job_uuid_pipeline_run_index",
+    NonInteractivePipelineRun.type,
+    NonInteractivePipelineRun.job_uuid,
+    NonInteractivePipelineRun.pipeline_run_index,
+)
+
 UniqueConstraint(
     NonInteractivePipelineRun.job_uuid,
     NonInteractivePipelineRun.pipeline_run_index,
