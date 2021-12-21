@@ -192,11 +192,17 @@ const PipelineSettingsView: React.FC = () => {
     });
 
   // local states
+  const [inputParameters, setInputParameters] = React.useState<string>(
+    JSON.stringify({}, null, 2)
+  );
   const { data: pipelineJson, mutate, revalidate: fetchPipeline } = useSWR<
     PipelineJson
   >(
     getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid),
-    fetchPipelineJson((data) => setHeaderComponent(data.name))
+    fetchPipelineJson((data) => {
+      setHeaderComponent(data.name);
+      setInputParameters(JSON.stringify(data.parameters));
+    })
   );
 
   // use mutate to act like local state setter
@@ -218,14 +224,9 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const [state, setState] = React.useState({
-    inputParameters: JSON.stringify({}, null, 2),
     restartingMemoryServer: false,
     pipeline_path: undefined,
-    // dataPassingMemorySize: "1GB",
-    // pipelineJson: undefined,
-    // envVariables: [],
     projectEnvVariables: [],
-    // servicesChanged: false,
     environmentVariablesChanged: false,
   });
 
@@ -248,10 +249,10 @@ const PipelineSettingsView: React.FC = () => {
   const [overflowListener] = React.useState(new OverflowListener());
   const promiseManagerRef = React.useRef(new PromiseManager<string>());
 
-  const fetchPipelineData = () => {
-    fetchPipeline();
-    fetchPipelineMetadata();
-  };
+  // const fetchPipelineData = () => {
+  //   fetchPipeline();
+  //   fetchPipelineMetadata();
+  // };
 
   const hasLoaded = () => {
     return (
@@ -261,7 +262,8 @@ const PipelineSettingsView: React.FC = () => {
 
   // Fetch pipeline data on initial mount
   React.useEffect(() => {
-    fetchPipelineData();
+    // fetchPipelineData();
+    fetchPipelineMetadata();
     return () => promiseManagerRef.current.cancelCancelablePromises();
   }, []);
 
@@ -429,10 +431,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangePipelineParameters = (editor, data, value) => {
-    setState((prevState) => ({
-      ...prevState,
-      inputParameters: value,
-    }));
+    setInputParameters(value);
 
     try {
       const parametersJSON = JSON.parse(value);
@@ -767,7 +766,7 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="column">
                         <CodeMirror
-                          value={state.inputParameters}
+                          value={inputParameters}
                           options={{
                             mode: "application/json",
                             theme: "jupyter",
@@ -778,7 +777,7 @@ const PipelineSettingsView: React.FC = () => {
                         />
                         {(() => {
                           try {
-                            JSON.parse(state.inputParameters);
+                            JSON.parse(inputParameters);
                           } catch {
                             return (
                               <div className="warning push-up push-down">

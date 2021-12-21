@@ -252,6 +252,7 @@ function Row<T>({
               checked={isSelected}
               onClick={(e) => onClickCheckbox(e, data.uuid)}
               inputProps={{ "aria-labelledby": labelId }}
+              data-test-id={`${tableId}-row-checkbox`}
             />
           </TableCell>
         )}

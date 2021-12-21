@@ -397,7 +397,7 @@ const JobView: React.FC = () => {
     if (!job) return [];
     return [
       {
-        id: "pipeline-runs-tab",
+        id: "pipeline-runs",
         label: `Pipeline runs (${
           job.pipeline_runs.filter(({ status }) =>
             ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
@@ -406,12 +406,12 @@ const JobView: React.FC = () => {
         icon: <ListIcon />,
       },
       {
-        id: "parameters-tab",
+        id: "parameters",
         label: "Parameters",
         icon: <TuneIcon />,
       },
       {
-        id: "environment-variables-tab",
+        id: "environment-variables",
         label: "Environment variables",
         icon: <ViewComfyIcon />,
       },
@@ -484,18 +484,7 @@ const JobView: React.FC = () => {
               : JSON.stringify(formattedRunParams);
 
             const paramDetails = !hasParameters ? (
-              <>
-                <NoParameterAlert />
-                <Button
-                  variant="contained"
-                  startIcon={<VisibilityIcon />}
-                  onClick={() => onDetailPipelineView(run)}
-                  sx={{ marginTop: (theme) => theme.spacing(2) }}
-                  data-test-id={`job-pipeline-runs-row-view-pipeline-${index}`}
-                >
-                  View pipeline
-                </Button>
-              </>
+              <NoParameterAlert />
             ) : (
               <>
                 <Typography variant="body2">
@@ -510,6 +499,15 @@ const JobView: React.FC = () => {
                     {param}
                   </Typography>
                 ))}
+                <Button
+                  variant="contained"
+                  startIcon={<VisibilityIcon />}
+                  onClick={() => onDetailPipelineView(run)}
+                  sx={{ marginTop: (theme) => theme.spacing(2) }}
+                  data-test-id="job-pipeline-runs-row-view-pipeline"
+                >
+                  View pipeline
+                </Button>
               </>
             );
 

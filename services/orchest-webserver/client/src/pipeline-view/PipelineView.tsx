@@ -32,6 +32,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Button from "@mui/material/Button";
+import { darken } from "@mui/material/styles";
 import {
   activeElementIsInput,
   collapseDoubleDots,
@@ -2426,6 +2427,18 @@ const PipelineView: React.FC = () => {
             <div className="pipeline-actions top-left">
               <Button
                 variant="outlined"
+                color="secondary"
+                sx={{
+                  backgroundColor: (theme) => theme.palette.background.default,
+                  borderColor: (theme) =>
+                    darken(theme.palette.background.default, 0.2),
+                  "&:hover": {
+                    backgroundColor: (theme) =>
+                      darken(theme.palette.background.default, 0.1),
+                    borderColor: (theme) =>
+                      darken(theme.palette.background.default, 0.3),
+                  },
+                }}
                 startIcon={<ArrowBackIcon />}
                 onClick={returnToJob}
                 data-test-id="pipeline-back-to-job"

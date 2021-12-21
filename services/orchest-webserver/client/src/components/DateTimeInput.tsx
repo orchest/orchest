@@ -75,6 +75,7 @@ const DateTimeInput: React.FC<{
           InputLabelProps={{
             shrink: true,
           }}
+          data-test-id="job-edit-schedule-date-input-date"
         />
       </Box>
       <Box>
@@ -86,6 +87,7 @@ const DateTimeInput: React.FC<{
           InputLabelProps={{
             shrink: true,
           }}
+          data-test-id="job-edit-schedule-date-input-time"
         />
       </Box>
     </Stack>

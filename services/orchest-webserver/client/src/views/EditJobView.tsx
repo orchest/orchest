@@ -668,22 +668,22 @@ const EditJobView: React.FC = () => {
   const tabs = React.useMemo(() => {
     return [
       {
-        id: "scheduling-tab",
+        id: "scheduling",
         label: "Scheduling",
         icon: <ScheduleIcon />,
       },
       {
-        id: "parameters-tab",
+        id: "parameters",
         label: "Parameters",
         icon: <TuneIcon />,
       },
       {
-        id: "environment-variables-tab",
+        id: "environment-variables",
         label: "Environment variables",
         icon: <ViewComfyIcon />,
       },
       {
-        id: "runs-tab",
+        id: "runs",
         label: `Pipeline runs (${selectedRuns.length}/${state.generatedPipelineRuns.length})`,
         icon: <ListIcon />,
       },
@@ -787,7 +787,6 @@ const EditJobView: React.FC = () => {
                   disabled={scheduleOption !== "scheduled"}
                   value={scheduledDateTime}
                   onChange={setScheduledDateTime}
-                  data-test-id="job-edit-schedule-date-input"
                 />
               )}
               {scheduleOption === "cron" && (
