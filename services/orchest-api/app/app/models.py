@@ -580,6 +580,8 @@ class NonInteractivePipelineRun(PipelineRun):
     }
 
 
+# Used to find old job pipeline runs to delete, see
+# jobs.max_retained_pipeline_runs.
 Index(
     "ix_type_job_uuid_pipeline_run_index",
     NonInteractivePipelineRun.type,
