@@ -66,7 +66,7 @@ declare global {
 Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.setLocalStorage(LOCAL_STORAGE_KEY, value);
   // Needed to close the onboarding modal.
-  cy.reload();
+  cy.reload(true);
 });
 
 Cypress.Commands.add("getOnboardingCompleted", () =>
@@ -76,11 +76,13 @@ Cypress.Commands.add("getOnboardingCompleted", () =>
 Cypress.Commands.add("cleanDataDir", () => {
   cy.log("Cleaning the data directory.");
   cy.exec(`rm -rf ${DATA_DIR}/*`, { failOnNonZeroExit: false, log: false });
+  cy.reload(true);
 });
 
 Cypress.Commands.add("cleanProjectsDir", () => {
   cy.log("Cleaning the projects directory.");
   cy.exec(`rm -rf ${PROJECTS_DIR}/*`, { failOnNonZeroExit: false, log: false });
+  cy.reload(true);
 });
 
 Cypress.Commands.add("createProject", (name) => {
@@ -290,6 +292,7 @@ Cypress.Commands.add(
     cy.intercept("POST", /.*/).as("allPosts");
     cy.findByTestId(TEST_ID.STEP_CREATE).should("be.visible").pipe(piped_click);
     cy.findByTestId(TEST_ID.STEP_TITLE_TEXTFIELD)
+      .find("input")
       .type("{selectall}{backspace}")
       .type(title);
     cy.wait("@allPosts");

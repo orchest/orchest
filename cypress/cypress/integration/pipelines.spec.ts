@@ -64,6 +64,7 @@ describe("pipelines", () => {
     cy.exec(`cp ${originalPath} ${copyPath}`);
     // Reload to force the discovery.
     cy.visit("/pipelines");
+    cy.reload(true);
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 2);
   });
 

@@ -35,7 +35,7 @@ describe("services", () => {
       cy.exec(
         `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} ../userdir/projects/`
       );
-      cy.reload();
+      cy.reload(true);
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
@@ -189,7 +189,7 @@ describe("services", () => {
     cy.findByTestId(`job-list`).first().contains(SAMPLE_JOB_NAMES.J1).click();
     waitForJobStatus(JOB_STATUS.SUCCESS);
     cy.intercept("GET", "/catch/api-proxy/api/jobs/*").as("jobData");
-    cy.reload();
+    cy.reload(true);
 
     // Verify that the service was able to touch the files through the
     // data and project directory mounts.

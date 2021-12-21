@@ -32,7 +32,7 @@ describe("auth system", () => {
         .should("be.visible")
         .click();
     });
-    cy.reload();
+    cy.reload(true);
 
     users.map((user) => {
       cy.getIframe(TEST_ID.AUTH_ADMIN_IFRAME)
@@ -42,7 +42,7 @@ describe("auth system", () => {
         .click();
     });
 
-    cy.reload();
+    cy.reload(true);
     users.map((user) => {
       cy.getIframe(TEST_ID.AUTH_ADMIN_IFRAME)
         .findByTestId(`delete-user-${user}`)

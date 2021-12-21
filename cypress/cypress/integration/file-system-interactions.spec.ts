@@ -16,6 +16,7 @@ describe("file system interactions", () => {
     cy.exec(`mkdir ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
     // Need to force a reload to discover.
     cy.visit("/projects");
+    cy.reload(true);
     cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
   });
 
@@ -79,6 +80,7 @@ describe("file system interactions", () => {
       cy.exec(`rm ${expectedPath}`);
       // Reload to force the discovery.
       cy.visit("/pipelines");
+      cy.reload(true);
       cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 0);
     });
 
@@ -86,7 +88,9 @@ describe("file system interactions", () => {
       cy.exec(
         `mv ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1} ${PROJECTS_DIR}/move-project`
       );
+
       cy.visit("/projects");
+      cy.reload(true);
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
       cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(
         "contain.text",

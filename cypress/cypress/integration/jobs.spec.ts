@@ -108,7 +108,7 @@ describe("jobs", () => {
         `cp -r ${PROJECTS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/`
       );
       // ensure project list is loaded
-      cy.reload();
+      cy.reload(true);
       // To trigger the project discovery.
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
@@ -387,7 +387,7 @@ describe("jobs", () => {
       // Copy the pipeline.
       cy.exec(`cp -r ${PROJECTS.DATA_PASSING.get_path()} ../userdir/projects/`);
       // To trigger the project discovery.
-      cy.reload();
+      cy.reload(true);
       cy.goToMenu("projects");
       cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
       assertEnvIsBuilt();
