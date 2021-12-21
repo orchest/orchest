@@ -22,6 +22,12 @@ Some other Docker commands that can be useful when debugging Orchest:
    # Attach a shell in a particular service
    docker exec -it orchest-webserver /bin/bash
 
+Exit code ``137`` when building Orchest
+---------------------------------------
+For Docker Desktop users, make sure increase the allocated memory to Docker Engine. This can be done
+by going to Docker Desktop > Settings > Advanced > Increase the *Memory* slider (`GitHub issue for
+reference <https://github.com/moby/moby/issues/22211>`_).
+
 Inspecting the ``orchest-api`` API schema
 -----------------------------------------
 To develop against the API it can be useful to have a look at the swagger documentation. This can be
