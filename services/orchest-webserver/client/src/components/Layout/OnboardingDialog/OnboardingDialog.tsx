@@ -99,13 +99,12 @@ export const OnboardingDialog: React.FC = () => {
     isLastSlide,
     cycleSlide,
     setSlide,
-    isAnimating,
   } = useOnboardingDialogCarousel();
 
   const onClose = (loadQuickstart = false) => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide([0, 0]);
-      if (loadQuickstart) {
+      if (loadQuickstart && hasQuickstart) {
         navigateTo(siteMap.pipeline.path, {
           query: {
             projectUuid: quickstart.project_uuid,
