@@ -351,6 +351,13 @@ job_update = Model(
         "env_variables": fields.Raw(
             required=True, description="Environment variables of the job"
         ),
+        "max_retained_pipeline_runs": fields.Integer(
+            required=False,
+            description=(
+                "Max number of pipeline runs to retain. The oldest pipeline runs that "
+                "are in an end state that are over this number will be deleted."
+            ),
+        ),
     },
 )
 
@@ -470,6 +477,13 @@ job_spec = Model(
             description="List of run parameters.",
         ),
         "strategy_json": fields.Raw(required=False, description="Strategy json."),
+        "max_retained_pipeline_runs": fields.Integer(
+            required=False,
+            description=(
+                "Max number of pipeline runs to retain. The oldest pipeline runs that "
+                "are in an end state that are over this number will be deleted."
+            ),
+        ),
     },
 )
 
@@ -526,6 +540,13 @@ job = Model(
         "strategy_json": fields.Raw(required=True, description="Strategy json."),
         "env_variables": fields.Raw(
             required=False, description="Environment variables of the job"
+        ),
+        "max_retained_pipeline_runs": fields.Integer(
+            required=True,
+            description=(
+                "Max number of pipeline runs to retain. The oldest pipeline runs that "
+                "are in an end state that are over this number will be deleted."
+            ),
         ),
     },
 )

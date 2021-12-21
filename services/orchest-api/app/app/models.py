@@ -404,6 +404,15 @@ class Job(BaseModel):
         server_default=text("timezone('utc', now())"),
     )
 
+    # Max number of pipeline runs to retain. So that any newly created
+    # runs (e.g. in a cronjob) will lead to the deletion of the
+    # existing, oldest runs that are in an end state if the total number
+    # of job runs in the DB gets past this value. A value of -1 means
+    # that there is no such limit. The default value is -1.
+    max_retained_pipeline_runs = db.Column(
+        db.Integer, nullable=False, server_default=text("-1")
+    )
+
     def __repr__(self):
         return f"<Job: {self.uuid}>"
 
