@@ -379,7 +379,7 @@ const ProjectsView: React.FC = () => {
     return { valid: true };
   };
 
-  const validateProjectNameAndAlert = (projectName) => {
+  const validateProjectNameAndAlert = (projectName: string) => {
     let projectNameValidation = validProjectName(projectName);
     if (!projectNameValidation.valid) {
       setAlert(
@@ -504,7 +504,9 @@ const ProjectsView: React.FC = () => {
                 sx={{ marginTop: (theme) => theme.spacing(2) }}
                 label="Project name"
                 value={projectName}
-                onChange={(e) => setProjectName(e.target.value)}
+                onChange={(e) =>
+                  setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
+                }
                 data-test-id="project-name-textfield"
               />
             </DialogContent>
