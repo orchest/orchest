@@ -503,15 +503,6 @@ const JobView: React.FC = () => {
                     {param}
                   </Typography>
                 ))}
-                <Button
-                  variant="contained"
-                  startIcon={<VisibilityIcon />}
-                  onClick={() => onDetailPipelineView(run)}
-                  sx={{ marginTop: (theme) => theme.spacing(2) }}
-                  data-test-id="job-pipeline-runs-row-view-pipeline"
-                >
-                  View pipeline
-                </Button>
               </>
             );
 
@@ -527,6 +518,15 @@ const JobView: React.FC = () => {
                   sx={{ padding: (theme) => theme.spacing(2, 1) }}
                 >
                   {paramDetails}
+                  <Button
+                    variant="contained"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => onDetailPipelineView(run)}
+                    sx={{ marginTop: (theme) => theme.spacing(2) }}
+                    data-test-id="job-pipeline-runs-row-view-pipeline"
+                  >
+                    View pipeline
+                  </Button>
                 </Stack>
               ),
             };

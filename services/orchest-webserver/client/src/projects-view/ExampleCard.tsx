@@ -161,22 +161,23 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
       <CardActions
         className="example-card-button-container"
         style={{
-          justifyContent: isOwnedByOrchest ? "flex-end" : "space-between",
+          // justifyContent: isOwnedByOrchest ? "flex-end" : "space-between",
+          justifyContent: "space-between",
         }}
       >
-        {!isOwnedByOrchest && (
-          <GitHubStarButtonContainer>
-            <GitHubButton
-              href={url}
-              data-icon="octicon-star"
-              data-size="large"
-              data-show-count="true"
-              aria-label={`Star "${title}" on GitHub`}
-            >
-              Star
-            </GitHubButton>
-          </GitHubStarButtonContainer>
-        )}
+        {/* {!isOwnedByOrchest && ( */}
+        <GitHubStarButtonContainer>
+          <GitHubButton
+            href={url}
+            data-icon="octicon-star"
+            data-size="large"
+            data-show-count="true"
+            aria-label={`Star "${title}" on GitHub`}
+          >
+            Star
+          </GitHubButton>
+        </GitHubStarButtonContainer>
+        {/* )} */}
         <Button variant="outlined" color="secondary" onClick={importExample}>
           IMPORT
         </Button>
