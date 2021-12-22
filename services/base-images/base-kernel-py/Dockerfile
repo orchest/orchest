@@ -34,7 +34,7 @@ RUN conda create -y python=$(python --version | tr -d "Python ") -n orchestdepen
     && eval "$(conda shell.bash hook)" \
     && conda activate orchestdependencies \
     && pip install -r requirements.txt \
-    && deactivate
+    && conda deactivate
 
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner
