@@ -1,4 +1,4 @@
-import { useProjects } from "@/hooks/projects/useProjects";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import * as React from "react";
 import useSWR from "swr";
@@ -17,8 +17,11 @@ export const useOnboardingDialog = () => {
     false
   );
 
-  const { data } = useProjects({ shouldFetch: state?.shouldFetchQuickstart });
-  const findQuickstart = data?.find((project) => project.path === "quickstart");
+  const projectsContext = useProjectsContext();
+
+  const findQuickstart = projectsContext.state.projects?.find(
+    (project) => project.path === "quickstart"
+  );
   const quickstart =
     typeof findQuickstart === "undefined"
       ? undefined
