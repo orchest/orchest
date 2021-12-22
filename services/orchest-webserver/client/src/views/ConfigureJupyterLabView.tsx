@@ -11,6 +11,7 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
 import {
   makeCancelable,
   makeRequest,
@@ -299,39 +300,41 @@ const ConfigureJupyterLabView: React.FC = () => {
               building={state.building}
             />
 
-            <Button
-              startIcon={<SaveIcon />}
-              variant="contained"
-              type="submit"
-              onClick={() => save(undefined)}
-            >
-              {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
-            </Button>
+            <Stack direction="row" spacing={2}>
+              <Button
+                startIcon={<SaveIcon />}
+                variant="contained"
+                type="submit"
+                onClick={() => save(undefined)}
+              >
+                {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
+              </Button>
 
-            {!state.building ? (
-              <Button
-                disabled={
-                  state.buildRequestInProgress ||
-                  typeof state.sessionKillStatus !== "undefined"
-                }
-                startIcon={<MemoryIcon />}
-                color="secondary"
-                variant="contained"
-                onClick={buildImage}
-              >
-                Build
-              </Button>
-            ) : (
-              <Button
-                disabled={state.cancelBuildRequestInProgress}
-                startIcon={<CloseIcon />}
-                color="secondary"
-                variant="contained"
-                onClick={cancelImageBuild}
-              >
-                Cancel build
-              </Button>
-            )}
+              {!state.building ? (
+                <Button
+                  disabled={
+                    state.buildRequestInProgress ||
+                    typeof state.sessionKillStatus !== "undefined"
+                  }
+                  startIcon={<MemoryIcon />}
+                  color="secondary"
+                  variant="contained"
+                  onClick={buildImage}
+                >
+                  Build
+                </Button>
+              ) : (
+                <Button
+                  disabled={state.cancelBuildRequestInProgress}
+                  startIcon={<CloseIcon />}
+                  color="secondary"
+                  variant="contained"
+                  onClick={cancelImageBuild}
+                >
+                  Cancel build
+                </Button>
+              )}
+            </Stack>
           </>
         ) : (
           <LinearProgress />
