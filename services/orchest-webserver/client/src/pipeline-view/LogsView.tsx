@@ -313,7 +313,7 @@ const LogsView: React.FC = () => {
     let services = generateServiceItems();
 
     rootView = (
-      <div className="logs">
+      <div className="logs" style={{ position: "relative" }}>
         <Box
           sx={{
             width: "20%",
@@ -416,12 +416,29 @@ const LogsView: React.FC = () => {
             />
           )}
         </div>
-
-        <div className="top-buttons">
-          <IconButton color="secondary" title="Close" onClick={close}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: (theme) => theme.spacing(2),
+            right: (theme) => theme.spacing(2),
+            zIndex: 20,
+          }}
+        >
+          <IconButton
+            size="large"
+            sx={{
+              color: (theme) => theme.palette.common.white,
+              backgroundColor: (theme) => theme.palette.grey[900],
+              "&:hover": {
+                backgroundColor: (theme) => theme.palette.grey[800],
+              },
+            }}
+            title="Close"
+            onClick={close}
+          >
             <CloseIcon />
           </IconButton>
-        </div>
+        </Box>
       </div>
     );
   } else {
