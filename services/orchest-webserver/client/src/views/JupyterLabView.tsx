@@ -9,7 +9,10 @@ import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import {
   collapseDoubleDots,
   makeCancelable,
@@ -132,6 +135,9 @@ const JupyterLabView: React.FC = () => {
 
   useInterval(
     () => {
+      console.log("💥");
+      console.log(window.orchest.jupyter.isJupyterLoaded());
+
       if (window.orchest.jupyter.isJupyterLoaded()) {
         for (let stepUUID in pipeline.steps) {
           let step = pipeline.steps[stepUUID];
@@ -216,15 +222,31 @@ const JupyterLabView: React.FC = () => {
   };
 
   return (
-    <Layout>
-      <div className="view-page jupyter no-padding">
-        <div className="lab-loader">
-          <div>
-            <h2>Setting up JupyterLab…</h2>
-            <LinearProgress />
-          </div>
-        </div>
-      </div>
+    <Layout
+      disablePadding
+      sx={{
+        overflowY: "auto",
+        height: "100%",
+      }}
+    >
+      <Stack
+        justifyContent="center"
+        alignItems="center"
+        sx={{ height: "100%" }}
+      >
+        <Box
+          sx={{
+            textAlign: "center",
+            width: "100%",
+            maxWidth: "400px",
+          }}
+        >
+          <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
+            Setting up JupyterLab…
+          </Typography>
+          <LinearProgress />
+        </Box>
+      </Stack>
     </Layout>
   );
 };

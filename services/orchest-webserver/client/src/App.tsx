@@ -106,7 +106,7 @@ const App = () => {
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <CssBaseline />
         <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
-        <AppDrawer isOpen={isDrawerOpen} toggle={toggleDrawer} />
+        <AppDrawer isOpen={isDrawerOpen} />
         <Box
           component="main"
           sx={{
