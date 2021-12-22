@@ -391,6 +391,7 @@ export const DataTable = <T extends Record<string, any>>({
       if (selectedAllItemsInPage && current.length === rowsInPage.length) {
         return [];
       }
+      return [];
     });
   };
 
