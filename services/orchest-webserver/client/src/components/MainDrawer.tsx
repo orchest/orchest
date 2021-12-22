@@ -99,10 +99,7 @@ const Drawer = styled(MuiDrawer, {
   })
 );
 
-export const AppDrawer: React.FC<{ isOpen?: boolean; toggle?: () => void }> = ({
-  isOpen,
-  toggle,
-}) => {
+export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   const {
     state: { projectUuid },
   } = useProjectsContext();
@@ -114,29 +111,21 @@ export const AppDrawer: React.FC<{ isOpen?: boolean; toggle?: () => void }> = ({
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
 
-  const [localIsOpen, setLocalIsOpen] = React.useState(true);
-  const localToggle = () => {
-    setLocalIsOpen((current) => !current);
-  };
-
-  const open = isOpen ?? localIsOpen;
-  const renderedToggle = toggle || localToggle;
-
   React.useEffect(() => {
     if (appContext.state.config?.CLOUD && window.Intercom !== undefined) {
       // show Intercom widget
       window.Intercom("update", {
-        hide_default_launcher: !open,
+        hide_default_launcher: !isOpen,
       });
     }
-  }, [open]);
+  }, [isOpen]);
 
   const isSelected = (path: string, exact = false) => {
     return matchPath(pathname, { path: path.split("?")[0], exact }) !== null;
   };
 
   return (
-    <Drawer variant="permanent" open={open}>
+    <Drawer variant="permanent" open={isOpen}>
       <Toolbar />
       <List>
         {projectMenuItems.map((item) => {

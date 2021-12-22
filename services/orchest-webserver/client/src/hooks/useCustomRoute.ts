@@ -107,10 +107,13 @@ const useCustomRoute = () => {
   };
 
   const navigateTo = (path: string, params?: NavigateParams) => {
+    const [pathname, existingQueryString] = path.split("?");
     const { query = null, state = {} } = params || {};
     history.push({
-      pathname: path,
-      search: toQueryString(query),
+      pathname,
+      search: existingQueryString
+        ? `${existingQueryString}&${toQueryString(query)}`
+        : toQueryString(query),
       state,
     });
   };
