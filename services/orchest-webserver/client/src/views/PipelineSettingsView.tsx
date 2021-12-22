@@ -933,27 +933,37 @@ const PipelineSettingsView: React.FC = () => {
                     data-test-id="pipeline-read-only"
                   />
                 ) : (
-                  <>
-                    <h3 className="push-down">Project environment variables</h3>
-                    <EnvVarList
-                      value={state.projectEnvVariables}
-                      readOnly
-                      data-test-id="project-read-only"
-                    />
-
-                    <h3 className="push-down">
-                      Pipeline environment variables
-                    </h3>
-                    <p className="push-down">
+                  <Stack
+                    direction="column"
+                    alignItems="flex-start"
+                    spacing={3}
+                    sx={{ width: "60%" }}
+                  >
+                    <Stack spacing={2}>
+                      <Typography component="h3" variant="h6">
+                        Project environment variables
+                      </Typography>
+                      <EnvVarList
+                        value={state.projectEnvVariables}
+                        readOnly
+                        data-test-id="project-read-only"
+                      />
+                    </Stack>
+                    <Alert severity="info">
                       Pipeline environment variables take precedence over
                       project environment variables.
-                    </p>
-                    <EnvVarList
-                      value={envVariables}
-                      setValue={setEnvVariables}
-                      data-test-id="pipeline"
-                    />
-                  </>
+                    </Alert>
+                    <Stack spacing={2}>
+                      <Typography component="h3" variant="h6">
+                        Pipeline environment variables
+                      </Typography>
+                      <EnvVarList
+                        value={envVariables}
+                        setValue={setEnvVariables}
+                        data-test-id="pipeline"
+                      />
+                    </Stack>
+                  </Stack>
                 )}
               </CustomTabPanel>
               <CustomTabPanel value={tabIndex} index={2} name="services">

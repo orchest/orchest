@@ -25,10 +25,10 @@ import { IconButton } from "./common/IconButton";
 const Search = styled("div")(({ theme }) => ({
   position: "relative",
   borderRadius: theme.spacing(1),
-  border: `1px solid ${alpha(theme.palette.grey[300], 0.7)}`,
-  backgroundColor: alpha(theme.palette.grey[300], 0.2),
+  border: `1px solid ${alpha(theme.palette.grey[300], 0.8)}`,
+  backgroundColor: alpha(theme.palette.grey[100], 0.2),
   "&:hover": {
-    backgroundColor: alpha(theme.palette.grey[300], 0.3),
+    backgroundColor: alpha(theme.palette.grey[100], 0.6),
   },
   margin: theme.spacing(2, 0),
   width: "100%",
