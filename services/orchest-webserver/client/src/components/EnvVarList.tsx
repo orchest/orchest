@@ -104,6 +104,7 @@ export const EnvVarList: React.FC<{
         <Button
           variant="contained"
           startIcon={<AddIcon />}
+          color="secondary"
           onClick={onAdd}
           data-test-id={`${testId}-env-var-add`}
         >
