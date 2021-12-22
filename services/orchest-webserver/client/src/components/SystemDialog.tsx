@@ -78,6 +78,7 @@ export const SystemDialog: React.FC = () => {
         <Button
           type="submit"
           onClick={confirm}
+          variant="contained"
           data-test-id="confirm-dialog-ok"
         >
           Confirm

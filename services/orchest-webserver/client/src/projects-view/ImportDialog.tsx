@@ -222,6 +222,7 @@ const ImportDialog: React.FC<{
             </Button>
           )}
           <Button
+            variant="contained"
             startIcon={<InputIcon />}
             // So that the button is disabled when in a states
             // that requires so (currently ["PENDING"]).

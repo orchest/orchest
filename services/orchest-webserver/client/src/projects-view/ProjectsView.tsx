@@ -479,6 +479,7 @@ const ProjectsView: React.FC = () => {
               </Button>
               <Button
                 startIcon={<SaveIcon />}
+                variant="contained"
                 disabled={state.editProjectPathModalBusy}
                 type="submit"
                 form="edit-name"
@@ -488,7 +489,12 @@ const ProjectsView: React.FC = () => {
             </DialogActions>
           </form>
         </Dialog>
-        <Dialog open={isShowingCreateModal} onClose={onCloseCreateProjectModal}>
+        <Dialog
+          open={isShowingCreateModal}
+          onClose={onCloseCreateProjectModal}
+          fullWidth
+          maxWidth="xs"
+        >
           <form
             id="create-project"
             onSubmit={(e) => {
@@ -519,6 +525,7 @@ const ProjectsView: React.FC = () => {
                 Cancel
               </Button>
               <Button
+                variant="contained"
                 startIcon={<FormatListBulletedIcon />}
                 type="submit"
                 form="create-project"

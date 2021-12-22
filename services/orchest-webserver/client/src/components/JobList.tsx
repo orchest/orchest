@@ -468,6 +468,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                   Cancel
                 </Button>
                 <Button
+                  variant="contained"
                   disabled={isCreatingJob}
                   type="submit"
                   form="create-job"

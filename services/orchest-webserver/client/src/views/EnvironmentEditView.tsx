@@ -439,6 +439,7 @@ const EnvironmentEditView: React.FC = () => {
                   <Button
                     startIcon={<CheckIcon />}
                     type="submit"
+                    variant="contained"
                     form="add-custom-base-image-form"
                   >
                     Add

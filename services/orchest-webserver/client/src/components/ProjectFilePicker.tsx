@@ -346,6 +346,7 @@ const ProjectFilePicker: React.FC<{
             </Button>
             <Button
               startIcon={<AddIcon />}
+              variant="contained"
               type="submit"
               form="create-file"
               data-test-id="project-file-picker-create-file"
