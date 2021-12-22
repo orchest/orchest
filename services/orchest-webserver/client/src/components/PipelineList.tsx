@@ -1,6 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { IOrchestSession } from "@/types";
@@ -19,11 +18,13 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import {
   fetcher,
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
 import { siteMap } from "../Routes";
 import { checkGate } from "../utils/webserver-utils";
 import { IconButton } from "./common/IconButton";
@@ -32,6 +33,26 @@ import SessionToggleButton from "./SessionToggleButton";
 
 const INITIAL_PIPELINE_NAME = "Main";
 const INITIAL_PIPELINE_PATH = "main.orchest";
+
+const regExp = new RegExp(`^${INITIAL_PIPELINE_NAME}( [0-9]+)?`, "i");
+
+const getValidNewPipelineName = (pipelines: PipelineMetaData[]) => {
+  const largestExistingNumber = pipelines.reduce((existingNumber, pipeline) => {
+    const matches = pipeline.name.match(regExp);
+    if (!matches) return existingNumber;
+    // if the name is "Main", matches[1] will be undefined, we count it as 0
+    // if the name is "Main", matches[1] will be " 123", trim it and parse it as Integer
+    const currentNumber = !matches[1] ? 0 : parseInt(matches[1].trim());
+    return Math.max(existingNumber, currentNumber);
+  }, -1);
+  const newNumber = largestExistingNumber + 1;
+  return newNumber > 0
+    ? `${INITIAL_PIPELINE_NAME} ${newNumber}`
+    : INITIAL_PIPELINE_NAME;
+};
+
+const getPathFromName = (name: string) =>
+  `${name.toLowerCase().replace(/[\W]/g, "_")}.orchest`;
 
 const getErrorMessages = (path: string) => ({
   0: "",
@@ -55,10 +76,10 @@ type PipelineRowData = PipelineMetaData & {
   sessionStatus: SessionStatus;
 };
 
-const fetchPipelines = (projectUuid: string) =>
-  fetcher<{ success: boolean; result: PipelineMetaData[] }>(
-    `/async/pipelines/${projectUuid}`
-  ).then((response) => response.result);
+const fetchPipelines = (uuid: string) =>
+  fetcher<{ success: boolean; result: PipelineMetaData[] }>(uuid).then(
+    (response) => response.result
+  );
 
 const requestDeletePipelines = (projectUuid: string, pipelineUuid: string) => {
   return fetcher(`/async/pipelines/delete/${projectUuid}/${pipelineUuid}`, {
@@ -165,24 +186,16 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const { run, data: pipelines, error, status } = useAsync<
+  const { data: pipelines, error, revalidate: requestFetchPipelines } = useSWR<
     PipelineMetaData[]
-  >();
-
-  const requestFetchPipeline = async () => {
-    run(fetchPipelines(projectUuid));
-  };
+  >(`/async/pipelines/${projectUuid}`, fetchPipelines);
 
   React.useEffect(() => {
-    requestFetchPipeline();
-  }, []);
-
-  React.useEffect(() => {
-    if (status === "REJECTED" && error) {
+    if (error) {
       setAlert("Error", `Failed to fetch pipelines: ${error}`);
       navigateTo(siteMap.projects.path);
     }
-  }, [status, error]);
+  }, [error]);
 
   const pipelineRows = React.useMemo(() => {
     return (pipelines || []).map((pipeline) => {
@@ -216,6 +229,16 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
   });
+
+  React.useEffect(() => {
+    if (pipelines) {
+      const newName = getValidNewPipelineName(pipelines);
+      setState({
+        createPipelineName: newName,
+        createPipelinePath: getPathFromName(newName),
+      });
+    }
+  }, [pipelines]);
 
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -259,7 +282,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               requestDeletePipelines(projectUuid, uuid)
             )
           );
-          requestFetchPipeline();
+          requestFetchPipelines();
           setIsDeleting(false);
           return true;
         } catch (error) {
@@ -297,7 +320,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       }
     )
       .then((_) => {
-        requestFetchPipeline();
+        requestFetchPipelines();
       })
       .catch((e) => {
         try {
@@ -354,7 +377,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
     createPipelinePromise.promise
       .then((_) => {
-        requestFetchPipeline();
+        requestFetchPipelines();
       })
       .catch((response) => {
         if (!response.isCanceled) {
@@ -395,7 +418,9 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     (row) => row.name === state.createPipelineName
   );
 
-  return !["RESOLVED", "REJECTED"].includes(status) ? (
+  const isLoaded = hasValue(pipelines) && !error;
+
+  return !isLoaded ? (
     <div className={"pipelines-view"}>
       <h2>Pipelines</h2>
       <LinearProgress />
@@ -423,8 +448,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                 const value = e.target.value;
                 setState((prevState) => ({
                   ...prevState,
-                  createPipelinePath:
-                    value.toLowerCase().replace(/[\W]/g, "_") + ".orchest",
+                  createPipelinePath: getPathFromName(value),
                   createPipelineName: value,
                 }));
               }}
