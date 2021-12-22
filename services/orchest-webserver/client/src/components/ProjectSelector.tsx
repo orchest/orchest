@@ -25,7 +25,7 @@ const CustomInput = styled(InputBase)(({ theme }) => ({
     position: "relative",
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.palette.background.paper}`,
-    fontSize: 20,
+    fontSize: 16,
     padding: theme.spacing(1.5, 2, 1),
     transition: theme.transitions.create(["border-color", "box-shadow"]),
     "&:hover": { borderColor: theme.palette.grey[500] },
