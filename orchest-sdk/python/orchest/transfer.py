@@ -896,9 +896,8 @@ _times_get_inputs_called = 0
 _GET_INPUTS_CALLED_TWICE_WARNING = (
     "WARNING: `get_inputs()` should only be called once. By default, in interactive "
     "mode you can call it multiple times per step for ease of development, while in "
-    "non-interactive mode (jobs) you should always only call it once per step. The "
-    "reason is that, for efficiency, in non-interactive mode the inputs of a step are "
-    "deallocated the first time they are retrieved. To silence this warning, call "
+    "jobs it can only be called once per step due to deallocation after inputs are "
+    "retrieved. To silence this warning, call "
     "`get_inputs` with `silence_multiple_calls_warning` set to ``True``."
 )
 
