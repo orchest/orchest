@@ -89,6 +89,7 @@ const Login: React.FC<{
                   onChange={(e) => setUsername(e.target.value)}
                   name="username"
                   margin="normal"
+                  autoFocus
                 />
                 <TextField
                   label="Password"

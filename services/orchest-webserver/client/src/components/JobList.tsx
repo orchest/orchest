@@ -350,30 +350,41 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         open={isEditingJobName}
         onClose={onCloseEditJobNameModal}
       >
-        <DialogTitle>Edit job name</DialogTitle>
-        <DialogContent>
-          <TextField
-            margin="normal"
-            value={jobName}
-            label="Job name"
-            autoFocus
-            onChange={(e) => setJobName(e.target.value)}
-            data-test-id="job-edit-name-textfield"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button startIcon={<CloseIcon />} onClick={onCloseEditJobNameModal}>
-            Cancel
-          </Button>
-          <Button
-            startIcon={<SaveIcon />}
-            disabled={isSubmittingJobName}
-            variant="contained"
-            onClick={onSubmitEditJobNameModal}
-          >
-            Save
-          </Button>
-        </DialogActions>
+        <form
+          id="edit-job-name"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSubmitEditJobNameModal();
+          }}
+        >
+          <DialogTitle>Edit job name</DialogTitle>
+          <DialogContent>
+            <TextField
+              margin="normal"
+              fullWidth
+              value={jobName}
+              label="Job name"
+              autoFocus
+              onChange={(e) => setJobName(e.target.value)}
+              data-test-id="job-edit-name-textfield"
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button startIcon={<CloseIcon />} onClick={onCloseEditJobNameModal}>
+              Cancel
+            </Button>
+            <Button
+              startIcon={<SaveIcon />}
+              disabled={isSubmittingJobName}
+              variant="contained"
+              type="submit"
+              form="edit-job-name"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
 
       <h2>Jobs</h2>
@@ -476,6 +487,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                   variant="contained"
                   disabled={isCreatingJob}
                   type="submit"
+                  autoFocus
                   form="create-job"
                   data-test-id="job-create-ok"
                 >

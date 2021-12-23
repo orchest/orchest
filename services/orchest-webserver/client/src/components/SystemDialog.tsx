@@ -67,23 +67,33 @@ export const SystemDialog: React.FC = () => {
 
   return (
     <Dialog open={hasValue(promptMessage)} onClose={dialogOnClose}>
-      <DialogTitle>{promptMessage.title || "Error"}</DialogTitle>
-      <DialogContent>{promptMessage.content}</DialogContent>
-      <DialogActions>
-        {isCancellable && (
-          <Button color="secondary" onClick={cancel}>
-            Cancel
+      <form
+        id={`${promptMessage.type}-form`}
+        onSubmit={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          confirm();
+        }}
+      >
+        <DialogTitle>{promptMessage.title || "Error"}</DialogTitle>
+        <DialogContent>{promptMessage.content}</DialogContent>
+        <DialogActions>
+          {isCancellable && (
+            <Button color="secondary" onClick={cancel}>
+              Cancel
+            </Button>
+          )}
+          <Button
+            type="submit"
+            autoFocus
+            form={`${promptMessage.type}-form`}
+            variant="contained"
+            data-test-id="confirm-dialog-ok"
+          >
+            Confirm
           </Button>
-        )}
-        <Button
-          type="submit"
-          onClick={confirm}
-          variant="contained"
-          data-test-id="confirm-dialog-ok"
-        >
-          Confirm
-        </Button>
-      </DialogActions>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };

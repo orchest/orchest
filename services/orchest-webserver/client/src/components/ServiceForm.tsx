@@ -486,78 +486,89 @@ const ServiceForm: React.FC<{
         )}
       </Paper>
       <Dialog open={showImageDialog} onClose={onCloseEditImageName}>
-        <DialogTitle>Edit service image</DialogTitle>
-        <DialogContent>
-          <Box sx={{ marginTop: (theme) => theme.spacing(2) }}>
-            <Tooltip title="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`">
-              <TextField
-                label="Image name"
-                aria-describedby={"tooltip-imageNameField"}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setEditImageName(value);
-                  if (value.length > 0) {
-                    setEditImageEnvironmentUUID("");
-                  }
-                }}
-                fullWidth
-                value={editImageName}
-                data-test-id="service-image-name-dialog-image-name"
-              />
-            </Tooltip>
-            <p className="push-up push-down">
-              Or choose an environment as your image:
-            </p>
-            <FormControl fullWidth>
-              <InputLabel id="select-environment-label">Environment</InputLabel>
-              <Select
-                labelId="select-environment-label"
-                id="select-environment"
-                value={editImageEnvironmentUUID}
-                label="Environment"
-                onChange={(e) => {
-                  const environmentUUID = e.target.value;
-                  setEditImageEnvironmentUUID(environmentUUID);
-                  if (environmentUUID.length > 0) {
-                    setEditImageName("");
-                  }
-                }}
-              >
-                {environmentOptions.map((element) => {
-                  return (
-                    <MenuItem key={element.uuid} value={element.uuid}>
-                      {element.name}
-                    </MenuItem>
-                  );
-                })}
-              </Select>
-            </FormControl>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button color="secondary" onClick={onCloseEditImageName}>
-            Cancel
-          </Button>
-          <Button
-            startIcon={<CheckIcon />}
-            variant="contained"
-            type="submit"
-            onClick={() => {
-              if (editImageEnvironmentUUID == "") {
-                handleServiceChange("image", editImageName);
-              } else {
-                handleServiceChange(
-                  "image",
-                  environmentPrefix + editImageEnvironmentUUID
-                );
-              }
-              onCloseEditImageName();
-            }}
-            data-test-id="service-image-name-dialog-save"
-          >
-            Save
-          </Button>
-        </DialogActions>
+        <form
+          id="edit-service-image"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (editImageEnvironmentUUID == "") {
+              handleServiceChange("image", editImageName);
+            } else {
+              handleServiceChange(
+                "image",
+                environmentPrefix + editImageEnvironmentUUID
+              );
+            }
+            onCloseEditImageName();
+          }}
+        >
+          <DialogTitle>Edit service image</DialogTitle>
+          <DialogContent>
+            <Box sx={{ marginTop: (theme) => theme.spacing(2) }}>
+              <Tooltip title="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`">
+                <TextField
+                  label="Image name"
+                  autoFocus
+                  aria-describedby={"tooltip-imageNameField"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setEditImageName(value);
+                    if (value.length > 0) {
+                      setEditImageEnvironmentUUID("");
+                    }
+                  }}
+                  fullWidth
+                  value={editImageName}
+                  data-test-id="service-image-name-dialog-image-name"
+                />
+              </Tooltip>
+              <p className="push-up push-down">
+                Or choose an environment as your image:
+              </p>
+              <FormControl fullWidth>
+                <InputLabel id="select-environment-label">
+                  Environment
+                </InputLabel>
+                <Select
+                  labelId="select-environment-label"
+                  id="select-environment"
+                  value={editImageEnvironmentUUID}
+                  label="Environment"
+                  onChange={(e) => {
+                    const environmentUUID = e.target.value;
+                    setEditImageEnvironmentUUID(environmentUUID);
+                    if (environmentUUID.length > 0) {
+                      setEditImageName("");
+                    }
+                  }}
+                >
+                  {environmentOptions.map((element) => {
+                    return (
+                      <MenuItem key={element.uuid} value={element.uuid}>
+                        {element.name}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button color="secondary" onClick={onCloseEditImageName}>
+              Cancel
+            </Button>
+            <Button
+              startIcon={<CheckIcon />}
+              variant="contained"
+              type="submit"
+              form="edit-service-image"
+              data-test-id="service-image-name-dialog-save"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
     </>
   );

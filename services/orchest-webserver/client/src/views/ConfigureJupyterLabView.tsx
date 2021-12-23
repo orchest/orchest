@@ -304,7 +304,6 @@ const ConfigureJupyterLabView: React.FC = () => {
               <Button
                 startIcon={<SaveIcon />}
                 variant="contained"
-                type="submit"
                 onClick={() => save(undefined)}
               >
                 {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}

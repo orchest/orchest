@@ -166,6 +166,7 @@ const PipelinePathTextField: React.FC<{
     <TextField
       margin="normal"
       fullWidth
+      autoFocus
       value={value}
       label="Pipeline path"
       inputRef={pathInputRef}
@@ -490,34 +491,43 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         open={isEditingPipelinePath && pipelineInEdit !== null}
         onClose={onCloseEditPipelineModal}
       >
-        <DialogTitle>Edit pipeline path</DialogTitle>
-        <DialogContent>
-          <PipelinePathTextField
-            value={pipelineInEdit?.path}
-            onChange={(newPath) => {
-              setPipelineInEdit((current) => ({ ...current, path: newPath }));
-            }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            onClick={onCloseEditPipelineModal}
-          >
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            startIcon={<SaveIcon />}
-            disabled={isSubmittingPipelinePath}
-            type="submit"
-            onClick={onSubmitEditPipelinePathModal}
-            data-test-id="pipeline-edit-path-save"
-          >
-            Save
-          </Button>
-        </DialogActions>
+        <form
+          id="edit-pipeline-path"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSubmitEditPipelinePathModal();
+          }}
+        >
+          <DialogTitle>Edit pipeline path</DialogTitle>
+          <DialogContent>
+            <PipelinePathTextField
+              value={pipelineInEdit?.path}
+              onChange={(newPath) => {
+                setPipelineInEdit((current) => ({ ...current, path: newPath }));
+              }}
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button
+              startIcon={<CloseIcon />}
+              color="secondary"
+              onClick={onCloseEditPipelineModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<SaveIcon />}
+              disabled={isSubmittingPipelinePath}
+              type="submit"
+              form="edit-pipeline-path"
+              data-test-id="pipeline-edit-path-save"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
       </Dialog>
       <h2>Pipelines</h2>
       <div className="push-down">

@@ -29,7 +29,7 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
             variant="contained"
             onClick={goToProjects}
             startIcon={<AddIcon />}
-            type="submit"
+            autoFocus
           >
             Create your first project!
           </Button>
