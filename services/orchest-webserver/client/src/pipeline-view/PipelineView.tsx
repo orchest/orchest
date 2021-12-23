@@ -2215,16 +2215,7 @@ const PipelineView: React.FC = () => {
     let services = getServices();
 
     for (let serviceName in services) {
-      // const serviceLink = {};
-
       let service = services[serviceName];
-
-      // let urls = getServiceURLs(
-      //   service,
-      //   projectUuid,
-      //   pipelineUuid,
-      //   runUuidFromRoute
-      // );
 
       serviceLinks.push({
         name: serviceName,
@@ -2235,31 +2226,7 @@ const PipelineView: React.FC = () => {
           runUuidFromRoute
         ),
       });
-
-      // serviceLink.name = serviceName;
-
-      // serviceLinks.push(<h4 key={serviceName}>{serviceName}</h4>);
-
-      // serviceLink.urls =
-
-      // for (let url of urls) {
-      //   serviceLinks.push(
-      //     <div className="link-holder" key={url}>
-      //       <a target="_blank" href={url} rel="noreferrer">
-      //         <span className="material-icons">open_in_new</span>{" "}
-      //         {formatUrl(url)}
-      //       </a>
-      //     </div>
-      //   );
-      // }
-
-      // if (urls.length == 0) {
-      //   serviceLinks.push(
-      //     <i key={serviceName + "-i"}>This service has no endpoints.</i>
-      //   );
-      // }
     }
-    // return <div>{serviceLinks}</div>;
     return serviceLinks;
   };
 
