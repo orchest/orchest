@@ -1,5 +1,6 @@
 import { LogoIcon } from "@/components/common/icons/LogoIcon";
 import { TabLabel, Tabs } from "@/components/common/Tabs";
+import { Layout } from "@/components/Layout";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -121,66 +122,72 @@ const ExamplesView: React.FC = () => {
   };
 
   return (
-    <div className="view-page examples-view">
-      <ImportDialog
-        projectName={projectName}
-        setProjectName={setProjectName}
-        onClose={closeDialog}
-        open={importingState === "IMPORTING"}
-        importUrl={importUrl}
-        setImportUrl={setImportUrl}
-        onImportComplete={onImportComplete}
-      />
-      <ImportSuccessDialog
-        projectName={projectName}
-        open={importingState === "DONE"}
-        onClose={closeDialog}
-        goToPipelines={goToSelectedProject}
-      />
-      <div className="push-down">
-        <Button startIcon={<ArrowBackIcon />} onClick={goToProjects}>
-          Back to projects
-        </Button>
-      </div>
-      <div className="examples-view-heading-section">
-        <div className="examples-view-heading-section_main">
-          <h2 className="examples-view-title">{pageHeaderText}</h2>
-          <h3 className="examples-view-subtitle">{pageHeaderSubtitle}</h3>
-        </div>
-        <CommunityWarning
-          style={
-            shouldShowCommunityWithTransition ? mountedStyle : unmountedStyle
-          }
+    <Layout>
+      <div className="view-page examples-view">
+        <ImportDialog
+          projectName={projectName}
+          setProjectName={setProjectName}
+          onClose={closeDialog}
+          open={importingState === "IMPORTING"}
+          importUrl={importUrl}
+          setImportUrl={setImportUrl}
+          onImportComplete={onImportComplete}
         />
-      </div>
-      <div className="example-view-tabs-container">
-        <Tabs
-          value={selectedTab}
-          onChange={changeTabByIndex}
-          label="Example Tabs"
-          data-test-id="example-tabs"
-        >
-          {tabs.map((tab) => (
-            <Tab
-              key={tab.id}
-              id={tab.id}
-              label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
-              aria-controls={tab.id}
-              data-test-id={`${tab.id}-tab`}
-            />
-          ))}
-        </Tabs>
-        {/* TODO: we need a loading skeleton */}
-        <div className="example-cards-container">
-          {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}
-          {examples[selectedTab].map((item) => {
-            return (
-              <ExampleCard key={item.url} {...item} startImport={startImport} />
-            );
-          })}
+        <ImportSuccessDialog
+          projectName={projectName}
+          open={importingState === "DONE"}
+          onClose={closeDialog}
+          goToPipelines={goToSelectedProject}
+        />
+        <div className="push-down">
+          <Button startIcon={<ArrowBackIcon />} onClick={goToProjects}>
+            Back to projects
+          </Button>
+        </div>
+        <div className="examples-view-heading-section">
+          <div className="examples-view-heading-section_main">
+            <h2 className="examples-view-title">{pageHeaderText}</h2>
+            <h3 className="examples-view-subtitle">{pageHeaderSubtitle}</h3>
+          </div>
+          <CommunityWarning
+            style={
+              shouldShowCommunityWithTransition ? mountedStyle : unmountedStyle
+            }
+          />
+        </div>
+        <div className="example-view-tabs-container">
+          <Tabs
+            value={selectedTab}
+            onChange={changeTabByIndex}
+            label="Example Tabs"
+            data-test-id="example-tabs"
+          >
+            {tabs.map((tab) => (
+              <Tab
+                key={tab.id}
+                id={tab.id}
+                label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                aria-controls={tab.id}
+                data-test-id={`${tab.id}-tab`}
+              />
+            ))}
+          </Tabs>
+          {/* TODO: we need a loading skeleton */}
+          <div className="example-cards-container">
+            {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}
+            {examples[selectedTab].map((item) => {
+              return (
+                <ExampleCard
+                  key={item.url}
+                  {...item}
+                  startImport={startImport}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

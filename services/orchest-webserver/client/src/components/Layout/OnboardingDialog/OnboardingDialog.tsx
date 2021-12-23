@@ -115,14 +115,20 @@ export const OnboardingDialog: React.FC = () => {
     });
   };
 
+  const onDismiss = () => {
+    setIsOnboardingDialogOpen(false, () => {
+      setSlide([0, 0]);
+    });
+  };
+
   return (
     <Dialog
       open={isOnboardingDialogOpen}
-      onClose={onClose}
+      onClose={onDismiss}
       fullWidth
       maxWidth="xs"
     >
-      <CloseButton onClose={onClose} />
+      <CloseButton onClose={onDismiss} />
       <DialogContent
         sx={{ paddingTop: (theme) => theme.spacing(4), overflow: "hidden" }}
         data-test-id="onboarding-dialog-content"
