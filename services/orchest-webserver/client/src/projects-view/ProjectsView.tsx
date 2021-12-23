@@ -555,7 +555,7 @@ const ProjectsView: React.FC = () => {
                 onClick={onCreateClick}
                 data-test-id="add-project"
               >
-                Add project
+                Create project
               </Button>
               <Button
                 variant="contained"
