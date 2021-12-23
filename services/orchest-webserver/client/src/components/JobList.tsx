@@ -344,7 +344,12 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   return (
     <div className={"jobs-page"}>
-      <Dialog open={isEditingJobName} onClose={onCloseEditJobNameModal}>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        open={isEditingJobName}
+        onClose={onCloseEditJobNameModal}
+      >
         <DialogTitle>Edit job name</DialogTitle>
         <DialogContent>
           <TextField

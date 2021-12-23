@@ -427,7 +427,12 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     </div>
   ) : (
     <div className={"pipelines-view"}>
-      <Dialog open={isCreateDialogOpen} onClose={onCloseCreatePipelineModal}>
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        open={isCreateDialogOpen}
+        onClose={onCloseCreatePipelineModal}
+      >
         <form
           id="create-pipeline"
           onSubmit={(e) => {
@@ -493,6 +498,8 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         </form>
       </Dialog>
       <Dialog
+        fullWidth
+        maxWidth="xs"
         open={isEditingPipelinePath && pipelineInEdit !== null}
         onClose={onCloseEditPipelineModal}
       >

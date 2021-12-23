@@ -1,7 +1,6 @@
 import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
-import CssBaseline from "@mui/material/CssBaseline";
 import Toolbar from "@mui/material/Toolbar";
 import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
@@ -104,7 +103,6 @@ const App = () => {
       }}
     >
       <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <CssBaseline />
         <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
         <AppDrawer isOpen={isDrawerOpen} />
         <Box

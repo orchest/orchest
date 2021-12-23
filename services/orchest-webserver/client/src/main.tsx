@@ -1,3 +1,4 @@
+import CssBaseline from "@mui/material/CssBaseline";
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
@@ -24,6 +25,7 @@ window.addEventListener("load", async () => {
     ReactDOM.render(
       <DesignProvider>
         <OrchestProvider>
+          <CssBaseline />
           <App />
         </OrchestProvider>
       </DesignProvider>,

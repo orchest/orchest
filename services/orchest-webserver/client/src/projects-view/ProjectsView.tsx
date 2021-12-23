@@ -443,6 +443,8 @@ const ProjectsView: React.FC = () => {
           onClose={() => setIsImporting(false)}
         />
         <Dialog
+          fullWidth
+          maxWidth="xs"
           open={state.editProjectPathModal}
           onClose={onCloseEditProjectPathModal}
         >
