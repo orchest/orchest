@@ -135,9 +135,6 @@ const JupyterLabView: React.FC = () => {
 
   useInterval(
     () => {
-      console.log("💥");
-      console.log(window.orchest.jupyter.isJupyterLoaded());
-
       if (window.orchest.jupyter.isJupyterLoaded()) {
         for (let stepUUID in pipeline.steps) {
           let step = pipeline.steps[stepUUID];

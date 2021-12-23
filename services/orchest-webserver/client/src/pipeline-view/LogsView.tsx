@@ -383,8 +383,7 @@ const LogsView: React.FC = () => {
                 />
               </ListItem>
             )}
-            {Object.entries(getServices()).map(([key, service]) => {
-              console.log(key);
+            {Object.entries(getServices()).map(([, service]) => {
               return (
                 <ListItemButton
                   key={service.name}
