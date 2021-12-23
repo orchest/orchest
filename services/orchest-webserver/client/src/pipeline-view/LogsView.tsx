@@ -338,19 +338,18 @@ const LogsView: React.FC = () => {
             )}
             {sortedSteps.map((sortedStep) => {
               return (
-                <ListItem key={sortedStep.uuid}>
-                  <ListItemButton
-                    selected={
-                      logType === "step" && selectedLog === sortedStep.uuid
-                    }
-                    onClick={() => onClickLog(sortedStep.uuid, "step")}
-                  >
-                    <ListItemText
-                      primary={sortedStep.title}
-                      secondary={sortedStep.file_path}
-                    />
-                  </ListItemButton>
-                </ListItem>
+                <ListItemButton
+                  key={sortedStep.uuid}
+                  selected={
+                    logType === "step" && selectedLog === sortedStep.uuid
+                  }
+                  onClick={() => onClickLog(sortedStep.uuid, "step")}
+                >
+                  <ListItemText
+                    primary={sortedStep.title}
+                    secondary={sortedStep.file_path}
+                  />
+                </ListItemButton>
               );
             })}
             <Divider />
@@ -385,20 +384,20 @@ const LogsView: React.FC = () => {
               </ListItem>
             )}
             {Object.entries(getServices()).map(([key, service]) => {
+              console.log(key);
               return (
-                <ListItem key={service.name}>
-                  <ListItemButton
-                    selected={
-                      logType === "service" && selectedLog === service.name
-                    }
-                    onClick={() => onClickLog(service.name, "service")}
-                  >
-                    <ListItemText
-                      primary={service.name}
-                      secondary={service.image}
-                    />
-                  </ListItemButton>
-                </ListItem>
+                <ListItemButton
+                  key={service.name}
+                  selected={
+                    logType === "service" && selectedLog === service.name
+                  }
+                  onClick={() => onClickLog(service.name, "service")}
+                >
+                  <ListItemText
+                    primary={service.name}
+                    secondary={service.image}
+                  />
+                </ListItemButton>
               );
             })}
           </List>
