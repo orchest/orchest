@@ -320,6 +320,19 @@ class Job(BaseModel):
         server_default=text("0"),
     )
 
+    # Total scheduled pipeline runs across all job run triggers. This is
+    # used to "stamp" every job pipeline run with a pipeline_run_index.
+    # This is is needed because a job could be modified with new
+    # parameters and all existing job runs could be deleted because of
+    # max_retained_pipeline_runs or manual deletion, making it not
+    # possible to get back to this number otherwise.
+    total_scheduled_pipeline_runs = db.Column(
+        db.Integer,
+        unique=False,
+        server_default=text("0"),
+        nullable=False,
+    )
+
     pipeline_runs = db.relationship(
         "NonInteractivePipelineRun",
         lazy="select",
@@ -402,6 +415,15 @@ class Job(BaseModel):
         index=True,
         # For migrating users.
         server_default=text("timezone('utc', now())"),
+    )
+
+    # Max number of pipeline runs to retain. So that any newly created
+    # runs (e.g. in a cronjob) will lead to the deletion of the
+    # existing, oldest runs that are in an end state if the total number
+    # of job runs in the DB gets past this value. A value of -1 means
+    # that there is no such limit. The default value is -1.
+    max_retained_pipeline_runs = db.Column(
+        db.Integer, nullable=False, server_default=text("-1")
     )
 
     def __repr__(self):
@@ -557,6 +579,15 @@ class NonInteractivePipelineRun(PipelineRun):
         "polymorphic_identity": "NonInteractivePipelineRun",
     }
 
+
+# Used to find old job pipeline runs to delete, see
+# jobs.max_retained_pipeline_runs.
+Index(
+    "ix_type_job_uuid_pipeline_run_index",
+    NonInteractivePipelineRun.type,
+    NonInteractivePipelineRun.job_uuid,
+    NonInteractivePipelineRun.pipeline_run_index,
+)
 
 UniqueConstraint(
     NonInteractivePipelineRun.job_uuid,

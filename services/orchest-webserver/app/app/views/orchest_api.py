@@ -12,7 +12,6 @@ from app.utils import (
     pipeline_uuid_to_path,
     project_uuid_to_path,
     remove_job_directory,
-    remove_job_pipeline_run_directory,
     request_args_to_string,
 )
 
@@ -658,47 +657,16 @@ def register_orchest_api_views(app, db):
         "/catch/api-proxy/api/jobs/cleanup/<job_uuid>/<run_uuid>", methods=["delete"]
     )
     def catch_api_proxy_job_pipeline_run_cleanup(job_uuid, run_uuid):
-        try:
-            # Get data before issuing deletion to the orchest-api. This
-            # is needed to retrieve the job pipeline uuid and project
-            # uuid.
-            resp = requests.get(
-                (
-                    f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api'
-                    f"/jobs/{job_uuid}"
-                )
-            )
-            data = resp.json()
-
-            if resp.status_code == 200:
-                pipeline_uuid = data["pipeline_uuid"]
-                project_uuid = data["project_uuid"]
-
-                # Issue a cleanup of the job pipeline run to the orchest
-                # api, the run will be aborted if necessary.
-                resp = requests.delete(
-                    f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
-                    f"jobs/cleanup/{job_uuid}/{run_uuid}"
-                )
-
-                remove_job_pipeline_run_directory(
-                    run_uuid, job_uuid, pipeline_uuid, project_uuid
-                )
-                analytics.send_event(
-                    app,
-                    analytics.Event.JOB_PIPELINE_RUN_DELETE,
-                    {"job_uuid": job_uuid, "run_uuid": run_uuid},
-                )
-                return resp.content, resp.status_code, resp.headers.items()
-
-            elif resp.status_code == 404:
-                raise ValueError(f"Job pipeline run {run_uuid} does not exist.")
-            else:
-                raise Exception(f"{data}, {resp.status_code}")
-
-        except Exception as e:
-            msg = f"Error during job pipeline run deletion:{e}"
-            return {"message": msg}, 500
+        resp = requests.delete(
+            f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
+            f"jobs/cleanup/{job_uuid}/{run_uuid}"
+        )
+        analytics.send_event(
+            app,
+            analytics.Event.JOB_PIPELINE_RUN_DELETE,
+            {"job_uuid": job_uuid, "run_uuid": run_uuid},
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/next_scheduled_job", methods=["get"])
     def catch_api_proxy_jobs_next_scheduled_job():
