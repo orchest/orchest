@@ -967,12 +967,7 @@ const PipelineSettingsView: React.FC = () => {
                 )}
               </CustomTabPanel>
               <CustomTabPanel value={tabIndex} index={2} name="services">
-                <Stack
-                  direction="column"
-                  spacing={2}
-                  alignItems="flex-start"
-                  sx={{ padding: (theme) => theme.spacing(1) }}
-                >
+                <Stack direction="column" spacing={2} alignItems="flex-start">
                   {servicesChanged && session && (
                     <Alert severity="warning">
                       Note: changes to environment variables require a session
