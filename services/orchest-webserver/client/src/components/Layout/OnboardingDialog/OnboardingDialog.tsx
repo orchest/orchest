@@ -1,10 +1,10 @@
 import { IconButton } from "@/components/common/IconButton";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -254,7 +254,7 @@ export const OnboardingDialog: React.FC = () => {
               exit={{ y: 0, opacity: 0, zIndex: 0, height: 0 }}
               transition={{ type: "spring", damping: 15, stiffness: 150 }}
             >
-              <Button
+              <StyledButtonOutlined
                 {...(isLastSlide
                   ? {
                       startIcon: hasQuickstart && <OpenInNewIcon />,

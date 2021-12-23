@@ -8,6 +8,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
@@ -2425,7 +2426,7 @@ const PipelineView: React.FC = () => {
         >
           {jobUuidFromRoute && isReadOnly && (
             <div className="pipeline-actions top-left">
-              <Button
+              <StyledButtonOutlined
                 variant="outlined"
                 color="secondary"
                 sx={{
@@ -2444,7 +2445,7 @@ const PipelineView: React.FC = () => {
                 data-test-id="pipeline-back-to-job"
               >
                 Back to job
-              </Button>
+              </StyledButtonOutlined>
             </div>
           )}
 

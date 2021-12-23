@@ -3,6 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import HelpIcon from "@mui/icons-material/Help";
@@ -11,7 +12,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ScienceIcon from "@mui/icons-material/Science";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
 import CircularProgress from "@mui/material/CircularProgress";
 import MuiIconButton from "@mui/material/IconButton";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -139,17 +139,17 @@ export const HeaderBar = ({
             />
           )}
           {state.pipelineName && matchJupyter && (
-            <Button
+            <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               onClick={showPipeline}
               startIcon={<DeviceHubIcon />}
             >
               Switch to Pipeline
-            </Button>
+            </StyledButtonOutlined>
           )}
           {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
-            <Button
+            <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               onClick={showJupyter}
@@ -157,7 +157,7 @@ export const HeaderBar = ({
               data-test-id="switch-to-jupyterlab"
             >
               Switch to JupyterLab
-            </Button>
+            </StyledButtonOutlined>
           )}
           {appContext.state.user_config?.AUTH_ENABLED && (
             <IconButton

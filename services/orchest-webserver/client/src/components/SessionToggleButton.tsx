@@ -1,8 +1,8 @@
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import { IOrchestSession } from "@/types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
-import Button from "@mui/material/Button";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import classNames from "classnames";
@@ -69,7 +69,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
           label={label}
         />
       ) : (
-        <Button
+        <StyledButtonOutlined
           variant="outlined"
           color="secondary"
           disabled={disabled}
@@ -82,7 +82,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
           data-test-id="session-toggle-button"
         >
           {label}
-        </Button>
+        </StyledButtonOutlined>
       )}
     </>
   );

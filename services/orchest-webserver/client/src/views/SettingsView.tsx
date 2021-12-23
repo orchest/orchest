@@ -4,6 +4,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import PeopleIcon from "@mui/icons-material/People";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
@@ -403,14 +404,14 @@ const SettingsView: React.FC = () => {
             <p>Configure JupyterLab by installing server extensions.</p>
           </div>
           <div className="column">
-            <Button
+            <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               startIcon={<TuneIcon />}
               onClick={loadConfigureJupyterLab}
             >
               Configure JupyterLab
-            </Button>
+            </StyledButtonOutlined>
           </div>
           <div className="clear"></div>
         </div>
@@ -421,14 +422,14 @@ const SettingsView: React.FC = () => {
             <p>Update Orchest from the web UI using the built in updater.</p>
           </div>
           <div className="column">
-            <Button
+            <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               startIcon={<SystemUpdateAltIcon />}
               onClick={updateView}
             >
               Check for updates
-            </Button>
+            </StyledButtonOutlined>
           </div>
           <div className="clear"></div>
         </div>
@@ -444,7 +445,7 @@ const SettingsView: React.FC = () => {
             {(() => {
               if (!state.restarting) {
                 return (
-                  <Button
+                  <StyledButtonOutlined
                     variant="outlined"
                     color="secondary"
                     startIcon={<PowerSettingsNewIcon />}
@@ -452,7 +453,7 @@ const SettingsView: React.FC = () => {
                     data-test-id="restart"
                   >
                     Restart
-                  </Button>
+                  </StyledButtonOutlined>
                 );
               } else {
                 return (
@@ -478,7 +479,7 @@ const SettingsView: React.FC = () => {
             <p>Manage Orchest users using the user admin panel.</p>
           </div>
           <div className="column">
-            <Button
+            <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               onClick={onClickManageUsers}
@@ -486,7 +487,7 @@ const SettingsView: React.FC = () => {
               data-test-id="manage-users"
             >
               Manage users
-            </Button>
+            </StyledButtonOutlined>
           </div>
           <div className="clear"></div>
         </div>

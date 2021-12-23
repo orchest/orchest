@@ -1,6 +1,6 @@
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import { Example } from "@/types";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import Button from "@mui/material/Button";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
@@ -178,9 +178,13 @@ const ExampleCard: React.FC<ExampleCardProps> = ({
           </GitHubButton>
         </GitHubStarButtonContainer>
         {/* )} */}
-        <Button variant="outlined" color="secondary" onClick={importExample}>
+        <StyledButtonOutlined
+          variant="outlined"
+          color="secondary"
+          onClick={importExample}
+        >
           IMPORT
-        </Button>
+        </StyledButtonOutlined>
       </CardActions>
     </Card>
   );
