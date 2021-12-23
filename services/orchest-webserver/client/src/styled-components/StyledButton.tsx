@@ -3,7 +3,7 @@ import { styled } from "@mui/material/styles";
 
 const StyledButtonOutlined = styled(Button)({
   [`&.${buttonClasses.outlined}`]: {
-    borderColor: "rgba(0, 0, 0, 0.12)",
+    borderColor: (theme) => theme.borderColor,
   },
 });
 
