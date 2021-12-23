@@ -444,8 +444,10 @@ const LogsView: React.FC = () => {
   }
 
   return (
-    <Layout disablePadding>
-      <div className="view-page no-padding logs-view">{rootView}</div>
+    <Layout disablePadding fullHeight>
+      <div className="view-page no-padding logs-view fullheight">
+        {rootView}
+      </div>
     </Layout>
   );
 };

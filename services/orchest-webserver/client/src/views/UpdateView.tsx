@@ -127,7 +127,12 @@ const UpdateView: React.FC = () => {
 
   return (
     <Layout>
-      <Paper className={"view-page update-page"}>
+      <Paper
+        sx={{
+          padding: (theme) => theme.spacing(3),
+        }}
+        className={"view-page update-page"}
+      >
         <Typography variant="h5">Orchest updater</Typography>
         <Typography sx={{ marginTop: 3, marginBottom: 3 }}>
           Update Orchest to the latest version.

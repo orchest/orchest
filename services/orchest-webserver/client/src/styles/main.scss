@@ -187,6 +187,10 @@ a.button {
     height: 100%;
   }
 
+  .relative {
+    position: relative;
+  }
+
   &:not(.job-view) {
     p {
       line-height: 1.5;
@@ -1318,7 +1322,7 @@ button.themed-secondary {
     }
 
     .detail-subview {
-      flex: 1;
+      height: 100%;
     }
 
     .log-content {
