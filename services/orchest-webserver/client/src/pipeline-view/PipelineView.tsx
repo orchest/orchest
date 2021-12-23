@@ -2640,25 +2640,6 @@ const PipelineView: React.FC = () => {
               </List>
             </Menu>
 
-            {/* {state.eventVars.showServices && (
-              <div className="services-status">
-                <h3>Running services</h3>
-                {servicesAvailable() ? (
-                  generateServiceEndpoints().map(serviceLink => )
-                ) : (
-                  <i>No services are running.</i>
-                )}
-
-                <div className="edit-button-holder">
-                  <Button
-                    startIcon={<TuneIcon />}
-                    color="secondary"
-                    onClick={() => openSettings("services")}
-                  >{`${!isReadOnly ? "Edit" : "View"} services`}</Button>
-                </div>
-              </div>
-            )} */}
-
             <Button
               variant="contained"
               color="secondary"
