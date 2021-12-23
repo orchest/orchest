@@ -285,11 +285,13 @@ const SettingsView: React.FC = () => {
                     lineNumbers: true,
                   }}
                   onBeforeChange={(editor, data, value) => {
-                    setState((prevState) => ({
-                      ...prevState,
-                      config: value,
-                    }));
-                    setAsSaved(state.config !== value);
+                    setState((prevState) => {
+                      setAsSaved(prevState.config === value);
+                      return {
+                        ...prevState,
+                        config: value,
+                      };
+                    });
                   }}
                 />
                 <Stack
