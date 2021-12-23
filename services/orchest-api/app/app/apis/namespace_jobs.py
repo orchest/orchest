@@ -1013,6 +1013,14 @@ class UpdateJob(TwoPhaseFunction):
                         "a cron job."
                     )
                 )
+
+            # See models.py for an explanation.
+            if max_retained_pipeline_runs < -1:
+                raise ValueError(
+                    "Failed update operation. Invalid max_retained_pipeline_runs: "
+                    f"{max_retained_pipeline_runs}."
+                )
+
             job.max_retained_pipeline_runs = max_retained_pipeline_runs
 
         if confirm_draft:
