@@ -57,6 +57,7 @@ class Config:
     task_default_queue = "celery"
     task_routes = {
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "jobs"},
+        "app.core.tasks.delete_job_pipeline_run_directories": {"queue": "jobs"},
         "app.core.tasks.run_pipeline": {"queue": "celery"},
         "app.core.tasks.build_environment": {"queue": "builds"},
         "app.core.tasks.build_jupyter": {"queue": "builds"},
