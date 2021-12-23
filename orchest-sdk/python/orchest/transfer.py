@@ -2,7 +2,7 @@
 import json
 import os
 import pickle
-import sys
+import warnings
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
@@ -33,7 +33,7 @@ class Serialization(Enum):
     PICKLE = 2
 
 
-_times_output_functions_called = 0
+_output_functions_called = False
 _OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING = (
     "WARNING: Outputting data multiple times within the same step will overwrite the "
     "output, even when using a different output ``name``, and regardless of what "
@@ -41,6 +41,18 @@ _OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING = (
     "You therefore want to be calling any of these functions once. To silence this "
     "warning, call the function with `silence_multiple_calls_warning` set to ``True``."
 )
+
+
+def _print_warning_message(msg: str, category=RuntimeWarning, stacklevel=2) -> None:
+    # Print only the message, without line number, module etc. There
+    # isn't a setting that makes this information meaningful in all
+    # cases.
+
+    # Hold in a temporary variable to not alter any user setting.
+    tmp = warnings.formatwarning
+    warnings.formatwarning = lambda msg, *args, **kwargs: f"{msg}\n"
+    warnings.warn(msg, category=category, stacklevel=stacklevel)
+    warnings.formatwarning = tmp
 
 
 def _check_data_name_validity(name: Optional[str]):
@@ -306,10 +318,10 @@ def output_to_disk(
         function once.
 
     """
-    global _times_output_functions_called
-    _times_output_functions_called += 1
-    if not silence_multiple_calls_warning and _times_output_functions_called > 1:
-        print(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+    global _output_functions_called
+    if not silence_multiple_calls_warning and _output_functions_called:
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING)
+    _output_functions_called = True
 
     try:
         _check_data_name_validity(name)
@@ -602,10 +614,10 @@ def output_to_memory(
         function once.
 
     """
-    global _times_output_functions_called
-    _times_output_functions_called += 1
-    if not silence_multiple_calls_warning and _times_output_functions_called > 1:
-        print(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+    global _output_functions_called
+    if not silence_multiple_calls_warning and _output_functions_called:
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING)
+    _output_functions_called = True
 
     try:
         _check_data_name_validity(name)
@@ -665,7 +677,16 @@ def output_to_memory(
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        return output_to_disk(obj, name, serialization=serialization)
+        return output_to_disk(
+            obj,
+            name,
+            serialization=serialization,
+            # Do not warn multiple times. Also allows us to always use
+            # the correct stacklevel (2), by knowing that the message is
+            # only printed if the function is called directly by the
+            # user.
+            silence_multiple_calls_warning=True,
+        )
 
     return
 
@@ -918,7 +939,7 @@ def _resolve(
     )
 
 
-_times_get_inputs_called = 0
+_get_inputs_called = False
 _GET_INPUTS_CALLED_TWICE_WARNING = (
     "WARNING: `get_inputs()` should only be called once. By default, in interactive "
     "mode you can call it multiple times per step for ease of development, while in "
@@ -989,10 +1010,10 @@ def get_inputs(
         data or maintain a copy yourself.
 
     """
-    global _times_get_inputs_called
-    _times_get_inputs_called += 1
-    if not silence_multiple_calls_warning and _times_get_inputs_called > 1:
-        print(_GET_INPUTS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+    global _get_inputs_called
+    if not silence_multiple_calls_warning and _get_inputs_called:
+        _print_warning_message(_GET_INPUTS_CALLED_TWICE_WARNING)
+    _get_inputs_called = True
 
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
@@ -1127,17 +1148,25 @@ def output(
         once.
 
     """
-    global _times_output_functions_called
-    _times_output_functions_called += 1
-    if not silence_multiple_calls_warning and _times_output_functions_called > 1:
-        print(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+    global _output_functions_called
+    if not silence_multiple_calls_warning and _output_functions_called:
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING)
+    _output_functions_called = True
 
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
 
-    return output_to_memory(data, name, disk_fallback=True)
+    return output_to_memory(
+        data,
+        name,
+        disk_fallback=True,
+        # Do not warn multiple times. Also allows us to always use the
+        # correct stacklevel (2), by knowing that the message is only
+        # printed if the function is called directly by the user.
+        silence_multiple_calls_warning=True,
+    )
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
