@@ -230,15 +230,23 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     createPipelinePath: INITIAL_PIPELINE_PATH,
   });
 
+  const isNameTaken = pipelineRows.some(
+    (row) => row.name === state.createPipelineName
+  );
+  const isPathTaken = pipelineRows.some(
+    (row) => row.path === state.createPipelinePath
+  );
+
   React.useEffect(() => {
-    if (pipelines) {
+    // create a valid name if name is taken
+    if (pipelines && isCreateDialogOpen && isNameTaken) {
       const newName = getValidNewPipelineName(pipelines);
       setState({
         createPipelineName: newName,
         createPipelinePath: getPathFromName(newName),
       });
     }
-  }, [pipelines]);
+  }, [pipelines, isCreateDialogOpen]);
 
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -388,35 +396,17 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             setAlert("Error", "Could not create pipeline. Reason unknown.");
           }
         }
-      })
-      .finally(() => {
-        // reload list once creation succeeds
-        setState((prevState) => ({
-          ...prevState,
-          createPipelineName: INITIAL_PIPELINE_NAME,
-          createPipelinePath: INITIAL_PIPELINE_PATH,
-        }));
       });
-
     setIsCreateDialogOpen(false);
   };
 
   const onCloseCreatePipelineModal = () => {
     setIsCreateDialogOpen(false);
-    setState((prevState) => ({
-      ...prevState,
-      createPipelineName: INITIAL_PIPELINE_NAME,
-      createPipelinePath: INITIAL_PIPELINE_PATH,
-    }));
   };
 
   const columns = React.useMemo(() => getColumns(projectUuid, onEditClick), [
     projectUuid,
   ]);
-
-  const isNameTaken = pipelineRows.some(
-    (row) => row.name === state.createPipelineName
-  );
 
   const isLoaded = hasValue(pipelines) && !error;
 
@@ -473,6 +463,8 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                 }));
               }}
               value={state.createPipelinePath}
+              error={isPathTaken}
+              helperText={isPathTaken ? "File already exists" : ""}
               data-test-id="pipeline-path-textfield"
             />
           </DialogContent>
