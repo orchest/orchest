@@ -275,7 +275,7 @@ const SettingsView: React.FC = () => {
             {state.config === undefined ? (
               <Typography>Loading config...</Typography>
             ) : (
-              <Box sx={{ marginTop: (theme) => theme.spacing(3) }}>
+              <Box>
                 <CodeMirror
                   value={state.config}
                   options={{
