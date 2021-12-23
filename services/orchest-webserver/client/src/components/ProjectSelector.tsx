@@ -28,8 +28,7 @@ const CustomInput = styled(InputBase)(({ theme }) => ({
     fontSize: 16,
     padding: theme.spacing(1, 2, 1, 1),
     transition: theme.transitions.create(["border-color", "box-shadow"]),
-    "&:hover": { borderColor: theme.palette.grey[500] },
-    "&:focus": { borderColor: theme.palette.grey[500] },
+    borderColor: theme.palette.grey[500],
   },
 }));
 
@@ -125,7 +124,7 @@ const ProjectSelector = () => {
       fullWidth
       sx={{
         width: "250px",
-        "&:hover label": {
+        label: {
           color: (theme) => theme.palette.grey[700],
         },
       }}
