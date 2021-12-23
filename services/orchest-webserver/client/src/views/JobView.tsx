@@ -547,13 +547,18 @@ const JobView: React.FC = () => {
             rows={
               job.parameters
                 ? job.parameters.map((param, index) => {
+                    let parameters = [];
+                    Object.entries(param).map(([_, step]) => {
+                      Object.entries(step).map(([key, value]) => {
+                        parameters.push(`${key}: ${value}`);
+                      });
+                    });
                     return {
                       uuid: index.toString(),
-                      spec: param.pipeline_parameters
-                        ? Object.entries(param.pipeline_parameters)
-                            .map(([key, value]) => `${key}: "${value}"`)
-                            .join(", ")
-                        : "Parameterless run",
+                      spec:
+                        parameters.length > 0
+                          ? parameters.join(", ")
+                          : "Parameterless run",
                     };
                   })
                 : []
