@@ -62,6 +62,9 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
               inputProps={{
                 "aria-label": `Switch ${isSessionAlive ? "off" : "on"} session`,
               }}
+              sx={{
+                marginRight: (theme) => theme.spacing(1),
+              }}
               className={className}
               checked={isSessionAlive}
             />

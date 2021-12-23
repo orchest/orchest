@@ -638,7 +638,10 @@ const PipelineSettingsView: React.FC = () => {
           <IconButton
             title="Delete"
             disabled={isReadOnly}
-            onClick={() => {
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
               setConfirm(
                 "Warning",
                 "Are you sure you want to delete the service: " +
