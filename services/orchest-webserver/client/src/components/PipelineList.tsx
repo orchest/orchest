@@ -481,7 +481,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               variant="contained"
               type="submit"
               form="create-pipeline"
-              disabled={isNameTaken}
+              disabled={isNameTaken || isPathTaken}
               data-test-id="pipeline-create-ok"
             >
               Create pipeline
