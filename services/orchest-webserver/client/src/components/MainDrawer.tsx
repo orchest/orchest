@@ -139,7 +139,11 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               selected={isSelected(item.path, false)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText key={`${item.label}-text`} primary={item.label} />
+              <ListItemText
+                primaryTypographyProps={{ sx: { fontSize: "0.875em" } }}
+                key={`${item.label}-text`}
+                primary={item.label}
+              />
             </ListItemButton>
           );
         })}
@@ -157,7 +161,10 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               onClick={() => navigateTo(item.path)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.label} />
+              <ListItemText
+                primaryTypographyProps={{ sx: { fontSize: "0.875em" } }}
+                primary={item.label}
+              />
             </ListItemButton>
           );
         })}
