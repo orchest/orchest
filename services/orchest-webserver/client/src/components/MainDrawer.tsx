@@ -11,8 +11,8 @@ import Divider from "@mui/material/Divider";
 import MuiDrawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
 import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
+import MuiListItemIcon from "@mui/material/ListItemIcon";
+import MuiListItemText, { ListItemTextProps } from "@mui/material/ListItemText";
 import { CSSObject, styled, Theme } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import React from "react";
@@ -99,6 +99,21 @@ const Drawer = styled(MuiDrawer, {
   })
 );
 
+const ListItemIcon = styled(MuiListItemIcon)(({ theme }) => ({
+  minWidth: theme.spacing(5.5),
+}));
+
+const ListItemText = (props: ListItemTextProps) => {
+  return (
+    <MuiListItemText
+      primaryTypographyProps={{
+        sx: { fontSize: (theme) => theme.typography.body2.fontSize },
+      }}
+      {...props}
+    />
+  );
+};
+
 export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   const {
     state: { projectUuid },
@@ -140,8 +155,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText
-                primaryTypographyProps={{ sx: { fontSize: "0.875em" } }}
-                key={`${item.label}-text`}
+                key={`${item.label}-text`} // we need to give a key to register the element
                 primary={item.label}
               />
             </ListItemButton>
@@ -161,10 +175,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               onClick={() => navigateTo(item.path)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText
-                primaryTypographyProps={{ sx: { fontSize: "0.875em" } }}
-                primary={item.label}
-              />
+              <ListItemText primary={item.label} />
             </ListItemButton>
           );
         })}

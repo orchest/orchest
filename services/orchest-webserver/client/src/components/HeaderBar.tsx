@@ -107,7 +107,7 @@ export const HeaderBar = ({
           sx={{
             cursor: "pointer",
             width: (theme) => theme.spacing(5),
-            margin: (theme) => theme.spacing(0, 1, 0, 1),
+            margin: (theme) => theme.spacing(0, 1, 0, 1.25), // to align the AppDrawer ListIconText
           }}
         />
         <ProjectSelector />
