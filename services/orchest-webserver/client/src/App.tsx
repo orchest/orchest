@@ -109,7 +109,7 @@ const App = () => {
           component="main"
           sx={{
             flex: 1,
-            overflow: "auto",
+            overflow: "hidden",
             position: "relative",
             minHeight: 0,
             display: "flex",
@@ -119,8 +119,15 @@ const App = () => {
           data-test-id="app"
         >
           <Toolbar />
-          <Routes />
-          <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+          <Box
+            sx={{
+              overflowY: "auto",
+              flex: 1,
+            }}
+          >
+            <Routes />
+            <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+          </Box>
         </Box>
       </Box>
       <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />

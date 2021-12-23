@@ -183,9 +183,9 @@ a.button {
 }
 
 .view-page {
-  padding: var(--space-5);
-  overflow-y: auto;
-  height: 100%;
+  &.fullheight {
+    height: 100%;
+  }
 
   &:not(.job-view) {
     p {
@@ -277,10 +277,6 @@ a.button {
     .hiddenSession {
       display: none;
     }
-  }
-
-  &.no-padding {
-    padding: 0;
   }
 
   h2 {
@@ -454,7 +450,8 @@ p > i.material-icons.float-left {
   flex: 1;
   display: flex;
   position: absolute;
-  top: 64px; // TODO: remove this hard-coded HeaderBar height
+  padding-top: 64px; // TODO: remove this hard-coded HeaderBar height
+  top: 0;
   left: 0;
   width: 100%;
   height: 100%;
