@@ -1,4 +1,5 @@
 // @ts-nocheck
+
 import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -27,13 +28,23 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import Menu from "@mui/material/Menu";
 import { darken } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import {
   activeElementIsInput,
   collapseDoubleDots,
@@ -130,6 +141,10 @@ export interface IPipelineViewState {
   saveHash?: string;
   pipelineJson: PipelineJson;
 }
+
+const formatUrl = (url: string) => {
+  return "Port " + url.split("/")[3].split("_").slice(-1)[0];
+};
 
 const PipelineView: React.FC = () => {
   const { $ } = window;
@@ -2184,15 +2199,11 @@ const PipelineView: React.FC = () => {
   };
 
   const getServices = () => {
-    let services;
-    if (!jobUuidFromRoute) {
-      if (session && session.user_services) {
-        services = session.user_services;
-      }
-    } else {
-      services = state.pipelineJson.services;
-    }
-
+    const services = jobUuidFromRoute
+      ? state.pipelineJson.services
+      : session && session.user_services
+      ? session.user_services
+      : {};
     // Filter services based on scope
     let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(services, scope);
@@ -2200,43 +2211,56 @@ const PipelineView: React.FC = () => {
 
   // How to show services?
   const generateServiceEndpoints = () => {
-    let serviceLinks = [];
+    let serviceLinks: { name: string; urls: string[] }[] = [];
     let services = getServices();
 
     for (let serviceName in services) {
+      // const serviceLink = {};
+
       let service = services[serviceName];
 
-      let urls = getServiceURLs(
-        service,
-        projectUuid,
-        pipelineUuid,
-        runUuidFromRoute
-      );
+      // let urls = getServiceURLs(
+      //   service,
+      //   projectUuid,
+      //   pipelineUuid,
+      //   runUuidFromRoute
+      // );
 
-      let formatUrl = (url) => {
-        return "Port " + url.split("/")[3].split("_").slice(-1)[0];
-      };
+      serviceLinks.push({
+        name: serviceName,
+        urls: getServiceURLs(
+          service,
+          projectUuid,
+          pipelineUuid,
+          runUuidFromRoute
+        ),
+      });
 
-      serviceLinks.push(<h4 key={serviceName}>{serviceName}</h4>);
+      // serviceLink.name = serviceName;
 
-      for (let url of urls) {
-        serviceLinks.push(
-          <div className="link-holder" key={url}>
-            <a target="_blank" href={url} rel="noreferrer">
-              <span className="material-icons">open_in_new</span>{" "}
-              {formatUrl(url)}
-            </a>
-          </div>
-        );
-      }
+      // serviceLinks.push(<h4 key={serviceName}>{serviceName}</h4>);
 
-      if (urls.length == 0) {
-        serviceLinks.push(
-          <i key={serviceName + "-i"}>This service has no endpoints.</i>
-        );
-      }
+      // serviceLink.urls =
+
+      // for (let url of urls) {
+      //   serviceLinks.push(
+      //     <div className="link-holder" key={url}>
+      //       <a target="_blank" href={url} rel="noreferrer">
+      //         <span className="material-icons">open_in_new</span>{" "}
+      //         {formatUrl(url)}
+      //       </a>
+      //     </div>
+      //   );
+      // }
+
+      // if (urls.length == 0) {
+      //   serviceLinks.push(
+      //     <i key={serviceName + "-i"}>This service has no endpoints.</i>
+      //   );
+      // }
     }
-    return <div>{serviceLinks}</div>;
+    // return <div>{serviceLinks}</div>;
+    return serviceLinks;
   };
 
   const returnToJob = () => {
@@ -2416,6 +2440,8 @@ const PipelineView: React.FC = () => {
     }
   }, [state.eventVars.scaleFactor, state.pipelineOffset]);
 
+  const servicesButtonRef = React.useRef<HTMLButtonElement>();
+
   return (
     <Layout disablePadding fullHeight>
       <div className="pipeline-view">
@@ -2537,29 +2563,90 @@ const PipelineView: React.FC = () => {
             </Button>
 
             <Button
+              id="running-services-button"
               variant="contained"
               color="secondary"
               onClick={showServices}
               startIcon={<SettingsIcon />}
+              ref={servicesButtonRef}
             >
               Services
             </Button>
-
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => openSettings()}
-              startIcon={<TuneIcon />}
-              data-test-id="pipeline-settings"
+            <Menu
+              id="running-services-menu"
+              anchorEl={servicesButtonRef.current}
+              open={state.eventVars.showServices}
+              onClose={hideServices}
+              MenuListProps={{
+                "aria-labelledby": "running-services-button",
+              }}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "center",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "center",
+              }}
             >
-              Settings
-            </Button>
+              <ListItem>
+                <Typography variant="h6" component="h3">
+                  Running services
+                </Typography>
+              </ListItem>
+              {servicesAvailable() ? (
+                generateServiceEndpoints().map((serviceLink) => {
+                  return (
+                    <List
+                      key={serviceLink.name}
+                      subheader={
+                        <ListSubheader>{serviceLink.name}</ListSubheader>
+                      }
+                    >
+                      {serviceLink.urls.map((url) => {
+                        console.log(url);
+                        console.log(url.split("/"));
+                        return (
+                          <ListItemButton
+                            key={url}
+                            component="a"
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <ListItemIcon>
+                              <OpenInNewIcon />
+                            </ListItemIcon>
+                            <ListItemText primary={formatUrl(url)} />
+                          </ListItemButton>
+                        );
+                      })}
+                    </List>
+                  );
+                })
+              ) : (
+                <ListItem>
+                  <ListItemText secondary={<i>No services are running.</i>} />
+                </ListItem>
+              )}
+              <Divider />
+              <List>
+                <ListItemButton onClick={() => openSettings("services")}>
+                  <ListItemIcon>
+                    <TuneIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={`${!isReadOnly ? "Edit" : "View"} services`}
+                  />
+                </ListItemButton>
+              </List>
+            </Menu>
 
-            {state.eventVars.showServices && (
+            {/* {state.eventVars.showServices && (
               <div className="services-status">
                 <h3>Running services</h3>
                 {servicesAvailable() ? (
-                  generateServiceEndpoints()
+                  generateServiceEndpoints().map(serviceLink => )
                 ) : (
                   <i>No services are running.</i>
                 )}
@@ -2572,7 +2659,17 @@ const PipelineView: React.FC = () => {
                   >{`${!isReadOnly ? "Edit" : "View"} services`}</Button>
                 </div>
               </div>
-            )}
+            )} */}
+
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={() => openSettings()}
+              startIcon={<TuneIcon />}
+              data-test-id="pipeline-settings"
+            >
+              Settings
+            </Button>
           </div>
 
           <div

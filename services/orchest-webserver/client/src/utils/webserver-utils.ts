@@ -88,7 +88,10 @@ export function validatePipeline(pipelineJson: PipelineJson) {
   return { valid: errors.length == 0, errors };
 }
 
-export function filterServices(services, scope) {
+export function filterServices(
+  services: Record<string, any>,
+  scope: "noninteractive" | "interactive"
+) {
   let servicesCopy = _.cloneDeep(services);
   for (let serviceName in services) {
     if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
@@ -137,11 +140,11 @@ export function clearOutgoingConnections(steps: {
 }
 
 export function getServiceURLs(
-  service,
+  service: Record<string, any>,
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
-) {
+): string[] {
   let urls = [];
 
   if (service.ports === undefined) {
