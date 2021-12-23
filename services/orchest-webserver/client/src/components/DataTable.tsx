@@ -242,7 +242,12 @@ function Row<T>({
         tabIndex={-1}
         key={data.uuid}
         selected={isSelected}
-        sx={selectable || onRowClick ? { cursor: "pointer" } : null}
+        sx={{
+          ...(data.details
+            ? { "& > *": { borderBottom: "unset !important" } }
+            : null),
+          ...(selectable || onRowClick ? { cursor: "pointer" } : null),
+        }}
         data-test-id={`${tableId}-row`}
       >
         {selectable && (

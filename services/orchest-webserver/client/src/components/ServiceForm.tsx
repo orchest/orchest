@@ -175,7 +175,8 @@ const ServiceForm: React.FC<{
       <Paper
         sx={{
           paddingTop: (theme) => theme.spacing(1),
-          margin: (theme) => theme.spacing(2, 0),
+          borderTop: (theme) => `1px solid ${theme.palette.grey[100]}`,
+          marginBottom: (theme) => theme.spacing(2),
         }}
       >
         {!environmentOptions ? (
