@@ -548,11 +548,12 @@ const JobView: React.FC = () => {
               job.parameters
                 ? job.parameters.map((param, index) => {
                     let parameters = [];
-                    Object.entries(param).map(([_, step]) => {
-                      Object.entries(step).map(([key, value]) => {
+                    Object.values(param).forEach((step) => {
+                      Object.entries(step).forEach(([key, value]) => {
                         parameters.push(`${key}: ${value}`);
                       });
                     });
+
                     return {
                       uuid: index.toString(),
                       spec:
