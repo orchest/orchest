@@ -230,16 +230,13 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     createPipelinePath: INITIAL_PIPELINE_PATH,
   });
 
-  const isNameTaken = pipelineRows.some(
-    (row) => row.name === state.createPipelineName
-  );
   const isPathTaken = pipelineRows.some(
     (row) => row.path === state.createPipelinePath
   );
 
   React.useEffect(() => {
     // create a valid name if name is taken
-    if (pipelines && isCreateDialogOpen && isNameTaken) {
+    if (pipelines && isCreateDialogOpen) {
       const newName = getValidNewPipelineName(pipelines);
       setState({
         createPipelineName: newName,
@@ -447,8 +444,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                   createPipelineName: value,
                 }));
               }}
-              error={isNameTaken}
-              helperText={isNameTaken ? "This name has been used" : ""}
               data-test-id="pipeline-name-textfield"
             />
             <TextField
@@ -481,7 +476,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               variant="contained"
               type="submit"
               form="create-pipeline"
-              disabled={isNameTaken}
               data-test-id="pipeline-create-ok"
             >
               Create pipeline
