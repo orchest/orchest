@@ -33,6 +33,16 @@ class Serialization(Enum):
     PICKLE = 2
 
 
+_times_output_functions_called = 0
+_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING = (
+    "WARNING: Outputting data multiple times within the same step will overwrite the "
+    "output, even when using a different output ``name``, and regardless of what "
+    "function you are using among `output`, `output_to_memory` and `output_to_disk`."
+    "You therefore want to be calling any of these functions once. To silence this "
+    "warning, call the function with `silence_multiple_calls_warning` set to ``True``."
+)
+
+
 def _check_data_name_validity(name: Optional[str]):
     if not isinstance(name, (str, type(None))):
         raise TypeError("Name should be of type string or `None`.")
@@ -253,7 +263,10 @@ def _output_to_disk(
 
 
 def output_to_disk(
-    data: Any, name: Optional[str], serialization: Optional[Serialization] = None
+    data: Any,
+    name: Optional[str],
+    serialization: Optional[Serialization] = None,
+    silence_multiple_calls_warning: bool = False,
 ) -> None:
     """Outputs data to disk.
 
@@ -293,6 +306,11 @@ def output_to_disk(
         function once.
 
     """
+    global _times_output_functions_called
+    _times_output_functions_called += 1
+    if not silence_multiple_calls_warning and _times_output_functions_called > 1:
+        print(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
@@ -537,7 +555,10 @@ def _output_to_memory(
 
 
 def output_to_memory(
-    data: Any, name: Optional[str], disk_fallback: bool = True
+    data: Any,
+    name: Optional[str],
+    disk_fallback: bool = True,
+    silence_multiple_calls_warning: bool = False,
 ) -> None:
     """Outputs data to memory.
 
@@ -581,6 +602,11 @@ def output_to_memory(
         function once.
 
     """
+    global _times_output_functions_called
+    _times_output_functions_called += 1
+    if not silence_multiple_calls_warning and _times_output_functions_called > 1:
+        print(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
@@ -1062,15 +1088,6 @@ def get_inputs(
     return data
 
 
-_times_output_called = 0
-_OUTPUT_CALLED_TWICE_WARNING = (
-    "WARNING: Calling `output` multiple times within the same step will overwrite the "
-    "output, even when using a different output ``name``. You therefore want to be "
-    "calling the function once. To silence this warning, call `output` with "
-    "`silence_multiple_calls_warning` set to ``True``."
-)
-
-
 def output(
     data: Any,
     name: Optional[str],
@@ -1110,10 +1127,10 @@ def output(
         once.
 
     """
-    global _times_output_called
-    _times_output_called += 1
-    if not silence_multiple_calls_warning and _times_output_called > 1:
-        print(_OUTPUT_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
+    global _times_output_functions_called
+    _times_output_functions_called += 1
+    if not silence_multiple_calls_warning and _times_output_functions_called > 1:
+        print(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING, file=sys.stderr, flush=True)
 
     try:
         _check_data_name_validity(name)
