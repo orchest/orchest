@@ -521,7 +521,7 @@ class DeleteNonRetainedJobPipelineRuns(TwoPhaseFunction):
             f"Deleting non retained runs for job {job_uuid}, max retained pipeline "
             f"runs: {max_retained_pipeline_runs}."
         )
-        if max_retained_pipeline_runs < 0:
+        if max_retained_pipeline_runs == -1:
             current_app.logger.info("Nothing to do.")
             return
 

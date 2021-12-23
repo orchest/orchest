@@ -337,12 +337,7 @@ def delete_job_pipeline_run_directories(
     job_uuid: str,
     pipeline_run_uuids: List[str],
 ) -> str:
-    """Builds Jupyter image, producing a new image in the docker env.
-
-    Returns:
-        Status of the environment build.
-
-    """
+    """Deletes a list of job pipeline run directories given uuids."""
     job_dir = os.path.join("/userdir", "jobs", project_uuid, pipeline_uuid, job_uuid)
     for uuid in pipeline_run_uuids:
         shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
