@@ -2590,7 +2590,11 @@ const PipelineView: React.FC = () => {
               }}
             >
               <ListItem>
-                <Typography variant="subtitle1" component="h3">
+                <Typography
+                  variant="subtitle1"
+                  component="h3"
+                  sx={{ paddingBottom: 0 }}
+                >
                   Running services
                 </Typography>
               </ListItem>
