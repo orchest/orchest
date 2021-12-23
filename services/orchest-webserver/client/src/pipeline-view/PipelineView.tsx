@@ -2604,8 +2604,6 @@ const PipelineView: React.FC = () => {
                       }
                     >
                       {serviceLink.urls.map((url) => {
-                        console.log(url);
-                        console.log(url.split("/"));
                         return (
                           <ListItemButton
                             key={url}
