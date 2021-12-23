@@ -107,7 +107,7 @@ const ListItemText = (props: ListItemTextProps) => {
   return (
     <MuiListItemText
       primaryTypographyProps={{
-        sx: { fontSize: (theme) => theme.typography.body2.fontSize },
+        sx: (theme) => theme.typography.body2,
       }}
       {...props}
     />
