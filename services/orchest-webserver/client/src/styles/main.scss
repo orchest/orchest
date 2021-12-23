@@ -187,6 +187,10 @@ a.button {
     height: 100%;
   }
 
+  .relative {
+    position: relative;
+  }
+
   &:not(.job-view) {
     p {
       line-height: 1.5;

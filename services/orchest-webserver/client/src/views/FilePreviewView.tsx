@@ -292,9 +292,9 @@ const FilePreviewView: React.FC = () => {
   let childStepElements = renderNavStep(state.childSteps);
 
   return (
-    <Layout>
+    <Layout fullHeight>
       <div
-        className={"view-page file-viewer no-padding"}
+        className={"view-page file-viewer no-padding fullheight relative"}
         ref={refManager.nrefs.fileViewer}
       >
         <div className="top-buttons">
