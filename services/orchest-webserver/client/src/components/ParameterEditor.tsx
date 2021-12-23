@@ -84,7 +84,7 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
                   });
                 }}
               />
-              {isJsonValid && (
+              {!isJsonValid && (
                 <Alert
                   severity="warning"
                   sx={{ marginTop: (theme) => theme.spacing(2) }}
