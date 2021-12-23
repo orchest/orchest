@@ -46,7 +46,7 @@ import _ from "lodash";
 import React from "react";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
-  padding: theme.spacing(3, 1),
+  padding: theme.spacing(3, 0),
 }));
 
 type EditJobState = {
@@ -692,8 +692,8 @@ const EditJobView: React.FC = () => {
   }, [selectedRuns, state.generatedPipelineRuns.length]);
 
   return (
-    <Layout>
-      <div className="view-page job-view">
+    <Layout fullHeight>
+      <Stack direction="column" sx={{ height: "100%" }}>
         <Typography variant="h5">Edit job</Typography>
         {job && pipeline ? (
           <>
@@ -886,7 +886,7 @@ const EditJobView: React.FC = () => {
         ) : (
           <LinearProgress />
         )}
-      </div>
+      </Stack>
     </Layout>
   );
 };
