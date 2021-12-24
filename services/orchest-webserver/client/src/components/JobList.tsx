@@ -485,9 +485,8 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
                 </Button>
                 <Button
                   variant="contained"
-                  disabled={isCreatingJob}
+                  disabled={!jobName || isCreatingJob}
                   type="submit"
-                  autoFocus
                   form="create-job"
                   data-test-id="job-create-ok"
                 >

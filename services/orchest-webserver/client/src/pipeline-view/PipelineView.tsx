@@ -2567,6 +2567,7 @@ const PipelineView: React.FC = () => {
               </ListItem>
               {servicesAvailable() ? (
                 generateServiceEndpoints().map((serviceLink) => {
+                  console.log(serviceLink);
                   return (
                     <List
                       key={serviceLink.name}
@@ -2574,6 +2575,13 @@ const PipelineView: React.FC = () => {
                         <ListSubheader>{serviceLink.name}</ListSubheader>
                       }
                     >
+                      {serviceLink.urls.length === 0 && (
+                        <ListItem>
+                          <Typography variant="caption">
+                            <i>This service has no endpoints.</i>
+                          </Typography>
+                        </ListItem>
+                      )}
                       {serviceLink.urls.map((url) => {
                         return (
                           <ListItemButton

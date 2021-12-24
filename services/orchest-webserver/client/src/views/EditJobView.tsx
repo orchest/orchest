@@ -854,7 +854,7 @@ const EditJobView: React.FC = () => {
             <Stack direction="row" spacing={2}>
               {job.status === "DRAFT" && (
                 <Button
-                  disabled={state.runJobLoading}
+                  disabled={state.runJobLoading || !job.name}
                   variant="contained"
                   startIcon={<PlayArrowIcon />}
                   onClick={attemptRunJob}

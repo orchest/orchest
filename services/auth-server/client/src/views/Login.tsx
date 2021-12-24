@@ -115,8 +115,7 @@ const Login: React.FC<{
           </div>
           <Box
             sx={{
-              position: "absolute",
-              bottom: "9rem",
+              marginTop: (theme) => theme.spacing(3),
               width: "100%",
               textAlign: "center",
             }}

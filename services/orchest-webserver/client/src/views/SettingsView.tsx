@@ -154,6 +154,8 @@ const SettingsView: React.FC = () => {
         configJSON: joinedConfig,
       }));
 
+      console.log("💥");
+
       setAsSaved(true);
 
       makeRequest("POST", "/async/user-config", {
@@ -169,6 +171,10 @@ const SettingsView: React.FC = () => {
             let responseJSON = JSON.parse(data);
             let requiresRestart = responseJSON.requires_restart;
             let configJSON = responseJSON.user_config;
+
+            console.log(
+              JSON.stringify(configToVisibleConfig(configJSON), null, 2)
+            );
 
             setState((prevState) => ({
               ...prevState,
