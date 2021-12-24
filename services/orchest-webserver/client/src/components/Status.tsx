@@ -4,7 +4,7 @@ import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
 import NoteAltOutlinedIcon from "@mui/icons-material/NoteAltOutlined";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { styled } from "@mui/material/styles";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
@@ -16,11 +16,6 @@ export type TStatus =
   | "SUCCESS"
   | "ABORTED"
   | "FAILURE";
-// | (Record<string, unknown> & string);
-
-const StatusText = styled(Box)(({ theme }) => ({
-  marginLeft: theme.spacing(1),
-}));
 
 const statusMapping: Partial<Record<
   TStatus,
@@ -62,9 +57,16 @@ export const StatusInline: React.FC<{
   status: TStatus;
 }> = ({ status }) => {
   return (
-    <Stack component="span" direction="row" alignItems="center">
-      {statusMapping[status].icon}
-      <StatusText>{statusMapping[status].text}</StatusText>
+    <Stack
+      component="span"
+      direction="row"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Tooltip title={statusMapping[status].text}>
+        {statusMapping[status].icon}
+      </Tooltip>
+      {/* <StatusText>{statusMapping[status].text}</StatusText> */}
     </Stack>
   );
 };

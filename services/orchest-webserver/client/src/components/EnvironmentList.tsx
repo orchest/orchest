@@ -58,7 +58,12 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
       return (
         <Typography
           variant="body2"
-          sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
         >
           <LensIcon
             color={gpu_support ? "success" : "disabled"}

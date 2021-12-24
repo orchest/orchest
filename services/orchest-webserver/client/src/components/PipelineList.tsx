@@ -99,7 +99,10 @@ const getColumns = (
   {
     id: "path",
     label: "Path",
-    sx: { maxWidth: "30%", wordBreak: "break-word" },
+    sx: {
+      maxWidth: "30%",
+      wordBreak: "break-word",
+    },
     render: function PipelineName(row) {
       return (
         <Stack
@@ -108,6 +111,7 @@ const getColumns = (
           component="span"
           sx={{
             display: "inline-flex",
+            marginLeft: (theme) => theme.spacing(6),
             button: { visibility: "hidden" },
             "&:hover": {
               button: { visibility: "visible" },
@@ -137,7 +141,9 @@ const getColumns = (
     label: "Session",
     render: function SessionStatus(row) {
       return (
-        <Box sx={{ width: (theme) => theme.spacing(26) }}>
+        <Box
+          sx={{ minWidth: (theme) => theme.spacing(26), textAlign: "center" }}
+        >
           <SessionToggleButton
             projectUuid={projectUuid}
             pipelineUuid={row.uuid}

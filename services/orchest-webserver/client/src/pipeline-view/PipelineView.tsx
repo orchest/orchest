@@ -2567,7 +2567,6 @@ const PipelineView: React.FC = () => {
               </ListItem>
               {servicesAvailable() ? (
                 generateServiceEndpoints().map((serviceLink) => {
-                  console.log(serviceLink);
                   return (
                     <List
                       key={serviceLink.name}

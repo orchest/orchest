@@ -145,10 +145,10 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
             />
           </TableCell>
         )}
-        {data.map((headCell) => (
+        {data.map((headCell, index) => (
           <TableCell
             key={headCell.id.toString()}
-            align={headCell.numeric ? "right" : "left"}
+            align={index === 0 ? "left" : headCell.align || "center"}
             padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
             sx={headCell.sx}
@@ -263,17 +263,29 @@ function Row<T>({
             />
           </TableCell>
         )}
-        <TableCell component="th" id={labelId} scope="row" sx={columns[0].sx}>
+        <TableCell
+          component="th"
+          align="left"
+          id={labelId}
+          scope="row"
+          sx={columns[0].sx}
+        >
           {renderCell(columns[0], data)}
         </TableCell>
         {columns.slice(1).map((column) => {
           return (
             <TableCell
               key={column.id.toString()}
-              align={column.align || (column.numeric ? "right" : "left")}
+              align={column.align || "center"}
               sx={column.sx}
             >
-              {renderCell(column, data)}
+              {column.sortable ? (
+                <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
+                  {renderCell(column, data)}
+                </Box>
+              ) : (
+                renderCell(column, data)
+              )}
             </TableCell>
           );
         })}

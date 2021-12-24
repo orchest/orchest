@@ -172,18 +172,24 @@ export const HeaderBar = ({
               Switch to JupyterLab
             </StyledButtonOutlined>
           )}
-          {appContext.state.user_config?.AUTH_ENABLED && (
-            <IconButton
-              title="Logout"
-              onClick={logoutHandler}
-              color="secondary"
-            >
-              <LogoutIcon />
+          <Stack
+            spacing={1}
+            direction="row"
+            sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+          >
+            {appContext.state.user_config?.AUTH_ENABLED && (
+              <IconButton
+                title="Logout"
+                onClick={logoutHandler}
+                color="secondary"
+              >
+                <LogoutIcon />
+              </IconButton>
+            )}
+            <IconButton title="Help" onClick={showHelp} color="secondary">
+              <HelpIcon />
             </IconButton>
-          )}
-          <IconButton title="Help" onClick={showHelp} color="secondary">
-            <HelpIcon />
-          </IconButton>
+          </Stack>
         </Stack>
       </Toolbar>
     </AppBar>
