@@ -3,7 +3,6 @@ import {
   mergeEnvVariables,
   piped_click,
   PIPELINES,
-  reloadUntilElementsLoaded,
   reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
@@ -233,9 +232,6 @@ describe("interactive runs", () => {
       // Need to force a reload for discovery.
       cy.reload(true);
       cy.visit("/pipelines");
-      reloadUntilElementsLoaded("pipeline-list-row", () => {
-        return cy.findByTestId("pipeline-list").should("exist");
-      });
       cy.findByTestId(`pipeline-list-row`).first().click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
@@ -388,7 +384,7 @@ describe("interactive runs", () => {
           .its(expectedName)
           .should("deep.equal", expectedValue);
         cy.exec(`rm -f ${PIPELINES.DATA_PASSING.default_output_file}`);
-        cy.reload(true);
+
         // Run B again, if memory eviction is enabled it should fail
         // because no input from A can be found.
         let expectedState = testData.eviction ? "Failure" : "Completed";
