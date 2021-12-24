@@ -91,10 +91,15 @@ const getColumns = (
   projectUuid: string,
   onEditPath: (uuid: string, path: string) => void
 ): DataTableColumn<PipelineRowData>[] => [
-  { id: "name", label: "Pipeline" },
+  {
+    id: "name",
+    label: "Pipeline",
+    sx: { maxWidth: "30%", wordBreak: "break-word" },
+  },
   {
     id: "path",
     label: "Path",
+    sx: { maxWidth: "30%", wordBreak: "break-word" },
     render: function PipelineName(row) {
       return (
         <Stack

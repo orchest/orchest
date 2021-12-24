@@ -129,7 +129,18 @@ export const HeaderBar = ({
               ) : (
                 <CircularProgress />
               )}
-              <Typography variant="h6">{state.pipelineName}</Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  maxWidth: "50vw", // TODO: prevent using vw
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
+                title={state.pipelineName}
+              >
+                {state.pipelineName}
+              </Typography>
             </Stack>
           )}
         </Box>

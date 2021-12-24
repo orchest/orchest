@@ -8,7 +8,7 @@ import Collapse from "@mui/material/Collapse";
 import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
-import { alpha, styled } from "@mui/material/styles";
+import { alpha, styled, SxProps, Theme } from "@mui/material/styles";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -88,6 +88,7 @@ export type DataTableColumn<T> = {
   numeric?: boolean;
   sortable?: boolean;
   align?: "inherit" | "left" | "center" | "right" | "justify";
+  sx?: SxProps<Theme>;
   render?: (row: T & { uuid: string }) => React.ReactNode;
 };
 
@@ -150,6 +151,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
             align={headCell.numeric ? "right" : "left"}
             padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
+            sx={headCell.sx}
           >
             {headCell.sortable ? (
               <TableSortLabel
@@ -261,7 +263,7 @@ function Row<T>({
             />
           </TableCell>
         )}
-        <TableCell component="th" id={labelId} scope="row">
+        <TableCell component="th" id={labelId} scope="row" sx={columns[0].sx}>
           {renderCell(columns[0], data)}
         </TableCell>
         {columns.slice(1).map((column) => {
@@ -269,6 +271,7 @@ function Row<T>({
             <TableCell
               key={column.id.toString()}
               align={column.align || (column.numeric ? "right" : "left")}
+              sx={column.sx}
             >
               {renderCell(column, data)}
             </TableCell>

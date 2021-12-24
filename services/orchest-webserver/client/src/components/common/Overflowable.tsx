@@ -1,5 +1,4 @@
-import { SxProps, Theme } from "@mui/material";
-import { styled } from "@mui/material/styles";
+import { styled, SxProps, Theme } from "@mui/material/styles";
 import React from "react";
 
 const OverflowContainer = styled("div")(() => ({

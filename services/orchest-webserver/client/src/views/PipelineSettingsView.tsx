@@ -40,6 +40,7 @@ import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices
 import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -744,9 +745,11 @@ const PipelineSettingsView: React.FC = () => {
                         <TextField
                           value={pipelineJson?.name}
                           margin="normal"
+                          multiline
                           onChange={(e) => onChangeName(e.target.value)}
                           label="Pipeline name"
                           disabled={isReadOnly}
+                          fullWidth
                           data-test-id="pipeline-settings-configuration-pipeline-name"
                         />
                       </div>
@@ -759,9 +762,11 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="column">
                         {state.pipeline_path && (
-                          <p className="push-down">
-                            <Code>{state.pipeline_path}</Code>
-                          </p>
+                          <Box sx={{ width: "100%" }}>
+                            <Code sx={{ wordBreak: "break-word" }}>
+                              {state.pipeline_path}
+                            </Code>
+                          </Box>
                         )}
                       </div>
                       <div className="clear"></div>

@@ -1,6 +1,6 @@
-import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
+import { SxProps, Theme } from "@mui/material/styles";
 import MuiTabs from "@mui/material/Tabs";
 import React from "react";
 
