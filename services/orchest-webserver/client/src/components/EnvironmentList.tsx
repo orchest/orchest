@@ -1,375 +1,298 @@
-import { useInterval } from "@/hooks/use-interval";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useMounted } from "@/hooks/useMounted";
 import { siteMap } from "@/Routes";
-import {
-  MDCButtonReact,
-  MDCDataTableReact,
-  MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
-} from "@orchest/lib-mdc";
-import {
-  LANGUAGE_MAP,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  RefManager,
-} from "@orchest/lib-utils";
-import * as React from "react";
+import AddIcon from "@mui/icons-material/Add";
+import LensIcon from "@mui/icons-material/Lens";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import Typography from "@mui/material/Typography";
+import { fetcher } from "@orchest/lib-utils";
+import React from "react";
+import useSWR from "swr";
+import { BoldText } from "./common/BoldText";
+import { DataTable, DataTableColumn } from "./DataTable";
+import { TStatus } from "./Status";
 
 export interface IEnvironmentListProps {
   projectUuid: string;
 }
 
-const EnvironmentList: React.FC<IEnvironmentListProps> = (props) => {
+type Environment = {
+  base_image: string;
+  gpu_support: boolean;
+  language: string;
+  name: string;
+  project_uuid: string;
+  setup_script: string;
+  uuid: string;
+};
+
+type EnvironmentBuild = {
+  environment_uuid: string;
+  finished_time: string;
+  project_path: string;
+  project_uuid: string;
+  requested_time: string;
+  started_time: string;
+  status: TStatus;
+  uuid: string;
+};
+
+type EnvironmentRow = {
+  uuid: string;
+  name: string;
+  language: string;
+  gpu_support: boolean;
+  status: string;
+};
+
+const columns: DataTableColumn<EnvironmentRow>[] = [
+  { id: "name", label: "Environment" },
+  { id: "language", label: "Language" },
+  {
+    id: "gpu_support",
+    label: "GPU Support",
+    render: function GpuSupport({ gpu_support }) {
+      return (
+        <Typography
+          variant="body2"
+          sx={{
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <LensIcon
+            color={gpu_support ? "success" : "disabled"}
+            sx={{
+              width: (theme) => theme.spacing(2),
+              marginRight: (theme) => theme.spacing(1),
+            }}
+          />
+          {gpu_support ? "Enabled" : "Disabled"}
+        </Typography>
+      );
+    },
+  },
+  { id: "status", label: "Build status" },
+];
+
+const BUILD_POLL_FREQUENCY = 3000;
+
+const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const [
-    environmentBuildsInterval,
-    setEnvironmentBuildsInterval,
-  ] = React.useState(null);
-  const [state, setState] = React.useState({
-    isDeleting: false,
-    environments: undefined,
-    environmentBuilds: {},
-    listData: undefined,
-  });
+  const { setAlert, setConfirm } = useAppContext();
+  const mounted = useMounted();
 
-  const BUILD_POLL_FREQUENCY = 3000;
+  const {
+    data: fetchedEnvironments = [],
+    revalidate: fetchEnvironments,
+    error: fetchEnvironmentsError,
+  } = useSWR<Environment[]>(
+    projectUuid ? `/store/environments/${projectUuid}` : null,
+    fetcher
+  );
 
-  const orchest = window.orchest;
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
-
-  const environmentBuildsRequest = () => {
-    let environmentBuildsRequestPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/catch/api-proxy/api/environment-builds/most-recent/${props.projectUuid}`
-      ),
-      promiseManager
-    );
-
-    environmentBuildsRequestPromise.promise
-      .then((response: string) => {
-        try {
-          let environmentBuilds = JSON.parse(response).environment_builds;
-          updateStateForEnvironmentBuilds(environmentBuilds);
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  };
-
-  const updateStateForEnvironmentBuilds = (updatedEnvironmentBuilds) => {
-    let environmentBuilds = {};
-    for (let environmentBuild of updatedEnvironmentBuilds) {
-      environmentBuilds[
-        environmentBuild.project_uuid + "-" + environmentBuild.environment_uuid
-      ] = environmentBuild;
+  React.useEffect(() => {
+    if (mounted && fetchEnvironmentsError) {
+      setAlert("Error", "Error fetching Environments");
+      navigateTo(siteMap.projects.path);
     }
+  }, [fetchEnvironmentsError]);
 
-    setState((prevState) => ({
-      ...prevState,
-      environmentBuilds,
-      listData: processListData(prevState.environments, environmentBuilds),
+  const {
+    data: environmentBuilds = [],
+    error: fetchBuildsError,
+  } = useSWR(
+    projectUuid
+      ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}`
+      : null,
+    (url: string) =>
+      fetcher<{ environment_builds: EnvironmentBuild[] }>(url).then(
+        (response) => response.environment_builds
+      ),
+    { refreshInterval: BUILD_POLL_FREQUENCY }
+  );
+
+  React.useEffect(() => {
+    if (mounted && fetchBuildsError)
+      setAlert(
+        "Error",
+        "Failed to fetch the latests build of the environment."
+      );
+  }, [fetchBuildsError]);
+
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const environmentRows = React.useMemo(() => {
+    const statusObject = environmentBuilds.reduce((obj, build) => {
+      return {
+        ...obj,
+        [`${build.project_uuid}-${build.environment_uuid}`]: build.status,
+      };
+    }, {} as Record<string, TStatus>);
+    return fetchedEnvironments.map((env) => ({
+      ...env,
+      status: statusObject[`${env.project_uuid}-${env.uuid}`] || "NOT BUILT",
     }));
-  };
+  }, [fetchedEnvironments, environmentBuilds]);
 
-  const fetchEnvironments = () => {
-    // fetch data sources
-    let environmentsPromise = makeCancelable(
-      makeRequest("GET", `/store/environments/` + props.projectUuid),
-      promiseManager
-    );
-
-    environmentsPromise.promise
-      .then((result: string) => {
-        try {
-          let environments = JSON.parse(result);
-
-          setState((prevState) => ({
-            ...prevState,
-            environments: environments,
-            listData: processListData(
-              environments,
-              prevState.environmentBuilds
-            ),
-          }));
-
-          // in case environmentListView exists, clear checks
-          if (refManager.refs.environmentListView) {
-            refManager.refs.environmentListView.setSelectedRowIds([]);
-          }
-        } catch (error) {
-          console.log(error);
-          console.log("Error parsing JSON response: ", result);
-        }
-      })
-      .catch((err) => {
-        if (err && err.status == 404) {
-          navigateTo(siteMap.projects.path);
-        }
-
-        console.log("Error fetching Environments", err);
-      });
-  };
-
-  const onClickListItem = (row, idx, e) => {
-    let environment = state.environments[idx];
+  const onRowClick = (environmentUuid: string) => {
     navigateTo(siteMap.environment.path, {
-      query: {
-        projectUuid: props.projectUuid,
-        environmentUuid: environment.uuid,
-      },
+      query: { projectUuid, environmentUuid },
     });
   };
 
   const onCreateClick = () => {
     navigateTo(siteMap.environment.path, {
-      query: {
-        projectUuid: props.projectUuid,
-        environmentUuid: "create", // TODO: check how current implementation of create environment
-      },
+      query: { projectUuid, environmentUuid: "create" }, // TODO: check how current implementation of create environment
     });
   };
 
-  const _removeEnvironment = (
-    project_uuid,
-    environment_uuid,
-    environmentName
+  const removeEnvironment = async (
+    projectUuid: string,
+    environmentUuid: string,
+    environmentName: string
+  ) => {
+    if (!projectUuid) return false;
+    const sessionData = await fetcher<{ sessions: any[] }>(
+      `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
+    );
+    if (sessionData.sessions.length > 0) {
+      const buildData = await fetcher<{ environment_builds: any[] }>(
+        `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
+      );
+      if (buildData.environment_builds.some((x) => x.status == "SUCCESS")) {
+        setAlert(
+          "Error",
+          <>
+            {`Environment [ `}
+            <BoldText>{environmentName}</BoldText>
+            {` ] cannot be deleted with a running interactive session.`}
+          </>
+        );
+        return false;
+      }
+      return doRemoveEnvironment(projectUuid, environmentUuid, environmentName);
+    }
+
+    const imageData = await fetcher<{ in_use: boolean }>(
+      `/catch/api-proxy/api/environment-images/in-use/${projectUuid}/${environmentUuid}`
+    );
+
+    if (imageData.in_use) {
+      return setConfirm(
+        "Warning",
+        <>
+          {`The environment you're trying to delete ( `}
+          <BoldText>environmentName</BoldText>
+          {` ) is in use. Are you sure you want to delete it? This will abort all jobs that are using it.`}
+        </>,
+        async () => {
+          return doRemoveEnvironment(
+            projectUuid,
+            environmentUuid,
+            environmentName
+          );
+        }
+      );
+    }
+    return doRemoveEnvironment(projectUuid, environmentUuid, environmentName);
+  };
+
+  const doRemoveEnvironment = async (
+    project_uuid: string,
+    environment_uuid: string,
+    environmentName: string
   ) => {
     // ultimately remove Image
-    makeRequest(
-      "DELETE",
-      `/store/environments/${project_uuid}/${environment_uuid}`
-    )
-      .then((_) => {
-        // reload list once removal succeeds
-        fetchEnvironments();
-      })
-      .catch((e) => {
-        let errorMessage = "unknown";
-        try {
-          errorMessage = JSON.parse(e.body).message;
-        } catch (e) {
-          console.error(e);
-        }
-        orchest.alert(
-          "Error",
-          "Deleting environment '" +
-            environmentName +
-            "' failed. " +
-            errorMessage
-        );
+    try {
+      await fetcher(`/store/environments/${project_uuid}/${environment_uuid}`, {
+        method: "DELETE",
       });
-  };
-
-  const removeEnvironment = (projectUuid, environmentUuid, environmentName) => {
-    // Do not allow environment deletions if a session is ongoing.
-    makeRequest(
-      "GET",
-      `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
-    ).then((response: string) => {
-      let data = JSON.parse(response);
-      if (data.sessions.length > 0) {
-        makeRequest(
-          "GET",
-          `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
-        ).then((response: string) => {
-          let data = JSON.parse(response);
-          if (data.environment_builds.some((x) => x.status == "SUCCESS"))
-            orchest.alert(
-              "Error",
-              "Environments cannot be deleted with a running interactive session."
-            );
-          else {
-            _removeEnvironment(projectUuid, environmentUuid, environmentName);
-          }
-        });
-      } else {
-        // validate if environment is in use, if it is, prompt user
-        // specifically on remove.
-        makeRequest(
-          "GET",
-          `/catch/api-proxy/api/environment-images/in-use/${projectUuid}/${environmentUuid}`
-        ).then((response: string) => {
-          let data = JSON.parse(response);
-          if (data.in_use) {
-            orchest.confirm(
-              "Warning",
-              "The environment you're trying to delete (" +
-                environmentName +
-                ") is in use. " +
-                "Are you sure you want to delete it? This will abort all jobs that are using it.",
-              () => {
-                _removeEnvironment(
-                  projectUuid,
-                  environmentUuid,
-                  environmentName
-                );
-              }
-            );
-          } else {
-            _removeEnvironment(projectUuid, environmentUuid, environmentName);
-          }
-        });
-      }
-    });
-  };
-
-  const onDeleteClick = () => {
-    if (!state.isDeleting) {
-      setState((prevState) => ({
-        ...prevState,
-        isDeleting: true,
-      }));
-
-      let selectedIndices = refManager.refs.environmentListView.getSelectedRowIndices();
-
-      if (selectedIndices.length === 0) {
-        orchest.alert("Error", "You haven't selected any environments.");
-
-        setState((prevState) => ({
-          ...prevState,
-          isDeleting: false,
-        }));
-
-        return;
+      return fetchEnvironments();
+    } catch (error) {
+      let errorMessage = "unknown";
+      try {
+        errorMessage = JSON.parse(error.body).message;
+      } catch (e) {
+        console.error(e);
       }
 
-      orchest.confirm(
+      setAlert(
+        "Error",
+        `Deleting environment '${environmentName}' failed. ${errorMessage}`
+      );
+      return false;
+    }
+  };
+
+  const onDeleteClick = async (environmentUuids: string[]) => {
+    if (!isDeleting) {
+      setIsDeleting(true);
+
+      return setConfirm(
         "Warning",
         "Are you certain that you want to delete the selected environments?",
-        () => {
-          selectedIndices.forEach((idx) => {
-            let environment_uuid = state.environments[idx].uuid;
-            let project_uuid = state.environments[idx].project_uuid;
-            removeEnvironment(
-              project_uuid,
-              environment_uuid,
-              state.environments[idx].name
-            );
-          });
+        async () => {
+          const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
+            return { ...all, [curr.uuid]: curr };
+          }, {});
 
-          setState((prevState) => ({
-            ...prevState,
-            isDeleting: false,
-          }));
+          await Promise.all(
+            environmentUuids.map((environmentUuid) => {
+              const { project_uuid, uuid, name } = environmentsDict[
+                environmentUuid
+              ] as Environment;
+              return removeEnvironment(project_uuid, uuid, name);
+            })
+          );
+          setIsDeleting(false);
+          return true;
         },
-        () => {
-          setState((prevState) => ({
-            ...prevState,
-            isDeleting: false,
-          }));
+        async () => {
+          setIsDeleting(false);
+          return false;
         }
       );
     } else {
       console.error("Delete UI in progress.");
+      return false;
     }
   };
-
-  const processListData = (environments, environmentBuilds) => {
-    let listData = [];
-
-    // check for undefined environments
-    if (!environments) {
-      return listData;
-    }
-
-    for (let environment of environments) {
-      let environmentBuild =
-        environmentBuilds[props.projectUuid + "-" + environment.uuid];
-
-      listData.push([
-        <span key={`${environment.uuid}-name`}>{environment.name}</span>,
-        <span key={`${environment.uuid}-language`}>
-          {LANGUAGE_MAP[environment.language]}
-        </span>,
-        <span key={`${environment.uuid}-enabled`}>
-          {environment.gpu_support ? (
-            <>
-              <span>Enabled </span>
-              <i className="material-icons lens-button">lens</i>
-            </>
-          ) : (
-            <>
-              <span>Disabled </span>
-              <i className="material-icons disabled lens-button">lens</i>
-            </>
-          )}
-        </span>,
-        <span key={`${environment.uuid}-status`}>
-          {environmentBuild ? environmentBuild.status : "NOT BUILT"}
-        </span>,
-      ]);
-    }
-    return listData;
-  };
-
-  useInterval(() => {
-    environmentBuildsRequest();
-  }, environmentBuildsInterval);
-
-  React.useEffect(() => {
-    fetchEnvironments();
-    environmentBuildsRequest();
-    setEnvironmentBuildsInterval(BUILD_POLL_FREQUENCY);
-
-    return () => {
-      promiseManager.cancelCancelablePromises();
-      setEnvironmentBuildsInterval(null);
-    };
-  }, [props.projectUuid]);
 
   return (
     <div className={"environments-page"}>
       <h2>Environments</h2>
-
-      {(() => {
-        if (state.environments) {
-          return (
-            <React.Fragment>
-              <div className="push-down">
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  icon="add"
-                  label="Create environment"
-                  onClick={onCreateClick}
-                  data-test-id="environments-create"
-                />
-              </div>
-              <div className={"environment-actions push-down"}>
-                <MDCIconButtonToggleReact
-                  icon="delete"
-                  tooltipText="Delete environment"
-                  disabled={state.isDeleting}
-                  onClick={onDeleteClick}
-                  data-test-id="environments-delete"
-                />
-              </div>
-
-              <MDCDataTableReact
-                ref={refManager.nrefs.environmentListView}
-                selectable
-                onRowClick={onClickListItem}
-                classNames={["fullwidth"]}
-                headers={[
-                  "Environment",
-                  "Language",
-                  "GPU Support",
-                  "Build status",
-                ]}
-                rows={state.listData}
-                data-test-id="environments"
-              />
-            </React.Fragment>
-          );
-        } else {
-          return <MDCLinearProgressReact />;
-        }
-      })()}
+      {!fetchedEnvironments ? (
+        <LinearProgress />
+      ) : (
+        <>
+          <Box sx={{ marginBottom: 3 }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={onCreateClick}
+              data-test-id="environments-create"
+            >
+              Create environment
+            </Button>
+          </Box>
+          <DataTable<EnvironmentRow>
+            selectable
+            hideSearch
+            id="environment-list"
+            columns={columns}
+            rows={environmentRows}
+            onRowClick={onRowClick}
+            deleteSelectedRows={onDeleteClick}
+            data-test-id="environments"
+          />
+        </>
+      )}
     </div>
   );
 };

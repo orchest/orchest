@@ -1,9 +1,17 @@
+import { Code } from "@/components/common/Code";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/routingConfig";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import CloseIcon from "@mui/icons-material/Close";
+import MemoryIcon from "@mui/icons-material/Memory";
+import SaveIcon from "@mui/icons-material/Save";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
 import {
   makeCancelable,
   makeRequest,
@@ -11,15 +19,17 @@ import {
   uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
-import * as React from "react";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
 const ConfigureJupyterLabView: React.FC = () => {
   // global
-  const { orchest } = window;
-  const context = useOrchest();
+  const appContext = useAppContext();
+  const { setAlert, setConfirm, setAsSaved } = appContext;
+  const sessionContext = useSessionsContext();
+  useSessionsPoller();
 
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
 
@@ -87,16 +97,17 @@ const ConfigureJupyterLabView: React.FC = () => {
               let resp = JSON.parse(e.body);
 
               if (resp.message == "SessionInProgressException") {
-                orchest.confirm(
+                setConfirm(
                   "Warning",
                   "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
                     "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
-                  () => {
-                    context.dispatch({ type: "sessionsKillAll" });
+                  async () => {
+                    sessionContext.dispatch({ type: "sessionsKillAll" });
                     setState((prevState) => ({
                       ...prevState,
                       sessionKillStatus: "WAITING",
                     }));
+                    return true;
                   }
                 );
               }
@@ -148,7 +159,8 @@ const ConfigureJupyterLabView: React.FC = () => {
           }));
         });
     } else {
-      orchest.alert(
+      setAlert(
+        "Error",
         "Could not cancel build, please try again in a few seconds."
       );
     }
@@ -168,10 +180,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   };
 
   const save = (cb) => {
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
+    setAsSaved();
 
     // auto save the bash script
     let formData = new FormData();
@@ -198,7 +207,7 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   React.useEffect(() => {
     if (
-      context.state.sessionsKillAllInProgress &&
+      sessionContext.state.sessionsKillAllInProgress &&
       state.sessionKillStatus === "WAITING"
     ) {
       setState((prevState) => ({
@@ -208,10 +217,10 @@ const ConfigureJupyterLabView: React.FC = () => {
     }
 
     if (
-      !context.state.sessionsKillAllInProgress &&
+      !sessionContext.state.sessionsKillAllInProgress &&
       state.sessionKillStatus === "VALIDATING"
     ) {
-      const hasActiveSessions = context.state?.sessions
+      const hasActiveSessions = sessionContext.state?.sessions
         .map((session) => (session.status ? true : false))
         .find((isActive) => isActive === true);
 
@@ -224,125 +233,113 @@ const ConfigureJupyterLabView: React.FC = () => {
       }
     }
   }, [
-    context.state.sessions,
-    context.state.sessionsKillAllInProgress,
+    sessionContext.state.sessions,
+    sessionContext.state.sessionsKillAllInProgress,
     state.sessionKillStatus,
   ]);
 
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className={"view-page jupyterlab-config-page"}>
-          {state.jupyterSetupScript !== undefined ? (
-            <>
-              <h2>Configure JupyterLab</h2>
-              <p className="push-down">
-                You can install JupyterLab extensions using the bash script
-                below.
-              </p>
-              <p className="push-down">
-                For example, you can install the Jupyterlab Code Formatter
-                extension by executing{" "}
-                <span className="code">
-                  pip install jupyterlab_code_formatter
-                </span>
-                .
-              </p>
+    <Layout>
+      <div className={"view-page jupyterlab-config-page"}>
+        {state.jupyterSetupScript !== undefined ? (
+          <>
+            <h2>Configure JupyterLab</h2>
+            <p className="push-down">
+              You can install JupyterLab extensions using the bash script below.
+            </p>
+            <p className="push-down">
+              For example, you can install the Jupyterlab Code Formatter
+              extension by executing{" "}
+              <Code>pip install jupyterlab_code_formatter</Code>.
+            </p>
 
-              <p className="push-down">
-                In addition, you can configure the JupyterLab environment to
-                include settings such as your <span className="code">git</span>{" "}
-                username and email.
-                <br />
-                <br />
-                <span className="code">
-                  {`git config --global user.name "John Doe"`}
-                </span>
-                <br />
-                <span className="code">
-                  {`git config --global user.email "john@example.org"`}
-                </span>
-              </p>
+            <p className="push-down">
+              In addition, you can configure the JupyterLab environment to
+              include settings such as your <Code>git</Code> username and email.
+              <br />
+              <br />
+              <Code>{`git config --global user.name "John Doe"`}</Code>
+              <br />
+              <Code>{`git config --global user.email "john@example.org"`}</Code>
+            </p>
 
-              <div className="push-down">
-                <CodeMirror
-                  value={state.jupyterSetupScript}
-                  options={{
-                    mode: "application/x-sh",
-                    theme: "jupyter",
-                    lineNumbers: true,
-                    viewportMargin: Infinity,
-                  }}
-                  onBeforeChange={(editor, data, value) => {
-                    setState((prevState) => ({
-                      ...prevState,
-                      jupyterSetupScript: value,
-                    }));
-                    context.dispatch({
-                      type: "setUnsavedChanges",
-                      payload: true,
-                    });
-                  }}
-                />
-              </div>
-
-              <ImageBuildLog
-                buildFetchHash={state.buildFetchHash}
-                buildRequestEndpoint={
-                  "/catch/api-proxy/api/jupyter-builds/most-recent"
-                }
-                buildsKey="jupyter_builds"
-                socketIONamespace={
-                  context.state?.config
-                    .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
-                }
-                streamIdentity={"jupyter"}
-                onUpdateBuild={onUpdateBuild}
-                onBuildStart={onBuildStart}
-                ignoreIncomingLogs={state.ignoreIncomingLogs}
-                build={state.jupyterBuild}
-                building={state.building}
+            <div className="push-down">
+              <CodeMirror
+                value={state.jupyterSetupScript}
+                options={{
+                  mode: "application/x-sh",
+                  theme: "jupyter",
+                  lineNumbers: true,
+                  viewportMargin: Infinity,
+                }}
+                onBeforeChange={(editor, data, value) => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    jupyterSetupScript: value,
+                  }));
+                  setAsSaved(false);
+                }}
               />
+            </div>
 
-              <MDCButtonReact
-                label={context.state.unsavedChanges ? "Save*" : "Save"}
-                icon="save"
-                classNames={[
-                  "mdc-button--raised",
-                  "themed-secondary",
-                  "push-right",
-                ]}
-                submitButton
+            <ImageBuildLog
+              buildFetchHash={state.buildFetchHash}
+              buildRequestEndpoint={
+                "/catch/api-proxy/api/jupyter-builds/most-recent"
+              }
+              buildsKey="jupyter_builds"
+              socketIONamespace={
+                appContext.state?.config
+                  .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
+              }
+              streamIdentity={"jupyter"}
+              onUpdateBuild={onUpdateBuild}
+              onBuildStart={onBuildStart}
+              ignoreIncomingLogs={state.ignoreIncomingLogs}
+              build={state.jupyterBuild}
+              building={state.building}
+            />
+
+            <Stack direction="row" spacing={2}>
+              <Button
+                startIcon={<SaveIcon />}
+                variant="contained"
                 onClick={() => save(undefined)}
-              />
+              >
+                {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
+              </Button>
 
               {!state.building ? (
-                <MDCButtonReact
-                  label="Build"
+                <Button
                   disabled={
                     state.buildRequestInProgress ||
                     typeof state.sessionKillStatus !== "undefined"
                   }
-                  icon="memory"
-                  classNames={["mdc-button--raised"]}
+                  startIcon={<MemoryIcon />}
+                  color="secondary"
+                  variant="contained"
                   onClick={buildImage}
-                />
+                >
+                  Build
+                </Button>
               ) : (
-                <MDCButtonReact
-                  label="Cancel build"
+                <Button
                   disabled={state.cancelBuildRequestInProgress}
-                  icon="close"
-                  classNames={["mdc-button--raised"]}
+                  startIcon={<CloseIcon />}
+                  color="secondary"
+                  variant="contained"
                   onClick={cancelImageBuild}
-                />
+                >
+                  Cancel build
+                </Button>
               )}
-            </>
-          ) : (
-            <MDCLinearProgressReact />
-          )}
-        </div>
-      </Layout>
-    </OrchestSessionsConsumer>
+            </Stack>
+          </>
+        ) : (
+          <LinearProgress />
+        )}
+      </div>
+    </Layout>
   );
 };
 

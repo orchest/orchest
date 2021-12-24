@@ -1,5 +1,7 @@
+import { ThemeProvider } from "@mui/material/styles";
 import React from "react";
 import ReactDOM from "react-dom";
+import theme from "../theme";
 import App from "./App";
 
 // Get path components
@@ -9,7 +11,8 @@ const queryArgs = urlSearchParams.toString();
 let reactRoot = document.getElementById("root");
 
 ReactDOM.render(
-  // @ts-ignore
-  <App view={view} queryArgs={queryArgs} />,
+  <ThemeProvider theme={theme}>
+    <App view={view} queryArgs={queryArgs} />
+  </ThemeProvider>,
   reactRoot
 );

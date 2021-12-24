@@ -1,11 +1,18 @@
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { MDCLinearProgressReact } from "@orchest/lib-mdc";
+import Box from "@mui/material/Box";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import {
   collapseDoubleDots,
   makeCancelable,
@@ -20,7 +27,12 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 
 const JupyterLabView: React.FC = () => {
   // global states
-  const { state, dispatch, get } = useOrchest();
+  const { dispatch } = useProjectsContext();
+  const { requestBuild } = useAppContext();
+  const sessionsContext = useSessionsContext();
+  const { getSession } = sessionsContext;
+  useSessionsPoller();
+  useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
@@ -36,11 +48,10 @@ const JupyterLabView: React.FC = () => {
     setHasEnvironmentCheckCompleted,
   ] = React.useState(false);
 
-  const session = get.session({
+  const session = getSession({
     pipelineUuid,
     projectUuid,
   });
-  const orchest = window.orchest;
   const [promiseManager] = React.useState(new PromiseManager());
 
   React.useEffect(() => {
@@ -59,15 +70,15 @@ const JupyterLabView: React.FC = () => {
   // Launch the session if it doesn't exist
   React.useEffect(() => {
     if (
-      !state.sessionsIsLoading &&
+      !sessionsContext.state.sessionsIsLoading &&
       (typeof session === "undefined" || !session?.status)
     ) {
-      dispatch({
+      sessionsContext.dispatch({
         type: "sessionToggle",
         payload: { pipelineUuid, projectUuid },
       });
     }
-  }, [session, state.sessionsIsLoading]);
+  }, [session, sessionsContext.state.sessionsIsLoading]);
 
   // On any session change
   React.useEffect(() => {
@@ -99,7 +110,7 @@ const JupyterLabView: React.FC = () => {
           return;
         }
         if (result.reason === "gate-failed") {
-          orchest.requestBuild(
+          requestBuild(
             projectUuid,
             result.data,
             "JupyterLab",
@@ -208,18 +219,32 @@ const JupyterLabView: React.FC = () => {
   };
 
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="view-page jupyter no-padding">
-          <div className="lab-loader">
-            <div>
-              <h2>Setting up JupyterLab…</h2>
-              <MDCLinearProgressReact />
-            </div>
-          </div>
-        </div>
-      </Layout>
-    </OrchestSessionsConsumer>
+    <Layout
+      disablePadding
+      sx={{
+        overflowY: "auto",
+        height: "100%",
+      }}
+    >
+      <Stack
+        justifyContent="center"
+        alignItems="center"
+        sx={{ height: "100%" }}
+      >
+        <Box
+          sx={{
+            textAlign: "center",
+            width: "100%",
+            maxWidth: "400px",
+          }}
+        >
+          <Typography component="h2" variant="h6" sx={{ marginBottom: 3 }}>
+            Setting up JupyterLab…
+          </Typography>
+          <LinearProgress />
+        </Box>
+      </Stack>
+    </Layout>
   );
 };
 

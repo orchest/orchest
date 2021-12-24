@@ -17,8 +17,6 @@ const DescriptionDetails = styled("dd", {
   lineHeight: "$xl",
 });
 
-const DEFAULT_ELEMENT = "dl";
-
 export type TDescriptionListRef = HTMLDListElement;
 export interface IDescriptionListProps
   extends React.HTMLAttributes<TDescriptionListRef>,
@@ -31,7 +29,7 @@ export const DescriptionList: React.FC<IDescriptionListProps> = ({
   items,
   ...props
 }) => (
-  <Grid as={DEFAULT_ELEMENT} {...props}>
+  <Grid as="dl" {...props}>
     {items.map((item, i) => (
       <DescriptionPair key={i}>
         <DescriptionTerm>{item.term}</DescriptionTerm>

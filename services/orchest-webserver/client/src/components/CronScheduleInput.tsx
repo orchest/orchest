@@ -1,87 +1,92 @@
-import { MDCButtonReact, MDCTextFieldReact } from "@orchest/lib-mdc";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import parser from "cron-parser";
 import cronstrue from "cronstrue";
 import * as React from "react";
 
-export interface ICronScheduleInputProps {
+const buttons = [
+  {
+    label: "Every minute",
+    cronString: "* * * * *",
+  },
+  {
+    label: "Hourly",
+    cronString: "0 * * * *",
+  },
+  {
+    label: "Daily",
+    cronString: "0 0 * * *",
+  },
+  {
+    label: "Weekly",
+    cronString: "0 0 * * 0",
+  },
+  {
+    label: "Monthly",
+    cronString: "0 0 1 * *",
+  },
+];
+
+export const CronScheduleInput: React.FC<{
   disabled: boolean;
-  cronString: string;
+  value: string;
   onChange: (value: string) => void;
   dataTestId: string;
-}
-
-export const CronScheduleInput: React.FC<ICronScheduleInputProps> = ({
-  cronString,
-  disabled,
-  onChange,
-  dataTestId: dataTestId,
-}) => {
-  const [state, setState] = React.useState(cronString);
-
-  const handleButton = (changedCronString) => {
-    setState(changedCronString);
-    onChange(changedCronString);
+}> = ({ value, disabled, onChange, dataTestId }) => {
+  const onChangeCronString = (
+    e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    onChange(value);
   };
 
+  const cronDescription = React.useMemo(() => {
+    try {
+      parser.parseExpression(value);
+      return cronstrue.toString(value);
+    } catch (error) {
+      return false;
+    }
+  }, [value]);
+
   return (
-    <>
-      <div className="push-down separated">
-        <MDCButtonReact
-          disabled={disabled}
-          onClick={() => handleButton("* * * * *")}
-          label="Every minute"
-        />
-        <MDCButtonReact
-          disabled={disabled}
-          onClick={() => handleButton("0 * * * *")}
-          label="Hourly"
-        />
-        <MDCButtonReact
-          disabled={disabled}
-          onClick={() => handleButton("0 0 * * *")}
-          label="Daily"
-        />
-        <MDCButtonReact
-          disabled={disabled}
-          onClick={() => handleButton("0 0 * * 0")}
-          label="Weekly"
-        />
-        <MDCButtonReact
-          disabled={disabled}
-          onClick={() => handleButton("0 0 1 * *")}
-          label="Monthly"
-        />
-      </div>
-      <MDCTextFieldReact
+    <Stack>
+      <Stack
+        direction="row"
+        spacing={2}
+        sx={{ marginBottom: (theme) => theme.spacing(2) }}
+      >
+        {buttons.map((button) => (
+          <Button
+            color="secondary"
+            key={button.label}
+            disabled={disabled}
+            onClick={() => onChange(button.cronString)}
+          >
+            {button.label}
+          </Button>
+        ))}
+      </Stack>
+      <TextField
+        error={!cronDescription}
         disabled={disabled}
         label="Cron expression"
-        onChange={(value) => {
-          setState(value);
-          onChange(value);
-        }}
-        classNames={["push-down"]}
-        value={state}
+        value={value}
+        onChange={onChangeCronString}
         data-test-id={dataTestId}
+        helperText={!cronDescription ? "Invalid cron string." : ""}
+        sx={{
+          marginBottom: (theme) => theme.spacing(4),
+          width: (theme) => theme.spacing(20),
+        }}
       />
-      <div className={disabled ? "disabled-text" : ""}>
-        {(() => {
-          try {
-            parser.parseExpression(state);
-            return cronstrue.toString(state);
-          } catch (err) {
-            console.warn(err);
-          }
-          return (
-            <div className="warning">
-              <i className="material-icons">warning</i> Invalid cron string.
-            </div>
-          );
-        })()}
-      </div>
-      <div className={"form-helper-text" + (disabled ? " disabled-text" : "")}>
+      <Typography sx={{ marginBottom: 2 }}>{cronDescription}</Typography>
+      <Typography variant="subtitle2">
         Note: the cron expression is evaluated in UTC time.
-      </div>
-    </>
+      </Typography>
+    </Stack>
   );
 };
 

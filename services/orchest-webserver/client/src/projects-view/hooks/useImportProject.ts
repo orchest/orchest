@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { makeRequest, validURL } from "@orchest/lib-utils";
@@ -21,9 +22,11 @@ const validProjectName = (
 const validateImportData = ({
   importUrl,
   projectName,
+  setAlert,
 }: {
   importUrl: string;
   projectName: string;
+  setAlert: (title: string, content: string) => void;
 }) => {
   const invalidUrl = !validURL(importUrl) || !importUrl.startsWith("https://");
   const projectNameValidation = validProjectName(projectName);
@@ -34,7 +37,7 @@ const validateImportData = ({
       ? "Please make sure you enter a valid HTTPS git-repo URL."
       : projectNameValidation.reason;
 
-    window.orchest.alert("Error", reason);
+    setAlert("Error", reason);
     return false;
   }
   return true;
@@ -43,8 +46,9 @@ const validateImportData = ({
 const useImportProject = (
   projectName = "",
   importUrl: string,
-  onComplete: (result: BackgroundTask) => void
+  onComplete: (result?: BackgroundTask) => void
 ) => {
+  const { setAlert } = useAppContext();
   const backgroundTaskPollerRef = React.useRef(new BackgroundTaskPoller());
 
   const { data, run, status: fetchStatus, setData } = useAsync<BackgroundTask>({
@@ -69,8 +73,11 @@ const useImportProject = (
   }, [fetchStatus, data]);
 
   const startImport = () => {
-    const isValid = validateImportData({ importUrl, projectName });
-    if (!isValid) return;
+    const isValid = validateImportData({ importUrl, projectName, setAlert });
+    if (!isValid) {
+      onComplete();
+      return;
+    }
     const jsonData =
       projectName.length > 0
         ? { url: importUrl, project_name: projectName }

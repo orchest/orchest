@@ -1,11 +1,8 @@
-import { DesignSystemProvider, getCssString } from "@orchest/design-system";
-import { makeRequest } from "@orchest/lib-utils";
-import { domMax, LazyMotion } from "framer-motion";
+import CssBaseline from "@mui/material/CssBaseline";
 import React from "react";
 import ReactDOM from "react-dom";
-import { IntercomProvider } from "react-use-intercom";
 import App from "./App";
-import { OrchestProvider } from "./hooks/orchest";
+import { DesignProvider, OrchestProvider } from "./contexts/Providers";
 
 declare global {
   interface Document {
@@ -20,31 +17,21 @@ declare global {
   }
 }
 
-// Load Stitches CSS
-let style = document.createElement("style");
-style.innerHTML = getCssString();
-window.document.head.appendChild(style);
+window.addEventListener("load", async () => {
+  try {
+    // Load after fonts are ready, required by MDC
+    await document.fonts.ready;
 
-// Load after fonts are ready, required by MDC
-window.addEventListener("load", () => {
-  document.fonts.ready.then(() => {
-    makeRequest("GET", "/async/server-config")
-      .then((result) => {
-        let serverConfig = JSON.parse(result as string);
-
-        ReactDOM.render(
-          <LazyMotion features={domMax}>
-            <DesignSystemProvider>
-              <IntercomProvider appId={serverConfig.config.INTERCOM_APP_ID}>
-                <OrchestProvider {...serverConfig}>
-                  <App />
-                </OrchestProvider>
-              </IntercomProvider>
-            </DesignSystemProvider>
-          </LazyMotion>,
-          document.querySelector("#root")
-        );
-      })
-      .catch((e) => console.log(e));
-  });
+    ReactDOM.render(
+      <DesignProvider>
+        <OrchestProvider>
+          <CssBaseline />
+          <App />
+        </OrchestProvider>
+      </DesignProvider>,
+      document.querySelector("#root")
+    );
+  } catch (error) {
+    console.error(error);
+  }
 });

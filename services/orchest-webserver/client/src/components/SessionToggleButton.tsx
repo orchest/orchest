@@ -1,81 +1,94 @@
-import { useOrchest } from "@/hooks/orchest";
-import { MDCButtonReact, MDCSwitchReact } from "@orchest/lib-mdc";
-import * as React from "react";
+import { useSessionsContext } from "@/contexts/SessionsContext";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
+import { IOrchestSession } from "@/types";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Switch from "@mui/material/Switch";
+import classNames from "classnames";
+import React from "react";
 
 export type TSessionToggleButtonRef = HTMLButtonElement;
-export interface ISessionToggleButtonProps
-  extends React.HTMLAttributes<TSessionToggleButtonRef> {
+type ISessionToggleButtonProps = {
+  status?: IOrchestSession["status"] | "";
   pipelineUuid: string;
   projectUuid: string;
-  switch?: boolean;
-}
+  isSwitch?: boolean;
+  className?: string;
+  style?: React.CSSProperties;
+};
 
-const SessionToggleButton = React.forwardRef<
-  TSessionToggleButtonRef,
-  ISessionToggleButtonProps
->((props, ref) => {
-  const [isLoading, setIsLoading] = React.useState(true);
-  const { state, dispatch, get } = useOrchest();
+const SessionToggleButton = (props: ISessionToggleButtonProps) => {
+  const { state, dispatch, getSession } = useSessionsContext();
 
-  const { pipelineUuid, projectUuid } = props;
-  const session = get.session({
-    pipelineUuid,
-    projectUuid,
-  });
+  const { className, isSwitch, pipelineUuid, projectUuid, style } = props;
 
-  const sharedProps = {
-    disabled: isLoading || ["STOPPING", "LAUNCHING"].includes(session?.status),
-    label:
-      {
-        STOPPING: "Session stopping…",
-        LAUNCHING: "Session starting…",
-        RUNNING: "Stop session",
-      }[session?.status] || "Start session",
-  };
+  const status =
+    props.status ||
+    getSession({
+      pipelineUuid,
+      projectUuid,
+    })?.status;
+
+  const disabled =
+    state.sessionsIsLoading || ["STOPPING", "LAUNCHING"].includes(status);
+  const label =
+    {
+      STOPPING: "Session stopping…",
+      LAUNCHING: "Session starting…",
+      RUNNING: "Stop session",
+    }[status] || "Start session";
 
   const handleEvent = (e) => {
     e.preventDefault();
+    e.stopPropagation();
     dispatch({
       type: "sessionToggle",
       payload: { pipelineUuid, projectUuid },
     });
   };
-
-  React.useEffect(() => setIsLoading(state.sessionsIsLoading), [
-    state.sessionsIsLoading,
-  ]);
+  const isSessionAlive = status === "RUNNING";
 
   return (
     <>
-      {props.switch ? (
-        <MDCSwitchReact
-          ref={ref as any}
-          {...sharedProps}
-          onChange={handleEvent}
-          classNames={props.className}
-          on={session?.status === "RUNNING"}
+      {isSwitch ? (
+        <FormControlLabel
+          onClick={handleEvent}
+          disableTypography
+          control={
+            <Switch
+              disabled={disabled}
+              size="small"
+              inputProps={{
+                "aria-label": `Switch ${isSessionAlive ? "off" : "on"} session`,
+              }}
+              sx={{
+                marginRight: (theme) => theme.spacing(1),
+              }}
+              className={className}
+              checked={isSessionAlive}
+            />
+          }
+          label={label}
         />
       ) : (
-        <MDCButtonReact
-          ref={ref as any}
-          {...sharedProps}
+        <StyledButtonOutlined
+          variant="outlined"
+          color="secondary"
+          disabled={disabled}
           onClick={handleEvent}
-          classNames={[
-            props.className,
-            "mdc-button--outlined",
-            "session-state-button",
-            // @rick do we need these?
-            {
-              LAUNCHING: "working",
-              STOPPING: "working",
-            }[session?.status] || "active",
-          ]}
-          icon={session?.status === "RUNNING" ? "stop" : "play_arrow"}
+          className={classNames(
+            className,
+            ["LAUNCHING", "STOPPING"].includes(status) ? "working" : "active"
+          )}
+          startIcon={isSessionAlive ? <StopIcon /> : <PlayArrowIcon />}
           data-test-id="session-toggle-button"
-        />
+        >
+          {label}
+        </StyledButtonOutlined>
       )}
     </>
   );
-});
+};
 
 export default SessionToggleButton;

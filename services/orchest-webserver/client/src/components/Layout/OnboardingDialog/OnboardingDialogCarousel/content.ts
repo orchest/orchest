@@ -25,7 +25,7 @@ export type TOnboardingDialogCarouselSlide = { title: string } & (
  * When changing content, please make sure that the dialog doesn't "jump" in
  * height. If it does, please modify the value below.
  */
-export const ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT = "16rem";
+export const ONBOARDING_DIALOG_CAROUSEL_MIN_HEIGHT = "18rem";
 
 export const onboardingDialogCarouselSlides: TOnboardingDialogCarouselSlide[] = [
   {

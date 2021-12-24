@@ -43,16 +43,16 @@ CSS_BUNDLE_PATH="dist/style.css"
 TS_SRC_PATH="src/main.tsx"
 SASS_SRC_PATH="src/styles/main.scss"
 
-ESBUILD_ARGS="$TS_SRC_PATH --bundle --minify --sourcemap --target=es6 --outfile=$JS_BUNDLE_PATH"
+ESBUILD_ARGS="$TS_SRC_PATH --bundle --minify --target=es6 --outfile=$JS_BUNDLE_PATH"
 SASS_ARGS="$SASS_SRC_PATH --load-path=$NODE_MODULES_PATH $CSS_BUNDLE_PATH"
 
 if $WATCH; then
   echo "Running in watch mode..."
   index_template_fill "main.js" "style.css"
   sass $SASS_ARGS --watch &
-  esbuild $ESBUILD_ARGS --watch
+  esbuild $ESBUILD_ARGS --watch --sourcemap # only generate sourcemap when pnpm run dev
 else
-  sass $SASS_ARGS && echo "Compiled $SASS_SRC_PATH successfully!" &
+  sass $SASS_ARGS --no-source-map && echo "Compiled $SASS_SRC_PATH successfully!" &
   esbuild $ESBUILD_ARGS
 
   wait $(jobs -p)

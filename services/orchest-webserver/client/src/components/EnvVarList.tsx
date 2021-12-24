@@ -1,80 +1,118 @@
 import { isValidEnvironmentVariableName } from "@/utils/webserver-utils";
-import {
-  MDCButtonReact,
-  MDCIconButtonToggleReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
-import * as React from "react";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteIcon from "@mui/icons-material/Delete";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import React from "react";
+import { IconButton } from "./common/IconButton";
 
-export interface IEnvVarListProps {
-  value?: any;
-  onChange?: any;
-  onAdd?: any;
-  onDelete?: any;
+export type EnvVarPair = {
+  name: string;
+  value: string;
+};
+
+export const EnvVarList: React.FC<{
+  value: EnvVarPair[];
+  setValue?: (callback: (currentValue: EnvVarPair[]) => EnvVarPair[]) => void;
   readOnly?: boolean;
-}
+  ["data-test-id"]?: string;
+}> = ({
+  value: variables,
+  setValue,
+  readOnly,
+  ["data-test-id"]: testId = "",
+}) => {
+  const onChange = (payload: string, index: number, type: "name" | "value") => {
+    setValue((current) => {
+      const found = current[index];
+      const updated = { ...found, [type]: payload };
+      return [...current.slice(0, index), updated, ...current.slice(index + 1)];
+    });
+  };
 
-export const EnvVarList: React.FC<IEnvVarListProps> = (props) => (
-  <div className="environment-variables-list">
-    {(!props.value || props.value.length == 0) && (
-      <p className="push-down">
-        <i>No environment variables have been defined.</i>
-      </p>
-    )}
-    <ul>
-      {props.value.map((pair, idx) => {
-        if (!pair) {
-          return;
-        }
+  const onAdd = () => {
+    setValue((current) => [...current, { name: "", value: "" }]);
+  };
 
+  const remove = (index: number) => {
+    setValue((current) => {
+      if (index < 0 || index >= current.length) return current;
+      return [...current.slice(0, index), ...current.slice(index + 1)];
+    });
+  };
+
+  return (
+    <Stack direction="column" spacing={3} alignItems="flex-start">
+      {variables.length === 0 && (
+        <Typography>
+          <i>No environment variables have been defined.</i>
+        </Typography>
+      )}
+      {variables.map((pair, idx) => {
+        if (!pair) return null;
+        const elementKey = `env-variable-${idx}`;
+        const isValidName =
+          pair.name.length === 0 || isValidEnvironmentVariableName(pair.name);
         return (
-          <li key={idx}>
-            <MDCTextFieldReact
-              value={pair["name"]}
-              onChange={(e) => {
-                props.onChange(e, idx, "name");
-              }}
-              label="Name"
-              disabled={props.readOnly === true}
-              classNames={["column push-down push-right"].concat(
-                isValidEnvironmentVariableName(pair["name"]) ? [] : ["invalid"]
-              )}
-              data-test-id={props["data-test-id"] + "-env-var-name"}
-              data-test-title={
-                props["data-test-id"] + `-env-var-${pair["name"]}-name`
-              }
-            />
-            <MDCTextFieldReact
-              value={pair["value"]}
-              onChange={(e) => props.onChange(e, idx, "value")}
-              label="Value"
-              disabled={props.readOnly === true}
-              classNames={["column push-down push-right"]}
-              data-test-id={props["data-test-id"] + "-env-var-value"}
-              data-test-title={
-                props["data-test-id"] + `-env-var-${pair["name"]}-value`
-              }
-            />
-            {!props.readOnly && (
-              <MDCIconButtonToggleReact
-                icon="delete"
-                tooltipText="Delete entry"
-                onClick={() => props.onDelete(idx)}
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{ maxWidth: "40rem" }}
+            key={elementKey}
+          >
+            <Tooltip
+              title="Must be numbers or alphabets concatenate with underscores or hyphen"
+              open={!isValidName}
+              arrow
+            >
+              <TextField
+                key={`${elementKey}-name`}
+                error={!isValidName}
+                value={pair.name || ""}
+                onChange={(e) => {
+                  onChange(e.target.value, idx, "name");
+                }}
+                label="Name"
+                autoFocus
+                disabled={readOnly === true}
+                data-test-id={`${testId}-env-var-name`}
+                data-test-title={`${testId}-env-var-${pair.name}-name`}
               />
+            </Tooltip>
+            <TextField
+              key={`${elementKey}-value`}
+              value={pair.value || ""}
+              onChange={(e) => onChange(e.target.value, idx, "value")}
+              label="Value"
+              disabled={readOnly === true}
+              data-test-id={`${testId}-env-var-value`}
+              data-test-title={`${testId}-env-var-${pair.name}-value`}
+            />
+            {!readOnly && (
+              <IconButton title="Delete entry" onClick={() => remove(idx)}>
+                <DeleteIcon />
+              </IconButton>
             )}
-          </li>
+          </Stack>
         );
       })}
-    </ul>
-    {!props.readOnly && (
-      <MDCButtonReact
-        icon="add"
-        classNames={["mdc-button--raised"]}
-        onClick={props.onAdd}
-        data-test-id={props["data-test-id"] + "-env-var-add"}
-      />
-    )}
-  </div>
-);
+      {!readOnly && (
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          color="secondary"
+          onClick={onAdd}
+          data-test-id={`${testId}-env-var-add`}
+        >
+          Create new variable
+        </Button>
+      )}
+    </Stack>
+  );
+};
 
 export default EnvVarList;

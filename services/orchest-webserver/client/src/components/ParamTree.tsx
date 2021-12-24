@@ -1,4 +1,4 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import {
   Alert,
   AlertDescription,
@@ -7,7 +7,7 @@ import {
   Link,
 } from "@orchest/design-system";
 import _ from "lodash";
-import * as React from "react";
+import React from "react";
 
 export interface IParamTreeProps {
   pipelineName: string;
@@ -15,8 +15,32 @@ export interface IParamTreeProps {
   strategyJSON: any;
 }
 
+export const NoParameterAlert = () => {
+  return (
+    <Alert status="info">
+      <AlertHeader>
+        <IconLightBulbOutline />
+        {`This pipeline doesn't have any parameters defined`}
+      </AlertHeader>
+      <AlertDescription>
+        <>
+          <Link
+            target="_blank"
+            href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
+          >
+            Learn more
+          </Link>{" "}
+          about parametrizing your pipelines and steps.
+        </>
+      </AlertDescription>
+    </Alert>
+  );
+};
+
 const ParamTree: React.FC<IParamTreeProps> = (props) => {
-  const context = useOrchest();
+  const {
+    state: { config },
+  } = useAppContext();
 
   const truncateParameterValue = (value) => {
     // stringify non string values
@@ -85,7 +109,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
 
     // first list pipeline parameters
     let pipelineParameterization =
-      strategyJSON[context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY];
+      strategyJSON[config?.PIPELINE_PARAMETERS_RESERVED_KEY];
     if (pipelineParameterization) {
       pipelineParameterElement = generateParameterElement(
         pipelineParameterization,
@@ -94,7 +118,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
     }
 
     for (const stepUUID in strategyJSON) {
-      if (stepUUID == context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
+      if (stepUUID == config?.PIPELINE_PARAMETERS_RESERVED_KEY) {
         continue;
       }
 
@@ -112,25 +136,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
 
   return (
     <div className="parameter-tree">
-      {Object.keys(props.strategyJSON).length == 0 && (
-        <Alert status="info">
-          <AlertHeader>
-            <IconLightBulbOutline />
-            {`This pipeline doesn't have any parameters defined`}
-          </AlertHeader>
-          <AlertDescription>
-            <>
-              <Link
-                target="_blank"
-                href="https://docs.orchest.io/en/stable/fundamentals/jobs.html#parametrizing-pipelines-and-steps"
-              >
-                Learn more
-              </Link>{" "}
-              about parametrizing your pipelines and steps.
-            </>
-          </AlertDescription>
-        </Alert>
-      )}
+      {Object.keys(props.strategyJSON).length == 0 && <NoParameterAlert />}
 
       {pipelineParameterElement !== undefined && (
         <div className="param-block">

@@ -1,225 +1,215 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
+import { Job, JobStatus, Project } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import SaveIcon from "@mui/icons-material/Save";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
-  Box,
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DIALOG_ANIMATION_DURATION,
-} from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCDialogReact,
-  MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
-  MDCSelectReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
-import {
+  fetcher,
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import React from "react";
-import SearchableTable from "./SearchableTable";
+import { IconButton } from "./common/IconButton";
+import { DataTable, DataTableColumn } from "./DataTable";
 import { StatusInline } from "./Status";
 
-export interface IJobListProps {
-  projectUuid: string;
-}
+type DisplayedJob = {
+  name: string;
+  pipeline: string;
+  snapShotDate: string;
+  status: JobStatus;
+};
 
-const JobList: React.FC<IJobListProps> = (props) => {
+const createColumns = ({
+  onEditJobNameClick,
+}: {
+  onEditJobNameClick: (uuid: string, name: string) => void;
+}): DataTableColumn<DisplayedJob>[] => [
+  {
+    id: "name",
+    label: "Job",
+    render: function JobName(row) {
+      return (
+        <Stack
+          direction="row"
+          alignItems="center"
+          component="span"
+          sx={{
+            display: "inline-flex",
+            button: { visibility: "hidden" },
+            "&:hover": {
+              button: { visibility: "visible" },
+            },
+          }}
+        >
+          {row.name}
+          <IconButton
+            title="Edit job name"
+            size="small"
+            sx={{ marginLeft: (theme) => theme.spacing(2) }}
+            onClick={(e: React.MouseEvent<unknown>) => {
+              e.stopPropagation();
+              onEditJobNameClick(row.uuid, row.name);
+            }}
+          >
+            <EditIcon />
+          </IconButton>
+        </Stack>
+      );
+    },
+  },
+  { id: "pipeline", label: "Pipeline" },
+  { id: "snapShotDate", label: "Snapshot date" },
+  {
+    id: "status",
+    label: "Status",
+    render: function SnapshotDate(row) {
+      return <StatusInline status={row.status} />;
+    },
+  },
+];
+
+const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
-  const [state, setState] = React.useState({
-    isDeleting: false,
-    jobs: undefined,
-    pipelines: undefined,
-    projectSnapshotSize: undefined,
-    editJobNameModal: false,
-    editJobNameModalBusy: false,
-    editJobName: undefined,
-    editJobNameUUID: undefined,
-  });
+  const { setAlert, setConfirm, requestBuild } = useAppContext();
 
-  const [isCreateDialogLoading, setIsCreateDialogLoading] = React.useState(
-    false
-  );
+  const [isEditingJobName, setIsEditingJobName] = React.useState(false);
+  const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+
+  const [jobName, setJobName] = React.useState("");
+  const [jobUuid, setJobUuid] = React.useState("");
+
+  const [jobs, setJobs] = React.useState<Job[]>([]);
+  const [pipelines, setPipelines] = React.useState<
+    { uuid: string; path: string; name: string }[]
+  >([]);
+  const [selectedPipeline, setSelectedPipeline] = React.useState<
+    string | undefined
+  >();
+
+  const [projectSnapshotSize, setProjectSnapshotSize] = React.useState(0);
+
+  const [isCreatingJob, setIsCreatingJob] = React.useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
+  const promiseManager = React.useRef(new PromiseManager());
 
-  const { orchest } = window;
-
-  const fetchList = () => {
-    // in case jobTable exists, clear checks
-    if (refManager.refs.jobTable) {
-      refManager.refs.jobTable.setSelectedRowIds([]);
+  const fetchJobs = async () => {
+    try {
+      const response = await fetcher<{ jobs: Job[] }>(
+        `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
+      );
+      setJobs(response.jobs);
+    } catch (e) {
+      console.error(e);
     }
-
-    let fetchListPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/catch/api-proxy/api/jobs/?project_uuid=${props.projectUuid}`
-      ),
-      promiseManager
-    );
-
-    fetchListPromise.promise
-      .then((response: string) => {
-        let result = JSON.parse(response);
-
-        setState((prevState) => ({
-          ...prevState,
-          jobs: result.jobs,
-        }));
-      })
-      .catch((e) => {
-        console.log(e);
-      });
   };
 
-  const fetchProjectDirSize = () => {
-    let fetchProjectDirSizePromise = makeCancelable(
-      makeRequest("GET", `/async/projects/${props.projectUuid}`),
-      promiseManager
-    );
-
-    fetchProjectDirSizePromise.promise
-      .then((response: string) => {
-        let result = JSON.parse(response);
-
-        setState((prevState) => ({
-          ...prevState,
-          projectSnapshotSize: result["project_snapshot_size"],
-        }));
-      })
-      .catch((e) => {
-        console.log(e);
-      });
+  const fetchProjectDirSize = async () => {
+    try {
+      const result = await fetcher<Project>(`/async/projects/${projectUuid}`);
+      setProjectSnapshotSize(result.project_snapshot_size);
+    } catch (e) {
+      // handle this error silently
+      console.error(e);
+    }
   };
 
   const onCreateClick = () => {
-    if (state.pipelines !== undefined && state.pipelines.length > 0) {
+    if (pipelines !== undefined && pipelines.length > 0) {
       setIsCreateDialogOpen(true);
+      setSelectedPipeline(pipelines[0].uuid);
+      setJobName("");
     } else {
-      orchest.alert("Error", "Could not find any pipelines for this project.");
+      setAlert("Error", "Could not find any pipelines for this project.");
     }
   };
 
-  const onDeleteClick = () => {
-    if (!state.isDeleting) {
-      setState((prevState) => ({
-        ...prevState,
-        isDeleting: true,
-      }));
-
-      // get job selection
-      let selectedRows = refManager.refs.jobTable.getSelectedRowIndices();
-
-      if (selectedRows.length == 0) {
-        orchest.alert("Error", "You haven't selected any jobs.");
-
-        setState((prevState) => ({
-          ...prevState,
-          isDeleting: false,
-        }));
-        return;
-      }
-
-      orchest.confirm(
-        "Warning",
-        "Are you sure you want to delete these jobs? (This cannot be undone.)",
-        () => {
-          // delete indices
-          let promises = [];
-
-          for (let x = 0; x < selectedRows.length; x++) {
-            promises.push(
-              // deleting the job will also
-              // take care of aborting it if necessary
-              makeRequest(
-                "DELETE",
-                "/catch/api-proxy/api/jobs/cleanup/" +
-                  state.jobs[selectedRows[x]].uuid
-              )
-            );
-          }
-
-          Promise.all(promises)
-            .then(() => {
-              setState((prevState) => ({
-                ...prevState,
-                isDeleting: false,
-              }));
-
-              fetchList();
-              refManager.refs.jobTable.setSelectedRowIds([]);
-            })
-            .catch(() => {
-              setState((prevState) => ({
-                ...prevState,
-                isDeleting: false,
-              }));
-            });
-        },
-        () => {
-          setState((prevState) => ({
-            ...prevState,
-            isDeleting: false,
-          }));
-        }
-      );
-    } else {
+  const deleteSelectedJobs = async (jobUuids: string[]) => {
+    // this is just a precaution. the button is disabled when isDeleting is true.
+    if (isDeleting) {
       console.error("Delete UI in progress.");
+      return false;
     }
+
+    setIsDeleting(true);
+
+    if (jobUuids.length == 0) {
+      setAlert("Error", "You haven't selected any jobs.");
+      setIsDeleting(false);
+
+      return false;
+    }
+
+    return setConfirm(
+      "Warning",
+      "Are you sure you want to delete these jobs? (This cannot be undone.)",
+      async () => {
+        const promises = jobUuids.map((uuid) => {
+          return fetcher(`/catch/api-proxy/api/jobs/cleanup/${uuid}`, {
+            method: "DELETE",
+          });
+        });
+
+        try {
+          await Promise.all(promises);
+          setIsDeleting(false);
+          fetchJobs();
+          return true;
+        } catch (e) {
+          setAlert("Error", `Failed to delete selected jobs: ${e}`);
+          setIsDeleting(false);
+          return false;
+        }
+      },
+      async () => {
+        setIsDeleting(false);
+        return false;
+      }
+    );
   };
 
-  const onSubmitModal = (
-    rerun?: Record<
-      "pipelineUuid" | "pipelineName" | "projectUuid" | "name",
-      string
-    >
-  ) => {
-    if (!rerun) {
-      if (refManager.refs.formJobName.mdc.value.length == 0) {
-        orchest.alert("Error", "Please enter a name for your job.");
-        return;
-      }
-
-      if (refManager.refs.formPipeline.mdc.value == "") {
-        orchest.alert("Error", "Please choose a pipeline.");
-        return;
-      }
-    }
-
-    const name = rerun?.name || refManager.refs.formJobName.mdc.value;
-    const pipelineUuid =
-      rerun?.pipelineUuid || refManager.refs.formPipeline.mdc.value;
-    const pipelineName =
-      rerun?.pipelineName ||
-      state.pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)?.name;
-    const projectUuid = rerun?.projectUuid || props.projectUuid;
-
+  const createJob = (newJobName: string, pipelineUuid: string) => {
     // TODO: in this part of the flow copy the pipeline directory to make
     // sure the pipeline no longer changes
-    setIsCreateDialogLoading(true);
+    setIsCreatingJob(true);
 
-    checkGate(props.projectUuid)
+    const pipelineName = pipelines.find(
+      (pipeline) => pipeline.uuid === pipelineUuid
+    )?.name;
+
+    checkGate(projectUuid)
       .then(() => {
         let postJobPromise = makeCancelable(
           makeRequest("POST", "/catch/api-proxy/api/jobs/", {
             type: "json",
             content: {
               pipeline_uuid: pipelineUuid,
-              pipeline_name: pipelineName,
               project_uuid: projectUuid,
-              name,
+              pipeline_name: pipelineName, // ? Question: why pipeline_name is needed when pipeline_uuid is given?
+              name: newJobName,
               draft: true,
               pipeline_run_spec: {
                 run_type: "full",
@@ -228,7 +218,7 @@ const JobList: React.FC<IJobListProps> = (props) => {
               parameters: [],
             },
           }),
-          promiseManager
+          promiseManager.current
         );
 
         postJobPromise.promise
@@ -247,15 +237,8 @@ const JobList: React.FC<IJobListProps> = (props) => {
                 let result = JSON.parse(response.body);
 
                 setIsCreateDialogOpen(false);
-
-                setTimeout(() => {
-                  setIsCreateDialogLoading(false);
-
-                  orchest.alert(
-                    "Error",
-                    "Failed to create job. " + result.message
-                  );
-                });
+                setIsCreatingJob(false);
+                setAlert("Error", `Failed to create job. ${result.message}`);
               } catch (error) {
                 console.log(error);
               }
@@ -265,130 +248,78 @@ const JobList: React.FC<IJobListProps> = (props) => {
       .catch((result) => {
         if (result.reason === "gate-failed") {
           setIsCreateDialogOpen(false);
+          setIsCreatingJob(false);
 
-          setTimeout(() => {
-            setIsCreateDialogLoading(false);
-
-            orchest.requestBuild(
-              props.projectUuid,
-              result.data,
-              "CreateJob",
-              () => {
-                setIsCreateDialogOpen(true);
-                onSubmitModal({
-                  name,
-                  pipelineName,
-                  pipelineUuid,
-                  projectUuid,
-                });
-              }
-            );
-          }, DIALOG_ANIMATION_DURATION.OUT);
+          requestBuild(projectUuid, result.data, "CreateJob", () => {
+            setIsCreateDialogOpen(true);
+            createJob(newJobName, pipelineUuid);
+          });
         }
       });
   };
 
-  const onRowClick = (row, idx, event) => {
-    let job = state.jobs[idx];
-
+  const onRowClick = (uuid: string) => {
+    const foundJob = jobs.find((job) => job.uuid === uuid);
+    if (!foundJob) return;
     navigateTo(
-      job.status === "DRAFT" ? siteMap.editJob.path : siteMap.job.path,
+      foundJob.status === "DRAFT" ? siteMap.editJob.path : siteMap.job.path,
       {
         query: {
-          projectUuid: props.projectUuid,
-          jobUuid: job.uuid,
+          projectUuid,
+          jobUuid: uuid,
         },
       }
     );
   };
 
-  const onEditJobNameClick = (jobUUID, jobName) => {
-    setState((prevState) => ({
-      ...prevState,
-      editJobName: jobName,
-      editJobNameUUID: jobUUID,
-      editJobNameModal: true,
-    }));
-  };
+  const columns = React.useMemo(() => {
+    const onEditJobNameClick = (newJobUuid: string, newJobName: string) => {
+      setIsEditingJobName(true);
+      setJobName(newJobName);
+      setJobUuid(newJobUuid);
+    };
+    return createColumns({ onEditJobNameClick });
+  }, []);
 
   const onCloseEditJobNameModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      editJobNameModal: false,
-      editJobNameModalBusy: false,
-    }));
+    setIsSubmittingJobName(false);
+    setIsEditingJobName(false);
+    setJobName("");
   };
 
-  const onSubmitEditJobNameModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      editJobNameModalBusy: true,
-    }));
+  const onSubmitEditJobNameModal = async () => {
+    setIsSubmittingJobName(true);
 
-    makeRequest("PUT", `/catch/api-proxy/api/jobs/${state.editJobNameUUID}`, {
-      type: "json",
-      content: {
-        name: state.editJobName,
-      },
-    })
-      .then((_) => {
-        fetchList();
-      })
-      .catch((e) => {
-        console.error(e);
-      })
-      .finally(() => {
-        onCloseEditJobNameModal();
+    try {
+      await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify({ name: jobName }),
       });
-  };
-
-  const jobListToTableData = (jobs) => {
-    let rows = jobs.map((job) => {
-      // keep only jobs that are related to a project!
-      return [
-        <span
-          className="mdc-icon-table-wrapper"
-          key={`job-${job.name}`}
-          data-test-id={`job-${job.name}`}
-        >
-          {job.name}{" "}
-          <span className="consume-click">
-            <MDCIconButtonToggleReact
-              icon="edit"
-              onClick={() => {
-                onEditJobNameClick(job.uuid, job.name);
-              }}
-            />
-          </span>
-        </span>,
-        job.pipeline_name,
-        formatServerDateTime(job.created_time),
-        <StatusInline
-          key={`${job.name}-status`}
-          css={{ verticalAlign: "bottom" }}
-          status={job.status}
-        />,
-      ];
-    });
-
-    return rows;
+      await fetchJobs();
+      onCloseEditJobNameModal();
+    } catch (e) {
+      setAlert(
+        "Error",
+        `Failed to update job name: ${JSON.stringify(e)}`,
+        onCloseEditJobNameModal
+      );
+    }
   };
 
   React.useEffect(() => {
     // retrieve pipelines once on component render
     let pipelinePromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${props.projectUuid}`),
-      promiseManager
+      makeRequest("GET", `/async/pipelines/${projectUuid}`),
+      promiseManager.current
     );
 
     pipelinePromise.promise
       .then((response: string) => {
         let result = JSON.parse(response);
-
-        setState((prevState) => ({
-          ...prevState,
-          pipelines: result.result,
-        }));
+        setPipelines(result.result);
       })
       .catch((e) => {
         if (e && e.status == 404) {
@@ -398,172 +329,195 @@ const JobList: React.FC<IJobListProps> = (props) => {
       });
 
     // retrieve jobs
-    fetchList();
+    fetchJobs();
     // get size of project dir to show warning if necessary
     fetchProjectDirSize();
 
-    return () => promiseManager.cancelCancelablePromises();
-  }, [props.projectUuid]);
+    return () => promiseManager.current.cancelCancelablePromises();
+  }, [projectUuid]);
 
-  const pipelineOptions =
-    state.pipelines?.map(({ uuid, name }) => [uuid, name]) || [];
+  const closeCreateDialog = () => {
+    setIsCreateDialogOpen(false);
+    setJobName("");
+    setSelectedPipeline(undefined);
+  };
 
   return (
     <div className={"jobs-page"}>
-      {state.editJobNameModal && (
-        <MDCDialogReact
-          title="Edit job name"
-          onClose={onCloseEditJobNameModal}
-          content={
-            <MDCTextFieldReact
-              classNames={["fullwidth push-down"]}
-              value={state.editJobName}
+      <Dialog
+        fullWidth
+        maxWidth="xs"
+        open={isEditingJobName}
+        onClose={onCloseEditJobNameModal}
+      >
+        <form
+          id="edit-job-name"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSubmitEditJobNameModal();
+          }}
+        >
+          <DialogTitle>Edit job name</DialogTitle>
+          <DialogContent>
+            <TextField
+              margin="normal"
+              fullWidth
+              value={jobName}
               label="Job name"
-              onChange={(value) => {
-                setState((prevState) => ({
-                  ...prevState,
-                  editJobName: value,
-                }));
-              }}
+              autoFocus
+              onChange={(e) => setJobName(e.target.value)}
               data-test-id="job-edit-name-textfield"
             />
-          }
-          actions={
-            <>
-              <MDCButtonReact
-                icon="close"
-                label="Cancel"
-                classNames={["push-right"]}
-                onClick={onCloseEditJobNameModal}
-              />
-              <MDCButtonReact
-                icon="save"
-                disabled={state.editJobNameModalBusy}
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                label="Save"
-                submitButton
-                onClick={onSubmitEditJobNameModal}
-              />
-            </>
-          }
-        />
-      )}
+          </DialogContent>
+          <DialogActions>
+            <Button startIcon={<CloseIcon />} onClick={onCloseEditJobNameModal}>
+              Cancel
+            </Button>
+            <Button
+              startIcon={<SaveIcon />}
+              disabled={isSubmittingJobName}
+              variant="contained"
+              type="submit"
+              form="edit-job-name"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
       <h2>Jobs</h2>
 
-      {state.jobs && state.pipelines ? (
+      {jobs && pipelines ? (
         <>
+          <Button
+            startIcon={<AddIcon />}
+            variant="contained"
+            onClick={onCreateClick}
+            sx={{ marginBottom: (theme) => theme.spacing(2) }}
+            data-test-id="job-create"
+          >
+            Create job
+          </Button>
           <Dialog
             open={isCreateDialogOpen}
-            onOpenChange={(open) => setIsCreateDialogOpen(open)}
+            onClose={closeCreateDialog}
+            fullWidth
+            maxWidth="xs"
           >
-            <div className="push-down">
-              <MDCButtonReact
-                icon="add"
-                label="Create job"
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                onClick={() => onCreateClick()}
-                data-test-id="job-create"
-              />
-            </div>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create a new job</DialogTitle>
-              </DialogHeader>
-              <DialogBody>
-                <form
-                  id="create-job"
-                  className="create-job-modal"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+            <form
+              id="create-job"
+              className="create-job-modal"
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
 
-                    onSubmitModal();
-                  }}
-                >
-                  {isCreateDialogLoading ? (
-                    <Box
-                      css={{ margin: "$2 0", "> * + *": { marginTop: "$5" } }}
-                    >
-                      <MDCLinearProgressReact />
+                if (jobName.length === 0) {
+                  setAlert("Error", "Please enter a name for your job.");
+                  return;
+                }
 
-                      <p>Copying pipeline directory...</p>
-                    </Box>
-                  ) : (
-                    <>
-                      {state.projectSnapshotSize > 50 && (
-                        <div className="warning push-down">
-                          <i className="material-icons">warning</i> Snapshot
-                          size exceeds 50MB. Please refer to the{" "}
-                          <a href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
-                            docs
-                          </a>
-                          .
-                        </div>
-                      )}
+                if (!selectedPipeline) {
+                  setAlert("Error", "Please choose a pipeline.");
+                  return;
+                }
 
-                      <MDCTextFieldReact
-                        ref={refManager.nrefs.formJobName}
-                        classNames={["fullwidth push-down"]}
+                createJob(jobName, selectedPipeline);
+              }}
+            >
+              <DialogTitle>Create a new job</DialogTitle>
+              <DialogContent>
+                {isCreatingJob ? (
+                  <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+                    <LinearProgress />
+                    <Typography sx={{ margin: (theme) => theme.spacing(1, 0) }}>
+                      Copying pipeline directory...
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Stack direction="column" spacing={2}>
+                    {projectSnapshotSize > 50 && (
+                      <Alert severity="warning">
+                        {`Snapshot size exceeds 50MB. Please refer to the `}
+                        <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
+                          docs
+                        </Link>
+                        .
+                      </Alert>
+                    )}
+                    <FormControl fullWidth>
+                      <TextField
+                        margin="normal"
+                        value={jobName}
+                        autoFocus
+                        onChange={(e) => setJobName(e.target.value)}
                         label="Job name"
                         data-test-id="job-create-name"
                       />
-
-                      <MDCSelectReact
-                        ref={refManager.nrefs.formPipeline}
+                    </FormControl>
+                    <FormControl fullWidth>
+                      <InputLabel id="select-pipeline-label">
+                        Pipeline
+                      </InputLabel>
+                      <Select
+                        labelId="select-pipeline-label"
+                        id="select-pipeline"
+                        value={selectedPipeline}
                         label="Pipeline"
-                        classNames={["fullwidth"]}
-                        value={
-                          pipelineOptions &&
-                          pipelineOptions[0] &&
-                          pipelineOptions[0][0]
-                        }
-                        options={pipelineOptions}
-                      />
-                    </>
-                  )}
-                </form>
-              </DialogBody>
-              <DialogFooter>
-                <MDCButtonReact
-                  icon="close"
-                  classNames={["push-right"]}
-                  label="Cancel"
-                  onClick={() => setIsCreateDialogOpen(false)}
-                />
-                <MDCButtonReact
-                  disabled={isCreateDialogLoading}
-                  icon="add"
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  label="Create job"
-                  submitButton
-                  inputType="submit"
+                        onChange={(e) => setSelectedPipeline(e.target.value)}
+                      >
+                        {pipelines.map((pipeline) => {
+                          return (
+                            <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
+                              {pipeline.name}
+                            </MenuItem>
+                          );
+                        })}
+                      </Select>
+                    </FormControl>
+                  </Stack>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Button color="secondary" onClick={closeCreateDialog}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  disabled={!jobName || isCreatingJob}
+                  type="submit"
                   form="create-job"
                   data-test-id="job-create-ok"
-                />
-              </DialogFooter>
-            </DialogContent>
+                >
+                  Create
+                </Button>
+              </DialogActions>
+            </form>
           </Dialog>
-
-          <div className={"job-actions"}>
-            <MDCIconButtonToggleReact
-              icon="delete"
-              tooltipText="Delete job"
-              disabled={state.isDeleting}
-              onClick={onDeleteClick}
-            />
-          </div>
-
-          <SearchableTable
-            ref={refManager.nrefs.jobTable}
-            selectable={true}
+          <DataTable<DisplayedJob>
+            id="job-list"
+            selectable
+            rows={jobs.map((job) => {
+              return {
+                uuid: job.uuid,
+                name: job.name,
+                pipeline: job.pipeline_name,
+                snapShotDate: formatServerDateTime(job.created_time),
+                status: job.status,
+                searchIndex:
+                  job.status === "STARTED" ? "Running..." : undefined,
+              };
+            })}
+            columns={columns}
+            initialOrderBy="snapShotDate"
+            initialOrder="desc"
             onRowClick={onRowClick}
-            rows={jobListToTableData(state.jobs)}
-            headers={["Job", "Pipeline", "Snapshot date", "Status"]}
+            deleteSelectedRows={deleteSelectedJobs}
           />
         </>
       ) : (
-        <MDCLinearProgressReact />
+        <LinearProgress />
       )}
     </div>
   );

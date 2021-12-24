@@ -1,3 +1,5 @@
+import { EnvVarPair } from "@/components/EnvVarList";
+import { PipelineJson } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -12,11 +14,11 @@ const ajv = new Ajv({
 
 const pipelineValidator = ajv.compile(pipelineSchema);
 
-export function isValidEnvironmentVariableName(name) {
+export function isValidEnvironmentVariableName(name: string) {
   return /^[0-9a-zA-Z\-_]+$/gm.test(name);
 }
 
-export function validatePipeline(pipelineJson) {
+export function validatePipeline(pipelineJson: PipelineJson) {
   let errors = [];
 
   let valid = pipelineValidator(pipelineJson);
@@ -86,7 +88,10 @@ export function validatePipeline(pipelineJson) {
   return { valid: errors.length == 0, errors };
 }
 
-export function filterServices(services, scope) {
+export function filterServices(
+  services: Record<string, any>,
+  scope: "noninteractive" | "interactive"
+) {
   let servicesCopy = _.cloneDeep(services);
   for (let serviceName in services) {
     if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
@@ -135,11 +140,11 @@ export function clearOutgoingConnections(steps: {
 }
 
 export function getServiceURLs(
-  service,
+  service: Record<string, any>,
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
-) {
+): string[] {
   let urls = [];
 
   if (service.ports === undefined) {
@@ -422,31 +427,32 @@ export function tryUntilTrue(action, retries, delay, interval?) {
 }
 
 // Will return undefined if the envVariables are ill defined.
-export function envVariablesArrayToDict(envVariables) {
-  const { orchest } = window;
-  const result = {};
+export function envVariablesArrayToDict(
+  envVariables: EnvVarPair[]
+):
+  | { status: "resolved"; value: Record<string, unknown> }
+  | { status: "rejected"; error: string } {
+  const result = {} as Record<string, string>;
   const seen = new Set();
   for (const pair of envVariables) {
     if (!pair) {
       continue;
     } else if (!pair["name"] || !pair["value"]) {
-      orchest.alert(
-        "Error",
-        "Environment variables must have a name and value."
-      );
-      return undefined;
+      return {
+        status: "rejected",
+        error: "Environment variables must have a name and value.",
+      };
     } else if (seen.has(pair["name"])) {
-      orchest.alert(
-        "Error",
-        "You have defined environment variables with the same name."
-      );
-      return undefined;
+      return {
+        status: "rejected",
+        error: "You have defined environment variables with the same name.",
+      };
     } else {
       result[pair["name"]] = pair["value"];
       seen.add(pair["name"]);
     }
   }
-  return result;
+  return { status: "resolved", value: result };
 }
 
 // Sorted by key.

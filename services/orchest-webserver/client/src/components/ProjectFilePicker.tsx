@@ -1,9 +1,20 @@
-import {
-  MDCButtonReact,
-  MDCDialogReact,
-  MDCSelectReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import { useAppContext } from "@/contexts/AppContext";
+import { FileTree } from "@/types";
+import AddIcon from "@mui/icons-material/Add";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import WarningIcon from "@mui/icons-material/Warning";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
 import {
   absoluteToRelativePath,
   ALLOWED_STEP_EXTENSIONS,
@@ -11,13 +22,21 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
+import { Code } from "./common/Code";
 import FilePicker from "./FilePicker";
 
-const ProjectFilePicker: React.FC<any> = (props) => {
-  const [state, setState] = React.useState({
+const ProjectFilePicker: React.FC<{
+  [key: string]: any;
+  menuMaxWidth?: string;
+}> = (props) => {
+  const { setAlert } = useAppContext();
+
+  const [state, setState] = React.useState<{
+    tree: FileTree;
+    [key: string]: any;
+  }>({
     createFileModal: false,
     selectedFileExists: null,
     fileName: "",
@@ -27,7 +46,6 @@ const ProjectFilePicker: React.FC<any> = (props) => {
     cwd: null,
   });
 
-  const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
 
   const onChangeFileValue = (value) => props.onChange(value);
@@ -77,8 +95,8 @@ const ProjectFilePicker: React.FC<any> = (props) => {
       .then(() => {
         setState((prevState) => ({
           ...prevState,
-          tree: tree,
-          cwd: cwd,
+          tree,
+          cwd,
         }));
       })
       .catch((error) => {
@@ -162,8 +180,6 @@ const ProjectFilePicker: React.FC<any> = (props) => {
   const getFullProjectPath = () =>
     state.createFileDir + state.fileName + state.selectedExtension;
 
-  const onCancelModal = () => refManager.refs.createFileDialog.close();
-
   const onCloseCreateFileModal = () =>
     setState((prevState) => ({
       ...prevState,
@@ -173,7 +189,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
   const onChangeNewFilename = (value) =>
     setState((prevState) => ({ ...prevState, fileName: value }));
 
-  const onChangeNewFilenameExtension = (value) =>
+  const onChangeNewFilenameExtension = (value: string) =>
     setState((prevState) => ({ ...prevState, selectedExtension: value }));
 
   const onSubmitModal = () => {
@@ -182,8 +198,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
 
     // TODO: case insensitive extension checking?
     if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
-      // @ts-ignore
-      orchest.alert(
+      setAlert(
         "Error",
         <div>
           <p>Invalid file extension</p>
@@ -225,8 +240,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
       })
       .catch((error) => {
         if (error.status == 409) {
-          // @ts-ignore
-          orchest.alert("Error", "A file with this name already exists.");
+          setAlert("Error", "A file with this name already exists.");
         }
         console.log(error);
       });
@@ -238,7 +252,7 @@ const ProjectFilePicker: React.FC<any> = (props) => {
     return ALLOWED_STEP_EXTENSIONS.map((el, index) => {
       return (
         <span key={el}>
-          <span className="code">.{el}</span>
+          <Code>.{el}</Code>
           {index < ALLOWED_STEP_EXTENSIONS.length - 1 ? (
             <React.Fragment>&nbsp;, </React.Fragment>
           ) : (
@@ -259,80 +273,113 @@ const ProjectFilePicker: React.FC<any> = (props) => {
   React.useEffect(() => checkFileValidity(), [props.value]);
 
   return (
-    <React.Fragment>
-      {state.createFileModal && (
-        <MDCDialogReact
-          title="Create a new file"
-          onClose={onCloseCreateFileModal}
-          ref={refManager.nrefs.createFileDialog}
-          data-test-id="project-file-picker-create-new-file-dialog"
-          content={
+    <>
+      <Dialog
+        open={state.createFileModal}
+        onClose={onCloseCreateFileModal}
+        data-test-id="project-file-picker-create-new-file-dialog"
+      >
+        <form
+          id="create-file"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSubmitModal();
+          }}
+        >
+          <DialogTitle>Create a new file</DialogTitle>
+          <DialogContent>
             <div className="create-file-input">
               <div className="push-down">
                 Supported file extensions are:&nbsp;
                 {allowedExtensionsMarkup()}.
               </div>
-
-              <div className="push-down field-select-combo">
-                <MDCTextFieldReact
+              <Stack direction="row" spacing={2}>
+                <TextField
                   label="File name"
+                  autoFocus
                   value={state.fileName}
-                  onChange={onChangeNewFilename}
+                  fullWidth
+                  onChange={(e) => onChangeNewFilename(e.target.value)}
                   data-test-id="project-file-picker-file-name-textfield"
                 />
-                <MDCSelectReact
-                  ref={refManager.nrefs.createFileExtensionDropdown}
-                  label="Extension"
-                  value={state.selectedExtension}
-                  options={ALLOWED_STEP_EXTENSIONS.map((el) => ["." + el])}
-                  onChange={onChangeNewFilenameExtension}
-                />
-              </div>
-              <MDCTextFieldReact
+                <FormControl fullWidth>
+                  <InputLabel id="project-file-picker-file-extension-label">
+                    Extension
+                  </InputLabel>
+                  <Select
+                    label="Extension"
+                    labelId="project-file-picker-file-extension-label"
+                    id="project-file-picker-file-extension"
+                    value={state.selectedExtension}
+                    onChange={(e) =>
+                      onChangeNewFilenameExtension(e.target.value)
+                    }
+                  >
+                    {ALLOWED_STEP_EXTENSIONS.map((el) => {
+                      const value = `.${el}`;
+                      return (
+                        <MenuItem key={value} value={value}>
+                          {value}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              </Stack>
+              <TextField
                 label="Path in project"
                 value={getFullProjectPath()}
-                classNames={["fullwidth push-down"]}
+                fullWidth
+                margin="normal"
                 disabled
               />
             </div>
-          }
-          actions={
-            <React.Fragment>
-              <MDCButtonReact
-                icon="close"
-                label="Cancel"
-                classNames={["push-right"]}
-                onClick={onCancelModal}
-              />
-              <MDCButtonReact
-                icon="add"
-                classNames={["mdc-button--raised", "themed-secondary"]}
-                label="Create file"
-                submitButton
-                onClick={onSubmitModal}
-                data-test-id="project-file-picker-create-file"
-              />
-            </React.Fragment>
-          }
-        />
-      )}
+          </DialogContent>
+          <DialogActions>
+            <Button
+              startIcon={<CloseIcon />}
+              color="secondary"
+              onClick={onCloseCreateFileModal}
+            >
+              Cancel
+            </Button>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              type="submit"
+              form="create-file"
+              data-test-id="project-file-picker-create-file"
+            >
+              Create file
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
       {state.cwd && state.tree && (
         <FilePicker
           tree={state.tree}
           cwd={state.cwd}
           onFocus={onFocus}
           value={props.value}
-          icon={state.selectedFileExists ? "check" : "warning"}
-          iconTitle={
+          icon={
+            state.selectedFileExists ? (
+              <CheckIcon color="success" />
+            ) : (
+              <WarningIcon color="warning" />
+            )
+          }
+          helperText={
             state.selectedFileExists
               ? "File exists in the project directory."
               : "Warning: this file wasn't found in the project directory."
           }
           onCreateFile={onCreateFile}
           onChangeValue={onChangeFileValue}
+          menuMaxWidth={props.menuMaxWidth}
         />
       )}
-    </React.Fragment>
+    </>
   );
 };
 

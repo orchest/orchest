@@ -1,28 +1,24 @@
-import { useOrchest } from "@/hooks/orchest";
-import { useLocationQuery } from "@/hooks/useCustomRoute";
+import { BoldText } from "@/components/common/BoldText";
+import { Code } from "@/components/common/Code";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
-import {
-  MDCButtonReact,
-  MDCDialogReact,
-  MDCLinearProgressReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import CloseIcon from "@mui/icons-material/Close";
+import InputIcon from "@mui/icons-material/Input";
+import WarningIcon from "@mui/icons-material/Warning";
+import Alert from "@mui/material/Alert";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import { useImportProject } from "./hooks/useImportProject";
-
-const PrefilledWarning = () => {
-  return (
-    <div className="push-down warning">
-      <p>
-        <i className="material-icons">warning</i> The import URL was not from
-        Orchest. Make sure you trust the <span className="code">git</span>
-        {" repository you're importing."}
-      </p>
-    </div>
-  );
-};
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
   "project move failed": "failed to move project because the directory exists.",
@@ -42,17 +38,12 @@ const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
   return data ? (
     <>
       {data.status === "PENDING" && (
-        <div className="push-up">
-          <MDCLinearProgressReact />
-        </div>
+        <LinearProgress sx={{ margin: (theme) => theme.spacing(2, 0) }} />
       )}
       {data.status === "FAILURE" && (
-        <div className="push-up">
-          <p>
-            <i className="material-icons float-left">error</i> Import failed:{" "}
-            {getMappedErrorMessage(data.result)}
-          </p>
-        </div>
+        <Alert severity="error">
+          Import failed: {getMappedErrorMessage(data.result)}
+        </Alert>
       )}
     </>
   ) : null;
@@ -66,50 +57,37 @@ const getProjectNameFromUrl = (importUrl: string) => {
 const ImportDialog: React.FC<{
   projectName: string;
   setProjectName: React.Dispatch<React.SetStateAction<string>>;
-  initialImportUrl?: string;
+  importUrl?: string;
+  setImportUrl: (url: string) => void;
   onImportComplete?: (backgroundTaskResult: BackgroundTask) => void;
-  open: () => void;
-  close: () => void;
+  open: boolean;
+  onClose: () => void;
 }> = ({
   projectName,
   setProjectName,
-  initialImportUrl,
+  importUrl,
+  setImportUrl,
   onImportComplete,
   open,
-  close,
+  onClose,
 }) => {
-  const [importUrlFromQuerystring] = useLocationQuery(["import_url"]);
-  const { dispatch } = useOrchest();
+  const { dispatch } = useProjectsContext();
 
-  const [isCloseVisible, setIsCloseVisible] = React.useState(true);
-
-  const hasPrefilledImportUrl =
-    initialImportUrl ||
-    (importUrlFromQuerystring && typeof importUrlFromQuerystring === "string");
-
-  // if user loads the app with a pre-filled import_url in their query string
-  // we prompt them directly with the import modal
-  React.useEffect(() => {
-    if (hasPrefilledImportUrl) open();
-  }, []);
-
-  const [importUrl, _setImportUrl] = React.useState<string>(
-    hasPrefilledImportUrl
-      ? initialImportUrl ||
-          window.decodeURIComponent(importUrlFromQuerystring as string)
-      : ""
-  );
-
-  const setImportUrl = (url: string) => _setImportUrl(url.trim().toLowerCase());
+  const [isAllowedToClose, setIsAllowedToClose] = React.useState(true);
 
   const { startImport: fireImportRequest, importResult } = useImportProject(
     projectName,
     importUrl,
     async (result) => {
+      if (!result) {
+        // failed to import
+        setIsAllowedToClose(true);
+        return;
+      }
       if (result.status === "SUCCESS") {
         setImportUrl("");
         setProjectName("");
-        close();
+        onClose();
 
         if (onImportComplete) {
           // currently result.result is project.path (projectName)
@@ -141,94 +119,124 @@ const ImportDialog: React.FC<{
   );
   React.useEffect(() => {
     if (importResult && importResult.status !== "PENDING") {
-      setIsCloseVisible(true);
+      setIsAllowedToClose(true);
     }
   }, [importResult]);
 
   const startImport = () => {
-    setIsCloseVisible(false);
+    setIsAllowedToClose(false);
     fireImportRequest();
   };
 
-  const onClose = () => {
+  const closeDialog = () => {
     setImportUrl("");
     setProjectName("");
-    close();
+    onClose();
   };
 
   // if the URL is not from Orchest, we warn the user
   const shouldShowWarning =
-    hasPrefilledImportUrl &&
+    importUrl !== "" &&
     !/^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl);
 
   return (
-    <MDCDialogReact
-      title="Import a project"
-      onClose={onClose}
-      content={
-        <div data-test-id="import-project-dialog">
-          {shouldShowWarning && <PrefilledWarning />}
-          <p className="push-down">
-            Import a <span className="code">git</span> repository by specifying
-            the <span className="code">HTTPS</span> URL below:
-          </p>
-          <MDCTextFieldReact
-            classNames={["fullwidth push-down"]}
-            label="Git repository URL"
-            value={importUrl}
-            onChange={setImportUrl}
-            data-test-id="project-url-textfield"
-          />
-
-          <MDCTextFieldReact
-            classNames={["fullwidth"]}
-            label="Project name (optional)"
-            value={projectName}
-            onChange={(value) => {
-              setProjectName(value.replace(/[^\w\.]/g, "-"));
-            }}
-            data-test-id="project-name-textfield"
-          />
-
-          {importResult && <ImportStatusNotification data={importResult} />}
-
-          <p className="push-up">
-            To import <b>private </b>
-            <span className="code">git</span> repositories upload them directly
-            through the File Manager into the{" "}
-            <span className="code">projects/</span> directory.
-          </p>
-        </div>
-      }
-      actions={({ setAllowClose }) => (
-        <>
-          {isCloseVisible && (
-            <MDCButtonReact
-              icon="close"
-              label="Close"
-              classNames={["push-right"]}
-              onClick={onClose}
+    <Dialog open={open} onClose={isAllowedToClose ? closeDialog : undefined}>
+      <form
+        id="import-project"
+        onSubmit={(e) => {
+          e.preventDefault();
+          startImport();
+        }}
+      >
+        <DialogTitle>Import a project</DialogTitle>
+        <DialogContent>
+          <Stack
+            direction="column"
+            spacing={2}
+            data-test-id="import-project-dialog"
+          >
+            <Typography>
+              Import a <Code>git</Code> repository by specifying the{" "}
+              <Code>HTTPS</Code> URL below:
+            </Typography>
+            <TextField
+              fullWidth
+              autoFocus
+              label="Git repository URL"
+              value={importUrl}
+              helperText={
+                !shouldShowWarning ? (
+                  ""
+                ) : (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      // color: (theme) => theme.palette.warning.dark,
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                    }}
+                  >
+                    <WarningIcon
+                      sx={{
+                        marginRight: (theme) => theme.spacing(1),
+                        fontSize: (theme) =>
+                          theme.typography.subtitle2.fontSize,
+                      }}
+                    />
+                    {`The import URL was not from Orchest. Make sure you trust this git repository.`}
+                  </Typography>
+                )
+              }
+              onChange={(e) => setImportUrl(e.target.value)}
+              data-test-id="project-url-textfield"
             />
+            <TextField
+              fullWidth
+              label="Project name (optional)"
+              value={projectName}
+              onChange={(e) => {
+                setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
+              }}
+              data-test-id="project-name-textfield"
+            />
+            {importResult && <ImportStatusNotification data={importResult} />}
+            <Alert severity="info">
+              To import <BoldText>private</BoldText> git
+              {` repositories upload them directly through the File Manager into the `}
+              <Code dark sx={{ marginTop: (theme) => theme.spacing(1) }}>
+                projects/
+              </Code>
+              {` directory.`}
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          {isAllowedToClose && (
+            <Button
+              startIcon={<CloseIcon />}
+              color="secondary"
+              onClick={closeDialog}
+            >
+              Close
+            </Button>
           )}
-          <MDCButtonReact
-            icon="input"
+          <Button
+            variant="contained"
+            startIcon={<InputIcon />}
             // So that the button is disabled when in a states
             // that requires so (currently ["PENDING"]).
-            disabled={["PENDING"].includes(
-              importResult !== null ? importResult.status : undefined
-            )}
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            label="Import"
-            submitButton
-            onClick={() => {
-              setAllowClose(false);
-              startImport();
-            }}
+            disabled={importResult?.status === "PENDING"}
+            type="submit"
+            form="import-project"
+            // onClick={startImport}
             data-test-id="import-project-ok"
-          />
-        </>
-      )}
-    />
+          >
+            Import
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
   );
 };
 

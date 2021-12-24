@@ -1,20 +1,15 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/Routes";
 import { getOrderedRoutes } from "@/routingConfig";
 import { Job, Project } from "@/types";
-import {
-  MDCLinearProgressReact,
-  MDCListReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  RefManager,
-} from "@orchest/lib-utils";
+import Box from "@mui/material/Box";
+import LinearProgress from "@mui/material/LinearProgress";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import TextField from "@mui/material/TextField";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 type Pipeline = {
@@ -34,18 +29,12 @@ type Command = {
   };
 };
 
-const fetcherCreator = (promiseManager: PromiseManager<any>) => {
+const fetcherCreator = () => {
   return function <T>(path: string, attribute?: string) {
     return new Promise<T[]>((resolve, reject) => {
-      let fetchListPromise = makeCancelable(
-        makeRequest("GET", path),
-        promiseManager
-      );
-
-      fetchListPromise.promise
-        .then((response: string) => {
-          const parsed = JSON.parse(response);
-          resolve(attribute ? parsed[attribute] : parsed);
+      fetcher(path)
+        .then((response) => {
+          resolve(attribute ? response[attribute] : response);
         })
         .catch((e) => {
           console.error(e);
@@ -58,20 +47,137 @@ const fetcherCreator = (promiseManager: PromiseManager<any>) => {
   };
 };
 
+type ProjectObject = { list: Command[]; paths: Record<string, string> };
+
+const generatePipelineCommands = (
+  projectPaths: Record<string, string>,
+  { name, project_uuid, uuid }: Pick<Pipeline, "name" | "project_uuid" | "uuid">
+): Command[] => {
+  const pipelineDisplay = `${name} [${projectPaths[project_uuid]}]`;
+
+  return [
+    {
+      title: `Edit: ${pipelineDisplay}`,
+      action: "openPage",
+      data: {
+        path: siteMap.pipeline.path,
+        query: {
+          pipelineUuid: uuid,
+          projectUuid: project_uuid,
+        },
+      },
+    },
+    {
+      title: `JupyterLab: ${pipelineDisplay}`,
+      action: "openPage",
+      data: {
+        path: siteMap.jupyterLab.path,
+        query: {
+          pipelineUuid: uuid,
+          projectUuid: project_uuid,
+        },
+      },
+    },
+    {
+      title: `Settings: ${pipelineDisplay}`,
+      action: "openPage",
+      data: {
+        path: siteMap.pipelineSettings.path,
+        query: {
+          pipelineUuid: uuid,
+          projectUuid: project_uuid,
+        },
+      },
+    },
+    {
+      title: `Logs: ${pipelineDisplay}`,
+      action: "openPage",
+      data: {
+        path: siteMap.logs.path,
+        query: {
+          pipelineUuid: uuid,
+          projectUuid: project_uuid,
+        },
+      },
+    },
+  ];
+};
+
+const commandsFromPipeline = (
+  projectPaths: Record<string, string>,
+  pipeline: Pipeline
+) => {
+  const pipelineName = `${pipeline.name} [${
+    projectPaths[pipeline.project_uuid]
+  }]`;
+  return {
+    title: `Pipeline: ${pipelineName}`,
+    action: "openList",
+    children: generatePipelineCommands(projectPaths, pipeline),
+  };
+};
+
+const commandsFromProject = (project: Project): Command => {
+  return {
+    title: "Project: " + project.path,
+    action: "openList",
+    children: [
+      {
+        title: "Project settings: " + project.path,
+        action: "openPage",
+        data: {
+          path: siteMap.projectSettings.path,
+          query: {
+            projectUuid: project.uuid,
+          },
+        },
+      },
+      {
+        title: "Pipelines: " + project.path,
+        action: "openPage",
+        data: {
+          path: siteMap.pipelines.path,
+          query: {
+            projectUuid: project.uuid,
+          },
+        },
+      },
+    ],
+  };
+};
+
+const commandsFromJob = (projectPaths: Record<string, string>, job: Job) => {
+  const title =
+    job.status == "DRAFT"
+      ? `Edit job: ${job.name} [${projectPaths[job.project_uuid]}]`
+      : `Job: ${job.name} [${projectPaths[job.project_uuid]}]`;
+  const path = job.status == "DRAFT" ? siteMap.editJob.path : siteMap.job.path;
+  return {
+    title,
+    action: "openPage",
+    data: {
+      path,
+      query: { projectUuid: job.project_uuid, jobUuid: job.uuid },
+    },
+  };
+};
+
 const CommandPalette: React.FC = () => {
+  // global states
   const {
     state: { isCommandPaletteOpen },
     dispatch,
-  } = useOrchest();
-
+  } = useAppContext();
   const { navigateTo } = useCustomRoute();
+
+  // local states
   const [isRefreshingCache, setIsRefreshingCache] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [selectedCommandIndex, setSelectedCommandIndex] = React.useState(0);
-
   const commandCache = React.useRef<Command[]>([]);
-
   const [commands, setCommands] = React.useState<Command[]>([]);
+
+  const commandListRef = React.useRef<HTMLDivElement>();
 
   const filteredCommands = React.useMemo(() => {
     return (commands || []).filter((command) =>
@@ -79,20 +185,18 @@ const CommandPalette: React.FC = () => {
     );
   }, [commands, query]);
 
-  const [refManager] = React.useState(new RefManager());
-  const [promiseManager] = React.useState(new PromiseManager());
-  const fetcher = fetcherCreator(promiseManager);
+  const fetcher = fetcherCreator();
 
   const showCommandPalette = () => {
     dispatch({
-      type: "setIsCommandPaletteOpen",
+      type: "SET_IS_COMMAND_PALETTE_OPEN",
       payload: true,
     });
   };
 
   const hideCommandPalette = () => {
     dispatch({
-      type: "setIsCommandPaletteOpen",
+      type: "SET_IS_COMMAND_PALETTE_OPEN",
       payload: false,
     });
   };
@@ -101,41 +205,45 @@ const CommandPalette: React.FC = () => {
     setCommands(commandCache.current);
   };
 
-  const refreshCache = () => {
+  const refreshCache = async () => {
     setIsRefreshingCache(true);
 
-    let pipelineCommandsPromise = fetchPipelines().then((pipelines) => {
-      return pipelines.reduce((all, pipeline) => {
-        return [...all, ...commandsFromPipeline(pipeline)];
-      }, []);
+    const projectCommands = await fetchProjects().then((projects) => {
+      return projects.reduce(
+        (all, project) => {
+          return {
+            list: [...all.list, commandsFromProject(project)],
+            paths: { ...all.paths, [project.uuid]: project.path },
+          };
+        },
+        { list: [], paths: {} } as ProjectObject
+      );
     });
 
-    let projectCommandsPromise = fetchProjects().then((projects) => {
-      return projects.reduce((all, project) => {
-        return [...all, commandsFromProject(project)];
-      }, []);
+    const pipelineCommandsPromise = fetchPipelines().then((pipelines) => {
+      return pipelines.map((pipeline) => {
+        return commandsFromPipeline(projectCommands.paths, pipeline);
+      });
     });
 
-    let jobCommandsPromise = fetchJobs().then((jobs) => {
-      return jobs.reduce((all, job) => {
-        return [...all, commandsFromJob(job)];
-      }, []);
+    const jobCommandsPromise = fetchJobs().then((jobs) => {
+      return jobs.map((job) => {
+        return commandsFromJob(projectCommands.paths, job);
+      });
     });
 
-    Promise.all([
-      pipelineCommandsPromise,
-      projectCommandsPromise,
-      jobCommandsPromise,
-    ]).then(([pipelineCommands, projectCommands, jobCommands]) => {
-      commandCache.current = [
-        ...generatePageCommands(),
-        ...pipelineCommands,
-        ...projectCommands,
-        ...jobCommands,
-      ];
-      setCommands(commandCache.current);
-      setIsRefreshingCache(false);
-    });
+    Promise.all([pipelineCommandsPromise, jobCommandsPromise]).then(
+      ([pipelineCommands, jobCommands]) => {
+        commandCache.current = [
+          ...generatePageCommands(),
+          ...projectCommands.list,
+          ...pipelineCommands,
+          ...jobCommands,
+        ];
+        setCommands(commandCache.current);
+        setIsRefreshingCache(false);
+      }
+    );
   };
 
   const fetchPipelines = () => {
@@ -150,123 +258,10 @@ const CommandPalette: React.FC = () => {
     return fetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
   };
 
-  const onQueryChange = (value: string) => {
-    setQuery(value);
-  };
-
-  const commandsFromProject = (project: Project): Command => {
-    return {
-      title: "Project: " + project.path,
-      action: "openList",
-      children: [
-        {
-          title: "Project settings: " + project.path,
-          action: "openPage",
-          data: {
-            path: siteMap.projectSettings.path,
-            query: {
-              projectUuid: project.uuid,
-            },
-          },
-        },
-        {
-          title: "Pipelines: " + project.path,
-          action: "openPage",
-          data: {
-            path: siteMap.pipelines.path,
-            query: {
-              projectUuid: project.uuid,
-            },
-          },
-        },
-      ],
-    };
-  };
-
-  const commandsFromPipeline = (pipeline: Pipeline) => {
-    const generatePipelineCommands = (pipelineDisplay): Command[] => {
-      return [
-        {
-          title: "Edit: " + pipelineDisplay,
-          action: "openPage",
-          data: {
-            path: siteMap.pipeline.path,
-            query: {
-              pipelineUuid: pipeline.uuid,
-              projectUuid: pipeline.project_uuid,
-            },
-          },
-        },
-        {
-          title: "JupyterLab: " + pipelineDisplay,
-          action: "openPage",
-          data: {
-            path: siteMap.jupyterLab.path,
-            query: {
-              pipelineUuid: pipeline.uuid,
-              projectUuid: pipeline.project_uuid,
-            },
-          },
-        },
-        {
-          title: "Settings: " + pipelineDisplay,
-          action: "openPage",
-          data: {
-            path: siteMap.pipelineSettings.path,
-            query: {
-              pipelineUuid: pipeline.uuid,
-              projectUuid: pipeline.project_uuid,
-            },
-          },
-        },
-        {
-          title: "Logs: " + pipelineDisplay,
-          action: "openPage",
-          data: {
-            path: siteMap.logs.path,
-            query: {
-              pipelineUuid: pipeline.uuid,
-              projectUuid: pipeline.project_uuid,
-            },
-          },
-        },
-      ];
-    };
-
-    const pipelineName = pipeline.name + " [" + pipeline.path + "]";
-    return [
-      {
-        title: "Pipeline: " + pipelineName,
-        action: "openList",
-        children: generatePipelineCommands(pipelineName),
-      },
-    ];
-  };
-
-  const commandsFromJob = (job: any) => {
-    return job.status == "DRAFT"
-      ? {
-          title: "Edit job: " + job.name,
-          action: "openPage",
-          data: {
-            path: siteMap.editJob.path,
-            query: {
-              projectUuid: job.project_uuid,
-              jobUuid: job.uuid,
-            },
-          },
-        }
-      : {
-          title: "Job: " + job.name,
-          action: "openPage",
-          data: {
-            path: siteMap.job.path,
-            query: {
-              projectUuid: job.project_uuid,
-              jobUuid: job.uuid,
-            },
-          },
-        };
+  const onQueryChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
+  ) => {
+    setQuery(e.target.value);
   };
 
   const generatePageCommands = () => {
@@ -299,13 +294,11 @@ const CommandPalette: React.FC = () => {
     setQuery("");
 
     switch (command.action) {
-      case "openPage":
-        dispatch({
-          type: "setIsCommandPaletteOpen",
-          payload: false,
-        });
+      case "openPage": {
+        hideCommandPalette();
         navigateTo(command.data.path, { query: command.data.query });
         break;
+      }
       case "openList":
         setCommands(command.children);
         break;
@@ -314,7 +307,7 @@ const CommandPalette: React.FC = () => {
 
   const handleIndexScrollContainer = (index: number) => {
     // Set scroll position to make sure the selected element is in view
-    if (refManager.refs.commandList) {
+    if (commandListRef.current) {
       const isVisible = (el, holder) => {
         let { top, bottom, height } = el.getBoundingClientRect();
 
@@ -326,13 +319,10 @@ const CommandPalette: React.FC = () => {
           : [bottom - holderRect.bottom <= height, "bottom"];
       };
 
-      let listEl = refManager.refs.commandList.querySelectorAll("li")[index];
+      let listEl = commandListRef.current.querySelectorAll("li")[index];
 
       if (listEl) {
-        const [visible, position] = isVisible(
-          listEl,
-          refManager.refs.commandList
-        );
+        const [visible, position] = isVisible(listEl, commandListRef.current);
         if (!visible) {
           listEl.scrollIntoView(position == "top");
         }
@@ -399,17 +389,11 @@ const CommandPalette: React.FC = () => {
   };
 
   React.useEffect(() => {
-    // Load cache on page load
-    refreshCache();
-
-    return () => {
-      disableCommandMode();
-    };
+    return () => disableCommandMode();
   }, []);
 
   React.useEffect(() => {
     if (isCommandPaletteOpen) {
-      refManager.refs.search.focus();
       enableCommandMode();
     } else {
       disableCommandMode();
@@ -421,35 +405,44 @@ const CommandPalette: React.FC = () => {
     setSelectedCommandIndex(0);
   }, [commands, query]);
 
+  if (!isCommandPaletteOpen) return null;
+
   return (
-    <div>
-      {isCommandPaletteOpen && (
-        <div className="command-palette-holder">
-          <div className="command-pallette">
-            <div className="search-box">
-              <MDCTextFieldReact
-                onChange={onQueryChange}
-                value={query}
-                classNames={["fullwidth"]}
-                ref={refManager.nrefs.search}
-                label="Command search"
-              />
-            </div>
-            <div className="command-list" ref={refManager.nrefs.commandList}>
-              {
-                <MDCListReact
-                  className="mdc-deprecated-list--dense"
-                  selectedIndex={selectedCommandIndex}
-                  items={filteredCommands.map((command) => {
-                    return { text: command.title, onClick: selectCommand };
-                  })}
-                />
-              }
-            </div>
-            {isRefreshingCache && <MDCLinearProgressReact />}
-          </div>
+    <div className="command-palette-holder">
+      <div className="command-pallette">
+        <Box
+          sx={{
+            marginBottom: (theme) => theme.spacing(2),
+            backgroundColor: (theme) => theme.palette.common.white,
+            borderRadius: "4px",
+          }}
+        >
+          <TextField
+            fullWidth
+            color="secondary"
+            onChange={onQueryChange}
+            value={query}
+            autoFocus
+            placeholder="Command search"
+          />
+        </Box>
+        <div className="command-list" ref={commandListRef}>
+          <List>
+            {filteredCommands.map((command, i) => {
+              return (
+                <ListItem
+                  selected={selectedCommandIndex === i}
+                  key={command.title}
+                  onClick={selectCommand}
+                >
+                  {command.title}
+                </ListItem>
+              );
+            })}
+          </List>
         </div>
-      )}
+        {isRefreshingCache && <LinearProgress />}
+      </div>
     </div>
   );
 };

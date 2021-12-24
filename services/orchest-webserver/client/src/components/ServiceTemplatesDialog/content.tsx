@@ -5,27 +5,19 @@ import {
   IconTensorBoard,
   IconVSCode,
 } from "@/icons";
+import { Service } from "@/types";
 import { IconDraftOutline } from "@orchest/design-system";
-import * as React from "react";
+import React from "react";
 
-export interface IServiceTemplate {
+export type ServiceTemplate = {
   label: string;
   icon?: React.ReactNode;
-  config?: Partial<Record<"command" | "image" | "name", string>> & {
-    binds?: { [key: string]: string };
-    env_variables?: { [key: string]: string };
-    ports?: number[];
-    preserve_base_path?: boolean;
-    entrypoint?: string;
-    scope?: ("interactive" | "noninteractive")[];
-  };
-}
+  config?: Service;
+};
 
-export interface IServiceTemplates {
-  [key: string]: IServiceTemplate;
-}
+export type ServiceTemplates = Record<string, ServiceTemplate>;
 
-export const templates: IServiceTemplates = {
+export const templates: ServiceTemplates = {
   tensorboard: {
     label: "TensorBoard",
     icon: <IconTensorBoard />,

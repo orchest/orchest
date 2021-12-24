@@ -1,11 +1,28 @@
-import EnvVarList from "@/components/EnvVarList";
+import { Code } from "@/components/common/Code";
+import { IconButton } from "@/components/common/IconButton";
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableRow,
+} from "@/components/DataTable";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { ServiceTemplate } from "@/components/ServiceTemplatesDialog/content";
+import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  Service,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -14,34 +31,50 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
+import InfoIcon from "@mui/icons-material/Info";
+import ListIcon from "@mui/icons-material/List";
+import MemoryIcon from "@mui/icons-material/Memory";
+import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
+import SaveIcon from "@mui/icons-material/Save";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import {
-  Alert,
+  Alert as CustomAlert,
   AlertDescription,
   AlertHeader,
-  Box,
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
 import {
-  MDCButtonReact,
-  MDCCheckboxReact,
-  MDCDataTableReact,
-  MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
-  MDCTabBarReact,
-  MDCTextFieldReact,
-  MDCTooltipReact,
-} from "@orchest/lib-mdc";
-import {
+  fetcher,
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import _ from "lodash";
-import React, { useRef, useState } from "react";
+import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import useSWR from "swr";
+import { MutatorCallback } from "swr/dist/types";
+
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(4, 0),
+}));
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -53,11 +86,90 @@ const tabMapping: Record<string, number> = {
   services: 2,
 };
 
+const tabs = [
+  {
+    id: "configuration",
+    label: "Configuration",
+    icon: <ListIcon />,
+  },
+  {
+    id: "environment-variables",
+    label: "Environment variables",
+    icon: <ViewComfyIcon />,
+  },
+  {
+    id: "services",
+    label: "Services",
+    icon: <MiscellaneousServicesIcon />,
+  },
+];
+
+const getOrderValue = () => {
+  const lsKey = "_monotonic_getOrderValue";
+  // returns monotinically increasing digit
+  if (!window.localStorage.getItem(lsKey)) {
+    window.localStorage.setItem(lsKey, "0");
+  }
+  let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
+  window.localStorage.setItem(lsKey, value + "");
+  return value;
+};
+
+const fetchPipelineJson = (callback: (data: PipelineJson) => void) => async (
+  url: string
+) => {
+  const response = await fetcher<{ pipeline_json: string }>(url);
+  const pipelineObj = JSON.parse(response.pipeline_json) as PipelineJson;
+  // as settings are optional, populate defaults if no values exist
+  if (pipelineObj.settings === undefined) {
+    pipelineObj.settings = {};
+  }
+  if (pipelineObj.settings.auto_eviction === undefined) {
+    pipelineObj.settings.auto_eviction = false;
+  }
+  if (pipelineObj.settings.data_passing_memory_size === undefined) {
+    pipelineObj.settings.data_passing_memory_size = "1GB";
+  }
+  if (pipelineObj.parameters === undefined) {
+    pipelineObj.parameters = {};
+  }
+  if (pipelineObj.services === undefined) {
+    pipelineObj.services = {};
+  }
+
+  // Augment services with order key
+  for (let service in pipelineObj.services) {
+    pipelineObj.services[service].order = getOrderValue();
+  }
+
+  callback(pipelineObj);
+
+  return pipelineObj;
+};
+
+const isValidMemorySize = (value: string) =>
+  value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
+
+const scopeMap = {
+  interactive: "Interactive sessions",
+  noninteractive: "Job sessions",
+};
+
 const PipelineSettingsView: React.FC = () => {
   // global states
-  const orchest = window.orchest;
-  const context = useOrchest();
-  const { dispatch, get } = useOrchest();
+  const projectsContext = useProjectsContext();
+  const {
+    state: { hasUnsavedChanges },
+    setAlert,
+    setConfirm,
+    setAsSaved,
+  } = useAppContext();
+
+  useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
+
+  const sessionsContext = useSessionsContext();
+  const { getSession } = sessionsContext;
+  useSessionsPoller();
 
   // data from route
   const {
@@ -70,59 +182,89 @@ const PipelineSettingsView: React.FC = () => {
     isReadOnly,
   } = useCustomRoute();
 
+  const setHeaderComponent = (pipelineName: string) =>
+    projectsContext.dispatch({
+      type: "pipelineSet",
+      payload: {
+        pipelineUuid,
+        projectUuid,
+        pipelineName,
+      },
+    });
+
   // local states
-  const [selectedTabIndex, setSelectedTabIndex] = useState<number>(
+  const [inputParameters, setInputParameters] = React.useState<string>(
+    JSON.stringify({}, null, 2)
+  );
+  const { data: pipelineJson, mutate, revalidate: fetchPipeline } = useSWR<
+    PipelineJson
+  >(
+    getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid),
+    fetchPipelineJson((data) => {
+      setHeaderComponent(data.name);
+      setInputParameters(JSON.stringify(data.parameters));
+    })
+  );
+
+  // use mutate to act like local state setter
+  const setPipelineJson = (
+    data?: PipelineJson | Promise<PipelineJson> | MutatorCallback<PipelineJson>
+  ) => mutate(data, false);
+
+  const [tabIndex, setTabIndex] = React.useState<number>(
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
 
+  // const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
+  const [servicesChanged, setServicesChanged] = React.useState(false);
+
+  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+    _setEnvVariables(value);
+    setAsSaved(false);
+  };
+
   const [state, setState] = React.useState({
-    inputParameters: JSON.stringify({}, null, 2),
     restartingMemoryServer: false,
     pipeline_path: undefined,
-    dataPassingMemorySize: "1GB",
-    pipelineJson: undefined,
-    envVariables: [],
     projectEnvVariables: [],
-    servicesChanged: false,
     environmentVariablesChanged: false,
   });
 
-  const session = get.session({
+  const session = getSession({
     pipelineUuid,
     projectUuid,
   });
   if (
     !session &&
-    !context.state.unsavedChanges &&
-    (state.servicesChanged || state.environmentVariablesChanged)
+    !hasUnsavedChanges &&
+    (servicesChanged || state.environmentVariablesChanged)
   ) {
+    setServicesChanged(false);
     setState((prevState) => ({
       ...prevState,
-      servicesChanged: false,
       environmentVariablesChanged: false,
     }));
   }
 
   const [overflowListener] = React.useState(new OverflowListener());
-  const promiseManagerRef = useRef(new PromiseManager<string>());
-  const [refManager] = React.useState(new RefManager());
+  const promiseManagerRef = React.useRef(new PromiseManager<string>());
 
-  const fetchPipelineData = () => {
-    fetchPipeline();
-    fetchPipelineMetadata();
-  };
+  // const fetchPipelineData = () => {
+  //   fetchPipeline();
+  //   fetchPipelineMetadata();
+  // };
 
   const hasLoaded = () => {
     return (
-      state.pipelineJson &&
-      state.envVariables &&
-      (isReadOnly || state.projectEnvVariables)
+      pipelineJson && envVariables && (isReadOnly || state.projectEnvVariables)
     );
   };
 
   // Fetch pipeline data on initial mount
   React.useEffect(() => {
-    fetchPipelineData();
+    // fetchPipelineData();
+    fetchPipelineMetadata();
     return () => promiseManagerRef.current.cancelCancelablePromises();
   }, []);
 
@@ -133,35 +275,14 @@ const PipelineSettingsView: React.FC = () => {
     }
   }, [state]);
 
-  const setHeaderComponent = (pipelineName: string) =>
-    dispatch({
-      type: "pipelineSet",
-      payload: {
-        pipelineUuid,
-        projectUuid,
-        pipelineName,
-      },
-    });
-
-  const getOrderValue = () => {
-    const lsKey = "_monotonic_getOrderValue";
-    // returns monotinically increasing digit
-    if (!window.localStorage.getItem(lsKey)) {
-      window.localStorage.setItem(lsKey, "0");
-    }
-    let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
-    window.localStorage.setItem(lsKey, value + "");
-    return value;
-  };
-
-  const addServiceFromTemplate = (service) => {
+  const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
     let clonedService = _.cloneDeep(service);
 
     // Take care of service name collisions
     let x = 1;
     let baseServiceName = clonedService.name;
     while (x < 100) {
-      if (state.pipelineJson.services[clonedService.name] == undefined) {
+      if (pipelineJson.services[clonedService.name] == undefined) {
         break;
       }
       clonedService.name = baseServiceName + x;
@@ -171,125 +292,46 @@ const PipelineSettingsView: React.FC = () => {
     onChangeService(clonedService);
   };
 
-  const onChangeService = (service) => {
-    let pipelineJson = _.cloneDeep(state.pipelineJson);
-    pipelineJson.services[service.name] = service;
-
-    // Maintain client side order key
-    if (service.order === undefined) {
-      service.order = getOrderValue();
-    }
-
-    setState((prevState) => ({
-      ...prevState,
-      servicesChanged: true,
-      pipelineJson: pipelineJson,
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
+  const onChangeService = (service: Service) => {
+    setPipelineJson((current) => {
+      // Maintain client side order key
+      if (service.order === undefined) service.order = getOrderValue();
+      current.services[service.name] = service;
+      return current;
     });
+
+    setServicesChanged(true);
+    setAsSaved(false);
   };
 
-  const nameChangeService = (oldName, newName) => {
-    let pipelineJson = _.cloneDeep(state.pipelineJson);
-    let service = pipelineJson.services[oldName];
-    service.name = newName;
-    pipelineJson.services[newName] = service;
-    delete pipelineJson.services[oldName];
-
-    setState((prevState) => ({
-      ...prevState,
-      servicesChanged: true,
-      pipelineJson: pipelineJson,
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
+  const nameChangeService = (oldName: string, newName: string) => {
+    setPipelineJson((current) => {
+      current[newName] = current[oldName];
+      delete current.services[oldName];
+      return current;
     });
+    setServicesChanged(true);
+    setAsSaved(false);
   };
 
-  const deleteService = (serviceName) => {
-    let pipelineJson = _.cloneDeep(state.pipelineJson);
-    delete pipelineJson.services[serviceName];
-
-    setState((prevState) => ({
-      ...prevState,
-      servicesChanged: true,
-      pipelineJson: pipelineJson,
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
+  const deleteService = async (serviceName: string) => {
+    setPipelineJson((current) => {
+      delete current.services[serviceName];
+      return current;
     });
+
+    setServicesChanged(true);
+    setAsSaved(false);
+    return true;
   };
 
   const attachResizeListener = () => overflowListener.attach();
 
-  const onSelectSubview = (index: number) => {
-    setSelectedTabIndex(index);
-  };
-
-  const fetchPipeline = () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineUuid,
-      projectUuid,
-      jobUuid,
-      runUuid
-    );
-
-    let pipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineJSONEndpoint),
-      promiseManagerRef.current
-    );
-
-    pipelinePromise.promise
-      .then((response: string) => {
-        let result: {
-          pipeline_json: string;
-          success: boolean;
-        } = JSON.parse(response);
-
-        if (result.success) {
-          let pipelineJson: PipelineJson = JSON.parse(result["pipeline_json"]);
-
-          // as settings are optional, populate defaults if no values exist
-          if (pipelineJson.settings === undefined) {
-            pipelineJson.settings = {};
-          }
-          if (pipelineJson.settings.auto_eviction === undefined) {
-            pipelineJson.settings.auto_eviction = false;
-          }
-          if (pipelineJson.settings.data_passing_memory_size === undefined) {
-            pipelineJson.settings.data_passing_memory_size =
-              state.dataPassingMemorySize;
-          }
-          if (pipelineJson.parameters === undefined) {
-            pipelineJson.parameters = {};
-          }
-          if (pipelineJson.services === undefined) {
-            pipelineJson.services = {};
-          }
-
-          // Augment services with order key
-          for (let service in pipelineJson.services) {
-            pipelineJson.services[service].order = getOrderValue();
-          }
-
-          setHeaderComponent(pipelineJson?.name);
-          setState((prevState) => ({
-            ...prevState,
-            inputParameters: JSON.stringify(pipelineJson?.parameters, null, 2),
-            pipelineJson: pipelineJson,
-            dataPassingMemorySize:
-              pipelineJson?.settings.data_passing_memory_size,
-          }));
-        } else {
-          console.warn("Could not load pipeline.json");
-          console.log(result);
-        }
-      })
-      .catch((err) => console.log(err));
+  const onSelectTab = (
+    e: React.SyntheticEvent<Element, Event>,
+    index: number
+  ) => {
+    setTabIndex(index);
   };
 
   const fetchPipelineMetadata = () => {
@@ -306,10 +348,11 @@ const PipelineSettingsView: React.FC = () => {
       cancelableRequest.promise.then((response: string) => {
         let pipeline = JSON.parse(response);
 
+        _setEnvVariables(envVariablesDictToArray(pipeline["env_variables"]));
+
         setState((prevState) => ({
           ...prevState,
           pipeline_path: pipeline.path,
-          envVariables: envVariablesDictToArray(pipeline["env_variables"]),
         }));
       });
 
@@ -361,10 +404,10 @@ const PipelineSettingsView: React.FC = () => {
       ])
         .then((values) => {
           let [pipeline_path, envVariables] = values;
+          _setEnvVariables(envVariables);
           setState((prevState) => ({
             ...prevState,
-            pipeline_path: pipeline_path,
-            envVariables: envVariables,
+            pipeline_path,
           }));
         })
         .catch((err) => console.log(err));
@@ -384,145 +427,50 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const onChangeName = (value: string) => {
-    setState((prevState) => ({
-      ...prevState,
-      pipelineJson: {
-        ...prevState.pipelineJson,
-        name: value,
-      },
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setPipelineJson((current) => ({ ...current, name: value }));
+    setAsSaved(false);
   };
 
   const onChangePipelineParameters = (editor, data, value) => {
-    setState((prevState) => ({
-      ...prevState,
-      inputParameters: value,
-    }));
+    setInputParameters(value);
 
     try {
       const parametersJSON = JSON.parse(value);
-
-      setState((prevState) => ({
-        ...prevState,
-        pipelineJson: {
-          ...prevState?.pipelineJson,
-          parameters: parametersJSON,
-        },
+      setPipelineJson((current) => ({
+        ...current,
+        parameters: parametersJSON,
       }));
 
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: true,
-      });
+      setAsSaved(false);
     } catch (err) {
-      // console.log("JSON did not parse")
+      console.log("JSON did not parse");
     }
   };
 
-  const isValidMemorySize = (value) =>
-    value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
-
-  const onChangeDataPassingMemorySize = (value) => {
-    setState((prevState) => ({
-      ...prevState,
-      dataPassingMemorySize: value,
-    }));
-
-    if (isValidMemorySize(value)) {
-      setState((prevState) => ({
-        ...prevState,
-        pipelineJson: {
-          ...prevState.pipelineJson,
-          settings: {
-            ...prevState.pipelineJson?.settings,
-            data_passing_memory_size: value,
-          },
-        },
-      }));
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: true,
-      });
-    }
-  };
-
-  const onChangeEviction = (value) => {
-    // create settings object if it doesn't exist
-    if (!state.pipelineJson?.settings) {
-      setState((prevState) => ({
-        ...prevState,
-        pipelineJson: {
-          ...prevState.pipelineJson,
-          settings: {},
-        },
-      }));
-    }
-
-    setState((prevState) => ({
-      ...prevState,
-      pipelineJson: {
-        ...prevState.pipelineJson,
-        settings: {
-          ...prevState.pipelineJson?.settings,
-          auto_eviction: value,
-        },
-      },
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const addEnvVariablePair = (e) => {
-    e.preventDefault();
-
-    setState((prevState) => {
-      const envVariables = prevState.envVariables.slice();
-
+  const onChangeDataPassingMemorySize = (value: string) => {
+    setPipelineJson((current) => {
       return {
-        ...prevState,
-        envVariables: envVariables.concat([
-          {
-            name: null,
-            value: null,
-          },
-        ]),
+        ...current,
+        settings: { ...current.settings, data_passing_memory_size: value },
       };
     });
+    setAsSaved(false);
   };
 
-  const onEnvVariablesChange = (value, idx, type) => {
-    setState((prevState) => {
-      const envVariables = prevState.envVariables.slice();
-      envVariables[idx][type] = value;
+  const onChangeEviction = (value: boolean) => {
+    setPipelineJson((current) => {
+      return {
+        ...current,
+        settings: { ...current.settings, auto_eviction: value },
+      };
+    });
 
-      return { ...prevState, envVariables, environmentVariablesChanged: true };
-    });
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
+    setAsSaved(false);
   };
 
-  const onEnvVariablesDeletion = (idx) => {
-    setState((prevState) => {
-      const envVariables = prevState.envVariables.slice();
-      envVariables.splice(idx, 1);
-
-      return { ...prevState, envVariables };
-    });
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const cleanPipelineJson = (pipelineJson) => {
+  const cleanPipelineJson = (
+    pipelineJson: PipelineJson
+  ): Omit<PipelineJson, "order"> => {
     let pipelineCopy = _.cloneDeep(pipelineJson);
     for (let serviceName in pipelineCopy.services) {
       delete pipelineCopy.services[serviceName].order;
@@ -540,13 +488,9 @@ const PipelineSettingsView: React.FC = () => {
 
       for (let envVariableName of Object.keys(service.env_variables)) {
         if (!isValidEnvironmentVariableName(envVariableName)) {
-          orchest.alert(
+          setAlert(
             "Error",
-            'Invalid environment variable name: "' +
-              envVariableName +
-              '" in service "' +
-              service.name +
-              '".'
+            `Invalid environment variable name: "${envVariableName}" in service "${service.name}".`
           );
           return false;
         }
@@ -555,52 +499,50 @@ const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
-  const saveGeneralForm = (e: MouseEvent) => {
+  const saveGeneralForm = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     // Remove order property from services
-    let pipelineJson = cleanPipelineJson(state.pipelineJson);
+    let cleanedPipelineJson = cleanPipelineJson(pipelineJson);
 
-    let validationResult = validatePipeline(pipelineJson);
+    let validationResult = validatePipeline(cleanedPipelineJson);
     if (!validationResult.valid) {
-      orchest.alert("Error", validationResult.errors[0]);
+      setAlert("Error", validationResult.errors[0]);
       return;
     }
 
     // Validate environment variables of services
-    if (!validateServiceEnvironmentVariables(pipelineJson)) {
+    if (!validateServiceEnvironmentVariables(cleanedPipelineJson)) {
       return;
     }
 
-    let envVariables = envVariablesArrayToDict(state.envVariables);
+    let envVariablesObj = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (envVariables === undefined) {
-      onSelectSubview(1);
+    if (envVariablesObj.status === "rejected") {
+      setAlert("Error", envVariablesObj.error);
+      setTabIndex(1);
       return;
     }
 
     // Validate pipeline level environment variables
-    for (let envVariableName of Object.keys(envVariables)) {
+    for (let envVariableName of Object.keys(envVariablesObj.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
-        orchest.alert(
+        setAlert(
           "Error",
-          'Invalid environment variable name: "' + envVariableName + '".'
+          `Invalid environment variable name: "${envVariableName}".`
         );
-        onSelectSubview(1);
+        setTabIndex(1);
         return;
       }
     }
 
     let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(pipelineJson));
+    formData.append("pipeline_json", JSON.stringify(cleanedPipelineJson));
 
     makeRequest(
       "POST",
       `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-      {
-        type: "FormData",
-        content: formData,
-      }
+      { type: "FormData", content: formData }
     )
       .then((response: string) => {
         let result = JSON.parse(response);
@@ -608,13 +550,10 @@ const PipelineSettingsView: React.FC = () => {
           setState((prevState) => ({
             ...prevState,
           }));
-          context.dispatch({
-            type: "setUnsavedChanges",
-            payload: false,
-          });
+          setAsSaved();
 
           // Sync name changes with the global context
-          dispatch({
+          projectsContext.dispatch({
             type: "pipelineSet",
             payload: {
               pipelineName: pipelineJson?.name,
@@ -629,7 +568,7 @@ const PipelineSettingsView: React.FC = () => {
 
     makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
       type: "json",
-      content: { env_variables: envVariables },
+      content: { env_variables: envVariablesObj.value },
     }).catch((response) => {
       console.error(response);
     });
@@ -671,7 +610,8 @@ const PipelineSettingsView: React.FC = () => {
             } catch (error) {
               console.error(error);
             }
-            orchest.alert("Error", errorMessage);
+
+            setAlert("Error", errorMessage);
 
             setState((prevState) => ({
               ...prevState,
@@ -686,373 +626,414 @@ const PipelineSettingsView: React.FC = () => {
     }
   };
 
+  type ServiceRow = { name: string; scope: string; remove: string };
+
+  const columns: DataTableColumn<ServiceRow>[] = [
+    { id: "name", label: "Service" },
+    { id: "scope", label: "Scope" },
+    {
+      id: "remove",
+      label: "Delete",
+      render: function ServiceDeleteButton(row) {
+        return (
+          <IconButton
+            title="Delete"
+            disabled={isReadOnly}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              setConfirm(
+                "Warning",
+                "Are you sure you want to delete the service: " +
+                  row.name +
+                  "?",
+                async () => deleteService(row.name)
+              );
+            }}
+          >
+            <DeleteIcon />
+          </IconButton>
+        );
+      },
+    },
+  ];
+
+  const serviceRows: DataTableRow<ServiceRow>[] = !pipelineJson
+    ? []
+    : Object.entries(pipelineJson.services)
+        .sort((a, b) => a[1].order - b[1].order)
+        .map(([key, service]) => {
+          return {
+            uuid: key,
+            name: key,
+            scope: service.scope
+              .map((scopeAsString) => scopeMap[scopeAsString])
+              .join(", "),
+            remove: key,
+            details: (
+              <ServiceForm
+                key={`ServiceForm-${key}`}
+                service={service}
+                disabled={isReadOnly}
+                updateService={onChangeService}
+                nameChangeService={nameChangeService}
+                pipeline_uuid={pipelineUuid}
+                project_uuid={projectUuid}
+                run_uuid={runUuid}
+              />
+            ),
+          };
+        });
+
+  const isMemorySizeValid = isValidMemorySize(
+    pipelineJson?.settings?.data_passing_memory_size || ""
+  );
+
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="view-page pipeline-settings-view">
-          {hasLoaded() ? (
-            <div className="pipeline-settings">
-              <h2>Pipeline settings</h2>
+    <Layout>
+      <div className="view-page pipeline-settings-view">
+        {hasLoaded() ? (
+          <div className="pipeline-settings">
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="h6" component="h2">
+                Pipeline settings
+              </Typography>
+              <IconButton
+                title="Close"
+                onClick={closeSettings}
+                data-test-id="pipeline-settings-close"
+              >
+                <CloseIcon />
+              </IconButton>
+            </Stack>
 
-              <div className="push-down">
-                <MDCTabBarReact
-                  selectedIndex={selectedTabIndex}
-                  ref={refManager.nrefs.tabBar}
-                  items={["Configuration", "Environment variables", "Services"]}
-                  icons={["list", "view_comfy", "miscellaneous_services"]}
-                  onChange={onSelectSubview}
-                  data-test-id="pipeline-settings"
+            <Tabs
+              value={tabIndex}
+              onChange={onSelectTab}
+              label="View pipeline settings"
+              data-test-id="pipeline-settings"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                  data-test-id={`${tab.id}-tab`}
                 />
-              </div>
+              ))}
+            </Tabs>
 
-              <div className="tab-view trigger-overflow">
-                {selectedTabIndex === 0 && (
-                  <div className="configuration">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                      }}
-                    >
-                      <div className="columns">
-                        <div className="column">
-                          <h3>Name</h3>
-                        </div>
-                        <div className="column">
-                          <MDCTextFieldReact
-                            value={state.pipelineJson?.name}
-                            onChange={onChangeName}
-                            label="Pipeline name"
-                            disabled={isReadOnly}
-                            classNames={["push-down"]}
-                            data-test-id="pipeline-settings-configuration-pipeline-name"
-                          />
-                        </div>
-                        <div className="clear"></div>
+            <div className="tab-view trigger-overflow">
+              <CustomTabPanel value={tabIndex} index={0} name="configuration">
+                <div className="configuration">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                    }}
+                  >
+                    <div className="columns">
+                      <div className="column">
+                        <h3>Name</h3>
                       </div>
-
-                      <div className="columns">
-                        <div className="column">
-                          <h3>Path</h3>
-                        </div>
-                        <div className="column">
-                          {state.pipeline_path && (
-                            <p className="push-down">
-                              <span className="code">
-                                {state.pipeline_path}
-                              </span>
-                            </p>
-                          )}
-                        </div>
-                        <div className="clear"></div>
-                      </div>
-
-                      <div className="columns">
-                        <div className="column">
-                          <h3>Pipeline parameters</h3>
-                        </div>
-                        <div className="column">
-                          <CodeMirror
-                            value={state.inputParameters}
-                            options={{
-                              mode: "application/json",
-                              theme: "jupyter",
-                              lineNumbers: true,
-                              readOnly: isReadOnly,
-                            }}
-                            onBeforeChange={onChangePipelineParameters}
-                          />
-                          {(() => {
-                            try {
-                              JSON.parse(state.inputParameters);
-                            } catch {
-                              return (
-                                <div className="warning push-up push-down">
-                                  <i className="material-icons">warning</i> Your
-                                  input is not valid JSON.
-                                </div>
-                              );
-                            }
-                          })()}
-                        </div>
-                        <div className="clear"></div>
-                      </div>
-
-                      <div className="columns">
-                        <div className="column">
-                          <h3>Data passing</h3>
-                        </div>
-                        <div className="column">
-                          {!isReadOnly && (
-                            <p className="push-up">
-                              <i>
-                                For these changes to take effect you have to
-                                restart the memory-server (see button below).
-                              </i>
-                            </p>
-                          )}
-
-                          <div className="checkbox-tooltip-holder">
-                            <MDCCheckboxReact
-                              value={
-                                state.pipelineJson?.settings?.auto_eviction
-                              }
-                              onChange={onChangeEviction}
-                              label="Automatic memory eviction"
-                              disabled={isReadOnly}
-                              classNames={["push-down", "push-up"]}
-                              data-test-id="pipeline-settings-configuration-memory-eviction"
-                            />
-                            <i
-                              className="material-icons inline-icon push-up"
-                              aria-describedby="tooltip-memory-eviction"
-                            >
-                              info
-                            </i>
-                            <MDCTooltipReact
-                              tooltipID="tooltip-memory-eviction"
-                              tooltip="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input."
-                            />
-                          </div>
-
-                          {!isReadOnly && (
-                            <p className="push-down">
-                              Change the size of the memory server for data
-                              passing. For units use KB, MB, or GB, e.g.{" "}
-                              <span className="code">1GB</span>.{" "}
-                            </p>
-                          )}
-
-                          <div>
-                            <MDCTextFieldReact
-                              value={state.dataPassingMemorySize}
-                              onChange={onChangeDataPassingMemorySize}
-                              label="Data passing memory size"
-                              disabled={isReadOnly}
-                              data-test-id="pipeline-settings-configuration-memory-size"
-                            />
-                          </div>
-                          {(() => {
-                            if (
-                              !isValidMemorySize(state.dataPassingMemorySize)
-                            ) {
-                              return (
-                                <div className="warning push-up">
-                                  <i className="material-icons">warning</i> Not
-                                  a valid memory size.
-                                </div>
-                              );
-                            }
-                          })()}
-                        </div>
-                        <div className="clear"></div>
-                      </div>
-                    </form>
-
-                    {!isReadOnly && (
-                      <div className="columns">
-                        <div className="column">
-                          <h3>Actions</h3>
-                        </div>
-                        <div className="column">
-                          <p className="push-down">
-                            Restarting the memory-server also clears the memory
-                            to allow additional data to be passed between
-                            pipeline steps.
-                          </p>
-                          <div className="push-down">
-                            {(() => {
-                              if (state.restartingMemoryServer) {
-                                return (
-                                  <p className="push-p push-down">
-                                    Restarting in progress...
-                                  </p>
-                                );
-                              }
-                            })()}
-
-                            <MDCButtonReact
-                              disabled={state.restartingMemoryServer}
-                              label="Restart memory-server"
-                              icon="memory"
-                              classNames={["mdc-button--raised push-down"]}
-                              onClick={restartMemoryServer}
-                              data-test-id="pipeline-settings-configuration-restart-memory-server"
-                            />
-                          </div>
-                        </div>
-                        <div className="clear"></div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                {selectedTabIndex === 1 && (
-                  <div>
-                    {state.environmentVariablesChanged && session && (
-                      <div className="warning push-down">
-                        <i className="material-icons">warning</i>
-                        Note: changes to environment variables require a session
-                        restart to take effect.
-                      </div>
-                    )}
-                    {isReadOnly ? (
-                      <EnvVarList
-                        value={state.envVariables}
-                        readOnly={true}
-                        data-test-id="pipeline-read-only"
-                      />
-                    ) : (
-                      <>
-                        <h3 className="push-down">
-                          Project environment variables
-                        </h3>
-                        <EnvVarList
-                          value={state.projectEnvVariables}
-                          readOnly={true}
-                          data-test-id="project-read-only"
+                      <div className="column">
+                        <TextField
+                          value={pipelineJson?.name}
+                          margin="normal"
+                          multiline
+                          onChange={(e) => onChangeName(e.target.value)}
+                          label="Pipeline name"
+                          disabled={isReadOnly}
+                          fullWidth
+                          data-test-id="pipeline-settings-configuration-pipeline-name"
                         />
+                      </div>
+                      <div className="clear"></div>
+                    </div>
 
-                        <h3 className="push-down">
-                          Pipeline environment variables
-                        </h3>
-                        <p className="push-down">
-                          Pipeline environment variables take precedence over
-                          project environment variables.
-                        </p>
-                        <EnvVarList
-                          value={state.envVariables}
-                          onAdd={addEnvVariablePair}
-                          onChange={(e, idx, type) =>
-                            onEnvVariablesChange(e, idx, type)
+                    <div className="columns">
+                      <div className="column">
+                        <h3>Path</h3>
+                      </div>
+                      <div className="column">
+                        {state.pipeline_path && (
+                          <Box sx={{ width: "100%" }}>
+                            <Code sx={{ wordBreak: "break-word" }}>
+                              {state.pipeline_path}
+                            </Code>
+                          </Box>
+                        )}
+                      </div>
+                      <div className="clear"></div>
+                    </div>
+
+                    <div className="columns">
+                      <div className="column">
+                        <h3>Pipeline parameters</h3>
+                      </div>
+                      <div className="column">
+                        <CodeMirror
+                          value={inputParameters}
+                          options={{
+                            mode: "application/json",
+                            theme: "jupyter",
+                            lineNumbers: true,
+                            readOnly: isReadOnly,
+                          }}
+                          onBeforeChange={onChangePipelineParameters}
+                        />
+                        {(() => {
+                          try {
+                            JSON.parse(inputParameters);
+                          } catch {
+                            return (
+                              <div className="warning push-up push-down">
+                                <i className="material-icons">warning</i> Your
+                                input is not valid JSON.
+                              </div>
+                            );
                           }
-                          onDelete={(idx) => onEnvVariablesDeletion(idx)}
-                          data-test-id="pipeline"
-                        />
-                      </>
-                    )}
-                  </div>
-                )}
-                {selectedTabIndex === 2 && (
-                  <Box css={{ "> * + *": { marginTop: "$4" } }}>
-                    {state.servicesChanged && session && (
-                      <div className="warning push-up">
-                        <i className="material-icons">warning</i>
-                        Note: changes to services require a session restart to
-                        take effect.
+                        })()}
                       </div>
-                    )}
-                    <MDCDataTableReact
-                      headers={["Service", "Scope", "Delete"]}
-                      rows={Object.keys(state.pipelineJson.services)
-                        .map(
-                          (serviceName) =>
-                            state.pipelineJson.services[serviceName]
-                        )
-                        .sort((a, b) => a.order - b.order)
-                        .map((service) => [
-                          service.name,
-                          service.scope
-                            .map((scope) => {
-                              const scopeMap = {
-                                interactive: "Interactive sessions",
-                                noninteractive: "Job sessions",
-                              };
-                              return scopeMap[scope];
-                            })
-                            .sort()
-                            .join(", "),
-                          <div className="consume-click" key={service.name}>
-                            <MDCIconButtonToggleReact
-                              icon="delete"
-                              disabled={isReadOnly}
-                              onClick={() => {
-                                orchest.confirm(
-                                  "Warning",
-                                  "Are you sure you want to delete the service: " +
-                                    service.name +
-                                    "?",
-                                  () => {
-                                    deleteService(service.name);
-                                  }
-                                );
-                              }}
-                            />
-                          </div>,
-                        ])}
-                      detailRows={Object.keys(state.pipelineJson.services)
-                        .map(
-                          (serviceName) =>
-                            state.pipelineJson.services[serviceName]
-                        )
-                        .sort((a, b) => a.order - b.order)
-                        .map((service, i) => (
-                          <ServiceForm
-                            key={["ServiceForm", i].join("-")}
-                            service={service}
+                      <div className="clear"></div>
+                    </div>
+
+                    <div className="columns">
+                      <div className="column">
+                        <h3>Data passing</h3>
+                      </div>
+                      <Stack
+                        direction="column"
+                        spacing={2}
+                        alignItems="flex-start"
+                      >
+                        {!isReadOnly && (
+                          <Alert severity="info">
+                            For these changes to take effect you have to restart
+                            the memory-server (see button below).
+                          </Alert>
+                        )}
+                        <FormGroup>
+                          <FormControlLabel
+                            label={
+                              <Typography
+                                component="span"
+                                variant="body1"
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                Automatic memory eviction
+                                <Tooltip title="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input.">
+                                  <InfoIcon
+                                    fontSize="small"
+                                    aria-describedby="tooltip-memory-eviction"
+                                    sx={{
+                                      marginLeft: (theme) => theme.spacing(1),
+                                    }}
+                                  />
+                                </Tooltip>
+                              </Typography>
+                            }
+                            data-test-id="pipeline-settings-configuration-memory-eviction"
                             disabled={isReadOnly}
-                            updateService={onChangeService}
-                            nameChangeService={nameChangeService}
-                            pipeline_uuid={pipelineUuid}
-                            project_uuid={projectUuid}
-                            run_uuid={runUuid}
+                            control={
+                              <Checkbox
+                                checked={pipelineJson?.settings?.auto_eviction}
+                                onChange={(e) => {
+                                  onChangeEviction(e.target.checked);
+                                }}
+                              />
+                            }
                           />
-                        ))}
-                      data-test-id="pipeline-services"
-                    />
+                        </FormGroup>
 
-                    <Alert status="info">
-                      <AlertHeader>
-                        <IconLightBulbOutline />
-                        Want to start using Services?
-                      </AlertHeader>
-                      <AlertDescription>
-                        <Link
-                          target="_blank"
-                          href="https://docs.orchest.io/en/stable/fundamentals/services.html"
-                          rel="noopener noreferrer"
-                        >
-                          Learn more
-                        </Link>{" "}
-                        about how to expand your pipeline’s capabilities.
-                      </AlertDescription>
-                    </Alert>
+                        {!isReadOnly && (
+                          <Typography
+                            sx={{ marginBottom: (theme) => theme.spacing(2) }}
+                          >
+                            {`Change the size of the memory server for data
+                            passing. For units use KB, MB, or GB, e.g. `}
+                            <Code>1GB</Code>.
+                          </Typography>
+                        )}
 
-                    {!isReadOnly && (
-                      <ServiceTemplatesDialog
-                        onSelection={(template) =>
-                          addServiceFromTemplate(template)
-                        }
-                      />
-                    )}
-                  </Box>
-                )}
-              </div>
+                        <TextField
+                          value={pipelineJson.settings.data_passing_memory_size}
+                          onChange={(e) =>
+                            onChangeDataPassingMemorySize(e.target.value)
+                          }
+                          margin="normal"
+                          label="Data passing memory size"
+                          disabled={isReadOnly}
+                          data-test-id="pipeline-settings-configuration-memory-size"
+                        />
+                        {!isMemorySizeValid && (
+                          <Alert severity="warning">
+                            Not a valid memory size.
+                          </Alert>
+                        )}
+                      </Stack>
+                      <div className="clear"></div>
+                    </div>
+                  </form>
 
-              <div className="top-buttons">
-                <MDCButtonReact
-                  classNames={["close-button"]}
-                  icon="close"
-                  onClick={closeSettings}
-                  data-test-id="pipeline-settings-close"
-                />
-              </div>
-              {!isReadOnly && (
-                <div className="bottom-buttons observe-overflow">
-                  <MDCButtonReact
-                    label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                    classNames={["mdc-button--raised", "themed-secondary"]}
-                    onClick={saveGeneralForm}
-                    icon="save"
-                    data-test-id="pipeline-settings-save"
-                  />
+                  {!isReadOnly && (
+                    <div className="columns">
+                      <div className="column">
+                        <h3>Actions</h3>
+                      </div>
+                      <div className="column">
+                        <p className="push-down">
+                          Restarting the memory-server also clears the memory to
+                          allow additional data to be passed between pipeline
+                          steps.
+                        </p>
+                        <div className="push-down">
+                          {(() => {
+                            if (state.restartingMemoryServer) {
+                              return (
+                                <p className="push-p push-down">
+                                  Restarting in progress...
+                                </p>
+                              );
+                            }
+                          })()}
+
+                          <Button
+                            disabled={state.restartingMemoryServer}
+                            color="secondary"
+                            variant="contained"
+                            startIcon={<MemoryIcon />}
+                            onClick={restartMemoryServer}
+                            data-test-id="pipeline-settings-configuration-restart-memory-server"
+                          >
+                            Restart memory-server
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="clear"></div>
+                    </div>
+                  )}
                 </div>
-              )}
+              </CustomTabPanel>
+              <CustomTabPanel
+                value={tabIndex}
+                index={1}
+                name="environment-variables"
+              >
+                {state.environmentVariablesChanged && session && (
+                  <Alert severity="warning">
+                    Note: changes to environment variables require a session
+                    restart to take effect.
+                  </Alert>
+                )}
+                {isReadOnly ? (
+                  <EnvVarList
+                    value={envVariables}
+                    readOnly
+                    data-test-id="pipeline-read-only"
+                  />
+                ) : (
+                  <Stack
+                    direction="column"
+                    alignItems="flex-start"
+                    spacing={3}
+                    sx={{ width: "60%" }}
+                  >
+                    <Stack spacing={2}>
+                      <Typography component="h3" variant="h6">
+                        Project environment variables
+                      </Typography>
+                      <EnvVarList
+                        value={state.projectEnvVariables}
+                        readOnly
+                        data-test-id="project-read-only"
+                      />
+                    </Stack>
+                    <Alert severity="info">
+                      Pipeline environment variables take precedence over
+                      project environment variables.
+                    </Alert>
+                    <Stack spacing={2}>
+                      <Typography component="h3" variant="h6">
+                        Pipeline environment variables
+                      </Typography>
+                      <EnvVarList
+                        value={envVariables}
+                        setValue={setEnvVariables}
+                        data-test-id="pipeline"
+                      />
+                    </Stack>
+                  </Stack>
+                )}
+              </CustomTabPanel>
+              <CustomTabPanel value={tabIndex} index={2} name="services">
+                <Stack direction="column" spacing={2} alignItems="flex-start">
+                  {servicesChanged && session && (
+                    <Alert severity="warning">
+                      Note: changes to environment variables require a session
+                      restart to take effect.
+                    </Alert>
+                  )}
+                  <DataTable<ServiceRow>
+                    hideSearch
+                    id="service-list"
+                    columns={columns}
+                    rows={serviceRows}
+                  />
+                  <CustomAlert status="info">
+                    <AlertHeader>
+                      <IconLightBulbOutline />
+                      Want to start using Services?
+                    </AlertHeader>
+                    <AlertDescription>
+                      <Link
+                        target="_blank"
+                        href="https://docs.orchest.io/en/stable/fundamentals/services.html"
+                        rel="noopener noreferrer"
+                      >
+                        Learn more about how to expand your pipeline’s
+                        capabilities.
+                      </Link>
+                    </AlertDescription>
+                  </CustomAlert>
+                  {!isReadOnly && (
+                    <ServiceTemplatesDialog
+                      onSelection={(template) =>
+                        addServiceFromTemplate(template)
+                      }
+                    />
+                  )}
+                </Stack>
+              </CustomTabPanel>
             </div>
-          ) : (
-            <MDCLinearProgressReact />
-          )}
-        </div>
-      </Layout>
-    </OrchestSessionsConsumer>
+
+            {!isReadOnly && (
+              <div className="bottom-buttons observe-overflow">
+                <Button
+                  variant="contained"
+                  onClick={saveGeneralForm}
+                  startIcon={<SaveIcon />}
+                  disabled={!isMemorySizeValid}
+                  data-test-id="pipeline-settings-save"
+                >
+                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <LinearProgress />
+        )}
+      </div>
+    </Layout>
   );
 };
 

@@ -91,7 +91,7 @@ export const DEFAULT_BASE_IMAGES = [
 export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
 
 // used in orchest-webserver only
-export function collapseDoubleDots(path) {
+export function collapseDoubleDots(path: string) {
   /*
    * arg `path` can be a directory or a file.
    * (directory ends in `/`)
@@ -120,7 +120,7 @@ export function collapseDoubleDots(path) {
 }
 
 // used in orchest-webserver only
-export function absoluteToRelativePath(path, cwd) {
+export function absoluteToRelativePath(path: string, cwd: string) {
   // to simplify algorithm, path always end with a '/' (also for files)
   let isFile = !path.endsWith("/");
   if (isFile) {
@@ -331,3 +331,12 @@ export function globalMDCVars() {
     mdcthemebackground: "#fff",
   };
 }
+
+/**
+ * A simple function that checks if a variable is not undefined, nor null
+ * @param variable any arbitrary variable
+ * @returns boolean
+ */
+export const hasValue = <T>(variable: T | undefined | null): variable is T => {
+  return variable !== undefined && variable !== null;
+};

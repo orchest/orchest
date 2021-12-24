@@ -125,7 +125,12 @@ A few additional notes about running Orchest with the ``--dev`` flag:
 * All Flask applications are run in development mode.
 * Only the ``orchest-webserver``, ``auth-server``, ``file-manager`` and ``orchest-api`` support code
   changes to be instantly reflected. For code changes to other services you will have to rebuild the
-  container and restart Orchest.
+  container and restart Orchest. To re-build a specific container (e.g. ``orchest-webserver``), run the following command:
+
+.. code-block:: bash
+
+    scripts/build_containers.sh -i orchest-webserver
+
 
 .. note::
    🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
