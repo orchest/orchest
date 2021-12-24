@@ -368,7 +368,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
 Cypress.Commands.add("deleteAllPipelines", () => {
   cy.intercept("DELETE", /.*/).as("allDeletes");
   cy.goToMenu("pipelines");
-  // se rows != 0 then deleta
+  // set rows != 0 then deleta
   cy.findByTestId(TEST_ID.PIPELINES_TABLE_TOGGLE_ALL_ROWS).click();
   cy.findByTestId(TEST_ID.PIPELINE_DELETE).click();
   cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
