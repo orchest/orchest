@@ -1,4 +1,4 @@
-import { createCss } from "@stitches/react";
+import { createStitches } from "@stitches/react";
 import { mixins } from "stitches-mixins";
 
 const colors = {
@@ -56,7 +56,7 @@ const colors = {
   yellow900: "#78350F",
 };
 
-export const stitches = createCss({
+export const stitches = createStitches({
   theme: {
     colors: {
       ...colors,
@@ -174,12 +174,4 @@ export const stitches = createCss({
   },
 });
 
-export const {
-  styled,
-  css,
-  theme,
-  getCssString,
-  global,
-  keyframes,
-  config,
-} = stitches;
+export const { styled, css, theme, globalCss, keyframes, config } = stitches;

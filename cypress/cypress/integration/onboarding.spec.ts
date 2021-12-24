@@ -1,5 +1,5 @@
 import projectsWithQuickstart from "../fixtures/async/projects/with-quickstart.json";
-import { TEST_ID } from "../support/common";
+import { reset, TEST_ID } from "../support/common";
 
 const QUICKSTART_PROJECT_UUID = projectsWithQuickstart.find(
   (project) => project.path === "quickstart"
@@ -8,6 +8,7 @@ const QUICKSTART_PROJECT_UUID = projectsWithQuickstart.find(
 describe("onboarding", () => {
   context("should be visible", () => {
     beforeEach(() => {
+      reset();
       cy.clearLocalStorageSnapshot();
     });
 
@@ -70,7 +71,7 @@ describe("onboarding", () => {
     context("if user has just completed onboarding", () => {
       [true, false].map((withQuickstart) => {
         it(`${withQuickstart ? "with" : "without"} quickstart pipeline`, () => {
-          cy.intercept("GET", "/async/projects", {
+          cy.intercept("GET", "/async/projects*", {
             fixture: `async/projects/${
               withQuickstart ? "with" : "without"
             }-quickstart.json`,

@@ -8,6 +8,7 @@ from celery.utils.log import get_task_logger
 from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
+from flask_sqlalchemy import Pagination
 from sqlalchemy.orm import undefer
 
 import app.models as models
@@ -776,3 +777,20 @@ def is_orchest_idle() -> dict:
     result = {"details": data}
     result["idle"] = not any(data.values())
     return result
+
+
+def page_to_pagination_data(pagination: Pagination) -> dict:
+    """Pagination to a dictionary containing data of interest.
+
+    Essentially a preprocessing step before marshalling.
+    """
+    return {
+        "has_next_page": pagination.has_next,
+        "has_prev_page": pagination.has_prev,
+        "next_page_num": pagination.next_num,
+        "prev_page_num": pagination.prev_num,
+        "items_per_page": pagination.per_page,
+        "items_in_this_page": len(pagination.items),
+        "total_items": pagination.total,
+        "total_pages": pagination.pages,
+    }

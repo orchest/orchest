@@ -3,6 +3,8 @@ import {
   mergeEnvVariables,
   piped_click,
   PIPELINES,
+  reloadUntilElementsLoaded,
+  reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
   SAMPLE_STEP_NAMES,
@@ -13,6 +15,7 @@ import {
 
 describe("interactive runs", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     assertEnvIsBuilt();
@@ -36,6 +39,8 @@ describe("interactive runs", () => {
           SAMPLE_PROJECT_NAMES.P1
         }/`
       );
+
+      cy.reload(true);
 
       // Create the step and set the notebook.
       cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
@@ -70,6 +75,7 @@ describe("interactive runs", () => {
             SAMPLE_PROJECT_NAMES.P1
           }/`
         );
+        cy.reload(true);
 
         // Create the step and set the notebook.
         cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
@@ -124,6 +130,7 @@ describe("interactive runs", () => {
             SAMPLE_PROJECT_NAMES.P1
           }/`
         );
+        cy.reload(true);
 
         // Create the step and set the notebook.
         cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
@@ -147,82 +154,79 @@ describe("interactive runs", () => {
           .should("deep.equal", parameters);
       });
 
-      [
-        {
-          project_env_vars_names: ["a", "b", "c"],
-          project_env_vars_values: ["1", "2", "3"],
-          pipelines_env_vars_names: ["b", "c", "d"],
-          pipelines_env_vars_values: ["2", "override", "4"],
-        },
-      ].forEach((envVars) => {
-        [
-          [envVars.project_env_vars_names, envVars.project_env_vars_names],
-          [envVars.pipelines_env_vars_names, envVars.pipelines_env_vars_values],
-        ].forEach((x) => assert(x[0].length == x[1].length));
+      const projectEnvVars = {
+        names: ["a", "b", "c"],
+        values: ["1", "2", "3"],
+      };
 
-        it("creates and runs a step with project and pipeline env vars", () => {
-          cy.addProjectEnvVars(
-            SAMPLE_PROJECT_NAMES.P1,
-            envVars.project_env_vars_names,
-            envVars.project_env_vars_values
-          );
-          cy.addPipelineEnvVars(
-            SAMPLE_PIPELINE_NAMES.PL1,
-            envVars.pipelines_env_vars_names,
-            envVars.pipelines_env_vars_values
-          );
-          cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_CLOSE).click();
+      const pipelineEnvVars = {
+        names: ["b", "c", "d"],
+        values: ["2", "override", "4"],
+      };
 
-          // Copy the step file (notebook).
-          cy.exec(
-            `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
-              SAMPLE_PROJECT_NAMES.P1
-            }/`
-          );
+      // ensure the testing data is valid
+      assert(projectEnvVars.names.length === projectEnvVars.values.length);
+      assert(pipelineEnvVars.names.length === pipelineEnvVars.values.length);
 
-          // Create the step and set the notebook.
-          cy.createStep(
-            SAMPLE_STEP_NAMES.ST1,
-            false,
-            STEPS.DUMP_ENV_PARAMS.name
-          );
+      it("creates and runs a step with project and pipeline env vars", () => {
+        cy.addProjectEnvVars(
+          SAMPLE_PROJECT_NAMES.P1,
+          projectEnvVars.names,
+          projectEnvVars.values
+        );
+        cy.addPipelineEnvVars(
+          SAMPLE_PIPELINE_NAMES.PL1,
+          pipelineEnvVars.names,
+          pipelineEnvVars.values
+        );
+        cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_CLOSE).click();
 
-          // Select the step. Assumes unique step names.
-          cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
-            .scrollIntoView()
-            .click({ force: true });
-          cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
-            "not.exist"
-          );
+        // Copy the step file (notebook).
+        cy.exec(
+          `cp ${STEPS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/${
+            SAMPLE_PROJECT_NAMES.P1
+          }/`
+        );
+        cy.reload(true);
 
-          cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+        // Create the step and set the notebook.
+        cy.createStep(SAMPLE_STEP_NAMES.ST1, false, STEPS.DUMP_ENV_PARAMS.name);
 
-          cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
-            .scrollIntoView()
-            .contains("Completed", { timeout: 20000 });
+        // Select the step. Assumes unique step names.
+        cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
+          .scrollIntoView()
+          .click({ force: true });
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
+          "not.exist"
+        );
 
-          let expectedEnv = mergeEnvVariables([
-            [envVars.project_env_vars_names, envVars.project_env_vars_values],
-            [
-              envVars.pipelines_env_vars_names,
-              envVars.pipelines_env_vars_values,
-            ],
-          ]);
+        cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
 
-          cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file)
-            .its("env")
-            .then((env) => {
-              Object.keys(expectedEnv).forEach((key) => {
-                assert(env[key] == expectedEnv[key]);
-              });
+        cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
+          .scrollIntoView()
+          .contains("Completed", { timeout: 20000 });
+
+        let expectedEnv = mergeEnvVariables([
+          [projectEnvVars.names, projectEnvVars.values],
+          [pipelineEnvVars.names, pipelineEnvVars.values],
+        ]);
+
+        cy.readFile(STEPS.DUMP_ENV_PARAMS.default_output_file)
+          .its("env")
+          .then((env) => {
+            Object.keys(expectedEnv).forEach((key) => {
+              assert(env[key] == expectedEnv[key]);
             });
-        });
+          });
       });
     });
   });
 
   context("requires the data passing pipeline and a running session", () => {
     beforeEach(() => {
+      if (Cypress.$("pipeline-list-row").length > 0) {
+        cy.deleteAllPipelines();
+      }
       // Copy the pipeline.
       cy.exec(
         `cp -r ${PIPELINES.DATA_PASSING.get_path()} ../userdir/projects/${
@@ -230,8 +234,12 @@ describe("interactive runs", () => {
         }/`
       );
       // Need to force a reload for discovery.
+      cy.reload(true);
       cy.visit("/pipelines");
-      cy.findByTestId(`pipeline-${PIPELINES.DATA_PASSING.name}`).click();
+      reloadUntilElementsLoaded("pipeline-list-row", () => {
+        return cy.findByTestId("pipeline-list").should("exist");
+      });
+      cy.findByTestId(`pipeline-list-row`).first().click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
         { timeout: 60000 }
@@ -320,7 +328,7 @@ describe("interactive runs", () => {
         },
       },
     ].forEach((testData) => {
-      it(`tests memory eviction - unnamed - eviction=${testData.eviction})`, () => {
+      it(`tests memory eviction - unnamed - eviction=${testData.eviction}`, () => {
         cy.findByTestId(TEST_ID.PIPELINE_CENTER);
 
         // Activate memory eviction and restart the memory server.
@@ -329,11 +337,14 @@ describe("interactive runs", () => {
           cy.findByTestId(
             TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_MEMORY_EVICTION
           )
+            .find("input")
             .scrollIntoView()
             .should("not.be.checked");
           cy.findByTestId(
             TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_MEMORY_EVICTION
-          ).check();
+          )
+            .find("input")
+            .check();
           cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
           cy.findByTestId(
             TEST_ID.PIPELINE_SETTINGS_CONFIGURATION_RESTART_MEMORY_SERVER

@@ -2,6 +2,8 @@ import {
   assertEnvIsBuilt,
   piped_click,
   PROJECTS_DIR,
+  reloadUntilElementsLoaded,
+  reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
   SAMPLE_STEP_NAMES,
@@ -23,6 +25,7 @@ let pathTestCases = [
 
 describe("pipelines", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.goToMenu("pipelines");
@@ -62,14 +65,26 @@ describe("pipelines", () => {
     cy.exec(`cp ${originalPath} ${copyPath}`);
     // Reload to force the discovery.
     cy.visit("/pipelines");
-    cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 2);
+    reloadUntilElementsLoaded(
+      "pipeline-list-row",
+      () => {
+        return cy.findByTestId("pipeline-list").should("exist");
+      },
+      2
+    );
   });
 
   it("creates a pipeline, edits the path", () => {
     cy.intercept("PUT", /.*/).as("allPuts");
     cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
+
+    // a known issue of Cypress; however the workaround doesn't always work
+    // https://docs.cypress.io/api/commands/hover#Workarounds
+    // cy.findByTestId("pipeline-path").trigger("mouseover");
+    // cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).should("be.visible");
+
+    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click({ force: true });
     let path = `my-super-test.orchest`;
-    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
     cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
       .should("be.visible")
       .type("{selectall}{backspace}")
@@ -83,7 +98,7 @@ describe("pipelines", () => {
     cy.intercept("PUT", /.*/).as("allPuts");
     let path = `/a/b/c/my-super-test.orchest`;
     cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
-    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
+    cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click({ force: true });
     cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
       .should("be.visible")
       .type("{selectall}{backspace}")
@@ -100,10 +115,11 @@ describe("pipelines", () => {
         `${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/${input[1]}.orchest`
       );
     });
+
     it(`tests pipelines path edit normalization (${input[0]} to ${input[1]})`, () => {
       cy.intercept("PUT", /.*/).as("allPuts");
       cy.createPipeline(SAMPLE_PIPELINE_NAMES.PL1);
-      cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click();
+      cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH).click({ force: true });
       cy.findByTestId(TEST_ID.PIPELINE_EDIT_PATH_TEXTFIELD)
         .should("be.visible")
         .type("{selectall}{backspace}")
@@ -198,6 +214,7 @@ describe("pipelines", () => {
           TEST_ID.SESSION_TOGGLE_BUTTON
         ).contains("Stop session", { timeout: 60000 });
       });
+
       it("tests getting into Jupyterlab", () => {
         cy.findByTestId(TEST_ID.SWITCH_TO_JUPYTERLAB).click();
         waitForJupyterlab();

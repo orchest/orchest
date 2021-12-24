@@ -1,17 +1,22 @@
-import { useOrchest } from "@/hooks/orchest";
 import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
+import Box from "@mui/material/Box";
+import Toolbar from "@mui/material/Toolbar";
 import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
 import React, { useRef } from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
+import BuildPendingDialog from "./components/BuildPendingDialog";
 import CommandPalette from "./components/CommandPalette";
-import Dialogs from "./components/Dialogs";
 import HeaderBar from "./components/HeaderBar";
-import MainDrawer from "./components/MainDrawer";
-import { useSendAnalyticEvent } from "./hooks/useSendAnalyticEvent";
+import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
+import { AppDrawer } from "./components/MainDrawer";
+import { SystemDialog } from "./components/SystemDialog";
+import { useAppContext } from "./contexts/AppContext";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import Jupyter from "./jupyter/Jupyter";
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 $.fn.overflowing = function () {
@@ -35,16 +40,18 @@ window.$ = $;
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
   const { boot } = useIntercom();
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+  const { setConfirm } = useAppContext();
 
-  const sendEvent = useSendAnalyticEvent();
-
-  const context = useOrchest();
-
-  const jupyterRef = useRef(null);
-  const dialogsRef = useRef(null);
+  const toggleDrawer = () => setIsDrawerOpen((currentValue) => !currentValue);
 
   // load server side config populated by flask template
-  const { config, user_config } = context.state;
+  const {
+    state: { config, user_config, hasUnsavedChanges },
+    setAsSaved,
+  } = useAppContext();
+
+  const jupyterRef = useRef(null);
 
   // Each client provides an heartbeat, used for telemetry and idle
   // checking.
@@ -53,6 +60,8 @@ const App = () => {
   }, 5000);
 
   React.useEffect(() => {
+    if (!user_config || !config) return;
+
     if (config.FLASK_ENV === "development") {
       console.log("Orchest is running with --dev.");
     }
@@ -65,55 +74,13 @@ const App = () => {
         createdAt: config.INTERCOM_DEFAULT_SIGNUP_DATE,
       });
     }
-  }, [config]);
-
-  const alert = (title, content, onClose) => {
-    // Analytics call
-    sendEvent("alert show", { title: title, content: content });
-
-    dialogsRef.current.alert(title, content, onClose);
-  };
-
-  const confirm = (
-    title: string,
-    content: string,
-    onConfirm: () => void,
-    onCancel?
-  ) => {
-    // Analytics call
-    sendEvent("confirm show", { title: title, content: content });
-
-    dialogsRef.current.confirm(title, content, onConfirm, onCancel);
-  };
-
-  const requestBuild = (
-    project_uuid: string,
-    environmentValidationData,
-    requestedFromView: string,
-    onBuildComplete: () => void,
-    onCancel: () => void
-  ) => {
-    // Analytics call
-    sendEvent("build request", { requestedFromView });
-
-    dialogsRef.current.requestBuild(
-      project_uuid,
-      environmentValidationData,
-      requestedFromView,
-      onBuildComplete,
-      onCancel
-    );
-  };
+  }, [config, user_config]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
-    setJupyter(new Jupyter(jupyterRef.current));
+    setJupyter(new Jupyter(jupyterRef.current, setConfirm));
   }, []);
 
   window.orchest = {
-    config,
-    alert,
-    confirm,
-    requestBuild,
     jupyter,
   };
 
@@ -122,30 +89,46 @@ const App = () => {
       getUserConfirmation={(message, callback) => {
         // use Prompt component to intercept route changes
         // handle the blocking event here
-        if (message === "unsavedChanges") {
-          window.orchest.confirm(
+        if (message === "hasUnsavedChanges") {
+          setConfirm(
             "Warning",
             "There are unsaved changes. Are you sure you want to navigate away?",
-            () => {
-              context.dispatch({ type: "setUnsavedChanges", payload: false });
+            async () => {
+              setAsSaved();
               callback(true);
+              return true;
             }
           );
         }
       }}
     >
-      <Prompt when={context.state.unsavedChanges} message="unsavedChanges" />
-      <HeaderBar />
-      <div className="app-container" data-test-id="app">
-        <MainDrawer />
-        <main className="main-content" id="main-content">
-          <Routes />
-          <div ref={jupyterRef} className="persistent-view jupyter hidden" />
-        </main>
-      </div>
-      <div className="dialogs">
-        <Dialogs ref={dialogsRef} />
-      </div>
+      <Box sx={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        <HeaderBar toggleDrawer={toggleDrawer} isDrawerOpen={isDrawerOpen} />
+        <AppDrawer isOpen={isDrawerOpen} />
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            overflow: "hidden",
+            position: "relative",
+            minHeight: 0,
+            display: "flex",
+            flexDirection: "column",
+          }}
+          id="main-content"
+          data-test-id="app"
+        >
+          <Toolbar />
+          <Box sx={{ overflowY: "auto", flex: 1 }}>
+            <Routes />
+            <div ref={jupyterRef} className="persistent-view jupyter hidden" />
+          </Box>
+        </Box>
+      </Box>
+      <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />
+      <SystemDialog />
+      <BuildPendingDialog />
+      <OnboardingDialog />
       <CommandPalette />
     </Router>
   );

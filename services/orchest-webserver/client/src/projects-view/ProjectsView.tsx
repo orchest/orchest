@@ -1,33 +1,59 @@
+import { IconButton } from "@/components/common/IconButton";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableRow,
+} from "@/components/DataTable";
 import { Layout } from "@/components/Layout";
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useImportUrl } from "@/hooks/useImportUrl";
+import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
-import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
-import {
-  MDCButtonReact,
-  MDCDataTableReact,
-  MDCDialogReact,
-  MDCIconButtonToggleReact,
-  MDCLinearProgressReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  RefManager,
-} from "@orchest/lib-utils";
+import { BackgroundTask } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import InputIcon from "@mui/icons-material/Input";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import SaveIcon from "@mui/icons-material/Save";
+import SettingsIcon from "@mui/icons-material/Settings";
+import Button from "@mui/material/Button";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import { fetcher, makeRequest } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
 import { ImportDialog } from "./ImportDialog";
 
-const ProjectsView: React.FC = () => {
-  const { orchest } = window;
+type ProjectRow = Pick<
+  Project,
+  | "path"
+  | "pipeline_count"
+  | "session_count"
+  | "job_count"
+  | "environment_count"
+> & {
+  settings: string;
+};
 
+const ProjectsView: React.FC = () => {
+  const { setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
-  const context = useOrchest();
+  const {
+    dispatch,
+    state: { projectUuid },
+  } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
   const [projectName, setProjectName] = React.useState<string>();
@@ -37,9 +63,7 @@ const ProjectsView: React.FC = () => {
 
   const [state, setState] = React.useState({
     isDeleting: false,
-    loading: true,
     projects: null,
-    listData: null,
     importResult: undefined,
     fetchListAndSetProject: "",
     editProjectPathModal: false,
@@ -48,19 +72,79 @@ const ProjectsView: React.FC = () => {
     editProjectPath: undefined,
   });
 
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
-  const [backgroundTaskPoller] = React.useState(new BackgroundTaskPoller());
-  backgroundTaskPoller.POLL_FREQUENCY = 1000;
-
-  const onEditProjectName = (projectUUID, projectPath) => {
-    setState((prevState) => ({
-      ...prevState,
-      editProjectPathUUID: projectUUID,
-      editProjectPath: projectPath,
-      editProjectPathModal: true,
-    }));
+  const openSettings = (projectUuid: string) => {
+    navigateTo(siteMap.projectSettings.path, {
+      query: { projectUuid },
+    });
   };
+
+  const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
+    const onEditProjectName = (projectUUID: string, projectPath: string) => {
+      setState((prevState) => ({
+        ...prevState,
+        editProjectPathUUID: projectUUID,
+        editProjectPath: projectPath,
+        editProjectPathModal: true,
+      }));
+    };
+    return [
+      {
+        id: "path",
+        label: "Project",
+        render: function ProjectPath(row) {
+          return (
+            <Stack
+              direction="row"
+              alignItems="center"
+              component="span"
+              sx={{
+                display: "inline-flex",
+                button: { visibility: "hidden" },
+                "&:hover": {
+                  button: { visibility: "visible" },
+                },
+              }}
+            >
+              {row.path}
+              <IconButton
+                title="Edit job name"
+                size="small"
+                sx={{ marginLeft: (theme) => theme.spacing(2) }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEditProjectName(row.uuid, row.path);
+                }}
+              >
+                <EditIcon />
+              </IconButton>
+            </Stack>
+          );
+        },
+      },
+      { id: "pipeline_count", label: "Pipelines" },
+      { id: "session_count", label: "Active sessions" },
+      { id: "job_count", label: "Jobs" },
+      { id: "environment_count", label: "Environments" },
+      {
+        id: "settings",
+        label: "Settings",
+        render: function ProjectSettingsButton(row) {
+          return (
+            <IconButton
+              title="settings"
+              data-test-id={`settings-button-${row.path}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                openSettings(row.uuid);
+              }}
+            >
+              <SettingsIcon />
+            </IconButton>
+          );
+        },
+      },
+    ];
+  }, [setState]);
 
   const onCloseEditProjectPathModal = () => {
     setState((prevState) => ({
@@ -87,23 +171,21 @@ const ProjectsView: React.FC = () => {
       },
     })
       .then((_) => {
-        fetchList();
+        fetchProjects();
       })
       .catch((e) => {
         try {
           let resp = JSON.parse(e.body);
 
           if (resp.code == 0) {
-            orchest.alert(
+            setAlert(
               "Error",
-              "Cannnot rename project when an interactive session is running."
+              "Cannot rename project when an interactive session is running."
             );
           } else if (resp.code == 1) {
-            orchest.alert(
+            setAlert(
               "Error",
-              'Cannnot rename project, a project with the name "' +
-                state.editProjectPath +
-                '" already exists.'
+              `Cannot rename project, a project with the name "${state.editProjectPath}" already exists.`
             );
           }
         } catch (error) {
@@ -116,151 +198,105 @@ const ProjectsView: React.FC = () => {
       });
   };
 
-  const processListData = (projects: Project[]) => {
-    return projects.map((project) => [
-      <span key="toggle-row" className="mdc-icon-table-wrapper">
-        {project.path}{" "}
-        <span className="consume-click">
-          <MDCIconButtonToggleReact
-            icon="edit"
-            onClick={() => {
-              onEditProjectName(project.uuid, project.path);
-            }}
-          />
-        </span>
-      </span>,
-      <span key="pipeline-count">{project.pipeline_count}</span>,
-      <span key="session-count">{project.session_count}</span>,
-      <span key="job-count">{project.job_count}</span>,
-      <span key="env-count">{project.environment_count}</span>,
-      <span key="setting" className="consume-click">
-        <MDCIconButtonToggleReact
-          icon={"settings"}
-          onClick={() => {
-            openSettings(project);
-          }}
-          data-test-id={`settings-button-${project.path}`}
-        />
-      </span>,
-    ]);
-  };
+  const {
+    data: projects = [],
+    revalidate: fetchProjects,
+    error: fetchProjectsError,
+    isValidating,
+  } = useSWR<Project[]>(
+    "/async/projects?session_counts=true&job_counts=true",
+    fetcher
+  );
 
-  const fetchList = (fetchListAndSetProject?: string) => {
-    // initialize REST call for pipelines
-    let fetchListPromise = makeCancelable(
-      makeRequest("GET", "/async/projects?session_counts=true&job_counts=true"),
-      promiseManager
-    );
+  const mounted = useMounted();
 
-    fetchListPromise.promise
-      .then((response: string) => {
-        let projects: Project[] = JSON.parse(response);
+  React.useEffect(() => {
+    if (mounted && fetchProjectsError)
+      setAlert("Error", "Error fetching projects");
+  }, [fetchProjectsError]);
 
-        context.dispatch({
-          type: "projectsSet",
-          payload: projects,
-        });
+  React.useEffect(() => {
+    if (mounted && !isValidating && !fetchProjectsError && projects) {
+      dispatch({
+        type: "projectsSet",
+        payload: projects,
+      });
+    }
+  }, [projects]);
 
-        setState((prevState) => ({
-          ...prevState,
-          fetchListAndSetProject,
-          listData: processListData(projects),
-          projects: projects,
-          loading: false,
-        }));
-
-        // Verify selected project UUID
-        // TODO: do we still need this?
-        if (
-          !context.state.projectUuid ||
-          !projects.some(
-            (project) => project.uuid === context.state.projectUuid
-          )
-        ) {
-          context.dispatch({
-            type: "projectSet",
-            payload: projects.length > 0 ? projects[0].uuid : undefined,
-          });
-        }
-
-        if (refManager.refs.projectListView) {
-          refManager.refs.projectListView.setSelectedRowIds([]);
-        }
-      })
-      .catch(console.log);
-  };
-
-  const openSettings = (project: Project) => {
-    navigateTo(siteMap.projectSettings.path, {
-      query: { projectUuid: project.uuid },
+  const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
+    return projects.map((project) => {
+      return {
+        ...project,
+        settings: project.path,
+      };
     });
-  };
+  }, [projects]);
 
-  const onClickListItem = (row, idx, e) => {
-    let project = state.projects[idx];
-
+  const onRowClick = (projectUuid: string) => {
     navigateTo(siteMap.pipelines.path, {
-      query: { projectUuid: project.uuid },
+      query: { projectUuid },
     });
   };
 
-  const onDeleteClick = () => {
+  const deleteSelectedRows = async (projectUuids: string[]) => {
     if (!state.isDeleting) {
       setState((prevState) => ({
         ...prevState,
         isDeleting: true,
       }));
 
-      let selectedIndices = refManager.refs.projectListView.getSelectedRowIndices();
-
-      if (selectedIndices.length === 0) {
-        orchest.alert("Error", "You haven't selected a project.");
+      if (projectUuids.length === 0) {
+        setAlert("Error", "You haven't selected a project.");
 
         setState((prevState) => ({
           ...prevState,
           isDeleting: false,
         }));
 
-        return;
+        return false;
       }
 
-      orchest.confirm(
+      return setConfirm(
         "Warning",
-        "Are you certain that you want to delete this project? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-        () => {
+        "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+        async () => {
           // Start actual delete
-          let deletePromises = [];
 
-          selectedIndices.forEach((index) => {
-            let project_uuid = state.projects[index].uuid;
-            deletePromises.push(deleteProjectRequest(project_uuid));
-          });
-
-          Promise.all(deletePromises).then(() => {
-            fetchList();
-
+          try {
+            await Promise.all(
+              projectUuids.map((projectUuid) =>
+                deleteProjectRequest(projectUuid)
+              )
+            );
+            fetchProjects();
             // Clear isDeleting
             setState((prevState) => ({
               ...prevState,
               isDeleting: false,
             }));
-          });
+            return true;
+          } catch (error) {
+            return false;
+          }
         },
-        () => {
+        async () => {
           setState((prevState) => ({
             ...prevState,
             isDeleting: false,
           }));
+          return false;
         }
       );
     } else {
       console.error("Delete UI in progress.");
+      return false;
     }
   };
 
-  const deleteProjectRequest = (projectUuid) => {
-    if (context.state.projectUuid === projectUuid) {
-      context.dispatch({
+  const deleteProjectRequest = (toBeDeletedId: string) => {
+    if (projectUuid === toBeDeletedId) {
+      dispatch({
         type: "projectSet",
         payload: undefined,
       });
@@ -269,7 +305,7 @@ const ProjectsView: React.FC = () => {
     let deletePromise = makeRequest("DELETE", "/async/projects", {
       type: "json",
       content: {
-        project_uuid: projectUuid,
+        project_uuid: toBeDeletedId,
       },
     });
 
@@ -277,9 +313,9 @@ const ProjectsView: React.FC = () => {
       try {
         let data = JSON.parse(response.body);
 
-        orchest.alert("Error", "Could not delete project. " + data.message);
+        setAlert("Error", `Could not delete project. ${data.message}`);
       } catch {
-        orchest.alert("Error", "Could not delete project. Reason unknown.");
+        setAlert("Error", "Could not delete project. Reason unknown.");
       }
     });
 
@@ -301,21 +337,20 @@ const ProjectsView: React.FC = () => {
 
     makeRequest("POST", "/async/projects", {
       type: "json",
-      content: {
-        name: projectName,
-      },
+      content: { name: projectName },
     })
       .then((_) => {
         // reload list once creation succeeds
-        fetchList(projectName);
+        // fetchList(projectName);
+        fetchProjects();
       })
       .catch((response) => {
         try {
           let data = JSON.parse(response.body);
 
-          orchest.alert("Error", "Could not create project. " + data.message);
+          setAlert("Error", `Could not create project. ${data.message}`);
         } catch {
-          orchest.alert("Error", "Could not create project. Reason unknown.");
+          setAlert("Error", "Could not create project. Reason unknown.");
         }
       })
       .finally(() => {
@@ -344,24 +379,20 @@ const ProjectsView: React.FC = () => {
     return { valid: true };
   };
 
-  const validateProjectNameAndAlert = (projectName) => {
+  const validateProjectNameAndAlert = (projectName: string) => {
     let projectNameValidation = validProjectName(projectName);
     if (!projectNameValidation.valid) {
-      orchest.alert(
+      setAlert(
         "Error",
-        "Please make sure you enter a valid project name. " +
-          projectNameValidation.reason
+        `Please make sure you enter a valid project name. ${projectNameValidation.reason}`
       );
     }
     return projectNameValidation.valid;
   };
 
-  const onCancelModal = () => {
-    refManager.refs.createProjectDialog.close();
-  };
-
   const onCloseCreateProjectModal = () => {
     setIsShowingCreateModal(false);
+    setProjectName("");
   };
 
   const onImport = () => {
@@ -369,17 +400,10 @@ const ProjectsView: React.FC = () => {
   };
 
   const onImportComplete = (result: BackgroundTask) => {
-    if (result.status === "SUCCESS") fetchList(result.result);
+    if (result.status === "SUCCESS") {
+      fetchProjects();
+    }
   };
-
-  React.useEffect(() => {
-    fetchList();
-
-    return () => {
-      promiseManager.cancelCancelablePromises();
-      backgroundTaskPoller.removeAllTasks();
-    };
-  }, []);
 
   React.useEffect(() => {
     if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
@@ -391,7 +415,7 @@ const ProjectsView: React.FC = () => {
       // exist anymore because it has been removed between a POST and a
       // get request.
       if (createdProject !== undefined) {
-        context.dispatch({
+        dispatch({
           type: "projectSet",
           payload: createdProject.uuid,
         });
@@ -399,165 +423,171 @@ const ProjectsView: React.FC = () => {
     }
   }, [state?.fetchListAndSetProject]);
 
+  const [importUrl, setImportUrl] = useImportUrl();
+  // if user loads the app with a pre-filled import_url in their query string
+  // we prompt them directly with the import modal
+  React.useEffect(() => {
+    if (importUrl !== "") setIsImporting(true);
+  }, []);
+
   return (
     <Layout>
       <div className={"view-page projects-view"}>
-        {isImporting && (
-          <ImportDialog
-            projectName={projectName}
-            setProjectName={setProjectName}
-            onImportComplete={onImportComplete}
-            open={() => setIsImporting(true)}
-            close={() => setIsImporting(false)}
-          />
-        )}
-
-        {state.editProjectPathModal && (
-          <MDCDialogReact
-            title="Edit project name"
-            onClose={onCloseEditProjectPathModal}
-            content={
-              <React.Fragment>
-                <MDCTextFieldReact
-                  classNames={["fullwidth push-down"]}
-                  value={state.editProjectPath}
-                  label="Project name"
-                  onChange={(value) => {
-                    setState((prevState) => ({
-                      ...prevState,
-                      editProjectPath: value,
-                    }));
-                  }}
-                />
-              </React.Fragment>
-            }
-            actions={
-              <React.Fragment>
-                <MDCButtonReact
-                  icon="close"
-                  label="Cancel"
-                  classNames={["push-right"]}
-                  onClick={onCloseEditProjectPathModal}
-                />
-                <MDCButtonReact
-                  icon="save"
-                  disabled={state.editProjectPathModalBusy}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  label="Save"
-                  submitButton
-                  onClick={onSubmitEditProjectPathModal}
-                />
-              </React.Fragment>
-            }
-          />
-        )}
-
-        {(() => {
-          if (isShowingCreateModal) {
-            return (
-              <MDCDialogReact
-                title="Create a new project"
-                onClose={onCloseCreateProjectModal}
-                ref={refManager.nrefs.createProjectDialog}
-                content={
-                  <MDCTextFieldReact
-                    classNames={["fullwidth"]}
-                    label="Project name"
-                    value={projectName}
-                    onChange={(value) => {
-                      setProjectName(value.replace(/[^\w\.]/g, "-"));
-                    }}
-                    data-test-id="project-name-textfield"
-                  />
-                }
-                actions={
-                  <React.Fragment>
-                    <MDCButtonReact
-                      icon="close"
-                      label="Cancel"
-                      classNames={["push-right"]}
-                      onClick={onCancelModal}
-                    />
-                    <MDCButtonReact
-                      icon="format_list_bulleted"
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      label="Create project"
-                      submitButton
-                      onClick={onClickCreateProject}
-                      data-test-id="create-project"
-                    />
-                  </React.Fragment>
-                }
+        <ImportDialog
+          projectName={projectName}
+          setProjectName={setProjectName}
+          onImportComplete={onImportComplete}
+          importUrl={importUrl}
+          setImportUrl={setImportUrl}
+          open={isImporting}
+          onClose={() => setIsImporting(false)}
+        />
+        <Dialog
+          fullWidth
+          maxWidth="xs"
+          open={state.editProjectPathModal}
+          onClose={onCloseEditProjectPathModal}
+        >
+          <form
+            id="edit-name"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSubmitEditProjectPathModal();
+            }}
+          >
+            <DialogTitle>Edit project name</DialogTitle>
+            <DialogContent>
+              <TextField
+                fullWidth
+                autoFocus
+                sx={{ marginTop: (theme) => theme.spacing(2) }}
+                value={state.editProjectPath}
+                label="Project name"
+                onChange={(e) => {
+                  setState((prevState) => ({
+                    ...prevState,
+                    editProjectPath: e.target.value,
+                  }));
+                }}
               />
-            );
-          }
-        })()}
+            </DialogContent>
+            <DialogActions>
+              <Button
+                color="secondary"
+                startIcon={<CloseIcon />}
+                onClick={onCloseEditProjectPathModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                startIcon={<SaveIcon />}
+                variant="contained"
+                disabled={state.editProjectPathModalBusy}
+                type="submit"
+                form="edit-name"
+              >
+                Save
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
+        <Dialog
+          open={isShowingCreateModal}
+          onClose={onCloseCreateProjectModal}
+          fullWidth
+          maxWidth="xs"
+        >
+          <form
+            id="create-project"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onClickCreateProject();
+            }}
+          >
+            <DialogTitle>Create a new project</DialogTitle>
+            <DialogContent>
+              <TextField
+                fullWidth
+                autoFocus
+                sx={{ marginTop: (theme) => theme.spacing(2) }}
+                label="Project name"
+                value={projectName}
+                onChange={(e) =>
+                  setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
+                }
+                data-test-id="project-name-textfield"
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                startIcon={<CloseIcon />}
+                color="secondary"
+                onClick={onCloseCreateProjectModal}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<FormatListBulletedIcon />}
+                type="submit"
+                form="create-project"
+                data-test-id="create-project"
+              >
+                Create project
+              </Button>
+            </DialogActions>
+          </form>
+        </Dialog>
 
         <h2>Projects</h2>
-
-        {(() => {
-          if (state.loading) {
-            return <MDCLinearProgressReact />;
-          } else {
-            return (
-              <React.Fragment>
-                <div className="push-down">
-                  <MDCButtonReact
-                    classNames={[
-                      "mdc-button--raised",
-                      "themed-secondary",
-                      "push-right",
-                    ]}
-                    icon="add"
-                    label="Add project"
-                    onClick={onCreateClick}
-                    data-test-id="add-project"
-                  />
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised", "push-right"]}
-                    icon="input"
-                    label="Import project"
-                    onClick={onImport}
-                    data-test-id="import-project"
-                  />
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    icon="lightbulb"
-                    label="Explore Examples"
-                    onClick={goToExamples}
-                    data-test-id="explore-examples"
-                  />
-                </div>
-                <div className={"pipeline-actions push-down"}>
-                  <MDCIconButtonToggleReact
-                    icon="delete"
-                    disabled={state.isDeleting}
-                    tooltipText="Delete project"
-                    onClick={onDeleteClick}
-                    data-test-id="delete-project"
-                  />
-                </div>
-
-                <MDCDataTableReact
-                  ref={refManager.nrefs.projectListView}
-                  selectable
-                  onRowClick={onClickListItem}
-                  classNames={["fullwidth"]}
-                  headers={[
-                    "Project",
-                    "Pipelines",
-                    "Active sessions",
-                    "Jobs",
-                    "Environments",
-                    "Settings",
-                  ]}
-                  rows={state.listData}
-                  data-test-id="projects-table"
-                />
-              </React.Fragment>
-            );
-          }
-        })()}
+        {projectRows.length === 0 && isValidating ? (
+          <LinearProgress />
+        ) : (
+          <>
+            <Stack
+              direction="row"
+              spacing={2}
+              sx={{ margin: (theme) => theme.spacing(2, 0) }}
+            >
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={onCreateClick}
+                data-test-id="add-project"
+              >
+                Create project
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<InputIcon />}
+                onClick={onImport}
+                data-test-id="import-project"
+              >
+                Import project
+              </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<LightbulbIcon />}
+                onClick={goToExamples}
+                data-test-id="explore-examples"
+              >
+                Explore Examples
+              </Button>
+            </Stack>
+            <DataTable<ProjectRow>
+              id="project-list"
+              selectable
+              hideSearch
+              onRowClick={onRowClick}
+              deleteSelectedRows={deleteSelectedRows}
+              columns={columns}
+              rows={projectRows}
+              data-test-id="projects-table"
+            />
+          </>
+        )}
       </div>
     </Layout>
   );

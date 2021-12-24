@@ -1,23 +1,44 @@
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
-import {
-  MDCButtonReact,
-  MDCCircularProgressReact,
-  MDCIconButtonToggleReact,
-} from "@orchest/lib-mdc";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
+import HelpIcon from "@mui/icons-material/Help";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
+import ScienceIcon from "@mui/icons-material/Science";
+import AppBar from "@mui/material/AppBar";
+import Box from "@mui/material/Box";
+import CircularProgress from "@mui/material/CircularProgress";
+import MuiIconButton from "@mui/material/IconButton";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import Toolbar from "@mui/material/Toolbar";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
 import React from "react";
 import { useRouteMatch } from "react-router-dom";
+import { IconButton } from "./common/IconButton";
 import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
-// HTMLHeaderElement doesn't exist, so we have to fall back to HTMLDivElement
-export type THeaderBarRef = HTMLDivElement;
-
-export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
+export const HeaderBar = ({
+  toggleDrawer,
+  isDrawerOpen,
+}: {
+  toggleDrawer: () => void;
+  isDrawerOpen: boolean;
+}) => {
   const { navigateTo } = useCustomRoute();
-
-  const { state, dispatch, get } = useOrchest();
+  const { state } = useProjectsContext();
+  const appContext = useAppContext();
+  const {
+    state: { sessions },
+  } = useSessionsContext();
+  const currentSession = sessions.find((session) => isSession(session, state));
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
@@ -59,84 +80,120 @@ export const HeaderBar = (_, ref: React.MutableRefObject<null>) => {
   };
 
   return (
-    <header className="header-bar" ref={ref}>
-      <div className="header-bar-left">
-        <MDCIconButtonToggleReact
-          icon={"menu"}
+    <AppBar
+      position="fixed"
+      color="default"
+      sx={{
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backgroundColor: (theme) => theme.palette.background.paper,
+        boxShadow: "none",
+        borderBottom: (theme) => `1px solid ${theme.borderColor}`,
+      }}
+    >
+      <Toolbar>
+        <MuiIconButton
+          title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
           onClick={(e) => {
-            dispatch({ type: "drawerToggle" });
+            e.preventDefault();
+            toggleDrawer();
           }}
-        />
-        <img
-          className="pointer logo"
+          sx={{ marginLeft: (theme) => theme.spacing(-2) }}
+        >
+          <MenuIcon />
+        </MuiIconButton>
+        <Box
+          component="img"
           onClick={goToHome}
           src="/image/logo.svg"
           data-test-id="orchest-logo"
+          sx={{
+            cursor: "pointer",
+            width: (theme) => theme.spacing(5),
+            margin: (theme) => theme.spacing(0, 2.5, 0, 1.25), // to align the AppDrawer ListIconText
+          }}
         />
         <ProjectSelector />
-      </div>
-
-      {state.pipelineName && (
-        <div className="pipeline-header-component">
-          <div className="pipeline-name">
-            <div className="pipelineStatusIndicator">
+        <LinearProgress />
+        <Box sx={{ flex: 1 }}>
+          {state.pipelineName && (
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="center"
+              spacing={2}
+            >
               {state.pipelineSaveStatus === "saved" ? (
-                <i title="Pipeline saved" className="material-icons">
-                  check_circle
-                </i>
+                <Tooltip title="Pipeline saved">
+                  <CheckCircleIcon />
+                </Tooltip>
               ) : (
-                <MDCCircularProgressReact />
+                <CircularProgress />
               )}
-            </div>
-
-            {state.pipelineName}
-          </div>
-        </div>
-      )}
-
-      <div className="header-bar-actions">
-        {state.pipelineName && !state.pipelineIsReadOnly && (
-          <SessionToggleButton
-            pipelineUuid={state.pipelineUuid}
-            projectUuid={state.projectUuid}
-          />
-        )}
-
-        {state.pipelineName && matchJupyter && (
-          <MDCButtonReact
-            classNames={["mdc-button--outlined"]}
-            onClick={showPipeline}
-            icon="device_hub"
-            label="Switch to Pipeline"
-          />
-        )}
-
-        {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
-          <MDCButtonReact
-            classNames={["mdc-button--outlined"]}
-            onClick={showJupyter}
-            icon="science"
-            label="Switch to JupyterLab"
-            data-test-id="switch-to-jupyterlab"
-          />
-        )}
-
-        {state?.user_config.AUTH_ENABLED && (
-          <MDCIconButtonToggleReact
-            icon="logout"
-            tooltipText="Logout"
-            onClick={logoutHandler}
-          />
-        )}
-
-        <MDCIconButtonToggleReact
-          icon="help"
-          tooltipText="Help"
-          onClick={showHelp}
-        />
-      </div>
-    </header>
+              <Typography
+                variant="h6"
+                sx={{
+                  maxWidth: "50vw", // TODO: prevent using vw
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                }}
+                title={state.pipelineName}
+              >
+                {state.pipelineName}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
+        <Stack spacing={2} direction="row">
+          {state.pipelineName && !state.pipelineIsReadOnly && (
+            <SessionToggleButton
+              pipelineUuid={state.pipelineUuid}
+              projectUuid={state.projectUuid}
+            />
+          )}
+          {state.pipelineName && matchJupyter && (
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
+              onClick={showPipeline}
+              startIcon={<DeviceHubIcon />}
+            >
+              Switch to Pipeline
+            </StyledButtonOutlined>
+          )}
+          {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
+              onClick={showJupyter}
+              startIcon={<ScienceIcon />}
+              data-test-id="switch-to-jupyterlab"
+            >
+              Switch to JupyterLab
+            </StyledButtonOutlined>
+          )}
+          <Stack
+            spacing={1}
+            direction="row"
+            sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+          >
+            {appContext.state.user_config?.AUTH_ENABLED && (
+              <IconButton
+                title="Logout"
+                onClick={logoutHandler}
+                color="secondary"
+              >
+                <LogoutIcon />
+              </IconButton>
+            )}
+            <IconButton title="Help" onClick={showHelp} color="secondary">
+              <HelpIcon />
+            </IconButton>
+          </Stack>
+        </Stack>
+      </Toolbar>
+    </AppBar>
   );
 };
 
-export default React.forwardRef(HeaderBar);
+export default HeaderBar;

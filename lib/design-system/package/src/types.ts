@@ -1,10 +1,7 @@
-import type { StitchesCss, StitchesVariants } from "@stitches/react";
-import { stitches } from "./core";
-
-export type CSS = StitchesCss<typeof stitches>;
+import type { CSS, VariantProps } from "@stitches/react";
 
 export interface ICSSProp {
   css?: CSS;
 }
 
-export type ExtractVariants<T> = StitchesVariants<T>;
+export type ExtractVariants<T> = VariantProps<T>;

@@ -1,3 +1,4 @@
+import { ConfirmDispatcher } from "@/contexts/AppContext";
 import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
@@ -8,8 +9,9 @@ class Jupyter {
   showCheckInterval: any;
   pendingKernelChanges: any;
   iframeHasLoaded: boolean;
+  setConfirm: ConfirmDispatcher;
 
-  constructor(jupyterHolderJEl) {
+  constructor(jupyterHolderJEl, setConfirm: ConfirmDispatcher) {
     // @ts-ignore
     this.jupyterHolder = $(jupyterHolderJEl);
     this.iframe = undefined;
@@ -18,6 +20,7 @@ class Jupyter {
     this.iframeHasLoaded = false;
     this.showCheckInterval = undefined;
     this.pendingKernelChanges = {};
+    this.setConfirm = setConfirm;
 
     this.initializeJupyter();
   }
@@ -199,16 +202,16 @@ class Jupyter {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
               // @ts-ignore
-              orchest.confirm("Warning", warningMessage, () => {
-                sessionContext
-                  .changeKernel({ name: kernel })
-                  .then(() => {
-                    this.setKernelChangePending(notebook, kernel, false);
-                  })
-                  .catch((error) => {
-                    this.setKernelChangePending(notebook, kernel, false);
-                    console.error(error);
-                  });
+              this.setConfirm("Warning", warningMessage, async () => {
+                try {
+                  await sessionContext.changeKernel({ name: kernel });
+                  this.setKernelChangePending(notebook, kernel, false);
+                  return true;
+                } catch (error) {
+                  this.setKernelChangePending(notebook, kernel, false);
+                  console.error(error);
+                  return false;
+                }
               });
             }
           }
@@ -222,16 +225,19 @@ class Jupyter {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
                   // @ts-ignore
-                  orchest.confirm("Warning", warningMessage, () => {
-                    docManager.services.sessions
-                      .shutdown(notebookSession.id)
-                      .then(() => {
-                        this.setKernelChangePending(notebook, kernel, false);
-                      })
-                      .catch((error) => {
-                        this.setKernelChangePending(notebook, kernel, false);
-                        console.error(error);
-                      });
+                  this.setConfirm("Warning", warningMessage, async () => {
+                    try {
+                      await docManager.services.sessions.shutdown(
+                        notebookSession.id
+                      );
+
+                      this.setKernelChangePending(notebook, kernel, false);
+                      return true;
+                    } catch (error) {
+                      this.setKernelChangePending(notebook, kernel, false);
+                      console.error(error);
+                      return false;
+                    }
                   });
                 }
               }

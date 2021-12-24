@@ -1,19 +1,32 @@
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
-import type { PipelineJson, TViewPropsWithRequiredQueryArgs } from "@/types";
+import type {
+  PipelineJson,
+  Step,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
 import {
   addOutgoingConnections,
   filterServices,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
-import {
-  MDCButtonReact,
-  MDCDrawerReact,
-  MDCLinearProgressReact,
-} from "@orchest/lib-mdc";
+import CloseIcon from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
+import Divider from "@mui/material/Divider";
+import LinearProgress from "@mui/material/LinearProgress";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
   makeRequest,
@@ -28,7 +41,10 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 
 const LogsView: React.FC = () => {
   // global states
-  const { dispatch, get } = useOrchest();
+  const { dispatch } = useProjectsContext();
+  const { getSession } = useSessionsContext();
+  useSendAnalyticEvent("view load", { name: siteMap.logs.path });
+  useSessionsPoller();
 
   // data from route
   const {
@@ -43,15 +59,15 @@ const LogsView: React.FC = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const [selectedLog, setSelectedLog] = React.useState(undefined);
-  const [logType, setLogType] = React.useState(undefined);
-  const [sortedSteps, setSortedSteps] = React.useState(undefined);
+  const [logType, setLogType] = React.useState<"step" | "service">(undefined);
+  const [sortedSteps, setSortedSteps] = React.useState<Step[]>([]);
   const [pipelineJson, setPipelineJson] = React.useState(undefined);
   const [sio, setSio] = React.useState(undefined);
   const [job, setJob] = React.useState(undefined);
 
   // Conditional fetch session
   let session = !jobUuid
-    ? get.session({ pipelineUuid, projectUuid })
+    ? getSession({ pipelineUuid, projectUuid })
     : undefined;
 
   React.useEffect(() => {
@@ -163,7 +179,7 @@ const LogsView: React.FC = () => {
     });
   };
 
-  const getServices = () => {
+  const getServices = (): Record<string, { name: string; image: string }> => {
     let services = {};
 
     // If there is no job_uuid use the session for
@@ -261,18 +277,9 @@ const LogsView: React.FC = () => {
     });
   };
 
-  const clickLog = (_, item) => {
-    setSelectedLog(item.identifier);
-    setLogType(item.type);
-  };
-
-  const getItemIndex = (items, access, value) => {
-    for (let x = 0; x < items.length; x++) {
-      if (access(items[x]) == value) {
-        return x;
-      }
-    }
-    return -1;
+  const onClickLog = (uuid: string, type: "step" | "service") => {
+    setSelectedLog(uuid);
+    setLogType(type);
   };
 
   let rootView = undefined;
@@ -306,49 +313,94 @@ const LogsView: React.FC = () => {
     let services = generateServiceItems();
 
     rootView = (
-      <div className="logs">
-        <div className="log-selector">
-          <div className="log-section">
-            <i className="material-icons">device_hub</i>
-            Step logs
-          </div>
-          {sortedSteps.length == 0 && (
-            <i className="note">There are no steps defined.</i>
-          )}
-          <MDCDrawerReact
-            items={steps}
-            selectedIndex={
-              logType == "step"
-                ? getItemIndex(steps, (step) => step.identifier, selectedLog)
-                : -1
+      <div className="logs" style={{ position: "relative" }}>
+        <Box
+          sx={{
+            width: "20%",
+            minWidth: "250px",
+          }}
+        >
+          <List
+            dense
+            sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+            subheader={<ListSubheader component="div">Step logs</ListSubheader>}
+          >
+            {sortedSteps.length == 0 && (
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Typography component="i">
+                      There are no steps defined.
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            )}
+            {sortedSteps.map((sortedStep) => {
+              return (
+                <ListItemButton
+                  key={sortedStep.uuid}
+                  selected={
+                    logType === "step" && selectedLog === sortedStep.uuid
+                  }
+                  onClick={() => onClickLog(sortedStep.uuid, "step")}
+                >
+                  <ListItemText
+                    primary={sortedStep.title}
+                    secondary={sortedStep.file_path}
+                  />
+                </ListItemButton>
+              );
+            })}
+            <Divider />
+          </List>
+          <List
+            dense
+            sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+            subheader={
+              <ListSubheader component="div">Service logs</ListSubheader>
             }
-            action={clickLog}
-          />
-          <div role="separator" className="mdc-deprecated-list-divider" />
-          <div className="log-section">
-            <i className="material-icons">settings</i>
-            Service logs
-          </div>
-          {!session && !job && (
-            <i className="note">There is no active session.</i>
-          )}
-          {(session || job) && services.length == 0 && (
-            <i className="note">There are no services defined.</i>
-          )}
-          <MDCDrawerReact
-            items={services}
-            selectedIndex={
-              logType == "service"
-                ? getItemIndex(
-                    services,
-                    (service) => service.identifier,
-                    selectedLog
-                  )
-                : -1
-            }
-            action={clickLog}
-          />
-        </div>
+          >
+            {!session && !job && (
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Typography component="i">
+                      There is no active session.
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            )}
+            {(session || job) && services.length == 0 && (
+              <ListItem>
+                <ListItemText
+                  primary={
+                    <Typography component="i" variant="subtitle2">
+                      There are no services defined.
+                    </Typography>
+                  }
+                />
+              </ListItem>
+            )}
+            {Object.entries(getServices()).map(([, service]) => {
+              return (
+                <ListItemButton
+                  key={service.name}
+                  selected={
+                    logType === "service" && selectedLog === service.name
+                  }
+                  onClick={() => onClickLog(service.name, "service")}
+                >
+                  <ListItemText
+                    primary={service.name}
+                    secondary={service.image}
+                  />
+                </ListItemButton>
+              );
+            })}
+          </List>
+        </Box>
         <div className="logs-xterm-holder">
           {selectedLog && logType && (
             <LogViewer
@@ -362,26 +414,41 @@ const LogsView: React.FC = () => {
             />
           )}
         </div>
-
-        <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
+        <Box
+          sx={{
+            position: "absolute",
+            top: (theme) => theme.spacing(2),
+            right: (theme) => theme.spacing(2),
+            zIndex: 20,
+          }}
+        >
+          <IconButton
+            size="large"
+            sx={{
+              color: (theme) => theme.palette.common.white,
+              backgroundColor: (theme) => theme.palette.grey[900],
+              "&:hover": {
+                backgroundColor: (theme) => theme.palette.grey[800],
+              },
+            }}
+            title="Close"
             onClick={close}
-          />
-        </div>
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </div>
     );
   } else {
-    rootView = <MDCLinearProgressReact />;
+    rootView = <LinearProgress />;
   }
 
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="view-page no-padding logs-view">{rootView}</div>
-      </Layout>
-    </OrchestSessionsConsumer>
+    <Layout disablePadding fullHeight>
+      <div className="view-page no-padding logs-view fullheight">
+        {rootView}
+      </div>
+    </Layout>
   );
 };
 

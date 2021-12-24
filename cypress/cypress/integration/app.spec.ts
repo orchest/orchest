@@ -1,9 +1,10 @@
-import { TEST_ID } from "../support/common";
+import { reset, TEST_ID } from "../support/common";
 
 const ORCHEST_EXECUTABLE_PATH = "../orchest";
 
 describe("app", () => {
   beforeEach(() => {
+    reset();
     cy.visit("/");
   });
 
@@ -28,7 +29,7 @@ describe("app", () => {
       timeout 5s tail -f /dev/null; done; exit $s`;
     // Will fail the test if the exit code is != 0.
     cy.exec(status_check);
-    cy.reload();
+    cy.reload(true);
     cy.findByTestId(TEST_ID.ORCHEST_LOGO).should("be.visible");
   });
 });

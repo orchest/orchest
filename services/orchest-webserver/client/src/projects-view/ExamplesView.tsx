@@ -1,9 +1,17 @@
+import { LogoIcon } from "@/components/common/icons/LogoIcon";
+import { TabLabel, Tabs } from "@/components/common/Tabs";
+import { Layout } from "@/components/Layout";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useImportUrl } from "@/hooks/useImportUrl";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useTransition } from "@/hooks/useTransition";
 import { siteMap } from "@/routingConfig";
 import { Example } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
-import { MDCButtonReact, MDCTabBarReact } from "@orchest/lib-mdc";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import GroupIcon from "@mui/icons-material/Group";
+import Button from "@mui/material/Button";
+import Tab from "@mui/material/Tab";
 import React from "react";
 import { CommunityWarning } from "./CommunityWarning";
 import { ContributeCard } from "./ContributeCard";
@@ -21,16 +29,31 @@ enum EXAMPLES_TAB {
 }
 
 const isCuratedByOrchest = (owner: string) =>
-  ["orchest", "orchest-example"].includes(owner.toLowerCase());
+  ["orchest", "orchest-examples"].includes(owner.toLowerCase());
 
 type ImportingState = "READY" | "IMPORTING" | "DONE";
+
+const tabs = [
+  {
+    id: "curated-examples",
+    label: "Curated Examples",
+    icon: <LogoIcon />,
+  },
+  {
+    id: "community-contributed",
+    label: "Community contributed",
+    icon: <GroupIcon />,
+  },
+];
 
 const ExamplesView: React.FC = () => {
   // global states
   const { navigateTo } = useCustomRoute();
+  useSendAnalyticEvent("view load", { name: siteMap.examples.path });
+
   const { data } = useFetchExamples();
+
   // local states
-  const [exampleUrl, setExampleUrl] = React.useState<string>();
   const [projectName, setProjectName] = React.useState<string>();
   const [projectUuid, setProjectUuid] = React.useState<string>();
   const [importingState, setImportingState] = React.useState<ImportingState>(
@@ -39,12 +62,19 @@ const ExamplesView: React.FC = () => {
   const [selectedTab, setSelectedTab] = React.useState<EXAMPLES_TAB>(
     EXAMPLES_TAB.ORCHEST
   );
+  const [importUrl, setImportUrl] = useImportUrl();
+
+  // if user loads the app with a pre-filled import_url in their query string
+  // we prompt them directly with the import modal
+  React.useEffect(() => {
+    if (importUrl !== "") setImportingState("IMPORTING");
+  }, []);
+
   const {
     shouldRender: shouldShowCommunityWithTransition,
     mountedStyle,
     unmountedStyle,
   } = useTransition(selectedTab === EXAMPLES_TAB.COMMUNITY);
-  // the index of this array represents the tab index of MDCTabBarReact
   const examples = React.useMemo<[Example[], Example[]]>(() => {
     if (!data) return [[], []];
 
@@ -66,12 +96,15 @@ const ExamplesView: React.FC = () => {
     navigateTo(siteMap.pipelines.path, { query: { projectUuid } });
   };
 
-  const changeTabByIndex = (index: EXAMPLES_TAB) => {
+  const changeTabByIndex = (
+    e: React.SyntheticEvent<Element, Event>,
+    index: EXAMPLES_TAB
+  ) => {
     setSelectedTab(index);
   };
 
   const startImport = (url: string) => {
-    setExampleUrl(url);
+    setImportUrl(url);
     setImportingState("IMPORTING");
   };
 
@@ -85,69 +118,76 @@ const ExamplesView: React.FC = () => {
   const closeDialog = () => {
     setImportingState("READY");
     setProjectName("");
-    setExampleUrl("");
+    setImportUrl("");
   };
 
   return (
-    <div className="view-page examples-view">
-      {importingState === "IMPORTING" && (
+    <Layout>
+      <div className="view-page examples-view">
         <ImportDialog
           projectName={projectName}
           setProjectName={setProjectName}
-          initialImportUrl={exampleUrl}
-          open={() => setImportingState("IMPORTING")}
-          close={closeDialog}
+          onClose={closeDialog}
+          open={importingState === "IMPORTING"}
+          importUrl={importUrl}
+          setImportUrl={setImportUrl}
           onImportComplete={onImportComplete}
         />
-      )}
-      {importingState === "DONE" && (
         <ImportSuccessDialog
           projectName={projectName}
-          close={closeDialog}
+          open={importingState === "DONE"}
+          onClose={closeDialog}
           goToPipelines={goToSelectedProject}
         />
-      )}
-      <div className="push-down">
-        <MDCButtonReact
-          label="Back to projects"
-          icon="arrow_back"
-          onClick={goToProjects}
-        />
-      </div>
-      <div className="examples-view-heading-section">
-        <div className="examples-view-heading-section_main">
-          <h2 className="examples-view-title">{pageHeaderText}</h2>
-          <h3 className="examples-view-subtitle">{pageHeaderSubtitle}</h3>
+        <div className="push-down">
+          <Button startIcon={<ArrowBackIcon />} onClick={goToProjects}>
+            Back to projects
+          </Button>
         </div>
-        <CommunityWarning
-          style={
-            shouldShowCommunityWithTransition ? mountedStyle : unmountedStyle
-          }
-        />
-      </div>
-      <div className="example-view-tabs-container">
-        <MDCTabBarReact
-          selectedIndex={selectedTab}
-          items={["Curated Examples", "Community contributed"]}
-          icons={["/image/logo.svg", "group"]}
-          onChange={changeTabByIndex}
-        />
-        {/* TODO: we need a loading skeleton */}
-        {/* {status === "PENDING" && <MDCCircularProgressReact />} */}
-        <div className="example-cards-container">
-          {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}
-          {examples[selectedTab].map((item) => {
-            return (
-              <ExampleCard
-                key={item.url}
-                {...item}
-                startImport={startImport}
-              ></ExampleCard>
-            );
-          })}
+        <div className="examples-view-heading-section">
+          <div className="examples-view-heading-section_main">
+            <h2 className="examples-view-title">{pageHeaderText}</h2>
+            <h3 className="examples-view-subtitle">{pageHeaderSubtitle}</h3>
+          </div>
+          <CommunityWarning
+            style={
+              shouldShowCommunityWithTransition ? mountedStyle : unmountedStyle
+            }
+          />
+        </div>
+        <div className="example-view-tabs-container">
+          <Tabs
+            value={selectedTab}
+            onChange={changeTabByIndex}
+            label="Example Tabs"
+            data-test-id="example-tabs"
+          >
+            {tabs.map((tab) => (
+              <Tab
+                key={tab.id}
+                id={tab.id}
+                label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                aria-controls={tab.id}
+                data-test-id={`${tab.id}-tab`}
+              />
+            ))}
+          </Tabs>
+          {/* TODO: we need a loading skeleton */}
+          <div className="example-cards-container">
+            {selectedTab === EXAMPLES_TAB.COMMUNITY && <ContributeCard />}
+            {examples[selectedTab].map((item) => {
+              return (
+                <ExampleCard
+                  key={item.url}
+                  {...item}
+                  startImport={startImport}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 

@@ -1,76 +1,285 @@
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
+import { DataTable, DataTableColumn } from "@/components/DataTable";
 import DateTimeInput from "@/components/DateTimeInput";
-import EnvVarList from "@/components/EnvVarList";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import ParamTree from "@/components/ParamTree";
-import SearchableTable from "@/components/SearchableTable";
-import { useOrchest } from "@/hooks/orchest";
+import { NoParameterAlert } from "@/components/ParamTree";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Job, PipelineJson } from "@/types";
+import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   getPipelineJSONEndpoint,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
-import {
-  MDCButtonReact,
-  MDCLinearProgressReact,
-  MDCRadioReact,
-  MDCTabBarReact,
-  MDCTextFieldReact,
-} from "@orchest/lib-mdc";
+import CloseIcon from "@mui/icons-material/Close";
+import ListIcon from "@mui/icons-material/List";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import SaveIcon from "@mui/icons-material/Save";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import LinearProgress from "@mui/material/LinearProgress";
+import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import _ from "lodash";
-import React, { useState } from "react";
+import React from "react";
+
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(3, 0),
+}));
 
 type EditJobState = {
-  selectedTabIndex: number;
-  generatedPipelineRuns: any[];
-  generatedPipelineRunRows: any[];
-  selectedIndices: number[];
-  scheduleOption: "now" | "cron" | "scheduled";
+  generatedPipelineRuns: Record<string, Json>[];
   runJobLoading: boolean;
   runJobCompleted: boolean;
-  cronString: string | undefined;
-  strategyJSON: Record<string, any>;
+  strategyJSON: StrategyJson;
 };
+
+const DEFAULT_CRON_STRING = "* * * * *";
+
+type ScheduleOption = "now" | "cron" | "scheduled";
+
+// TODO: should be converted to map/reduce style
+
+function recursivelyGenerate(
+  params: Record<string, Record<string, Json>>,
+  accum: any[],
+  unpacked: any[]
+) {
+  // deep clone unpacked
+  unpacked = JSON.parse(JSON.stringify(unpacked));
+
+  for (const fullParam in params) {
+    if (unpacked.indexOf(fullParam) === -1) {
+      unpacked.push(fullParam);
+
+      for (const idx in params[fullParam]) {
+        // deep clone params
+        let localParams = JSON.parse(JSON.stringify(params));
+
+        // collapse param list to paramValue
+        localParams[fullParam] = params[fullParam][idx];
+
+        recursivelyGenerate(localParams, accum, unpacked);
+      }
+      return;
+    }
+  }
+
+  accum.push(params);
+}
+
+const generateJobParameters = (
+  generatedPipelineRuns: Record<string, Json>[],
+  selectedIndices: string[]
+) => {
+  return selectedIndices.map((index) => {
+    const runParameters = generatedPipelineRuns[index];
+    return Object.entries(runParameters).reduce((all, [key, value]) => {
+      // key is formatted: <stepUUID>#<parameterKey>
+      let keySplit = key.split("#");
+      let stepUUID = keySplit[0];
+      let parameterKey = keySplit.slice(1).join("#");
+
+      // check if step already exists,
+      const parameter = all[stepUUID] || {};
+      parameter[parameterKey] = value;
+
+      return { ...all, [stepUUID]: parameter };
+    }, {});
+  });
+};
+
+const findParameterization = (
+  parameterization: Record<string, any>,
+  parameters: Record<string, Json>[]
+) => {
+  let JSONstring = JSON.stringify(parameterization);
+  for (let x = 0; x < parameters.length; x++) {
+    if (JSON.stringify(parameters[x]) === JSONstring) {
+      return x;
+    }
+  }
+  return -1;
+};
+
+const parseParameters = (
+  parameters: Record<string, Json>[],
+  generatedPipelineRuns: Record<string, Json>[]
+) => {
+  let _parameters = _.cloneDeep(parameters);
+  let selectedIndices = new Set<string>();
+  generatedPipelineRuns.forEach((run, index) => {
+    let encodedParameterization = generateJobParameters([run], ["0"])[0];
+
+    let needleIndex = findParameterization(
+      encodedParameterization,
+      _parameters
+    );
+    if (needleIndex >= 0) {
+      selectedIndices.add(index.toString());
+      // remove found parameterization from _parameters, as to not count duplicates
+      _parameters.splice(needleIndex, 1);
+    } else {
+      selectedIndices.delete(index.toString());
+    }
+  });
+
+  return Array.from(selectedIndices);
+};
+
+const parameterValueOverride = (
+  strategyJSON: StrategyJson,
+  parameters: Record<string, string>
+) => {
+  for (let key in parameters) {
+    let splitKey = key.split("#");
+    let strategyJSONKey = splitKey[0];
+    let paramKey = splitKey.slice(1).join("#");
+    let paramValue = parameters[key];
+
+    strategyJSON[strategyJSONKey].parameters[paramKey] = paramValue;
+  }
+
+  return strategyJSON;
+};
+
+const generateWithStrategy = (
+  pipelineName: string,
+  strategyJSON: Record<string, { parameters: Record<string, string> }>
+) => {
+  // flatten and JSONify strategyJSON to prep data structure for algo
+  let flatParameters = {};
+
+  for (const strategyJSONKey in strategyJSON) {
+    for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
+      let fullParam = strategyJSONKey + "#" + paramKey;
+
+      flatParameters[fullParam] = JSON.parse(
+        strategyJSON[strategyJSONKey].parameters[paramKey]
+      );
+    }
+  }
+
+  let generatedPipelineRuns: Record<string, Json>[] = [];
+
+  recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
+
+  // transform pipelineRuns for generatedPipelineRunRows DataTable format
+  const generatedPipelineRunRows: PipelineRunRow[] = generatedPipelineRuns.map(
+    (params: Record<string, Json>, index: number) => {
+      const pipelineRunSpec = Object.entries(params).map(
+        ([fullParam, value]) => {
+          // pipeline_parameters#something#another_something: "some-value"
+          let paramName = fullParam.split("#").slice(1).join("");
+          return `${paramName}: ${JSON.stringify(value)}`;
+        }
+      );
+
+      return {
+        uuid: index.toString(),
+        spec: pipelineRunSpec.join(", ") || "Parameterless run",
+        details: (
+          <Stack
+            direction="column"
+            alignItems="flex-start"
+            sx={{ padding: (theme) => theme.spacing(2, 1) }}
+          >
+            {pipelineRunSpec.length === 0 ? (
+              <NoParameterAlert />
+            ) : (
+              <>
+                <Typography variant="body2">{pipelineName}</Typography>
+                {pipelineRunSpec.map((param, index) => (
+                  <Typography
+                    variant="caption"
+                    key={index}
+                    sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+                  >
+                    {param}
+                  </Typography>
+                ))}
+              </>
+            )}
+          </Stack>
+        ),
+      };
+    }
+  );
+
+  return [generatedPipelineRuns, generatedPipelineRunRows] as const;
+};
+
+type PipelineRunRow = { uuid: string; spec: string; details: React.ReactNode };
+const columns: DataTableColumn<PipelineRunRow>[] = [
+  {
+    id: "spec",
+    label: "Run specification",
+    render: function RunSpec(row) {
+      return row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec;
+    },
+  },
+];
 
 const EditJobView: React.FC = () => {
   // global states
-  const { orchest } = window;
-  const context = useOrchest();
+  const appContext = useAppContext();
+  const { setAlert, setAsSaved } = appContext;
+  useSendAnalyticEvent("view load", { name: siteMap.editJob.path });
 
   // data from route
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();
 
   // local states
-  const [job, setJob] = useState<Job>();
-  const [pipeline, setPipeline] = useState<PipelineJson>();
-  const [envVariables, setEnvVariables] = useState<
-    { name: string; value: string }[]
-  >([]);
+  const [job, setJob] = React.useState<Job>();
+  const [pipeline, setPipeline] = React.useState<PipelineJson>();
+  const [cronString, setCronString] = React.useState("");
+  const [scheduledDateTime, setScheduledDateTime] = React.useState<Date>(
+    new Date(new Date().getTime() + 60000)
+  );
+  const [scheduleOption, setScheduleOption] = React.useState<ScheduleOption>(
+    "now"
+  );
+
+  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+    _setEnvVariables(value);
+    setAsSaved(false);
+  };
+
+  const [tabIndex, setTabIndex] = React.useState(0);
+
+  const [pipelineRuns, setPipelineRuns] = React.useState<PipelineRunRow[]>([]);
+  const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
+
   const [state, setState] = React.useState<EditJobState>({
-    selectedTabIndex: 0,
     generatedPipelineRuns: [],
-    generatedPipelineRunRows: [],
-    selectedIndices: [],
-    scheduleOption: "now",
     runJobLoading: false,
     runJobCompleted: false,
-    cronString: undefined,
     strategyJSON: {},
   });
 
-  const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
 
   const fetchJob = () => {
@@ -87,12 +296,13 @@ const EditJobView: React.FC = () => {
         if (fetchedJob.pipeline_uuid && fetchedJob.uuid) {
           fetchPipeline(fetchedJob);
         }
-        setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
+        _setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
+
+        setScheduleOption(!fetchedJob.schedule ? "now" : "cron");
+        setCronString(fetchedJob.schedule || DEFAULT_CRON_STRING);
 
         setState((prevState) => ({
           ...prevState,
-          cronString: fetchedJob.schedule || "* * * * *",
-          scheduleOption: fetchedJob.schedule === null ? "now" : "cron",
           strategyJSON:
             fetchedJob.status !== "DRAFT"
               ? fetchedJob.strategy_json
@@ -100,10 +310,7 @@ const EditJobView: React.FC = () => {
         }));
 
         if (fetchedJob.status === "DRAFT") {
-          context.dispatch({
-            type: "setUnsavedChanges",
-            payload: true,
-          });
+          setAsSaved(false);
         }
       } catch (error) {
         console.error(error);
@@ -131,87 +338,45 @@ const EditJobView: React.FC = () => {
         success: boolean;
       } = JSON.parse(response);
       if (result.success) {
-        let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
+        const fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
 
         setPipeline(fetchedPipeline);
 
         // Do not generate another strategy_json if it has been defined
         // already.
 
-        let strategyJSON =
+        const strategyJSON =
           fetchedJob.status === "DRAFT" &&
           Object.keys(fetchedJob.strategy_json).length === 0
             ? generateStrategyJson(fetchedPipeline)
             : fetchedJob.strategy_json;
 
-        let [
+        const [
           generatedPipelineRuns,
           generatedPipelineRunRows,
-          selectedIndices,
-        ] = generateWithStrategy(strategyJSON);
+        ] = generateWithStrategy(fetchedPipeline?.name, strategyJSON);
+
+        setPipelineRuns(generatedPipelineRunRows);
 
         // Account for the fact that a job might have a list of
         // parameters already defined, i.e. when editing a non draft
         // job or when duplicating a job.
-        if (fetchedJob.parameters.length > 0) {
-          // Determine selection based on strategyJSON
-          selectedIndices = parseParameters(
-            fetchedJob.parameters,
-            generatedPipelineRuns
-          );
-        }
+        // if fetchedJob has no set parameters, we select all parameters as default
+        setSelectedRuns(
+          fetchedJob.parameters.length > 0
+            ? parseParameters(fetchedJob.parameters, generatedPipelineRuns)
+            : generatedPipelineRunRows.map((run) => run.uuid)
+        );
 
         setState((prevState) => ({
           ...prevState,
           strategyJSON,
           generatedPipelineRuns,
-          generatedPipelineRunRows,
-          selectedIndices,
         }));
       } else {
         console.warn("Could not load pipeline.json");
       }
     });
-  };
-
-  const findParameterization = (
-    parameterization: Record<string, any>,
-    parameters: Record<string, any>
-  ) => {
-    let JSONstring = JSON.stringify(parameterization);
-    for (let x = 0; x < parameters.length; x++) {
-      if (JSON.stringify(parameters[x]) === JSONstring) {
-        return x;
-      }
-    }
-    return -1;
-  };
-
-  const parseParameters = (
-    parameters: Record<string, any>,
-    generatedPipelineRuns: Record<string, any>
-  ) => {
-    let _parameters = _.cloneDeep(parameters);
-    let selectedIndices = Array(generatedPipelineRuns.length).fill(1);
-
-    for (let x = 0; x < generatedPipelineRuns.length; x++) {
-      let run = generatedPipelineRuns[x];
-      let encodedParameterization = generateJobParameters([run], [1])[0];
-
-      let needleIndex = findParameterization(
-        encodedParameterization,
-        _parameters
-      );
-      if (needleIndex >= 0) {
-        selectedIndices[x] = 1;
-        // remove found parameterization from _parameters, as to not count duplicates
-        _parameters.splice(needleIndex, 1);
-      } else {
-        selectedIndices[x] = 0;
-      }
-    }
-
-    return selectedIndices;
   };
 
   const generateParameterLists = (parameters: Record<string, any>) => {
@@ -234,8 +399,10 @@ const EditJobView: React.FC = () => {
     let strategyJSON = {};
 
     if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
-      strategyJSON[context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY] = {
-        key: context.state?.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+      strategyJSON[
+        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY
+      ] = {
+        key: appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
         parameters: generateParameterLists(pipeline.parameters),
         title: pipeline.name,
       };
@@ -261,88 +428,13 @@ const EditJobView: React.FC = () => {
     return strategyJSON;
   };
 
-  const onSelectSubview = (index: number) => {
-    setState((prevState) => ({
-      ...prevState,
-      selectedTabIndex: index,
-    }));
-  };
-
   const handleJobNameChange = (name: string) => {
     setJob((prev) => (prev ? { ...prev, name } : prev));
   };
 
-  const generateWithStrategy = (strategyJSON) => {
-    // flatten and JSONify strategyJSON to prep data structure for algo
-    let flatParameters = {};
-
-    for (const strategyJSONKey in strategyJSON) {
-      for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
-        let fullParam = strategyJSONKey + "#" + paramKey;
-
-        flatParameters[fullParam] = JSON.parse(
-          strategyJSON[strategyJSONKey].parameters[paramKey]
-        );
-      }
-    }
-
-    let recursivelyGenerate = function (params, accum, unpacked) {
-      // deep clone unpacked
-      unpacked = JSON.parse(JSON.stringify(unpacked));
-
-      for (const fullParam in params) {
-        if (unpacked.indexOf(fullParam) === -1) {
-          unpacked.push(fullParam);
-
-          for (const idx in params[fullParam]) {
-            // deep clone params
-            let localParams = JSON.parse(JSON.stringify(params));
-
-            // collapse param list to paramValue
-            localParams[fullParam] = params[fullParam][idx];
-
-            recursivelyGenerate(localParams, accum, unpacked);
-          }
-          return;
-        }
-      }
-
-      accum.push(params);
-    };
-
-    let generatedPipelineRuns = [];
-
-    recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
-
-    // transform pipelineRuns for generatedPipelineRunRows DataTable format
-    let generatedPipelineRunRows = [];
-
-    for (let idx in generatedPipelineRuns) {
-      let params = generatedPipelineRuns[idx];
-
-      let pipelineRunRow = [];
-
-      for (let fullParam in params) {
-        let paramName = fullParam.split("#").slice(1).join("");
-        pipelineRunRow.push(
-          paramName + ": " + JSON.stringify(params[fullParam])
-        );
-      }
-      if (pipelineRunRow.length > 0) {
-        generatedPipelineRunRows.push([pipelineRunRow.join(", ")]);
-      } else {
-        generatedPipelineRunRows.push([<i>Parameterless run</i>]); // eslint-disable-line react/jsx-key
-      }
-    }
-
-    let selectedIndices = Array(generatedPipelineRunRows.length).fill(1);
-
-    return [generatedPipelineRuns, generatedPipelineRunRows, selectedIndices];
-  };
-
   const validateJobConfig = () => {
     // At least one selected pipeline run.
-    if (state.selectedIndices.reduce((acc, val) => acc + val, 0) == 0) {
+    if (selectedRuns.length === 0) {
       return {
         pass: false,
         selectView: 3,
@@ -353,12 +445,12 @@ const EditJobView: React.FC = () => {
 
     // Valid cron string.
     try {
-      parser.parseExpression(state.cronString || "");
+      parser.parseExpression(cronString || "");
     } catch (err) {
       return {
         pass: false,
         selectView: 0,
-        reason: "Invalid cron schedule: " + state.cronString,
+        reason: "Invalid cron schedule: " + cronString,
       };
     }
 
@@ -382,9 +474,9 @@ const EditJobView: React.FC = () => {
     if (validation.pass === true) {
       runJob();
     } else {
-      orchest.alert("Error", validation.reason);
+      setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
-        onSelectSubview(validation.selectView);
+        setTabIndex(validation.selectView);
       }
     }
   };
@@ -396,19 +488,18 @@ const EditJobView: React.FC = () => {
       ...prevState,
       runJobLoading: true,
     }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: false,
-    });
+
+    setAsSaved();
 
     let updatedEnvVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (!updatedEnvVariables) {
+    if (updatedEnvVariables.status === "rejected") {
+      setAlert("Error", updatedEnvVariables.error);
       setState((prevState) => ({
         ...prevState,
         runJobLoading: false,
       }));
-      onSelectSubview(1);
+      setTabIndex(1);
       return;
     }
 
@@ -418,13 +509,13 @@ const EditJobView: React.FC = () => {
       strategy_json: state.strategyJSON,
       parameters: generateJobParameters(
         state.generatedPipelineRuns,
-        state.selectedIndices
+        selectedRuns
       ),
-      env_variables: updatedEnvVariables,
+      env_variables: updatedEnvVariables.value,
     };
 
-    if (state.scheduleOption === "scheduled") {
-      let formValueScheduledStart = refManager.refs.scheduledDateTime.getISOString();
+    if (scheduleOption === "scheduled") {
+      let formValueScheduledStart = scheduledDateTime.toISOString();
 
       // API doesn't accept ISO date strings with 'Z' suffix
       // Instead, endpoint assumes its passed a UTC datetime string.
@@ -437,9 +528,9 @@ const EditJobView: React.FC = () => {
 
       // @ts-ignore
       jobPUTData.next_scheduled_time = formValueScheduledStart;
-    } else if (state.scheduleOption === "cron") {
+    } else if (scheduleOption === "cron") {
       // @ts-ignore
-      jobPUTData.cron_schedule = state.cronString;
+      jobPUTData.cron_schedule = cronString;
     }
     // Else: both entries are undefined, the run is considered to be
     // started ASAP.
@@ -461,25 +552,19 @@ const EditJobView: React.FC = () => {
           runJobCompleted: true,
         }));
 
-        context.dispatch({
-          type: "setUnsavedChanges",
-          payload: false,
-        });
+        setAsSaved();
       })
       .catch((response: any) => {
         if (!response.isCanceled) {
           try {
             let result = JSON.parse(response.body);
-            orchest.alert("Error", "Failed to start job. " + result.message);
+            setAlert("Error", `Failed to start job. ${result.message}`);
             setState((prevState) => ({
               ...prevState,
               runJobCompleted: true,
             }));
 
-            context.dispatch({
-              type: "setUnsavedChanges",
-              payload: false,
-            });
+            setAsSaved();
           } catch (error) {
             console.log("error");
           }
@@ -500,31 +585,28 @@ const EditJobView: React.FC = () => {
     if (validation.pass === true) {
       let jobParameters = generateJobParameters(
         state.generatedPipelineRuns,
-        state.selectedIndices
+        selectedRuns
       );
 
-      let cronSchedule = state.cronString;
       let updatedEnvVariables = envVariablesArrayToDict(envVariables);
       // Do not go through if env variables are not correctly defined.
-      if (updatedEnvVariables === undefined) {
-        onSelectSubview(2);
+      if (updatedEnvVariables.status === "rejected") {
+        setAlert("Error", updatedEnvVariables.error);
+        setTabIndex(2);
         return;
       }
 
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: false,
-      });
+      setAsSaved();
 
       let putJobRequest = makeCancelable(
         makeRequest("PUT", `/catch/api-proxy/api/jobs/${job.uuid}`, {
           type: "json",
           content: {
             name: job.name,
-            cron_schedule: cronSchedule,
+            cron_schedule: cronString,
             parameters: jobParameters,
             strategy_json: state.strategyJSON,
-            env_variables: updatedEnvVariables,
+            env_variables: updatedEnvVariables.value,
           },
         }),
         promiseManager
@@ -543,38 +625,11 @@ const EditJobView: React.FC = () => {
           console.error(error);
         });
     } else {
-      orchest.alert("Error", validation.reason);
+      setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
-        onSelectSubview(validation.selectView);
+        setTabIndex(validation.selectView);
       }
     }
-  };
-
-  const generateJobParameters = (generatedPipelineRuns, selectedIndices) => {
-    let parameters = [];
-
-    for (let x = 0; x < generatedPipelineRuns.length; x++) {
-      if (selectedIndices[x] === 1) {
-        let runParameters = generatedPipelineRuns[x];
-        let selectedRunParameters = {};
-
-        // key is formatted: <stepUUID>#<parameterKey>
-        for (let key in runParameters) {
-          let keySplit = key.split("#");
-          let stepUUID = keySplit[0];
-          let parameterKey = keySplit.slice(1).join("#");
-
-          selectedRunParameters[stepUUID] =
-            selectedRunParameters[stepUUID] || {};
-
-          selectedRunParameters[stepUUID][parameterKey] = runParameters[key];
-        }
-
-        parameters.push(selectedRunParameters);
-      }
-    }
-
-    return parameters;
   };
 
   const cancel = () => {
@@ -584,120 +639,10 @@ const EditJobView: React.FC = () => {
       });
   };
 
-  const onPipelineRunsSelectionChanged = (selectedRows, rows) => {
-    // map selectedRows to selectedIndices
-    let selectedIndices = state.selectedIndices;
-
-    // for indexOf to work on arrays in generatedPipelineRuns it
-    // depends on the object (array object) being the same (same reference!)
-    for (let x = 0; x < rows.length; x++) {
-      let index = state.generatedPipelineRunRows.indexOf(rows[x]);
-
-      if (index === -1) {
-        console.error("row should always be in generatedPipelineRunRows");
-      }
-
-      selectedIndices[index] = selectedRows.indexOf(rows[x]) !== -1 ? 1 : 0;
-    }
-
-    setState((prevState) => ({
-      ...prevState,
-      selectedIndices: selectedIndices,
-    }));
-
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const parameterValueOverride = (strategyJSON, parameters) => {
-    for (let key in parameters) {
-      let splitKey = key.split("#");
-      let strategyJSONKey = splitKey[0];
-      let paramKey = splitKey.slice(1).join("#");
-      let paramValue = parameters[key];
-
-      strategyJSON[strategyJSONKey]["parameters"][paramKey] = paramValue;
-    }
-
-    return strategyJSON;
-  };
-
-  const setCronSchedule = (cronString: string) => {
-    setState((prevState) => ({
-      ...prevState,
-      cronString,
-      scheduleOption: "cron",
-    }));
-
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const addEnvVariablePair = (e) => {
-    e.preventDefault();
-
-    setEnvVariables((envVariables) => [
-      ...envVariables,
-      { name: null, value: null },
-    ]);
-
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const onEnvVariablesChange = (value, idx: number, type) => {
-    setEnvVariables((prev) => {
-      const copiedEnvVariables = [...prev];
-      copiedEnvVariables[idx][type] = value;
-      return copiedEnvVariables;
-    });
-
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const onEnvVariablesDeletion = (idx: number) => {
-    setEnvVariables((prev) => {
-      const copiedEnvVariables = [...prev];
-      copiedEnvVariables.splice(idx, 1);
-      return copiedEnvVariables;
-    });
-
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  // @ts-ignore
-  const detailRows = (pipelineParameters, strategyJSON) => {
-    let detailElements = [];
-
-    // override values in fields through param fields
-    for (let x = 0; x < pipelineParameters.length; x++) {
-      let parameters = pipelineParameters[x];
-      strategyJSON = _.cloneDeep(strategyJSON);
-      strategyJSON = parameterValueOverride(strategyJSON, parameters);
-
-      detailElements.push(
-        <div className="pipeline-run-detail">
-          <ParamTree
-            pipelineName={pipeline?.name || ""}
-            strategyJSON={strategyJSON}
-          />
-        </div>
-      );
-    }
-
-    return detailElements;
+  const setCronSchedule = (newCronString: string) => {
+    setCronString(newCronString);
+    setScheduleOption("cron");
+    setAsSaved(false);
   };
 
   React.useEffect(() => {
@@ -714,221 +659,234 @@ const EditJobView: React.FC = () => {
     }
   }, [state.runJobCompleted]);
 
+  const handleChangeTab = (
+    event: React.SyntheticEvent<Element, Event>,
+    newValue: number
+  ) => {
+    setTabIndex(newValue);
+  };
+
+  const tabs = React.useMemo(() => {
+    return [
+      {
+        id: "scheduling",
+        label: "Scheduling",
+        icon: <ScheduleIcon />,
+      },
+      {
+        id: "parameters",
+        label: "Parameters",
+        icon: <TuneIcon />,
+      },
+      {
+        id: "environment-variables",
+        label: "Environment variables",
+        icon: <ViewComfyIcon />,
+      },
+      {
+        id: "runs",
+        label: `Pipeline runs (${selectedRuns.length}/${state.generatedPipelineRuns.length})`,
+        icon: <ListIcon />,
+      },
+    ];
+  }, [selectedRuns, state.generatedPipelineRuns.length]);
+
   return (
-    <Layout>
-      <div className="view-page job-view">
-        <h2>Edit job</h2>
+    <Layout fullHeight>
+      <Stack direction="column" sx={{ height: "100%" }}>
+        <Typography variant="h5">Edit job</Typography>
         {job && pipeline ? (
-          <React.Fragment>
-            <div className="columns">
-              <div className="column">
-                <MDCTextFieldReact
+          <>
+            <Stack
+              direction="row"
+              flexWrap="wrap"
+              sx={{ width: "100%", marginTop: (theme) => theme.spacing(4) }}
+            >
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: "300px",
+                  marginBottom: (theme) => theme.spacing(4),
+                }}
+              >
+                <TextField
                   label="Job name"
                   value={job.name}
-                  onChange={handleJobNameChange}
+                  onChange={(e) => handleJobNameChange(e.target.value)}
                 />
-              </div>
-              <div className="column">
-                <p>Pipeline</p>
-                <span className="largeText">{pipeline.name}</span>
-              </div>
-            </div>
-
-            <MDCTabBarReact
-              selectedIndex={state.selectedTabIndex}
-              ref={refManager.nrefs.tabBar}
-              items={[
-                "Scheduling",
-                "Parameters",
-                "Environment variables",
-                "Pipeline runs (" +
-                  state.selectedIndices.reduce((total, num) => total + num, 0) +
-                  "/" +
-                  state.generatedPipelineRuns.length +
-                  ")",
-              ]}
-              icons={["schedule", "tune", "view_comfy", "list"]}
-              onChange={onSelectSubview}
+              </Box>
+              <Stack
+                direction="column"
+                sx={{
+                  flex: 1,
+                  minWidth: "300px",
+                  marginBottom: (theme) => theme.spacing(4),
+                }}
+              >
+                <Typography variant="caption">Pipeline</Typography>
+                <Typography>{pipeline.name}</Typography>
+              </Stack>
+            </Stack>
+            <Tabs
+              value={tabIndex}
+              onChange={handleChangeTab}
+              label="Edit Job Tabs"
               data-test-id="job-edit"
-            />
-
-            <div className="tab-view">
-              {
-                {
-                  0: (
-                    <div className="tab-view">
-                      {job.status === "DRAFT" && (
-                        <div>
-                          <div className="push-down">
-                            <MDCRadioReact
-                              label="Now"
-                              value="now"
-                              name="now"
-                              checked={state.scheduleOption === "now"}
-                              onChange={(e) => {
-                                setState((prevState) => ({
-                                  ...prevState,
-                                  scheduleOption: "now",
-                                }));
-                              }}
-                              data-test-id="job-edit-schedule-now"
-                            />
-                          </div>
-                          <div className="push-down">
-                            <MDCRadioReact
-                              label="Scheduled"
-                              value="scheduled"
-                              name="time"
-                              checked={state.scheduleOption === "scheduled"}
-                              onChange={(e) => {
-                                setState((prevState) => ({
-                                  ...prevState,
-                                  scheduleOption: "scheduled",
-                                }));
-                              }}
-                              data-test-id="job-edit-schedule-date"
-                            />
-                          </div>
-                          <div>
-                            <DateTimeInput
-                              disabled={state.scheduleOption !== "scheduled"}
-                              ref={refManager.nrefs.scheduledDateTime}
-                              onFocus={() =>
-                                setState((prevState) => ({
-                                  ...prevState,
-                                  scheduleOption: "scheduled",
-                                }))
-                              }
-                              data-test-id="job-edit-schedule-date-input"
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {job.status === "DRAFT" && (
-                        <div className="push-down">
-                          <MDCRadioReact
-                            label="Cron job"
-                            value="cron"
-                            name="time"
-                            checked={state.scheduleOption === "cron"}
-                            onChange={(e) => {
-                              setState((prevState) => ({
-                                ...prevState,
-                                scheduleOption: "cron",
-                              }));
-                            }}
-                            data-test-id="job-edit-schedule-cronjob"
-                          />
-                        </div>
-                      )}
-
-                      <div>
-                        <CronScheduleInput
-                          cronString={state.cronString}
-                          onChange={setCronSchedule}
-                          disabled={state.scheduleOption !== "cron"}
-                          dataTestId="job-edit-schedule-cronjob-input"
-                        />
-                      </div>
-                    </div>
-                  ),
-                  1: (
-                    <div className="tab-view">
-                      <ParameterEditor
-                        pipelineName={pipeline.name}
-                        onParameterChange={(strategyJSON) => {
-                          let [
-                            generatedPipelineRuns,
-                            generatedPipelineRunRows,
-                            selectedIndices,
-                          ] = generateWithStrategy(strategyJSON);
-                          setState((prevState) => ({
-                            ...prevState,
-                            strategyJSON,
-                            generatedPipelineRuns,
-                            generatedPipelineRunRows,
-                            selectedIndices,
-                          }));
-                          context.dispatch({
-                            type: "setUnsavedChanges",
-                            payload: true,
-                          });
-                        }}
-                        strategyJSON={_.cloneDeep(state.strategyJSON)}
-                        data-test-id="job-edit"
-                      />
-                    </div>
-                  ),
-                  2: (
-                    <div className="tab-view">
-                      <p className="push-down">
-                        Override any project or pipeline environment variables
-                        here.
-                      </p>
-                      <EnvVarList
-                        value={envVariables}
-                        onAdd={addEnvVariablePair}
-                        onChange={(e, idx, type) =>
-                          onEnvVariablesChange(e, idx, type)
-                        }
-                        onDelete={(idx) => onEnvVariablesDeletion(idx)}
-                        data-test-id="job-edit"
-                      />
-                    </div>
-                  ),
-                  3: (
-                    <div className="pipeline-tab-view pipeline-runs">
-                      <SearchableTable
-                        selectable={true}
-                        headers={["Run specification"]}
-                        detailRows={detailRows(
-                          state.generatedPipelineRuns,
-                          state.strategyJSON
-                        )}
-                        rows={state.generatedPipelineRunRows}
-                        selectedIndices={state.selectedIndices}
-                        onSelectionChanged={onPipelineRunsSelectionChanged}
-                        data-test-id="job-edit-pipeline-runs"
-                      />
-                    </div>
-                  ),
-                }[state.selectedTabIndex]
-              }
-            </div>
-
-            <div className="buttons">
-              {job.status === "DRAFT" && (
-                <MDCButtonReact
-                  disabled={state.runJobLoading}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
-                  onClick={attemptRunJob}
-                  icon="play_arrow"
-                  label="Run job"
-                  data-test-id="job-run"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                  data-test-id={`${tab.id}-tab`}
                 />
+              ))}
+            </Tabs>
+            <CustomTabPanel value={tabIndex} index={0} name="scheduling">
+              {job.status === "DRAFT" && (
+                <FormControl
+                  component="fieldset"
+                  sx={{
+                    marginBottom: (theme) => theme.spacing(4),
+                    width: "100%",
+                  }}
+                >
+                  <RadioGroup
+                    row
+                    aria-label="Scheduling"
+                    defaultValue="now"
+                    name="scheduling-buttons-group"
+                    value={scheduleOption}
+                    onChange={(e) =>
+                      setScheduleOption(e.target.value as ScheduleOption)
+                    }
+                  >
+                    <FormControlLabel
+                      value="now"
+                      control={<Radio />}
+                      label="Now"
+                      data-test-id="job-edit-schedule-now"
+                    />
+                    <FormControlLabel
+                      value="scheduled"
+                      control={<Radio />}
+                      label="Scheduled"
+                      data-test-id="job-edit-schedule-date"
+                    />
+                    <FormControlLabel
+                      value="cron"
+                      control={<Radio />}
+                      label="Cron job"
+                      data-test-id="job-edit-schedule-cronjob"
+                    />
+                  </RadioGroup>
+                </FormControl>
+              )}
+              {scheduleOption === "scheduled" && (
+                <DateTimeInput
+                  disabled={scheduleOption !== "scheduled"}
+                  value={scheduledDateTime}
+                  onChange={setScheduledDateTime}
+                />
+              )}
+              {scheduleOption === "cron" && (
+                <CronScheduleInput
+                  value={cronString}
+                  onChange={setCronSchedule}
+                  disabled={scheduleOption !== "cron"}
+                  dataTestId="job-edit-schedule-cronjob-input"
+                />
+              )}
+            </CustomTabPanel>
+            <CustomTabPanel value={tabIndex} index={1} name="parameters">
+              <ParameterEditor
+                pipelineName={pipeline.name}
+                onParameterChange={(strategyJSON) => {
+                  let [
+                    generatedPipelineRuns,
+                    generatedPipelineRunRows,
+                  ] = generateWithStrategy(pipeline?.name, strategyJSON);
+
+                  setPipelineRuns(generatedPipelineRunRows);
+                  setSelectedRuns(
+                    generatedPipelineRunRows.map((row) => row.uuid)
+                  );
+                  setState((prevState) => ({
+                    ...prevState,
+                    strategyJSON,
+                    generatedPipelineRuns,
+                  }));
+
+                  setAsSaved(false);
+                }}
+                strategyJSON={_.cloneDeep(state.strategyJSON)}
+                data-test-id="job-edit"
+              />
+            </CustomTabPanel>
+            <CustomTabPanel value={tabIndex} index={2} name="env-variables">
+              <p className="push-down">
+                Override any project or pipeline environment variables here.
+              </p>
+              <EnvVarList
+                value={envVariables}
+                setValue={setEnvVariables}
+                data-test-id="job-edit"
+              />
+            </CustomTabPanel>
+            <CustomTabPanel value={tabIndex} index={3} name="runs">
+              <div className="pipeline-tab-view pipeline-runs">
+                <DataTable<PipelineRunRow>
+                  selectable
+                  id="job-edit-pipeline-runs"
+                  columns={columns}
+                  initialSelectedRows={pipelineRuns.map(
+                    (pipelineRun) => pipelineRun.uuid
+                  )}
+                  selectedRows={selectedRuns}
+                  setSelectedRows={setSelectedRuns}
+                  onChangeSelection={() => setAsSaved(false)}
+                  rows={pipelineRuns}
+                  data-test-id="job-edit-pipeline-runs"
+                />
+              </div>
+            </CustomTabPanel>
+            <Stack direction="row" spacing={2}>
+              {job.status === "DRAFT" && (
+                <Button
+                  disabled={state.runJobLoading || !job.name}
+                  variant="contained"
+                  startIcon={<PlayArrowIcon />}
+                  onClick={attemptRunJob}
+                  data-test-id="job-run"
+                >
+                  Run job
+                </Button>
               )}
               {job.status !== "DRAFT" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
                   onClick={putJobChanges}
-                  icon="save"
-                  label="Update job"
+                  startIcon={<SaveIcon />}
                   data-test-id="job-update"
-                />
+                >
+                  Update job
+                </Button>
               )}
-              <MDCButtonReact
+              <Button
                 onClick={cancel}
-                label="Cancel"
-                icon="close"
+                startIcon={<CloseIcon />}
+                color="secondary"
                 data-test-id="update-job"
-              />
-            </div>
-          </React.Fragment>
+              >
+                Cancel
+              </Button>
+            </Stack>
+          </>
         ) : (
-          <MDCLinearProgressReact />
+          <LinearProgress />
         )}
-      </div>
+      </Stack>
     </Layout>
   );
 };

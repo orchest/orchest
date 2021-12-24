@@ -1,6 +1,6 @@
-import { ICSSProp, styled } from "@orchest/design-system";
+import { styled } from "@mui/material/styles";
 import { AnimatePresence, m } from "framer-motion";
-import * as React from "react";
+import React from "react";
 import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
 export const OnboardingDialogCarousel = ({ children }) => {
@@ -66,59 +66,56 @@ export const OnboardingDialogCarouselSlide = ({ children, ...props }) => {
   );
 };
 
-const IndicatorList = styled("ul", {
-  include: "box",
+const IndicatorList = styled("ul")({
   display: "flex",
   width: "100%",
   listStyleType: "none",
   justifyContent: "center",
 });
-const IndicatorListItem = styled("li", {
-  include: "box",
+
+const IndicatorListItem = styled("li")(({ theme }) => ({
   display: "block",
   "& + &": {
-    marginLeft: "$2",
+    marginLeft: theme.spacing(2),
   },
-});
-const IndicatorButton = styled("button", {
-  include: "box",
-  appearance: "none",
-  width: "$space$2",
-  height: "$space$2",
-  backgroundColor: "$gray300",
-  border: 0,
-  borderRadius: "$rounded",
-  transition: "0.2s ease",
-  transitionProperty: "background-color, transform",
-  "&:hover": {
-    backgroundColor: "$gray400",
-    transform: "scale(1.25)",
-  },
-  variants: {
-    isCurrent: {
-      true: {
-        backgroundColor: "$gray500",
-      },
+}));
+
+const IndicatorButton = styled("button")<{ isCurrent: boolean }>(
+  ({ theme, isCurrent }) => ({
+    appearance: "none",
+    cursor: "pointer",
+    width: theme.spacing(1),
+    height: theme.spacing(1),
+    backgroundColor: isCurrent
+      ? theme.palette.grey[500]
+      : theme.palette.grey[300],
+    border: 0,
+    borderRadius: "100%",
+    transition: "0.2s ease",
+    transitionProperty: "background-color, transform",
+    "&:hover": {
+      backgroundColor: theme.palette.grey[400],
+      transform: "scale(1.25)",
     },
-  },
+  })
+);
+
+const IndicatorLabel = styled("span")({
+  clip: "rect(1px, 1px, 1px, 1px)",
+  clipPath: "inset(50%)",
+  height: "1px",
+  width: "1px",
+  margin: "-1px",
+  overflow: "hidden",
+  padding: 0,
+  position: "absolute",
 });
-const IndicatorLabel = styled("span", { include: "screenReaderOnly" });
 
-interface IOnboardingDialogCarouselIndicatorProps
-  extends React.HTMLAttributes<HTMLUListElement>,
-    ICSSProp {}
-
-export const OnboardingDialogCarouselIndicator: React.FC<IOnboardingDialogCarouselIndicatorProps> = (
-  props
-) => {
+export const OnboardingDialogCarouselIndicator: React.FC = () => {
   const { length, slideIndex, setSlide } = useOnboardingDialogCarousel();
 
   return (
-    <IndicatorList
-      role="list"
-      data-test-id="onboarding-indicator-list"
-      {...props}
-    >
+    <IndicatorList role="list" data-test-id="onboarding-indicator-list">
       {Array(length)
         .fill(0)
         .map((_, i) => (

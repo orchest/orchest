@@ -7,7 +7,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
 from docker import errors
 from flask import abort, current_app, request
-from flask_restx import Namespace, Resource, marshal
+from flask_restx import Namespace, Resource, marshal, reqparse
 from sqlalchemy import desc, func
 from sqlalchemy.orm import joinedload, load_only, undefer
 
@@ -16,6 +16,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
+from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
@@ -23,6 +24,7 @@ from app.utils import (
     get_env_uuids_missing_image,
     get_proj_pip_env_variables,
     lock_environment_images_for_job,
+    page_to_pagination_data,
     process_stale_environment_images,
     register_schema,
     update_status_db,
@@ -204,8 +206,98 @@ class Job(Resource):
 
 
 @api.route(
+    "/<string:job_uuid>/pipeline_runs",
+    doc={"description": ("Retrieve list of job runs.")},
+)
+@api.param("job_uuid", "UUID of Job")
+@api.response(404, "Job not found")
+class PipelineRunsList(Resource):
+    @api.doc(
+        "get_job_pipeline_runs",
+        params={
+            "page": {
+                "description": (
+                    "Which page to query, 1 indexed. Must be specified if page_size is "
+                    "specified."
+                ),
+                "type": int,
+            },
+            "page_size": {
+                "description": (
+                    "Size of the page. Must be specified if page is specified."
+                ),
+                "type": int,
+            },
+        },
+    )
+    @api.response(200, "Success", schema.paginated_job_pipeline_runs)
+    @api.response(200, "Success", schema.job_pipeline_runs)
+    def get(self, job_uuid):
+        """Fetch pipeline runs of a job, sorted newest first.
+
+        Runs are ordered by job_run_index DESC,
+        job_run_pipeline_run_index DESC.
+
+        The endpoint has optional pagination. If pagination is used the
+        returned json also contains pagination data.
+        """
+        parser = reqparse.RequestParser()
+        parser.add_argument("page", type=int, location="args")
+        parser.add_argument("page_size", type=int, location="args")
+        args = parser.parse_args()
+        page = args.page
+        page_size = args.page_size
+        if (page is not None and page_size is None) or (
+            page is None and page_size is not None
+        ):
+            return {
+                "message": "Either both page and page_size are defined or none of them."
+            }, 400
+        if page is not None and page <= 0:
+            return {"message": "page must be >= 1."}, 400
+        if page_size is not None and page_size <= 0:
+            return {"message": "page_size must be >= 1."}, 400
+
+        models.Job.query.get_or_404(ident=(job_uuid), description="Job not found.")
+
+        job_runs_query = (
+            models.NonInteractivePipelineRun.query.options(
+                undefer(models.NonInteractivePipelineRun.env_variables)
+            )
+            .filter_by(
+                job_uuid=job_uuid,
+            )
+            .order_by(
+                desc(models.NonInteractivePipelineRun.job_run_index),
+                desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
+            )
+        )
+        if args.page is not None and args.page_size is not None:
+            job_runs_pagination = job_runs_query.paginate(
+                args.page, args.page_size, False
+            )
+            job_runs = job_runs_pagination.items
+            pagination_data = page_to_pagination_data(job_runs_pagination)
+            return (
+                marshal(
+                    {"pipeline_runs": job_runs, "pagination_data": pagination_data},
+                    schema.paginated_job_pipeline_runs,
+                ),
+                200,
+            )
+        else:
+            job_runs = job_runs_query.all()
+            return marshal({"pipeline_runs": job_runs}, schema.job_pipeline_runs), 200
+
+
+@api.route(
     "/<string:job_uuid>/<string:run_uuid>",
-    doc={"description": ("Set and get execution status of pipeline runs " "in a job.")},
+    doc={
+        "description": (
+            "Set and get execution status of pipeline runs in a job. Also allows to "
+            "abort a specific pipeline run."
+        )
+    },
 )
 @api.param("job_uuid", "UUID of Job")
 @api.param("run_uuid", "UUID of Run")
@@ -243,6 +335,22 @@ class PipelineRun(Resource):
             return {"message": str(e)}, 500
 
         return {"message": "Status was updated successfully"}, 200
+
+    @api.doc("delete_run")
+    @api.response(200, "Run terminated")
+    def delete(self, job_uuid, run_uuid):
+        """Stops a job pipeline run given its UUID."""
+
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                could_abort = AbortPipelineRun(tpe).transaction(run_uuid)
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        if could_abort:
+            return {"message": "Run termination was successful."}, 200
+        else:
+            return {"message": "Run does not exist or is not running."}, 400
 
 
 @api.route(

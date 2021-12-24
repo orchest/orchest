@@ -1,10 +1,15 @@
 // @ts-check
-import { useOrchest } from "@/hooks/orchest";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
 import { siteMap } from "@/routingConfig";
 import type { Project } from "@/types";
-import { MDCLinearProgressReact, MDCSelectReact } from "@orchest/lib-mdc";
+import FormControl from "@mui/material/FormControl";
+import InputBase from "@mui/material/InputBase";
+import InputLabel from "@mui/material/InputLabel";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
+import { styled } from "@mui/material/styles";
 import {
   makeCancelable,
   makeRequest,
@@ -12,10 +17,23 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 
-export type TProjectSelectorRef = any;
+const CustomInput = styled(InputBase)(({ theme }) => ({
+  "&.Mui-focused .MuiInputBase-input": {
+    borderColor: theme.palette.grey[500],
+  },
+  "& .MuiInputBase-input": {
+    position: "relative",
+    backgroundColor: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.background.paper}`,
+    fontSize: 16,
+    padding: theme.spacing(1, 2, 1, 1),
+    transition: theme.transitions.create(["border-color", "box-shadow"]),
+    borderColor: theme.palette.grey[500],
+  },
+}));
 
-const ProjectSelector = (_, ref: TProjectSelectorRef) => {
-  const { state, dispatch } = useOrchest();
+const ProjectSelector = () => {
+  const { state, dispatch } = useProjectsContext();
   const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
   const matchProjectRoot = useMatchProjectRoot();
 
@@ -98,26 +116,56 @@ const ProjectSelector = (_, ref: TProjectSelectorRef) => {
     }
   }, [matchProjectRoot, state.hasLoadedProjects]);
 
-  const selectItems = state.projects.map((project) => [
-    project.uuid,
-    project.path,
-  ]);
+  if (!matchProjectRoot || !state.projects || state.projects.length === 0)
+    return null;
 
-  if (!matchProjectRoot) return null;
-  return state.projects ? (
-    <MDCSelectReact
-      ref={ref}
-      label="Project"
-      notched={true}
-      classNames={["project-selector", "fullwidth"]}
-      options={selectItems}
-      onChange={onChangeProject}
-      value={state.projectUuid}
-      data-test-id="project-selector"
-    />
-  ) : (
-    <MDCLinearProgressReact ref={ref} />
+  return (
+    <FormControl
+      fullWidth
+      sx={{
+        width: "250px",
+        label: {
+          color: (theme) => theme.palette.grey[700],
+        },
+      }}
+    >
+      <InputLabel
+        sx={{
+          backgroundColor: (theme) => theme.palette.background.paper,
+          padding: (theme) => theme.spacing(0, 1),
+          color: (theme) => theme.palette.background.paper,
+          "&.Mui-focused": {
+            color: (theme) => theme.palette.grey[700],
+          },
+        }}
+        id="select-project-label"
+      >
+        Project
+      </InputLabel>
+      <Select
+        labelId="select-project-label"
+        id="select-project"
+        value={state.projectUuid || ""}
+        label="Project"
+        onChange={(e) => onChangeProject(e.target.value)}
+        input={<CustomInput />}
+        data-test-id="project-selector"
+        sx={{
+          "&.Mui-Focused .MuiSelect-select": {
+            borderColor: (theme) => theme.palette.grey[500],
+          },
+        }}
+      >
+        {state.projects.map((project) => {
+          return (
+            <MenuItem key={project.uuid} value={project.uuid}>
+              {project.path}
+            </MenuItem>
+          );
+        })}
+      </Select>
+    </FormControl>
   );
 };
 
-export default React.forwardRef(ProjectSelector);
+export default ProjectSelector;

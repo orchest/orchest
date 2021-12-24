@@ -1,6 +1,55 @@
 import React from "react";
+import { StrategyJson } from "./components/ParameterEditor";
+import { TStatus } from "./components/Status";
 
-export interface IOrchestConfig {
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | Json[]
+  | { [key: string]: Json };
+
+type CommonColorScales =
+  | "50"
+  | "100"
+  | "200"
+  | "300"
+  | "400"
+  | "500"
+  | "600"
+  | "700"
+  | "800"
+  | "900"
+  | "A100"
+  | "A200"
+  | "A400"
+  | "A700";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type PartialRecord<K extends keyof any, T> = {
+  [P in K]?: T;
+};
+
+export type ColorScale = PartialRecord<
+  | "50"
+  | "100"
+  | "200"
+  | "300"
+  | "400"
+  | "500"
+  | "600"
+  | "700"
+  | "800"
+  | "900"
+  | "A100"
+  | "A200"
+  | "A400"
+  | "A700",
+  string
+>;
+
+export type OrchestConfig = {
   CLOUD: boolean;
   CLOUD_UNMODIFIABLE_CONFIG_VALUES?: string[] | null;
   ENVIRONMENT_DEFAULTS: {
@@ -12,7 +61,6 @@ export interface IOrchestConfig {
   };
   FLASK_ENV: string;
   GPU_ENABLED_INSTANCE: boolean;
-  GPU_REQUEST_URL: string;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
   ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
@@ -27,12 +75,20 @@ export interface IOrchestConfig {
   };
   PIPELINE_PARAMETERS_RESERVED_KEY: string;
   TELEMETRY_DISABLED: boolean;
+};
+
+export interface OrchestUserConfig {
+  AUTH_ENABLED?: boolean;
+  INTERCOM_USER_EMAIL: string;
+  MAX_INTERACTIVE_RUNS_PARALLELISM: number;
+  MAX_JOB_RUNS_PARALLELISM: number;
+  TELEMETRY_DISABLED: boolean;
+  TELEMETRY_UUID: string;
 }
 
-export interface IOrchestUserConfig {
-  AUTH_ENABLED?: boolean;
-  TELEMETRY_UUID: string;
-  INTERCOM_USER_EMAIL: string;
+export interface OrchestServerConfig {
+  config: OrchestConfig;
+  user_config: OrchestUserConfig;
 }
 
 export interface IOrchestSessionUuid {
@@ -55,89 +111,22 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
-export interface IOrchestState
+export interface IProjectsContextState
   extends Pick<
     Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
     "projectUuid" | "pipelineUuid"
   > {
-  alert?: string[];
-  isLoading: boolean;
-  drawerIsOpen: boolean;
-  isCommandPaletteOpen: boolean;
   pipelineName?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
   pipelineSaveStatus: "saved" | "saving";
   projects: Project[];
   hasLoadedProjects: boolean;
-  sessions?: IOrchestSession[] | [];
-  sessionsIsLoading?: boolean;
-  sessionsKillAllInProgress?: boolean;
-  config: IOrchestConfig;
-  user_config: IOrchestUserConfig;
-  unsavedChanges: boolean;
-  _sessionsToFetch?: IOrchestSessionUuid[] | [];
-  _sessionsToggle?: IOrchestSessionUuid;
-  _sessionsIsPolling?: boolean;
 }
 
-export type TOrchestAction =
-  | { type: "alert"; payload: IOrchestState["alert"] }
-  | { type: "isLoaded" }
-  | { type: "pipelineClear" }
-  | {
-      type: "pipelineSet";
-      payload: Partial<
-        Pick<IOrchestState, "pipelineUuid" | "projectUuid" | "pipelineName">
-      >;
-    }
-  | {
-      type: "pipelineSetSaveStatus";
-      payload: IOrchestState["pipelineSaveStatus"];
-    }
-  | {
-      type: "setIsCommandPaletteOpen";
-      payload: boolean;
-    }
-  | {
-      type: "projectSet";
-      payload: IOrchestState["projectUuid"];
-    }
-  | {
-      type: "projectsSet";
-      payload: Project[];
-    }
-  | {
-      type: "pipelineUpdateReadOnlyState";
-      payload: IOrchestState["pipelineIsReadOnly"];
-    }
-  | { type: "drawerToggle" }
-  | {
-      type: "sessionToggle";
-      payload: IOrchestSessionUuid;
-    }
-  | { type: "setUnsavedChanges"; payload: IOrchestState["unsavedChanges"] }
-  | { type: "_sessionsToggleClear" }
-  | {
-      type: "_sessionsSet";
-      payload: Pick<IOrchestState, "sessions" | "sessionsIsLoading">;
-    }
-  | { type: "sessionsKillAll" }
-  | { type: "_sessionsKillAllClear" }
-  | { type: "_sessionsPollingStart" }
-  | { type: "_sessionsPollingClear" };
-
-export interface IOrchestGet {
-  currentSession: IOrchestSession;
-  session: (
-    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
-  ) => IOrchestSession;
-}
-
-export interface IOrchestContext {
-  state: IOrchestState;
-  dispatch: React.Dispatch<TOrchestAction>;
-  get: IOrchestGet;
+export interface IProjectsContext {
+  state: IProjectsContextState;
+  dispatch: React.Dispatch<OrchestAction>;
 }
 
 export interface IQueryArgs
@@ -168,6 +157,7 @@ export type Project = {
   session_count: number;
   job_count: number;
   environment_count: number;
+  project_snapshot_size: number;
 };
 
 export type Environment = {
@@ -191,13 +181,43 @@ export type EnvironmentBuild = {
   uuid: string;
 };
 
+export type JobStatus = "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+
+export type PipelineRun = {
+  env_variables: Record<string, string>;
+  finished_time: string;
+  job_run_index: number;
+  job_run_pipeline_run_index: number;
+  job_uuid: string;
+  parameters: Record<string, any>;
+  pipeline_run_index: number;
+  pipeline_steps: {
+    finished_time: string;
+    run_uuid: string;
+    started_time: string;
+    status: TStatus;
+    step_uuid: string;
+  }[];
+  pipeline_uuid: string;
+  project_uuid: string;
+  server_time: string;
+  started_time: string;
+  status: TStatus;
+  uuid: string;
+};
+
+export type StrategyJson = Record<
+  string,
+  { parameters: Record<string, string> }
+>;
+
 export type Job = {
   created_time: string;
   env_variables: Record<string, string>;
   last_scheduled_time: string;
   name: string;
   next_scheduled_time: string;
-  parameters: Record<string, unknown>[];
+  parameters: Record<string, Json>[];
   pipeline_definition: {
     name: string;
     parameters: Record<string, unknown>;
@@ -221,41 +241,60 @@ export type Job = {
     project_uuid: string | null;
     run_type: string;
   };
-  pipeline_runs: any[];
+  pipeline_runs: PipelineRun[];
   pipeline_uuid: string;
   project_uuid: string;
   schedule: string;
-  status: "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
-  strategy_json: Record<string, unknown>;
+  status: JobStatus;
+  strategy_json: StrategyJson;
   total_scheduled_executions: number;
   uuid: string;
 };
 
-export type Step = Record<
-  string,
-  {
-    environment: string;
-    file_path: string;
-    incoming_connections: string[];
-    kernel: { display_name: string; name: string };
-    meta_data: { hidden: boolean; position: [number, number] };
-    parameters: Record<string, any>;
-    title: string;
-    uuid: string;
-  }
->;
+export type Step = {
+  environment: string;
+  file_path: string;
+  incoming_connections: string[];
+  kernel: { display_name: string; name: string };
+  meta_data: { hidden: boolean; position: [number, number] };
+  parameters: Record<string, any>;
+  title: string;
+  uuid: string;
+};
+
+export type Service = {
+  image: string;
+  name: string;
+  scope: ("interactive" | "noninteractive")[];
+  entrypoint?: string;
+  binds?: Record<string, string>;
+  ports?: number[];
+  command: string;
+  preserve_base_path?: boolean;
+  env_variables?: Record<string, string>;
+  env_variables_inherit?: any[];
+  requires_authentication?: boolean;
+  order?: number;
+};
+
+export type FileTree = {
+  type: "directory" | "file";
+  name: string;
+  root?: boolean;
+  children: FileTree[];
+};
 
 export type PipelineJson = {
   name: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, Json>;
   settings: {
     auto_eviction?: boolean;
     data_passing_memory_size?: string;
   };
-  steps: Step;
+  steps: Record<string, Step>;
   uuid: string;
   version: string;
-  services?: Record<string, any>;
+  services?: Record<string, Service>;
 };
 
 export type Example = {
@@ -266,4 +305,18 @@ export type Example = {
   tags: string[];
   title: string;
   url: string;
+};
+
+export type EnvironmentAction = "BUILD" | "WAIT" | "RETRY";
+export type EnvironmentValidationData = {
+  actions: EnvironmentAction[];
+  fail: string[];
+};
+
+export type BuildRequest = {
+  projectUuid: string;
+  environmentValidationData: EnvironmentValidationData;
+  requestedFromView: string;
+  onBuildComplete: () => void;
+  onCancel?: () => void;
 };

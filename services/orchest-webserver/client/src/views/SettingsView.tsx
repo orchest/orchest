@@ -1,9 +1,21 @@
+import { Code } from "@/components/common/Code";
 import { Layout } from "@/components/Layout";
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
+import PeopleIcon from "@mui/icons-material/People";
+import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
+import SaveIcon from "@mui/icons-material/Save";
+import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
+import TuneIcon from "@mui/icons-material/Tune";
+import { Typography } from "@mui/material";
+import Alert from "@mui/material/Alert";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
 import {
   checkHeartbeat,
   makeCancelable,
@@ -16,11 +28,15 @@ import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
 const SettingsView: React.FC = () => {
-  const { orchest } = window;
-  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
-
   const { navigateTo } = useCustomRoute();
-  const context = useOrchest();
+  const {
+    setAlert,
+    setAsSaved,
+    setConfirm,
+    state: { config, hasUnsavedChanges },
+  } = useAppContext();
+
+  useSendAnalyticEvent("view load", { name: siteMap.settings.path });
 
   const [state, setState] = React.useState({
     status: "...",
@@ -92,14 +108,14 @@ const SettingsView: React.FC = () => {
   };
 
   const configToVisibleConfig = (configJSON) => {
-    if (context.state?.config["CLOUD"] !== true) {
+    if (config.CLOUD !== true) {
       return configJSON;
     }
 
     let visibleJSON = _.cloneDeep(configJSON);
 
     // strip cloud config
-    for (let key of context.state?.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"]) {
+    for (let key of config.CLOUD_UNMODIFIABLE_CONFIG_VALUES) {
       delete visibleJSON[key];
     }
 
@@ -107,7 +123,7 @@ const SettingsView: React.FC = () => {
   };
 
   const configToInvisibleConfig = (configJSON) => {
-    if (context.state?.config["CLOUD"] !== true) {
+    if (config.CLOUD !== true) {
       return {};
     }
 
@@ -115,11 +131,7 @@ const SettingsView: React.FC = () => {
 
     // Strip visible config
     for (let key of Object.keys(invisibleJSON)) {
-      if (
-        context.state?.config["CLOUD_UNMODIFIABLE_CONFIG_VALUES"].indexOf(
-          key
-        ) === -1
-      ) {
+      if (config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.indexOf(key) === -1) {
         delete invisibleJSON[key];
       }
     }
@@ -142,10 +154,7 @@ const SettingsView: React.FC = () => {
         configJSON: joinedConfig,
       }));
 
-      context.dispatch({
-        type: "setUnsavedChanges",
-        payload: false,
-      });
+      setAsSaved(true);
 
       makeRequest("POST", "/async/user-config", {
         type: "FormData",
@@ -153,13 +162,17 @@ const SettingsView: React.FC = () => {
       })
         .catch((e) => {
           console.error(e);
-          orchest.alert("Error", JSON.parse(e.body).message);
+          setAlert("Error", JSON.parse(e.body).message);
         })
         .then((data: string) => {
           try {
             let responseJSON = JSON.parse(data);
             let requiresRestart = responseJSON.requires_restart;
             let configJSON = responseJSON.user_config;
+
+            console.log(
+              JSON.stringify(configToVisibleConfig(configJSON), null, 2)
+            );
 
             setState((prevState) => ({
               ...prevState,
@@ -206,42 +219,43 @@ const SettingsView: React.FC = () => {
   };
 
   const restartOrchest = () => {
-    orchest.confirm(
+    return setConfirm(
       "Warning",
       "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
-      () => {
+      async () => {
         setState((prevState) => ({
           ...prevState,
           restarting: true,
           status: "restarting",
           requiresRestart: [],
         }));
+        try {
+          await makeRequest("POST", "/async/restart");
 
-        makeRequest("POST", "/async/restart")
-          .then(() => {
-            setTimeout(() => {
-              checkHeartbeat("/heartbeat")
-                .then(() => {
-                  console.log("Orchest available");
-                  setState((prevState) => ({
-                    ...prevState,
-                    restarting: false,
-                    status: "online",
-                  }));
-                })
-                .catch((retries) => {
-                  console.log(
-                    "Update service heartbeat checking timed out after " +
-                      retries +
-                      " retries."
-                  );
-                });
-            }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
-          })
-          .catch((e) => {
-            console.log(e);
-            console.error("Could not trigger restart.");
-          });
+          setTimeout(() => {
+            checkHeartbeat("/heartbeat")
+              .then(() => {
+                console.log("Orchest available");
+                setState((prevState) => ({
+                  ...prevState,
+                  restarting: false,
+                  status: "online",
+                }));
+              })
+              .catch((retries) => {
+                console.log(
+                  "Update service heartbeat checking timed out after " +
+                    retries +
+                    " retries."
+                );
+              });
+          }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
+          return true;
+        } catch (error) {
+          console.log(error);
+          console.error("Could not trigger restart.");
+          return false;
+        }
       }
     );
   };
@@ -263,127 +277,97 @@ const SettingsView: React.FC = () => {
         <h2>Orchest settings</h2>
         <div className="push-down">
           <div>
-            {(() => {
-              if (state.config === undefined) {
-                return <p>Loading config...</p>;
-              } else {
-                return (
-                  <div className="push-up">
-                    <CodeMirror
-                      value={state.config}
-                      options={{
-                        mode: "application/json",
-                        theme: "jupyter",
-                        lineNumbers: true,
-                      }}
-                      onBeforeChange={(editor, data, value) => {
-                        setState((prevState) => ({
-                          ...prevState,
-                          config: value,
-                        }));
-                        context.dispatch({
-                          type: "setUnsavedChanges",
-                          payload: state.config != value,
-                        });
-                      }}
-                    />
-
-                    {(() => {
-                      if (context.state?.config?.CLOUD === true) {
-                        return (
-                          <div className="push-up notice">
-                            <p>
-                              {" "}
-                              Note that{" "}
-                              {context.state?.config[
-                                "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
-                              ].map((el, i) => (
-                                <span key={i}>
-                                  <span className="code">{el}</span>
-                                  {i !=
-                                    context.state?.config[
-                                      "CLOUD_UNMODIFIABLE_CONFIG_VALUES"
-                                    ].length -
-                                      1 && <span>, </span>}
-                                </span>
-                              ))}{" "}
-                              cannot be modified when running in the{" "}
-                              <span className="code">cloud</span>.
-                            </p>
-                          </div>
-                        );
-                      }
-                    })()}
-
-                    {(() => {
-                      try {
-                        JSON.parse(state.config);
-                      } catch {
-                        return (
-                          <div className="warning push-up">
-                            <i className="material-icons">warning</i> Your input
-                            is not valid JSON.
-                          </div>
-                        );
-                      }
-                    })()}
-                    {(() => {
-                      if (state.requiresRestart.length > 0) {
-                        let vals = state.requiresRestart.map(
-                          (val) => `"${val}" `
-                        );
-                        return (
-                          <div className="warning push-up">
-                            <i className="material-icons">info</i> Restart
-                            Orchest for the changes to {vals} to take effect.
-                          </div>
-                        );
-                      }
-                    })()}
-
-                    <MDCButtonReact
-                      classNames={[
-                        "push-up",
-                        "mdc-button--raised",
-                        "themed-secondary",
-                      ]}
-                      label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                      icon="save"
-                      onClick={() => saveConfig(state.config)}
-                    />
-                  </div>
-                );
-              }
-            })()}
+            {state.config === undefined ? (
+              <Typography>Loading config...</Typography>
+            ) : (
+              <Box>
+                <CodeMirror
+                  value={state.config}
+                  options={{
+                    mode: "application/json",
+                    theme: "jupyter",
+                    lineNumbers: true,
+                  }}
+                  onBeforeChange={(editor, data, value) => {
+                    setState((prevState) => {
+                      setAsSaved(prevState.config === value);
+                      return {
+                        ...prevState,
+                        config: value,
+                      };
+                    });
+                  }}
+                />
+                <Stack
+                  direction="column"
+                  spacing={2}
+                  sx={{
+                    marginTop: (theme) => theme.spacing(2),
+                    marginBottom: (theme) => theme.spacing(2),
+                  }}
+                >
+                  {config.CLOUD === true && (
+                    <Typography
+                      variant="body2"
+                      sx={{ color: (theme) => theme.palette.grey[800] }}
+                    >
+                      {`Note that `}
+                      {config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.map((el, i) => (
+                        <span key={i}>
+                          <Code>{el}</Code>
+                          {i !==
+                            config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.length -
+                              1 && `, `}
+                        </span>
+                      ))}
+                      {` cannot be modified when running in the `}
+                      <Code>cloud</Code>.
+                    </Typography>
+                  )}
+                  {(() => {
+                    try {
+                      JSON.parse(state.config);
+                    } catch {
+                      return (
+                        <Alert severity="warning">
+                          Your input is not valid JSON.
+                        </Alert>
+                      );
+                    }
+                  })()}
+                  {state.requiresRestart.length > 0 && (
+                    <Alert severity="info">{`Restart Orchest for the changes to ${state.requiresRestart
+                      .map((val) => `"${val}"`)
+                      .join(" ")} to take effect.`}</Alert>
+                  )}
+                </Stack>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  onClick={() => saveConfig(state.config)}
+                >
+                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                </Button>
+              </Box>
+            )}
           </div>
         </div>
-
         <h3>System status</h3>
         <div className="columns">
           <div className="column">
             <p>Version information.</p>
           </div>
           <div className="column">
-            {(() => {
-              if (state.version !== undefined) {
-                return <p>{state.version}</p>;
-              } else {
-                return (
-                  <React.Fragment>
-                    <MDCLinearProgressReact classNames={["push-down"]} />
-                  </React.Fragment>
-                );
-              }
-            })()}
-            {(() => {
-              if (context.state?.config?.FLASK_ENV === "development") {
-                return (
-                  <p>
-                    <span className="code">development mode</span>
-                  </p>
-                );
-              }
-            })()}
+            {state.version ? (
+              <p>{state.version}</p>
+            ) : (
+              <LinearProgress className="push-down" />
+            )}
+            {config.FLASK_ENV === "development" && (
+              <p>
+                <Code>development mode</Code>
+              </p>
+            )}
           </div>
           <div className="clear"></div>
         </div>
@@ -395,10 +379,11 @@ const SettingsView: React.FC = () => {
             {(() => {
               if (state.hostInfo !== undefined) {
                 return (
-                  <React.Fragment>
-                    <MDCLinearProgressReact
-                      classNames={["disk-size-info"]}
-                      progress={state.hostInfo.disk_info.used_pcent / 100}
+                  <>
+                    <LinearProgress
+                      className="disk-size-info"
+                      variant="determinate"
+                      value={state.hostInfo.disk_info.used_pcent}
                     />
 
                     <div className="disk-size-info push-up-half">
@@ -409,14 +394,10 @@ const SettingsView: React.FC = () => {
                         {state.hostInfo.disk_info.avail_GB + "GB free"}
                       </span>
                     </div>
-                  </React.Fragment>
+                  </>
                 );
               } else {
-                return (
-                  <MDCLinearProgressReact
-                    classNames={["push-down", "disk-size-info"]}
-                  />
-                );
+                return <LinearProgress className="push-down disk-size-info" />;
               }
             })()}
           </div>
@@ -429,12 +410,14 @@ const SettingsView: React.FC = () => {
             <p>Configure JupyterLab by installing server extensions.</p>
           </div>
           <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              label="Configure JupyterLab"
-              icon="tune"
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
+              startIcon={<TuneIcon />}
               onClick={loadConfigureJupyterLab}
-            />
+            >
+              Configure JupyterLab
+            </StyledButtonOutlined>
           </div>
           <div className="clear"></div>
         </div>
@@ -445,12 +428,14 @@ const SettingsView: React.FC = () => {
             <p>Update Orchest from the web UI using the built in updater.</p>
           </div>
           <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
-              label="Check for updates"
-              icon="system_update_alt"
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
+              startIcon={<SystemUpdateAltIcon />}
               onClick={updateView}
-            />
+            >
+              Check for updates
+            </StyledButtonOutlined>
           </div>
           <div className="clear"></div>
         </div>
@@ -466,22 +451,22 @@ const SettingsView: React.FC = () => {
             {(() => {
               if (!state.restarting) {
                 return (
-                  <React.Fragment>
-                    <MDCButtonReact
-                      classNames={["mdc-button--outlined"]}
-                      label="Restart"
-                      icon="power_settings_new"
-                      onClick={restartOrchest}
-                      data-test-id="restart"
-                    />
-                  </React.Fragment>
+                  <StyledButtonOutlined
+                    variant="outlined"
+                    color="secondary"
+                    startIcon={<PowerSettingsNewIcon />}
+                    onClick={restartOrchest}
+                    data-test-id="restart"
+                  >
+                    Restart
+                  </StyledButtonOutlined>
                 );
               } else {
                 return (
-                  <React.Fragment>
-                    <MDCLinearProgressReact classNames={["push-down"]} />
+                  <>
+                    <LinearProgress className="push-down" />
                     <p>This can take up to 30 seconds.</p>
-                  </React.Fragment>
+                  </>
                 );
               }
             })()}
@@ -500,13 +485,15 @@ const SettingsView: React.FC = () => {
             <p>Manage Orchest users using the user admin panel.</p>
           </div>
           <div className="column">
-            <MDCButtonReact
-              classNames={["mdc-button--outlined"]}
+            <StyledButtonOutlined
+              variant="outlined"
+              color="secondary"
               onClick={onClickManageUsers}
-              icon="people"
-              label="Manage users"
+              startIcon={<PeopleIcon />}
               data-test-id="manage-users"
-            />
+            >
+              Manage users
+            </StyledButtonOutlined>
           </div>
           <div className="clear"></div>
         </div>

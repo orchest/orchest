@@ -362,3 +362,37 @@ def test_pipelinerun_set(client, celery, pipeline):
         print(resp.status_code)
 
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
+
+
+def test_pipelinerun_delete(
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+):
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    # Cancel the first run, leave the other 2.
+    assert (
+        client.delete(
+            f'/api/jobs/{job_uuid}/{pipeline_runs[0]["uuid"]}',
+        ).status_code
+        == 200
+    )
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert pipeline_runs[0]["status"] == "ABORTED"
+    assert pipeline_runs[1]["status"] == "PENDING"
+    assert pipeline_runs[2]["status"] == "PENDING"
