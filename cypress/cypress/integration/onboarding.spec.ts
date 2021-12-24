@@ -71,7 +71,7 @@ describe("onboarding", () => {
     context("if user has just completed onboarding", () => {
       [true, false].map((withQuickstart) => {
         it(`${withQuickstart ? "with" : "without"} quickstart pipeline`, () => {
-          cy.intercept("GET", "/async/projects", {
+          cy.intercept("GET", "/async/projects*", {
             fixture: `async/projects/${
               withQuickstart ? "with" : "without"
             }-quickstart.json`,
