@@ -7,6 +7,7 @@ import {
   mergeEnvVariables,
   piped_click,
   PROJECTS,
+  reloadUntilElementsLoaded,
   reset,
   SAMPLE_JOB_NAMES,
   setJobParameter,
@@ -44,8 +45,6 @@ function verifyJobRunsParameters(
         cy.get(".CodeMirror-line")
           .invoke("text")
           .then((json) => {
-            cy.log(`🎲 step ${json}`);
-
             const stepParams = JSON.parse(json);
             // Close the step panel.
             cy.findByTestId(TEST_ID.STEP_CLOSE_DETAILS).pipe(piped_click);
@@ -55,8 +54,6 @@ function verifyJobRunsParameters(
             cy.get(".CodeMirror-line")
               .invoke("text")
               .then((json) => {
-                cy.log(`🎲 pipeline ${json}`);
-
                 const pipelineParams = JSON.parse(json);
                 let runParameters = {
                   stepParams: stepParams,
@@ -95,6 +92,13 @@ function verifyJobRunsParameters(
     });
 }
 
+const loadProject = () => {
+  cy.goToMenu("projects");
+  reloadUntilElementsLoaded("project-list-row", () => {
+    return cy.findByTestId("project-list").should("exist");
+  });
+};
+
 describe("jobs", () => {
   beforeEach(() => {
     reset();
@@ -107,11 +111,7 @@ describe("jobs", () => {
       cy.exec(
         `cp -r ${PROJECTS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/`
       );
-      // ensure project list is loaded
-      cy.reload(true);
-      // To trigger the project discovery.
-      cy.goToMenu("projects");
-      cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
+      loadProject();
       assertEnvIsBuilt();
     });
     context("has created a job draft", () => {
@@ -387,9 +387,7 @@ describe("jobs", () => {
       // Copy the pipeline.
       cy.exec(`cp -r ${PROJECTS.DATA_PASSING.get_path()} ../userdir/projects/`);
       // To trigger the project discovery.
-      cy.reload(true);
-      cy.goToMenu("projects");
-      cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
+      loadProject();
       assertEnvIsBuilt();
     });
 

@@ -1,5 +1,6 @@
 import {
   PROJECTS_DIR,
+  reloadUntilElementsLoaded,
   reset,
   SAMPLE_PIPELINE_NAMES,
   SAMPLE_PROJECT_NAMES,
@@ -15,18 +16,24 @@ describe("file system interactions", () => {
   it("creates a project through the FS", () => {
     cy.exec(`mkdir ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
     // Need to force a reload to discover.
-    cy.visit("/projects");
-    cy.reload(true);
-    cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
+
+    reloadUntilElementsLoaded("project-list-row", () => {
+      return cy.findByTestId("project-list").should("exist");
+    });
   });
 
   it("deletes a project through the FS", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.exec(`rm -rf ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}`);
     // Need to force a reload to discover.
-    cy.visit("/projects");
-    cy.reload(true);
-    cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 0);
+
+    reloadUntilElementsLoaded(
+      "project-list-row",
+      () => {
+        return cy.findByTestId("project-list").should("exist");
+      },
+      0
+    );
   });
 
   it("creates multiple projects through the FS", () => {
@@ -40,10 +47,17 @@ describe("file system interactions", () => {
         .join(" && ")
     );
 
-    cy.visit("/projects");
-    cy.reload(true);
+    cy.goToMenu("projects");
+    reloadUntilElementsLoaded(
+      "project-list-row",
+      () => {
+        return cy
+          .findByTestId("project-list", { timeout: 10000 })
+          .should("exist");
+      },
+      10
+    );
 
-    cy.findByTestId("project-list", { timeout: 10000 }).should("exist");
     // ! This can break if MUI implementation changes
     cy.findAllByTestId("project-list-pagination", { timeout: 10000 })
       .find(".MuiTablePagination-displayedRows")
@@ -58,7 +72,13 @@ describe("file system interactions", () => {
     cy.cleanProjectsDir();
     // Need to force a reload to discover.
     cy.visit("/projects");
-    cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 0);
+    reloadUntilElementsLoaded(
+      "project-list-row",
+      () => {
+        return cy.findByTestId("project-list").should("exist");
+      },
+      0
+    );
   });
 
   context("requires an existing project", () => {
@@ -79,9 +99,13 @@ describe("file system interactions", () => {
       // refreshing.
       cy.exec(`rm ${expectedPath}`);
       // Reload to force the discovery.
-      cy.visit("/pipelines");
-      cy.reload(true);
-      cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 0);
+      reloadUntilElementsLoaded(
+        TEST_ID.PIPELINES_TABLE_ROW,
+        () => {
+          return cy.findByTestId("pipeline-list").should("exist");
+        },
+        0
+      );
     });
 
     it("moves a project through the fs", () => {
@@ -89,9 +113,17 @@ describe("file system interactions", () => {
         `mv ${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1} ${PROJECTS_DIR}/move-project`
       );
 
-      cy.visit("/projects");
-      cy.reload(true);
-      cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
+      reloadUntilElementsLoaded("project-list-row", () => {
+        return cy.findByTestId("project-list").should("exist");
+      });
+
+      // cy.reload(true);
+      // cy.visit("/projects");
+
+      // cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW, { timeout: 10000 }).should(
+      //   "have.length",
+      //   1
+      // );
       cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(
         "contain.text",
         "move-project"

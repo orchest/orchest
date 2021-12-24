@@ -38,6 +38,7 @@ describe("interactive runs", () => {
           SAMPLE_PROJECT_NAMES.P1
         }/`
       );
+
       cy.reload(true);
 
       // Create the step and set the notebook.
@@ -229,8 +230,8 @@ describe("interactive runs", () => {
         }/`
       );
       // Need to force a reload for discovery.
-      cy.visit("/pipelines");
       cy.reload(true);
+      cy.visit("/pipelines");
       cy.findByTestId(`pipeline-list-row`).first().click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
@@ -383,7 +384,7 @@ describe("interactive runs", () => {
           .its(expectedName)
           .should("deep.equal", expectedValue);
         cy.exec(`rm -f ${PIPELINES.DATA_PASSING.default_output_file}`);
-
+        cy.reload(true);
         // Run B again, if memory eviction is enabled it should fail
         // because no input from A can be found.
         let expectedState = testData.eviction ? "Failure" : "Completed";

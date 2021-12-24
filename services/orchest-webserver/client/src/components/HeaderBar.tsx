@@ -87,7 +87,7 @@ export const HeaderBar = ({
         zIndex: (theme) => theme.zIndex.drawer + 1,
         backgroundColor: (theme) => theme.palette.background.paper,
         boxShadow: "none",
-        borderBottom: (theme) => "1px solid " + theme.borderColor,
+        borderBottom: (theme) => `1px solid ${theme.borderColor}`,
       }}
     >
       <Toolbar>

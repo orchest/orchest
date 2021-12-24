@@ -12,7 +12,6 @@ describe("environments", () => {
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     // Delete the environment that has been created with the project.
     cy.deleteAllEnvironments();
-    cy.goToMenu("environments");
   });
 
   context("should have no environment images after running", () => {
@@ -49,7 +48,7 @@ describe("environments", () => {
       Array.from(Array(10).keys()).map((env) => {
         cy.createEnvironment(env.toString(), "sleep 100", true);
       });
-      cy.deleteAllEnvironments();
+      cy.deleteAllEnvironments(10);
     });
   });
 });

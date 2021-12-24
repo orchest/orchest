@@ -6,6 +6,7 @@ import {
   LOCAL_STORAGE_KEY,
   piped_click,
   PROJECTS_DIR,
+  reloadUntilElementsLoaded,
   TEST_ID,
 } from "../support/common";
 
@@ -40,7 +41,7 @@ declare global {
       ): Chainable<undefined>;
       cleanProjectsDir(): Chainable<undefined>;
       createUser(name: string, password: string): Chainable<undefined>;
-      deleteAllEnvironments(): Chainable<undefined>;
+      deleteAllEnvironments(count?: number): Chainable<undefined>;
       deleteAllPipelines(): Chainable<undefined>;
       deleteAllUsers(): Chainable<undefined>;
       deleteUser(name: string): Chainable<undefined>;
@@ -51,7 +52,10 @@ declare global {
       getIframe(dataTestId: string): Chainable<JQuery<any>>;
       getOnboardingCompleted(): Chainable<TBooleanString>;
       getProjectUUID(project: string): Chainable<string>;
-      goToMenu(entry: string): Chainable<string>;
+      goToMenu(
+        entry: string,
+        predicate?: (location: Location) => boolean
+      ): Chainable<string>;
       importProject(url: string, name?: string): Chainable<undefined>;
       reset(): Chainable<undefined>;
       setOnboardingCompleted(value: TBooleanString): Chainable<undefined>;
@@ -332,13 +336,32 @@ Cypress.Commands.add(
 );
 
 // Note: currently not idempotent.
-Cypress.Commands.add("deleteAllEnvironments", () => {
+Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
   cy.intercept("DELETE", /.*/).as("allDeletes");
   cy.goToMenu("environments");
-  cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS).click();
-  cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click();
+  // at least one should appear
+  reloadUntilElementsLoaded(
+    "environment-list-row",
+    () => {
+      cy.findByTestId("environment-list").should("exist");
+      return cy.wait(1000);
+    },
+    count || 1
+  );
+  cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS)
+    .find("input")
+    .click({ force: true });
+  cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click({ force: true });
   cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
   cy.wait("@allDeletes");
+  reloadUntilElementsLoaded(
+    "environment-list-row",
+    () => {
+      cy.findByTestId("environment-list").should("exist");
+      return cy.wait(1000);
+    },
+    0
+  );
 });
 
 // Note: currently not idempotent.
@@ -376,22 +399,29 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
     );
 });
 
-Cypress.Commands.add("goToMenu", (entry: string) => {
-  assert(
-    [
-      "projects",
-      "pipelines",
-      "environments",
-      "file_manager",
-      "settings",
-      "jobs",
-    ].includes(entry),
-    `"${entry} is not a menu entry.`
-  );
-  entry = `menu-${entry}`;
-  cy.findByTestId(entry).click();
-  cy.wait(100);
-});
+Cypress.Commands.add(
+  "goToMenu",
+  (entry: string, predicate?: (location: Location) => boolean) => {
+    cy.log(`======= Start navigating to "/${entry}" via menu`)
+      .wrap([
+        "projects",
+        "pipelines",
+        "environments",
+        "file_manager",
+        "settings",
+        "jobs",
+      ])
+      .should("include", entry);
+
+    cy.findByTestId(`menu-${entry}`).click();
+    if (predicate) {
+      cy.location().should("satisfy", predicate);
+    } else {
+      cy.location("pathname").should("equal", `/${entry}`);
+    }
+    cy.log(`======= Done navigating to "/${entry}" via menu`);
+  }
+);
 
 //Assumes environment names are unique.
 Cypress.Commands.add(

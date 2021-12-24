@@ -358,6 +358,41 @@ export function waitForJobStatus(expected: string, retries = 100) {
   });
 }
 
+export function reloadUntilElementsLoaded(
+  testId: string,
+  isPageLoaded: () => Cypress.Chainable<any> = () => cy.wrap(undefined),
+  numberOfElements = 1,
+  retries = 10
+) {
+  cy.reload(true);
+  return isPageLoaded().then(() => {
+    // NOTE: if we use cy.find, it will fail and discontinue the test when no element is found.
+    // therefore, we need to use jQuery to get the elements synchronously
+    // and retry conditionally
+    const listLength = Cypress.$(`[data-test-id='${testId}']`).length;
+    if (
+      listLength < numberOfElements ||
+      (numberOfElements === 0 && listLength > numberOfElements) // in case of deleting
+    ) {
+      retries--;
+      if (retries > 0) {
+        return reloadUntilElementsLoaded(
+          testId,
+          isPageLoaded,
+          numberOfElements,
+          retries
+        );
+      } else {
+        throw new Error(
+          `Projects are not loaded. (expected: ${numberOfElements}, actual: ${listLength} )`
+        );
+      }
+    } else {
+      cy.wrap(numberOfElements).should("equal", listLength);
+    }
+  });
+}
+
 // Assumes to be in a JobView.
 export function waitForJobRunsStatus(
   expectedStatus: string,
@@ -367,7 +402,8 @@ export function waitForJobRunsStatus(
 ) {
   cy.location("pathname").should("eq", "/job");
   let passingRuns = [];
-  cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
+  return cy
+    .findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
     .each((run) => {
       if (run.text().indexOf(expectedStatus) !== -1) {
         passingRuns.push(run);
@@ -375,6 +411,7 @@ export function waitForJobRunsStatus(
     })
     .wrap(passingRuns)
     .then((passingRuns) => {
+      cy.log(`Number of passing runs: ${passingRuns.length}`);
       if (passingRuns.length !== expectedNumberOfRuns) {
         retries--;
         if (retries > 0) {
@@ -392,6 +429,7 @@ export function waitForJobRunsStatus(
           );
         }
       } else {
+        cy.wrap(expectedNumberOfRuns).should("equal", passingRuns.length);
         if (callback !== undefined) {
           callback();
         }

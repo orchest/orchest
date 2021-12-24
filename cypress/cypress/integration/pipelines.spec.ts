@@ -63,8 +63,8 @@ describe("pipelines", () => {
     let copyPath = `${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/copy.orchest`;
     cy.exec(`cp ${originalPath} ${copyPath}`);
     // Reload to force the discovery.
-    cy.visit("/pipelines");
     cy.reload(true);
+    cy.visit("/pipelines");
     cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 2);
   });
 

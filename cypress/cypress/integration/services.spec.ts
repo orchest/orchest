@@ -6,6 +6,7 @@ import {
   mergeEnvVariables,
   PROJECTS,
   PROJECTS_DIR,
+  reloadUntilElementsLoaded,
   reset,
   SAMPLE_JOB_NAMES,
   SAMPLE_PROJECT_NAMES,
@@ -35,10 +36,11 @@ describe("services", () => {
       cy.exec(
         `cp -r ${PROJECTS.SERVICES_CONNECTIVITY.get_path()} ../userdir/projects/`
       );
-      cy.reload(true);
-      // To trigger the project discovery.
+
       cy.goToMenu("projects");
-      cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW).should("have.length", 1);
+      reloadUntilElementsLoaded("project-list-row", () => {
+        return cy.findByTestId("project-list").should("exist");
+      });
 
       assertEnvIsBuilt();
     });
