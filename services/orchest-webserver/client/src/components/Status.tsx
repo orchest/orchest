@@ -6,6 +6,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { visuallyHidden } from "@mui/utils";
 import React from "react";
 
 export type TStatus =
@@ -64,9 +65,13 @@ export const StatusInline: React.FC<{
       justifyContent="center"
     >
       <Tooltip title={statusMapping[status].text}>
-        {statusMapping[status].icon}
+        <Box>
+          {statusMapping[status].icon}
+          <Typography component="span" sx={visuallyHidden}>
+            {statusMapping[status].text}
+          </Typography>
+        </Box>
       </Tooltip>
-      {/* <StatusText>{statusMapping[status].text}</StatusText> */}
     </Stack>
   );
 };
