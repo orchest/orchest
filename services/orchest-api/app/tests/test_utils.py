@@ -156,6 +156,7 @@ def create_job_spec(
     scheduled_start=None,
     parameters=[{}],
     pipeline_run_spec=None,
+    max_retained_pipeline_runs=-1,
 ):
     if pipeline_run_spec is None:
         pipeline_run_spec = create_pipeline_run_spec(project_uuid, pipeline_uuid)
@@ -172,6 +173,7 @@ def create_job_spec(
         "pipeline_run_spec": pipeline_run_spec,
         "scheduled_start": scheduled_start,
         "strategy_json": {},
+        "max_retained_pipeline_runs": max_retained_pipeline_runs,
     }
     return job_spec
 

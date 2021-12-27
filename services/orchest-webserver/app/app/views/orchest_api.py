@@ -578,6 +578,11 @@ def register_orchest_api_views(app, db):
             + app.config["ORCHEST_API_ADDRESS"]
             + "/api/jobs/%s/%s" % (job_uuid, run_uuid),
         )
+        analytics.send_event(
+            app,
+            analytics.Event.JOB_PIPELINE_RUN_CANCEL,
+            {"job_uuid": job_uuid, "run_uuid": run_uuid},
+        )
 
         return resp.content, resp.status_code, resp.headers.items()
 
@@ -654,6 +659,21 @@ def register_orchest_api_views(app, db):
         except Exception as e:
             msg = f"Error during job deletion:{e}"
             return {"message": msg}, 500
+
+    @app.route(
+        "/catch/api-proxy/api/jobs/cleanup/<job_uuid>/<run_uuid>", methods=["delete"]
+    )
+    def catch_api_proxy_job_pipeline_run_cleanup(job_uuid, run_uuid):
+        resp = requests.delete(
+            f"http://{current_app.config['ORCHEST_API_ADDRESS']}/api/"
+            f"jobs/cleanup/{job_uuid}/{run_uuid}"
+        )
+        analytics.send_event(
+            app,
+            analytics.Event.JOB_PIPELINE_RUN_DELETE,
+            {"job_uuid": job_uuid, "run_uuid": run_uuid},
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jobs/next_scheduled_job", methods=["get"])
     def catch_api_proxy_jobs_next_scheduled_job():

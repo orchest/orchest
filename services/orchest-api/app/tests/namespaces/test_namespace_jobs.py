@@ -4,7 +4,9 @@ import pytest
 from tests.test_utils import create_job_spec
 
 from _orchest.internals.test_utils import raise_exception_function
+from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app.apis import namespace_jobs
+from app.connections import db
 
 
 @pytest.mark.parametrize(
@@ -352,19 +354,22 @@ def test_pipelinerun_set(client, celery, pipeline):
 
     pipeline_runs = client.get(f"/api/jobs/{job_uuid}").get_json()["pipeline_runs"]
     for run in pipeline_runs:
-        resp = client.put(
+        client.put(
             f'/api/jobs/{job_uuid}/{run["uuid"]}',
             json={
                 "status": "SUCCESS",
                 "finished_time": datetime.datetime.now().isoformat(),
             },
         )
-        print(resp.status_code)
 
     assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
 
 
-def test_pipelinerun_delete(
+def test_pipelinerun_delete_non_existent(client, celery):
+    assert client.delete("/api/jobs/job_uuid/pipeline_uuid").status_code == 404
+
+
+def test_pipelinerun_delete_one_run(
     client,
     celery,
     pipeline,
@@ -396,3 +401,355 @@ def test_pipelinerun_delete(
     assert pipeline_runs[0]["status"] == "ABORTED"
     assert pipeline_runs[1]["status"] == "PENDING"
     assert pipeline_runs[2]["status"] == "PENDING"
+    assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "STARTED"
+
+
+def test_pipelinerun_delete_all_runs(
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+):
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        assert (
+            client.delete(
+                f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            ).status_code
+            == 200
+        )
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
+
+
+def test_pipelinerundeletion_non_existent(client, celery):
+    assert client.delete("/api/jobs/cleanup/job_uuid/pipeline_uuid").status_code == 404
+
+
+def test_pipelinerundeletion_one_run(
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+):
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    # Cancel the first run, leave the other 2.
+    assert (
+        client.delete(
+            f'/api/jobs/cleanup/{job_uuid}/{pipeline_runs[0]["uuid"]}',
+        ).status_code
+        == 200
+    )
+
+    celery_task_kwargs = {
+        "project_uuid": pipeline.project.uuid,
+        "pipeline_uuid": pipeline.uuid,
+        "job_uuid": job_uuid,
+        "pipeline_run_uuids": [pipeline_runs[0]["uuid"]],
+    }
+    assert any([task[1]["kwargs"] == celery_task_kwargs for task in celery.tasks])
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert len(pipeline_runs) == 2
+    assert pipeline_runs[0]["status"] == "PENDING"
+    assert pipeline_runs[1]["status"] == "PENDING"
+    assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "STARTED"
+
+
+def test_pipelinerundeletion_all_runs(
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+):
+
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        assert (
+            client.delete(
+                f'/api/jobs/cleanup/{job_uuid}/{run["uuid"]}',
+            ).status_code
+            == 200
+        )
+
+    for run in pipeline_runs:
+        celery_task_kwargs = {
+            "project_uuid": pipeline.project.uuid,
+            "pipeline_uuid": pipeline.uuid,
+            "job_uuid": job_uuid,
+            "pipeline_run_uuids": [run["uuid"]],
+        }
+    assert any([task[1]["kwargs"] == celery_task_kwargs for task in celery.tasks])
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert not pipeline_runs
+    assert client.get(f"/api/jobs/{job_uuid}").get_json()["status"] == "SUCCESS"
+
+
+def test_delete_non_retained_job_pipeline_runs_on_job_run_retain_all(
+    test_app, client, celery, pipeline, abortable_async_res, monkeypatch, mocker
+):
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        assert run["status"] == "SUCCESS"
+
+    # Trigger another job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # The previously existing pipeline runs should still be there.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert len(pipeline_runs) == 6
+    assert all(
+        [
+            task[1]["name"] != "app.core.tasks.delete_job_pipeline_run_directories"
+            for task in celery.tasks
+        ]
+    )
+
+
+@pytest.mark.parametrize("max_retained_pipeline_runs", [3, 4, 5, 6, 9])
+def test_delete_non_retained_job_pipeline_runs_on_job_run_retain_n(
+    max_retained_pipeline_runs,
+    test_app,
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+    monkeypatch,
+    mocker,
+):
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid,
+        pipeline.uuid,
+        parameters=[{}, {}, {}],
+        max_retained_pipeline_runs=max_retained_pipeline_runs,
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    first_pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in first_pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+
+    # Reset the mock, deletions should only happen the next time RunJob
+    # is triggered, for this case.
+    celery.task = []
+
+    # Trigger another job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    # Can't delete more than 3 since we have 3 runs in an end state.
+    expected_deleted_runs_n = max(0, min(3, 6 - max_retained_pipeline_runs))
+    assert len(pipeline_runs) == 6 - expected_deleted_runs_n
+    first_pipeline_runs.sort(key=lambda x: x["pipeline_run_index"])
+    expected_deleted_run_uuids = set(
+        [run["uuid"] for run in first_pipeline_runs[:expected_deleted_runs_n]]
+    )
+    deleted_run_uuids = set(
+        [
+            uuid
+            for task in celery.tasks
+            if task[1]["name"] == "app.core.tasks.delete_job_pipeline_run_directories"
+            for uuid in task[1]["kwargs"]["pipeline_run_uuids"]
+        ]
+    )
+    assert expected_deleted_run_uuids == deleted_run_uuids
+
+
+def test_delete_non_retained_job_pipeline_runs_on_job_run_update_retain_all(
+    test_app, client, celery, pipeline, abortable_async_res, monkeypatch, mocker
+):
+    job_spec = create_job_spec(
+        pipeline.project.uuid, pipeline.uuid, parameters=[{}, {}, {}, {}]
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        assert run["status"] == "SUCCESS"
+    assert all(
+        [
+            task[1]["name"] != "app.core.tasks.delete_job_pipeline_run_directories"
+            for task in celery.tasks
+        ]
+    )
+
+
+@pytest.mark.parametrize("max_retained_pipeline_runs", [0, 1, 2, 3, 6])
+def test_delete_non_retained_job_pipeline_runs_on_job_run_update_retain_n(
+    max_retained_pipeline_runs,
+    test_app,
+    client,
+    celery,
+    pipeline,
+    abortable_async_res,
+    monkeypatch,
+    mocker,
+):
+    # Multiple parameters so that the job consists of multiple pipeline
+    # runs.
+    job_spec = create_job_spec(
+        pipeline.project.uuid,
+        pipeline.uuid,
+        parameters=[{}, {}, {}],
+        max_retained_pipeline_runs=max_retained_pipeline_runs,
+    )
+    job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
+    client.put(
+        f"/api/jobs/{job_uuid}",
+        json={"confirm_draft": True, "cron_schedule": "* * * * *"},
+    )
+
+    # Trigger a job run.
+    with test_app.app_context():
+        with TwoPhaseExecutor(db.session) as tpe:
+            namespace_jobs.RunJob(tpe).transaction(job_uuid)
+
+    # Set as done the pipeline runs of this job run.
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
+        client.put(
+            f'/api/jobs/{job_uuid}/{run["uuid"]}',
+            json={
+                "status": "SUCCESS",
+                "finished_time": datetime.datetime.now().isoformat(),
+            },
+        )
+
+    expected_deleted_runs_n = max(0, 3 - max_retained_pipeline_runs)
+
+    pipeline_runs.sort(key=lambda x: x["pipeline_run_index"])
+    expected_deleted_run_uuids = set(
+        [run["uuid"] for run in pipeline_runs[:expected_deleted_runs_n]]
+    )
+    deleted_run_uuids = set(
+        [
+            uuid
+            for task in celery.tasks
+            if task[1]["name"] == "app.core.tasks.delete_job_pipeline_run_directories"
+            for uuid in task[1]["kwargs"]["pipeline_run_uuids"]
+        ]
+    )
+    assert expected_deleted_run_uuids == deleted_run_uuids
