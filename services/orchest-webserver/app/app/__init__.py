@@ -69,6 +69,9 @@ def create_app():
         app.logger.error("Failed to load global orchest config file.", exc_info=True)
     else:
         app.config.update(global_orchest_config.as_dict())
+        # Initialize the config file. Needed in case the config file has
+        # been deleted or if Orchest has just been installed.
+        global_orchest_config.save(app)
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
