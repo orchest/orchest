@@ -55,7 +55,7 @@ class Config:
     _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed"
 
     # Calling get_inputs() or any output* function multiple times
-    # produces a warning, setting this to True allows you do silence
+    # produces a warning, setting this to True allows you to silence
     # those warnings.
     silence_multiple_data_transfer_calls_warning: bool = False
 
