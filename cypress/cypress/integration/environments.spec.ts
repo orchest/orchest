@@ -46,7 +46,7 @@ describe("environments", () => {
 
     it("creates and build multiple environments, delete all of them during the build", () => {
       Array.from(Array(10).keys()).map((env) => {
-        cy.createEnvironment(env.toString(), "sleep 100", true);
+        cy.createEnvironment(env.toString(), "sleep 1000", true);
       });
       cy.deleteAllEnvironments(10);
     });
