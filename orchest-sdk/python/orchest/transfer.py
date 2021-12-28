@@ -340,6 +340,12 @@ def output_to_disk(
         serialization: Serialization of the `data` in case it is already
             serialized. For possible values see :class:`Serialization`.
 
+    Note:
+        Calling :meth:`output_to_disk` multiple times within the same
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
+
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
             e.g because it is a reserved name (``"unnamed"``) or because
@@ -352,13 +358,6 @@ def output_to_disk(
     Example:
         >>> data = "Data I would like to use in my next step"
         >>> output_to_disk(data, name="my_data")
-
-    Note:
-        Calling :meth:`output_to_disk` multiple times within the same
-        script will overwrite the output, even when using a different
-        output ``name``. You therefore want to be only calling the
-        function once.
-
     """
     try:
         _check_data_name_validity(name)
@@ -625,6 +624,12 @@ def output_to_memory(
             the `data` does not fit in memory. If ``False``, then a
             :exc:`MemoryError` is thrown.
 
+    Note:
+        Calling :meth:`output_to_memory` multiple times within the same
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
+
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
             e.g because it is a reserved name (``"unnamed"``) or because
@@ -644,13 +649,6 @@ def output_to_memory(
     Example:
         >>> data = "Data I would like to use in my next step"
         >>> output_to_memory(data, name="my_data")
-
-    Note:
-        Calling :meth:`output_to_memory` multiple times within the same
-        script will overwrite the output, even when using a different
-        output ``name``. You therefore want to be only calling the
-        function once.
-
     """
     try:
         _check_data_name_validity(name)
@@ -985,6 +983,11 @@ def get_inputs(
         verbose: If ``True`` print all the steps from which the current
             step has retrieved data.
 
+    Warning:
+        Only call :meth:`get_inputs` once! When auto eviction is
+        configured data might no longer be available. Either cache the
+        data or maintain a copy yourself.
+
     Returns:
         Dictionary with input data for this step. We differentiate
         between two cases:
@@ -1021,12 +1024,6 @@ def get_inputs(
             object store died (and therefore lost all its data).
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine what inputs to get.
-
-    Warning:
-        Only call :meth:`get_inputs` once! When auto eviction is
-        configured data might no longer be available. Either cache the
-        data or maintain a copy yourself.
-
     """
     global _get_inputs_called
     if not Config.silence_multiple_data_transfer_calls_warning and _get_inputs_called:
@@ -1143,6 +1140,12 @@ def output(
             This affects the way the data can be later retrieved using
             :func:`get_inputs`.
 
+    Note:
+        Calling :meth:`output` multiple times within the same step
+        will overwrite the output, even when using a different output
+        ``name``. You therefore want to be only calling the function
+        once.
+
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
             e.g because it is a reserved name (``"unnamed"``) or because
@@ -1157,13 +1160,6 @@ def output(
     Example:
         >>> data = "Data I would like to use in my next step"
         >>> output(data, name="my_data")
-
-    Note:
-        Calling :meth:`output` multiple times within the same step
-        will overwrite the output, even when using a different output
-        ``name``. You therefore want to be only calling the function
-        once.
-
     """
     try:
         _check_data_name_validity(name)
