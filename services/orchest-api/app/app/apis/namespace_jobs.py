@@ -1295,6 +1295,11 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
+                # Avoid a race condition where the last runs would
+                # concurrently update their status, leading to
+                # runs_to_complete never being == 0.
+                models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+
                 # Check how many runs still need to get to an end state.
                 # Checking this way is necessary because a run could
                 # have been deleted by the DB through the
