@@ -33,13 +33,41 @@ class Serialization(Enum):
     PICKLE = 2
 
 
+# Calling get_inputs() or any output* function multiple times produces
+# a warning, setting this to True allows you do silence those warnings.
+silence_multiple_data_transfer_calls_warning: bool = False
+
+_MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE = (
+    "Refer to the docs at "
+    "https://docs.orchest.io/en/latest/fundamentals/data_passing.html#data-passing "
+    "for more info."
+)
+
+_MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE = (
+    "To silence all warnings related to calling data transfer functions multiple "
+    "times, set orchest.silence_multiple_data_transfer_calls_warning to True."
+)
+
 _output_functions_called = False
-_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING = (
-    "WARNING: Outputting data multiple times within the same step will overwrite the "
-    "output, even when using a different output ``name``, and regardless of what "
-    "function you are using among `output`, `output_to_memory` and `output_to_disk`."
-    "You therefore want to be calling any of these functions once. To silence this "
-    "warning, call the function with `silence_multiple_calls_warning` set to ``True``."
+_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING = (
+    (
+        "WARNING: Outputting data multiple times will overwrite previously outputted "
+        "data, regardless of the given `name`."
+    )
+    + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
+    + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
+)
+
+_get_inputs_called = False
+_GET_INPUTS_CALLED_TWICE_WARNING = (
+    (
+        "WARNING: Calling `get_inputs` more than once is likely to cause issues when "
+        "running your pipeline as a job. After the input data is retrieved it is "
+        "slated for eviction from memory, causing the data to no longer be available "
+        "for subsequent calls to `get_inputs`."
+    )
+    + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
+    + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
 )
 
 
@@ -278,7 +306,6 @@ def output_to_disk(
     data: Any,
     name: Optional[str],
     serialization: Optional[Serialization] = None,
-    silence_multiple_calls_warning: bool = False,
 ) -> None:
     """Outputs data to disk.
 
@@ -319,8 +346,8 @@ def output_to_disk(
 
     """
     global _output_functions_called
-    if not silence_multiple_calls_warning and _output_functions_called:
-        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING)
+    if not silence_multiple_data_transfer_calls_warning and _output_functions_called:
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
     _output_functions_called = True
 
     try:
@@ -570,7 +597,6 @@ def output_to_memory(
     data: Any,
     name: Optional[str],
     disk_fallback: bool = True,
-    silence_multiple_calls_warning: bool = False,
 ) -> None:
     """Outputs data to memory.
 
@@ -615,8 +641,8 @@ def output_to_memory(
 
     """
     global _output_functions_called
-    if not silence_multiple_calls_warning and _output_functions_called:
-        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING)
+    if not silence_multiple_data_transfer_calls_warning and _output_functions_called:
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
     _output_functions_called = True
 
     try:
@@ -681,11 +707,6 @@ def output_to_memory(
             obj,
             name,
             serialization=serialization,
-            # Do not warn multiple times. Also allows us to always use
-            # the correct stacklevel (2), by knowing that the message is
-            # only printed if the function is called directly by the
-            # user.
-            silence_multiple_calls_warning=True,
         )
 
     return
@@ -939,16 +960,6 @@ def _resolve(
     )
 
 
-_get_inputs_called = False
-_GET_INPUTS_CALLED_TWICE_WARNING = (
-    "WARNING: `get_inputs()` should only be called once. By default, in interactive "
-    "mode you can call it multiple times per step for ease of development, while in "
-    "jobs it can only be called once per step due to deallocation after inputs are "
-    "retrieved. To silence this warning, call "
-    "`get_inputs` with `silence_multiple_calls_warning` set to ``True``."
-)
-
-
 def get_inputs(
     ignore_failure: bool = False,
     verbose: bool = False,
@@ -1112,7 +1123,6 @@ def get_inputs(
 def output(
     data: Any,
     name: Optional[str],
-    silence_multiple_calls_warning: bool = False,
 ) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
@@ -1149,8 +1159,8 @@ def output(
 
     """
     global _output_functions_called
-    if not silence_multiple_calls_warning and _output_functions_called:
-        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_TWICE_WARNING)
+    if not silence_multiple_data_transfer_calls_warning and _output_functions_called:
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
     _output_functions_called = True
 
     try:
@@ -1162,10 +1172,6 @@ def output(
         data,
         name,
         disk_fallback=True,
-        # Do not warn multiple times. Also allows us to always use the
-        # correct stacklevel (2), by knowing that the message is only
-        # printed if the function is called directly by the user.
-        silence_multiple_calls_warning=True,
     )
 
 
