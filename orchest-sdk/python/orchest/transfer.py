@@ -324,6 +324,12 @@ def output_to_disk(
 ) -> None:
     """Outputs data to disk.
 
+    Note:
+        Calling :meth:`output_to_disk` multiple times within the same
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
+
     To manage outputing the data to disk, this function has a side
     effect:
 
@@ -339,12 +345,6 @@ def output_to_disk(
             :func:`get_inputs`.
         serialization: Serialization of the `data` in case it is already
             serialized. For possible values see :class:`Serialization`.
-
-    Note:
-        Calling :meth:`output_to_disk` multiple times within the same
-        script will overwrite the output, even when using a different
-        output ``name``. You therefore want to be only calling the
-        function once.
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
@@ -611,6 +611,12 @@ def output_to_memory(
 ) -> None:
     """Outputs data to memory.
 
+    Note:
+        Calling :meth:`output_to_memory` multiple times within the same
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
+
     To manage outputing the data to memory for the user, this function
     uses metadata to add info to objects inside the plasma store.
 
@@ -623,12 +629,6 @@ def output_to_memory(
         disk_fallback: If ``True``, then outputing to disk is used when
             the `data` does not fit in memory. If ``False``, then a
             :exc:`MemoryError` is thrown.
-
-    Note:
-        Calling :meth:`output_to_memory` multiple times within the same
-        script will overwrite the output, even when using a different
-        output ``name``. You therefore want to be only calling the
-        function once.
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
@@ -973,6 +973,11 @@ def get_inputs(
 ) -> Dict[str, Any]:
     """Gets all data sent from incoming steps.
 
+    Warning:
+        Only call :meth:`get_inputs` once! When auto eviction is
+        configured data might no longer be available. Either cache the
+        data or maintain a copy yourself.
+
     Args:
         ignore_failure: If ``True`` then the returned result can have
             ``None`` values if the data of a step could not be
@@ -982,11 +987,6 @@ def get_inputs(
             :exc:`OutputNotFoundError`
         verbose: If ``True`` print all the steps from which the current
             step has retrieved data.
-
-    Warning:
-        Only call :meth:`get_inputs` once! When auto eviction is
-        configured data might no longer be available. Either cache the
-        data or maintain a copy yourself.
 
     Returns:
         Dictionary with input data for this step. We differentiate
@@ -1133,18 +1133,18 @@ def output(
     It first tries to output to memory and if it does not fit in memory,
     then disk will be used.
 
+    Note:
+        Calling :meth:`output` multiple times within the same step
+        will overwrite the output, even when using a different output
+        ``name``. You therefore want to be only calling the function
+        once.
+
     Args:
         data: Data to output.
         name: Name of the output data. As a string, it becomes the name
             of the data, when ``None``, the data is considered nameless.
             This affects the way the data can be later retrieved using
             :func:`get_inputs`.
-
-    Note:
-        Calling :meth:`output` multiple times within the same step
-        will overwrite the output, even when using a different output
-        ``name``. You therefore want to be only calling the function
-        once.
 
     Raises:
         DataInvalidNameError: The name of the output data is invalid,
