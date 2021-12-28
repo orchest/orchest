@@ -415,7 +415,16 @@ Cypress.Commands.add(
       ])
       .should("include", entry);
 
-    cy.findByTestId(`menu-${entry}`).click();
+    if (entry == "jobs") {
+      // Wait for the pipelines list to be retrieved, or some commands
+      // might fail because JobList will say that the project has no
+      // pipelines.
+      cy.intercept("GET", "/async/pipelines/*").as("pipelinesList");
+      cy.findByTestId(`menu-${entry}`).click().wait("@pipelinesList");
+    } else {
+      cy.findByTestId(`menu-${entry}`).click();
+    }
+
     if (predicate) {
       cy.location().should("satisfy", predicate);
     } else {
