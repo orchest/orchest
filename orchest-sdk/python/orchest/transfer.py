@@ -2,6 +2,7 @@
 import json
 import os
 import pickle
+import warnings
 from collections import defaultdict
 from datetime import datetime
 from enum import Enum
@@ -30,6 +31,71 @@ class Serialization(Enum):
     ARROW_TABLE = 0
     ARROW_BATCH = 1
     PICKLE = 2
+
+
+_MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE = (
+    "Refer to the docs at "
+    "https://docs.orchest.io/en/latest/fundamentals/data_passing.html#data-passing "
+    "for more info."
+)
+
+_MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE = (
+    "To silence all warnings related to calling data transfer functions multiple "
+    "times, set orchest.Config.silence_multiple_data_transfer_calls_warning to True."
+)
+
+# Use an int because a name is Optional[str]. Indirectly acts as a
+# variable to know if any output* function was called.
+_last_output_name = -1
+_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING = (
+    (
+        "WARNING: Outputting data multiple times will overwrite previously outputted "
+        "data, regardless of the given `name`."
+    )
+    + " "
+    + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
+    + " "
+    + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
+)
+
+
+def _warn_multiple_data_output_if_necessary(name: Optional[str]):
+    global _last_output_name
+    if (
+        not Config.silence_multiple_data_transfer_calls_warning
+        and _last_output_name != -1
+        and _last_output_name != name
+    ):
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
+    _last_output_name = name
+
+
+_get_inputs_called = False
+_GET_INPUTS_CALLED_TWICE_WARNING = (
+    (
+        "WARNING: Calling `get_inputs` more than once is likely to cause issues when "
+        "running your pipeline as a job. After the input data is retrieved it is "
+        "slated for eviction from memory, causing the data to no longer be available "
+        "for subsequent calls to `get_inputs`."
+    )
+    + " "
+    + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
+    + " "
+    + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
+)
+
+
+def _print_warning_message(msg: str, category=RuntimeWarning, stacklevel=2) -> None:
+    # Print only the message, without line number, module etc. There
+    # isn't a setting that makes this information meaningful in all
+    # cases. For example, it will output information related to the
+    # Orchest script running the notebook depending on the stacklevel.
+
+    # Hold in a temporary variable to not alter any user setting.
+    tmp = warnings.formatwarning
+    warnings.formatwarning = lambda msg, *args, **kwargs: f"{msg}\n"
+    warnings.warn(msg, category=category, stacklevel=stacklevel)
+    warnings.formatwarning = tmp
 
 
 def _check_data_name_validity(name: Optional[str]):
@@ -252,9 +318,17 @@ def _output_to_disk(
 
 
 def output_to_disk(
-    data: Any, name: Optional[str], serialization: Optional[Serialization] = None
+    data: Any,
+    name: Optional[str],
+    serialization: Optional[Serialization] = None,
 ) -> None:
     """Outputs data to disk.
+
+    Note:
+        Calling :meth:`output_to_disk` multiple times within the same
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
 
     To manage outputing the data to disk, this function has a side
     effect:
@@ -284,18 +358,13 @@ def output_to_disk(
     Example:
         >>> data = "Data I would like to use in my next step"
         >>> output_to_disk(data, name="my_data")
-
-    Note:
-        Calling :meth:`output_to_disk` multiple times within the same
-        script will overwrite the output, even when using a different
-        output ``name``. You therefore want to be only calling the
-        function once.
-
     """
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
+
+    _warn_multiple_data_output_if_necessary(name)
 
     if name is None:
         name = Config._RESERVED_UNNAMED_OUTPUTS_STR
@@ -536,9 +605,17 @@ def _output_to_memory(
 
 
 def output_to_memory(
-    data: Any, name: Optional[str], disk_fallback: bool = True
+    data: Any,
+    name: Optional[str],
+    disk_fallback: bool = True,
 ) -> None:
     """Outputs data to memory.
+
+    Note:
+        Calling :meth:`output_to_memory` multiple times within the same
+        script will overwrite the output, even when using a different
+        output ``name``. You therefore want to be only calling the
+        function once.
 
     To manage outputing the data to memory for the user, this function
     uses metadata to add info to objects inside the plasma store.
@@ -572,18 +649,13 @@ def output_to_memory(
     Example:
         >>> data = "Data I would like to use in my next step"
         >>> output_to_memory(data, name="my_data")
-
-    Note:
-        Calling :meth:`output_to_memory` multiple times within the same
-        script will overwrite the output, even when using a different
-        output ``name``. You therefore want to be only calling the
-        function once.
-
     """
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
+
+    _warn_multiple_data_output_if_necessary(name)
 
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
@@ -638,7 +710,11 @@ def output_to_memory(
         # TODO: note that metadata is lost when falling back to disk.
         #       Therefore we will only support metadata added by the
         #       user, once disk also supports passing metadata.
-        return output_to_disk(obj, name, serialization=serialization)
+        return output_to_disk(
+            obj,
+            name,
+            serialization=serialization,
+        )
 
     return
 
@@ -891,8 +967,16 @@ def _resolve(
     )
 
 
-def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str, Any]:
+def get_inputs(
+    ignore_failure: bool = False,
+    verbose: bool = False,
+) -> Dict[str, Any]:
     """Gets all data sent from incoming steps.
+
+    Warning:
+        Only call :meth:`get_inputs` once! When auto eviction is
+        configured data might no longer be available. Either cache the
+        data or maintain a copy yourself.
 
     Args:
         ignore_failure: If ``True`` then the returned result can have
@@ -940,13 +1024,12 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
             object store died (and therefore lost all its data).
         StepUUIDResolveError: The step's UUID cannot be resolved and
             thus it cannot determine what inputs to get.
-
-    Warning:
-        Only call :meth:`get_inputs` once! When auto eviction is
-        configured data might no longer be available. Either cache the
-        data or maintain a copy yourself.
-
     """
+    global _get_inputs_called
+    if not Config.silence_multiple_data_transfer_calls_warning and _get_inputs_called:
+        _print_warning_message(_GET_INPUTS_CALLED_TWICE_WARNING)
+    _get_inputs_called = True
+
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
             pipeline_definition = json.load(f)
@@ -1041,11 +1124,20 @@ def get_inputs(ignore_failure: bool = False, verbose: bool = False) -> Dict[str,
     return data
 
 
-def output(data: Any, name: Optional[str]) -> None:
+def output(
+    data: Any,
+    name: Optional[str],
+) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
     It first tries to output to memory and if it does not fit in memory,
     then disk will be used.
+
+    Note:
+        Calling :meth:`output` multiple times within the same step
+        will overwrite the output, even when using a different output
+        ``name``. You therefore want to be only calling the function
+        once.
 
     Args:
         data: Data to output.
@@ -1068,20 +1160,17 @@ def output(data: Any, name: Optional[str]) -> None:
     Example:
         >>> data = "Data I would like to use in my next step"
         >>> output(data, name="my_data")
-
-    Note:
-        Calling :meth:`output` multiple times within the same script
-        will overwrite the output, even when using a different output
-        ``name``. You therefore want to be only calling the function
-        once.
-
     """
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
 
-    return output_to_memory(data, name, disk_fallback=True)
+    return output_to_memory(
+        data,
+        name,
+        disk_fallback=True,
+    )
 
 
 def _convert_uuid_to_object_id(step_uuid: str) -> plasma.ObjectID:
