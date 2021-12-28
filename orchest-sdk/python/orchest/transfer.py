@@ -33,10 +33,6 @@ class Serialization(Enum):
     PICKLE = 2
 
 
-# Calling get_inputs() or any output* function multiple times produces
-# a warning, setting this to True allows you do silence those warnings.
-silence_multiple_data_transfer_calls_warning: bool = False
-
 _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE = (
     "Refer to the docs at "
     "https://docs.orchest.io/en/latest/fundamentals/data_passing.html#data-passing "
@@ -45,7 +41,7 @@ _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE = (
 
 _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE = (
     "To silence all warnings related to calling data transfer functions multiple "
-    "times, set orchest.silence_multiple_data_transfer_calls_warning to True."
+    "times, set orchest.Config.silence_multiple_data_transfer_calls_warning to True."
 )
 
 # Use an int because a name is Optional[str]. Indirectly acts as a
@@ -56,7 +52,9 @@ _OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING = (
         "WARNING: Outputting data multiple times will overwrite previously outputted "
         "data, regardless of the given `name`."
     )
+    + " "
     + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
+    + " "
     + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
 )
 
@@ -64,7 +62,7 @@ _OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING = (
 def _warn_multiple_data_output_if_necessary(name: Optional[str]):
     global _last_output_name
     if (
-        not silence_multiple_data_transfer_calls_warning
+        not Config.silence_multiple_data_transfer_calls_warning
         and _last_output_name != -1
         and _last_output_name != name
     ):
@@ -80,7 +78,9 @@ _GET_INPUTS_CALLED_TWICE_WARNING = (
         "slated for eviction from memory, causing the data to no longer be available "
         "for subsequent calls to `get_inputs`."
     )
+    + " "
     + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
+    + " "
     + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
 )
 
@@ -88,7 +88,8 @@ _GET_INPUTS_CALLED_TWICE_WARNING = (
 def _print_warning_message(msg: str, category=RuntimeWarning, stacklevel=2) -> None:
     # Print only the message, without line number, module etc. There
     # isn't a setting that makes this information meaningful in all
-    # cases.
+    # cases. For example, it will output information related to the
+    # Orchest script running the notebook depending on the stacklevel.
 
     # Hold in a temporary variable to not alter any user setting.
     tmp = warnings.formatwarning
@@ -971,7 +972,6 @@ def _resolve(
 def get_inputs(
     ignore_failure: bool = False,
     verbose: bool = False,
-    silence_multiple_calls_warning: bool = False,
 ) -> Dict[str, Any]:
     """Gets all data sent from incoming steps.
 
@@ -984,8 +984,6 @@ def get_inputs(
             :exc:`OutputNotFoundError`
         verbose: If ``True`` print all the steps from which the current
             step has retrieved data.
-        silence_multiple_calls_warning: If ``True`` the function will
-            print a warning when being called multiple times per step.
 
     Returns:
         Dictionary with input data for this step. We differentiate
@@ -1030,7 +1028,7 @@ def get_inputs(
 
     """
     global _get_inputs_called
-    if not silence_multiple_calls_warning and _get_inputs_called:
+    if not Config.silence_multiple_data_transfer_calls_warning and _get_inputs_called:
         _print_warning_message(_GET_INPUTS_CALLED_TWICE_WARNING)
     _get_inputs_called = True
 
