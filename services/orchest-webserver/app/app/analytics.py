@@ -133,13 +133,14 @@ def send_event(
             "event_properties": ...  # anonymized event properties
             "derived_properties": ...  # derived from removed properties
             "app_properties": ...  # Orchest application properties
+            "system_properties": ...  # System Properties, e.g. OS type.
         }
 
     Args:
         app: The Flask application that received the event.
         event: The event to send.
         event_properties: Any information that describes the event. This
-            information will be anonimzed and send to the telemetry
+            information will be anonymized and sent to the telemetry
             service.
 
     Returns:
@@ -168,6 +169,7 @@ def send_event(
         return False
 
     _add_app_properties(event_data, app)
+    _add_system_properties(event_data)
 
     telemetry_uuid = _get_telemetry_uuid(app)
     try:
@@ -194,6 +196,13 @@ def _add_app_properties(data: dict, app: Flask) -> None:
         "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
         "dev": StaticConfig.FLASK_ENV == "development",
         "cloud": StaticConfig.CLOUD,
+    }
+
+
+def _add_system_properties(data: dict) -> None:
+    data["system_properties"] = {
+        "host_os": os.environ.get("HOST_OS"),
+        "gpu_enabled_instance": StaticConfig.GPU_ENABLED_INSTANCE,
     }
 
 
