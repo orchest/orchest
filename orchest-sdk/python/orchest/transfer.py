@@ -48,7 +48,9 @@ _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE = (
     "times, set orchest.silence_multiple_data_transfer_calls_warning to True."
 )
 
-_output_functions_called = False
+# Use an int because a name is Optional[str]. Indirectly acts as a
+# variable to know if any output* function was called.
+_last_output_name = -1
 _OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING = (
     (
         "WARNING: Outputting data multiple times will overwrite previously outputted "
@@ -57,6 +59,18 @@ _OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING = (
     + _MULTIPLE_DATA_TRANSFER_CALLS_WARNING_DOCS_REFERENCE
     + _MULTIPLE_DATA_TRANSFER_CALLS_HOW_TO_SILENCE
 )
+
+
+def _warn_multiple_data_output_if_necessary(name: Optional[str]):
+    global _last_output_name
+    if (
+        not silence_multiple_data_transfer_calls_warning
+        and _last_output_name != -1
+        and _last_output_name != name
+    ):
+        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
+    _last_output_name = name
+
 
 _get_inputs_called = False
 _GET_INPUTS_CALLED_TWICE_WARNING = (
@@ -345,15 +359,12 @@ def output_to_disk(
         function once.
 
     """
-    global _output_functions_called
-    if not silence_multiple_data_transfer_calls_warning and _output_functions_called:
-        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
-    _output_functions_called = True
-
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
+
+    _warn_multiple_data_output_if_necessary(name)
 
     if name is None:
         name = Config._RESERVED_UNNAMED_OUTPUTS_STR
@@ -640,15 +651,12 @@ def output_to_memory(
         function once.
 
     """
-    global _output_functions_called
-    if not silence_multiple_data_transfer_calls_warning and _output_functions_called:
-        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
-    _output_functions_called = True
-
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
+
+    _warn_multiple_data_output_if_necessary(name)
 
     try:
         with open(Config.PIPELINE_DEFINITION_PATH, "r") as f:
@@ -1158,11 +1166,6 @@ def output(
         once.
 
     """
-    global _output_functions_called
-    if not silence_multiple_data_transfer_calls_warning and _output_functions_called:
-        _print_warning_message(_OUTPUT_FUNCTIONS_CALLED_MULTIPLE_TIMES_WARNING)
-    _output_functions_called = True
-
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
