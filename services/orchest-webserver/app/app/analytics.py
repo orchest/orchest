@@ -196,6 +196,10 @@ def _add_app_properties(data: dict, app: Flask) -> None:
         "orchest_version": app.config.get("ORCHEST_REPO_TAG"),
         "dev": StaticConfig.FLASK_ENV == "development",
         "cloud": StaticConfig.CLOUD,
+        "max_interactive_runs_parallelism": app.config.get(
+            "MAX_INTERACTIVE_RUNS_PARALLELISM"
+        ),
+        "max_job_runs_parallelism": app.config.get("MAX_JOB_RUNS_PARALLELISM"),
     }
 
 
