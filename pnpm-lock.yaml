@@ -32,17 +32,17 @@ importers:
     specifiers:
       '@testing-library/cypress': 7.0.7
       '@types/node': 15.0.1
-      cypress: 8.6.0
+      cypress: 9.2.0
       cypress-localstorage-commands: 1.5.0
       cypress-pipe: 2.0.0
       deep-equal: 2.0.5
       react: ^17.0.0
       typescript: 4.5.2
     devDependencies:
-      '@testing-library/cypress': 7.0.7_cypress@8.6.0
+      '@testing-library/cypress': 7.0.7_cypress@9.2.0
       '@types/node': 15.0.1
-      cypress: 8.6.0
-      cypress-localstorage-commands: 1.5.0_cypress@8.6.0
+      cypress: 9.2.0
+      cypress-localstorage-commands: 1.5.0_cypress@9.2.0
       cypress-pipe: 2.0.0
       deep-equal: 2.0.5
       react: 17.0.2
@@ -500,8 +500,8 @@ packages:
       '@babel/helper-validator-identifier': 7.15.7
       to-fast-properties: 2.0.0
 
-  /@cypress/request/2.88.6:
-    resolution: {integrity: sha512-z0UxBE/+qaESAHY9p9sM2h8Y4XqtsbDCt0/DPOrqA/RZgKi4PkxdpXyK4wCCnSk1xHqWHZZAE+gV6aDAR6+caQ==}
+  /@cypress/request/2.88.10:
+    resolution: {integrity: sha512-Zp7F+R93N0yZyG34GutyTNr+okam7s/Fzc1+i3kcqOP8vk6OuajuE9qZJ6Rs+10/1JFtXFYMdyarnU1rZuJesg==}
     engines: {node: '>= 6'}
     dependencies:
       aws-sign2: 0.7.0
@@ -511,8 +511,7 @@ packages:
       extend: 3.0.2
       forever-agent: 0.6.1
       form-data: 2.3.3
-      har-validator: 5.1.5
-      http-signature: 1.2.0
+      http-signature: 1.3.6
       is-typedarray: 1.0.0
       isstream: 0.1.2
       json-stringify-safe: 5.0.1
@@ -1119,7 +1118,7 @@ packages:
       react: 17.0.2
     dev: false
 
-  /@testing-library/cypress/7.0.7_cypress@8.6.0:
+  /@testing-library/cypress/7.0.7_cypress@9.2.0:
     resolution: {integrity: sha512-4yavolmN9o4Lmtrff6sbOTNFW9VqRRqDrP6gS2hkqLri4+lKURRYblg8kjOlcni/5h/qctFych+gkUOkpgypxw==}
     engines: {node: '>=10', npm: '>=6'}
     peerDependencies:
@@ -1127,7 +1126,7 @@ packages:
     dependencies:
       '@babel/runtime': 7.15.4
       '@testing-library/dom': 7.31.2
-      cypress: 8.6.0
+      cypress: 9.2.0
     dev: true
 
   /@testing-library/dom/7.31.2:
@@ -1934,26 +1933,26 @@ packages:
   /csstype/3.0.10:
     resolution: {integrity: sha512-2u44ZG2OcNUO9HDp/Jl8C07x6pU/eTR3ncV91SiK3dhG9TWvRVsCoJw14Ckx5DgWkzGA3waZWO3d7pgqpUI/XA==}
 
-  /cypress-localstorage-commands/1.5.0_cypress@8.6.0:
+  /cypress-localstorage-commands/1.5.0_cypress@9.2.0:
     resolution: {integrity: sha512-gl1uKeviYdyJG4dLcZ9hfoUjLciwkkfbaQ3gvRtmipsPxC612ZBJhSjbunnJcUGwkryaM+82VrY9ij0tLSg7LA==}
     engines: {node: 10.x || 12.x || 14.x || 15.x || 16.x}
     peerDependencies:
       cypress: ^2.1.0 || 3.x || 4.x || 5.x || 6.x || 7.x || 8.x
     dependencies:
-      cypress: 8.6.0
+      cypress: 9.2.0
     dev: true
 
   /cypress-pipe/2.0.0:
     resolution: {integrity: sha512-KW9s+bz4tFLucH3rBGfjW+Q12n7S4QpUSSyxiGrgPOfoHlbYWzAGB3H26MO0VTojqf9NVvfd5Kt0MH5XMgbfyg==}
     dev: true
 
-  /cypress/8.6.0:
-    resolution: {integrity: sha512-F7qEK/6Go5FsqTueR+0wEw2vOVKNgk5847Mys8vsWkzPoEKdxs+7N9Y1dit+zhaZCLtMPyrMwjfA53ZFy+lSww==}
+  /cypress/9.2.0:
+    resolution: {integrity: sha512-Jn26Tprhfzh/a66Sdj9SoaYlnNX6Mjfmj5PHu2a7l3YHXhrgmavM368wjCmgrxC6KHTOv9SpMQGhAJn+upDViA==}
     engines: {node: '>=12.0.0'}
     hasBin: true
     requiresBuild: true
     dependencies:
-      '@cypress/request': 2.88.6
+      '@cypress/request': 2.88.10
       '@cypress/xvfb': 1.2.4
       '@types/node': 14.17.5
       '@types/sinonjs__fake-timers': 6.0.3
@@ -1988,7 +1987,6 @@ packages:
       ospath: 1.2.2
       pretty-bytes: 5.6.0
       proxy-from-env: 1.0.0
-      ramda: 0.27.1
       request-progress: 3.0.0
       supports-color: 8.1.1
       tmp: 0.2.1
@@ -2947,20 +2945,6 @@ packages:
     resolution: {integrity: sha512-nTnJ528pbqxYanhpDYsi4Rd8MAeaBA67+RZ10CM1m3bTAVFEDcd5AuA4a6W5YkGZ1iNXHzZz8T6TBKLeBuNriQ==}
     dev: true
 
-  /har-schema/2.0.0:
-    resolution: {integrity: sha1-qUwiJOvKwEeCoNkDVSHyRzW37JI=}
-    engines: {node: '>=4'}
-    dev: true
-
-  /har-validator/5.1.5:
-    resolution: {integrity: sha512-nmT2T0lljbxdQZfspsno9hgrG3Uir6Ks5afism62poxqBM6sDnMEuPmzTq8XN0OEwqKLLdh1jQI3qyE66Nzb3w==}
-    engines: {node: '>=6'}
-    deprecated: this library is no longer supported
-    dependencies:
-      ajv: 6.12.6
-      har-schema: 2.0.0
-    dev: true
-
   /has-bigints/1.0.1:
     resolution: {integrity: sha512-LSBS2LjbNBTf6287JEbEzvJgftkF5qFkmCo9hDRpAzKhUOlJ+hx8dd4USs00SgsUNwc4617J9ki5YtEClM2ffA==}
     dev: true
@@ -3030,12 +3014,12 @@ packages:
     resolution: {integrity: sha512-ckAx3EkUr5XjDwjEHDorHxRO2Kb7z6Z2Sxul4MbBkN8Nho7XDslQsgMJT+CiJ5Z4TgRxxvKHEpuLE3imzqy4Lg==}
     dev: false
 
-  /http-signature/1.2.0:
-    resolution: {integrity: sha1-muzZJRFHcvPZW2WmCruPfBj7rOE=}
-    engines: {node: '>=0.8', npm: '>=1.3.7'}
+  /http-signature/1.3.6:
+    resolution: {integrity: sha512-3adrsD6zqo4GsTqtO7FyrejHNv+NgiIfAfv68+jVlFmSr9OGy7zrxONceFRLKvnnZA5jbxQBX1u9PpB6Wi32Gw==}
+    engines: {node: '>=0.10'}
     dependencies:
       assert-plus: 1.0.0
-      jsprim: 1.4.1
+      jsprim: 2.0.2
       sshpk: 1.16.1
     dev: true
 
@@ -3374,8 +3358,8 @@ packages:
   /json-schema-traverse/1.0.0:
     resolution: {integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==}
 
-  /json-schema/0.2.3:
-    resolution: {integrity: sha1-tIDIkuWaLwWVTOcnvT8qTogvnhM=}
+  /json-schema/0.4.0:
+    resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
     dev: true
 
   /json-stable-stringify-without-jsonify/1.0.1:
@@ -3409,13 +3393,13 @@ packages:
       graceful-fs: 4.2.6
     dev: true
 
-  /jsprim/1.4.1:
-    resolution: {integrity: sha1-MT5mvB5cwG5Di8G3SZwuXFastqI=}
+  /jsprim/2.0.2:
+    resolution: {integrity: sha512-gqXddjPqQ6G40VdnI6T6yObEC+pDNvyP95wdQhkWkg7crHH3km5qP1FsOXEkzEQwnz6gz5qGTn1c2Y52wP3OyQ==}
     engines: {'0': node >=0.6.0}
     dependencies:
       assert-plus: 1.0.0
       extsprintf: 1.3.0
-      json-schema: 0.2.3
+      json-schema: 0.4.0
       verror: 1.10.0
     dev: true
 
@@ -3908,10 +3892,6 @@ packages:
 
   /queue-microtask/1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
-    dev: true
-
-  /ramda/0.27.1:
-    resolution: {integrity: sha512-PgIdVpn5y5Yns8vqb8FzBUEYn98V3xcPgawAkkgj0YJ0qDsnHCiNmZYfOGMgOvoB0eWFLpYbhxUR3mxfDIMvpw==}
     dev: true
 
   /react-codemirror2/7.2.1_codemirror@5.64.0+react@17.0.2:
