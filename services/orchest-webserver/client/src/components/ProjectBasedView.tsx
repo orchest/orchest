@@ -1,6 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import AddIcon from "@mui/icons-material/Add";
+import Button from "@mui/material/Button";
 import React from "react";
 
 export interface IProjectBasedViewProps {
@@ -24,13 +25,14 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
       ) : (
         <div>
           <p className="push-down">{message}</p>
-          <MDCButtonReact
-            classNames={["mdc-button--raised", "themed-secondary"]}
+          <Button
+            variant="contained"
             onClick={goToProjects}
-            label="Create your first project!"
-            icon="add"
-            submitButton
-          />
+            startIcon={<AddIcon />}
+            autoFocus
+          >
+            Create your first project!
+          </Button>
         </div>
       )}
     </div>

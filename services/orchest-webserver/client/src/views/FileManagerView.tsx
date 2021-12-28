@@ -7,8 +7,8 @@ const FileManagerView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.fileManager.path });
 
   return (
-    <Layout>
-      <div className="view-page no-padding">
+    <Layout disablePadding fullHeight>
+      <div className="view-page no-padding fullheight">
         <iframe className="borderless fullsize" src="/container-file-manager" />
       </div>
     </Layout>

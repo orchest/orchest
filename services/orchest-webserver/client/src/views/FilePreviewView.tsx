@@ -1,5 +1,8 @@
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import {
   getPipelineJSONEndpoint,
@@ -7,7 +10,10 @@ import {
   getPipelineStepParents,
   setWithRetry,
 } from "@/utils/webserver-utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import CloseIcon from "@mui/icons-material/Close";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   makeCancelable,
   makeRequest,
@@ -28,7 +34,8 @@ const MODE_MAPPING = {
 
 const FilePreviewView: React.FC = () => {
   // global states
-  const { orchest } = window;
+  const { setAlert } = useAppContext();
+  useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
 
   // data from route
   const {
@@ -174,13 +181,13 @@ const FilePreviewView: React.FC = () => {
 
   const renderNavStep = (steps) => {
     return steps.map((step) => (
-      <button
+      <Button
+        variant="text"
         key={step.uuid}
         onClick={() => stepNavigate(step.uuid)}
-        className="text-button"
       >
         {step.title}
-      </button>
+      </Button>
     ));
   };
 
@@ -255,7 +262,7 @@ const FilePreviewView: React.FC = () => {
         }
       })
       .catch(() => {
-        orchest.alert(
+        setAlert(
           "Error",
           "Failed to load file. Make sure the path of the pipeline step is correct."
         );
@@ -285,27 +292,23 @@ const FilePreviewView: React.FC = () => {
   let childStepElements = renderNavStep(state.childSteps);
 
   return (
-    <Layout>
+    <Layout fullHeight>
       <div
-        className={"view-page file-viewer no-padding"}
+        className={"view-page file-viewer no-padding fullheight relative"}
         ref={refManager.nrefs.fileViewer}
       >
         <div className="top-buttons">
-          <MDCButtonReact
-            classNames={["refresh-button"]}
-            icon="refresh"
-            onClick={loadFile}
-          />
-          <MDCButtonReact
-            classNames={["close-button"]}
-            icon="close"
-            onClick={loadPipelineView}
-          />
+          <IconButton title="refresh" onClick={loadFile}>
+            <RefreshIcon />
+          </IconButton>
+          <IconButton title="Close" onClick={loadPipelineView}>
+            <CloseIcon />
+          </IconButton>
         </div>
 
         {(() => {
           if (state.loadingFile) {
-            return <MDCLinearProgressReact />;
+            return <LinearProgress />;
           } else if (
             state.fileDescription != undefined &&
             state.parentSteps != undefined

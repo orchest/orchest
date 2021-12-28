@@ -314,7 +314,7 @@ class GlobalOrchestConfig:
         except json.JSONDecodeError as e:
             logger.debug(e, exc_info=True)
 
-            # NOTE: It can not pass silenty because then we might write
+            # NOTE: It can not pass silently because then we might write
             # to the file later on, overwriting existing values. This
             # could break the Telemetry.
             raise _errors.CorruptedFileError(

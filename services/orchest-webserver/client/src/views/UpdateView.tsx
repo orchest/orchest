@@ -1,8 +1,14 @@
+import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
+import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import {
   checkHeartbeat,
   makeCancelable,
@@ -12,7 +18,7 @@ import {
 import React from "react";
 
 const UpdateView: React.FC = () => {
-  const { orchest } = window;
+  const { setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
   const [state, setState] = React.useState((prevState) => ({
@@ -25,35 +31,37 @@ const UpdateView: React.FC = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const startUpdateTrigger = () => {
-    orchest.confirm(
+    return setConfirm(
       "Warning",
       "Are you sure you want to update Orchest? This will kill all active sessions and ongoing runs.",
-      () => {
+      async () => {
         setState({
           updating: true,
           updateOutput: "",
         });
 
-        makeRequest("GET", "/async/spawn-update-server", {})
-          .then(() => {
-            console.log("Spawned update-server, start polling update-server.");
+        try {
+          await makeRequest("GET", "/async/spawn-update-server", {});
+          console.log("Spawned update-server, start polling update-server.");
 
-            checkHeartbeat("/update-server/heartbeat")
-              .then(() => {
-                console.log("Update service available");
-                requestUpdate();
-              })
-              .catch((retries) => {
-                console.log(
-                  "Update service heartbeat checking timed out after " +
-                    retries +
-                    " retries."
-                );
-              });
-          })
-          .catch((e) => {
-            console.log("Failed to trigger update", e);
-          });
+          checkHeartbeat("/update-server/heartbeat")
+            .then(() => {
+              console.log("Update service available");
+              requestUpdate();
+            })
+            .catch((retries) => {
+              console.log(
+                "Update service heartbeat checking timed out after " +
+                  retries +
+                  " retries."
+              );
+            });
+
+          return true;
+        } catch (error) {
+          console.log("Failed to trigger update", error);
+          return false;
+        }
       }
     );
   };
@@ -119,41 +127,29 @@ const UpdateView: React.FC = () => {
 
   return (
     <Layout>
-      <div className={"view-page update-page"}>
-        <h2>Orchest updater</h2>
-        <p className="push-down">Update Orchest to the latest version.</p>
-
-        {(() => {
-          let elements = [];
-
-          if (state.updating) {
-            elements.push(
-              <MDCLinearProgressReact key="0" classNames={["push-down"]} />
-            );
-          }
-          if (state.updateOutput.length > 0) {
-            elements.push(
-              <div key="1" className="console-output">
-                {updateOutputLines.join("\n")}
-              </div>
-            );
-          }
-
-          return (
-            <React.Fragment>
-              <MDCButtonReact
-                classNames={["push-down"]}
-                label="Start update"
-                icon="system_update_alt"
-                disabled={state.updating}
-                onClick={startUpdateTrigger}
-              />
-
-              {elements}
-            </React.Fragment>
-          );
-        })()}
-      </div>
+      <Paper
+        sx={{
+          padding: (theme) => theme.spacing(3),
+        }}
+        className={"view-page update-page"}
+      >
+        <Typography variant="h5">Orchest updater</Typography>
+        <Typography sx={{ marginTop: 3, marginBottom: 3 }}>
+          Update Orchest to the latest version.
+        </Typography>
+        <Button
+          sx={{ marginBottom: 3 }}
+          startIcon={<SystemUpdateAltIcon />}
+          disabled={state.updating}
+          onClick={startUpdateTrigger}
+        >
+          Start update
+        </Button>
+        {state.updating && <LinearProgress sx={{ marginBottom: 3 }} />}
+        {state.updateOutput.length > 0 && (
+          <ConsoleOutput>{updateOutputLines.join("\n")}</ConsoleOutput>
+        )}
+      </Paper>
     </Layout>
   );
 };

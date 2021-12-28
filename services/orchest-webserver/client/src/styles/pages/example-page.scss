@@ -160,20 +160,6 @@ $tag-max-width: 8rem;
   }
 }
 
-.github-start-button-container {
-  transform: translate(0, var(--space-1));
-}
-
-.example-import-button.mdc-button:not(:disabled) {
-  background-color: white;
-  border: 1px solid var(--colors-gray300);
-  padding: 0 var(--space-4);
-  color: var(--colors-primary);
-  &:hover {
-    border: 1px solid transparent; // we still need border to prevent jumping
-  }
-}
-
 .contribute-card {
   @extend .example-card;
   background-color: var(--colors-primary);

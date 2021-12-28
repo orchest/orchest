@@ -37,19 +37,19 @@ export enum TEST_ID {
   AUTH_ADMIN_IFRAME = "auth-admin-iframe",
   CONFIRM_DIALOG_OK = "confirm-dialog-ok",
   CREATE_PROJECT = "create-project",
-  DELETE_PROJECT = "delete-project",
+  DELETE_PROJECT = "project-list-delete",
   ENVIRONMENTS_BUILD_STATUS = "environments-build-status",
   ENVIRONMENTS_CANCEL_BUILD = "environments-cancel-build",
   ENVIRONMENTS_CREATE = "environments-create",
-  ENVIRONMENTS_DELETE = "environments-delete",
+  ENVIRONMENTS_DELETE = "environment-list-delete",
   ENVIRONMENTS_ENV_NAME = "environments-env-name",
-  ENVIRONMENTS_ROW = "environments-row",
+  ENVIRONMENTS_ROW = "environment-list-row",
   ENVIRONMENTS_ROW_CHECKBOX = "environments-row-checkbox",
   ENVIRONMENTS_SAVE = "environments-save",
-  ENVIRONMENTS_START_BUILD = "environments-start-build",
-  ENVIRONMENTS_TAB_BUILD = "environments-tab-build",
-  ENVIRONMENTS_TAB_PROPERTIES = "environments-tab-properties",
-  ENVIRONMENTS_TOGGLE_ALL_ROWS = "environments-toggle-all-rows",
+  ENVIRONMENT_START_BUILD = "environment-start-build",
+  ENVIRONMENT_TAB_BUILD = "environment-build-tab",
+  ENVIRONMENT_TAB_PROPERTIES = "environment-properties-tab",
+  ENVIRONMENTS_TOGGLE_ALL_ROWS = "environment-list-toggle-all-rows",
   FILE_PICKER_FILE_PATH_TEXTFIELD = "file-picker-file-path-textfield",
   FILE_PICKER_NEW_FILE = "file-picker-new-file",
   IMPORT_PROJECT = "import-project",
@@ -73,10 +73,10 @@ export enum TEST_ID {
   JOB_EDIT_SCHEDULE_DATE_INPUT_DATE = "job-edit-schedule-date-input-date",
   JOB_EDIT_SCHEDULE_DATE_INPUT_TIME = "job-edit-schedule-date-input-time",
   JOB_EDIT_SCHEDULE_NOW = "job-edit-schedule-now",
-  JOB_EDIT_TAB_ENVIRONMENT_VARIABLES = "job-edit-tab-environment-variables",
-  JOB_EDIT_TAB_PARAMETERS = "job-edit-tab-parameters",
-  JOB_EDIT_TAB_PIPELINE_RUNS = "job-edit-tab-pipeline-runs",
-  JOB_EDIT_TAB_SCHEDULING = "job-edit-tab-scheduling",
+  JOB_EDIT_TAB_ENVIRONMENT_VARIABLES = "environment-variables-tab",
+  JOB_EDIT_TAB_PARAMETERS = "parameters-tab",
+  JOB_EDIT_TAB_PIPELINE_RUNS = "runs-tab",
+  JOB_EDIT_TAB_SCHEDULING = "scheduling-tab",
   JOB_ENVIRONMENT_VARIABLES = "job-environment-variables",
   JOB_PARAMETERS = "job-parameters",
   JOB_PIPELINE_RUNS = "job-pipeline-runs",
@@ -107,13 +107,13 @@ export enum TEST_ID {
   ONBOARDING_SLIDE = "onboarding-slide",
   ORCHEST_LOGO = "orchest-logo",
   PIPELINES_TABLE = "pipelines-table",
-  PIPELINES_TABLE_ROW = "pipelines-table-row",
-  PIPELINES_TABLE_TOGGLE_ALL_ROWS = "pipelines-table-toggle-all-rows",
+  PIPELINES_TABLE_ROW = "pipeline-list-row",
+  PIPELINES_TABLE_TOGGLE_ALL_ROWS = "pipeline-list-toggle-all-rows",
   PIPELINE_BACK_TO_JOB = "pipeline-back-to-job",
   PIPELINE_CENTER = "pipeline-center",
   PIPELINE_CREATE = "pipeline-create",
   PIPELINE_CREATE_OK = "pipeline-create-ok",
-  PIPELINE_DELETE = "pipeline-delete",
+  PIPELINE_DELETE = "pipeline-list-delete",
   PIPELINE_EDIT_PATH = "pipeline-edit-path",
   PIPELINE_EDIT_PATH_SAVE = "pipeline-edit-path-save",
   PIPELINE_EDIT_PATH_TEXTFIELD = "pipeline-edit-path-textfield",
@@ -122,7 +122,7 @@ export enum TEST_ID {
   PIPELINE_ENV_VAR_VALUE = "pipeline-env-var-value",
   PIPELINE_NAME_TEXTFIELD = "pipeline-name-textfield",
   PIPELINE_PATH_TEXTFIELD = "pipeline-path-textfield",
-  PIPELINE_SERVICES_ROW = "pipeline-services-row",
+  PIPELINE_SERVICES_ROW = "service-list-row",
   PIPELINE_SERVICE_ADD = "pipeline-service-add",
   PIPELINE_SETTINGS = "pipeline-settings",
   PIPELINE_SETTINGS_CLOSE = "pipeline-settings-close",
@@ -131,12 +131,12 @@ export enum TEST_ID {
   PIPELINE_SETTINGS_CONFIGURATION_PIPELINE_NAME = "pipeline-settings-configuration-pipeline-name",
   PIPELINE_SETTINGS_CONFIGURATION_RESTART_MEMORY_SERVER = "pipeline-settings-configuration-restart-memory-server",
   PIPELINE_SETTINGS_SAVE = "pipeline-settings-save",
-  PIPELINE_SETTINGS_TAB_CONFIGURATION = "pipeline-settings-tab-configuration",
-  PIPELINE_SETTINGS_TAB_ENVIRONMENT_VARIABLES = "pipeline-settings-tab-environment-variables",
-  PIPELINE_SETTINGS_TAB_SERVICES = "pipeline-settings-tab-services",
+  PIPELINE_SETTINGS_TAB_CONFIGURATION = "configuration-tab",
+  PIPELINE_SETTINGS_TAB_ENVIRONMENT_VARIABLES = "environment-variables-tab",
+  PIPELINE_SETTINGS_TAB_SERVICES = "services-tab",
   PIPELINE_STEP = "pipeline-step",
-  PROJECTS_TABLE_ROW = "projects-table-row",
-  PROJECTS_TABLE_TOGGLE_ALL_ROWS = "projects-table-toggle-all-rows",
+  PROJECTS_TABLE_ROW = "project-list-row",
+  PROJECTS_TABLE_TOGGLE_ALL_ROWS = "project-list-toggle-all-rows",
   PROJECT_ENV_VAR_ADD = "project-env-var-add",
   PROJECT_ENV_VAR_NAME = "project-env-var-name",
   PROJECT_ENV_VAR_VALUE = "project-env-var-value",
@@ -279,7 +279,7 @@ export const PROJECTS = {
 export function assertTotalEnvironmentImages(expected: number, retries = 50) {
   cy.log(`Asserting that the number of environment images is ${expected}.`);
   cy.totalEnvironmentImages().then((total) => {
-    if (total != expected) {
+    if (total !== expected) {
       retries--;
       if (retries > 0) {
         cy.wait(200, { log: false });
@@ -358,6 +358,41 @@ export function waitForJobStatus(expected: string, retries = 100) {
   });
 }
 
+export function reloadUntilElementsLoaded(
+  testId: string,
+  isPageLoaded: () => Cypress.Chainable<any> = () => cy.wrap(undefined),
+  numberOfElements = 1,
+  retries = 10
+) {
+  cy.reload(true);
+  return isPageLoaded().then(() => {
+    // NOTE: if we use cy.find, it will fail and discontinue the test when no element is found.
+    // therefore, we need to use jQuery to get the elements synchronously
+    // and retry conditionally
+    const listLength = Cypress.$(`[data-test-id='${testId}']`).length;
+    if (
+      listLength < numberOfElements ||
+      (numberOfElements === 0 && listLength > numberOfElements) // in case of deleting
+    ) {
+      retries--;
+      if (retries > 0) {
+        return reloadUntilElementsLoaded(
+          testId,
+          isPageLoaded,
+          numberOfElements,
+          retries
+        );
+      } else {
+        throw new Error(
+          `Projects are not loaded. (expected: ${numberOfElements}, actual: ${listLength} )`
+        );
+      }
+    } else {
+      cy.wrap(numberOfElements).should("equal", listLength);
+    }
+  });
+}
+
 // Assumes to be in a JobView.
 export function waitForJobRunsStatus(
   expectedStatus: string,
@@ -367,7 +402,8 @@ export function waitForJobRunsStatus(
 ) {
   cy.location("pathname").should("eq", "/job");
   let passingRuns = [];
-  cy.findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
+  return cy
+    .findAllByTestId(TEST_ID.JOB_PIPELINE_RUNS_ROW)
     .each((run) => {
       if (run.text().indexOf(expectedStatus) !== -1) {
         passingRuns.push(run);
@@ -375,6 +411,7 @@ export function waitForJobRunsStatus(
     })
     .wrap(passingRuns)
     .then((passingRuns) => {
+      cy.log(`Number of passing runs: ${passingRuns.length}`);
       if (passingRuns.length !== expectedNumberOfRuns) {
         retries--;
         if (retries > 0) {
@@ -392,6 +429,7 @@ export function waitForJobRunsStatus(
           );
         }
       } else {
+        cy.wrap(expectedNumberOfRuns).should("equal", passingRuns.length);
         if (callback !== undefined) {
           callback();
         }
@@ -402,7 +440,7 @@ export function waitForJobRunsStatus(
 // Assumes paramName is unique across steps/pipeline params.
 export function setJobParameter(
   paramName: string,
-  paramValues: Record<string, unknown>
+  paramValues: (string | number | Record<string, any>)[]
 ) {
   cy.findByTestId(TEST_ID.JOB_EDIT_TAB_PARAMETERS).click();
   cy.location("pathname").should("eq", "/edit-job");
@@ -454,13 +492,21 @@ export function assertEnvIsBuilt() {
   // Make sure the environment is built.
   cy.goToMenu("environments");
   cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-  cy.findAllByTestId(TEST_ID.ENVIRONMENTS_TAB_BUILD).click();
+  cy.findAllByTestId(TEST_ID.ENVIRONMENT_TAB_BUILD).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
     .scrollIntoView()
     .should("be.visible")
     .contains("SUCCESS", { timeout: 20000 });
 
   cy.goToMenu("pipelines");
+}
+
+export function reset() {
+  cy.cleanDataDir();
+  cy.cleanProjectsDir();
+  // Force rediscovery of deleted projects.
+  cy.visit("/projects", { log: false });
+  assertTotalEnvironmentImages(0);
 }
 
 // Used in conjunction with cypress-pipe as an attempt to fix DOM

@@ -221,7 +221,7 @@ def register_views(app):
             if user is not None:
                 return jsonify({"error": "User already exists."}), 409
             elif len(password) == 0:
-                return jsonify({"error": "Password cannot be empty."}), 500
+                return jsonify({"error": "Password cannot be empty."}), 400
             else:
                 user = User(
                     username=username,
@@ -234,7 +234,7 @@ def register_views(app):
 
                 return ""
         else:
-            return jsonify({"error": "No username supplied."}), 500
+            return jsonify({"error": "No username supplied."}), 400
 
     @app.route("/login/users", methods=["GET"])
     def get_users():

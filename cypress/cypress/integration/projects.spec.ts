@@ -1,11 +1,13 @@
 import {
   QUICKSTART_URL,
+  reset,
   SAMPLE_PROJECT_NAMES,
   TEST_ID,
 } from "../support/common";
 
 describe("projects", () => {
   beforeEach(() => {
+    reset();
     cy.setOnboardingCompleted("true");
     cy.goToMenu("projects");
   });
@@ -81,7 +83,7 @@ describe("projects", () => {
         vars,
         vars.map((x) => `v${x}`)
       );
-      cy.reload();
+      cy.reload(true);
       cy.findAllByTestId(TEST_ID.PROJECT_ENV_VAR_VALUE).should(
         "have.length",
         vars.length

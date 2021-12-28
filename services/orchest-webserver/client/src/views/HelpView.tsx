@@ -1,12 +1,54 @@
 import { Layout, useLayout } from "@/components/Layout";
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
-import { MDCButtonReact } from "@orchest/lib-mdc";
-import * as React from "react";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
+import React from "react";
+
+const HelpItem: React.FC<{
+  link: string;
+  image: string;
+  imageStyle?: React.CSSProperties;
+}> = ({ link, children, image, imageStyle }) => {
+  return (
+    <Stack
+      component="a"
+      direction="row"
+      alignItems="center"
+      spacing={3}
+      href={link}
+      target="_blank"
+      rel="noreferrer"
+      sx={{
+        color: (theme) => theme.palette.text.primary,
+        height: (theme) => theme.spacing(4),
+      }}
+    >
+      <Box
+        sx={{
+          width: (theme) => theme.spacing(3),
+          height: (theme) => theme.spacing(3),
+        }}
+      >
+        <img src={image} style={{ width: "100%", ...imageStyle }} />
+      </Box>
+      <Typography>{children}</Typography>
+    </Stack>
+  );
+};
 
 const HelpView: React.FC = () => {
-  const { state } = useOrchest();
+  const {
+    state: {
+      config: {
+        ORCHEST_WEB_URLS: { readthedocs, website, slack, github },
+      },
+    },
+  } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.help.path });
   const { setIsOnboardingDialogOpen } = useLayout();
@@ -20,90 +62,56 @@ const HelpView: React.FC = () => {
           touch through Slack or GitHub for any questions or suggestions.
         </p>
 
-        <div className="mdc-list">
-          <a
-            className="mdc-deprecated-list-item"
-            href={
-              state.config.ORCHEST_WEB_URLS.readthedocs +
-              "/getting_started/quickstart.html"
-            }
-            target="_blank"
-            rel="noreferrer"
+        <Stack
+          direction="column"
+          spacing={3}
+          alignItems="flex-start"
+          sx={{ marginLeft: (theme) => theme.spacing(3) }}
+        >
+          <HelpItem
+            link={`${readthedocs}/getting_started/quickstart.html`}
+            image="/image/readthedocs.png"
+            imageStyle={{ width: "18px", margin: "0 auto" }}
           >
-            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
-              <img src="/image/readthedocs.png" width="100%" />
-            </i>
-            <span className="mdc-deprecated-list-item__text">Quickstart</span>
-          </a>
-          <a
-            className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.readthedocs}
-            target="_blank"
-            rel="noreferrer"
+            Quickstart
+          </HelpItem>
+          <HelpItem
+            link={readthedocs}
+            image="/image/readthedocs.png"
+            imageStyle={{ width: "18px", margin: "0 auto" }}
           >
-            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
-              <img src="/image/readthedocs.png" width="100%" />
-            </i>
-            <span className="mdc-deprecated-list-item__text">
-              Documentation
-            </span>
-          </a>
-          <a
-            className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.website + "/video-tutorials"}
-            target="_blank"
-            rel="noreferrer"
+            Documentation
+          </HelpItem>
+          <HelpItem
+            link={`${website}/video-tutorials`}
+            image="/image/logo.svg"
+            imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
           >
-            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
-              <img src="/image/favicon.png" width="100%" />
-            </i>
-            <span className="mdc-deprecated-list-item__text">
-              Video tutorials
-            </span>
-          </a>
-          <a
-            className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.slack}
-            target="_blank"
-            rel="noreferrer"
+            Video tutorials
+          </HelpItem>
+          <HelpItem link={slack} image="/image/slack.png">
+            Slack
+          </HelpItem>
+          <HelpItem link={github} image="/image/github.png">
+            GitHub
+          </HelpItem>
+          <HelpItem
+            link={website}
+            image="/image/logo.svg"
+            imageStyle={{ minWidth: "28px", marginLeft: "-2px" }}
           >
-            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
-              <img src="/image/slack.png" width="100%" />
-            </i>
-            <span className="mdc-deprecated-list-item__text">Slack</span>
-          </a>
-          <a
-            className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.github}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
-              <img src="/image/github.png" width="100%" />
-            </i>
-            <span className="mdc-deprecated-list-item__text">GitHub</span>
-          </a>
-          <a
-            className="mdc-deprecated-list-item"
-            href={state.config.ORCHEST_WEB_URLS.website}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <i className="mdc-deprecated-list-item__graphic" aria-hidden="true">
-              <img src="/image/favicon.png" width="100%" />
-            </i>
-            <span className="mdc-deprecated-list-item__text">Website</span>
-          </a>
-        </div>
+            Website
+          </HelpItem>
+        </Stack>
+
         <h2 className="push-up">Introduction</h2>
-        <MDCButtonReact
+        <Button
           data-test-id="onboarding-open"
-          onClick={() => {
-            setIsOnboardingDialogOpen(true);
-          }}
-          label="Show onboarding"
-          icon="play_arrow"
-        />
+          onClick={() => setIsOnboardingDialogOpen(true)}
+          startIcon={<PlayArrowIcon />}
+        >
+          Show onboarding
+        </Button>
       </div>
     </Layout>
   );

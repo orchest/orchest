@@ -999,7 +999,8 @@ def get_inputs(
           Unnamed data can be retrieved by accessing the reserved
           ``"unnamed"`` key. The order of this list depends on the order
           of the parent steps of the node, which is visible through the
-          GUI, refer to the :ref:`connections section <connections>`.
+          GUI, refer to the :ref:`this section <unnamed order>` for more
+          details.
 
         Example::
 

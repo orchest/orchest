@@ -1,7 +1,8 @@
-import EnvVarList from "@/components/EnvVarList";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import { useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap, toQueryString } from "@/Routes";
 import {
   envVariablesArrayToDict,
@@ -9,7 +10,10 @@ import {
   isValidEnvironmentVariableName,
   OverflowListener,
 } from "@/utils/webserver-utils";
-import { MDCButtonReact, MDCLinearProgressReact } from "@orchest/lib-mdc";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import SaveIcon from "@mui/icons-material/Save";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
 import {
   makeCancelable,
   makeRequest,
@@ -20,15 +24,26 @@ import { Link } from "react-router-dom";
 
 const ProjectSettingsView: React.FC = () => {
   // global states
-  const { orchest } = window;
-  const context = useOrchest();
+
+  const {
+    setAlert,
+    setAsSaved,
+    state: { hasUnsavedChanges },
+  } = useAppContext();
+  useSendAnalyticEvent("view load", { name: siteMap.projectSettings.path });
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
 
+  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
+  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+    _setEnvVariables(value);
+    setAsSaved(false);
+  };
+
   // local states
   const [state, setState] = React.useState({
-    envVariables: null,
+    // envVariables: null,
     pipeline_count: null,
     job_count: null,
     environment_count: null,
@@ -52,9 +67,11 @@ const ProjectSettingsView: React.FC = () => {
       .then((response) => {
         let result = JSON.parse(response);
 
+        _setEnvVariables(envVariablesDictToArray(result["env_variables"]));
+
         setState((prevState) => ({
           ...prevState,
-          envVariables: envVariablesDictToArray(result["env_variables"]),
+          // envVariables: envVariablesDictToArray(result["env_variables"]),
           pipeline_count: result["pipeline_count"],
           job_count: result["job_count"],
           environment_count: result["environment_count"],
@@ -71,18 +88,19 @@ const ProjectSettingsView: React.FC = () => {
   const saveGeneralForm = (e) => {
     e.preventDefault();
 
-    let envVariables = envVariablesArrayToDict(state.envVariables);
+    let envVariablesObj = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
-    if (envVariables === undefined) {
+    if (envVariablesObj.status === "rejected") {
+      setAlert("Error", envVariablesObj.error);
       return;
     }
 
     // Validate environment variable names
-    for (let envVariableName of Object.keys(envVariables)) {
+    for (let envVariableName of Object.keys(envVariablesObj.value)) {
       if (!isValidEnvironmentVariableName(envVariableName)) {
-        orchest.alert(
+        setAlert(
           "Error",
-          'Invalid environment variable name: "' + envVariableName + '".'
+          `Invalid environment variable name: "${envVariableName}".`
         );
         return;
       }
@@ -91,59 +109,14 @@ const ProjectSettingsView: React.FC = () => {
     // perform PUT to update
     makeRequest("PUT", "/async/projects/" + projectUuid, {
       type: "json",
-      content: { env_variables: envVariables },
+      content: { env_variables: envVariablesObj.value },
     })
       .then(() => {
-        context.dispatch({
-          type: "setUnsavedChanges",
-          payload: false,
-        });
+        setAsSaved();
       })
       .catch((response) => {
         console.error(response);
       });
-  };
-
-  const handleChange = (value, idx, type) => {
-    const envVariables = state.envVariables.slice();
-    envVariables[idx][type] = value;
-
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables,
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
-  };
-
-  const addEnvPair = (e) => {
-    e.preventDefault();
-
-    const envVariables = state.envVariables.slice();
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables.concat([
-        {
-          name: null,
-          value: null,
-        },
-      ]),
-    }));
-  };
-
-  const onDelete = (idx) => {
-    const envVariables = state.envVariables.slice();
-    envVariables.splice(idx, 1);
-    setState((prevState) => ({
-      ...prevState,
-      envVariables: envVariables,
-    }));
-    context.dispatch({
-      type: "setUnsavedChanges",
-      payload: true,
-    });
   };
 
   React.useEffect(() => {
@@ -178,16 +151,18 @@ const ProjectSettingsView: React.FC = () => {
           }}
         >
           <div className="push-down">
-            <MDCButtonReact
-              label="Back to projects"
-              icon="arrow_back"
+            <Button
+              color="secondary"
+              startIcon={<ArrowBackIcon />}
               onClick={returnToProjects}
-            />
+            >
+              Back to projects
+            </Button>
           </div>
 
           <h2>Project settings</h2>
 
-          {state?.envVariables ? (
+          {envVariables ? (
             <>
               <div className="project-settings trigger-overflow">
                 <div className="columns four push-down top-labels">
@@ -235,26 +210,24 @@ const ProjectSettingsView: React.FC = () => {
                 <h3 className="push-down">Project environment variables</h3>
 
                 <EnvVarList
-                  value={state.envVariables}
-                  onChange={(e, idx, type) => handleChange(e, idx, type)}
-                  onDelete={(idx) => onDelete(idx)}
-                  readOnly={false}
-                  onAdd={addEnvPair}
+                  value={envVariables}
+                  setValue={setEnvVariables}
                   data-test-id="project"
                 />
               </div>
               <div className="bottom-buttons observe-overflow">
-                <MDCButtonReact
-                  label={context.state.unsavedChanges ? "SAVE*" : "SAVE"}
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
                   onClick={saveGeneralForm}
-                  icon="save"
                   data-test-id="project-settings-save"
-                />
+                >
+                  {hasUnsavedChanges ? "SAVE*" : "SAVE"}
+                </Button>
               </div>
             </>
           ) : (
-            <MDCLinearProgressReact />
+            <LinearProgress />
           )}
         </form>
       </div>

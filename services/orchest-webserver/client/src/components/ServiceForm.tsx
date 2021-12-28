@@ -1,21 +1,35 @@
 import EnvVarList from "@/components/EnvVarList";
-import { Box } from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCCheckboxReact,
-  MDCDialogReact,
-  MDCLinearProgressReact,
-  MDCSelectReact,
-  MDCTextFieldReact,
-  MDCTooltipReact,
-} from "@orchest/lib-mdc";
+import { Environment, Service } from "@/types";
+import CheckIcon from "@mui/icons-material/Check";
+import InfoIcon from "@mui/icons-material/Info";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogTitle from "@mui/material/DialogTitle";
+import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
+import InputLabel from "@mui/material/InputLabel";
+import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
+import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
+import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
+import Typography from "@mui/material/Typography";
+import { visuallyHidden } from "@mui/utils";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import _ from "lodash";
-import * as React from "react";
+import React from "react";
 import { getServiceURLs } from "../utils/webserver-utils";
 import {
   MultiSelect,
@@ -24,11 +38,41 @@ import {
   MultiSelectLabel,
 } from "./MultiSelect";
 
-const ServiceForm: React.FC<any> = (props) => {
+const FormSectionTitle: React.FC<{ title: string }> = ({ children, title }) => (
+  <Typography
+    component="h3"
+    variant="h6"
+    display="flex"
+    alignItems="center"
+    sx={{
+      margin: (theme) => theme.spacing(3, 0),
+    }}
+  >
+    {children}
+    <Tooltip title={title}>
+      <InfoIcon
+        fontSize="small"
+        sx={{ marginLeft: (theme) => theme.spacing(1) }}
+      />
+    </Tooltip>
+  </Typography>
+);
+
+const ServiceForm: React.FC<{
+  service: Service;
+  project_uuid: string;
+  pipeline_uuid: string;
+  run_uuid: string;
+  updateService: (service: Service) => void;
+  nameChangeService: (oldName: string, newName: string) => void;
+  disabled: boolean;
+}> = (props) => {
   const environmentPrefix = "environment@";
 
   let [showImageDialog, setShowImageDialog] = React.useState(false);
-  let [environmentOptions, setEnvironmentOptions] = React.useState(undefined);
+  let [environmentOptions, setEnvironmentOptions] = React.useState<
+    Environment[]
+  >([]);
   let [editImageName, setEditImageName] = React.useState(
     props.service.image.startsWith(environmentPrefix) ? "" : props.service.image
   );
@@ -50,18 +94,18 @@ const ServiceForm: React.FC<any> = (props) => {
     fetchEnvironmentOptions();
   }, [props.project_uuid]);
 
-  const handleServiceChange = (key, value) => {
+  const handleServiceChange = (key: string, value: any) => {
     let service = _.cloneDeep(props.service);
     service[key] = value;
     props.updateService(service);
   };
 
-  const handleNameChange = (newName) => {
+  const handleNameChange = (newName: string) => {
     let oldName = props.service["name"];
     props.nameChangeService(oldName, newName);
   };
 
-  const handleServiceBindsChange = (key, value) => {
+  const handleServiceBindsChange = (key: string, value: any) => {
     let service = _.cloneDeep(props.service);
     service.binds = service.binds !== undefined ? service.binds : {};
     service.binds[key] = value;
@@ -77,7 +121,7 @@ const ServiceForm: React.FC<any> = (props) => {
   const handleScopeCheckbox = (isChecked, checkboxScope) => {
     let _scope = _.cloneDeep(props.service.scope);
     if (!isChecked) {
-      _scope = _scope.filter((el) => el != checkboxScope);
+      _scope = _scope.filter((el) => el !== checkboxScope);
     } else if (_scope.indexOf(checkboxScope) == -1) {
       _scope.push(checkboxScope);
     }
@@ -101,15 +145,8 @@ const ServiceForm: React.FC<any> = (props) => {
 
     fetchEnvironmentOptionsPromise.promise
       .then((response) => {
-        let result = JSON.parse(response);
-
-        let environmentOptions = [["", ""]];
-
-        for (let environment of result) {
-          environmentOptions.push([environment.uuid, environment.name]);
-        }
-
-        setEnvironmentOptions(environmentOptions);
+        let result: Environment[] = JSON.parse(response);
+        setEnvironmentOptions(result);
       })
       .catch((error) => {
         console.log(error);
@@ -120,137 +157,61 @@ const ServiceForm: React.FC<any> = (props) => {
     setShowImageDialog(false);
   };
 
-  const resolveEnvironmentName = (environmentImageName) => {
+  const resolveEnvironmentName = (environmentImageName: string) => {
     let environmentUUID = environmentImageName.replace(environmentPrefix, "");
     let environments = environmentOptions.filter(
-      (el) => el[0] == environmentUUID
+      (el) => el.uuid === environmentUUID
     );
 
     if (environments.length > 0) {
-      return "Environment: " + environments[0][1];
+      return "Environment: " + environments[0].name;
     } else {
       return environmentImageName;
     }
   };
 
-  if (!environmentOptions) {
-    return <MDCLinearProgressReact />;
-  }
-
   return (
-    <div className="service-form">
-      {showImageDialog && (
-        <MDCDialogReact
-          title="Edit service image"
-          onClose={onCloseEditImageName}
-          content={
-            <div>
-              <MDCTextFieldReact
-                label="Image name"
-                aria-describedby={"tooltip-imageNameField"}
-                onChange={(value) => {
-                  setEditImageName(value);
-                  if (value.length > 0) {
-                    setEditImageEnvironmentUUID("");
-                  }
-                }}
-                classNames={["fullwidth"]}
-                value={editImageName}
-                data-test-id="service-image-name-dialog-image-name"
-              />
-              <MDCTooltipReact
-                tooltipID="tooltip-imageNameField"
-                tooltip="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`"
-              />
-              <p className="push-up push-down">
-                Or choose an environment as your image:
-              </p>
-              <MDCSelectReact
-                label="Environment"
-                classNames={["fullwidth"]}
-                onChange={(environmentUUID) => {
-                  setEditImageEnvironmentUUID(environmentUUID);
-                  if (environmentUUID.length > 0) {
-                    setEditImageName("");
-                  }
-                }}
-                value={editImageEnvironmentUUID}
-                options={environmentOptions}
-              />
-            </div>
-          }
-          actions={
-            <>
-              <MDCButtonReact
-                classNames={["push-right"]}
-                label="Cancel"
-                onClick={onCloseEditImageName}
-              />
-              <MDCButtonReact
-                label="Save"
-                icon="check"
-                classNames={["mdc-button--raised"]}
-                submitButton
-                onClick={() => {
-                  if (editImageEnvironmentUUID == "") {
-                    handleServiceChange("image", editImageName);
-                  } else {
-                    handleServiceChange(
-                      "image",
-                      environmentPrefix + editImageEnvironmentUUID
-                    );
-                  }
-                  onCloseEditImageName();
-                }}
-                data-test-id="service-image-name-dialog-save"
-              />
-            </>
-          }
-          data-test-id="service-image-name-dialog"
-        />
-      )}
-
-      <Box
-        as="form"
-        css={{ padding: "$4" }}
-        onSubmit={(e) => e.preventDefault()}
+    <>
+      <Paper
+        sx={{
+          paddingTop: (theme) => theme.spacing(1),
+          borderTop: (theme) => `1px solid ${theme.palette.grey[100]}`,
+          marginBottom: (theme) => theme.spacing(2),
+        }}
       >
-        <Box as="fieldset" css={{ border: 0 }}>
-          <Box as="legend" css={{ include: "screenReaderOnly" }}>
-            {["Configure", `"${props.service.name}"`, "service"]
-              .filter(Boolean)
-              .join(" ")}
-          </Box>
-          <>
-            <div className="columns inner-padded">
-              <div className="column">
-                <MDCTextFieldReact
+        {!environmentOptions ? (
+          <LinearProgress />
+        ) : (
+          <Box sx={{ padding: (theme) => theme.spacing(3) }}>
+            <Box component="fieldset" sx={{ border: 0 }}>
+              <Box component="legend" sx={visuallyHidden}>
+                {["Configure", `"${props.service.name}"`, "service"]
+                  .filter(Boolean)
+                  .join(" ")}
+              </Box>
+              <Stack direction="row" spacing={2}>
+                <TextField
                   label="Name"
-                  inputType="text"
+                  type="text"
                   disabled={props.disabled}
                   value={props.service.name}
-                  maxLength="36"
-                  onChange={(value) => {
-                    handleNameChange(value);
+                  onChange={(e) => {
+                    handleNameChange(e.target.value);
                   }}
-                  classNames={["fullwidth"]}
+                  fullWidth
+                  helperText="The name of the service. Up to 36 digits, letters or dashes are allowed."
                   aria-describedby="tooltip-name"
                   data-test-id={`service-${props.service.name}-name`}
                 />
-                <MDCTooltipReact
-                  tooltipID="tooltip-name"
-                  tooltip="The name of the service. Up to 36 digits, letters or dashes are allowed."
-                />
-              </div>
-              <div className="column">
-                <MDCTextFieldReact
+                <TextField
                   label="Image"
-                  inputType="text"
+                  type="text"
                   disabled={props.disabled}
-                  onFocus={() => {
+                  onClick={() => {
+                    // TODO:  improve this
                     setShowImageDialog(true);
                   }}
-                  onChange={(value) => {
+                  onChange={() => {
                     // Override direct edits
                     handleServiceChange("image", props.service.image);
                   }}
@@ -259,362 +220,357 @@ const ServiceForm: React.FC<any> = (props) => {
                       ? resolveEnvironmentName(props.service.image)
                       : props.service.image
                   }
-                  classNames={["fullwidth"]}
+                  fullWidth
                   data-test-id={`service-${props.service.name}-image`}
                 />
-              </div>
-              <div className="clear"></div>
-            </div>
-
-            <h3 className="push-up push-down">
-              Start behavior{" "}
-              <i
-                className="material-icons inline-icon push-left"
-                aria-describedby="tooltip-start"
-              >
-                info
-              </i>
-            </h3>
-            <MDCTooltipReact
-              tooltipID="tooltip-start"
-              tooltip="Change the service start up behavior by specifying the entrypoint and command options. This is similar the Docker equivalents."
-            />
-            <div className="columns inner-padded">
-              <div className="column">
-                <MDCTextFieldReact
+              </Stack>
+              <FormSectionTitle title="Change the service start up behavior by specifying the entrypoint and command options. This is similar the Docker equivalents.">
+                Start behavior
+              </FormSectionTitle>
+              <Stack direction="row" spacing={2}>
+                <TextField
                   label="Entrypoint (optional)"
-                  inputType="text"
+                  type="text"
                   disabled={props.disabled}
                   value={props.service.entrypoint}
-                  onChange={(value) => {
-                    handleServiceChange("entrypoint", value);
+                  onChange={(e) => {
+                    handleServiceChange("entrypoint", e.target.value);
                   }}
-                  classNames={["fullwidth"]}
+                  fullWidth
                   aria-describedby="tooltip-entrypoint"
+                  helperText="This is the same `entrypoint` as the entrypoint for Docker. E.g. `python main.py`."
                   data-test-id={`service-${props.service.name}-entrypoint`}
                 />
-                <MDCTooltipReact
-                  tooltipID="tooltip-entrypoint"
-                  tooltip="This is the same `entrypoint` as the entrypoint for Docker. E.g. `python main.py`."
-                />
-              </div>
-              <div className="column inner-padded">
-                <MDCTextFieldReact
+
+                <TextField
                   label="Command (optional)"
-                  inputType="text"
+                  type="text"
                   disabled={props.disabled}
                   value={props.service.command}
-                  onChange={(value) => {
-                    handleServiceChange("command", value);
+                  onChange={(e) => {
+                    handleServiceChange("command", e.target.value);
                   }}
-                  classNames={["fullwidth"]}
+                  fullWidth
+                  helperText="This is the same `command` as the command for Docker. E.g. `arg1 -v`. They are appended to the entrypoint."
                   aria-describedby="tooltip-command"
                   data-test-id={`service-${props.service.name}-command`}
                 />
-                <MDCTooltipReact
-                  tooltipID="tooltip-command"
-                  tooltip="This is the same `command` as the command for Docker. E.g. `arg1 -v`. They are appended to the entrypoint."
-                />
-              </div>
-              <div className="clear"></div>
-            </div>
+              </Stack>
+              <FormSectionTitle title="Mounts give you access to the project files or /data files from within the service. Entered paths should be absolute paths in the container image.">
+                Mounts
+              </FormSectionTitle>
 
-            <h3 className="push-down">
-              Mounts{" "}
-              <i
-                className="material-icons inline-icon push-left"
-                aria-describedby="tooltip-mounts"
-              >
-                info
-              </i>
-            </h3>
-            <MDCTooltipReact
-              tooltipID="tooltip-mounts"
-              tooltip="Mounts give you access to the project files or /data files from within the service. Entered paths should be absolute paths in the container image."
-            />
-            <div className="columns inner-padded">
-              <div className="column">
-                <MDCTextFieldReact
+              <Stack direction="row" spacing={2}>
+                <TextField
                   label="Project directory (optional)"
-                  inputType="text"
+                  type="text"
                   disabled={props.disabled}
-                  value={props.service?.binds?.["/project-dir"]}
-                  onChange={(value) => {
-                    handleServiceBindsChange("/project-dir", value);
+                  value={props.service.binds?.["/project-dir"]}
+                  onChange={(e) => {
+                    handleServiceBindsChange("/project-dir", e.target.value);
                   }}
-                  classNames={["fullwidth"]}
+                  fullWidth
                   data-test-id={`service-${props.service.name}-project-mount`}
                 />
-              </div>
-              <div className="column inner-padded">
-                <MDCTextFieldReact
+                <TextField
                   label="Data directory (optional)"
-                  inputType="text"
+                  type="text"
                   disabled={props.disabled}
                   value={props.service?.binds?.["/data"]}
-                  onChange={(value) => {
-                    handleServiceBindsChange("/data", value);
+                  onChange={(e) => {
+                    handleServiceBindsChange("/data", e.target.value);
                   }}
-                  classNames={["fullwidth"]}
+                  fullWidth
                   data-test-id={`service-${props.service.name}-data-mount`}
                 />
-              </div>
-              <div className="clear"></div>
-            </div>
+              </Stack>
 
-            <div className="columns inner-padded">
-              <div className="column">
-                <h3 className="push-down">
-                  Ports{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-ports"
+              <Stack direction="row" spacing={2}>
+                <Stack direction="column" flex={1}>
+                  <FormSectionTitle title="Enter ports like 80, 8080 to make the service available through a URL.">
+                    Ports
+                  </FormSectionTitle>
+                  <MultiSelect
+                    type="number"
+                    items={
+                      props.service.ports
+                        ? props.service.ports.map((port) => ({
+                            value: port.toString(),
+                          }))
+                        : []
+                    }
+                    disabled={props.disabled}
+                    onChange={(ports) => {
+                      handleServiceChange(
+                        "ports",
+                        ports
+                          .map(({ value }) => parseInt(value))
+                          .filter((el) => !isNaN(el))
+                      );
+                    }}
                   >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-ports"
-                  tooltip="Enter ports like 80, 8080 to make the service available through a URL."
-                />
-                <MultiSelect
-                  type="number"
-                  items={
-                    props.service.ports
-                      ? props.service.ports.map((port) => ({
-                          value: port.toString(),
-                        }))
-                      : []
-                  }
-                  disabled={props.disabled}
-                  onChange={(ports) => {
-                    handleServiceChange(
-                      "ports",
-                      ports
-                        .map(({ value }) => parseInt(value))
-                        .filter((el) => !isNaN(el))
-                    );
-                  }}
-                >
-                  <MultiSelectLabel screenReaderOnly>Ports</MultiSelectLabel>
-                  <MultiSelectInput />
-                  <MultiSelectError />
-                </MultiSelect>
-              </div>
-              <div className="column">
-                <h3 className="push-down">
-                  URLs{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-urls"
-                  >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-urls"
-                  tooltip="The URLs that will be directly available to communicate with the service. These are all proxied by Orchest."
-                />
-                {props.service.ports &&
-                  getServiceURLs(
-                    props.service,
-                    props.project_uuid,
-                    props.pipeline_uuid,
-                    props.run_uuid
-                  ).map((url) => (
-                    <div key={url}>
-                      <a href={url}>{url}</a>
-                    </div>
-                  ))}
-              </div>
-              <div className="clear"></div>
-            </div>
+                    <MultiSelectLabel screenReaderOnly>Ports</MultiSelectLabel>
+                    <MultiSelectInput />
+                    <MultiSelectError />
+                  </MultiSelect>
+                </Stack>
+                <Stack direction="column" flex={1}>
+                  <FormSectionTitle title="The URLs that will be directly available to communicate with the service. These are all proxied by Orchest.">
+                    URLs
+                  </FormSectionTitle>
+                  <Stack direction="column" spacing={2}>
+                    {props.service.ports &&
+                      getServiceURLs(
+                        props.service,
+                        props.project_uuid,
+                        props.pipeline_uuid,
+                        props.run_uuid
+                      ).map((url) => (
+                        <Link
+                          key={url}
+                          href={url}
+                          margin="normal"
+                          sx={{ width: "100%" }}
+                        >
+                          {url}
+                        </Link>
+                      ))}
+                  </Stack>
+                </Stack>
+              </Stack>
 
-            <div className="columns inner-padded push-down">
-              <div className="column">
-                <h3 className="push-up push-down">
-                  Preserve base path{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-preserve-base-path"
-                  >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-preserve-base-path"
-                  tooltip="When you preserve the base path the first component of the path https://<hostname>/1/2/... will be passed to the service when the request is proxied by Orchest."
-                />
-
-                <MDCCheckboxReact
-                  onChange={(isChecked) => {
-                    handleServiceChange("preserve_base_path", isChecked);
-                  }}
-                  disabled={props.disabled}
-                  label="Preserve base path"
-                  value={props.service?.preserve_base_path === true}
-                />
-              </div>
-              <div className="column">
-                <h3 className="push-up push-down">
-                  Authentication required{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-require-authentication"
-                  >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-require-authentication"
-                  tooltip="Require authentication for the exposed service endpoints."
-                />
-
-                <MDCCheckboxReact
-                  onChange={(isChecked) => {
-                    handleServiceChange("requires_authentication", isChecked);
-                  }}
-                  disabled={props.disabled}
-                  label="Authentication required"
-                  value={props.service?.requires_authentication !== false}
-                />
-              </div>
-              <div className="clear"></div>
-            </div>
-
-            <div className="columns inner-padded">
-              <div className="column">
-                <h3 className="push-down">
-                  Scope{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-scope"
-                  >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-scope"
-                  tooltip="Scope defines whether a service will run during interactive sessions, in job sessions, or both."
-                />
-                <MDCCheckboxReact
-                  disabled={props.disabled}
-                  onChange={(isChecked) => {
-                    handleScopeCheckbox(isChecked, "interactive");
-                  }}
-                  label="Interactive sessions"
-                  value={props.service.scope.indexOf("interactive") >= 0}
-                />
-                <br />
-                <MDCCheckboxReact
-                  disabled={props.disabled}
-                  onChange={(isChecked) => {
-                    handleScopeCheckbox(isChecked, "noninteractive");
-                  }}
-                  label="Job sessions"
-                  value={props.service.scope.indexOf("noninteractive") >= 0}
-                />
-              </div>
-              <div
-                className="column"
-                data-test-id={`service-${props.service.name}-inherited-env-vars`}
-              >
-                <h3>
-                  Inherited environment variables{" "}
-                  <i
-                    className="material-icons inline-icon push-left"
-                    aria-describedby="tooltip-inherited-env-variables"
-                  >
-                    info
-                  </i>
-                </h3>
-                <MDCTooltipReact
-                  tooltipID="tooltip-inherited-env-variables"
-                  tooltip="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level."
-                />
-
-                <MultiSelect
-                  items={props.service?.env_variables_inherit?.map(
-                    (env_variable) =>
-                      env_variable && {
-                        value: env_variable.toString(),
+              <Stack direction="row" spacing={2}>
+                <Stack direction="column" flex={1}>
+                  <FormSectionTitle title="When you preserve the base path the first component of the path https://<hostname>/1/2/... will be passed to the service when the request is proxied by Orchest.">
+                    Preserve base path
+                  </FormSectionTitle>
+                  <FormGroup>
+                    <FormControlLabel
+                      label="Preserve base path"
+                      control={
+                        <Checkbox
+                          checked={props.service?.preserve_base_path === true}
+                          onChange={(e) => {
+                            handleServiceChange(
+                              "preserve_base_path",
+                              e.target.checked
+                            );
+                          }}
+                        />
                       }
-                  )}
-                  disabled={props.disabled}
-                  onChange={(env_variables) => {
+                    />
+                  </FormGroup>
+                </Stack>
+                <Stack direction="column" flex={1}>
+                  <FormSectionTitle title="Require authentication for the exposed service endpoints.">
+                    Authentication required
+                  </FormSectionTitle>
+                  <FormGroup>
+                    <FormControlLabel
+                      label="Authentication required"
+                      disabled={props.disabled}
+                      control={
+                        <Checkbox
+                          checked={
+                            props.service.requires_authentication !== false
+                          }
+                          onChange={(e) => {
+                            handleServiceChange(
+                              "requires_authentication",
+                              e.target.checked
+                            );
+                          }}
+                        />
+                      }
+                    />
+                  </FormGroup>
+                </Stack>
+              </Stack>
+              <Stack direction="row" spacing={2}>
+                <Stack direction="column" flex={1}>
+                  <FormSectionTitle title="Scope defines whether a service will run during interactive sessions, in job sessions, or both.">
+                    Scope
+                  </FormSectionTitle>
+                  <FormGroup>
+                    <FormControlLabel
+                      label="Interactive sessions"
+                      disabled={props.disabled}
+                      control={
+                        <Checkbox
+                          checked={
+                            props.service.scope.indexOf("interactive") >= 0
+                          }
+                          onChange={(e) => {
+                            handleScopeCheckbox(
+                              e.target.checked,
+                              "interactive"
+                            );
+                          }}
+                        />
+                      }
+                    />
+                    <FormControlLabel
+                      label="Job sessions"
+                      disabled={props.disabled}
+                      control={
+                        <Checkbox
+                          checked={
+                            props.service.scope.indexOf("noninteractive") >= 0
+                          }
+                          onChange={(e) => {
+                            handleScopeCheckbox(
+                              e.target.checked,
+                              "noninteractive"
+                            );
+                          }}
+                        />
+                      }
+                    />
+                  </FormGroup>
+                </Stack>
+                <Stack
+                  direction="column"
+                  flex={1}
+                  data-test-id={`service-${props.service.name}-inherited-env-vars`}
+                >
+                  <FormSectionTitle title="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level.">
+                    Inherited environment variables
+                  </FormSectionTitle>
+                  <MultiSelect
+                    items={props.service?.env_variables_inherit?.map(
+                      (env_variable) =>
+                        env_variable && {
+                          value: env_variable.toString(),
+                        }
+                    )}
+                    disabled={props.disabled}
+                    onChange={(env_variables) => {
+                      handleServiceChange(
+                        "env_variables_inherit",
+                        env_variables.map(({ value }) => value)
+                      );
+                    }}
+                  >
+                    <MultiSelectLabel screenReaderOnly>
+                      Environment variables
+                    </MultiSelectLabel>
+                    <MultiSelectInput />
+                    <MultiSelectError />
+                  </MultiSelect>
+                </Stack>
+              </Stack>
+
+              <Stack direction="column" flex={1}>
+                <FormSectionTitle title="Environment variables specific to the service. Note! These are versioned, so don't use it for secrets.">
+                  Environment variables
+                </FormSectionTitle>
+                <EnvVarList
+                  value={envVarsDictToList(props.service.env_variables || {})}
+                  readOnly={props.disabled}
+                  setValue={(dispatcher) => {
+                    const updated = dispatcher(
+                      envVarsDictToList(props.service.env_variables || {})
+                    );
                     handleServiceChange(
-                      "env_variables_inherit",
-                      env_variables.map(({ value }) => value)
+                      "env_variables",
+                      updated.reduce((obj, current) => {
+                        return { ...obj, [current.name]: current.value };
+                      }, {})
                     );
                   }}
+                  data-test-id={`service-${props.service.name}`}
+                />
+              </Stack>
+            </Box>
+          </Box>
+        )}
+      </Paper>
+      <Dialog open={showImageDialog} onClose={onCloseEditImageName}>
+        <form
+          id="edit-service-image"
+          onSubmit={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            if (editImageEnvironmentUUID == "") {
+              handleServiceChange("image", editImageName);
+            } else {
+              handleServiceChange(
+                "image",
+                environmentPrefix + editImageEnvironmentUUID
+              );
+            }
+            onCloseEditImageName();
+          }}
+        >
+          <DialogTitle>Edit service image</DialogTitle>
+          <DialogContent>
+            <Box sx={{ marginTop: (theme) => theme.spacing(2) }}>
+              <Tooltip title="An image name that can be resolved locally, or from Docker Hub. E.g. `tensorflow/tensorflow:latest`">
+                <TextField
+                  label="Image name"
+                  autoFocus
+                  aria-describedby={"tooltip-imageNameField"}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setEditImageName(value);
+                    if (value.length > 0) {
+                      setEditImageEnvironmentUUID("");
+                    }
+                  }}
+                  fullWidth
+                  value={editImageName}
+                  data-test-id="service-image-name-dialog-image-name"
+                />
+              </Tooltip>
+              <p className="push-up push-down">
+                Or choose an environment as your image:
+              </p>
+              <FormControl fullWidth>
+                <InputLabel id="select-environment-label">
+                  Environment
+                </InputLabel>
+                <Select
+                  labelId="select-environment-label"
+                  id="select-environment"
+                  value={editImageEnvironmentUUID}
+                  label="Environment"
+                  onChange={(e) => {
+                    const environmentUUID = e.target.value;
+                    setEditImageEnvironmentUUID(environmentUUID);
+                    if (environmentUUID.length > 0) {
+                      setEditImageName("");
+                    }
+                  }}
                 >
-                  <MultiSelectLabel screenReaderOnly>
-                    Environment variables
-                  </MultiSelectLabel>
-                  <MultiSelectInput />
-                  <MultiSelectError />
-                </MultiSelect>
-              </div>
-              <div className="clear"></div>
-            </div>
-            <h3 className="push-down">
-              Environment variables{" "}
-              <i
-                className="material-icons inline-icon push-left"
-                aria-describedby="tooltip-env-variables"
-              >
-                info
-              </i>
-            </h3>
-            <MDCTooltipReact
-              tooltipID="tooltip-env-variables"
-              tooltip="Environment variables specific to the service. Note! These are versioned, so don't use it for secrets."
-            />
-            <EnvVarList
-              value={envVarsDictToList(
-                props.service.env_variables ? props.service.env_variables : {}
-              )}
-              readOnly={props.disabled}
-              onChange={(value, idx, changeType) => {
-                let envVarsList = envVarsDictToList(
-                  props.service.env_variables ? props.service.env_variables : {}
-                );
-                envVarsList[idx][changeType] = value;
-
-                let envVars = {};
-                for (let x = 0; x < envVarsList.length; x++) {
-                  envVars[envVarsList[x]["name"]] = envVarsList[x]["value"];
-                }
-
-                handleServiceChange("env_variables", envVars);
-              }}
-              onAdd={() => {
-                handleServiceChange("env_variables", {
-                  ...(props.service.env_variables
-                    ? props.service.env_variables
-                    : {}),
-                  "": "",
-                });
-              }}
-              onDelete={(idx) => {
-                let envVarsList = envVarsDictToList(
-                  props.service.env_variables ? props.service.env_variables : {}
-                );
-                envVarsList.splice(idx, 1);
-
-                let envVars = {};
-                for (let x = 0; x < envVarsList.length; x++) {
-                  envVars[envVarsList[x]["name"]] = envVarsList[x]["value"];
-                }
-
-                handleServiceChange("env_variables", envVars);
-              }}
-              data-test-id={`service-${props.service.name}`}
-            />
-          </>
-        </Box>
-      </Box>
-    </div>
+                  {environmentOptions.map((element) => {
+                    return (
+                      <MenuItem key={element.uuid} value={element.uuid}>
+                        {element.name}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button color="secondary" onClick={onCloseEditImageName}>
+              Cancel
+            </Button>
+            <Button
+              startIcon={<CheckIcon />}
+              variant="contained"
+              type="submit"
+              form="edit-service-image"
+              data-test-id="service-image-name-dialog-save"
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+    </>
   );
 };
 

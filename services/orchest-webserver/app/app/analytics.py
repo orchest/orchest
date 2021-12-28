@@ -58,7 +58,8 @@ class Event(Enum):
         Args:
             event_properties: The properties that describe the event.
                 The exact properties that need to be anonymized are then
-                cherry-picked.
+                cherry-picked. The passed object will be modified in
+                order to anonymize it, as needed.
 
         Returns:
             Optionally returns derived properties from the anonymized
@@ -207,7 +208,12 @@ def _get_telemetry_uuid(app: Flask) -> str:
 
 
 class _Anonymizer:
-    """Anonymizes the event properties of the given event."""
+    """Anonymizes the event properties of the given event.
+
+    !Note: if you are implementing a function to anonymize some event
+    properties be aware that you are in charge of modifying the passed
+    `event_properties` object to anonymize it.
+    """
 
     @staticmethod
     def job_create(event_properties: dict) -> dict:
@@ -263,6 +269,16 @@ class _Anonymizer:
         derived_properties = {
             "pipeline_definition": _anonymize_pipeline_definition(pdef),
         }
+        return derived_properties
+
+    @staticmethod
+    def environment_build_start(event_properties: dict) -> dict:
+        base_image = event_properties.pop("base_image", None)
+        derived_properties = {}
+        if isinstance(base_image, str):
+            derived_properties["uses_orchest_base_image"] = base_image.startswith(
+                "orchest/"
+            )
         return derived_properties
 
 

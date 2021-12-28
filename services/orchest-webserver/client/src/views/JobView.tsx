@@ -1,13 +1,17 @@
+import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import { DataTable, DataTableColumn } from "@/components/DataTable";
 import { DescriptionList } from "@/components/DescriptionList";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import ParamTree from "@/components/ParamTree";
-import SearchableTable from "@/components/SearchableTable";
+import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Job, PipelineJson } from "@/types";
+import theme from "@/theme";
+import type { Job, PipelineJson, PipelineRun } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
 import {
   checkGate,
@@ -15,39 +19,39 @@ import {
   formatServerDateTime,
   getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
-import { Box, Flex, Text } from "@orchest/design-system";
-import {
-  MDCButtonReact,
-  MDCLinearProgressReact,
-  MDCTabBarReact,
-} from "@orchest/lib-mdc";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloseIcon from "@mui/icons-material/Close";
+import FileCopyIcon from "@mui/icons-material/FileCopy";
+import ListIcon from "@mui/icons-material/List";
+import PauseIcon from "@mui/icons-material/Pause";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import Button from "@mui/material/Button";
+import LinearProgress from "@mui/material/LinearProgress";
+import Stack from "@mui/material/Stack";
+import { styled } from "@mui/material/styles";
+import Tab from "@mui/material/Tab";
+import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
   makeRequest,
   PromiseManager,
-  RefManager,
 } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
-import React, { useState } from "react";
+import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
 
-type TSharedStatus = Extract<
-  TStatus,
-  "PENDING" | "STARTED" | "PAUSED" | "SUCCESS" | "FAILURE" | "ABORTED"
->;
-type TJobStatus = TStatus | "DRAFT";
+const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
+  padding: theme.spacing(3, 0),
+}));
 
-type TPipelineRun = { status: TSharedStatus };
-
-interface IJobStatusProps {
-  status?: TJobStatus;
-  pipeline_runs?: TPipelineRun[];
-}
-
-const JobStatus: React.FC<IJobStatusProps> = ({
-  status,
-  pipeline_runs = [],
-}) => {
+const JobStatus: React.FC<{
+  status?: TStatus;
+  pipeline_runs?: PipelineRun[];
+}> = ({ status, pipeline_runs = [] }) => {
   const count = pipeline_runs.reduce(
     (acc, cv, i) =>
       cv && {
@@ -85,42 +89,34 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   };
 
   const variant = getJobStatusVariant();
-
   return (
     <StatusGroup
-      css={{ marginTop: "$2" }}
       status={status}
       icon={
         ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
-          <Box
-            css={{
-              padding: "calc($1 / 2)",
-            }}
-          >
-            <PieChart
-              startAngle={270}
-              background="var(--colors-background)"
-              lineWidth={30}
-              animate={true}
-              data={[
-                {
-                  title: "Pending",
-                  color: "var(--colors-yellow300)",
-                  value: count.PENDING + count.STARTED,
-                },
-                {
-                  title: "Failed",
-                  color: "var(--colors-error)",
-                  value: count.FAILURE + count.ABORTED,
-                },
-                {
-                  title: "Success",
-                  color: "var(--colors-success)",
-                  value: count.SUCCESS,
-                },
-              ]}
-            />
-          </Box>
+          <PieChart
+            startAngle={270}
+            background={theme.palette.background.default}
+            lineWidth={40}
+            animate={true}
+            data={[
+              {
+                title: "Pending",
+                color: theme.palette.warning.main,
+                value: count.PENDING + count.STARTED,
+              },
+              {
+                title: "Failed",
+                color: theme.palette.error.main,
+                value: count.FAILURE + count.ABORTED,
+              },
+              {
+                title: "Success",
+                color: theme.palette.success.main,
+                value: count.SUCCESS,
+              },
+            ]}
+          />
         )
       }
       title={
@@ -153,38 +149,107 @@ const JobStatus: React.FC<IJobStatusProps> = ({
   );
 };
 
+const formatPipelineParams = (parameters) => {
+  let keyValuePairs: string[] = [];
+
+  for (let strategyJSONKey in parameters) {
+    for (let parameter in parameters[strategyJSONKey]) {
+      keyValuePairs.push(
+        parameter +
+          ": " +
+          JSON.stringify(parameters[strategyJSONKey][parameter])
+      );
+    }
+  }
+
+  if (keyValuePairs.length == 0) {
+    return <i>Parameterless run</i>;
+  }
+
+  return keyValuePairs;
+};
+
+const columns: DataTableColumn<PipelineRun>[] = [
+  { id: "pipeline_run_index", label: "ID" },
+  {
+    id: "parameters",
+    label: "Parameters",
+    render: function RunParameters(row) {
+      const formattedParams = formatPipelineParams(row.parameters);
+      if (!Array.isArray(formattedParams)) return formattedParams;
+      return formattedParams.join(", ");
+    },
+  },
+  {
+    id: "status",
+    label: "Status",
+    render: function RunStatus(row) {
+      return <StatusInline status={row.status} />;
+    },
+  },
+  {
+    id: "started_time",
+    label: "Started at",
+    render: function RunStartedTime(row) {
+      return row.started_time ? (
+        formatServerDateTime(row.started_time)
+      ) : (
+        <i>Not yet started</i>
+      );
+    },
+  },
+];
+
+type PipelineRunRow = { uuid: string; spec: string };
+
+const runSpecTableColumns: DataTableColumn<PipelineRunRow>[] = [
+  {
+    id: "spec",
+    label: "Run specification",
+    render: function RunSpec(row) {
+      return row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec;
+    },
+  },
+];
+
+const RunSpecTable = ({ rows }: { rows: PipelineRunRow[] }) => {
+  return (
+    <DataTable<PipelineRunRow>
+      id="run-spec-list"
+      columns={runSpecTableColumns}
+      rows={rows}
+    />
+  );
+};
+
 const JobView: React.FC = () => {
   // global states
-  const orchest = window.orchest;
+  const { setAlert, requestBuild } = useAppContext();
+  useSendAnalyticEvent("view load", { name: siteMap.job.path });
 
   // data from route
   const { navigateTo, projectUuid, jobUuid } = useCustomRoute();
 
   // data states
-  const [job, setJob] = useState<Job>();
-  const [pipeline, setPipeline] = useState<PipelineJson>();
-  const [envVariables, setEnvVariables] = useState<
+  const [job, setJob] = React.useState<Job>();
+  const [pipeline, setPipeline] = React.useState<PipelineJson>();
+  const [envVariables, setEnvVariables] = React.useState<
     { name: string; value: string }[]
   >([]);
 
   // UI states
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState(0);
-  const [selectedIndices, setSelectedIndices] = useState<[number, number]>([
-    0,
-    0,
-  ]);
+  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [tabIndex, setTabIndex] = React.useState(0);
 
   const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
 
   React.useEffect(() => {
     fetchJob();
     return () => promiseManager.cancelCancelablePromises();
   }, []);
 
-  const onSelectSubview = (index: number) => {
-    setSelectedTab(index);
+  const onSelectSubview = (e, index: number) => {
+    setTabIndex(index);
   };
 
   const fetchJob = () => {
@@ -234,69 +299,13 @@ const JobView: React.FC = () => {
     fetchJob();
   };
 
-  const onPipelineRunsSelectionChanged = (newIndices) => {
-    setSelectedIndices(newIndices);
-  };
-
-  const formatPipelineParams = (parameters) => {
-    let keyValuePairs = [];
-
-    for (let strategyJSONKey in parameters) {
-      for (let parameter in parameters[strategyJSONKey]) {
-        keyValuePairs.push(
-          parameter +
-            ": " +
-            JSON.stringify(parameters[strategyJSONKey][parameter])
-        );
-      }
-    }
-
-    if (keyValuePairs.length == 0) {
-      return <i>Parameterless run</i>;
-    }
-
-    return keyValuePairs.join(", ");
-  };
-
-  const pipelineRunsToTableData = (pipelineRuns) => {
-    let rows = [];
-
-    for (let x = 0; x < pipelineRuns.length; x++) {
-      rows.push([
-        pipelineRuns[x].pipeline_run_index,
-        formatPipelineParams(pipelineRuns[x].parameters),
-        <StatusInline
-          key={pipelineRuns[x].pipeline_run_index}
-          status={pipelineRuns[x].status}
-        />,
-        pipelineRuns[x].started_time ? (
-          formatServerDateTime(pipelineRuns[x].started_time)
-        ) : (
-          <i>Not yet started</i>
-        ),
-      ]);
-    }
-
-    return rows;
-  };
-
-  const parameterValueOverride = (strategyJSON, parameters) => {
-    for (let strategyJSONKey in parameters) {
-      for (let parameter in parameters[strategyJSONKey]) {
-        strategyJSON[strategyJSONKey]["parameters"][parameter] =
-          parameters[strategyJSONKey][parameter];
-      }
-    }
-
-    return strategyJSON;
-  };
-
   const onDetailPipelineView = (pipelineRun) => {
     if (pipelineRun.status == "PENDING") {
-      orchest.alert(
+      setAlert(
         "Error",
         "This pipeline is still pending. Please wait until pipeline run has started."
       );
+
       return;
     }
 
@@ -371,31 +380,6 @@ const JobView: React.FC = () => {
       });
   };
 
-  const generatedParametersToTableData = (jobGeneratedParameters) => {
-    let rows = [];
-
-    for (let idx in jobGeneratedParameters) {
-      let params = jobGeneratedParameters[idx];
-
-      let pipelineRunRow = [];
-
-      for (let fullParam in params) {
-        for (let paramKey in params[fullParam]) {
-          pipelineRunRow.push(
-            paramKey + ": " + JSON.stringify(params[fullParam][paramKey])
-          );
-        }
-      }
-      if (pipelineRunRow.length > 0) {
-        rows.push([pipelineRunRow.join(", ")]);
-      } else {
-        rows.push([<i>Parameterless run</i>]); // eslint-disable-line react/jsx-key
-      }
-    }
-
-    return rows;
-  };
-
   const editJob = () => {
     navigateTo(siteMap.editJob.path, {
       query: {
@@ -413,35 +397,30 @@ const JobView: React.FC = () => {
     });
   };
 
-  const detailRows = (pipelineRuns) => {
-    let detailElements = [];
-
-    // override values in fields through param fields
-    for (let x = 0; x < pipelineRuns.length; x++) {
-      let pipelineRun = pipelineRuns[x];
-      let strategyJSON = JSON.parse(JSON.stringify(job.strategy_json));
-
-      strategyJSON = parameterValueOverride(
-        strategyJSON,
-        pipelineRun.parameters
-      );
-
-      detailElements.push(
-        <div className="pipeline-run-detail">
-          <ParamTree strategyJSON={strategyJSON} pipelineName={pipeline.name} />
-          <MDCButtonReact
-            label="View pipeline"
-            classNames={["mdc-button--raised", "themed-secondary"]}
-            icon="visibility"
-            onClick={() => onDetailPipelineView(pipelineRun)}
-            data-test-id={`job-pipeline-runs-row-view-pipeline-${x}`}
-          />
-        </div>
-      );
-    }
-
-    return detailElements;
-  };
+  const tabs = React.useMemo(() => {
+    if (!job) return [];
+    return [
+      {
+        id: "pipeline-runs",
+        label: `Pipeline runs (${
+          job.pipeline_runs.filter(({ status }) =>
+            ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
+          ).length
+        }/${job.pipeline_runs.length})`,
+        icon: <ListIcon />,
+      },
+      {
+        id: "parameters",
+        label: "Parameters",
+        icon: <TuneIcon />,
+      },
+      {
+        id: "environment-variables",
+        label: "Environment variables",
+        icon: <ViewComfyIcon />,
+      },
+    ];
+  }, [job?.pipeline_runs]);
 
   const onJobDuplicate = () => {
     if (!job) {
@@ -476,10 +455,7 @@ const JobView: React.FC = () => {
               try {
                 let result = JSON.parse(response.body);
                 setTimeout(() => {
-                  orchest.alert(
-                    "Error",
-                    "Failed to create job. " + result.message
-                  );
+                  setAlert("Error", `Failed to create job. ${result.message}`);
                 });
               } catch (error) {
                 console.log(error);
@@ -489,14 +465,9 @@ const JobView: React.FC = () => {
       })
       .catch((result) => {
         if (result.reason === "gate-failed") {
-          orchest.requestBuild(
-            job.project_uuid,
-            result.data,
-            "DuplicateJob",
-            () => {
-              onJobDuplicate();
-            }
-          );
+          requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
+            onJobDuplicate();
+          });
         }
       });
   };
@@ -504,57 +475,119 @@ const JobView: React.FC = () => {
   const isLoading = !pipeline || !job;
 
   const tabView = isLoading ? null : (
-    <div className="tab-view">
-      {selectedTab === 0 && (
-        <div className="pipeline-tab-view existing-pipeline-runs">
-          <SearchableTable
-            rows={pipelineRunsToTableData(job.pipeline_runs)}
-            detailRows={detailRows(job.pipeline_runs)}
-            headers={["ID", "Parameters", "Status", "Started at"]}
-            selectedIndices={selectedIndices}
-            onSelectionChanged={onPipelineRunsSelectionChanged}
-            data-test-id="job-pipeline-runs"
-          />
-        </div>
-      )}
-      {selectedTab === 1 && (
-        <div className="pipeline-tab-view">
-          <ParameterEditor
-            readOnly
-            pipelineName={pipeline.name}
-            strategyJSON={job.strategy_json}
-          />
+    <>
+      <CustomTabPanel value={tabIndex} index={0} name="pipeline-runs-tab">
+        <DataTable<PipelineRun>
+          id="job-pipeline-runs"
+          data-test-id="job-pipeline-runs"
+          rows={job.pipeline_runs.map((run, index) => {
+            const formattedRunParams = formatPipelineParams(run.parameters);
+            const hasParameters = Array.isArray(formattedRunParams);
+            const formattedRunParamsAsString = hasParameters
+              ? formattedRunParams.join(", ")
+              : JSON.stringify(formattedRunParams);
 
-          <div className="pipeline-runs push-up">
-            <SearchableTable
-              selectable={false}
-              headers={["Run specification"]}
-              rows={generatedParametersToTableData(job.parameters)}
-            />
-          </div>
+            const paramDetails = !hasParameters ? (
+              <NoParameterAlert />
+            ) : (
+              <>
+                <Typography variant="body2">
+                  Pipeline: {pipeline.name}
+                </Typography>
+                {formattedRunParams.map((param, index) => (
+                  <Typography
+                    variant="caption"
+                    key={index}
+                    sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+                  >
+                    {param}
+                  </Typography>
+                ))}
+              </>
+            );
+
+            return {
+              ...run,
+              searchIndex: `${
+                run.status === "STARTED" ? "Running" : ""
+              }${formattedRunParamsAsString}`,
+              details: (
+                <Stack
+                  direction="column"
+                  alignItems="flex-start"
+                  sx={{ padding: (theme) => theme.spacing(2, 1) }}
+                >
+                  {paramDetails}
+                  <Button
+                    variant="contained"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => onDetailPipelineView(run)}
+                    sx={{ marginTop: (theme) => theme.spacing(2) }}
+                    data-test-id="job-pipeline-runs-row-view-pipeline"
+                  >
+                    View pipeline
+                  </Button>
+                </Stack>
+              ),
+            };
+          })}
+          columns={columns}
+          initialOrderBy="pipeline_run_index"
+          initialOrder="desc"
+        />
+      </CustomTabPanel>
+      <CustomTabPanel value={tabIndex} index={1} name="parameters-tab">
+        <ParameterEditor
+          readOnly
+          pipelineName={pipeline.name}
+          strategyJSON={job.strategy_json}
+        />
+        <div className="pipeline-runs push-up">
+          <RunSpecTable
+            rows={
+              job.parameters
+                ? job.parameters.map((param, index) => {
+                    let parameters = [];
+                    Object.values(param).forEach((step) => {
+                      Object.entries(step).forEach(([key, value]) => {
+                        parameters.push(`${key}: ${value}`);
+                      });
+                    });
+
+                    return {
+                      uuid: index.toString(),
+                      spec:
+                        parameters.length > 0
+                          ? parameters.join(", ")
+                          : "Parameterless run",
+                    };
+                  })
+                : []
+            }
+          />
         </div>
-      )}
-      {selectedTab === 2 && (
-        <div className="pipeline-tab-view">
-          <EnvVarList value={envVariables} readOnly={true} />
-        </div>
-      )}
-    </div>
+      </CustomTabPanel>
+      <CustomTabPanel value={tabIndex} index={2} name="pipeline-runs-tab">
+        <EnvVarList value={envVariables} readOnly />
+      </CustomTabPanel>
+    </>
   );
 
   return (
     <Layout>
       <div className="view-page job-view">
         {isLoading ? (
-          <MDCLinearProgressReact />
+          <LinearProgress />
         ) : (
           <div className="view-page job-view">
             <div className="push-down">
-              <MDCButtonReact
-                label="Back to jobs"
-                icon="arrow_back"
+              <Button
+                color="secondary"
+                startIcon={<ArrowBackIcon />}
                 onClick={returnToJobs}
-              />
+              >
+                Back to jobs
+              </Button>
             </div>
 
             <DescriptionList
@@ -569,14 +602,27 @@ const JobView: React.FC = () => {
                 {
                   term: "Schedule",
                   details: (
-                    <Flex as="span" css={{ flexDirection: "column" }}>
-                      {job.schedule === null ? "Run once" : job.schedule}
+                    <Stack component="span" direction="column">
+                      <Typography
+                        variant="h6"
+                        component="span"
+                        sx={{
+                          fontWeight: (theme) =>
+                            theme.typography.fontWeightRegular,
+                        }}
+                      >
+                        {job.schedule === null ? "Run once" : job.schedule}
+                      </Typography>
                       {job.schedule !== null && (
-                        <Text as="em" css={{ lineHeight: "normal" }}>
+                        <Typography
+                          variant="body2"
+                          component="span"
+                          sx={{ lineHeight: "normal" }}
+                        >
                           {cronstrue.toString(job.schedule) + " (UTC)"}
-                        </Text>
+                        </Typography>
                       )}
-                    </Flex>
+                    </Stack>
                   ),
                 },
                 {
@@ -596,78 +642,85 @@ const JobView: React.FC = () => {
                 },
               ]}
             />
-
-            <MDCTabBarReact
-              selectedIndex={selectedTab}
-              /** @ts-ignore */
-              ref={refManager.nrefs.tabBar}
-              items={[
-                "Pipeline runs (" +
-                  job.pipeline_runs.filter(({ status }) =>
-                    ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
-                  ).length +
-                  "/" +
-                  +job.pipeline_runs.length +
-                  ")",
-                "Parameters",
-                "Environment variables",
-              ]}
-              icons={["list", "tune", "view_comfy"]}
+            <Tabs
+              value={tabIndex}
               onChange={onSelectSubview}
-            />
+              label="View Job Tabs"
+              data-test-id="job-view"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                  data-test-id={`${tab.id}-tab`}
+                />
+              ))}
+            </Tabs>
 
             {tabView}
 
             <div className="separated">
-              <MDCButtonReact
+              <Button
                 disabled={isRefreshing}
-                label="Refresh"
-                icon="refresh"
+                color="secondary"
+                startIcon={<RefreshIcon />}
                 onClick={reload}
                 data-test-id="job-refresh"
-              />
+              >
+                Refresh
+              </Button>
 
-              <MDCButtonReact
-                label="Copy config to new job"
-                icon="file_copy"
+              <Button
+                startIcon={<FileCopyIcon />}
                 onClick={onJobDuplicate}
-              />
+                color="secondary"
+              >
+                Copy config to new job
+              </Button>
 
               {job.schedule !== null &&
                 ["STARTED", "PAUSED", "PENDING"].includes(job.status) && (
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised", "themed-secondary"]}
+                  <Button
+                    variant="contained"
                     onClick={editJob}
-                    icon="tune"
-                    label="Edit"
-                  />
+                    startIcon={<TuneIcon />}
+                  >
+                    Edit
+                  </Button>
                 )}
 
               {job.schedule !== null && job.status === "STARTED" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  icon="pause"
-                  label="Pause"
+                <Button
+                  color="secondary"
+                  variant="contained"
+                  startIcon={<PauseIcon />}
                   onClick={pauseCronJob}
-                />
+                >
+                  Pause
+                </Button>
               )}
 
               {job.schedule !== null && job.status === "PAUSED" && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised", "themed-secondary"]}
+                <Button
+                  variant="contained"
                   onClick={resumeCronJob}
-                  icon="play_arrow"
-                  label="Resume"
-                />
+                  startIcon={<PlayArrowIcon />}
+                >
+                  Resume
+                </Button>
               )}
 
               {["STARTED", "PAUSED", "PENDING"].includes(job.status) && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  label="Cancel job"
-                  icon="close"
+                <Button
+                  color="secondary"
+                  variant="contained"
+                  startIcon={<CloseIcon />}
                   onClick={cancelJob}
-                />
+                >
+                  Cancel job
+                </Button>
               )}
             </div>
           </div>

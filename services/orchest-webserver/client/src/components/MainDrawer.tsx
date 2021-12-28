@@ -1,148 +1,185 @@
-import { useOrchest } from "@/hooks/orchest";
-import { MDCDrawer } from "@material/drawer";
-import React, { useRef } from "react";
-import { NavLink } from "react-router-dom";
+import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
+import FolderOpenIcon from "@mui/icons-material/FolderOpen";
+import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import SettingsIcon from "@mui/icons-material/Settings";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Divider from "@mui/material/Divider";
+import MuiDrawer from "@mui/material/Drawer";
+import List from "@mui/material/List";
+import ListItemButton from "@mui/material/ListItemButton";
+import MuiListItemIcon from "@mui/material/ListItemIcon";
+import MuiListItemText, { ListItemTextProps } from "@mui/material/ListItemText";
+import { CSSObject, styled, Theme } from "@mui/material/styles";
+import Toolbar from "@mui/material/Toolbar";
+import React from "react";
+import { matchPath, useLocation } from "react-router-dom";
 import { siteMap, toQueryString } from "../routingConfig";
 
-const getProjectMenuItems = (projectUuid: string) => [
+type ItemData = { label: string; icon: JSX.Element; path: string };
+
+const getProjectMenuItems = (projectUuid: string): ItemData[] => [
   {
     label: "Pipelines",
-    icon: "device_hub",
+    icon: <DeviceHubIcon />,
     path: `${siteMap.pipelines.path}${toQueryString({ projectUuid })}`,
   },
   {
     label: "Jobs",
-    icon: "pending_actions",
+    icon: <PendingActionsIcon />,
     path: `${siteMap.jobs.path}${toQueryString({ projectUuid })}`,
   },
   {
     label: "Environments",
-    icon: "view_comfy",
+    icon: <ViewComfyIcon />,
     path: `${siteMap.environments.path}${toQueryString({ projectUuid })}`,
   },
 ];
 
-const rootMenuItems = [
+const rootMenuItems: ItemData[] = [
   {
     label: "Projects",
-    icon: "format_list_bulleted",
+    icon: <FormatListBulletedIcon />,
     path: siteMap.projects.path,
   },
   {
     label: "File manager",
-    icon: "folder_open",
+    icon: <FolderOpenIcon />,
     path: siteMap.fileManager.path,
   },
   {
     label: "Settings",
-    icon: "settings",
+    icon: <SettingsIcon />,
     path: siteMap.settings.path,
   },
-] as const;
+];
 
-type ItemData = { label: string; icon: string; path: string };
+const getItemKey = (item: { label: string; path: string }) =>
+  `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
 
-const MenuItem: React.FC<{ item: ItemData; id: string; exact?: boolean }> = ({
-  item,
-  id,
-  exact = false,
-}) => {
+const DEFAULT_DRAWER_WIDTH = 240;
+
+const openedMixin = (theme: Theme, drawerWidth?: number): CSSObject => ({
+  width: drawerWidth,
+  transition: theme.transitions.create("width", {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.enteringScreen,
+  }),
+  overflowX: "hidden",
+});
+
+const closedMixin = (theme: Theme): CSSObject => ({
+  transition: theme.transitions.create("width", {
+    easing: theme.transitions.easing.sharp,
+    duration: theme.transitions.duration.leavingScreen,
+  }),
+  overflowX: "hidden",
+  width: `calc(${theme.spacing(7)} + 1px)`,
+});
+
+const Drawer = styled(MuiDrawer, {
+  shouldForwardProp: (prop) => prop !== "open",
+})<{ drawerWidth?: number }>(
+  ({ theme, open, drawerWidth = DEFAULT_DRAWER_WIDTH }) => ({
+    width: drawerWidth,
+    flexShrink: 0,
+    whiteSpace: "nowrap",
+    boxSizing: "border-box",
+    ...(open && {
+      ...openedMixin(theme, drawerWidth),
+      "& .MuiDrawer-paper": openedMixin(theme, drawerWidth),
+    }),
+    ...(!open && {
+      ...closedMixin(theme),
+      "& .MuiDrawer-paper": closedMixin(theme),
+    }),
+  })
+);
+
+const ListItemIcon = styled(MuiListItemIcon)(({ theme }) => ({
+  minWidth: theme.spacing(5.5),
+}));
+
+const ListItemText = (props: ListItemTextProps) => {
   return (
-    <NavLink
-      to={item.path}
-      className="mdc-deprecated-list-item"
-      activeClassName="mdc-deprecated-list-item--selected"
-      exact={exact}
-      data-test-id={id}
-    >
-      <span className="mdc-deprecated-list-item__ripple" />
-      <i
-        className="material-icons mdc-deprecated-list-item__graphic"
-        aria-hidden="true"
-      >
-        {item.icon}
-      </i>
-      <span className="mdc-deprecated-list-item__text">{item.label}</span>
-    </NavLink>
+    <MuiListItemText
+      primaryTypographyProps={{
+        sx: (theme) => theme.typography.body2,
+      }}
+      {...props}
+    />
   );
 };
 
-const getItemKey = (item: { label: string; icon: string; path: string }) =>
-  `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
+export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
+  const {
+    state: { projectUuid },
+  } = useProjectsContext();
+  const appContext = useAppContext();
+  const location = useLocation();
+  const pathname = location.pathname;
 
-const MainDrawer: React.FC = () => {
-  const { dispatch, state } = useOrchest();
-  const projectUuid = state.projectUuid;
+  const { navigateTo } = useCustomRoute();
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
 
-  const drawerRef = useRef(null);
-  const macDrawerRef = useRef(null);
-
   React.useEffect(() => {
-    if (drawerRef.current) {
-      if (macDrawerRef.current) macDrawerRef.current.open = state.drawerIsOpen;
-
-      if (state?.config?.CLOUD === true && window.Intercom !== undefined) {
-        // show Intercom widget
-        window.Intercom("update", {
-          hide_default_launcher: !state?.drawerIsOpen,
-        });
-      }
-    }
-  }, [state.drawerIsOpen]);
-
-  React.useEffect(() => {
-    if (drawerRef.current) {
-      const initMDCDrawer = new MDCDrawer(drawerRef.current);
-
-      initMDCDrawer.open = state.drawerIsOpen;
-      initMDCDrawer.list.singleSelection = true;
-
-      initMDCDrawer.listen("MDCDrawer:opened", () => {
-        document.body.focus();
+    if (appContext.state.config?.CLOUD && window.Intercom !== undefined) {
+      // show Intercom widget
+      window.Intercom("update", {
+        hide_default_launcher: !isOpen,
       });
-
-      macDrawerRef.current = initMDCDrawer;
     }
-  }, []);
+  }, [isOpen]);
+
+  const isSelected = (path: string, exact = false) => {
+    return matchPath(pathname, { path: path.split("?")[0], exact }) !== null;
+  };
 
   return (
-    <aside
-      className="main-drawer mdc-drawer mdc-drawer--dismissible"
-      ref={drawerRef}
-    >
-      <div className="mdc-drawer__content">
-        <nav className="mdc-list">
-          {projectMenuItems.map((item) => {
-            const id = getItemKey(item);
-            return <MenuItem key={id} id={id} item={item} />;
-          })}
-          <hr role="separator" className="mdc-deprecated-list-divider" />
-          {rootMenuItems.map((item) => {
-            const id = getItemKey(item);
-            // these items are at the root level, we need to set exact to true
-            // otherwise, when path is /projects/12345, "Projects" will still be in active state.
-            return <MenuItem key={id} id={id} item={item} exact />;
-          })}
-        </nav>
-        <div
-          className="command-palette-hint"
-          onClick={() => {
-            dispatch({
-              type: "setIsCommandPaletteOpen",
-              payload: true,
-            });
-          }}
-        >
-          <div className="material-icons">search</div>
-          {navigator.userAgent.toLowerCase().includes("macintosh")
-            ? "Command "
-            : "Ctrl" + " + K"}
-        </div>
-      </div>
-    </aside>
+    <Drawer variant="permanent" open={isOpen}>
+      <Toolbar />
+      <List>
+        {projectMenuItems.map((item) => {
+          const id = getItemKey(item);
+          return (
+            <ListItemButton
+              id={id}
+              key={id}
+              data-test-id={id}
+              onClick={() => navigateTo(item.path)}
+              selected={isSelected(item.path, false)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText
+                key={`${item.label}-text`} // we need to give a key to register the element
+                primary={item.label}
+              />
+            </ListItemButton>
+          );
+        })}
+      </List>
+      <Divider />
+      <List>
+        {rootMenuItems.map((item) => {
+          const id = getItemKey(item);
+          return (
+            <ListItemButton
+              id={id}
+              key={id}
+              data-test-id={id}
+              selected={isSelected(item.path, true)}
+              onClick={() => navigateTo(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.label} />
+            </ListItemButton>
+          );
+        })}
+      </List>
+    </Drawer>
   );
 };
-
-export default MainDrawer;

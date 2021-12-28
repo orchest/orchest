@@ -1,6 +1,5 @@
 export * from "./alert";
 export * from "./box";
-export * from "./dialog";
 export * from "./flex";
 export * from "./grid";
 export * from "./heading";

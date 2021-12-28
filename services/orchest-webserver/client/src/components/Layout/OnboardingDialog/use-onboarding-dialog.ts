@@ -1,6 +1,5 @@
-import { useLocalStorage } from "@/hooks/local-storage";
-import { useProjects } from "@/hooks/projects";
-import { DIALOG_ANIMATION_DURATION } from "@orchest/design-system";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import * as React from "react";
 import useSWR from "swr";
 
@@ -18,8 +17,11 @@ export const useOnboardingDialog = () => {
     false
   );
 
-  const { data } = useProjects({ shouldFetch: state?.shouldFetchQuickstart });
-  const findQuickstart = data?.find((project) => project.path === "quickstart");
+  const projectsContext = useProjectsContext();
+
+  const findQuickstart = projectsContext.state.projects?.find(
+    (project) => project.path === "quickstart"
+  );
   const quickstart =
     typeof findQuickstart === "undefined"
       ? undefined
@@ -41,13 +43,12 @@ export const useOnboardingDialog = () => {
       setHasCompletedOnboarding(true);
       // Wait for Dialog transition to finish before resetting position.
       // This way we avoid showing the slides animating back to the start.
-      setTimeout(() => {
-        setState((prevState) => ({
-          ...prevState,
-          shouldFetchQuickstart: false,
-        }));
-        onOpen && onOpen(false);
-      }, DIALOG_ANIMATION_DURATION.OUT);
+
+      setState((prevState) => ({
+        ...prevState,
+        shouldFetchQuickstart: false,
+      }));
+      onOpen && onOpen(false);
     }
   };
 

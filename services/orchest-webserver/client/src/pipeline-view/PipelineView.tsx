@@ -1,9 +1,15 @@
 // @ts-nocheck
 
+import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
-import { OrchestSessionsConsumer, useOrchest } from "@/hooks/orchest";
+import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
+import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
+import StyledButtonOutlined from "@/styled-components/StyledButton";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
@@ -16,7 +22,29 @@ import {
   serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
-import { MDCButtonReact } from "@orchest/lib-mdc";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CloseIcon from "@mui/icons-material/Close";
+import CropFreeIcon from "@mui/icons-material/CropFree";
+import DeleteIcon from "@mui/icons-material/Delete";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import RemoveIcon from "@mui/icons-material/Remove";
+import SettingsIcon from "@mui/icons-material/Settings";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import Button from "@mui/material/Button";
+import Divider from "@mui/material/Divider";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
+import ListItemIcon from "@mui/material/ListItemIcon";
+import ListItemText from "@mui/material/ListItemText";
+import ListSubheader from "@mui/material/ListSubheader";
+import Menu from "@mui/material/Menu";
+import { darken } from "@mui/material/styles";
+import Typography from "@mui/material/Typography";
 import {
   activeElementIsInput,
   collapseDoubleDots,
@@ -114,13 +142,23 @@ export interface IPipelineViewState {
   pipelineJson: PipelineJson;
 }
 
+const formatUrl = (url: string) => {
+  return "Port " + url.split("/")[3].split("_").slice(-1)[0];
+};
+
 const PipelineView: React.FC = () => {
-  const { $, orchest } = window;
+  const { $ } = window;
+  const { dispatch } = useProjectsContext();
+  const { setAlert, setConfirm, requestBuild } = useAppContext();
+  const sessionContext = useSessionsContext();
+  useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
+
+  useSessionsPoller();
+
   const {
-    get,
     state: { sessionsIsLoading },
-    dispatch,
-  } = useOrchest();
+    getSession,
+  } = sessionContext;
 
   const {
     projectUuid,
@@ -147,7 +185,7 @@ const PipelineView: React.FC = () => {
     setShouldAutoStart(!isReadOnly);
   }, [isReadOnly]);
 
-  const session = get.session({
+  const session = getSession({
     projectUuid,
     pipelineUuid,
   });
@@ -310,7 +348,7 @@ const PipelineView: React.FC = () => {
       // if invalid
       if (pipelineValidation.valid !== true) {
         // Just show the first error
-        orchest.alert("Error", pipelineValidation.errors[0]);
+        setAlert("Error", pipelineValidation.errors[0]);
       } else {
         // store pipeline.json
         let formData = new FormData();
@@ -479,7 +517,7 @@ const PipelineView: React.FC = () => {
     if (!sessionsIsLoading) {
       // If session doesn't exist and first load
       if (shouldAutoStart && !session) {
-        dispatch({
+        sessionContext.dispatch({
           type: "sessionToggle",
           payload: { pipelineUuid, projectUuid },
         });
@@ -686,7 +724,7 @@ const PipelineView: React.FC = () => {
         }
 
         if (connectionCreatesCycle) {
-          orchest.alert(
+          setAlert(
             "Error",
             "Connecting this step will create a cycle in your pipeline which is not supported."
           );
@@ -710,7 +748,7 @@ const PipelineView: React.FC = () => {
           removeConnection(state.eventVars.newConnection);
 
           if (!noConnectionExists) {
-            orchest.alert(
+            setAlert(
               "Error",
               "These steps are already connected. No new connection has been created."
             );
@@ -1179,7 +1217,7 @@ const PipelineView: React.FC = () => {
             // cannot be found. Alert the user about missing pipeline and return
             // to JobView.
 
-            orchest.alert(
+            setAlert(
               "Error",
               "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
               returnToJob
@@ -1382,11 +1420,11 @@ const PipelineView: React.FC = () => {
       state.eventVars.isDeletingStep = true;
       updateEventVars();
 
-      orchest.confirm(
+      setConfirm(
         "Warning",
         "A deleted step and its logs cannot be recovered once deleted, are you" +
           " sure you want to proceed?",
-        () => {
+        async () => {
           closeMultistepView();
           closeDetailsView();
 
@@ -1400,13 +1438,13 @@ const PipelineView: React.FC = () => {
           state.eventVars.selectedSteps = [];
           state.eventVars.isDeletingStep = false;
           updateEventVars();
-          setState({
-            saveHash: uuidv4(),
-          });
+          setState({ saveHash: uuidv4() });
+          return true;
         },
         () => {
           state.eventVars.isDeletingStep = false;
           updateEventVars();
+          return false;
         }
       );
     }
@@ -1455,18 +1493,17 @@ const PipelineView: React.FC = () => {
 
   const onDetailsDelete = () => {
     let uuid = state.eventVars.openedStep;
-    orchest.confirm(
+    setConfirm(
       "Warning",
       "A deleted step and its logs cannot be recovered once deleted, are you" +
         " sure you want to proceed?",
-      () => {
+      async () => {
         state.eventVars.openedStep = undefined;
         state.eventVars.selectedSteps = [];
         updateEventVars();
         deleteStep(uuid);
-        setState({
-          saveHash: uuidv4(),
-        });
+        setState({ saveHash: uuidv4() });
+        return true;
       }
     );
   };
@@ -1479,7 +1516,7 @@ const PipelineView: React.FC = () => {
 
   const openNotebook = (stepUUID: string) => {
     if (session === undefined) {
-      orchest.alert(
+      setAlert(
         "Error",
         "Please start the session before opening the Notebook in Jupyter."
       );
@@ -1497,12 +1534,12 @@ const PipelineView: React.FC = () => {
         ).slice(1)
       );
     } else if (session.status === "LAUNCHING") {
-      orchest.alert(
+      setAlert(
         "Error",
         "Please wait for the session to start before opening the Notebook in Jupyter."
       );
     } else {
-      orchest.alert(
+      setAlert(
         "Error",
         "Please start the session before opening the Notebook in Jupyter."
       );
@@ -1767,7 +1804,7 @@ const PipelineView: React.FC = () => {
 
   const cancelRun = () => {
     if (!state.pipelineRunning) {
-      orchest.alert("Error", "There is no pipeline running.");
+      setAlert("Error", "There is no pipeline running.");
       return;
     }
 
@@ -1779,8 +1816,8 @@ const PipelineView: React.FC = () => {
           waitingOnCancel: true,
         });
       })
-      .catch((response) => {
-        orchest.alert(
+      .catch(() => {
+        setAlert(
           "Error",
           `Could not cancel pipeline run for runUuid ${runUuid}`
         );
@@ -1828,12 +1865,12 @@ const PipelineView: React.FC = () => {
 
           try {
             let data = JSON.parse(response.body);
-            orchest.alert(
+            setAlert(
               "Error",
-              "Failed to start interactive run. " + data["message"]
+              `Failed to start interactive run. ${data["message"]}`
             );
           } catch {
-            orchest.alert(
+            setAlert(
               "Error",
               "Failed to start interactive run. Unknown error."
             );
@@ -1844,7 +1881,7 @@ const PipelineView: React.FC = () => {
 
   const runStepUUIDs = (uuids, type) => {
     if (!session || session.status !== "RUNNING") {
-      orchest.alert(
+      setAlert(
         "Error",
         "There is no active session. Please start the session first."
       );
@@ -1852,7 +1889,7 @@ const PipelineView: React.FC = () => {
     }
 
     if (state.pipelineRunning) {
-      orchest.alert(
+      setAlert(
         "Error",
         "The pipeline is currently executing, please wait until it completes."
       );
@@ -2162,15 +2199,11 @@ const PipelineView: React.FC = () => {
   };
 
   const getServices = () => {
-    let services;
-    if (!jobUuidFromRoute) {
-      if (session && session.user_services) {
-        services = session.user_services;
-      }
-    } else {
-      services = state.pipelineJson.services;
-    }
-
+    const services = jobUuidFromRoute
+      ? state.pipelineJson.services
+      : session && session.user_services
+      ? session.user_services
+      : {};
     // Filter services based on scope
     let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(services, scope);
@@ -2178,43 +2211,23 @@ const PipelineView: React.FC = () => {
 
   // How to show services?
   const generateServiceEndpoints = () => {
-    let serviceLinks = [];
+    let serviceLinks: { name: string; urls: string[] }[] = [];
     let services = getServices();
 
     for (let serviceName in services) {
       let service = services[serviceName];
 
-      let urls = getServiceURLs(
-        service,
-        projectUuid,
-        pipelineUuid,
-        runUuidFromRoute
-      );
-
-      let formatUrl = (url) => {
-        return "Port " + url.split("/")[3].split("_").slice(-1)[0];
-      };
-
-      serviceLinks.push(<h4 key={serviceName}>{serviceName}</h4>);
-
-      for (let url of urls) {
-        serviceLinks.push(
-          <div className="link-holder" key={url}>
-            <a target="_blank" href={url} rel="noreferrer">
-              <span className="material-icons">open_in_new</span>{" "}
-              {formatUrl(url)}
-            </a>
-          </div>
-        );
-      }
-
-      if (urls.length == 0) {
-        serviceLinks.push(
-          <i key={serviceName + "-i"}>This service has no endpoints.</i>
-        );
-      }
+      serviceLinks.push({
+        name: serviceName,
+        urls: getServiceURLs(
+          service,
+          projectUuid,
+          pipelineUuid,
+          runUuidFromRoute
+        ),
+      });
     }
-    return <div>{serviceLinks}</div>;
+    return serviceLinks;
   };
 
   const returnToJob = () => {
@@ -2348,7 +2361,7 @@ const PipelineView: React.FC = () => {
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
-            orchest.requestBuild(projectUuid, result.data, "Pipeline", () => {
+            requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
             });
           }
@@ -2394,212 +2407,303 @@ const PipelineView: React.FC = () => {
     }
   }, [state.eventVars.scaleFactor, state.pipelineOffset]);
 
+  const servicesButtonRef = React.useRef<HTMLButtonElement>();
+
   return (
-    <OrchestSessionsConsumer>
-      <Layout>
-        <div className="pipeline-view">
-          <div
-            className="pane pipeline-view-pane"
-            onMouseOver={enableHotKeys}
-            onMouseLeave={disableHotKeys}
-          >
-            {jobUuidFromRoute && isReadOnly && (
-              <div className="pipeline-actions top-left">
-                <MDCButtonReact
-                  classNames={["mdc-button--outlined"]}
-                  label="Back to job"
-                  icon="arrow_back"
-                  onClick={returnToJob}
-                  data-test-id="pipeline-back-to-job"
-                />
+    <Layout disablePadding fullHeight>
+      <div className="pipeline-view">
+        <div
+          className="pane pipeline-view-pane"
+          onMouseOver={enableHotKeys}
+          onMouseLeave={disableHotKeys}
+        >
+          {jobUuidFromRoute && isReadOnly && (
+            <div className="pipeline-actions top-left">
+              <StyledButtonOutlined
+                variant="outlined"
+                color="secondary"
+                sx={{
+                  backgroundColor: (theme) => theme.palette.background.default,
+                  borderColor: (theme) =>
+                    darken(theme.palette.background.default, 0.2),
+                  "&:hover": {
+                    backgroundColor: (theme) =>
+                      darken(theme.palette.background.default, 0.1),
+                    borderColor: (theme) =>
+                      darken(theme.palette.background.default, 0.3),
+                  },
+                }}
+                startIcon={<ArrowBackIcon />}
+                onClick={returnToJob}
+                data-test-id="pipeline-back-to-job"
+              >
+                Back to job
+              </StyledButtonOutlined>
+            </div>
+          )}
+
+          <div className="pipeline-actions bottom-left">
+            <div className="navigation-buttons">
+              <IconButton
+                title="Center"
+                data-test-id="pipeline-center"
+                onClick={centerView}
+              >
+                <CropFreeIcon />
+              </IconButton>
+              <IconButton title="Zoom out" onClick={zoomOut}>
+                <RemoveIcon />
+              </IconButton>
+              <IconButton title="Zoom in" onClick={zoomIn}>
+                <AddIcon />
+              </IconButton>
+              <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
+                <AccountTreeOutlinedIcon />
+              </IconButton>
+            </div>
+
+            {!isReadOnly &&
+              !state.pipelineRunning &&
+              state.eventVars.selectedSteps.length > 0 &&
+              !state.eventVars.stepSelector.active && (
+                <div className="selection-buttons">
+                  <Button
+                    variant="contained"
+                    onClick={runSelectedSteps}
+                    data-test-id="interactive-run-run-selected-steps"
+                  >
+                    Run selected steps
+                  </Button>
+                  {selectedStepsHasIncoming && (
+                    <Button
+                      variant="contained"
+                      onClick={onRunIncoming}
+                      data-test-id="interactive-run-run-incoming-steps"
+                    >
+                      Run incoming steps
+                    </Button>
+                  )}
+                </div>
+              )}
+            {!isReadOnly && state.pipelineRunning && (
+              <div className="selection-buttons">
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={cancelRun}
+                  startIcon={<CloseIcon />}
+                  disabled={state.waitingOnCancel}
+                  data-test-id="interactive-run-cancel"
+                >
+                  Cancel run
+                </Button>
               </div>
             )}
-
-            <div className="pipeline-actions bottom-left">
-              <div className="navigation-buttons">
-                <MDCButtonReact
-                  onClick={centerView}
-                  icon="crop_free"
-                  data-test-id="pipeline-center"
-                />
-                <MDCButtonReact onClick={zoomOut} icon="remove" />
-                <MDCButtonReact onClick={zoomIn} icon="add" />
-                <MDCButtonReact
-                  onClick={autoLayoutPipeline}
-                  icon={<div className="custom-icon pipeline">pipeline</div>}
-                />
-              </div>
-
-              {!isReadOnly &&
-                !state.pipelineRunning &&
-                state.eventVars.selectedSteps.length > 0 &&
-                !state.eventVars.stepSelector.active && (
-                  <div className="selection-buttons">
-                    <MDCButtonReact
-                      classNames={["mdc-button--raised", "themed-secondary"]}
-                      onClick={runSelectedSteps}
-                      label="Run selected steps"
-                      data-test-id="interactive-run-run-selected-steps"
-                    />
-                    {selectedStepsHasIncoming && (
-                      <MDCButtonReact
-                        classNames={["mdc-button--raised", "themed-secondary"]}
-                        onClick={onRunIncoming}
-                        label="Run incoming steps"
-                        data-test-id="interactive-run-run-incoming-steps"
-                      />
-                    )}
-                  </div>
-                )}
-              {!isReadOnly && state.pipelineRunning && (
-                <div className="selection-buttons">
-                  <MDCButtonReact
-                    classNames={["mdc-button--raised"]}
-                    onClick={cancelRun}
-                    icon="close"
-                    disabled={state.waitingOnCancel}
-                    label="Cancel run"
-                    data-test-id="interactive-run-cancel"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className={"pipeline-actions top-right"}>
-              {!isReadOnly && (
-                <MDCButtonReact
-                  classNames={["mdc-button--raised"]}
-                  onClick={newStep}
-                  icon={"add"}
-                  label={"NEW STEP"}
-                  data-test-id="step-create"
-                />
-              )}
-
-              {isReadOnly && (
-                <MDCButtonReact
-                  label={"Read only"}
-                  disabled={true}
-                  icon={"visibility"}
-                />
-              )}
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={openLogs}
-                label={"Logs"}
-                icon="view_headline"
-              />
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={showServices}
-                label={"Services"}
-                icon="settings"
-              />
-
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                onClick={() => openSettings()}
-                label={"Settings"}
-                icon="tune"
-                data-test-id="pipeline-settings"
-              />
-
-              {state.eventVars.showServices && (
-                <div className="services-status">
-                  <h3>Running services</h3>
-                  {servicesAvailable() ? (
-                    generateServiceEndpoints()
-                  ) : (
-                    <i>No services are running.</i>
-                  )}
-
-                  <div className="edit-button-holder">
-                    <MDCButtonReact
-                      icon="tune"
-                      label={`${!isReadOnly ? "Edit" : "View"} services`}
-                      onClick={() => openSettings("services")}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div
-              className="pipeline-steps-outer-holder"
-              ref={state.refManager.nrefs.pipelineStepsOuterHolder}
-              onMouseMove={onPipelineStepsOuterHolderMove}
-              onMouseDown={onPipelineStepsOuterHolderDown}
-              onWheel={onPipelineStepsOuterHolderWheel}
-            >
-              <div
-                className="pipeline-steps-holder"
-                ref={state.refManager.nrefs.pipelineStepsHolder}
-                style={{
-                  transformOrigin: `${state.pipelineOrigin[0]}px ${state.pipelineOrigin[1]}px`,
-                  transform:
-                    "translateX(" +
-                    state.pipelineOffset[0] +
-                    "px)" +
-                    "translateY(" +
-                    state.pipelineOffset[1] +
-                    "px)" +
-                    "scale(" +
-                    state.eventVars.scaleFactor +
-                    ")",
-                  left: state.pipelineStepsHolderOffsetLeft,
-                  top: state.pipelineStepsHolderOffsetTop,
-                }}
-              >
-                {state.eventVars.stepSelector.active && (
-                  <Rectangle
-                    {...getStepSelectorRectangle(state.eventVars.stepSelector)}
-                  />
-                )}
-                {pipelineSteps}
-                <div className="connections">{connectionComponents}</div>
-              </div>
-            </div>
           </div>
 
-          {state.eventVars.openedStep && (
-            <PipelineDetails
-              key={state.eventVars.openedStep}
-              onSave={onSaveDetails}
-              onDelete={onDetailsDelete}
-              onClose={onCloseDetails}
-              onOpenFilePreviewView={onOpenFilePreviewView}
-              onOpenNotebook={onOpenNotebook}
-              onChangeView={onDetailsChangeView}
-              connections={connections_list}
-              defaultViewIndex={state.defaultDetailViewIndex}
-              pipeline={state.pipelineJson}
-              pipelineCwd={state.pipelineCwd}
-              project_uuid={projectUuid}
-              job_uuid={jobUuidFromRoute}
-              run_uuid={runUuidFromRoute}
-              sio={state.sio}
-              readOnly={isReadOnly}
-              step={state.eventVars.steps[state.eventVars.openedStep]}
-              saveHash={state.saveHash}
-            />
-          )}
+          <div className={"pipeline-actions top-right"}>
+            {!isReadOnly && (
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={newStep}
+                startIcon={<AddIcon />}
+                data-test-id="step-create"
+              >
+                NEW STEP
+              </Button>
+            )}
 
-          {state.eventVars.openedMultistep && !isReadOnly && (
-            <div className={"pipeline-actions bottom-right"}>
-              <MDCButtonReact
-                classNames={["mdc-button--raised"]}
-                label={"Delete"}
-                onClick={onDeleteMultistep}
-                icon={"delete"}
-                data-test-id="step-delete-multi"
-              />
+            {isReadOnly && (
+              <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
+                Read only
+              </Button>
+            )}
+
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={openLogs}
+              startIcon={<ViewHeadlineIcon />}
+            >
+              Logs
+            </Button>
+
+            <Button
+              id="running-services-button"
+              variant="contained"
+              color="secondary"
+              onClick={showServices}
+              startIcon={<SettingsIcon />}
+              ref={servicesButtonRef}
+            >
+              Services
+            </Button>
+            <Menu
+              id="running-services-menu"
+              anchorEl={servicesButtonRef.current}
+              open={state.eventVars.showServices}
+              onClose={hideServices}
+              MenuListProps={{
+                "aria-labelledby": "running-services-button",
+              }}
+              anchorOrigin={{
+                vertical: "bottom",
+                horizontal: "center",
+              }}
+              transformOrigin={{
+                vertical: "top",
+                horizontal: "center",
+              }}
+            >
+              <ListItem>
+                <Typography
+                  variant="subtitle1"
+                  component="h3"
+                  sx={{ paddingBottom: 0 }}
+                >
+                  Running services
+                </Typography>
+              </ListItem>
+              {servicesAvailable() ? (
+                generateServiceEndpoints().map((serviceLink) => {
+                  return (
+                    <List
+                      key={serviceLink.name}
+                      subheader={
+                        <ListSubheader>{serviceLink.name}</ListSubheader>
+                      }
+                    >
+                      {serviceLink.urls.length === 0 && (
+                        <ListItem>
+                          <Typography variant="caption">
+                            <i>This service has no endpoints.</i>
+                          </Typography>
+                        </ListItem>
+                      )}
+                      {serviceLink.urls.map((url) => {
+                        return (
+                          <ListItemButton
+                            key={url}
+                            component="a"
+                            href={url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            <ListItemIcon>
+                              <OpenInNewIcon />
+                            </ListItemIcon>
+                            <ListItemText primary={formatUrl(url)} />
+                          </ListItemButton>
+                        );
+                      })}
+                    </List>
+                  );
+                })
+              ) : (
+                <ListItem>
+                  <ListItemText secondary={<i>No services are running.</i>} />
+                </ListItem>
+              )}
+              <Divider />
+              <List>
+                <ListItemButton onClick={() => openSettings("services")}>
+                  <ListItemIcon>
+                    <TuneIcon />
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={`${!isReadOnly ? "Edit" : "View"} services`}
+                  />
+                </ListItemButton>
+              </List>
+            </Menu>
+
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={() => openSettings()}
+              startIcon={<TuneIcon />}
+              data-test-id="pipeline-settings"
+            >
+              Settings
+            </Button>
+          </div>
+
+          <div
+            className="pipeline-steps-outer-holder"
+            ref={state.refManager.nrefs.pipelineStepsOuterHolder}
+            onMouseMove={onPipelineStepsOuterHolderMove}
+            onMouseDown={onPipelineStepsOuterHolderDown}
+            onWheel={onPipelineStepsOuterHolderWheel}
+          >
+            <div
+              className="pipeline-steps-holder"
+              ref={state.refManager.nrefs.pipelineStepsHolder}
+              style={{
+                transformOrigin: `${state.pipelineOrigin[0]}px ${state.pipelineOrigin[1]}px`,
+                transform:
+                  "translateX(" +
+                  state.pipelineOffset[0] +
+                  "px)" +
+                  "translateY(" +
+                  state.pipelineOffset[1] +
+                  "px)" +
+                  "scale(" +
+                  state.eventVars.scaleFactor +
+                  ")",
+                left: state.pipelineStepsHolderOffsetLeft,
+                top: state.pipelineStepsHolderOffsetTop,
+              }}
+            >
+              {state.eventVars.stepSelector.active && (
+                <Rectangle
+                  {...getStepSelectorRectangle(state.eventVars.stepSelector)}
+                />
+              )}
+              {pipelineSteps}
+              <div className="connections">{connectionComponents}</div>
             </div>
-          )}
+          </div>
         </div>
-      </Layout>
-    </OrchestSessionsConsumer>
+
+        {state.eventVars.openedStep && (
+          <PipelineDetails
+            key={state.eventVars.openedStep}
+            onSave={onSaveDetails}
+            onDelete={onDetailsDelete}
+            onClose={onCloseDetails}
+            onOpenFilePreviewView={onOpenFilePreviewView}
+            onOpenNotebook={onOpenNotebook}
+            onChangeView={onDetailsChangeView}
+            connections={connections_list}
+            defaultViewIndex={state.defaultDetailViewIndex}
+            pipeline={state.pipelineJson}
+            pipelineCwd={state.pipelineCwd}
+            project_uuid={projectUuid}
+            job_uuid={jobUuidFromRoute}
+            run_uuid={runUuidFromRoute}
+            sio={state.sio}
+            readOnly={isReadOnly}
+            step={state.eventVars.steps[state.eventVars.openedStep]}
+            saveHash={state.saveHash}
+          />
+        )}
+
+        {state.eventVars.openedMultistep && !isReadOnly && (
+          <div className={"pipeline-actions bottom-right"}>
+            <Button
+              variant="contained"
+              color="secondary"
+              onClick={onDeleteMultistep}
+              startIcon={<DeleteIcon />}
+              data-test-id="step-delete-multi"
+            >
+              Delete
+            </Button>
+          </div>
+        )}
+      </div>
+    </Layout>
   );
 };
 
