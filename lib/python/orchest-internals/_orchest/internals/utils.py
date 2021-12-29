@@ -31,14 +31,14 @@ class GlobalOrchestConfig:
     # Defines default values for all supported configuration options.
     _config_values = {
         "MAX_JOB_RUNS_PARALLELISM": {
-            "default": 4,
+            "default": 1,
             "type": int,
             "requires-restart": True,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
-            "default": 4,
+            "default": 1,
             "type": int,
             "requires-restart": True,
             "condition": lambda x: 0 < x <= 25,
