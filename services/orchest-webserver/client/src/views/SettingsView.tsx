@@ -306,24 +306,6 @@ const SettingsView: React.FC = () => {
                     marginBottom: (theme) => theme.spacing(2),
                   }}
                 >
-                  {config.CLOUD === true && (
-                    <Typography
-                      variant="body2"
-                      sx={{ color: (theme) => theme.palette.grey[800] }}
-                    >
-                      {`Note that `}
-                      {config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.map((el, i) => (
-                        <span key={i}>
-                          <Code>{el}</Code>
-                          {i !==
-                            config.CLOUD_UNMODIFIABLE_CONFIG_VALUES.length -
-                              1 && `, `}
-                        </span>
-                      ))}
-                      {` cannot be modified when running in the `}
-                      <Code>cloud</Code>.
-                    </Typography>
-                  )}
                   {(() => {
                     try {
                       JSON.parse(state.config);
