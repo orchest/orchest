@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
+import React from "react";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
@@ -15,16 +15,16 @@ type State<T> = {
 };
 
 const useSafeDispatch = <T>(dispatch: React.Dispatch<Action<T>>) => {
-  const mounted = useRef(false);
+  const mounted = React.useRef(false);
 
-  useLayoutEffect(() => {
+  React.useLayoutEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
 
-  return useCallback(
+  return React.useCallback(
     (action) => (mounted.current ? dispatch(action) : void 0),
     [dispatch]
   );
@@ -52,7 +52,7 @@ const asyncReducer = <T>(state: State<T>, action: Action<T>): State<T> => {
 };
 
 const useAsync = <T>(initialState?: T) => {
-  const [state, unsafeDispatch] = useReducer<
+  const [state, unsafeDispatch] = React.useReducer<
     (state: State<T>, action: Action<T>) => State<T>
   >(asyncReducer, {
     status: "IDLE",
@@ -65,7 +65,7 @@ const useAsync = <T>(initialState?: T) => {
 
   const { data, error, status } = state as State<T>;
 
-  const run = useCallback(
+  const run = React.useCallback(
     (promise: Promise<T>) => {
       dispatch({ type: "PENDING" });
       return promise.then(
@@ -80,10 +80,11 @@ const useAsync = <T>(initialState?: T) => {
     [dispatch]
   );
 
-  const setData = useCallback((data) => dispatch({ type: "RESOLVED", data }), [
-    dispatch,
-  ]);
-  const setError = useCallback(
+  const setData = React.useCallback(
+    (data) => dispatch({ type: "RESOLVED", data }),
+    [dispatch]
+  );
+  const setError = React.useCallback(
     (error) => dispatch({ type: "REJECTED", error }),
     [dispatch]
   );
