@@ -1,4 +1,5 @@
 import React from "react";
+import JobView from "./job-view/JobView";
 import LogsView from "./pipeline-view/LogsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import ExamplesView from "./projects-view/ExamplesView";
@@ -11,7 +12,6 @@ import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
 import HelpView from "./views/HelpView";
 import JobsView from "./views/JobsView";
-import JobView from "./views/JobView";
 import JupyterLabView from "./views/JupyterLabView";
 import ManageUsersView from "./views/ManageUsersView";
 import PipelineSettingsView from "./views/PipelineSettingsView";

@@ -5,14 +5,13 @@ import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
 import { NoParameterAlert } from "@/components/ParamTree";
-import { StatusGroup, StatusInline, TStatus } from "@/components/Status";
+import { StatusInline } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import theme from "@/theme";
-import type { Job, PipelineJson, PipelineRun } from "@/types";
-import { commaSeparatedString } from "@/utils/text";
+import type { Job, Json, PipelineJson, PipelineRun } from "@/types";
 import {
   checkGate,
   envVariablesDictToArray,
@@ -29,6 +28,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -36,137 +36,28 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import Typography from "@mui/material/Typography";
 import {
+  fetcher,
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
 import React from "react";
-import { PieChart } from "react-minimal-pie-chart";
+import { JobStatus } from "./JobStatus";
+
+const PARAMETERLESS_RUN = "Parameterless run";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
 }));
 
-const JobStatus: React.FC<{
-  status?: TStatus;
-  pipeline_runs?: PipelineRun[];
-}> = ({ status, pipeline_runs = [] }) => {
-  const count = pipeline_runs.reduce(
-    (acc, cv, i) =>
-      cv && {
-        ...acc,
-        [cv.status]: acc[cv.status] + 1,
-        total: i + 1,
-      },
-    {
-      ABORTED: 0,
-      PENDING: 0,
-      STARTED: 0,
-      SUCCESS: 0,
-      FAILURE: 0,
-      total: 0,
-    }
-  );
-
-  const getJobStatusVariant = () => {
-    if (["STARTED", "PAUSED", "SUCCESS", "ABORTED"].includes(status))
-      return status;
-
-    if (
-      ["PENDING"].includes(status) &&
-      count.PENDING + count.STARTED === count.total
-    )
-      return "PENDING";
-
-    if (status === "FAILURE" && count.ABORTED + count.FAILURE === count.total)
-      return "FAILURE";
-
-    if (status === "FAILURE") return "MIXED_FAILURE";
-    if (status === "PENDING") return "MIXED_PENDING";
-
-    return status;
-  };
-
-  const variant = getJobStatusVariant();
-  return (
-    <StatusGroup
-      status={status}
-      icon={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
-          <PieChart
-            startAngle={270}
-            background={theme.palette.background.default}
-            lineWidth={40}
-            animate={true}
-            data={[
-              {
-                title: "Pending",
-                color: theme.palette.warning.main,
-                value: count.PENDING + count.STARTED,
-              },
-              {
-                title: "Failed",
-                color: theme.palette.error.main,
-                value: count.FAILURE + count.ABORTED,
-              },
-              {
-                title: "Success",
-                color: theme.palette.success.main,
-                value: count.SUCCESS,
-              },
-            ]}
-          />
-        )
-      }
-      title={
-        {
-          ABORTED: "This job was cancelled",
-          PENDING: "Some pipeline runs haven't completed yet",
-          FAILURE: "All pipeline runs were unsuccessful",
-          STARTED: "This job is running",
-          PAUSED: "This job is paused",
-          SUCCESS: "All pipeline runs were successful",
-          MIXED_PENDING: "Some pipeline runs haven't completed yet",
-          MIXED_FAILURE: "Some pipeline runs were unsuccessful",
-        }[variant]
-      }
-      description={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
-        [
-          commaSeparatedString(
-            [
-              count.PENDING && [count.PENDING, "pending"].join(" "),
-              count.FAILURE && [count.FAILURE, "failed"].join(" "),
-              count.SUCCESS && [count.SUCCESS, "successful"].join(" "),
-            ].filter(Boolean)
-          ),
-          count.total > 1 ? "pipeline runs" : "pipeline run",
-        ].join(" ")
-      }
-      data-test-id="job-status"
-    />
-  );
-};
-
-const formatPipelineParams = (parameters) => {
-  let keyValuePairs: string[] = [];
-
-  for (let strategyJSONKey in parameters) {
-    for (let parameter in parameters[strategyJSONKey]) {
-      keyValuePairs.push(
-        parameter +
-          ": " +
-          JSON.stringify(parameters[strategyJSONKey][parameter])
-      );
-    }
-  }
-
-  if (keyValuePairs.length == 0) {
-    return <i>Parameterless run</i>;
-  }
-
-  return keyValuePairs;
+const formatPipelineParams = (parameters: Record<string, Json>) => {
+  return Object.values(parameters).map((parameter) => {
+    return Object.entries(parameter)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(", ");
+  });
 };
 
 const columns: DataTableColumn<PipelineRun>[] = [
@@ -176,8 +67,11 @@ const columns: DataTableColumn<PipelineRun>[] = [
     label: "Parameters",
     render: function RunParameters(row) {
       const formattedParams = formatPipelineParams(row.parameters);
-      if (!Array.isArray(formattedParams)) return formattedParams;
-      return formattedParams.join(", ");
+      return formattedParams.length === 0 ? (
+        <i>{PARAMETERLESS_RUN}</i>
+      ) : (
+        formattedParams.join(", ")
+      );
     },
   },
   {
@@ -207,7 +101,7 @@ const runSpecTableColumns: DataTableColumn<PipelineRunRow>[] = [
     id: "spec",
     label: "Run specification",
     render: function RunSpec(row) {
-      return row.spec === "Parameterless run" ? <i>{row.spec}</i> : row.spec;
+      return row.spec === PARAMETERLESS_RUN ? <i>{row.spec}</i> : row.spec;
     },
   },
 ];
@@ -222,6 +116,73 @@ const RunSpecTable = ({ rows }: { rows: PipelineRunRow[] }) => {
   );
 };
 
+const useFetchJob = (jobUuid?: string) => {
+  const { data, error, run, status } = useAsync<Job>();
+  const [job, setJob] = React.useState<Job>();
+
+  const fetchJob = React.useCallback(
+    () => run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`)),
+    [jobUuid]
+  );
+  React.useEffect(() => {
+    if (data) setJob(data);
+  }, [data]);
+  React.useEffect(() => {
+    if (jobUuid) run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`));
+  }, [jobUuid]);
+
+  const envVariables: { name: string; value: string }[] = React.useMemo(() => {
+    return job ? envVariablesDictToArray<string>(job.env_variables) : [];
+  }, [job]);
+
+  return {
+    job,
+    setJob,
+    envVariables,
+    fetchJob,
+    fetchJobError: error,
+    fetchJobStatus: status,
+  };
+};
+
+const useFetchPipeline = (
+  job?: Pick<Job, "pipeline_uuid" | "project_uuid" | "uuid">
+) => {
+  const { pipeline_uuid, project_uuid, uuid } = job || {};
+  const { data, run, status, error, setError } = useAsync<PipelineJson>();
+
+  React.useEffect(() => {
+    if (hasValue(pipeline_uuid) && hasValue(project_uuid) && hasValue(uuid)) {
+      try {
+        const pipelineJSONEndpoint = getPipelineJSONEndpoint(
+          pipeline_uuid,
+          project_uuid,
+          uuid
+        );
+        run(
+          fetcher<{
+            pipeline_json: string;
+            success: boolean;
+          }>(pipelineJSONEndpoint).then((result) => {
+            if (!result.success) {
+              throw new Error("Failed to fetch pipeline.json");
+            }
+            return JSON.parse(result.pipeline_json) as PipelineJson;
+          })
+        );
+      } catch (err) {
+        setError(`Unable to load pipeline: ${err}`);
+      }
+    }
+  }, [pipeline_uuid, project_uuid, uuid]);
+
+  return {
+    pipeline: data,
+    fetchPipelineError: error,
+    fetchPipelineStatus: status,
+  };
+};
+
 const JobView: React.FC = () => {
   // global states
   const { setAlert, requestBuild } = useAppContext();
@@ -231,71 +192,35 @@ const JobView: React.FC = () => {
   const { navigateTo, projectUuid, jobUuid } = useCustomRoute();
 
   // data states
-  const [job, setJob] = React.useState<Job>();
-  const [pipeline, setPipeline] = React.useState<PipelineJson>();
-  const [envVariables, setEnvVariables] = React.useState<
-    { name: string; value: string }[]
-  >([]);
+  const {
+    job,
+    setJob,
+    fetchJob,
+    envVariables,
+    fetchJobError,
+    fetchJobStatus,
+  } = useFetchJob(jobUuid);
+  const {
+    pipeline,
+    fetchPipelineError,
+    fetchPipelineStatus,
+  } = useFetchPipeline(job);
+
+  React.useEffect(() => {
+    if (fetchPipelineError) setAlert("Error", fetchPipelineError.message);
+    if (fetchJobError) setAlert("Error", fetchJobError.message);
+  }, [fetchPipelineError, fetchJobError]);
 
   // UI states
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
   const [tabIndex, setTabIndex] = React.useState(0);
 
   const [promiseManager] = React.useState(new PromiseManager());
-
-  React.useEffect(() => {
-    fetchJob();
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
 
   const onSelectSubview = (e, index: number) => {
     setTabIndex(index);
   };
 
-  const fetchJob = () => {
-    makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`).then(
-      (response: string) => {
-        try {
-          let job: Job = JSON.parse(response);
-
-          setJob(job);
-          setEnvVariables(envVariablesDictToArray<string>(job.env_variables));
-          setIsRefreshing(false);
-
-          fetchPipeline(job);
-        } catch (error) {
-          setIsRefreshing(false);
-          console.error("Failed to fetch job.", error);
-        }
-      }
-    );
-  };
-
-  const fetchPipeline = (job) => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      job.pipeline_uuid,
-      job.project_uuid,
-      job.uuid
-    );
-
-    makeRequest("GET", pipelineJSONEndpoint).then((response: string) => {
-      let result: {
-        pipeline_json: string;
-        success: boolean;
-      } = JSON.parse(response);
-
-      if (result.success) {
-        let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
-        setPipeline(fetchedPipeline);
-      } else {
-        console.warn("Could not load pipeline.json");
-        console.log(result);
-      }
-    });
-  };
-
   const reload = () => {
-    setIsRefreshing(true);
     fetchJob();
   };
 
@@ -321,52 +246,35 @@ const JobView: React.FC = () => {
   };
 
   const cancelJob = () => {
-    let deleteJobRequest = makeCancelable(
-      makeRequest("DELETE", `/catch/api-proxy/api/jobs/${job.uuid}`),
-      promiseManager
-    );
-    /** @ts-ignore */
-    deleteJobRequest.promise
-      .then(() => {
-        setJob((prevJob) => ({ ...prevJob, status: "ABORTED" }));
-      })
+    fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
+      .then(() => setJob((prevJob) => ({ ...prevJob, status: "ABORTED" })))
       .catch((error) => {
         console.error(error);
+        setAlert("Error", `Failed to delete job: ${error}`);
       });
   };
 
   const pauseCronJob = () => {
-    let pauseCronJobRequest = makeCancelable(
-      makeRequest(
-        "POST",
-        `/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`
-      ),
-      promiseManager
-    );
-    /** @ts-ignore */
-    pauseCronJobRequest.promise
-      .then(() => {
+    fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
+      method: "POST",
+    })
+      .then(() =>
         setJob((job) => ({
           ...job,
           status: "PAUSED",
           next_scheduled_time: undefined,
-        }));
-      })
+        }))
+      )
       .catch((error) => {
         console.error(error);
+        setAlert("Error", `Failed to pause job: ${error}`);
       });
   };
 
   const resumeCronJob = () => {
-    let pauseCronJobRequest = makeCancelable(
-      makeRequest(
-        "POST",
-        `/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`
-      ),
-      promiseManager
-    );
-    /** @ts-ignore */
-    pauseCronJobRequest.promise
+    fetcher(`/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`, {
+      method: "POST",
+    })
       .then((data: string) => {
         let parsedData: Job = JSON.parse(data);
         setJob((job) => ({
@@ -377,6 +285,7 @@ const JobView: React.FC = () => {
       })
       .catch((error) => {
         console.error(error);
+        setAlert("Error", `Failed to resume job: ${error}`);
       });
   };
 
@@ -475,17 +384,17 @@ const JobView: React.FC = () => {
   const isLoading = !pipeline || !job;
 
   const tabView = isLoading ? null : (
-    <>
+    <Box sx={{ flex: 1 }}>
       <CustomTabPanel value={tabIndex} index={0} name="pipeline-runs-tab">
         <DataTable<PipelineRun>
           id="job-pipeline-runs"
           data-test-id="job-pipeline-runs"
-          rows={job.pipeline_runs.map((run, index) => {
+          rows={job.pipeline_runs.map((run) => {
             const formattedRunParams = formatPipelineParams(run.parameters);
-            const hasParameters = Array.isArray(formattedRunParams);
+            const hasParameters = formattedRunParams.length > 0;
             const formattedRunParamsAsString = hasParameters
               ? formattedRunParams.join(", ")
-              : JSON.stringify(formattedRunParams);
+              : PARAMETERLESS_RUN;
 
             const paramDetails = !hasParameters ? (
               <NoParameterAlert />
@@ -547,19 +456,14 @@ const JobView: React.FC = () => {
             rows={
               job.parameters
                 ? job.parameters.map((param, index) => {
-                    let parameters = [];
-                    Object.values(param).forEach((step) => {
-                      Object.entries(step).forEach(([key, value]) => {
-                        parameters.push(`${key}: ${value}`);
-                      });
-                    });
+                    let parameters = formatPipelineParams(param);
 
                     return {
                       uuid: index.toString(),
                       spec:
                         parameters.length > 0
                           ? parameters.join(", ")
-                          : "Parameterless run",
+                          : PARAMETERLESS_RUN,
                     };
                   })
                 : []
@@ -570,16 +474,16 @@ const JobView: React.FC = () => {
       <CustomTabPanel value={tabIndex} index={2} name="pipeline-runs-tab">
         <EnvVarList value={envVariables} readOnly />
       </CustomTabPanel>
-    </>
+    </Box>
   );
 
   return (
-    <Layout>
-      <div className="view-page job-view">
+    <Layout fullHeight>
+      <>
         {isLoading ? (
           <LinearProgress />
         ) : (
-          <div className="view-page job-view">
+          <div className="view-page job-view fullheight">
             <div className="push-down">
               <Button
                 color="secondary"
@@ -663,7 +567,10 @@ const JobView: React.FC = () => {
 
             <div className="separated">
               <Button
-                disabled={isRefreshing}
+                disabled={
+                  fetchJobStatus === "PENDING" ||
+                  fetchPipelineStatus === "PENDING"
+                }
                 color="secondary"
                 startIcon={<RefreshIcon />}
                 onClick={reload}
@@ -725,7 +632,7 @@ const JobView: React.FC = () => {
             </div>
           </div>
         )}
-      </div>
+      </>
     </Layout>
   );
 };
