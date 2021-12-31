@@ -87,7 +87,7 @@ function getComparator<Key extends keyof any>(
 const LoadingRows: React.FC<{
   selectable: boolean;
   columnLength: number;
-  rows: number;
+  rows?: number;
 }> = ({ selectable, columnLength, rows = 5 }) => {
   return (
     <>

@@ -14,30 +14,29 @@ export const JobViewTabs: React.FC<{
   const onSelectSubview = (e, index: number) => {
     setTabIndex(index);
   };
-  const tabs = React.useMemo(() => {
-    if (!job) return [];
-    return [
-      {
-        id: "pipeline-runs",
-        label: `Pipeline runs (${
-          job.pipeline_runs.filter(({ status }) =>
-            ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
-          ).length
-        }/${job.pipeline_runs.length})`,
-        icon: <ListIcon />,
-      },
-      {
-        id: "parameters",
-        label: "Parameters",
-        icon: <TuneIcon />,
-      },
-      {
-        id: "environment-variables",
-        label: "Environment variables",
-        icon: <ViewComfyIcon />,
-      },
-    ];
-  }, [job?.pipeline_runs]);
+  const tabs = !job
+    ? []
+    : [
+        {
+          id: "pipeline-runs",
+          label: `Pipeline runs (${
+            job.pipeline_runs.filter(({ status }) =>
+              ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
+            ).length
+          }/${job.pipeline_runs.length})`,
+          icon: <ListIcon />,
+        },
+        {
+          id: "parameters",
+          label: "Parameters",
+          icon: <TuneIcon />,
+        },
+        {
+          id: "environment-variables",
+          label: "Environment variables",
+          icon: <ViewComfyIcon />,
+        },
+      ];
 
   return (
     <>

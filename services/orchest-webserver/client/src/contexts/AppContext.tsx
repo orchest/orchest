@@ -202,6 +202,56 @@ const initialState: AppContextState = {
   isCommandPaletteOpen: false,
 };
 
+const withPromptMessageDispatcher = function <T extends PromptMessage>(
+  dispatch: (value: AppContextAction) => void,
+  convert: PromptMessageConverter<T>
+) {
+  const dispatcher = (
+    title: string,
+    content: string | JSX.Element | JSX.Element[],
+    onConfirm?: () => Promise<boolean>, // is required for 'confirm'
+    onCancel?: () => Promise<false>
+  ) => {
+    const message = convert(title, content, onConfirm, onCancel);
+    dispatch((store) => {
+      return {
+        type: "SET_PROMPT_MESSAGES",
+        payload: [...store.promptMessages, message],
+      };
+    });
+  };
+
+  return dispatcher as PromptMessageDispatcher<T>;
+};
+
+const convertAlert: PromptMessageConverter<Alert> = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirm?: () => void
+) => {
+  return {
+    type: "alert",
+    title,
+    content: contentParser(content),
+    onConfirm,
+  };
+};
+
+const convertConfirm: PromptMessageConverter<Confirm> = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirm: () => Promise<boolean>,
+  onCancel?: () => Promise<false>
+) => {
+  return {
+    type: "confirm",
+    title,
+    content: contentParser(content),
+    onConfirm,
+    onCancel,
+  };
+};
+
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
@@ -240,89 +290,53 @@ export const AppContextProvider: React.FC = ({ children }) => {
   /* Action dispatchers
   =========================== */
 
-  const withPromptMessageDispatcher = React.useCallback(
-    function <T extends PromptMessage>(convert: PromptMessageConverter<T>) {
-      const dispatcher = (
-        title: string,
-        content: string | JSX.Element | JSX.Element[],
-        onConfirm?: () => Promise<boolean>, // is required for 'confirm'
-        onCancel?: () => Promise<false>
-      ) => {
-        const message = convert(title, content, onConfirm, onCancel);
-        dispatch((store) => {
-          return {
-            type: "SET_PROMPT_MESSAGES",
-            payload: [...store.promptMessages, message],
-          };
-        });
-      };
-
-      return dispatcher as PromptMessageDispatcher<T>;
-    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setAlert = React.useCallback(
+    withPromptMessageDispatcher<Alert>(dispatch, convertAlert),
     [dispatch]
   );
 
-  const setAlert = withPromptMessageDispatcher<Alert>(
-    (
-      title: string,
-      content: string | JSX.Element | JSX.Element[],
-      onConfirm?: () => void
-    ) => {
-      return {
-        type: "alert",
-        title,
-        content: contentParser(content),
-        onConfirm,
-      };
-    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setConfirm = React.useCallback(
+    withPromptMessageDispatcher<Confirm>(dispatch, convertConfirm),
+    [dispatch]
   );
 
-  const setConfirm = withPromptMessageDispatcher<Confirm>(
-    (
-      title: string,
-      content: string | JSX.Element | JSX.Element[],
-      onConfirm: () => Promise<boolean>,
-      onCancel?: () => Promise<false>
-    ) => {
-      return {
-        type: "confirm",
-        title,
-        content: contentParser(content),
-        onConfirm,
-        onCancel,
-      };
-    }
-  );
-
-  const deletePromptMessage = () => {
+  const deletePromptMessage = React.useCallback(() => {
     dispatch((store) => ({
       type: "SET_PROMPT_MESSAGES",
       payload: store.promptMessages.slice(1),
     }));
-  };
+  }, [dispatch]);
 
-  const setAsSaved = (value = true) => {
-    dispatch({ type: "SET_HAS_UNSAVED_CHANGES", payload: !value });
-  };
+  const setAsSaved = React.useCallback(
+    (value = true) => {
+      dispatch({ type: "SET_HAS_UNSAVED_CHANGES", payload: !value });
+    },
+    [dispatch]
+  );
 
-  const requestBuild = (
-    projectUuid: string,
-    environmentValidationData: EnvironmentValidationData,
-    requestedFromView: string,
-    onBuildComplete: () => void,
-    onCancel?: () => void
-  ) => {
-    dispatch({
-      type: "SET_BUILD_REQUEST",
-      payload: {
-        projectUuid,
-        environmentValidationData,
-        requestedFromView,
-        onBuildComplete,
-        onCancel,
-      },
-    });
-  };
+  const requestBuild = React.useCallback(
+    (
+      projectUuid: string,
+      environmentValidationData: EnvironmentValidationData,
+      requestedFromView: string,
+      onBuildComplete: () => void,
+      onCancel?: () => void
+    ) => {
+      dispatch({
+        type: "SET_BUILD_REQUEST",
+        payload: {
+          projectUuid,
+          environmentValidationData,
+          requestedFromView,
+          onBuildComplete,
+          onCancel,
+        },
+      });
+    },
+    [dispatch]
+  );
 
   return (
     <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>

@@ -81,12 +81,11 @@ const JobView: React.FC = () => {
     fetcher(`/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`, {
       method: "POST",
     })
-      .then((data: string) => {
-        let parsedData: Job = JSON.parse(data);
+      .then((data: { next_scheduled_time: string }) => {
         setJob((job) => ({
           ...job,
           status: "STARTED",
-          next_scheduled_time: parsedData.next_scheduled_time,
+          next_scheduled_time: data.next_scheduled_time,
         }));
       })
       .catch((error) => {
@@ -153,12 +152,10 @@ const JobView: React.FC = () => {
       });
   };
 
-  const isLoading = !job;
-
   return (
     <Layout fullHeight>
       <>
-        {isLoading ? (
+        {!job ? (
           <LinearProgress />
         ) : (
           <div className="view-page job-view fullheight">

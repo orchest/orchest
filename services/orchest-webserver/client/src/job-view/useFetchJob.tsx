@@ -13,19 +13,19 @@ export const useFetchJob = (jobUuid?: string) => {
 
   const fetchJob = React.useCallback(
     () => run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`)),
-    [jobUuid]
+    [jobUuid, run]
   );
 
   React.useEffect(() => {
     if (error) setAlert("Error", error.message);
-  }, [error]);
+  }, [error, setAlert]);
 
   React.useEffect(() => {
     if (data) setJob(data);
   }, [data]);
   React.useEffect(() => {
     if (jobUuid) run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`));
-  }, [jobUuid]);
+  }, [jobUuid, run]);
 
   const envVariables: { name: string; value: string }[] = React.useMemo(() => {
     return job ? envVariablesDictToArray<string>(job.env_variables) : [];
