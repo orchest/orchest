@@ -117,13 +117,6 @@ describe("file system interactions", () => {
         return cy.findByTestId("project-list").should("exist");
       });
 
-      // cy.reload(true);
-      // cy.visit("/projects");
-
-      // cy.findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW, { timeout: 10000 }).should(
-      //   "have.length",
-      //   1
-      // );
       cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(
         "contain.text",
         "move-project"
