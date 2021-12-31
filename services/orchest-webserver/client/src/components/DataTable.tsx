@@ -1,3 +1,4 @@
+import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -7,6 +8,7 @@ import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
 import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
+import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import { alpha, styled, SxProps, Theme } from "@mui/material/styles";
 import Table from "@mui/material/Table";
@@ -19,6 +21,7 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
 
@@ -80,6 +83,35 @@ function getComparator<Key extends keyof any>(
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
+
+const LoadingRows: React.FC<{
+  selectable: boolean;
+  columnLength: number;
+  rows: number;
+}> = ({ selectable, columnLength, rows = 5 }) => {
+  return (
+    <>
+      {[...Array(rows).keys()].map((rowKey) => {
+        return (
+          <TableRow sx={{ height: (theme) => theme.spacing(9) }} key={rowKey}>
+            {selectable && (
+              <TableCell key="checkbox">
+                <Skeleton variant="text" />
+              </TableCell>
+            )}
+            {[...Array(columnLength).keys()].map((key) => {
+              return (
+                <TableCell key={key}>
+                  <Skeleton variant="text" />
+                </TableCell>
+              );
+            })}
+          </TableRow>
+        );
+      })}
+    </>
+  );
+};
 
 export type DataTableColumn<T> = {
   disablePadding?: boolean;
@@ -177,26 +209,6 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
     </TableHead>
   );
 }
-
-type DataTableProps<T> = {
-  columns: DataTableColumn<T>[];
-  rows: DataTableRow<T>[];
-  id: string;
-  initialSelectedRows?: string[];
-  selectedRows?: string[];
-  setSelectedRows?: (
-    action: string[] | ((current: string[]) => string[])
-  ) => void;
-  onChangeSelection?: (rowUuids: string[]) => void;
-  selectable?: boolean;
-  initialOrderBy?: keyof T;
-  initialOrder?: Order;
-  deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
-  onRowClick?: (uuid: string) => void;
-  rowHeight?: number;
-  debounceTime?: number;
-  hideSearch?: boolean;
-} & BoxProps;
 
 export function renderCell<T>(
   column: DataTableColumn<T>,
@@ -306,11 +318,52 @@ function Row<T>({
   );
 }
 
+type DataTableProps<T> = {
+  columns: DataTableColumn<T>[];
+  baseUrl?: string;
+  generateDataUrl?: ({
+    baseUrl,
+    page,
+    rowsPerPage,
+  }: {
+    baseUrl: string;
+    page?: number;
+    rowsPerPage?: number;
+    searchTerm?: string;
+  }) => string;
+  rows: DataTableRow<T>[];
+  id: string;
+  initialSelectedRows?: string[];
+  selectedRows?: string[];
+  setSelectedRows?: (
+    action: string[] | ((current: string[]) => string[])
+  ) => void;
+  onChangeSelection?: (rowUuids: string[]) => void;
+  selectable?: boolean;
+  initialOrderBy?: keyof T;
+  initialOrder?: Order;
+  deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
+  onRowClick?: (uuid: string) => void;
+  rowHeight?: number;
+  debounceTime?: number;
+  hideSearch?: boolean;
+  isLoading?: boolean;
+} & BoxProps;
+
+function useDataFetcher<T>(dataUrl: string) {
+  const { run, status, error, data } = useAsync<DataTableRow<T>[]>();
+
+  React.useEffect(() => {
+    if (dataUrl) run(fetcher(dataUrl));
+  }, [dataUrl]);
+  return { data, status, error };
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTable = <T extends Record<string, any>>({
   id,
   columns,
-  rows: originalRows,
+  rows: originalRowsFromProp,
   initialOrderBy,
   initialOrder,
   deleteSelectedRows,
@@ -323,6 +376,9 @@ export const DataTable = <T extends Record<string, any>>({
   selectedRows,
   setSelectedRows,
   onChangeSelection,
+  baseUrl,
+  generateDataUrl = ({ baseUrl }) => baseUrl,
+  isLoading,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -333,10 +389,21 @@ export const DataTable = <T extends Record<string, any>>({
     initialOrderBy || ""
   );
 
+  const [page, setPage] = React.useState(0);
+  const [rowsPerPage, setRowsPerPage] = React.useState<number>(10);
+
+  const dataUrl = generateDataUrl({
+    baseUrl,
+    page,
+    rowsPerPage,
+    searchTerm: debouncedSearchTerm,
+  });
+  const { status, error, data } = useDataFetcher<T>(dataUrl);
+  const isFetchingData = isLoading || status === "PENDING";
+
   const [localSelected, setLocalSelected] = React.useState<string[]>(
     initialSelectedRows
   );
-  const [page, setPage] = React.useState(0);
 
   const selected = selectedRows || localSelected;
   const setSelected = React.useCallback(
@@ -351,11 +418,12 @@ export const DataTable = <T extends Record<string, any>>({
     [mounted, setSelectedRows, onChangeSelection]
   );
 
-  const [rowsPerPage, setRowsPerPage] = React.useState<number>(10);
-
   const sortedRows = React.useMemo(() => {
+    const originalRows = originalRowsFromProp || data || [];
+
+    if (!orderBy) return originalRows;
     return originalRows.sort(getComparator(order, orderBy));
-  }, [order, orderBy, originalRows]);
+  }, [order, orderBy, originalRowsFromProp, data]);
 
   // search is more expensive, should put later than sort
   const rows = React.useMemo(() => {
@@ -498,27 +566,33 @@ export const DataTable = <T extends Record<string, any>>({
               data={columns}
             />
             <TableBody>
-              {rowsInPage
-                // .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row: DataTableRow<T>) => {
-                  const isItemSelected = isSelected(row.uuid);
+              {isFetchingData && (
+                <LoadingRows
+                  selectable={selectable}
+                  columnLength={columns.length}
+                />
+              )}
+              {rowsInPage.map((row: DataTableRow<T>) => {
+                const isItemSelected = isSelected(row.uuid);
 
-                  return (
-                    <Row<T>
-                      tableId={id}
-                      data={row}
-                      columns={columns}
-                      isSelected={isItemSelected}
-                      onRowClick={handleClickRow}
-                      onClickCheckbox={handleClickCheckbox}
-                      selectable={selectable}
-                      key={row.uuid}
-                    />
-                  );
-                })}
+                return (
+                  <Row<T>
+                    tableId={id}
+                    data={row}
+                    columns={columns}
+                    isSelected={isItemSelected}
+                    onRowClick={handleClickRow}
+                    onClickCheckbox={handleClickCheckbox}
+                    selectable={selectable}
+                    key={row.uuid}
+                  />
+                );
+              })}
               {emptyRows > 0 && (
                 <TableRow style={{ height: rowHeight * emptyRows }}>
-                  <TableCell colSpan={6} />
+                  <TableCell
+                    colSpan={selectable ? columns.length + 1 : columns.length}
+                  />
                 </TableRow>
               )}
             </TableBody>
