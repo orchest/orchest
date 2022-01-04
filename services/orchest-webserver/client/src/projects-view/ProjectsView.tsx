@@ -578,6 +578,7 @@ const ProjectsView: React.FC = () => {
             </Stack>
             <DataTable<ProjectRow>
               id="project-list"
+              isLoading={isValidating}
               selectable
               hideSearch
               onRowClick={onRowClick}

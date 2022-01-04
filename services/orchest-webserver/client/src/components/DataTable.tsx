@@ -1,11 +1,16 @@
 import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
+import Alert from "@mui/material/Alert";
 import Box, { BoxProps } from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Collapse from "@mui/material/Collapse";
+import Fade from "@mui/material/Fade";
 import InputBase from "@mui/material/InputBase";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
@@ -21,7 +26,6 @@ import TableRow from "@mui/material/TableRow";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
 
@@ -83,35 +87,6 @@ function getComparator<Key extends keyof any>(
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
 }
-
-const LoadingRows: React.FC<{
-  selectable: boolean;
-  columnLength: number;
-  rows?: number;
-}> = ({ selectable, columnLength, rows = 5 }) => {
-  return (
-    <>
-      {[...Array(rows).keys()].map((rowKey) => {
-        return (
-          <TableRow sx={{ height: (theme) => theme.spacing(9) }} key={rowKey}>
-            {selectable && (
-              <TableCell key="checkbox">
-                <Skeleton variant="text" />
-              </TableCell>
-            )}
-            {[...Array(columnLength).keys()].map((key) => {
-              return (
-                <TableCell key={key}>
-                  <Skeleton variant="text" />
-                </TableCell>
-              );
-            })}
-          </TableRow>
-        );
-      })}
-    </>
-  );
-};
 
 export type DataTableColumn<T> = {
   disablePadding?: boolean;
@@ -210,6 +185,22 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
   );
 }
 
+const SkeletonContainer: React.FC<{ isLoading: boolean }> = ({
+  isLoading,
+  children,
+}) => {
+  return (
+    <>
+      <Fade in={isLoading} unmountOnExit>
+        <Box sx={{ height: (theme) => theme.spacing(3) }}>
+          <Skeleton variant="text" />
+        </Box>
+      </Fade>
+      {!isLoading && children}
+    </>
+  );
+};
+
 export function renderCell<T>(
   column: DataTableColumn<T>,
   row: DataTableRow<T>
@@ -218,6 +209,7 @@ export function renderCell<T>(
 }
 
 function Row<T>({
+  isLoading,
   tableId,
   columns,
   data,
@@ -226,6 +218,7 @@ function Row<T>({
   onRowClick,
   onClickCheckbox,
 }: {
+  isLoading?: boolean;
   tableId: string;
   columns: DataTableColumn<T>[];
   data: DataTableRow<T>;
@@ -249,7 +242,7 @@ function Row<T>({
   return (
     <>
       <TableRow
-        hover
+        hover={!isLoading}
         onClick={(e) => handleClickRow(e)}
         role="checkbox"
         aria-checked={isSelected}
@@ -260,19 +253,23 @@ function Row<T>({
           ...(data.details
             ? { "& > *": { borderBottom: "unset !important" } }
             : null),
-          ...(selectable || onRowClick ? { cursor: "pointer" } : null),
+          ...(!isLoading && (selectable || onRowClick)
+            ? { cursor: "pointer" }
+            : null),
         }}
-        data-test-id={`${tableId}-row`}
+        data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
       >
         {selectable && (
           <TableCell padding="checkbox">
-            <Checkbox
-              color="primary"
-              checked={isSelected}
-              onClick={(e) => onClickCheckbox(e, data.uuid)}
-              inputProps={{ "aria-labelledby": labelId }}
-              data-test-id={`${tableId}-row-checkbox`}
-            />
+            <SkeletonContainer isLoading={isLoading}>
+              <Checkbox
+                color="primary"
+                checked={isSelected}
+                onClick={(e) => onClickCheckbox(e, data.uuid)}
+                inputProps={{ "aria-labelledby": labelId }}
+                data-test-id={`${tableId}-row-checkbox`}
+              />
+            </SkeletonContainer>
           </TableCell>
         )}
         <TableCell
@@ -282,7 +279,9 @@ function Row<T>({
           scope="row"
           sx={columns[0].sx}
         >
-          {renderCell(columns[0], data)}
+          <SkeletonContainer isLoading={isLoading}>
+            {renderCell(columns[0], data)}
+          </SkeletonContainer>
         </TableCell>
         {columns.slice(1).map((column) => {
           return (
@@ -291,13 +290,15 @@ function Row<T>({
               align={column.align || "center"}
               sx={column.sx}
             >
-              {column.sortable ? (
-                <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
-                  {renderCell(column, data)}
-                </Box>
-              ) : (
-                renderCell(column, data)
-              )}
+              <SkeletonContainer isLoading={isLoading}>
+                {column.sortable ? (
+                  <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
+                    {renderCell(column, data)}
+                  </Box>
+                ) : (
+                  renderCell(column, data)
+                )}
+              </SkeletonContainer>
             </TableCell>
           );
         })}
@@ -318,20 +319,24 @@ function Row<T>({
   );
 }
 
+type DataTableFetcherResponse<T> = {
+  rows: (T & { uuid: string })[];
+  totalCount: number;
+};
+
+type DataTableFetcher<T> = (props: {
+  page?: number;
+  rowsPerPage?: number;
+  searchTerm?: string;
+  run: (promise: Promise<DataTableFetcherResponse<T>>) => Promise<void>;
+}) => void;
+
 type DataTableProps<T> = {
   columns: DataTableColumn<T>[];
-  baseUrl?: string;
-  generateDataUrl?: ({
-    baseUrl,
-    page,
-    rowsPerPage,
-  }: {
-    baseUrl: string;
-    page?: number;
-    rowsPerPage?: number;
-    searchTerm?: string;
-  }) => string;
-  rows: DataTableRow<T>[];
+  fetcher?: DataTableFetcher<T>;
+  rows?: (T & { uuid: string })[];
+  // this prop is useful when `rows` is not given, and the data is fetched from within via `fetcher`
+  composeRow?: (row: T & { uuid: string }) => DataTableRow<T>;
   id: string;
   initialSelectedRows?: string[];
   selectedRows?: string[];
@@ -342,28 +347,22 @@ type DataTableProps<T> = {
   selectable?: boolean;
   initialOrderBy?: keyof T;
   initialOrder?: Order;
+  initialRowsPerPage?: number;
   deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
   onRowClick?: (uuid: string) => void;
   rowHeight?: number;
   debounceTime?: number;
   hideSearch?: boolean;
   isLoading?: boolean;
+  containerSx?: SxProps<Theme>;
 } & BoxProps;
-
-function useDataFetcher<T>(dataUrl: string) {
-  const { run, status, error, data } = useAsync<DataTableRow<T>[]>();
-
-  React.useEffect(() => {
-    if (dataUrl) run(fetcher(dataUrl));
-  }, [dataUrl]);
-  return { data, status, error };
-}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTable = <T extends Record<string, any>>({
   id,
   columns,
   rows: originalRowsFromProp,
+  composeRow = (row) => row,
   initialOrderBy,
   initialOrder,
   deleteSelectedRows,
@@ -376,9 +375,10 @@ export const DataTable = <T extends Record<string, any>>({
   selectedRows,
   setSelectedRows,
   onChangeSelection,
-  baseUrl,
-  generateDataUrl = ({ baseUrl }) => baseUrl,
+  fetcher,
   isLoading,
+  initialRowsPerPage,
+  containerSx,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -389,16 +389,24 @@ export const DataTable = <T extends Record<string, any>>({
     initialOrderBy || ""
   );
 
-  const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState<number>(10);
+  // page is one-indexed
+  const [page, setPage] = React.useState(1);
+  const [rowsPerPage, setRowsPerPage] = useLocalStorage(
+    `${id}-table-page-size`,
+    initialRowsPerPage || 10
+  );
 
-  const dataUrl = generateDataUrl({
-    baseUrl,
-    page,
-    rowsPerPage,
-    searchTerm: debouncedSearchTerm,
-  });
-  const { status, error, data } = useDataFetcher<T>(dataUrl);
+  const { run, status, error, data } = useAsync<DataTableFetcherResponse<T>>();
+  const fetchData = React.useCallback(() => {
+    if (fetcher)
+      fetcher({ run, page, rowsPerPage, searchTerm: debouncedSearchTerm });
+  }, [run, fetcher, debouncedSearchTerm, page, rowsPerPage]);
+  // when fetchData is re-created, fire it as well to get data
+  // because `page`, `rowsPerPage`, `debouncedSearchTerm` are changed, i.e. user is requesting new data
+  React.useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
   const isFetchingData = isLoading || status === "PENDING";
 
   const [localSelected, setLocalSelected] = React.useState<string[]>(
@@ -419,7 +427,7 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   const sortedRows = React.useMemo(() => {
-    const originalRows = originalRowsFromProp || data || [];
+    const originalRows = originalRowsFromProp || data?.rows || [];
 
     if (!orderBy) return originalRows;
     return originalRows.sort(getComparator(order, orderBy));
@@ -441,9 +449,17 @@ export const DataTable = <T extends Record<string, any>>({
         });
   }, [sortedRows, debouncedSearchTerm, columns]);
 
-  const rowsInPage = React.useMemo(() => {
-    return rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
-  }, [rows, page, rowsPerPage]);
+  // we didn't apply React.useMemo here because:
+  // 1. changing `order` and `orderBy` won't always trigger the update of `rows` (NOTE: array shadow comparing)
+  // 2. slicing is cheaper than deep-comparing array
+  const startIndex = Math.max(page - 1, 0) * rowsPerPage;
+  const rowsInPage = !isFetchingData
+    ? rows.slice(startIndex, startIndex + rowsPerPage)
+    : ([...Array(rowsPerPage).keys()].map((key) => {
+        return columns.reduce((all, col) => {
+          return { ...all, [col.id]: "", uuid: key, isLoading: true }; // we replicate rows for skeletons
+        }, {});
+      }) as DataTableRow<T>[]);
 
   React.useEffect(() => {
     if (mounted) {
@@ -505,14 +521,14 @@ export const DataTable = <T extends Record<string, any>>({
 
   const handleChangePage = (event: unknown, newPage: number) => {
     setSelected([]);
-    setPage(newPage);
+    setPage(newPage + 1);
   };
 
   const handleChangeRowsPerPage = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    setPage(1);
   };
 
   const handleDeleteSelectedRows = async () => {
@@ -522,11 +538,17 @@ export const DataTable = <T extends Record<string, any>>({
     }
   };
 
+  const handleChangeSearchTerm = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    setSearchTerm(e.target.value);
+    setPage(1);
+  };
+
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows =
-    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+  const emptyRows = Math.max(0, (page - 1) * rowsPerPage - rowsInPage.length);
 
   const tableTitleId = `${id}-title`;
 
@@ -541,15 +563,16 @@ export const DataTable = <T extends Record<string, any>>({
             placeholder="Search"
             inputProps={{ "aria-label": "search" }}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleChangeSearchTerm}
           />
         </Search>
       )}
-      <Paper sx={{ width: "100%", mb: 2 }}>
-        <TableContainer>
+      <Paper sx={{ width: "100%", marginBottom: 2 }}>
+        <TableContainer sx={containerSx}>
           <Table
             sx={{ minWidth: 750 }}
             aria-labelledby={tableTitleId}
+            stickyHeader
             size="medium"
             id={id}
             data-test-id={id}
@@ -566,29 +589,41 @@ export const DataTable = <T extends Record<string, any>>({
               data={columns}
             />
             <TableBody>
-              {isFetchingData && (
-                <LoadingRows
-                  selectable={selectable}
-                  columnLength={columns.length}
-                />
+              {!error &&
+                rowsInPage.map((row: DataTableRow<T>) => {
+                  const isItemSelected = isSelected(row.uuid);
+                  return (
+                    <Row<T>
+                      isLoading={isFetchingData}
+                      tableId={id}
+                      data={composeRow(row)}
+                      columns={columns}
+                      isSelected={isItemSelected}
+                      onRowClick={handleClickRow}
+                      onClickCheckbox={handleClickCheckbox}
+                      selectable={selectable}
+                      key={row.uuid}
+                    />
+                  );
+                })}
+              {error && (
+                <TableRow style={{ height: rowHeight * emptyRows }}>
+                  <TableCell
+                    colSpan={selectable ? columns.length + 1 : columns.length}
+                    sx={{ padding: (theme) => theme.spacing(3) }}
+                  >
+                    <Alert severity="error">Failed to fetch data</Alert>
+                    <Button
+                      startIcon={<RefreshIcon />}
+                      sx={{ marginTop: (theme) => theme.spacing(0.5) }}
+                      onClick={fetchData}
+                    >
+                      Refresh
+                    </Button>
+                  </TableCell>
+                </TableRow>
               )}
-              {rowsInPage.map((row: DataTableRow<T>) => {
-                const isItemSelected = isSelected(row.uuid);
-
-                return (
-                  <Row<T>
-                    tableId={id}
-                    data={row}
-                    columns={columns}
-                    isSelected={isItemSelected}
-                    onRowClick={handleClickRow}
-                    onClickCheckbox={handleClickCheckbox}
-                    selectable={selectable}
-                    key={row.uuid}
-                  />
-                );
-              })}
-              {emptyRows > 0 && (
+              {!error && emptyRows > 0 && (
                 <TableRow style={{ height: rowHeight * emptyRows }}>
                   <TableCell
                     colSpan={selectable ? columns.length + 1 : columns.length}
@@ -630,9 +665,9 @@ export const DataTable = <T extends Record<string, any>>({
             sx={{ flex: 1 }}
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={rows.length}
+            count={!fetcher ? rows.length : data?.totalCount || rows.length}
             rowsPerPage={rowsPerPage}
-            page={page}
+            page={page - 1} // NOTE: this is zero-indexed
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
             data-test-id={`${id}-pagination`}

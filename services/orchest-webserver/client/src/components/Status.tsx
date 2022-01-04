@@ -58,21 +58,19 @@ export const StatusInline: React.FC<{
   status: TStatus;
 }> = ({ status }) => {
   return (
-    <Stack
-      component="span"
-      direction="row"
-      alignItems="center"
-      justifyContent="center"
-    >
-      <Tooltip title={statusMapping[status].text}>
-        <Box>
-          {statusMapping[status].icon}
-          <Typography component="span" sx={visuallyHidden}>
-            {statusMapping[status].text}
-          </Typography>
-        </Box>
-      </Tooltip>
-    </Stack>
+    <Tooltip title={statusMapping[status].text}>
+      <Stack
+        component="span"
+        direction="row"
+        alignItems="center"
+        justifyContent="center"
+      >
+        {statusMapping[status].icon}
+        <Typography component="span" sx={visuallyHidden}>
+          {statusMapping[status].text}
+        </Typography>
+      </Stack>
+    </Tooltip>
   );
 };
 

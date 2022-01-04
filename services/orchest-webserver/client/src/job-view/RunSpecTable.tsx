@@ -14,11 +14,18 @@ const runSpecTableColumns: DataTableColumn<PipelineRunRow>[] = [
   },
 ];
 
-export const RunSpecTable = ({ rows }: { rows: PipelineRunRow[] }) => {
+export const RunSpecTable = ({
+  rows,
+  isLoading,
+}: {
+  rows: PipelineRunRow[];
+  isLoading: boolean;
+}) => {
   return (
     <DataTable<PipelineRunRow>
       id="run-spec-list"
       columns={runSpecTableColumns}
+      isLoading={isLoading}
       rows={rows}
     />
   );

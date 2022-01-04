@@ -153,8 +153,6 @@ export const useAppContext = () => React.useContext(Context) as AppContext;
 const reducer = (state: AppContextState, _action: AppContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useUserContext: action ", action);
   switch (action.type) {
     case "SET_PROMPT_MESSAGES": {
       return { ...state, promptMessages: action.payload };
@@ -255,8 +253,6 @@ const convertConfirm: PromptMessageConverter<Confirm> = (
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  if (process.env.NODE_ENV === "development" && false)
-    console.log("(Dev Mode) useAppContext: state updated", state);
   /**
    * =========================== side effects
    */

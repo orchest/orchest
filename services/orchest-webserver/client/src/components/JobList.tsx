@@ -30,6 +30,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
 import { IconButton } from "./common/IconButton";
 import { DataTable, DataTableColumn } from "./DataTable";
 import { StatusInline } from "./Status";
@@ -94,6 +95,19 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
 
+  const {
+    data: jobs = [],
+    error: fetchJobsError,
+    isValidating,
+    revalidate: fetchJobs,
+  } = useSWR(
+    projectUuid
+      ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
+      : null,
+    (url: string) =>
+      fetcher<{ jobs: Job[] }>(url).then((response) => response.jobs)
+  );
+
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
   const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
   const [isDeleting, setIsDeleting] = React.useState(false);
@@ -101,7 +115,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
 
-  const [jobs, setJobs] = React.useState<Job[]>([]);
   const [pipelines, setPipelines] = React.useState<
     { uuid: string; path: string; name: string }[]
   >([]);
@@ -116,16 +129,10 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const promiseManager = React.useRef(new PromiseManager());
 
-  const fetchJobs = async () => {
-    try {
-      const response = await fetcher<{ jobs: Job[] }>(
-        `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      );
-      setJobs(response.jobs);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  React.useEffect(() => {
+    if (fetchJobsError)
+      setAlert("Error", `Failed to fetch jobs: ${fetchJobsError}`);
+  }, [fetchJobsError, setAlert]);
 
   const fetchProjectDirSize = async () => {
     try {
@@ -497,6 +504,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           </Dialog>
           <DataTable<DisplayedJob>
             id="job-list"
+            isLoading={isValidating}
             selectable
             rows={jobs.map((job) => {
               return {

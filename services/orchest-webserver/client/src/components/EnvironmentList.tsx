@@ -106,6 +106,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const {
     data: environmentBuilds = [],
     error: fetchBuildsError,
+    isValidating,
   } = useSWR(
     projectUuid
       ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}`
@@ -284,6 +285,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           <DataTable<EnvironmentRow>
             selectable
             hideSearch
+            isLoading={isValidating}
             id="environment-list"
             columns={columns}
             rows={environmentRows}

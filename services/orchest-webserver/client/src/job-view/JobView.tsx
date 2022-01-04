@@ -168,7 +168,6 @@ const JobView: React.FC = () => {
                 Back to jobs
               </Button>
             </div>
-
             <DescriptionList
               gap="5"
               columnGap="10"
@@ -230,7 +229,10 @@ const JobView: React.FC = () => {
                       index={0}
                       name="pipeline-runs-tab"
                     >
-                      <PipelineRunTable job={job} />
+                      <PipelineRunTable
+                        jobUuid={jobUuid}
+                        pipelineName={job.pipeline_name}
+                      />
                     </CustomTabPanel>
                     <CustomTabPanel
                       value={tabIndex}
@@ -244,6 +246,7 @@ const JobView: React.FC = () => {
                       />
                       <div className="pipeline-runs push-up">
                         <RunSpecTable
+                          isLoading={fetchJobStatus === "PENDING"}
                           rows={
                             job.parameters
                               ? job.parameters.map((param, index) => {
@@ -273,7 +276,14 @@ const JobView: React.FC = () => {
                 );
               }}
             </JobViewTabs>
-            <div className="separated">
+            <Stack
+              spacing={3}
+              direction="row"
+              sx={{
+                paddingBottom: (theme) => theme.spacing(3),
+                marginBottom: (theme) => theme.spacing(-4), // this is to counter-balance the layout padding
+              }}
+            >
               <Button
                 disabled={fetchJobStatus === "PENDING"}
                 color="secondary"
@@ -334,7 +344,7 @@ const JobView: React.FC = () => {
                   Cancel job
                 </Button>
               )}
-            </div>
+            </Stack>
           </div>
         )}
       </>

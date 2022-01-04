@@ -322,3 +322,14 @@ export type BuildRequest = {
   onBuildComplete: () => void;
   onCancel?: () => void;
 };
+
+export type Pagination = {
+  has_next_page: boolean;
+  has_prev_page: boolean;
+  next_page_num: number | null;
+  prev_page_num: number | null;
+  items_per_page: number;
+  items_in_this_page: number;
+  total_items: number;
+  total_pages: number;
+};

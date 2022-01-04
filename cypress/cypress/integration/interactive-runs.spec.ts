@@ -237,7 +237,8 @@ describe("interactive runs", () => {
       cy.reload(true);
       cy.visit("/pipelines");
       reloadUntilElementsLoaded("pipeline-list-row", () => {
-        return cy.findByTestId("pipeline-list").should("exist");
+        cy.findByTestId("pipeline-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       });
       cy.findByTestId(`pipeline-list-row`).first().click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(

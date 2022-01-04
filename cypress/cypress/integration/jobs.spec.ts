@@ -95,7 +95,8 @@ function verifyJobRunsParameters(
 const loadProject = () => {
   cy.goToMenu("projects");
   reloadUntilElementsLoaded("project-list-row", () => {
-    return cy.findByTestId("project-list").should("exist");
+    cy.findByTestId("project-list").should("exist");
+    return cy.findByTestId("loading-table-row").should("not.exist");
   });
 };
 

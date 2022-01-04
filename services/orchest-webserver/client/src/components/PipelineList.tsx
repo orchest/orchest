@@ -198,9 +198,15 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const [isDeleting, setIsDeleting] = React.useState(false);
 
-  const { data: pipelines, error, revalidate: requestFetchPipelines } = useSWR<
-    PipelineMetaData[]
-  >(`/async/pipelines/${projectUuid}`, fetchPipelines);
+  const {
+    data: pipelines,
+    error,
+    revalidate: requestFetchPipelines,
+    isValidating,
+  } = useSWR<PipelineMetaData[]>(
+    `/async/pipelines/${projectUuid}`,
+    fetchPipelines
+  );
 
   React.useEffect(() => {
     if (error) {
@@ -556,6 +562,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         id="pipeline-list"
         selectable
         hideSearch
+        isLoading={isValidating}
         columns={columns}
         rows={pipelineRows}
         onRowClick={onRowClick}
