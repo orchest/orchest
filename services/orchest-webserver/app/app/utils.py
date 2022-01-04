@@ -835,3 +835,45 @@ def get_orchest_examples_json() -> dict:
                 return _DEFAULT_ORCHEST_EXAMPLES_JSON
             data["entries"].sort(key=lambda x: -x.get("stargazers_count", -1))
             return data
+
+
+def fetch_orchest_update_info_json_to_disk(app: Flask) -> None:
+    try:
+        url = app.config["ORCHEST_WEB_URLS"]["orchest_update_info_json"]
+        resp = requests.get(url, timeout=5)
+
+        code = resp.status_code
+        if code == 200:
+            data = resp.json()
+            with open(app.config["ORCHEST_UPDATE_INFO_JSON_PATH"], "w") as f:
+                json.dump(data, f)
+        else:
+            app.logger.error(f"Could not fetch update info json: {code}.")
+    except Exception as e:
+        app.logger.error(f"Error in update info json fetch: {e}.")
+
+
+_DEFAULT_ORCHEST_UPDATE_INFO_JSON = {"latest_version": None}
+
+
+def get_orchest_update_info_json() -> dict:
+    """Get orchest update info.
+
+    Returns:
+        A dictionary mapping latest_version to the latest Orchest
+        version.
+    """
+
+    path = current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]
+    if not os.path.exists(path):
+        current_app.logger.warning("Could not find orchest update info json.")
+        return _DEFAULT_ORCHEST_UPDATE_INFO_JSON
+    else:
+        with open(current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]) as f:
+            data = json.load(f)
+            if not isinstance(data.get("latest_version"), str):
+                current_app.logger.error(
+                    f"Malformed orchest update info json : {data}."
+                )
+                return _DEFAULT_ORCHEST_EXAMPLES_JSON
+            return data
