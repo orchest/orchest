@@ -357,6 +357,19 @@ type DataTableProps<T> = {
   containerSx?: SxProps<Theme>;
 } & BoxProps;
 
+function generateLoadingRows<T>(
+  rowCount: number,
+  columns: DataTableColumn<T>[]
+) {
+  return [...Array(rowCount).keys()].map((key) => {
+    return columns.reduce((all, col) => {
+      // add isLoading: true signifies this row is a loading row (i.e. will be filled by Skeleton).
+      // thus, the data ([col.id]) doesn't matter, we just fill an empty string.
+      return { ...all, [col.id]: "", uuid: key, isLoading: true };
+    }, {});
+  }) as DataTableRow<T>[];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTable = <T extends Record<string, any>>({
   id,
@@ -434,8 +447,12 @@ export const DataTable = <T extends Record<string, any>>({
   }, [order, orderBy, originalRowsFromProp, data]);
 
   // search is more expensive, should put later than sort
+  // if the data is fetched via fetcher, we don't do client-side search.
+  const useClientSideSearchAndPagination = !fetcher;
+  const shouldSkipClientSideFiltering =
+    !debouncedSearchTerm || !useClientSideSearchAndPagination;
   const rows = React.useMemo(() => {
-    return !debouncedSearchTerm
+    return shouldSkipClientSideFiltering
       ? sortedRows
       : sortedRows.filter((unfilteredRow) => {
           return columns.some((column) => {
@@ -447,19 +464,25 @@ export const DataTable = <T extends Record<string, any>>({
               .includes(debouncedSearchTerm.toLowerCase());
           });
         });
-  }, [sortedRows, debouncedSearchTerm, columns]);
+  }, [sortedRows, debouncedSearchTerm, columns, shouldSkipClientSideFiltering]);
 
-  // we didn't apply React.useMemo here because:
-  // 1. changing `order` and `orderBy` won't always trigger the update of `rows` (NOTE: array shadow comparing)
-  // 2. slicing is cheaper than deep-comparing array
-  const startIndex = Math.max(page - 1, 0) * rowsPerPage;
-  const rowsInPage = !isFetchingData
-    ? rows.slice(startIndex, startIndex + rowsPerPage)
-    : ([...Array(rowsPerPage).keys()].map((key) => {
-        return columns.reduce((all, col) => {
-          return { ...all, [col.id]: "", uuid: key, isLoading: true }; // we replicate rows for skeletons
-        }, {});
-      }) as DataTableRow<T>[]);
+  const rowsInPage = React.useMemo(() => {
+    const startIndex = Math.max(page - 1, 0) * rowsPerPage;
+    const slicedRows = useClientSideSearchAndPagination
+      ? rows.slice(startIndex, startIndex + rowsPerPage)
+      : rows;
+
+    return !isFetchingData
+      ? slicedRows
+      : generateLoadingRows(rowsPerPage, columns); // generate loading rows (will be filled with skeletons when rendering).
+  }, [
+    rows,
+    page,
+    rowsPerPage,
+    columns,
+    useClientSideSearchAndPagination,
+    isFetchingData,
+  ]);
 
   React.useEffect(() => {
     if (mounted) {
