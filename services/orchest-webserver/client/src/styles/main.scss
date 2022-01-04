@@ -202,6 +202,9 @@ a.button {
       margin-top: var(--space-10);
       margin-bottom: calc(var(--space-5) / 2);
     }
+    .CodeMirror {
+      height: min-content;
+    }
     .columns {
       .column {
         margin-bottom: var(--space-5);

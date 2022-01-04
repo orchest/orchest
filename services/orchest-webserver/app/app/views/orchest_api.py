@@ -592,7 +592,8 @@ def register_orchest_api_views(app, db):
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/jobs/%s/pipeline_runs" % (job_uuid),
+            + "/api/jobs/%s/pipeline_runs" % (job_uuid)
+            + request_args_to_string(request.args)
         )
 
         return resp.content, resp.status_code, resp.headers.items()
