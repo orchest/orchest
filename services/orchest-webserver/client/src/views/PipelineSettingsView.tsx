@@ -442,9 +442,7 @@ const PipelineSettingsView: React.FC = () => {
       }));
 
       setAsSaved(false);
-    } catch (err) {
-      console.log("JSON did not parse");
-    }
+    } catch (err) {}
   };
 
   const onChangeDataPassingMemorySize = (value: string) => {

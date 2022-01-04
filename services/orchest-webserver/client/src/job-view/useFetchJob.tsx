@@ -11,10 +11,9 @@ export const useFetchJob = (jobUuid?: string) => {
   const { data, error, run, status } = useAsync<Job>();
   const [job, setJob] = React.useState<Job>();
 
-  const fetchJob = React.useCallback(
-    () => run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`)),
-    [jobUuid, run]
-  );
+  const fetchJob = React.useCallback(() => {
+    if (jobUuid) run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`));
+  }, [jobUuid, run]);
 
   React.useEffect(() => {
     if (error) setAlert("Error", error.message);
@@ -23,9 +22,10 @@ export const useFetchJob = (jobUuid?: string) => {
   React.useEffect(() => {
     if (data) setJob(data);
   }, [data]);
+
   React.useEffect(() => {
-    if (jobUuid) run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`));
-  }, [jobUuid, run]);
+    fetchJob();
+  }, [fetchJob]);
 
   const envVariables: { name: string; value: string }[] = React.useMemo(() => {
     return job ? envVariablesDictToArray<string>(job.env_variables) : [];
