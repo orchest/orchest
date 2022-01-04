@@ -66,7 +66,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import useSWR from "swr";
@@ -276,7 +276,7 @@ const PipelineSettingsView: React.FC = () => {
   }, [state]);
 
   const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
-    let clonedService = _.cloneDeep(service);
+    let clonedService = cloneDeep(service);
 
     // Take care of service name collisions
     let x = 1;
@@ -469,7 +469,7 @@ const PipelineSettingsView: React.FC = () => {
   const cleanPipelineJson = (
     pipelineJson: PipelineJson
   ): Omit<PipelineJson, "order"> => {
-    let pipelineCopy = _.cloneDeep(pipelineJson);
+    let pipelineCopy = cloneDeep(pipelineJson);
     for (let serviceName in pipelineCopy.services) {
       delete pipelineCopy.services[serviceName].order;
     }

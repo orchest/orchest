@@ -45,6 +45,9 @@ jobs:
         run: npm run setup && pnpm install
 
       - name: Build pnpm packages
+        run: pnpm run test
+
+      - name: Run unit tests
         run: pnpm run build
 
       - name: Lint pnpm packages

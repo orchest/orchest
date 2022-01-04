@@ -7,7 +7,11 @@
   "scripts": {
     "build": "./build.sh",
     "dev": "./build.sh --watch",
-    "ts:check": "tsc -p tsconfig.json --noEmit"
+    "ts:check": "tsc -p tsconfig.json --noEmit",
+    "test": "jest --verbose",
+    "test:watch": "jest --watchAll",
+    "test:coverage": "jest --verbose --coverage",
+    "test:ci": "jest --ci --runInBand"
   },
   "dependencies": {
     "@emotion/react": "^11.6.0",
@@ -29,7 +33,9 @@
     "hotkeys-js": "^3.8.7",
     "isomorphic-unfetch": "3.1.0",
     "jquery": "^3.5.1",
-    "lodash": "^4.17.20",
+    "lodash.clonedeep": "^4.5.0",
+    "lodash.isstring": "^4.0.1",
+    "lodash.merge": "^4.6.2",
     "pascalcase": "^1.0.0",
     "react": "^17.0.0",
     "react-codemirror2": "^7.2.1",
@@ -45,18 +51,25 @@
     "xterm-for-react": "^1.0.4"
   },
   "devDependencies": {
-    "@babel/core": "^7.16.0",
+    "@testing-library/jest-dom": "^5.16.1",
     "@types/codemirror": "^5.60.5",
-    "@types/jest": "^27.0.3",
+    "@types/jest": "^27.4.0",
     "@types/jquery": "^3.5.6",
     "@types/lodash": "^4.14.172",
+    "@types/lodash.clonedeep": "^4.5.6",
+    "@types/lodash.isstring": "^4.0.6",
+    "@types/lodash.merge": "^4.6.6",
     "@types/node": "15.0.1",
     "@types/pascalcase": "^1.0.0",
     "@types/react": "17.0.3",
     "@types/react-dom": "^17.0.10",
     "@types/react-router-dom": "^5.1.8",
     "esbuild": "0.13.4",
+    "esbuild-jest": "^0.5.0",
+    "jest": "^27.4.5",
+    "jest-junit": "^13.0.0",
     "sass-bin": "^1.42.3",
+    "ts-jest": "^27.1.2",
     "typescript": "4.5.2"
   }
 }

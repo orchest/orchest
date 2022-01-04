@@ -17,7 +17,7 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import ProjectFilePicker from "../components/ProjectFilePicker";
@@ -201,7 +201,7 @@ const PipelineDetailsProperties: React.FC<{
     // check if there is work to do
     if (oldConnectionIndex != newConnectionIndex) {
       // note it's creating a reference
-      let connectionList = _.cloneDeep(props.step.incoming_connections);
+      let connectionList = cloneDeep(props.step.incoming_connections);
 
       let tmp = connectionList[oldConnectionIndex];
       connectionList.splice(oldConnectionIndex, 1);

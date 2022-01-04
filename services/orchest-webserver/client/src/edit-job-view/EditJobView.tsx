@@ -5,7 +5,6 @@ import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import { NoParameterAlert } from "@/components/ParamTree";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -39,9 +38,14 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { fetcher } from "@orchest/lib-utils";
 import parser from "cron-parser";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import useSWR from "swr";
+import {
+  flattenStrategyJson,
+  generatePipelineRunParamCombinations,
+  generatePipelineRunRows,
+} from "./commons";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
@@ -50,35 +54,6 @@ const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
 const DEFAULT_CRON_STRING = "* * * * *";
 
 type ScheduleOption = "now" | "cron" | "scheduled";
-
-// TODO: should be converted to map/reduce style
-function recursivelyGenerate(
-  params: Record<string, Record<string, Json>>,
-  accum: any[],
-  unpacked: any[]
-) {
-  // deep clone unpacked
-  unpacked = JSON.parse(JSON.stringify(unpacked));
-
-  for (const fullParam in params) {
-    if (unpacked.indexOf(fullParam) === -1) {
-      unpacked.push(fullParam);
-
-      for (const idx in params[fullParam]) {
-        // deep clone params
-        let localParams = JSON.parse(JSON.stringify(params));
-
-        // collapse param list to paramValue
-        localParams[fullParam] = params[fullParam][idx];
-
-        recursivelyGenerate(localParams, accum, unpacked);
-      }
-      return;
-    }
-  }
-
-  accum.push(params);
-}
 
 const generateJobParameters = (
   generatedPipelineRuns: Record<string, Json>[],
@@ -118,7 +93,7 @@ const parseParameters = (
   parameters: Record<string, Json>[],
   generatedPipelineRuns: Record<string, Json>[]
 ) => {
-  let _parameters = _.cloneDeep(parameters);
+  let _parameters = cloneDeep(parameters);
   let selectedIndices = new Set<string>();
   generatedPipelineRuns.forEach((run, index) => {
     let encodedParameterization = generateJobParameters([run], ["0"])[0];
@@ -139,73 +114,21 @@ const parseParameters = (
   return Array.from(selectedIndices);
 };
 
-const generateWithStrategy = (
-  pipelineName: string,
+type PipelineRunRow = { uuid: string; spec: string; details: React.ReactNode };
+
+const generatePipelineRuns = (
   strategyJSON: Record<string, { parameters: Record<string, string> }>
 ) => {
-  // flatten and JSONify strategyJSON to prep data structure for algo
-  let flatParameters = {};
+  // flatten and JSONify strategyJSON to prep data structure for later
+  const flatParameters = flattenStrategyJson(strategyJSON);
+  const pipelineRuns: Record<
+    string,
+    Json
+  >[] = generatePipelineRunParamCombinations(flatParameters, [], []);
 
-  for (const strategyJSONKey in strategyJSON) {
-    for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
-      let fullParam = strategyJSONKey + "#" + paramKey;
-
-      flatParameters[fullParam] = JSON.parse(
-        strategyJSON[strategyJSONKey].parameters[paramKey]
-      );
-    }
-  }
-
-  let pipelineRuns: Record<string, Json>[] = [];
-
-  recursivelyGenerate(flatParameters, pipelineRuns, []);
-
-  // transform pipelineRuns for generatedPipelineRunRows DataTable format
-  const pipelineRunRows: PipelineRunRow[] = pipelineRuns.map(
-    (params: Record<string, Json>, index: number) => {
-      const pipelineRunSpec = Object.entries(params).map(
-        ([fullParam, value]) => {
-          // pipeline_parameters#something#another_something: "some-value"
-          let paramName = fullParam.split("#").slice(1).join("");
-          return `${paramName}: ${JSON.stringify(value)}`;
-        }
-      );
-
-      return {
-        uuid: index.toString(),
-        spec: pipelineRunSpec.join(", ") || "Parameterless run",
-        details: (
-          <Stack
-            direction="column"
-            alignItems="flex-start"
-            sx={{ padding: (theme) => theme.spacing(2, 1) }}
-          >
-            {pipelineRunSpec.length === 0 ? (
-              <NoParameterAlert />
-            ) : (
-              <>
-                <Typography variant="body2">{pipelineName}</Typography>
-                {pipelineRunSpec.map((param, index) => (
-                  <Typography
-                    variant="caption"
-                    key={index}
-                    sx={{ paddingLeft: (theme) => theme.spacing(1) }}
-                  >
-                    {param}
-                  </Typography>
-                ))}
-              </>
-            )}
-          </Stack>
-        ),
-      };
-    }
-  );
-
-  return { pipelineRuns, pipelineRunRows };
+  return pipelineRuns;
 };
 
-type PipelineRunRow = { uuid: string; spec: string; details: React.ReactNode };
 const columns: DataTableColumn<PipelineRunRow>[] = [
   {
     id: "spec",
@@ -360,11 +283,10 @@ const EditJobView: React.FC = () => {
           ? generateStrategyJson(pipeline, reserveKey)
           : job.strategy_json;
 
-      setStrategyJson(generatedStrategyJson);
-
-      const generated = generateWithStrategy(
-        pipeline?.name,
-        generatedStrategyJson
+      const newPipelineRuns = generatePipelineRuns(generatedStrategyJson);
+      const newPipelineRunRows = generatePipelineRunRows(
+        pipeline.name,
+        newPipelineRuns
       );
 
       // Account for the fact that a job might have a list of
@@ -373,11 +295,12 @@ const EditJobView: React.FC = () => {
       // if fetchedJob has no set parameters, we select all parameters as default
       setSelectedRuns(
         job.parameters.length > 0
-          ? parseParameters(job.parameters, generated.pipelineRuns)
-          : generated.pipelineRunRows.map((run) => run.uuid)
+          ? parseParameters(job.parameters, newPipelineRuns)
+          : newPipelineRunRows.map((run) => run.uuid)
       );
-      setPipelineRuns(generated.pipelineRuns);
-      setPipelineRunRows(generated.pipelineRunRows);
+      setStrategyJson(generatedStrategyJson);
+      setPipelineRuns(newPipelineRuns);
+      setPipelineRunRows(newPipelineRunRows);
     }
   }, [
     job,
@@ -725,14 +648,15 @@ const EditJobView: React.FC = () => {
               <ParameterEditor
                 pipelineName={pipeline.name}
                 onParameterChange={(value: StrategyJson) => {
-                  const generated = generateWithStrategy(pipeline.name, value);
-
-                  setPipelineRuns(generated.pipelineRuns);
-                  setPipelineRunRows(generated.pipelineRunRows);
-
-                  setSelectedRuns(
-                    generated.pipelineRunRows.map((row) => row.uuid)
+                  const newPipelineRuns = generatePipelineRuns(value);
+                  const newPipelineRunRows = generatePipelineRunRows(
+                    pipeline.name,
+                    newPipelineRuns
                   );
+
+                  setPipelineRuns(newPipelineRuns);
+                  setPipelineRunRows(newPipelineRunRows);
+                  setSelectedRuns(newPipelineRunRows.map((row) => row.uuid));
                   setStrategyJson(value);
 
                   setAsSaved(false);

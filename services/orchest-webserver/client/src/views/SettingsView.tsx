@@ -23,7 +23,7 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 
@@ -112,7 +112,7 @@ const SettingsView: React.FC = () => {
       return configJSON;
     }
 
-    let visibleJSON = _.cloneDeep(configJSON);
+    let visibleJSON = cloneDeep(configJSON);
 
     // strip cloud config
     for (let key of config.CLOUD_UNMODIFIABLE_CONFIG_VALUES) {
@@ -127,7 +127,7 @@ const SettingsView: React.FC = () => {
       return {};
     }
 
-    let invisibleJSON = _.cloneDeep(configJSON);
+    let invisibleJSON = cloneDeep(configJSON);
 
     // Strip visible config
     for (let key of Object.keys(invisibleJSON)) {
@@ -169,10 +169,6 @@ const SettingsView: React.FC = () => {
             let responseJSON = JSON.parse(data);
             let requiresRestart = responseJSON.requires_restart;
             let configJSON = responseJSON.user_config;
-
-            console.log(
-              JSON.stringify(configToVisibleConfig(configJSON), null, 2)
-            );
 
             setState((prevState) => ({
               ...prevState,
