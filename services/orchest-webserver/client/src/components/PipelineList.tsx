@@ -191,8 +191,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { getSession } = useSessionsContext();
   useSessionsPoller();
 
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
   const {
     data: pipelines,
     error,
@@ -270,37 +268,23 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   };
 
   const deletePipelines = async (pipelineUuids: string[]) => {
-    if (isDeleting) {
-      console.error("Delete UI in progress.");
-      return false;
-    }
-    setIsDeleting(true);
-
-    if (pipelineUuids.length === 0) {
-      setAlert("Error", "You haven't selected a pipeline.");
-      setIsDeleting(false);
-
-      return false;
-    }
-
     return setConfirm(
       "Warning",
       "Are you certain that you want to delete this pipeline? (This cannot be undone.)",
-      async () => {
-        try {
-          await Promise.all(
-            pipelineUuids.map((uuid) =>
-              requestDeletePipelines(projectUuid, uuid)
-            )
-          );
-          requestFetchPipelines();
-          setIsDeleting(false);
-          return true;
-        } catch (error) {
-          setAlert("Error", `Failed to delete pipeline: ${error}`);
-          setIsDeleting(false);
-          return false;
-        }
+      async (resolve) => {
+        Promise.all(
+          pipelineUuids.map((uuid) => requestDeletePipelines(projectUuid, uuid))
+        )
+          .then(() => {
+            requestFetchPipelines();
+            resolve(true);
+          })
+          .catch((e) => {
+            setAlert("Error", `Failed to delete pipeline: ${e}`);
+            resolve(false);
+          });
+
+        return true;
       }
     );
   };

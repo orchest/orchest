@@ -58,7 +58,7 @@ export type PromptMessage = Alert | Confirm;
 type AlertConverter = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm?: () => void
+  onConfirm?: () => Promise<boolean>
 ) => Alert;
 
 type ConfirmConverter = (
@@ -119,8 +119,12 @@ type AlertDispatcher = (
 export type ConfirmDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => Promise<boolean>,
-  onCancel?: () => Promise<false>
+  onConfirm: (
+    resolve: (value: boolean | PromiseLike<boolean>) => void
+  ) => Promise<boolean>,
+  onCancel?: (
+    resolve: (value: boolean | PromiseLike<boolean>) => void
+  ) => Promise<false>
 ) => Promise<boolean>;
 
 export type RequestBuildDispatcher = (
@@ -200,6 +204,20 @@ const initialState: AppContextState = {
   isCommandPaletteOpen: false,
 };
 
+const defaultOnConfirm = async (
+  resolve: (value: boolean | PromiseLike<boolean>) => void
+) => {
+  resolve(true);
+  return true;
+};
+
+const defaultOnCancel = async (
+  resolve: (value: boolean | PromiseLike<boolean>) => void
+) => {
+  resolve(false);
+  return false as const;
+};
+
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,
   convert: PromptMessageConverter<T>
@@ -207,15 +225,27 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   const dispatcher = (
     title: string,
     content: string | JSX.Element | JSX.Element[],
-    onConfirm?: () => Promise<boolean>, // is required for 'confirm'
-    onCancel?: () => Promise<false>
+    onConfirm = defaultOnConfirm, // is required for 'confirm'
+    onCancel = defaultOnCancel
   ) => {
-    const message = convert(title, content, onConfirm, onCancel);
-    dispatch((store) => {
-      return {
-        type: "SET_PROMPT_MESSAGES",
-        payload: [...store.promptMessages, message],
-      };
+    // dispatcher is basically either setAlert or setConfirm
+    // in the case of setConfirm, dispatcher returns a Promise
+    // and the resolve function of this Promise is passed to onConfirm and onCancel
+    // therefore we can resolve the outcome of the async operation triggered by onConfirm and onCancel
+    // see ProjectsView, deleteSelectedRows for example,
+    return new Promise<boolean>((resolve) => {
+      const message = convert(
+        title,
+        content,
+        () => onConfirm(resolve),
+        () => onCancel(resolve)
+      );
+      dispatch((store) => {
+        return {
+          type: "SET_PROMPT_MESSAGES",
+          payload: [...store.promptMessages, message],
+        };
+      });
     });
   };
 

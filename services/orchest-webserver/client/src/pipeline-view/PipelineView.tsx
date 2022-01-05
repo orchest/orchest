@@ -1422,8 +1422,7 @@ const PipelineView: React.FC = () => {
 
       setConfirm(
         "Warning",
-        "A deleted step and its logs cannot be recovered once deleted, are you" +
-          " sure you want to proceed?",
+        `A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?`,
         async () => {
           closeMultistepView();
           closeDetailsView();

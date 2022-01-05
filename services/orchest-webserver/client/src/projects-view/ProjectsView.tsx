@@ -62,7 +62,6 @@ const ProjectsView: React.FC = () => {
   const [isImporting, setIsImporting] = React.useState(false);
 
   const [state, setState] = React.useState({
-    isDeleting: false,
     projects: null,
     importResult: undefined,
     fetchListAndSetProject: "",
@@ -91,7 +90,7 @@ const ProjectsView: React.FC = () => {
       {
         id: "path",
         label: "Project",
-        render: function ProjectPath(row) {
+        render: function ProjectPath(row, disabled) {
           return (
             <Stack
               direction="row"
@@ -110,6 +109,7 @@ const ProjectsView: React.FC = () => {
                 title="Edit job name"
                 size="small"
                 sx={{ marginLeft: (theme) => theme.spacing(2) }}
+                disabled={disabled}
                 onClick={(e) => {
                   e.stopPropagation();
                   onEditProjectName(row.uuid, row.path);
@@ -128,10 +128,11 @@ const ProjectsView: React.FC = () => {
       {
         id: "settings",
         label: "Settings",
-        render: function ProjectSettingsButton(row) {
+        render: function ProjectSettingsButton(row, disabled) {
           return (
             <IconButton
               title="settings"
+              disabled={disabled}
               data-test-id={`settings-button-${row.path}`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -240,58 +241,33 @@ const ProjectsView: React.FC = () => {
   };
 
   const deleteSelectedRows = async (projectUuids: string[]) => {
-    if (!state.isDeleting) {
-      setState((prevState) => ({
-        ...prevState,
-        isDeleting: true,
-      }));
+    if (projectUuids.length === 0) {
+      setAlert("Error", "You haven't selected a project.");
 
-      if (projectUuids.length === 0) {
-        setAlert("Error", "You haven't selected a project.");
-
-        setState((prevState) => ({
-          ...prevState,
-          isDeleting: false,
-        }));
-
-        return false;
-      }
-
-      return setConfirm(
-        "Warning",
-        "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-        async () => {
-          // Start actual delete
-
-          try {
-            await Promise.all(
-              projectUuids.map((projectUuid) =>
-                deleteProjectRequest(projectUuid)
-              )
-            );
-            fetchProjects();
-            // Clear isDeleting
-            setState((prevState) => ({
-              ...prevState,
-              isDeleting: false,
-            }));
-            return true;
-          } catch (error) {
-            return false;
-          }
-        },
-        async () => {
-          setState((prevState) => ({
-            ...prevState,
-            isDeleting: false,
-          }));
-          return false;
-        }
-      );
-    } else {
-      console.error("Delete UI in progress.");
       return false;
     }
+
+    // setConfirm returns a Promise, which is then passed to DataTable deleteSelectedRows function
+    // DataTable then is able to act upon the outcome of the deletion operation
+    return setConfirm(
+      "Warning",
+      "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+      async (resolve) => {
+        // we don't await this Promise on purpose
+        // because we want the dialog close first, and resolve setConfirm later
+        Promise.all(
+          projectUuids.map((projectUuid) => deleteProjectRequest(projectUuid))
+        )
+          .then(() => {
+            fetchProjects();
+            resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
+          })
+          .catch(() => {
+            resolve(false);
+          });
+        return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
+      }
+    );
   };
 
   const deleteProjectRequest = (toBeDeletedId: string) => {

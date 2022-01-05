@@ -643,9 +643,7 @@ const PipelineSettingsView: React.FC = () => {
 
               setConfirm(
                 "Warning",
-                "Are you sure you want to delete the service: " +
-                  row.name +
-                  "?",
+                `Are you sure you want to delete the service: ${row.name}?`,
                 async () => deleteService(row.name)
               );
             }}

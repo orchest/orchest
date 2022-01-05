@@ -29,7 +29,7 @@ import { visuallyHidden } from "@mui/utils";
 import React from "react";
 import { IconButton } from "./common/IconButton";
 
-const Search = styled("div")(({ theme }) => ({
+const SearchContainer = styled("div")(({ theme }) => ({
   position: "relative",
   borderRadius: theme.spacing(1),
   border: `1px solid ${alpha(theme.palette.grey[300], 0.8)}`,
@@ -96,7 +96,7 @@ export type DataTableColumn<T> = {
   sortable?: boolean;
   align?: "inherit" | "left" | "center" | "right" | "justify";
   sx?: SxProps<Theme>;
-  render?: (row: T & { uuid: string }) => React.ReactNode;
+  render?: (row: T & { uuid: string }, disabled?: boolean) => React.ReactNode;
 };
 
 export type DataTableRow<T> = T & {
@@ -117,6 +117,7 @@ type EnhancedTableProps<T> = {
   rowCount: number;
   data: DataTableColumn<T>[];
   selectable: boolean;
+  disabled: boolean;
 };
 
 function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
@@ -129,6 +130,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
     rowCount,
     onRequestSort,
     selectable,
+    disabled,
     data,
   } = props;
   const createSortHandler = (property: keyof T) => (
@@ -147,6 +149,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
               indeterminate={numSelected > 0 && numSelected < rowCount}
               checked={rowCount > 0 && numSelected === rowCount}
               onChange={onSelectAllClick}
+              disabled={disabled}
               inputProps={{ "aria-label": "select all desserts" }}
               data-test-id={`${tableId}-toggle-all-rows`}
             />
@@ -164,6 +167,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
               <TableSortLabel
                 active={orderBy === headCell.id}
                 direction={orderBy === headCell.id ? order : "asc"}
+                disabled={disabled}
                 onClick={createSortHandler(headCell.id)}
               >
                 {headCell.label}
@@ -203,13 +207,15 @@ const SkeletonContainer: React.FC<{ isLoading: boolean }> = ({
 
 export function renderCell<T>(
   column: DataTableColumn<T>,
-  row: DataTableRow<T>
+  row: DataTableRow<T>,
+  disabled: boolean
 ) {
-  return column.render ? column.render(row) : row[column.id];
+  return column.render ? column.render(row, disabled) : row[column.id];
 }
 
 function Row<T>({
   isLoading,
+  disabled,
   tableId,
   columns,
   data,
@@ -219,6 +225,7 @@ function Row<T>({
   onClickCheckbox,
 }: {
   isLoading?: boolean;
+  disabled: boolean;
   tableId: string;
   columns: DataTableColumn<T>[];
   data: DataTableRow<T>;
@@ -233,8 +240,10 @@ function Row<T>({
 }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const handleClickRow = (e: React.MouseEvent<unknown>) => {
-    setIsOpen((current) => !current);
-    onRowClick(e, data.uuid);
+    if (!disabled) {
+      setIsOpen((current) => !current);
+      onRowClick(e, data.uuid);
+    }
   };
 
   const labelId = `checkbox-${data.uuid}`;
@@ -242,7 +251,7 @@ function Row<T>({
   return (
     <>
       <TableRow
-        hover={!isLoading}
+        hover={!isLoading && !disabled}
         onClick={(e) => handleClickRow(e)}
         role="checkbox"
         aria-checked={isSelected}
@@ -253,7 +262,7 @@ function Row<T>({
           ...(data.details
             ? { "& > *": { borderBottom: "unset !important" } }
             : null),
-          ...(!isLoading && (selectable || onRowClick)
+          ...(!isLoading && !disabled && (selectable || onRowClick)
             ? { cursor: "pointer" }
             : null),
         }}
@@ -265,6 +274,7 @@ function Row<T>({
               <Checkbox
                 color="primary"
                 checked={isSelected}
+                disabled={disabled}
                 onClick={(e) => onClickCheckbox(e, data.uuid)}
                 inputProps={{ "aria-labelledby": labelId }}
                 data-test-id={`${tableId}-row-checkbox`}
@@ -280,7 +290,7 @@ function Row<T>({
           sx={columns[0].sx}
         >
           <SkeletonContainer isLoading={isLoading}>
-            {renderCell(columns[0], data)}
+            {renderCell(columns[0], data, disabled)}
           </SkeletonContainer>
         </TableCell>
         {columns.slice(1).map((column) => {
@@ -293,10 +303,10 @@ function Row<T>({
               <SkeletonContainer isLoading={isLoading}>
                 {column.sortable ? (
                   <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
-                    {renderCell(column, data)}
+                    {renderCell(column, data, disabled)}
                   </Box>
                 ) : (
-                  renderCell(column, data)
+                  renderCell(column, data, disabled)
                 )}
               </SkeletonContainer>
             </TableCell>
@@ -354,6 +364,7 @@ type DataTableProps<T> = {
   debounceTime?: number;
   hideSearch?: boolean;
   isLoading?: boolean;
+  disabled?: boolean;
   dense?: boolean;
   containerSx?: SxProps<Theme>;
 } & BoxProps;
@@ -399,6 +410,7 @@ export const DataTable = <T extends Record<string, any>>({
   initialRowsPerPage,
   containerSx,
   dense,
+  disabled,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -408,6 +420,8 @@ export const DataTable = <T extends Record<string, any>>({
   const [orderBy, setOrderBy] = React.useState<keyof T | "">(
     initialOrderBy || ""
   );
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const isTableDisabled = disabled || isDeleting;
 
   // page is one-indexed
   const [page, setPage] = React.useState(1);
@@ -551,20 +565,26 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
-    setSelected([]);
-    setPage(newPage + 1);
+    if (!isDeleting) {
+      setSelected([]);
+      setPage(newPage + 1);
+    }
   };
 
   const handleChangeRowsPerPage = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(1);
+    if (!isDeleting) {
+      setRowsPerPage(parseInt(event.target.value, 10));
+      setPage(1);
+    }
   };
 
   const handleDeleteSelectedRows = async () => {
     if (deleteSelectedRows) {
+      setIsDeleting(true);
       const success = await deleteSelectedRows(selected);
+      setIsDeleting(false);
       if (success) setSelected([]);
     }
   };
@@ -589,7 +609,7 @@ export const DataTable = <T extends Record<string, any>>({
   return (
     <Box sx={{ width: "100%" }} {...props}>
       {!hideSearch && (
-        <Search>
+        <SearchContainer>
           <SearchIconWrapper>
             <SearchIcon />
           </SearchIconWrapper>
@@ -597,9 +617,10 @@ export const DataTable = <T extends Record<string, any>>({
             placeholder="Search"
             inputProps={{ "aria-label": "search" }}
             value={searchTerm}
+            disabled={isTableDisabled}
             onChange={handleChangeSearchTerm}
           />
-        </Search>
+        </SearchContainer>
       )}
       <Paper sx={{ width: "100%", marginBottom: 2 }}>
         <TableContainer sx={containerSx}>
@@ -617,6 +638,7 @@ export const DataTable = <T extends Record<string, any>>({
               numSelected={selected.length}
               order={order}
               orderBy={orderBy}
+              disabled={isTableDisabled}
               onSelectAllClick={handleSelectAllClick}
               onRequestSort={handleRequestSort}
               rowCount={rows.length}
@@ -629,6 +651,7 @@ export const DataTable = <T extends Record<string, any>>({
                   return (
                     <Row<T>
                       isLoading={isFetchingData}
+                      disabled={isTableDisabled}
                       tableId={id}
                       data={composeRow(row)}
                       columns={columns}
@@ -683,12 +706,19 @@ export const DataTable = <T extends Record<string, any>>({
                   marginRight: (theme) => theme.spacing(2),
                 }}
               >
-                {selected.length > 0 ? `${selected.length} selected` : ""}
+                {isDeleting &&
+                  `Deleting selected ${selected.length} item${
+                    selected.length > 1 ? "s" : ""
+                  }...`}
+                {!isDeleting && selected.length > 0
+                  ? `${selected.length} selected`
+                  : ""}
               </Typography>
               {deleteSelectedRows && (
                 <IconButton
                   title="Delete"
                   data-test-id={`${id}-delete`}
+                  disabled={isTableDisabled}
                   onClick={handleDeleteSelectedRows}
                 >
                   <DeleteIcon />

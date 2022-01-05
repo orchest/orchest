@@ -126,8 +126,6 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       );
   }, [fetchBuildsError]);
 
-  const [isDeleting, setIsDeleting] = React.useState(false);
-
   const environmentRows = React.useMemo(() => {
     const statusObject = environmentBuilds.reduce((obj, build) => {
       return {
@@ -192,12 +190,15 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           <BoldText>environmentName</BoldText>
           {` ) is in use. Are you sure you want to delete it? This will abort all jobs that are using it.`}
         </>,
-        async () => {
-          return doRemoveEnvironment(
-            projectUuid,
-            environmentUuid,
-            environmentName
-          );
+        async (resolve) => {
+          doRemoveEnvironment(projectUuid, environmentUuid, environmentName)
+            .then(() => {
+              resolve(true);
+            })
+            .catch(() => {
+              resolve(false);
+            });
+          return true;
         }
       );
     }
@@ -232,37 +233,32 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   };
 
   const onDeleteClick = async (environmentUuids: string[]) => {
-    if (!isDeleting) {
-      setIsDeleting(true);
+    return setConfirm(
+      "Warning",
+      "Are you certain that you want to delete the selected environments?",
+      async (resolve) => {
+        const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
+          return { ...all, [curr.uuid]: curr };
+        }, {});
 
-      return setConfirm(
-        "Warning",
-        "Are you certain that you want to delete the selected environments?",
-        async () => {
-          const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
-            return { ...all, [curr.uuid]: curr };
-          }, {});
+        Promise.all(
+          environmentUuids.map((environmentUuid) => {
+            const { project_uuid, uuid, name } = environmentsDict[
+              environmentUuid
+            ] as Environment;
+            return removeEnvironment(project_uuid, uuid, name);
+          })
+        )
+          .then(() => {
+            resolve(true);
+          })
+          .catch(() => {
+            resolve(false); // no need to setAlert here, will be handled by removeEnvironment
+          });
 
-          await Promise.all(
-            environmentUuids.map((environmentUuid) => {
-              const { project_uuid, uuid, name } = environmentsDict[
-                environmentUuid
-              ] as Environment;
-              return removeEnvironment(project_uuid, uuid, name);
-            })
-          );
-          setIsDeleting(false);
-          return true;
-        },
-        async () => {
-          setIsDeleting(false);
-          return false;
-        }
-      );
-    } else {
-      console.error("Delete UI in progress.");
-      return false;
-    }
+        return true;
+      }
+    );
   };
 
   return (
