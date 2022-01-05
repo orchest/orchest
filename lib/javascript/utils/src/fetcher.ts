@@ -1,3 +1,8 @@
+export type FetchError = {
+  status: number;
+  message: string;
+};
+
 export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
   const response = await window.fetch(url, params);
   const responseAsString = await response.text();
@@ -8,7 +13,7 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
     return Promise.reject({
       status: response.status,
       message: jsonResponse.message || response.statusText,
-    });
+    } as FetchError);
   }
 
   return jsonResponse as Promise<T>;

@@ -5,6 +5,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap, toQueryString } from "@/Routes";
 import { Pagination, PipelineRun } from "@/types";
+import { ellipsis } from "@/utils/styles";
 import { formatServerDateTime } from "@/utils/webserver-utils";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Button from "@mui/material/Button";
@@ -19,6 +20,7 @@ const columns: DataTableColumn<PipelineRun>[] = [
   {
     id: "parameters",
     label: "Parameters",
+    sx: ellipsis("40vw"),
     render: function RunParameters(row) {
       const formattedParams = formatPipelineParams(row.parameters);
       return formattedParams.length === 0 ? (
@@ -93,7 +95,7 @@ export const PipelineRunTable: React.FC<{
   return (
     <DataTable<PipelineRun>
       id="job-pipeline-runs"
-      containerSx={{ maxHeight: "40vh" }}
+      dense
       hideSearch // TODO: enable when BE supports it
       fetcher={({ page, rowsPerPage, run }) => {
         const url = `/catch/api-proxy/api/jobs/${jobUuid}/pipeline_runs${getQueryString(
@@ -159,7 +161,7 @@ export const PipelineRunTable: React.FC<{
       columns={columns}
       initialOrderBy="pipeline_run_index"
       initialOrder="desc"
-      initialRowsPerPage={5}
+      initialRowsPerPage={10}
     />
   );
 };

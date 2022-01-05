@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useAsync } from "@/hooks/useAsync";
 import { FileTree } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
@@ -19,190 +20,198 @@ import {
   absoluteToRelativePath,
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
+  fetcher,
+  FetchError,
+  hasValue,
 } from "@orchest/lib-utils";
 import React from "react";
 import { Code } from "./common/Code";
 import FilePicker from "./FilePicker";
 
-const ProjectFilePicker: React.FC<{
-  [key: string]: any;
-  menuMaxWidth?: string;
-}> = (props) => {
+const pathValidator = (value: string) => {
+  if (value == "" && value.endsWith("/")) {
+    return false;
+  }
+  let ext = extensionFromFilename(value);
+  if (ALLOWED_STEP_EXTENSIONS.indexOf(ext) === -1) {
+    return false;
+  }
+  return true;
+};
+
+const useCheckFileValidity = (
+  project_uuid: string,
+  pipeline_uuid: string,
+  path: string
+) => {
+  const { run, data: selectedFileExists } = useAsync<boolean>();
+  React.useEffect(() => {
+    // only check file existence if it passes rule based validation
+    if (pathValidator(path)) {
+      run(
+        fetcher(
+          `/async/project-files/exists/${project_uuid}/${pipeline_uuid}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json; charset=UTF-8",
+            },
+            body: JSON.stringify({
+              relative_path: path,
+            }),
+          }
+        ).then((response) => hasValue(response))
+      );
+    }
+  }, [path, pipeline_uuid, project_uuid, run]);
+  return selectedFileExists;
+};
+
+type DirectoryDetails = {
+  tree: FileTree;
+  cwd: string;
+};
+
+const useFileDirectoryDetails = (
+  project_uuid: string,
+  pipeline_uuid: string
+) => {
   const { setAlert } = useAppContext();
 
-  const [state, setState] = React.useState<{
-    tree: FileTree;
-    [key: string]: any;
-  }>({
-    createFileModal: false,
-    selectedFileExists: null,
-    fileName: "",
-    selectedExtension: "." + ALLOWED_STEP_EXTENSIONS[0],
-    createFileDir: "",
-    tree: undefined,
-    cwd: null,
-  });
+  const { data: directoryDetails, run, error } = useAsync<DirectoryDetails>();
+  const { tree, cwd } = directoryDetails || {};
 
-  const [promiseManager] = React.useState(new PromiseManager());
-
-  const onChangeFileValue = (value) => props.onChange(value);
-
-  const fetchDirectoryDetails = () => {
-    // will be populated by async requests
-    let tree, cwd;
-
-    let promises = [];
-
-    let treeFetchPromise = makeCancelable(
-      makeRequest("GET", `/async/file-picker-tree/${props.project_uuid}`),
-      promiseManager
-    );
-    promises.push(treeFetchPromise.promise);
-    treeFetchPromise.promise
-      .then((response) => {
-        tree = JSON.parse(response);
-      })
-      .catch((error) => {
-        if (!error.isCanceled) {
-          console.log(error);
-        }
-      });
-
-    let cwdFetchPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/file-picker-tree/pipeline-cwd/${props.project_uuid}/${props.pipeline_uuid}`
-      ),
-      promiseManager
-    );
-    promises.push(cwdFetchPromise.promise);
-
-    cwdFetchPromise.promise
-      .then((response) => {
-        // FilePicker cwd expects trailing / for cwd paths
-        cwd = JSON.parse(response)["cwd"] + "/";
-      })
-      .catch((error) => {
-        if (!error.isCanceled) {
-          console.log(error);
-        }
-      });
-
-    Promise.all(promises)
-      .then(() => {
-        setState((prevState) => ({
-          ...prevState,
-          tree,
-          cwd,
-        }));
-      })
-      .catch((error) => {
-        if (!error.isCanceled) {
-          console.error(error);
-        }
-      });
-  };
-
-  const valueValidator = (value) => {
-    if (value == "" && value.endsWith("/")) {
-      return false;
+  React.useEffect(() => {
+    if (error) {
+      setAlert("Error", `Failed to fetch file directory details: ${error}`);
     }
-    let ext = extensionFromFilename(value);
-    if (ALLOWED_STEP_EXTENSIONS.indexOf(ext) === -1) {
-      return false;
-    }
-    return true;
-  };
+  }, [setAlert, error]);
 
-  const checkFileValidity = () => {
-    // only check file existence if it passes rule based validation
-    if (valueValidator(props.value)) {
-      let existencePromise = makeCancelable(
-        makeRequest(
-          "POST",
-          `/async/project-files/exists/${props.project_uuid}/${props.pipeline_uuid}`,
-          {
-            type: "json",
-            content: {
-              relative_path: props.value,
-            },
-          }
-        ),
-        promiseManager
-      );
-
-      existencePromise.promise
-        .then(() => {
-          setState((prevState) => ({
-            ...prevState,
-            selectedFileExists: true,
-          }));
+  const fetchDirectoryDetails = React.useCallback(() => {
+    if (project_uuid && pipeline_uuid) {
+      run(
+        Promise.all([
+          fetcher<FileTree>(`/async/file-picker-tree/${project_uuid}`),
+          fetcher<{ cwd: string }>(
+            `/async/file-picker-tree/pipeline-cwd/${project_uuid}/${pipeline_uuid}`
+          ).then((response) => `${response["cwd"]}/`), // FilePicker cwd expects trailing / for cwd paths
+        ]).then(([tree, cwd]) => {
+          return { tree, cwd };
         })
-        .catch((e) => {
-          if (!e.isCanceled) {
-            // rely on 404 behaviour for detecting file existence
-            setState((prevState) => ({
-              ...prevState,
-              selectedFileExists: true,
-            }));
-          }
-        });
-    } else {
-      // do indicate invalid value for these value
-      setState((prevState) => ({
-        ...prevState,
-        selectedFileExists: false,
-      }));
+      );
     }
+  }, [project_uuid, pipeline_uuid, run]);
+
+  React.useEffect(() => {
+    fetchDirectoryDetails();
+  }, [fetchDirectoryDetails]);
+
+  return { tree, cwd, fetchDirectoryDetails };
+};
+
+const ProjectFilePicker: React.FC<{
+  project_uuid: string;
+  pipeline_uuid: string;
+  step_uuid: string;
+  value: string;
+  onChange: (value: string) => void;
+  menuMaxWidth?: string;
+}> = ({
+  onChange,
+  project_uuid,
+  pipeline_uuid,
+  step_uuid,
+  value,
+  menuMaxWidth,
+}) => {
+  // global state
+  const { setAlert } = useAppContext();
+
+  // fetching data
+  const { tree, cwd, fetchDirectoryDetails } = useFileDirectoryDetails(
+    project_uuid,
+    pipeline_uuid
+  );
+
+  const selectedFileExists = useCheckFileValidity(
+    project_uuid,
+    pipeline_uuid,
+    value
+  );
+
+  // local states
+  const [createFileModal, setCreateFileModal] = React.useState(false);
+  const [fileName, setFileName] = React.useState("");
+  const [createFileDir, setCreateFileDir] = React.useState("");
+  const [fileExtension, setFileExtension] = React.useState(
+    `.${ALLOWED_STEP_EXTENSIONS[0]}`
+  );
+
+  const onChangeFileValue = (value: string) => onChange(value);
+
+  const onCreateFile = (dir: string) => {
+    let fileNameProposal = value
+      ? value.split("/").slice(-1).join("/").split(".")[0]
+      : "";
+
+    setCreateFileModal(true);
+    setFileName(fileNameProposal);
+    setCreateFileDir(dir);
   };
 
-  const onCreateFile = (dir) => {
-    let fileNameProposal = "";
-    if (props.value) {
-      fileNameProposal = props.value
-        .split("/")
-        .slice(-1)
-        .join("/")
-        .split(".")[0];
-    }
+  const fullProjectPath = `${createFileDir}${fileName}${fileExtension}`;
 
-    setState((prevState) => ({
-      ...prevState,
-      fileName: fileNameProposal,
-      createFileDir: dir,
-      createFileModal: true,
-    }));
-  };
+  const onCloseCreateFileModal = () => setCreateFileModal(false);
 
-  const getFullProjectPath = () =>
-    state.createFileDir + state.fileName + state.selectedExtension;
-
-  const onCloseCreateFileModal = () =>
-    setState((prevState) => ({
-      ...prevState,
-      createFileModal: false,
-    }));
-
-  const onChangeNewFilename = (value) =>
-    setState((prevState) => ({ ...prevState, fileName: value }));
+  const onChangeNewFilename = (value: string) => setFileName(value);
 
   const onChangeNewFilenameExtension = (value: string) =>
-    setState((prevState) => ({ ...prevState, selectedExtension: value }));
+    setFileExtension(value);
+
+  const { run, error, status: createFileStatus } = useAsync<void, FetchError>();
+  const createNewFile = () => {
+    run(
+      fetcher(
+        `/async/project-files/create/${project_uuid}/${pipeline_uuid}/${step_uuid}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json; charset=UTF-8",
+          },
+          body: JSON.stringify({
+            file_path: fullProjectPath,
+          }),
+        }
+      ).then(() => {
+        onChangeFileValue(
+          absoluteToRelativePath(fullProjectPath, cwd).slice(1)
+        );
+
+        setCreateFileModal(false);
+
+        // fetch file tree again with new file in it
+        fetchDirectoryDetails();
+      })
+    );
+  };
+  const isCreating = createFileStatus === "PENDING";
+
+  React.useEffect(() => {
+    if (error && error.status === 409)
+      setAlert("Error", "A file with this name already exists.");
+  }, [error, setAlert]);
 
   const onSubmitModal = () => {
     // validate extensions
-    let extension = extensionFromFilename(getFullProjectPath());
+    let extension = extensionFromFilename(fullProjectPath);
 
     // TODO: case insensitive extension checking?
-    if (ALLOWED_STEP_EXTENSIONS.indexOf(extension) == -1) {
+    if (!ALLOWED_STEP_EXTENSIONS.includes(extension)) {
       setAlert(
         "Error",
         <div>
           <p>Invalid file extension</p>
-          Extension {extension} is not in allowed set of{" "}
+          {`Extension ${extension} is not in allowed set of `}
           {allowedExtensionsMarkup()}.
         </div>
       );
@@ -210,43 +219,8 @@ const ProjectFilePicker: React.FC<{
       return;
     }
 
-    let createPromise = makeCancelable(
-      makeRequest(
-        "POST",
-        `/async/project-files/create/${props.project_uuid}/${props.pipeline_uuid}/${props.step_uuid}`,
-        {
-          type: "json",
-          content: {
-            file_path: getFullProjectPath(),
-          },
-        }
-      ),
-      promiseManager
-    );
-
-    createPromise.promise
-      .then(() => {
-        onChangeFileValue(
-          absoluteToRelativePath(getFullProjectPath(), state.cwd).slice(1)
-        );
-
-        setState((prevState) => ({
-          ...prevState,
-          createFileModal: false,
-        }));
-
-        // fetch file tree again with new file in it
-        fetchDirectoryDetails();
-      })
-      .catch((error) => {
-        if (error.status == 409) {
-          setAlert("Error", "A file with this name already exists.");
-        }
-        console.log(error);
-      });
+    createNewFile();
   };
-
-  const onFocus = () => fetchDirectoryDetails();
 
   const allowedExtensionsMarkup = () => {
     return ALLOWED_STEP_EXTENSIONS.map((el, index) => {
@@ -263,19 +237,12 @@ const ProjectFilePicker: React.FC<{
     });
   };
 
-  React.useEffect(() => {
-    fetchDirectoryDetails();
-    checkFileValidity();
-
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
-
-  React.useEffect(() => checkFileValidity(), [props.value]);
+  const onFocus = () => fetchDirectoryDetails();
 
   return (
     <>
       <Dialog
-        open={state.createFileModal}
+        open={createFileModal}
         onClose={onCloseCreateFileModal}
         data-test-id="project-file-picker-create-new-file-dialog"
       >
@@ -298,8 +265,9 @@ const ProjectFilePicker: React.FC<{
                 <TextField
                   label="File name"
                   autoFocus
-                  value={state.fileName}
+                  value={fileName}
                   fullWidth
+                  disabled={isCreating}
                   onChange={(e) => onChangeNewFilename(e.target.value)}
                   data-test-id="project-file-picker-file-name-textfield"
                 />
@@ -311,7 +279,8 @@ const ProjectFilePicker: React.FC<{
                     label="Extension"
                     labelId="project-file-picker-file-extension-label"
                     id="project-file-picker-file-extension"
-                    value={state.selectedExtension}
+                    disabled={isCreating}
+                    value={fileExtension}
                     onChange={(e) =>
                       onChangeNewFilenameExtension(e.target.value)
                     }
@@ -329,7 +298,7 @@ const ProjectFilePicker: React.FC<{
               </Stack>
               <TextField
                 label="Path in project"
-                value={getFullProjectPath()}
+                value={fullProjectPath}
                 fullWidth
                 margin="normal"
                 disabled
@@ -349,6 +318,7 @@ const ProjectFilePicker: React.FC<{
               variant="contained"
               type="submit"
               form="create-file"
+              disabled={isCreating}
               data-test-id="project-file-picker-create-file"
             >
               Create file
@@ -356,27 +326,27 @@ const ProjectFilePicker: React.FC<{
           </DialogActions>
         </form>
       </Dialog>
-      {state.cwd && state.tree && (
+      {cwd && tree && (
         <FilePicker
-          tree={state.tree}
-          cwd={state.cwd}
+          tree={tree}
+          cwd={cwd}
           onFocus={onFocus}
-          value={props.value}
+          value={value}
           icon={
-            state.selectedFileExists ? (
+            selectedFileExists ? (
               <CheckIcon color="success" />
             ) : (
               <WarningIcon color="warning" />
             )
           }
           helperText={
-            state.selectedFileExists
+            selectedFileExists
               ? "File exists in the project directory."
               : "Warning: this file wasn't found in the project directory."
           }
           onCreateFile={onCreateFile}
           onChangeValue={onChangeFileValue}
-          menuMaxWidth={props.menuMaxWidth}
+          menuMaxWidth={menuMaxWidth}
         />
       )}
     </>

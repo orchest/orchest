@@ -2,19 +2,19 @@ import React from "react";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
-export type Action<T> = {
+export type Action<T, E> = {
   type: STATUS;
   data: T;
-  error: Error;
+  error: E;
 };
 
-type State<T> = {
+type State<T, E> = {
   status: STATUS;
   data: T | null;
-  error: Error | null;
+  error: E | null;
 };
 
-const useSafeDispatch = <T>(dispatch: React.Dispatch<Action<T>>) => {
+const useSafeDispatch = <T, E>(dispatch: React.Dispatch<Action<T, E>>) => {
   const mounted = React.useRef(false);
 
   React.useLayoutEffect(() => {
@@ -30,7 +30,10 @@ const useSafeDispatch = <T>(dispatch: React.Dispatch<Action<T>>) => {
   );
 };
 
-const asyncReducer = <T>(state: State<T>, action: Action<T>): State<T> => {
+const asyncReducer = <T, E>(
+  state: State<T, E>,
+  action: Action<T, E>
+): State<T, E> => {
   switch (action.type) {
     case "PENDING": {
       return { status: "PENDING", data: null, error: null };
@@ -51,9 +54,9 @@ const asyncReducer = <T>(state: State<T>, action: Action<T>): State<T> => {
   }
 };
 
-const useAsync = <T>(initialState?: T) => {
+const useAsync = <T, E = Error>(initialState?: T) => {
   const [state, unsafeDispatch] = React.useReducer<
-    (state: State<T>, action: Action<T>) => State<T>
+    (state: State<T, E>, action: Action<T, E>) => State<T, E>
   >(asyncReducer, {
     status: "IDLE",
     data: null,
@@ -63,7 +66,7 @@ const useAsync = <T>(initialState?: T) => {
 
   const dispatch = useSafeDispatch(unsafeDispatch);
 
-  const { data, error, status } = state as State<T>;
+  const { data, error, status } = state as State<T, E>;
 
   const run = React.useCallback(
     (promise: Promise<T>) => {

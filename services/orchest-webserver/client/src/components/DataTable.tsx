@@ -354,6 +354,7 @@ type DataTableProps<T> = {
   debounceTime?: number;
   hideSearch?: boolean;
   isLoading?: boolean;
+  dense?: boolean;
   containerSx?: SxProps<Theme>;
 } & BoxProps;
 
@@ -370,6 +371,11 @@ function generateLoadingRows<T>(
   }) as DataTableRow<T>[];
 }
 
+enum FIXED_ROW_HEIGHT {
+  MEDIUM = 57,
+  SMALL = 37,
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const DataTable = <T extends Record<string, any>>({
   id,
@@ -381,7 +387,7 @@ export const DataTable = <T extends Record<string, any>>({
   deleteSelectedRows,
   onRowClick,
   selectable = false,
-  rowHeight = 57,
+  rowHeight,
   debounceTime = 250,
   hideSearch,
   initialSelectedRows = [],
@@ -392,6 +398,7 @@ export const DataTable = <T extends Record<string, any>>({
   isLoading,
   initialRowsPerPage,
   containerSx,
+  dense,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -411,8 +418,9 @@ export const DataTable = <T extends Record<string, any>>({
 
   const { run, status, error, data } = useAsync<DataTableFetcherResponse<T>>();
   const fetchData = React.useCallback(() => {
-    if (fetcher)
+    if (fetcher) {
       fetcher({ run, page, rowsPerPage, searchTerm: debouncedSearchTerm });
+    }
   }, [run, fetcher, debouncedSearchTerm, page, rowsPerPage]);
   // when fetchData is re-created, fire it as well to get data
   // because `page`, `rowsPerPage`, `debouncedSearchTerm` are changed, i.e. user is requesting new data
@@ -575,6 +583,9 @@ export const DataTable = <T extends Record<string, any>>({
 
   const tableTitleId = `${id}-title`;
 
+  const renderedRowHeight =
+    rowHeight || (dense ? FIXED_ROW_HEIGHT.SMALL : FIXED_ROW_HEIGHT.MEDIUM);
+
   return (
     <Box sx={{ width: "100%" }} {...props}>
       {!hideSearch && (
@@ -596,7 +607,7 @@ export const DataTable = <T extends Record<string, any>>({
             sx={{ minWidth: 750 }}
             aria-labelledby={tableTitleId}
             stickyHeader
-            size="medium"
+            size={dense ? "small" : "medium"}
             id={id}
             data-test-id={id}
           >
@@ -630,7 +641,7 @@ export const DataTable = <T extends Record<string, any>>({
                   );
                 })}
               {error && (
-                <TableRow style={{ height: rowHeight * emptyRows }}>
+                <TableRow style={{ height: renderedRowHeight * emptyRows }}>
                   <TableCell
                     colSpan={selectable ? columns.length + 1 : columns.length}
                     sx={{ padding: (theme) => theme.spacing(3) }}
@@ -638,6 +649,7 @@ export const DataTable = <T extends Record<string, any>>({
                     <Alert severity="error">Failed to fetch data</Alert>
                     <Button
                       startIcon={<RefreshIcon />}
+                      disabled={isFetchingData}
                       sx={{ marginTop: (theme) => theme.spacing(0.5) }}
                       onClick={fetchData}
                     >
@@ -647,7 +659,7 @@ export const DataTable = <T extends Record<string, any>>({
                 </TableRow>
               )}
               {!error && emptyRows > 0 && (
-                <TableRow style={{ height: rowHeight * emptyRows }}>
+                <TableRow style={{ height: renderedRowHeight * emptyRows }}>
                   <TableCell
                     colSpan={selectable ? columns.length + 1 : columns.length}
                   />
@@ -693,6 +705,7 @@ export const DataTable = <T extends Record<string, any>>({
             page={page - 1} // NOTE: this is zero-indexed
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
+            size={dense ? "small" : "medium"} // this doesn't make a difference, need to report a bug to MUI
             data-test-id={`${id}-pagination`}
           />
         </Stack>
