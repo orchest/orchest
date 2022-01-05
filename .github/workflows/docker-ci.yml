@@ -3,7 +3,8 @@
 name: Docker CI
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+# events but only for the master branch. NOTE: if you change event types
+# make sure you are not breaking the dispatch-version-update-info job.
 on:
   repository_dispatch:
     types: [manual-trigger]
@@ -153,3 +154,22 @@ jobs:
           -H "Accept: application/vnd.github.v3+json"
           https://api.github.com/repos/orchest/cloud-infra/actions/workflows/build_amis.yml/dispatches
           -d '{"ref":"master"}'
+
+  dispatch-version-update-info:
+    needs: buildpush
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest version
+        id: latest_version
+        run: echo ::set-output name=LATEST_VERSION::${GITHUB_REF#refs/tags/}
+
+      - name: Dispatch
+        run: >
+          curl -X POST
+          -u "${{secrets.PAT_USER}}:${{secrets.PAT_TOKEN}}"
+          -H "Accept: application/vnd.github.v3+json"
+          https://api.github.com/repos/orchest/orchest-update-info/actions/workflows/update_latest_version.yml/dispatches
+          -d "{\"ref\":\"master\", \"inputs\": {\"version\": \"$LATEST_VERSION\" }}"
+        env:
+          LATEST_VERSION: ${{ steps.latest_version.outputs.LATEST_VERSION}}
