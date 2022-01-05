@@ -1423,8 +1423,7 @@ const PipelineView: React.FC = () => {
 
       setConfirm(
         "Warning",
-        "A deleted step and its logs cannot be recovered once deleted, are you" +
-          " sure you want to proceed?",
+        `A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?`,
         async () => {
           closeMultistepView();
           closeDetailsView();
@@ -1931,11 +1930,7 @@ const PipelineView: React.FC = () => {
     closeMultistepView();
   };
 
-  const onDeleteMultistep = () => {
-    deleteSelectedSteps();
-  };
-
-  const onDetailsChangeView = (newIndex) => {
+  const onDetailsChangeView = (newIndex: number) => {
     setState({
       defaultDetailViewIndex: newIndex,
     });
@@ -2701,8 +2696,9 @@ const PipelineView: React.FC = () => {
             <Button
               variant="contained"
               color="secondary"
-              onClick={onDeleteMultistep}
+              onClick={deleteSelectedSteps}
               startIcon={<DeleteIcon />}
+              disabled={state.eventVars.isDeletingStep}
               data-test-id="step-delete-multi"
             >
               Delete

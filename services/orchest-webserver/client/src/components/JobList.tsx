@@ -110,7 +110,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
   const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
@@ -155,45 +154,30 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   };
 
   const deleteSelectedJobs = async (jobUuids: string[]) => {
-    // this is just a precaution. the button is disabled when isDeleting is true.
-    if (isDeleting) {
-      console.error("Delete UI in progress.");
-      return false;
-    }
-
-    setIsDeleting(true);
-
-    if (jobUuids.length == 0) {
-      setAlert("Error", "You haven't selected any jobs.");
-      setIsDeleting(false);
-
-      return false;
-    }
-
     return setConfirm(
       "Warning",
       "Are you sure you want to delete these jobs? (This cannot be undone.)",
-      async () => {
-        const promises = jobUuids.map((uuid) => {
-          return fetcher(`/catch/api-proxy/api/jobs/cleanup/${uuid}`, {
-            method: "DELETE",
-          });
-        });
-
+      async (resolve) => {
         try {
-          await Promise.all(promises);
-          setIsDeleting(false);
-          fetchJobs();
+          Promise.all(
+            jobUuids.map((uuid) => {
+              return fetcher(`/catch/api-proxy/api/jobs/cleanup/${uuid}`, {
+                method: "DELETE",
+              });
+            })
+          )
+            .then(() => {
+              fetchJobs();
+              resolve(true);
+            })
+            .catch((e) => {
+              setAlert("Error", `Failed to delete selected jobs: ${e}`);
+              resolve(false);
+            });
           return true;
         } catch (e) {
-          setAlert("Error", `Failed to delete selected jobs: ${e}`);
-          setIsDeleting(false);
           return false;
         }
-      },
-      async () => {
-        setIsDeleting(false);
-        return false;
       }
     );
   };
