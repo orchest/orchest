@@ -1929,11 +1929,7 @@ const PipelineView: React.FC = () => {
     closeMultistepView();
   };
 
-  const onDeleteMultistep = () => {
-    deleteSelectedSteps();
-  };
-
-  const onDetailsChangeView = (newIndex) => {
+  const onDetailsChangeView = (newIndex: number) => {
     setState({
       defaultDetailViewIndex: newIndex,
     });
@@ -2699,8 +2695,9 @@ const PipelineView: React.FC = () => {
             <Button
               variant="contained"
               color="secondary"
-              onClick={onDeleteMultistep}
+              onClick={deleteSelectedSteps}
               startIcon={<DeleteIcon />}
+              disabled={state.eventVars.isDeletingStep}
               data-test-id="step-delete-multi"
             >
               Delete
