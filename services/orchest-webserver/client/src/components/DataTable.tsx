@@ -354,6 +354,7 @@ type DataTableProps<T> = {
   debounceTime?: number;
   hideSearch?: boolean;
   isLoading?: boolean;
+  dense?: boolean;
   containerSx?: SxProps<Theme>;
 } & BoxProps;
 
@@ -392,6 +393,7 @@ export const DataTable = <T extends Record<string, any>>({
   isLoading,
   initialRowsPerPage,
   containerSx,
+  dense,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -596,7 +598,7 @@ export const DataTable = <T extends Record<string, any>>({
             sx={{ minWidth: 750 }}
             aria-labelledby={tableTitleId}
             stickyHeader
-            size="medium"
+            size={dense ? "small" : "medium"}
             id={id}
             data-test-id={id}
           >
@@ -693,6 +695,7 @@ export const DataTable = <T extends Record<string, any>>({
             page={page - 1} // NOTE: this is zero-indexed
             onPageChange={handleChangePage}
             onRowsPerPageChange={handleChangeRowsPerPage}
+            size={dense ? "small" : "medium"} // this doesn't make a difference, need to report a bug to MUI
             data-test-id={`${id}-pagination`}
           />
         </Stack>

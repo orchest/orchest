@@ -94,6 +94,7 @@ export const PipelineRunTable: React.FC<{
     <DataTable<PipelineRun>
       id="job-pipeline-runs"
       containerSx={{ maxHeight: "40vh" }}
+      dense
       hideSearch // TODO: enable when BE supports it
       fetcher={({ page, rowsPerPage, run }) => {
         const url = `/catch/api-proxy/api/jobs/${jobUuid}/pipeline_runs${getQueryString(
@@ -159,7 +160,7 @@ export const PipelineRunTable: React.FC<{
       columns={columns}
       initialOrderBy="pipeline_run_index"
       initialOrder="desc"
-      initialRowsPerPage={5}
+      initialRowsPerPage={10}
     />
   );
 };

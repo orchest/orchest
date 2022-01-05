@@ -228,6 +228,7 @@ const JobView: React.FC = () => {
                       value={tabIndex}
                       index={0}
                       name="pipeline-runs-tab"
+                      sx={{ paddingBottom: 0 }}
                     >
                       <PipelineRunTable
                         jobUuid={jobUuid}

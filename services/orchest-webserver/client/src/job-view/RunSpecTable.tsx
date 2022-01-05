@@ -24,6 +24,7 @@ export const RunSpecTable = ({
   return (
     <DataTable<PipelineRunRow>
       id="run-spec-list"
+      dense
       columns={runSpecTableColumns}
       isLoading={isLoading}
       rows={rows}
