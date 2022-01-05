@@ -320,6 +320,8 @@ export function formatServerDateTime(
   serverDateTimeString: string | null | undefined
 ) {
   if (!serverDateTimeString) return "";
+  // Keep this pattern and the one used in fuzzy DB search in sync, see
+  // fuzzy_filter_non_interactive_pipeline_runs.
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
