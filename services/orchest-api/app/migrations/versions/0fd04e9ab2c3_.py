@@ -21,7 +21,7 @@ def upgrade():
         "pipeline_runs",
         [
             sa.text(
-                "to_tsvector('simple', lower(CAST(pipeline_run_index AS TEXT)) || ' ' || lower(status) || ' ' || lower(CAST(parameters AS TEXT)))"  # noqa
+                "to_tsvector('simple', lower(CAST(pipeline_run_index AS TEXT)) || ' ' || CASE WHEN (status = 'STARTED') THEN 'running' ELSE lower(status) END || ' ' || lower(CAST(parameters AS TEXT)))"  # noqa
             )
         ],
         unique=False,
@@ -32,7 +32,7 @@ def upgrade():
 
 def downgrade():
     op.drop_index(
-        "ix_job_pipeline_runs_text_search",
+        "ix_job_pipeline_runs_text_searchtest",
         table_name="pipeline_runs",
         postgresql_using="gin",
         postgresql_ops={"title": "gin_trgm_ops"},

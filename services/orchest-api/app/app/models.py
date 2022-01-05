@@ -10,7 +10,15 @@ TODO:
 import copy
 from typing import Any, Dict
 
-from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, cast, func, text
+from sqlalchemy import (
+    ForeignKeyConstraint,
+    Index,
+    UniqueConstraint,
+    case,
+    cast,
+    func,
+    text,
+)
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import deferred
@@ -584,7 +592,11 @@ class NonInteractivePipelineRun(PipelineRun):
 
     __text_search_vector = _create_text_search_vector(
         func.lower(cast(pipeline_run_index, postgresql.TEXT)),
-        func.lower(PipelineRun.status),
+        # This is needed to reflect what the FE is showing to the user.
+        case(
+            [(PipelineRun.status == "STARTED", "running")],
+            else_=func.lower(PipelineRun.status),
+        ),
         func.lower(cast(parameters, postgresql.TEXT)),
     )
 
@@ -602,6 +614,7 @@ Index(
         "title": "gin_trgm_ops",
     },
 )
+
 
 # Used to find old job pipeline runs to delete, see
 # jobs.max_retained_pipeline_runs.
