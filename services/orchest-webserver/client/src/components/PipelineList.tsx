@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { IOrchestSession } from "@/types";
@@ -16,13 +17,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import {
-  fetcher,
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { siteMap } from "../Routes";
@@ -238,11 +233,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     true
   );
 
-  const [
-    isSubmittingPipelinePath,
-    setIsSubmittingPipelinePath,
-  ] = React.useState(false);
-
   const [state, setState] = React.useState({
     createPipelineName: INITIAL_PIPELINE_NAME,
     createPipelinePath: INITIAL_PIPELINE_PATH,
@@ -262,8 +252,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       });
     }
   }, [pipelines, isCreateDialogOpen]);
-
-  const [promiseManager] = React.useState(new PromiseManager());
 
   const openPipeline = (pipelineUuid: string, isReadOnly: boolean) => {
     navigateTo(siteMap.pipeline.path, {
@@ -319,7 +307,6 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const onCloseEditPipelineModal = () => {
     setIsEditingPipelinePath(false);
-    setIsSubmittingPipelinePath(false);
   };
 
   const onSubmitEditPipelinePathModal = () => {
@@ -330,33 +317,32 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       return;
     }
 
-    setIsSubmittingPipelinePath(true);
-
-    makeRequest(
-      "PUT",
-      `/async/pipelines/${projectUuid}/${pipelineInEdit.uuid}`,
-      {
-        type: "json",
-        content: {
-          path: pipelineInEdit.path,
+    run(
+      fetcher(`/async/pipelines/${projectUuid}/${pipelineInEdit.uuid}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
         },
-      }
-    )
-      .then((_) => {
-        requestFetchPipelines();
+        body: JSON.stringify({
+          path: pipelineInEdit.path,
+        }),
       })
-      .catch((e) => {
-        try {
-          let resp = JSON.parse(e.body);
+        .then(() => {
+          requestFetchPipelines();
+        })
+        .catch((e) => {
+          try {
+            let resp = JSON.parse(e.body);
 
-          setAlert("Error", getErrorMessages(pipelineInEdit.path)[resp.code]);
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .finally(() => {
-        onCloseEditPipelineModal();
-      });
+            setAlert("Error", getErrorMessages(pipelineInEdit.path)[resp.code]);
+          } catch (error) {
+            console.error(error);
+          }
+        })
+        .finally(() => {
+          onCloseEditPipelineModal();
+        })
+    );
   };
 
   const onEditClick = (uuid: string, path: string) => {
@@ -367,6 +353,10 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const onCreateClick = () => {
     setIsCreateDialogOpen(true);
   };
+
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void>();
+  const isOperating = status === "PENDING";
 
   const onSubmitCreatePipeline = () => {
     let pipelineName = state.createPipelineName;
@@ -387,31 +377,32 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       return;
     }
 
-    let createPipelinePromise = makeCancelable(
-      makeRequest("POST", `/async/pipelines/create/${projectUuid}`, {
-        type: "json",
-        content: {
+    run(
+      fetcher(`/async/pipelines/create/${projectUuid}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify({
           name: pipelineName,
           pipeline_path: pipelinePath,
-        },
-      }),
-      promiseManager
+        }),
+      })
+        .then(() => {
+          requestFetchPipelines();
+        })
+        .catch((response) => {
+          if (!response.isCanceled) {
+            try {
+              let data = JSON.parse(response.body);
+              setAlert("Error", `Could not create pipeline. ${data.message}`);
+            } catch {
+              setAlert("Error", "Could not create pipeline. Reason unknown.");
+            }
+          }
+        })
     );
 
-    createPipelinePromise.promise
-      .then((_) => {
-        requestFetchPipelines();
-      })
-      .catch((response) => {
-        if (!response.isCanceled) {
-          try {
-            let data = JSON.parse(response.body);
-            setAlert("Error", `Could not create pipeline. ${data.message}`);
-          } catch {
-            setAlert("Error", "Could not create pipeline. Reason unknown.");
-          }
-        }
-      });
     setIsCreateDialogOpen(false);
   };
 
@@ -494,7 +485,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               variant="contained"
               type="submit"
               form="create-pipeline"
-              disabled={isPathTaken}
+              disabled={isPathTaken || isOperating}
               data-test-id="pipeline-create-ok"
             >
               Create pipeline
@@ -536,7 +527,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             <Button
               variant="contained"
               startIcon={<SaveIcon />}
-              disabled={isSubmittingPipelinePath}
+              disabled={isOperating}
               type="submit"
               form="edit-pipeline-path"
               data-test-id="pipeline-edit-path-save"

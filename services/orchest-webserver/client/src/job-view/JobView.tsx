@@ -4,6 +4,7 @@ import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -49,49 +50,59 @@ const JobView: React.FC = () => {
     jobUuid
   );
 
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void>();
+  const isOperating = status === "PENDING" || fetchJobStatus === "PENDING";
+
   const reload = () => fetchJob();
 
   const cancelJob = () => {
-    fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
-      .then(() => setJob((prevJob) => ({ ...prevJob, status: "ABORTED" })))
-      .catch((error) => {
-        console.error(error);
-        setAlert("Error", `Failed to delete job: ${error}`);
-      });
+    run(
+      fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
+        .then(() => setJob((prevJob) => ({ ...prevJob, status: "ABORTED" })))
+        .catch((error) => {
+          console.error(error);
+          setAlert("Error", `Failed to delete job: ${error}`);
+        })
+    );
   };
 
   const pauseCronJob = () => {
-    fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
-      method: "POST",
-    })
-      .then(() =>
-        setJob((job) => ({
-          ...job,
-          status: "PAUSED",
-          next_scheduled_time: undefined,
-        }))
-      )
-      .catch((error) => {
-        console.error(error);
-        setAlert("Error", `Failed to pause job: ${error}`);
-      });
+    run(
+      fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
+        method: "POST",
+      })
+        .then(() =>
+          setJob((job) => ({
+            ...job,
+            status: "PAUSED",
+            next_scheduled_time: undefined,
+          }))
+        )
+        .catch((error) => {
+          console.error(error);
+          setAlert("Error", `Failed to pause job: ${error}`);
+        })
+    );
   };
 
   const resumeCronJob = () => {
-    fetcher(`/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`, {
-      method: "POST",
-    })
-      .then((data: { next_scheduled_time: string }) => {
-        setJob((job) => ({
-          ...job,
-          status: "STARTED",
-          next_scheduled_time: data.next_scheduled_time,
-        }));
+    run(
+      fetcher(`/catch/api-proxy/api/jobs/cronjobs/resume/${job.uuid}`, {
+        method: "POST",
       })
-      .catch((error) => {
-        console.error(error);
-        setAlert("Error", `Failed to resume job: ${error}`);
-      });
+        .then((data: { next_scheduled_time: string }) => {
+          setJob((job) => ({
+            ...job,
+            status: "STARTED",
+            next_scheduled_time: data.next_scheduled_time,
+          }));
+        })
+        .catch((error) => {
+          console.error(error);
+          setAlert("Error", `Failed to resume job: ${error}`);
+        })
+    );
   };
 
   const editJob = () => {
@@ -114,42 +125,44 @@ const JobView: React.FC = () => {
   const onJobDuplicate = () => {
     if (!job) return;
 
-    checkGate(job.project_uuid)
-      .then(() => {
-        fetcher<Job>("/catch/api-proxy/api/jobs/duplicate", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json;charset=UTF-8",
-          },
-          body: JSON.stringify({ job_uuid: job.uuid }),
-        })
-          .then((response) => {
-            // we need to re-navigate to ensure the URL is with correct job uuid
-            navigateTo(siteMap.editJob.path, {
-              query: {
-                projectUuid: response.project_uuid,
-                jobUuid: response.uuid,
-              },
-            });
+    run(
+      checkGate(job.project_uuid)
+        .then(() => {
+          fetcher<Job>("/catch/api-proxy/api/jobs/duplicate", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json;charset=UTF-8",
+            },
+            body: JSON.stringify({ job_uuid: job.uuid }),
           })
-          .catch((error) => {
-            try {
-              let result = JSON.parse(error.body);
-              setTimeout(() => {
-                setAlert("Error", `Failed to create job. ${result.message}`);
+            .then((response) => {
+              // we need to re-navigate to ensure the URL is with correct job uuid
+              navigateTo(siteMap.editJob.path, {
+                query: {
+                  projectUuid: response.project_uuid,
+                  jobUuid: response.uuid,
+                },
               });
-            } catch (error) {
-              console.log(error);
-            }
-          });
-      })
-      .catch((result) => {
-        if (result.reason === "gate-failed") {
-          requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
-            onJobDuplicate();
-          });
-        }
-      });
+            })
+            .catch((error) => {
+              try {
+                let result = JSON.parse(error.body);
+                setTimeout(() => {
+                  setAlert("Error", `Failed to create job. ${result.message}`);
+                });
+              } catch (error) {
+                console.log(error);
+              }
+            });
+        })
+        .catch((result) => {
+          if (result.reason === "gate-failed") {
+            requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
+              onJobDuplicate();
+            });
+          }
+        })
+    );
   };
 
   return (
@@ -286,7 +299,7 @@ const JobView: React.FC = () => {
               }}
             >
               <Button
-                disabled={fetchJobStatus === "PENDING"}
+                disabled={isOperating}
                 color="secondary"
                 startIcon={<RefreshIcon />}
                 onClick={reload}
@@ -296,6 +309,7 @@ const JobView: React.FC = () => {
               </Button>
 
               <Button
+                disabled={isOperating}
                 startIcon={<FileCopyIcon />}
                 onClick={onJobDuplicate}
                 color="secondary"
@@ -306,6 +320,7 @@ const JobView: React.FC = () => {
               {job.schedule !== null &&
                 ["STARTED", "PAUSED", "PENDING"].includes(job.status) && (
                   <Button
+                    disabled={isOperating}
                     variant="contained"
                     onClick={editJob}
                     startIcon={<TuneIcon />}
@@ -316,6 +331,7 @@ const JobView: React.FC = () => {
 
               {job.schedule !== null && job.status === "STARTED" && (
                 <Button
+                  disabled={isOperating}
                   color="secondary"
                   variant="contained"
                   startIcon={<PauseIcon />}
@@ -327,6 +343,7 @@ const JobView: React.FC = () => {
 
               {job.schedule !== null && job.status === "PAUSED" && (
                 <Button
+                  disabled={isOperating}
                   variant="contained"
                   onClick={resumeCronJob}
                   startIcon={<PlayArrowIcon />}
@@ -337,6 +354,7 @@ const JobView: React.FC = () => {
 
               {["STARTED", "PAUSED", "PENDING"].includes(job.status) && (
                 <Button
+                  disabled={isOperating}
                   color="secondary"
                   variant="contained"
                   startIcon={<CloseIcon />}

@@ -170,10 +170,6 @@ const SettingsView: React.FC = () => {
             let requiresRestart = responseJSON.requires_restart;
             let configJSON = responseJSON.user_config;
 
-            console.log(
-              JSON.stringify(configToVisibleConfig(configJSON), null, 2)
-            );
-
             setState((prevState) => ({
               ...prevState,
               configJSON,

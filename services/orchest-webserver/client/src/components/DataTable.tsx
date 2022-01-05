@@ -649,6 +649,7 @@ export const DataTable = <T extends Record<string, any>>({
                     <Alert severity="error">Failed to fetch data</Alert>
                     <Button
                       startIcon={<RefreshIcon />}
+                      disabled={isFetchingData}
                       sx={{ marginTop: (theme) => theme.spacing(0.5) }}
                       onClick={fetchData}
                     >
