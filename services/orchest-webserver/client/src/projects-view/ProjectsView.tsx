@@ -30,7 +30,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { fetcher, makeRequest } from "@orchest/lib-utils";
+import { fetcher, hasValue, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { ImportDialog } from "./ImportDialog";
@@ -59,32 +59,28 @@ const ProjectsView: React.FC = () => {
   const [projectName, setProjectName] = React.useState<string>();
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
+  const [editProjectPathUuid, setEditProjectPathUuid] = React.useState<
+    string | undefined
+  >();
+  const [projectPath, setProjectPath] = React.useState<string | undefined>();
+
+  const [isUpdatingProjectPath, setIsUpdatingProjectPath] = React.useState(
+    false
+  );
   const [isImporting, setIsImporting] = React.useState(false);
 
-  const [state, setState] = React.useState({
-    projects: null,
-    importResult: undefined,
-    fetchListAndSetProject: "",
-    editProjectPathModal: false,
-    editProjectPathModalBusy: false,
-    editProjectPathUUID: undefined,
-    editProjectPath: undefined,
-  });
-
-  const openSettings = (projectUuid: string) => {
-    navigateTo(siteMap.projectSettings.path, {
-      query: { projectUuid },
-    });
-  };
-
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
-    const onEditProjectName = (projectUUID: string, projectPath: string) => {
-      setState((prevState) => ({
-        ...prevState,
-        editProjectPathUUID: projectUUID,
-        editProjectPath: projectPath,
-        editProjectPathModal: true,
-      }));
+    const openSettings = (projectUuid: string) => {
+      navigateTo(siteMap.projectSettings.path, {
+        query: { projectUuid },
+      });
+    };
+    const onEditProjectName = (
+      projectUUID: string,
+      projectPathToBeEdited: string
+    ) => {
+      setEditProjectPathUuid(projectUUID);
+      setProjectPath(projectPathToBeEdited);
     };
     return [
       {
@@ -145,33 +141,26 @@ const ProjectsView: React.FC = () => {
         },
       },
     ];
-  }, [setState]);
+  }, [setProjectPath, navigateTo]);
 
   const onCloseEditProjectPathModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      editProjectPathModal: false,
-      editProjectPathModalBusy: false,
-    }));
+    setEditProjectPathUuid(undefined);
+    setIsUpdatingProjectPath(false);
   };
 
   const onSubmitEditProjectPathModal = () => {
-    if (!validateProjectNameAndAlert(state.editProjectPath)) {
+    if (!validateProjectNameAndAlert(projectPath)) {
       return;
     }
+    setIsUpdatingProjectPath(true);
 
-    setState((prevState) => ({
-      ...prevState,
-      editProjectPathModalBusy: true,
-    }));
-
-    makeRequest("PUT", `/async/projects/${state.editProjectPathUUID}`, {
+    makeRequest("PUT", `/async/projects/${editProjectPathUuid}`, {
       type: "json",
       content: {
-        name: state.editProjectPath,
+        name: projectPath,
       },
     })
-      .then((_) => {
+      .then(() => {
         fetchProjects();
       })
       .catch((e) => {
@@ -186,11 +175,10 @@ const ProjectsView: React.FC = () => {
           } else if (resp.code == 1) {
             setAlert(
               "Error",
-              `Cannot rename project, a project with the name "${state.editProjectPath}" already exists.`
+              `Cannot rename project, a project with the name "${projectPath}" already exists.`
             );
           }
         } catch (error) {
-          console.error(e);
           console.error(error);
         }
       })
@@ -381,30 +369,12 @@ const ProjectsView: React.FC = () => {
     }
   };
 
-  React.useEffect(() => {
-    if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
-      const createdProject = state.projects.filter((proj) => {
-        return proj.path == state.fetchListAndSetProject;
-      })[0];
-
-      // Needed to avoid a race condition where the project does not
-      // exist anymore because it has been removed between a POST and a
-      // get request.
-      if (createdProject !== undefined) {
-        dispatch({
-          type: "projectSet",
-          payload: createdProject.uuid,
-        });
-      }
-    }
-  }, [state?.fetchListAndSetProject]);
-
   const [importUrl, setImportUrl] = useImportUrl();
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
   React.useEffect(() => {
     if (importUrl !== "") setIsImporting(true);
-  }, []);
+  }, [importUrl]);
 
   return (
     <Layout>
@@ -421,7 +391,7 @@ const ProjectsView: React.FC = () => {
         <Dialog
           fullWidth
           maxWidth="xs"
-          open={state.editProjectPathModal}
+          open={hasValue(editProjectPathUuid)}
           onClose={onCloseEditProjectPathModal}
         >
           <form
@@ -437,13 +407,10 @@ const ProjectsView: React.FC = () => {
                 fullWidth
                 autoFocus
                 sx={{ marginTop: (theme) => theme.spacing(2) }}
-                value={state.editProjectPath}
+                value={projectPath}
                 label="Project name"
                 onChange={(e) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    editProjectPath: e.target.value,
-                  }));
+                  setProjectPath(e.target.value);
                 }}
               />
             </DialogContent>
@@ -458,7 +425,7 @@ const ProjectsView: React.FC = () => {
               <Button
                 startIcon={<SaveIcon />}
                 variant="contained"
-                disabled={state.editProjectPathModalBusy}
+                disabled={isUpdatingProjectPath}
                 type="submit"
                 form="edit-name"
               >

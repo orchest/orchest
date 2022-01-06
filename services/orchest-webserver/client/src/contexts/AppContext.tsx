@@ -58,14 +58,14 @@ export type PromptMessage = Alert | Confirm;
 type AlertConverter = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm?: () => Promise<boolean>
+  onConfirmHandler?: () => Promise<boolean>
 ) => Alert;
 
 type ConfirmConverter = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => Promise<boolean>,
-  onCancel?: () => Promise<false>
+  onConfirmHandler: () => Promise<boolean>,
+  onCancelHandler?: () => Promise<false>
 ) => Confirm;
 
 type PromptMessageConverter<T extends PromptMessage> = T extends Alert
@@ -222,21 +222,22 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,
   convert: PromptMessageConverter<T>
 ) {
+  // store.promptMessages is an array of messages that contains functions like `onConfirm` and `onCancel`
+  // in order to subscribe to the state of these functions, we wrap the corresponding dispatcher with a Promise<boolean>
+  // therefore, when this async operation within these functions is done, the caller of this dispatcher gets notified.
+  // see ProjectsView, deleteSelectedRows for example
   const dispatcher = (
     title: string,
     content: string | JSX.Element | JSX.Element[],
     onConfirm = defaultOnConfirm, // is required for 'confirm'
     onCancel = defaultOnCancel
   ) => {
-    // dispatcher is basically either setAlert or setConfirm
-    // in the case of setConfirm, dispatcher returns a Promise
-    // and the resolve function of this Promise is passed to onConfirm and onCancel
-    // therefore we can resolve the outcome of the async operation triggered by onConfirm and onCancel
-    // see ProjectsView, deleteSelectedRows for example,
     return new Promise<boolean>((resolve) => {
       const message = convert(
         title,
         content,
+        // the resolve function should be called when the inner (async) operation is resolved
+        // the resolve function expects a boolean, which allows you to indicate if the operation is success or not.
         () => onConfirm(resolve),
         () => onCancel(resolve)
       );
@@ -255,28 +256,28 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
 const convertAlert: PromptMessageConverter<Alert> = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm?: () => void
+  onConfirmHandler?: () => void
 ) => {
   return {
     type: "alert",
     title,
     content: contentParser(content),
-    onConfirm,
+    onConfirm: onConfirmHandler,
   };
 };
 
 const convertConfirm: PromptMessageConverter<Confirm> = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => Promise<boolean>,
-  onCancel?: () => Promise<false>
+  onConfirmHandler: () => Promise<boolean>,
+  onCancelHandler?: () => Promise<false>
 ) => {
   return {
     type: "confirm",
     title,
     content: contentParser(content),
-    onConfirm,
-    onCancel,
+    onConfirm: onConfirmHandler,
+    onCancel: onCancelHandler,
   };
 };
 
