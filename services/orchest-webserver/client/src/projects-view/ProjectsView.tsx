@@ -202,7 +202,7 @@ const ProjectsView: React.FC = () => {
   React.useEffect(() => {
     if (mounted && fetchProjectsError)
       setAlert("Error", "Error fetching projects");
-  }, [fetchProjectsError]);
+  }, [fetchProjectsError, setAlert, mounted]);
 
   React.useEffect(() => {
     if (mounted && !isValidating && !fetchProjectsError && projects) {
@@ -211,7 +211,7 @@ const ProjectsView: React.FC = () => {
         payload: projects,
       });
     }
-  }, [projects]);
+  }, [projects, mounted, isValidating, fetchProjectsError, dispatch]);
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
     return projects.map((project) => {
