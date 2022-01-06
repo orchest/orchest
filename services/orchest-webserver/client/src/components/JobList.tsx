@@ -25,6 +25,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   fetcher,
+  HEADER,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -284,9 +285,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     try {
       await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-        },
+        headers: HEADER.JSON,
         body: JSON.stringify({ name: jobName }),
       });
       await fetchJobs();

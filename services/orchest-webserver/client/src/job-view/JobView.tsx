@@ -23,10 +23,10 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Typography from "@mui/material/Typography";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
 import React from "react";
-import { formatPipelineParams, PARAMETERLESS_RUN } from "./commons";
+import { formatPipelineParams, PARAMETERLESS_RUN } from "./common";
 import { JobStatus } from "./JobStatus";
 import { JobViewTabs } from "./JobViewTabs";
 import { PipelineRunTable } from "./PipelineRunTable";
@@ -130,9 +130,7 @@ const JobView: React.FC = () => {
         .then(() => {
           fetcher<Job>("/catch/api-proxy/api/jobs/duplicate", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json;charset=UTF-8",
-            },
+            headers: HEADER.JSON,
             body: JSON.stringify({ job_uuid: job.uuid }),
           })
             .then((response) => {

@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 import { fetcher } from "@/utils/fetcher";
+import { HEADER } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
 import useSWR from "swr";
@@ -267,9 +268,7 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
 
       fetcher(ENDPOINT, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json;charset=UTF-8",
-        },
+        headers: HEADER.JSON,
         body: JSON.stringify({
           pipeline_uuid: session.pipelineUuid,
           project_uuid: session.projectUuid,

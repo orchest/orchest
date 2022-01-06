@@ -13,7 +13,7 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { formatPipelineParams, PARAMETERLESS_RUN } from "./commons";
+import { formatPipelineParams, PARAMETERLESS_RUN } from "./common";
 
 const columns: DataTableColumn<PipelineRun>[] = [
   { id: "pipeline_run_index", label: "ID" },

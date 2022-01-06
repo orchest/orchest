@@ -1,8 +1,8 @@
 import { Layout } from "@/components/Layout";
-import PipelineList from "@/components/PipelineList";
 import ProjectBasedView from "@/components/ProjectBasedView";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { PipelineList } from "@/pipelines-view/PipelineList";
 import { siteMap } from "@/Routes";
 import React from "react";
 
