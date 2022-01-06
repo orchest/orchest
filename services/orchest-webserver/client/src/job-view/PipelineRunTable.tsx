@@ -54,10 +54,12 @@ const columns: DataTableColumn<PipelineRun>[] = [
 const getQueryString = ({
   page,
   rowsPerPage,
+  searchTerm,
 }: {
   page: number;
   rowsPerPage: number;
-}) => toQueryString({ page, page_size: rowsPerPage });
+  searchTerm: string;
+}) => toQueryString({ page, page_size: rowsPerPage, fuzzy_filter: searchTerm });
 
 export const PipelineRunTable: React.FC<{
   jobUuid: string;
@@ -87,25 +89,25 @@ export const PipelineRunTable: React.FC<{
     });
   };
 
-  type Response = {
-    pipeline_runs: PipelineRun[];
-    pagination_data: Pagination;
-  };
-
   return (
     <DataTable<PipelineRun>
       id="job-pipeline-runs"
       dense
-      hideSearch // TODO: enable when BE supports it
-      fetcher={({ page, rowsPerPage, run }) => {
+      // debounceTime={750}
+      fetcher={({ page, rowsPerPage, run, searchTerm }) => {
         const url = `/catch/api-proxy/api/jobs/${jobUuid}/pipeline_runs${getQueryString(
-          { page, rowsPerPage }
+          { page, rowsPerPage, searchTerm }
         )}`;
         run(
-          fetcher<Response>(url).then((response) => ({
-            rows: response.pipeline_runs,
-            totalCount: response.pagination_data?.total_items,
-          }))
+          fetcher<{
+            pipeline_runs: PipelineRun[];
+            pagination_data: Pagination;
+          }>(url).then((response) => {
+            return {
+              rows: response.pipeline_runs,
+              totalCount: response.pagination_data?.total_items,
+            };
+          })
         );
       }}
       data-test-id="job-pipeline-runs"

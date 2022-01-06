@@ -442,6 +442,9 @@ export const DataTable = <T extends Record<string, any>>({
     fetchData();
   }, [fetchData]);
 
+  // if the data is fetched via fetcher, we don't use client-side search and pagination.
+  const useClientSideSearchAndPagination = !fetcher;
+
   const isFetchingData = isLoading || status === "PENDING";
 
   const [localSelected, setLocalSelected] = React.useState<string[]>(
@@ -468,9 +471,8 @@ export const DataTable = <T extends Record<string, any>>({
     return originalRows.sort(getComparator(order, orderBy));
   }, [order, orderBy, originalRowsFromProp, data]);
 
-  // search is more expensive, should put later than sort
-  // if the data is fetched via fetcher, we don't do client-side search.
-  const useClientSideSearchAndPagination = !fetcher;
+  // multi-column search is more expensive (O(n^2)), should be put later than one-column sort (O(n log(n)))
+  // NOTE: this concern is only for client-side, server-side it doesn't matter (i.e. when fetcher is given)
   const shouldSkipClientSideFiltering =
     !debouncedSearchTerm || !useClientSideSearchAndPagination;
   const rows = React.useMemo(() => {
@@ -487,6 +489,10 @@ export const DataTable = <T extends Record<string, any>>({
           });
         });
   }, [sortedRows, debouncedSearchTerm, columns, shouldSkipClientSideFiltering]);
+
+  const totalCount = useClientSideSearchAndPagination
+    ? rows.length
+    : data?.totalCount || rows.length;
 
   const rowsInPage = React.useMemo(() => {
     const startIndex = Math.max(page - 1, 0) * rowsPerPage;
@@ -599,7 +605,7 @@ export const DataTable = <T extends Record<string, any>>({
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows = Math.max(0, (page - 1) * rowsPerPage - rowsInPage.length);
+  const emptyRows = Math.max(0, page * rowsPerPage - totalCount);
 
   const tableTitleId = `${id}-title`;
 
@@ -730,7 +736,7 @@ export const DataTable = <T extends Record<string, any>>({
             sx={{ flex: 1 }}
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={!fetcher ? rows.length : data?.totalCount || rows.length}
+            count={totalCount}
             rowsPerPage={rowsPerPage}
             page={page - 1} // NOTE: this is zero-indexed
             onPageChange={handleChangePage}
