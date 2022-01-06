@@ -9,7 +9,8 @@ from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
-from sqlalchemy.orm import undefer
+from sqlalchemy import func, or_
+from sqlalchemy.orm import query, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -794,3 +795,21 @@ def page_to_pagination_data(pagination: Pagination) -> dict:
         "total_items": pagination.total,
         "total_pages": pagination.pages,
     }
+
+
+def fuzzy_filter_non_interactive_pipeline_runs(
+    query: query,
+    fuzzy_filter: str,
+) -> query:
+
+    fuzzy_filter = fuzzy_filter.lower()
+    filters = [
+        models.NonInteractivePipelineRun._NonInteractivePipelineRun__text_search_vector.op(  # noqa
+            "@@"
+        )(
+            func.plainto_tsquery("simple", fuzzy_filter)
+        ),
+    ]
+    query = query.filter(or_(*filters))
+
+    return query
