@@ -106,17 +106,20 @@ const useCustomRoute = () => {
     state?: Record<string, string | number | boolean | undefined | null>;
   };
 
-  const navigateTo = (path: string, params?: NavigateParams) => {
-    const [pathname, existingQueryString] = path.split("?");
-    const { query = null, state = {} } = params || {};
-    history.push({
-      pathname,
-      search: existingQueryString
-        ? `${existingQueryString}&${toQueryString(query)}`
-        : toQueryString(query),
-      state,
-    });
-  };
+  const navigateTo = React.useCallback(
+    (path: string, params?: NavigateParams) => {
+      const [pathname, existingQueryString] = path.split("?");
+      const { query = null, state = {} } = params || {};
+      history.push({
+        pathname,
+        search: existingQueryString
+          ? `${existingQueryString}&${toQueryString(query)}`
+          : toQueryString(query),
+        state,
+      });
+    },
+    [history]
+  );
 
   /*
     queryArguments (from useLocationQuery) returned below are assumed

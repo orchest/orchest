@@ -39,7 +39,7 @@ done by:
    # port 8080
    ./orchest start --dev
 
-   # Now you can visit `localhost:8080`
+   # Now you can visit `localhost:8080/api`
 
 Breaking schema changes
 -----------------------
