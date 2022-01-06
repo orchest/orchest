@@ -30,7 +30,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { fetcher, hasValue, makeRequest } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER, makeRequest } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { ImportDialog } from "./ImportDialog";
@@ -46,6 +46,25 @@ type ProjectRow = Pick<
   settings: string;
 };
 
+const validProjectName = (projectName: string | undefined) => {
+  if (projectName === undefined || projectName.length === 0) {
+    return {
+      valid: false,
+      reason: "Project name cannot be empty.",
+    };
+  } else if (projectName.match("[^A-Za-z0-9_.-]")) {
+    return {
+      valid: false,
+      reason:
+        "A project name has to be a valid git repository name and" +
+        " thus can only contain alphabetic characters, numbers and" +
+        " the special characters: '_.-'. The regex would be" +
+        " [A-Za-z0-9_.-].",
+    };
+  }
+  return { valid: true };
+};
+
 const ProjectsView: React.FC = () => {
   const { setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
@@ -57,16 +76,16 @@ const ProjectsView: React.FC = () => {
   const { navigateTo } = useCustomRoute();
 
   const [projectName, setProjectName] = React.useState<string>();
-  const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
-
-  const [editProjectPathUuid, setEditProjectPathUuid] = React.useState<
+  const [projectPath, setProjectPath] = React.useState<string | undefined>();
+  const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
     string | undefined
   >();
-  const [projectPath, setProjectPath] = React.useState<string | undefined>();
-
   const [isUpdatingProjectPath, setIsUpdatingProjectPath] = React.useState(
     false
   );
+
+  const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
+
   const [isImporting, setIsImporting] = React.useState(false);
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
@@ -79,7 +98,7 @@ const ProjectsView: React.FC = () => {
       projectUUID: string,
       projectPathToBeEdited: string
     ) => {
-      setEditProjectPathUuid(projectUUID);
+      setProjectUuidOnEdit(projectUUID);
       setProjectPath(projectPathToBeEdited);
     };
     return [
@@ -144,7 +163,7 @@ const ProjectsView: React.FC = () => {
   }, [setProjectPath, navigateTo]);
 
   const onCloseEditProjectPathModal = () => {
-    setEditProjectPathUuid(undefined);
+    setProjectUuidOnEdit(undefined);
     setIsUpdatingProjectPath(false);
   };
 
@@ -154,7 +173,13 @@ const ProjectsView: React.FC = () => {
     }
     setIsUpdatingProjectPath(true);
 
-    makeRequest("PUT", `/async/projects/${editProjectPathUuid}`, {
+    fetcher(`/async/projects/${projectUuidOnEdit}`, {
+      method: "PUT",
+      headers: HEADER.JSON,
+      body: JSON.stringify({ name: projectPath }),
+    });
+
+    makeRequest("PUT", `/async/projects/${projectUuidOnEdit}`, {
       type: "json",
       content: {
         name: projectPath,
@@ -303,7 +328,7 @@ const ProjectsView: React.FC = () => {
       type: "json",
       content: { name: projectName },
     })
-      .then((_) => {
+      .then(() => {
         // reload list once creation succeeds
         // fetchList(projectName);
         fetchProjects();
@@ -322,25 +347,6 @@ const ProjectsView: React.FC = () => {
       });
 
     setIsShowingCreateModal(false);
-  };
-
-  const validProjectName = (projectName) => {
-    if (projectName === undefined || projectName.length == 0) {
-      return {
-        valid: false,
-        reason: "Project name cannot be empty.",
-      };
-    } else if (projectName.match("[^A-Za-z0-9_.-]")) {
-      return {
-        valid: false,
-        reason:
-          "A project name has to be a valid git repository name and" +
-          " thus can only contain alphabetic characters, numbers and" +
-          " the special characters: '_.-'. The regex would be" +
-          " [A-Za-z0-9_.-].",
-      };
-    }
-    return { valid: true };
   };
 
   const validateProjectNameAndAlert = (projectName: string) => {
@@ -391,7 +397,7 @@ const ProjectsView: React.FC = () => {
         <Dialog
           fullWidth
           maxWidth="xs"
-          open={hasValue(editProjectPathUuid)}
+          open={hasValue(projectUuidOnEdit)}
           onClose={onCloseEditProjectPathModal}
         >
           <form

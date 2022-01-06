@@ -18,3 +18,7 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
 
   return jsonResponse as Promise<T>;
 };
+
+export const HEADER = {
+  JSON: { "Content-Type": "application/json; charset=UTF-8" },
+};

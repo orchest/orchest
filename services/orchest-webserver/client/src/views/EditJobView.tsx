@@ -37,7 +37,7 @@ import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import _ from "lodash";
 import React from "react";
@@ -497,9 +497,7 @@ const EditJobView: React.FC = () => {
     run(
       fetcher<void>(`/catch/api-proxy/api/jobs/${job.uuid}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json;charset=UTF-8",
-        },
+        headers: HEADER.JSON,
         body: JSON.stringify(jobPUTData),
       }).finally(() => {
         setAsSaved();
@@ -537,9 +535,7 @@ const EditJobView: React.FC = () => {
       run(
         fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json;charset=UTF-8",
-          },
+          headers: HEADER.JSON,
           body: JSON.stringify({
             name: job.name,
             cron_schedule: cronString,

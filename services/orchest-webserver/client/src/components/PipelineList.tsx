@@ -17,7 +17,7 @@ import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
-import { fetcher, hasValue } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { siteMap } from "../Routes";
@@ -304,9 +304,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     run(
       fetcher(`/async/pipelines/${projectUuid}/${pipelineInEdit.uuid}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-        },
+        headers: HEADER.JSON,
         body: JSON.stringify({
           path: pipelineInEdit.path,
         }),
@@ -364,9 +362,7 @@ const PipelineList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     run(
       fetcher(`/async/pipelines/create/${projectUuid}`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-        },
+        headers: HEADER.JSON,
         body: JSON.stringify({
           name: pipelineName,
           pipeline_path: pipelinePath,

@@ -23,6 +23,7 @@ import {
   fetcher,
   FetchError,
   hasValue,
+  HEADER,
 } from "@orchest/lib-utils";
 import React from "react";
 import { Code } from "./common/Code";
@@ -53,9 +54,7 @@ const useCheckFileValidity = (
           `/async/project-files/exists/${project_uuid}/${pipeline_uuid}`,
           {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json; charset=UTF-8",
-            },
+            headers: HEADER.JSON,
             body: JSON.stringify({
               relative_path: path,
             }),
@@ -175,9 +174,7 @@ const ProjectFilePicker: React.FC<{
         `/async/project-files/create/${project_uuid}/${pipeline_uuid}/${step_uuid}`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json; charset=UTF-8",
-          },
+          headers: HEADER.JSON,
           body: JSON.stringify({
             file_path: fullProjectPath,
           }),
