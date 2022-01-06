@@ -1,6 +1,6 @@
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import React from "react";
-import { PARAMETERLESS_RUN } from "./commons";
+import { PARAMETERLESS_RUN } from "./common";
 
 type PipelineRunRow = { uuid: string; spec: string };
 

@@ -229,7 +229,6 @@ function Row<T>({
   tableId: string;
   columns: DataTableColumn<T>[];
   data: DataTableRow<T>;
-
   onClickCheckbox: (
     e: React.MouseEvent<HTMLButtonElement>,
     uuid: string
@@ -605,7 +604,7 @@ export const DataTable = <T extends Record<string, any>>({
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
 
   // Avoid a layout jump when reaching the last page with empty rows.
-  const emptyRows = Math.max(0, page * rowsPerPage - totalCount);
+  const emptyRows = page > 1 ? Math.max(0, page * rowsPerPage - totalCount) : 0;
 
   const tableTitleId = `${id}-title`;
 

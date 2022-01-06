@@ -26,7 +26,7 @@ import Typography from "@mui/material/Typography";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
 import React from "react";
-import { formatPipelineParams, PARAMETERLESS_RUN } from "./commons";
+import { formatPipelineParams, PARAMETERLESS_RUN } from "./common";
 import { JobStatus } from "./JobStatus";
 import { JobViewTabs } from "./JobViewTabs";
 import { PipelineRunTable } from "./PipelineRunTable";

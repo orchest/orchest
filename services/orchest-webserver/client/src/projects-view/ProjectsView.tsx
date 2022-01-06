@@ -531,6 +531,7 @@ const ProjectsView: React.FC = () => {
               selectable
               hideSearch
               onRowClick={onRowClick}
+              rowHeight={73}
               deleteSelectedRows={deleteSelectedRows}
               columns={columns}
               rows={projectRows}
