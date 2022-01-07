@@ -34,7 +34,7 @@ const columns: DataTableColumn<PipelineRun>[] = [
     id: "status",
     label: "Status",
     render: function RunStatus(row) {
-      return <StatusInline status={row.status} />;
+      return <StatusInline status={row.status} size="small" />;
     },
     sx: { width: (theme) => theme.spacing(3) },
   },

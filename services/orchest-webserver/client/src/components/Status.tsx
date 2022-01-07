@@ -18,45 +18,66 @@ export type TStatus =
   | "ABORTED"
   | "FAILURE";
 
+type IconSize = "small" | "inherit" | "large" | "medium";
+
 const statusMapping: Partial<Record<
   TStatus,
-  { icon: React.ReactNode; text: string }
+  { icon: (size?: IconSize) => React.ReactNode; text: string }
 >> = {
   ABORTED: {
-    icon: <CloseOutlinedIcon sx={{ color: "error.light" }} />,
+    icon: (size) => (
+      <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
+    ),
     text: "Cancelled",
   },
   DRAFT: {
-    icon: (
-      <NoteAltOutlinedIcon sx={{ color: (theme) => theme.palette.grey[500] }} />
+    icon: (size) => (
+      <NoteAltOutlinedIcon
+        sx={{ color: (theme) => theme.palette.grey[500] }}
+        fontSize={size}
+      />
     ),
     text: "Draft",
   },
   FAILURE: {
-    icon: <CloseOutlinedIcon sx={{ color: "error.light" }} />,
+    icon: (size) => (
+      <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
+    ),
     text: "Failed",
   },
   PAUSED: {
-    icon: <AccessTimeIcon sx={{ color: (theme) => theme.palette.grey[500] }} />,
+    icon: (size) => (
+      <AccessTimeIcon
+        sx={{ color: (theme) => theme.palette.grey[500] }}
+        fontSize={size}
+      />
+    ),
     text: "Paused",
   },
   PENDING: {
-    icon: <AccessTimeIcon sx={{ color: "warning.light" }} />,
+    icon: (size) => (
+      <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />
+    ),
     text: "Pending…",
   },
   STARTED: {
-    icon: <AccessTimeIcon sx={{ color: "warning.light" }} />,
+    icon: (size) => (
+      <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />
+    ),
     text: "Running…",
   },
   SUCCESS: {
-    icon: <CheckIcon sx={{ color: "success.light" }} />,
+    icon: (size) => (
+      <CheckIcon sx={{ color: "success.light" }} fontSize={size} />
+    ),
     text: "Success",
   },
 };
 
 export const StatusInline: React.FC<{
   status: TStatus;
-}> = ({ status }) => {
+  size?: IconSize;
+}> = ({ status, size = "medium" }) => {
   return (
     <Tooltip title={statusMapping[status].text}>
       <Stack
@@ -65,7 +86,7 @@ export const StatusInline: React.FC<{
         alignItems="center"
         justifyContent="center"
       >
-        {statusMapping[status].icon}
+        {statusMapping[status].icon(size)}
         <Typography component="span" sx={visuallyHidden}>
           {statusMapping[status].text}
         </Typography>

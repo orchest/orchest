@@ -130,7 +130,7 @@ const ProjectsView: React.FC = () => {
                   onEditProjectName(row.uuid, row.path);
                 }}
               >
-                <EditIcon />
+                <EditIcon fontSize="small" />
               </IconButton>
             </Stack>
           );
@@ -148,13 +148,14 @@ const ProjectsView: React.FC = () => {
             <IconButton
               title="settings"
               disabled={disabled}
+              size="small"
               data-test-id={`settings-button-${row.path}`}
               onClick={(e) => {
                 e.stopPropagation();
                 openSettings(row.uuid);
               }}
             >
-              <SettingsIcon />
+              <SettingsIcon fontSize="small" />
             </IconButton>
           );
         },
@@ -531,7 +532,7 @@ const ProjectsView: React.FC = () => {
               selectable
               hideSearch
               onRowClick={onRowClick}
-              rowHeight={73}
+              rowHeight={63}
               deleteSelectedRows={deleteSelectedRows}
               columns={columns}
               rows={projectRows}

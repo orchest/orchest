@@ -7,7 +7,7 @@ import LensIcon from "@mui/icons-material/Lens";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
@@ -56,24 +56,16 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
     label: "GPU Support",
     render: function GpuSupport({ gpu_support }) {
       return (
-        <Typography
-          variant="body2"
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <Stack direction="row" alignItems="center" justifyContent="center">
           <LensIcon
             color={gpu_support ? "success" : "disabled"}
             sx={{
-              width: (theme) => theme.spacing(2),
-              marginRight: (theme) => theme.spacing(1),
+              margin: (theme) => theme.spacing(1.25, 1, 1.25, 0), // so the row height will be 63
+              fontSize: 10,
             }}
           />
           {gpu_support ? "Enabled" : "Disabled"}
-        </Typography>
+        </Stack>
       );
     },
   },
@@ -91,6 +83,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     data: fetchedEnvironments = [],
     revalidate: fetchEnvironments,
     error: fetchEnvironmentsError,
+    isValidating,
   } = useSWR<Environment[]>(
     projectUuid ? `/store/environments/${projectUuid}` : null,
     fetcher
@@ -106,7 +99,6 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const {
     data: environmentBuilds = [],
     error: fetchBuildsError,
-    isValidating,
   } = useSWR(
     projectUuid
       ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}`
@@ -285,6 +277,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
             id="environment-list"
             columns={columns}
             rows={environmentRows}
+            rowHeight={63}
             onRowClick={onRowClick}
             deleteSelectedRows={onDeleteClick}
             data-test-id="environments"
