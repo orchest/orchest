@@ -292,6 +292,10 @@ class SyncProjectPipelinesDBState(TwoPhaseFunction):
             current_app.config["USER_DIR"], "projects", project_path
         )
 
+        # Lock the project to avoid race conditions in pipeline deletion
+        # or creation.
+        Project.query.with_for_update().filter_by(uuid=project_uuid).one()
+
         if not os.path.isdir(project_dir):
             raise FileNotFoundError("Project directory not found")
 

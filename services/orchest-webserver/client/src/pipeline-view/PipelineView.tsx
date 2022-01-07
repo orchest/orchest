@@ -139,7 +139,7 @@ export interface IPipelineViewState {
   // The save hash is used to propagate a save's side-effects
   // to components.
   saveHash?: string;
-  pipelineJson: PipelineJson;
+  pipelineJson?: PipelineJson;
 }
 
 const formatUrl = (url: string) => {
@@ -2501,133 +2501,139 @@ const PipelineView: React.FC = () => {
             )}
           </div>
 
-          <div className={"pipeline-actions top-right"}>
-            {!isReadOnly && (
+          {state.pipelineJson && (
+            <div className={"pipeline-actions top-right"}>
+              {!isReadOnly && (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={newStep}
+                  startIcon={<AddIcon />}
+                  data-test-id="step-create"
+                >
+                  NEW STEP
+                </Button>
+              )}
+
+              {isReadOnly && (
+                <Button
+                  color="secondary"
+                  startIcon={<VisibilityIcon />}
+                  disabled
+                >
+                  Read only
+                </Button>
+              )}
+
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={newStep}
-                startIcon={<AddIcon />}
-                data-test-id="step-create"
+                onClick={openLogs}
+                startIcon={<ViewHeadlineIcon />}
               >
-                NEW STEP
+                Logs
               </Button>
-            )}
 
-            {isReadOnly && (
-              <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
-                Read only
+              <Button
+                id="running-services-button"
+                variant="contained"
+                color="secondary"
+                onClick={showServices}
+                startIcon={<SettingsIcon />}
+                ref={servicesButtonRef}
+              >
+                Services
               </Button>
-            )}
-
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={openLogs}
-              startIcon={<ViewHeadlineIcon />}
-            >
-              Logs
-            </Button>
-
-            <Button
-              id="running-services-button"
-              variant="contained"
-              color="secondary"
-              onClick={showServices}
-              startIcon={<SettingsIcon />}
-              ref={servicesButtonRef}
-            >
-              Services
-            </Button>
-            <Menu
-              id="running-services-menu"
-              anchorEl={servicesButtonRef.current}
-              open={state.eventVars.showServices}
-              onClose={hideServices}
-              MenuListProps={{
-                "aria-labelledby": "running-services-button",
-              }}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "center",
-              }}
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "center",
-              }}
-            >
-              <ListItem>
-                <Typography
-                  variant="subtitle1"
-                  component="h3"
-                  sx={{ paddingBottom: 0 }}
-                >
-                  Running services
-                </Typography>
-              </ListItem>
-              {servicesAvailable() ? (
-                generateServiceEndpoints().map((serviceLink) => {
-                  return (
-                    <List
-                      key={serviceLink.name}
-                      subheader={
-                        <ListSubheader>{serviceLink.name}</ListSubheader>
-                      }
-                    >
-                      {serviceLink.urls.length === 0 && (
-                        <ListItem>
-                          <Typography variant="caption">
-                            <i>This service has no endpoints.</i>
-                          </Typography>
-                        </ListItem>
-                      )}
-                      {serviceLink.urls.map((url) => {
-                        return (
-                          <ListItemButton
-                            key={url}
-                            component="a"
-                            href={url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            <ListItemIcon>
-                              <OpenInNewIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={formatUrl(url)} />
-                          </ListItemButton>
-                        );
-                      })}
-                    </List>
-                  );
-                })
-              ) : (
+              <Menu
+                id="running-services-menu"
+                anchorEl={servicesButtonRef.current}
+                open={state.eventVars.showServices}
+                onClose={hideServices}
+                MenuListProps={{
+                  "aria-labelledby": "running-services-button",
+                }}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "center",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "center",
+                }}
+              >
                 <ListItem>
-                  <ListItemText secondary={<i>No services are running.</i>} />
+                  <Typography
+                    variant="subtitle1"
+                    component="h3"
+                    sx={{ paddingBottom: 0 }}
+                  >
+                    Running services
+                  </Typography>
                 </ListItem>
-              )}
-              <Divider />
-              <List>
-                <ListItemButton onClick={() => openSettings("services")}>
-                  <ListItemIcon>
-                    <TuneIcon />
-                  </ListItemIcon>
-                  <ListItemText
-                    primary={`${!isReadOnly ? "Edit" : "View"} services`}
-                  />
-                </ListItemButton>
-              </List>
-            </Menu>
+                {servicesAvailable() ? (
+                  generateServiceEndpoints().map((serviceLink) => {
+                    return (
+                      <List
+                        key={serviceLink.name}
+                        subheader={
+                          <ListSubheader>{serviceLink.name}</ListSubheader>
+                        }
+                      >
+                        {serviceLink.urls.length === 0 && (
+                          <ListItem>
+                            <Typography variant="caption">
+                              <i>This service has no endpoints.</i>
+                            </Typography>
+                          </ListItem>
+                        )}
+                        {serviceLink.urls.map((url) => {
+                          return (
+                            <ListItemButton
+                              key={url}
+                              component="a"
+                              href={url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <ListItemIcon>
+                                <OpenInNewIcon />
+                              </ListItemIcon>
+                              <ListItemText primary={formatUrl(url)} />
+                            </ListItemButton>
+                          );
+                        })}
+                      </List>
+                    );
+                  })
+                ) : (
+                  <ListItem>
+                    <ListItemText secondary={<i>No services are running.</i>} />
+                  </ListItem>
+                )}
+                <Divider />
+                <List>
+                  <ListItemButton onClick={() => openSettings("services")}>
+                    <ListItemIcon>
+                      <TuneIcon />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary={`${!isReadOnly ? "Edit" : "View"} services`}
+                    />
+                  </ListItemButton>
+                </List>
+              </Menu>
 
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={() => openSettings()}
-              startIcon={<TuneIcon />}
-              data-test-id="pipeline-settings"
-            >
-              Settings
-            </Button>
-          </div>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={() => openSettings()}
+                startIcon={<TuneIcon />}
+                data-test-id="pipeline-settings"
+              >
+                Settings
+              </Button>
+            </div>
+          )}
 
           <div
             className="pipeline-steps-outer-holder"

@@ -187,7 +187,7 @@ a.button {
     height: 100%;
   }
 
-  .relative {
+  &.relative {
     position: relative;
   }
 
@@ -201,6 +201,9 @@ a.button {
     h3 {
       margin-top: var(--space-10);
       margin-bottom: calc(var(--space-5) / 2);
+    }
+    .CodeMirror {
+      height: min-content;
     }
     .columns {
       .column {
@@ -380,7 +383,7 @@ p > i.material-icons.float-left {
 
 .xterm-holder {
   background: #000;
-  padding: 1rem;
+  padding: 0.5rem;
   overflow: hidden;
 }
 

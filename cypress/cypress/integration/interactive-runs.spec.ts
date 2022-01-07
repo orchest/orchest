@@ -396,6 +396,21 @@ describe("interactive runs", () => {
         // because no input from A can be found.
         let expectedState = testData.eviction ? "Failure" : "Completed";
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_SELECTED_STEPS).click();
+
+        // This check is needed to avoid the next check finding the old
+        // step state and moving on, which can happen if it takes long
+        // enough for the request to run the step to complete.  Checking
+        // if the CANCEL RUN button is there does not suffice because it
+        // appears before the step state is updated, that is, it's
+        // possible for the CANCEL RUN button to be there while the step
+        // state is still the old "COMPLETED".
+        // An alternative is to wait for the POST runs request to be
+        // done, but there might still be a race condition where the
+        // step state is checked before it's rerendered.
+        cy.get(`[data-test-title=${"B"}]`).contains(/Pending|Running/, {
+          timeout: 20000,
+        });
+
         cy.get(`[data-test-title=${"B"}]`).contains(expectedState, {
           timeout: 20000,
         });

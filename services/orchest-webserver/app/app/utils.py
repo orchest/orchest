@@ -554,6 +554,19 @@ def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
     remove_dir_if_empty(job_project_path)
 
 
+def remove_job_pipeline_run_directory(run_uuid, job_uuid, pipeline_uuid, project_uuid):
+
+    job_project_path = os.path.join(
+        current_app.config["USER_DIR"], "jobs", project_uuid
+    )
+    job_pipeline_path = os.path.join(job_project_path, pipeline_uuid)
+    job_path = os.path.join(job_pipeline_path, job_uuid)
+    job_pipeline_run_path = os.path.join(job_path, run_uuid)
+
+    if os.path.isdir(job_pipeline_run_path):
+        rmtree(job_pipeline_run_path, ignore_errors=True)
+
+
 def remove_project_jobs_directories(project_uuid):
 
     project_jobs_path = os.path.join(

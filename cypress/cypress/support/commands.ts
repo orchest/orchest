@@ -337,6 +337,7 @@ Cypress.Commands.add(
 
 // Note: currently not idempotent.
 Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
+  count = count || 1;
   cy.intercept("DELETE", /.*/).as("allDeletes");
   cy.goToMenu("environments");
   // at least one should appear
@@ -346,14 +347,15 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
       cy.findByTestId("environment-list").should("exist");
       return cy.wait(1000);
     },
-    count || 1
+    count
   );
   cy.findByTestId(TEST_ID.ENVIRONMENTS_TOGGLE_ALL_ROWS)
     .find("input")
     .click({ force: true });
   cy.findByTestId(TEST_ID.ENVIRONMENTS_DELETE).click({ force: true });
-  cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
-  cy.wait("@allDeletes");
+  cy.findByTestId(TEST_ID.CONFIRM_DIALOG_OK)
+    .click()
+    .wait(Array(count).fill("@allDeletes"));
   reloadUntilElementsLoaded(
     "environment-list-row",
     () => {
@@ -413,7 +415,16 @@ Cypress.Commands.add(
       ])
       .should("include", entry);
 
-    cy.findByTestId(`menu-${entry}`).click();
+    if (entry == "jobs") {
+      // Wait for the pipelines list to be retrieved, or some commands
+      // might fail because JobList will say that the project has no
+      // pipelines.
+      cy.intercept("GET", "/async/pipelines/*").as("pipelinesList");
+      cy.findByTestId(`menu-${entry}`).click().wait("@pipelinesList");
+    } else {
+      cy.findByTestId(`menu-${entry}`).click();
+    }
+
     if (predicate) {
       cy.location().should("satisfy", predicate);
     } else {

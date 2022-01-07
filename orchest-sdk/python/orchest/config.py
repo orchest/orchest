@@ -54,6 +54,11 @@ class Config:
     # dictionary returned by ``get_inputs()``.
     _RESERVED_UNNAMED_OUTPUTS_STR = "unnamed"
 
+    # Calling get_inputs() or any output* function multiple times
+    # produces a warning, setting this to True allows you to silence
+    # those warnings.
+    silence_multiple_data_transfer_calls_warning: bool = False
+
     @classmethod
     def get_step_data_dir(cls, step_uuid):
         return cls.STEP_DATA_DIR.format(step_uuid=step_uuid)
