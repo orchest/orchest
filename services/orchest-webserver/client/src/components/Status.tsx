@@ -25,51 +25,59 @@ const statusMapping: Partial<Record<
   { icon: (size?: IconSize) => React.ReactNode; text: string }
 >> = {
   ABORTED: {
-    icon: (size) => (
-      <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
-    ),
+    icon: function AbortedIcon(size) {
+      return (
+        <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
+      );
+    },
     text: "Cancelled",
   },
   DRAFT: {
-    icon: (size) => (
-      <NoteAltOutlinedIcon
-        sx={{ color: (theme) => theme.palette.grey[500] }}
-        fontSize={size}
-      />
-    ),
+    icon: function DraftIcon(size) {
+      return (
+        <NoteAltOutlinedIcon
+          sx={{ color: (theme) => theme.palette.grey[500] }}
+          fontSize={size}
+        />
+      );
+    },
     text: "Draft",
   },
   FAILURE: {
-    icon: (size) => (
-      <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
-    ),
+    icon: function FailureIcon(size) {
+      return (
+        <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
+      );
+    },
     text: "Failed",
   },
   PAUSED: {
-    icon: (size) => (
-      <AccessTimeIcon
-        sx={{ color: (theme) => theme.palette.grey[500] }}
-        fontSize={size}
-      />
-    ),
+    icon: function PausedIcon(size) {
+      return (
+        <AccessTimeIcon
+          sx={{ color: (theme) => theme.palette.grey[500] }}
+          fontSize={size}
+        />
+      );
+    },
     text: "Paused",
   },
   PENDING: {
-    icon: (size) => (
-      <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />
-    ),
+    icon: function PendingIcon(size) {
+      return <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />;
+    },
     text: "Pending…",
   },
   STARTED: {
-    icon: (size) => (
-      <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />
-    ),
+    icon: function StartedIcon(size) {
+      return <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />;
+    },
     text: "Running…",
   },
   SUCCESS: {
-    icon: (size) => (
-      <CheckIcon sx={{ color: "success.light" }} fontSize={size} />
-    ),
+    icon: function SuccessIcon(size) {
+      return <CheckIcon sx={{ color: "success.light" }} fontSize={size} />;
+    },
     text: "Success",
   },
 };
