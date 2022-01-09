@@ -381,7 +381,7 @@ const PipelineDetailsProperties: React.FC<{
             menuMaxWidth={props.menuMaxWidth}
           />
         )}
-        {!isNotebookStep && (
+        {isNotebookStep && (
           <FormControl fullWidth>
             <InputLabel id="kernel-language-label">Kernel language</InputLabel>
             <Select
