@@ -66,7 +66,7 @@ const validProjectName = (projectName: string | undefined) => {
 };
 
 const ProjectsView: React.FC = () => {
-  const { setAlert, setConfirm } = useAppContext();
+  const { state, setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
   const {
@@ -380,8 +380,10 @@ const ProjectsView: React.FC = () => {
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
   React.useEffect(() => {
-    if (importUrl !== "") setIsImporting(true);
-  }, [importUrl]);
+    if (state.hasCompletedOnboarding && importUrl !== "") {
+      setIsImporting(true);
+    }
+  }, [importUrl, state.hasCompletedOnboarding]);
 
   return (
     <Layout>
