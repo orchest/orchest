@@ -21,7 +21,7 @@ def upgrade():
         "pipeline_runs",
         [
             sa.text(
-                "to_tsvector('simple', lower(CAST(pipeline_run_index AS TEXT)) || ' ' || CASE WHEN (status = 'STARTED') THEN 'running' ELSE lower(status) END || ' ' || lower(CAST(parameters AS TEXT)))"  # noqa
+                "to_tsvector('simple', lower(CAST(pipeline_run_index AS TEXT)) || ' ' || CASE WHEN (status = 'STARTED') THEN 'running' WHEN (status = 'ABORTED') THEN 'cancelled' WHEN (status = 'FAILURE') THEN 'failed' ELSE lower(status) END || ' ' || lower(CAST(parameters AS TEXT)))"  # noqa
             )
         ],
         unique=False,
