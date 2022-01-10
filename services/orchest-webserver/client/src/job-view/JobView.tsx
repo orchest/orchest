@@ -162,6 +162,7 @@ const JobView: React.FC = () => {
         })
     );
   };
+  const [totalRunCount, setTotalRunCount] = React.useState(0);
 
   return (
     <Layout fullHeight>
@@ -231,7 +232,7 @@ const JobView: React.FC = () => {
                 },
               ]}
             />
-            <JobViewTabs job={job}>
+            <JobViewTabs job={job} totalRunCount={totalRunCount}>
               {(tabIndex) => {
                 return (
                   <Box sx={{ flex: 1 }}>
@@ -244,6 +245,7 @@ const JobView: React.FC = () => {
                       <PipelineRunTable
                         jobUuid={jobUuid}
                         pipelineName={job.pipeline_name}
+                        setTotalCount={setTotalRunCount}
                       />
                     </CustomTabPanel>
                     <CustomTabPanel

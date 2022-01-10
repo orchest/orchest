@@ -7,11 +7,11 @@
   "scripts": {
     "build": "./build.sh",
     "dev": "./build.sh --watch",
-    "ts:check": "tsc -p tsconfig.json --noEmit",
     "test": "jest --verbose",
-    "test:watch": "jest --watchAll",
+    "test:ci": "jest --ci --runInBand",
     "test:coverage": "jest --verbose --coverage",
-    "test:ci": "jest --ci --runInBand"
+    "test:watch": "jest --watchAll",
+    "ts:check": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@emotion/react": "^11.6.0",

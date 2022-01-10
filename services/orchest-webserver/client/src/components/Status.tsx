@@ -143,7 +143,7 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
           height: (theme) => theme.spacing(3),
         }}
       >
-        {icon || statusMapping[status].icon}
+        {icon || statusMapping[status].icon()}
       </Box>
       <Typography
         component="span"

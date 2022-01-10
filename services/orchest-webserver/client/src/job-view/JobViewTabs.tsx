@@ -8,8 +8,9 @@ import React from "react";
 
 export const JobViewTabs: React.FC<{
   job: Job;
+  totalRunCount: number;
   children: (tabIndex: number) => React.ReactNode;
-}> = ({ job, children }) => {
+}> = ({ job, totalRunCount, children }) => {
   const [tabIndex, setTabIndex] = React.useState(0);
   const onSelectSubview = (e, index: number) => {
     setTabIndex(index);
@@ -19,11 +20,7 @@ export const JobViewTabs: React.FC<{
     : [
         {
           id: "pipeline-runs",
-          label: `Pipeline runs (${
-            job.pipeline_runs.filter(({ status }) =>
-              ["SUCCESS", "ABORTED", "FAILURE"].includes(status)
-            ).length
-          }/${job.pipeline_runs.length})`,
+          label: `Pipeline runs (${totalRunCount}/${job.total_scheduled_pipeline_runs})`,
           icon: <ListIcon />,
         },
         {

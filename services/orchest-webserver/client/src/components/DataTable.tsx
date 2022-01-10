@@ -383,7 +383,7 @@ function generateLoadingRows<T>(
 
 enum FIXED_ROW_HEIGHT {
   MEDIUM = 57,
-  SMALL = 37,
+  SMALL = 33,
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

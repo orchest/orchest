@@ -7,6 +7,7 @@ import { siteMap, toQueryString } from "@/Routes";
 import { Pagination, PipelineRun } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import { formatServerDateTime } from "@/utils/webserver-utils";
+import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
@@ -64,9 +65,14 @@ const getQueryString = ({
 export const PipelineRunTable: React.FC<{
   jobUuid: string;
   pipelineName: string;
-}> = ({ jobUuid, pipelineName }) => {
+  setTotalCount: (count: number) => void;
+}> = ({ jobUuid, pipelineName, setTotalCount }) => {
   const { setAlert } = useAppContext();
   const { navigateTo } = useCustomRoute();
+
+  const deleteRuns = (rows: string[]) => {
+    return Promise.resolve(true);
+  };
 
   const onDetailPipelineView = (pipelineRun: PipelineRun) => {
     if (pipelineRun.status == "PENDING") {
@@ -93,7 +99,7 @@ export const PipelineRunTable: React.FC<{
     <DataTable<PipelineRun>
       id="job-pipeline-runs"
       dense
-      // debounceTime={750}
+      selectable
       fetcher={({ page, rowsPerPage, run, searchTerm }) => {
         const url = `/catch/api-proxy/api/jobs/${jobUuid}/pipeline_runs${getQueryString(
           { page, rowsPerPage, searchTerm }
@@ -103,10 +109,9 @@ export const PipelineRunTable: React.FC<{
             pipeline_runs: PipelineRun[];
             pagination_data: Pagination;
           }>(url).then((response) => {
-            return {
-              rows: response.pipeline_runs,
-              totalCount: response.pagination_data?.total_items,
-            };
+            const totalCount = response.pagination_data?.total_items || 0;
+            setTotalCount(totalCount);
+            return { rows: response.pipeline_runs, totalCount };
           })
         );
       }}
@@ -147,19 +152,36 @@ export const PipelineRunTable: React.FC<{
               sx={{ padding: (theme) => theme.spacing(2, 1) }}
             >
               {paramDetails}
-              <Button
-                variant="contained"
-                startIcon={<VisibilityIcon />}
-                onClick={() => onDetailPipelineView(run)}
+              <Stack
+                direction="row"
                 sx={{ marginTop: (theme) => theme.spacing(2) }}
-                data-test-id="job-pipeline-runs-row-view-pipeline"
+                spacing={2}
               >
-                View pipeline
-              </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<VisibilityIcon />}
+                  onClick={() => onDetailPipelineView(run)}
+                  data-test-id="job-pipeline-runs-row-view-pipeline"
+                >
+                  View pipeline
+                </Button>
+                {["STARTED", "PAUSED", "PENDING"].includes(run.status) && (
+                  <Button
+                    variant="contained"
+                    startIcon={<CloseIcon />}
+                    color="secondary"
+                    onClick={() => alert("cancel!")}
+                    data-test-id="job-pipeline-runs-row-cancel-run"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </Stack>
             </Stack>
           ),
         };
       }}
+      deleteSelectedRows={(rows) => deleteRuns(rows)}
       columns={columns}
       initialOrderBy="pipeline_run_index"
       initialOrder="desc"

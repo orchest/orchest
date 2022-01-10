@@ -4,11 +4,11 @@
     "build": "pnpm run build --r --stream",
     "check": "pnpm run pkg:check && pnpm run pkg:format && pnpm exec eslint --fix --quiet --ext .ts,.tsx .",
     "dev": "pnpm run dev --filter '@orchest/client-*...' --r --parallel",
-    "test": "pnpm run test:ci --r --parallel",
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
-    "setup": "npm i -g pnpm@6.16.1"
+    "setup": "npm i -g pnpm@6.16.1",
+    "test": "pnpm run test:ci --r --parallel"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.4.0",
