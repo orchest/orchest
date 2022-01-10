@@ -594,7 +594,11 @@ class NonInteractivePipelineRun(PipelineRun):
         func.lower(cast(pipeline_run_index, postgresql.TEXT)),
         # This is needed to reflect what the FE is showing to the user.
         case(
-            [(PipelineRun.status == "STARTED", "running")],
+            [
+                (PipelineRun.status == "ABORTED", "cancelled"),
+                (PipelineRun.status == "FAILURE", "failed"),
+                (PipelineRun.status == "STARTED", "running"),
+            ],
             else_=func.lower(PipelineRun.status),
         ),
         func.lower(cast(parameters, postgresql.TEXT)),

@@ -9,7 +9,7 @@ from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
-from sqlalchemy import func, or_
+from sqlalchemy import or_, text
 from sqlalchemy.orm import query, undefer
 
 import app.models as models
@@ -802,12 +802,20 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     fuzzy_filter: str,
 ) -> query:
 
-    fuzzy_filter = fuzzy_filter.lower()
+    fuzzy_filter = fuzzy_filter.lower().strip().split()
+    # Quote terms to avoid operators like ! leading to syntax errors and
+    # to avoid funny injections.
+    fuzzy_filter = [f"''{token}'':*" for token in fuzzy_filter]
+    fuzzy_filter = " & ".join(fuzzy_filter)
+    # sqlalchemy is erroneously considering the query created through
+    # func.to_tsquery invalid.
+    fuzzy_filter = f"to_tsquery('simple', '{fuzzy_filter}')"
+
     filters = [
         models.NonInteractivePipelineRun._NonInteractivePipelineRun__text_search_vector.op(  # noqa
             "@@"
         )(
-            func.plainto_tsquery("simple", fuzzy_filter)
+            text(fuzzy_filter)
         ),
     ]
     query = query.filter(or_(*filters))

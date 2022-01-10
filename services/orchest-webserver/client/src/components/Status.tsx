@@ -20,6 +20,9 @@ export type TStatus =
 
 type IconSize = "small" | "inherit" | "large" | "medium";
 
+// Keep this pattern and the one used in fuzzy DB search in sync, see
+// fuzzy_filter_non_interactive_pipeline_runs.
+
 const statusMapping: Partial<Record<
   TStatus,
   { icon: (size?: IconSize) => React.ReactNode; text: string }
