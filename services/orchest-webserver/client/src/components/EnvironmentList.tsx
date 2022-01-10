@@ -74,6 +74,17 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
 
 const BUILD_POLL_FREQUENCY = 3000;
 
+const doRemoveEnvironment = (
+  project_uuid: string,
+  environment_uuid: string,
+  callback?: (environmentUuid: string) => void
+) => {
+  // ultimately remove Image
+  return fetcher(`/store/environments/${project_uuid}/${environment_uuid}`, {
+    method: "DELETE",
+  }).then(() => callback && callback(environment_uuid));
+};
+
 const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
@@ -81,13 +92,20 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
 
   const {
     data: fetchedEnvironments = [],
-    revalidate: fetchEnvironments,
     error: fetchEnvironmentsError,
     isValidating,
+    mutate: setFetchedEnvironments,
   } = useSWR<Environment[]>(
     projectUuid ? `/store/environments/${projectUuid}` : null,
     fetcher
   );
+
+  const removeFetchedEnvironment = (uuid: string) => {
+    setFetchedEnvironments(
+      (current) => current.filter((current) => current.uuid !== uuid),
+      false
+    );
+  };
 
   React.useEffect(() => {
     if (mounted && fetchEnvironmentsError) {
@@ -167,7 +185,11 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         );
         return false;
       }
-      return doRemoveEnvironment(projectUuid, environmentUuid, environmentName);
+      return doRemoveEnvironment(
+        projectUuid,
+        environmentUuid,
+        removeFetchedEnvironment
+      );
     }
 
     const imageData = await fetcher<{ in_use: boolean }>(
@@ -183,45 +205,30 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           {` ) is in use. Are you sure you want to delete it? This will abort all jobs that are using it.`}
         </>,
         async (resolve) => {
-          doRemoveEnvironment(projectUuid, environmentUuid, environmentName)
+          doRemoveEnvironment(
+            projectUuid,
+            environmentUuid,
+            removeFetchedEnvironment
+          )
             .then(() => {
               resolve(true);
             })
-            .catch(() => {
+            .catch((error) => {
+              setAlert(
+                "Error",
+                `Deleting environment '${environmentName}' failed. ${error.message}`
+              );
               resolve(false);
             });
           return true;
         }
       );
     }
-    return doRemoveEnvironment(projectUuid, environmentUuid, environmentName);
-  };
-
-  const doRemoveEnvironment = async (
-    project_uuid: string,
-    environment_uuid: string,
-    environmentName: string
-  ) => {
-    // ultimately remove Image
-    try {
-      await fetcher(`/store/environments/${project_uuid}/${environment_uuid}`, {
-        method: "DELETE",
-      });
-      return fetchEnvironments();
-    } catch (error) {
-      let errorMessage = "unknown";
-      try {
-        errorMessage = JSON.parse(error.body).message;
-      } catch (e) {
-        console.error(e);
-      }
-
-      setAlert(
-        "Error",
-        `Deleting environment '${environmentName}' failed. ${errorMessage}`
-      );
-      return false;
-    }
+    return doRemoveEnvironment(
+      projectUuid,
+      environmentUuid,
+      removeFetchedEnvironment
+    );
   };
 
   const onDeleteClick = async (environmentUuids: string[]) => {
