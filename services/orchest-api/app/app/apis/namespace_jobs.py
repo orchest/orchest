@@ -126,12 +126,6 @@ class Job(Resource):
         """Fetches a job given its UUID."""
         job = (
             models.Job.query.options(undefer(models.Job.env_variables))
-            # joinedload is to also fetch pipeline_runs.
-            .options(
-                joinedload(models.Job.pipeline_runs).undefer(
-                    models.NonInteractivePipelineRun.env_variables
-                )
-            )
             .filter_by(uuid=job_uuid)
             .one_or_none()
         )
