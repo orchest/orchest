@@ -228,7 +228,6 @@ export type Job = {
     steps: Record<string, Step>;
     version: string;
   };
-  pipeline_runs: PipelineRun[];
   next_scheduled_time: string;
   last_scheduled_time: string;
   parameters: Record<string, Json>[];
