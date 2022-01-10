@@ -4,8 +4,8 @@ export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
 export type Action<T, E> = {
   type: STATUS;
-  data: T;
-  error: E;
+  data?: T;
+  error?: E;
 };
 
 type State<T, E> = {
@@ -25,7 +25,7 @@ const useSafeDispatch = <T, E>(dispatch: React.Dispatch<Action<T, E>>) => {
   }, []);
 
   return React.useCallback(
-    (action) => (mounted.current ? dispatch(action) : void 0),
+    (action: Action<T, E>) => (mounted.current ? dispatch(action) : void 0),
     [dispatch]
   );
 };
@@ -84,8 +84,11 @@ const useAsync = <T, E = Error>(initialState?: T) => {
   );
 
   const setData = React.useCallback(
-    (data) => dispatch({ type: "RESOLVED", data }),
-    [dispatch]
+    (action: T | ((currentValue: T) => T)) => {
+      const newData = action instanceof Function ? action(data) : action;
+      dispatch({ type: "RESOLVED", data: newData });
+    },
+    [dispatch, data]
   );
   const setError = React.useCallback(
     (error) => dispatch({ type: "REJECTED", error }),

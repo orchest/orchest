@@ -1,4 +1,8 @@
-import { DataTable, DataTableColumn } from "@/components/DataTable";
+import {
+  DataTable,
+  DataTableColumn,
+  DataTableFetcherResponse,
+} from "@/components/DataTable";
 import { NoParameterAlert } from "@/components/ParamTree";
 import { StatusInline } from "@/components/Status";
 import { useAppContext } from "@/contexts/AppContext";
@@ -67,12 +71,64 @@ export const PipelineRunTable: React.FC<{
   pipelineName: string;
   setTotalCount: (count: number) => void;
 }> = ({ jobUuid, pipelineName, setTotalCount }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
   const { navigateTo } = useCustomRoute();
 
-  const deleteRuns = (rows: string[]) => {
-    return Promise.resolve(true);
-  };
+  const cancelRun = React.useCallback(
+    async (runUuid: string, setData) => {
+      return setConfirm(
+        "Warning",
+        "Are you sure that you want to cancel this job run?",
+        async (resolve) => {
+          try {
+            await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
+              method: "DELETE",
+            });
+            setData((current: DataTableFetcherResponse<PipelineRun>) => {
+              const newRows = [...current.rows];
+              const cancelled = newRows.find((row) => row.uuid === runUuid);
+              if (cancelled) cancelled.status = "ABORTED";
+              return { ...current, rows: newRows };
+            });
+            resolve(true);
+          } catch (error) {
+            setAlert("Error", `Failed to cancel this job run.`);
+            resolve(false);
+          }
+          return true;
+        }
+      );
+    },
+    [jobUuid, setAlert, setConfirm]
+  );
+
+  const deleteRuns = React.useCallback(
+    (rows: string[]) => {
+      return setConfirm(
+        "Warning",
+        "Are you certain that you want to delete the selected runs?",
+        async (resolve) => {
+          Promise.all(
+            rows.map((runUuid) =>
+              fetcher(
+                `/catch/api-proxy/api/jobs/cleanup/${jobUuid}/${runUuid}`,
+                {
+                  method: "DELETE",
+                }
+              )
+            )
+          )
+            .then(() => resolve(true))
+            .catch(() => {
+              setAlert("Error", `Failed to delete selected job runs`);
+              resolve(false);
+            });
+          return true;
+        }
+      );
+    },
+    [jobUuid, setAlert, setConfirm]
+  );
 
   const onDetailPipelineView = (pipelineRun: PipelineRun) => {
     if (pipelineRun.status == "PENDING") {
@@ -104,6 +160,7 @@ export const PipelineRunTable: React.FC<{
         const url = `/catch/api-proxy/api/jobs/${jobUuid}/pipeline_runs${getQueryString(
           { page, rowsPerPage, searchTerm }
         )}`;
+
         run(
           fetcher<{
             pipeline_runs: PipelineRun[];
@@ -116,8 +173,8 @@ export const PipelineRunTable: React.FC<{
         );
       }}
       data-test-id="job-pipeline-runs"
-      composeRow={(run) => {
-        const formattedRunParams = formatPipelineParams(run.parameters);
+      composeRow={(pipelineRun, setData) => {
+        const formattedRunParams = formatPipelineParams(pipelineRun.parameters);
         const hasParameters = formattedRunParams.length > 0;
         const formattedRunParamsAsString = hasParameters
           ? formattedRunParams.join(", ")
@@ -141,9 +198,9 @@ export const PipelineRunTable: React.FC<{
         );
 
         return {
-          ...run,
+          ...pipelineRun,
           searchIndex: `${
-            run.status === "STARTED" ? "Running" : ""
+            pipelineRun.status === "STARTED" ? "Running" : ""
           }${formattedRunParamsAsString}`,
           details: (
             <Stack
@@ -160,17 +217,19 @@ export const PipelineRunTable: React.FC<{
                 <Button
                   variant="contained"
                   startIcon={<VisibilityIcon />}
-                  onClick={() => onDetailPipelineView(run)}
+                  onClick={() => onDetailPipelineView(pipelineRun)}
                   data-test-id="job-pipeline-runs-row-view-pipeline"
                 >
                   View pipeline
                 </Button>
-                {["STARTED", "PAUSED", "PENDING"].includes(run.status) && (
+                {["STARTED", "PAUSED", "PENDING"].includes(
+                  pipelineRun.status
+                ) && (
                   <Button
                     variant="contained"
                     startIcon={<CloseIcon />}
                     color="secondary"
-                    onClick={() => alert("cancel!")}
+                    onClick={() => cancelRun(pipelineRun.uuid, setData)}
                     data-test-id="job-pipeline-runs-row-cancel-run"
                   >
                     Cancel

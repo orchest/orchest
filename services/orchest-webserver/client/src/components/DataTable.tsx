@@ -223,6 +223,7 @@ function Row<T>({
   selectable,
   onRowClick,
   onClickCheckbox,
+  isDetailsOpen = false,
 }: {
   isLoading?: boolean;
   disabled: boolean;
@@ -235,13 +236,20 @@ function Row<T>({
   ) => void;
   isSelected: boolean;
   selectable: boolean;
-  onRowClick?: (e: React.MouseEvent<unknown>, uuid: string) => void;
+  isDetailsOpen?: boolean;
+  onRowClick?: (
+    e: React.MouseEvent<unknown>,
+    uuid: string,
+    isShowingDetail: boolean
+  ) => void;
 }) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [isOpen, setIsOpen] = React.useState(isDetailsOpen);
   const handleClickRow = (e: React.MouseEvent<unknown>) => {
     if (!disabled) {
-      setIsOpen((current) => !current);
-      onRowClick(e, data.uuid);
+      setIsOpen((current) => {
+        onRowClick(e, data.uuid, !current);
+        return !current;
+      });
     }
   };
 
@@ -328,7 +336,7 @@ function Row<T>({
   );
 }
 
-type DataTableFetcherResponse<T> = {
+export type DataTableFetcherResponse<T> = {
   rows: (T & { uuid: string })[];
   totalCount: number;
 };
@@ -345,7 +353,17 @@ type DataTableProps<T> = {
   fetcher?: DataTableFetcher<T>;
   rows?: (T & { uuid: string })[];
   // this prop is useful when `rows` is not given, and the data is fetched from within via `fetcher`
-  composeRow?: (row: T & { uuid: string }) => DataTableRow<T>;
+  composeRow?: (
+    row: T & { uuid: string },
+    setData: (
+      action:
+        | DataTableFetcherResponse<T>
+        | ((
+            currentValue: DataTableFetcherResponse<T>
+          ) => DataTableFetcherResponse<T>)
+    ) => void,
+    fetchData: () => void
+  ) => DataTableRow<T>;
   id: string;
   initialSelectedRows?: string[];
   selectedRows?: string[];
@@ -429,17 +447,33 @@ export const DataTable = <T extends Record<string, any>>({
     initialRowsPerPage || 10
   );
 
-  const { run, status, error, data } = useAsync<DataTableFetcherResponse<T>>();
+  const { run, status, error, data, setData } = useAsync<
+    DataTableFetcherResponse<T>
+  >();
   const fetchData = React.useCallback(() => {
     if (fetcher) {
       fetcher({ run, page, rowsPerPage, searchTerm: debouncedSearchTerm });
     }
   }, [run, fetcher, debouncedSearchTerm, page, rowsPerPage]);
-  // when fetchData is re-created, fire it as well to get data
-  // because `page`, `rowsPerPage`, `debouncedSearchTerm` are changed, i.e. user is requesting new data
+
+  const [shouldUpdate, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
+
+  React.useEffect(() => {
+    setPage((current) => {
+      if (current === 1) forceUpdate(); // if page is already 1, it won't trigger re-render
+      return 1;
+    });
+  }, [debouncedSearchTerm]);
+
+  // when user change searchTerm, page, and rowsPerPage, it should re-fetch data, however
+  // if we simply subscribe to debouncedSearchTerm, page, and rowsPerPage, an extra request will occur when page !== 1 and searchTerm is changing
+  // because search is debounced, so we need to subscribe to debouncedSearchTerm, but we are unable to batch debouncedSearchTerm and page
+  // that is, when debouncedSearchTerm changes when page is not 1,two identical requests will be fired
+  // to prevent this extra request, fetchData should only depends on page, and rowsPerPage (because page will be set to 1 when debouncedSearchTerm changes)
+  // yet, if page is already 1, it won't trigger re-render, we create a phantom state `shouldUpdate` to force rerender
   React.useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [shouldUpdate, page, rowsPerPage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // if the data is fetched via fetcher, we don't use client-side search and pagination.
   const useClientSideSearchAndPagination = !fetcher;
@@ -562,11 +596,26 @@ export const DataTable = <T extends Record<string, any>>({
     });
   };
 
-  const handleClickRow = (e: React.MouseEvent<unknown>, uuid: string) => {
+  const [rowsShowingDetails, setRowsShowingDetails] = React.useState<string[]>(
+    []
+  );
+
+  const handleClickRow = (
+    e: React.MouseEvent<unknown>,
+    uuid: string,
+    isShowingDetails: boolean
+  ) => {
     if (onRowClick) {
       e.preventDefault();
       onRowClick(uuid);
     }
+    setRowsShowingDetails((current) => {
+      if (isShowingDetails) {
+        return [...current, uuid];
+      } else {
+        return current.filter((u) => u !== uuid);
+      }
+    });
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -591,6 +640,10 @@ export const DataTable = <T extends Record<string, any>>({
       const success = await deleteSelectedRows(selected);
       setIsDeleting(false);
       if (success) setSelected([]);
+
+      // if fetcher is not provided (i.e. you feed rows in the props)
+      // you should also re-fetch from the parent as well.
+      if (!useClientSideSearchAndPagination) fetchData();
     }
   };
 
@@ -598,7 +651,7 @@ export const DataTable = <T extends Record<string, any>>({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setSearchTerm(e.target.value);
-    setPage(1);
+    // setPage(1);
   };
 
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
@@ -658,12 +711,13 @@ export const DataTable = <T extends Record<string, any>>({
                       isLoading={isFetchingData}
                       disabled={isTableDisabled}
                       tableId={id}
-                      data={composeRow(row)}
+                      data={composeRow(row, setData, fetchData)}
                       columns={columns}
                       isSelected={isItemSelected}
                       onRowClick={handleClickRow}
                       onClickCheckbox={handleClickCheckbox}
                       selectable={selectable}
+                      isDetailsOpen={rowsShowingDetails.includes(row.uuid)}
                       key={row.uuid}
                     />
                   );
