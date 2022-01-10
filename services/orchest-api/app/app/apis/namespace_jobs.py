@@ -120,7 +120,19 @@ class NextScheduledJob(Resource):
 @api.param("job_uuid", "UUID of job")
 @api.response(404, "Job not found")
 class Job(Resource):
-    @api.doc("get_job")
+    @api.doc(
+        "get_job",
+        params={
+            "aggregate_run_statuses": {
+                "description": (
+                    "Aggregate job pipeline run statuses. Populates the "
+                    "pipeline_run_status_counts property. Value does not matter as "
+                    "long as it is set."
+                ),
+                "type": None,
+            },
+        },
+    )
     @api.marshal_with(schema.job, code=200)
     def get(self, job_uuid):
         """Fetches a job given its UUID."""
@@ -135,8 +147,23 @@ class Job(Resource):
             .filter_by(uuid=job_uuid)
             .one_or_none()
         )
+
         if job is None:
             abort(404, "Job not found.")
+
+        if "aggregate_run_statuses" in request.args:
+            status_agg = (
+                models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                .with_entities(
+                    models.NonInteractivePipelineRun.status,
+                    func.count(models.NonInteractivePipelineRun.status),
+                )
+                .group_by(models.NonInteractivePipelineRun.status)
+            )
+            status_agg = {k: v for k, v in status_agg}
+            job = job.__dict__
+            job["pipeline_run_status_counts"] = status_agg
+
         return job
 
     @api.expect(schema.job_update)
