@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -73,15 +74,16 @@ export const CreatePipelineDialog = ({
 
   return (
     <>
-      <Button
-        variant="contained"
-        startIcon={<AddIcon />}
-        onClick={onCreateClick}
-        data-test-id="pipeline-create"
-        sx={{ margin: (theme) => theme.spacing(2, 0) }}
-      >
-        Create pipeline
-      </Button>
+      <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={onCreateClick}
+          data-test-id="pipeline-create"
+        >
+          Create pipeline
+        </Button>
+      </Box>
       <Dialog fullWidth maxWidth="xs" open={isOpen} onClose={onClose}>
         <form
           id="create-pipeline"

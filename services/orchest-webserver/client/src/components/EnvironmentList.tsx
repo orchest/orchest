@@ -267,7 +267,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         <LinearProgress />
       ) : (
         <>
-          <Box sx={{ marginBottom: 3 }}>
+          <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
             <Button
               variant="contained"
               startIcon={<AddIcon />}

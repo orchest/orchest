@@ -381,15 +381,17 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
       {jobs && pipelines ? (
         <>
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            onClick={onCreateClick}
-            sx={{ marginBottom: (theme) => theme.spacing(2) }}
-            data-test-id="job-create"
-          >
-            Create job
-          </Button>
+          <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={onCreateClick}
+              sx={{ marginBottom: (theme) => theme.spacing(2) }}
+              data-test-id="job-create"
+            >
+              Create job
+            </Button>
+          </Box>
           <Dialog
             open={isCreateDialogOpen}
             onClose={closeCreateDialog}
