@@ -1,3 +1,4 @@
+import { useInterval } from "@/hooks/use-interval";
 import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -143,7 +144,7 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
     <TableHead>
       <TableRow>
         {selectable && (
-          <TableCell padding="checkbox">
+          <TableCell padding="checkbox" align="center">
             <Checkbox
               color="primary"
               indeterminate={numSelected > 0 && numSelected < rowCount}
@@ -189,10 +190,10 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
   );
 }
 
-const SkeletonContainer: React.FC<{ isLoading: boolean }> = ({
-  isLoading,
-  children,
-}) => {
+const SkeletonContainer: React.FC<{
+  isLoading: boolean;
+  rowHeight: number;
+}> = ({ isLoading, rowHeight, children }) => {
   return (
     <>
       <Fade in={isLoading} unmountOnExit>
@@ -200,7 +201,9 @@ const SkeletonContainer: React.FC<{ isLoading: boolean }> = ({
           <Skeleton variant="text" />
         </Box>
       </Fade>
-      {!isLoading && children}
+      {!isLoading && (
+        <Box sx={{ maxHeight: rowHeight, overflowY: "hidden" }}>{children}</Box>
+      )}
     </>
   );
 };
@@ -224,6 +227,7 @@ function Row<T>({
   onRowClick,
   onClickCheckbox,
   isDetailsOpen = false,
+  rowHeight,
 }: {
   isLoading?: boolean;
   disabled: boolean;
@@ -242,6 +246,7 @@ function Row<T>({
     uuid: string,
     isShowingDetail: boolean
   ) => void;
+  rowHeight: number;
 }) {
   const [isOpen, setIsOpen] = React.useState(isDetailsOpen);
   const handleClickRow = (e: React.MouseEvent<unknown>) => {
@@ -276,8 +281,8 @@ function Row<T>({
         data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
       >
         {selectable && (
-          <TableCell padding="checkbox">
-            <SkeletonContainer isLoading={isLoading}>
+          <TableCell padding="checkbox" align="center">
+            <SkeletonContainer isLoading={isLoading} rowHeight={rowHeight}>
               <Checkbox
                 color="primary"
                 checked={isSelected}
@@ -296,7 +301,7 @@ function Row<T>({
           scope="row"
           sx={columns[0].sx}
         >
-          <SkeletonContainer isLoading={isLoading}>
+          <SkeletonContainer isLoading={isLoading} rowHeight={rowHeight}>
             {renderCell(columns[0], data, disabled)}
           </SkeletonContainer>
         </TableCell>
@@ -307,7 +312,7 @@ function Row<T>({
               align={column.align || "center"}
               sx={column.sx}
             >
-              <SkeletonContainer isLoading={isLoading}>
+              <SkeletonContainer isLoading={isLoading} rowHeight={rowHeight}>
                 {column.sortable ? (
                   <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
                     {renderCell(column, data, disabled)}
@@ -379,6 +384,10 @@ type DataTableProps<T> = {
   onRowClick?: (uuid: string) => void;
   rowHeight?: number;
   debounceTime?: number;
+  refreshInterval?:
+    | number
+    | null
+    | ((rows: DataTableRow<T>[]) => number | null);
   hideSearch?: boolean;
   isLoading?: boolean;
   disabled?: boolean;
@@ -399,9 +408,11 @@ function generateLoadingRows<T>(
   }) as DataTableRow<T>[];
 }
 
+// 8 * N + 1 for the bottom-border width
 enum FIXED_ROW_HEIGHT {
   MEDIUM = 57,
   SMALL = 33,
+  SELECTABLE = 43, // i.e. the height of the checkbox
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -428,6 +439,7 @@ export const DataTable = <T extends Record<string, any>>({
   containerSx,
   dense,
   disabled,
+  refreshInterval = null,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -449,7 +461,7 @@ export const DataTable = <T extends Record<string, any>>({
 
   const { run, status, error, data, setData } = useAsync<
     DataTableFetcherResponse<T>
-  >();
+  >({ caching: true });
   const fetchData = React.useCallback(() => {
     if (fetcher) {
       fetcher({ run, page, rowsPerPage, searchTerm: debouncedSearchTerm });
@@ -544,6 +556,13 @@ export const DataTable = <T extends Record<string, any>>({
     useClientSideSearchAndPagination,
     isFetchingData,
   ]);
+
+  useInterval(
+    () => forceUpdate(),
+    refreshInterval instanceof Function
+      ? refreshInterval(rowsInPage)
+      : refreshInterval
+  );
 
   React.useEffect(() => {
     if (mounted) {
@@ -662,7 +681,12 @@ export const DataTable = <T extends Record<string, any>>({
   const tableTitleId = `${id}-title`;
 
   const renderedRowHeight =
-    rowHeight || (dense ? FIXED_ROW_HEIGHT.SMALL : FIXED_ROW_HEIGHT.MEDIUM);
+    rowHeight ||
+    (!dense
+      ? FIXED_ROW_HEIGHT.MEDIUM
+      : selectable
+      ? FIXED_ROW_HEIGHT.SELECTABLE
+      : FIXED_ROW_HEIGHT.SMALL);
 
   return (
     <Box sx={{ width: "100%" }} {...props}>
@@ -718,6 +742,7 @@ export const DataTable = <T extends Record<string, any>>({
                       onClickCheckbox={handleClickCheckbox}
                       selectable={selectable}
                       isDetailsOpen={rowsShowingDetails.includes(row.uuid)}
+                      rowHeight={renderedRowHeight}
                       key={row.uuid}
                     />
                   );

@@ -6,6 +6,7 @@ export type Action<T, E> = {
   type: STATUS;
   data?: T;
   error?: E;
+  caching?: boolean;
 };
 
 type State<T, E> = {
@@ -36,7 +37,8 @@ const asyncReducer = <T, E>(
 ): State<T, E> => {
   switch (action.type) {
     case "PENDING": {
-      return { status: "PENDING", data: null, error: null };
+      const payload = action.caching ? state.data : null;
+      return { status: "PENDING", data: payload, error: null };
     }
     case "RESOLVED": {
       return {
@@ -54,7 +56,13 @@ const asyncReducer = <T, E>(
   }
 };
 
-const useAsync = <T, E = Error>(initialState?: T) => {
+type AsyncParams<T> = {
+  initialState?: T;
+  caching?: boolean; // if true, data will not be set to null when re-fetching data
+};
+
+const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
+  const { initialState, caching = false } = params || {};
   const [state, unsafeDispatch] = React.useReducer<
     (state: State<T, E>, action: Action<T, E>) => State<T, E>
   >(asyncReducer, {
@@ -70,7 +78,7 @@ const useAsync = <T, E = Error>(initialState?: T) => {
 
   const run = React.useCallback(
     (promise: Promise<T>) => {
-      dispatch({ type: "PENDING" });
+      dispatch({ type: "PENDING", caching });
       return promise.then(
         (data) => {
           dispatch({ type: "RESOLVED", data });
@@ -80,7 +88,7 @@ const useAsync = <T, E = Error>(initialState?: T) => {
         }
       );
     },
-    [dispatch]
+    [dispatch, caching]
   );
 
   const setData = React.useCallback(

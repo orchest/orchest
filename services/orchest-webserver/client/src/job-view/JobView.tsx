@@ -54,7 +54,16 @@ const JobView: React.FC = () => {
   const { run, status } = useAsync<void>();
   const isOperating = status === "PENDING" || fetchJobStatus === "PENDING";
 
-  const reload = () => fetchJob();
+  // use this to force PipelineRunTable to re-fetch data
+  const [pipelineRunTableKey, forceUpdatePipelineRunTable] = React.useReducer(
+    (x: number) => x + 1,
+    0
+  );
+
+  const reload = () => {
+    fetchJob();
+    forceUpdatePipelineRunTable();
+  };
 
   const cancelJob = () => {
     run(
@@ -243,6 +252,7 @@ const JobView: React.FC = () => {
                       sx={{ paddingBottom: 0 }}
                     >
                       <PipelineRunTable
+                        key={pipelineRunTableKey}
                         jobUuid={jobUuid}
                         pipelineName={job.pipeline_name}
                         setTotalCount={setTotalRunCount}

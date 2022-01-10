@@ -25,7 +25,8 @@ const columns: DataTableColumn<PipelineRun>[] = [
   {
     id: "parameters",
     label: "Parameters",
-    sx: ellipsis("40vw"),
+    sx: { ...ellipsis("40vw"), minWidth: "40vw" },
+    align: "left",
     render: function RunParameters(row) {
       const formattedParams = formatPipelineParams(row.parameters);
       return formattedParams.length === 0 ? (
@@ -75,7 +76,15 @@ export const PipelineRunTable: React.FC<{
   const { navigateTo } = useCustomRoute();
 
   const cancelRun = React.useCallback(
-    async (runUuid: string, setData) => {
+    async (
+      runUuid: string,
+      setData: (
+        callback: (
+          current: DataTableFetcherResponse<PipelineRun>
+        ) => DataTableFetcherResponse<PipelineRun>
+      ) => void,
+      fetchData: () => void
+    ) => {
       return setConfirm(
         "Warning",
         "Are you sure that you want to cancel this job run?",
@@ -93,6 +102,7 @@ export const PipelineRunTable: React.FC<{
             resolve(true);
           } catch (error) {
             setAlert("Error", `Failed to cancel this job run.`);
+            fetchData();
             resolve(false);
           }
           return true;
@@ -173,7 +183,7 @@ export const PipelineRunTable: React.FC<{
         );
       }}
       data-test-id="job-pipeline-runs"
-      composeRow={(pipelineRun, setData) => {
+      composeRow={(pipelineRun, setData, fetchData) => {
         const formattedRunParams = formatPipelineParams(pipelineRun.parameters);
         const hasParameters = formattedRunParams.length > 0;
         const formattedRunParamsAsString = hasParameters
@@ -229,7 +239,9 @@ export const PipelineRunTable: React.FC<{
                     variant="contained"
                     startIcon={<CloseIcon />}
                     color="secondary"
-                    onClick={() => cancelRun(pipelineRun.uuid, setData)}
+                    onClick={() =>
+                      cancelRun(pipelineRun.uuid, setData, fetchData)
+                    }
                     data-test-id="job-pipeline-runs-row-cancel-run"
                   >
                     Cancel
