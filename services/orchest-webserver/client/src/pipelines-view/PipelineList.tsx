@@ -120,7 +120,7 @@ const getColumns = (
             }}
             data-test-id="pipeline-edit-path"
           >
-            <EditIcon />
+            <EditIcon fontSize="small" />
           </IconButton>
         </Stack>
       );
@@ -439,7 +439,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
             columns={columns}
             rows={pipelineRows}
             onRowClick={onRowClick}
-            rowHeight={67}
+            rowHeight={63}
             deleteSelectedRows={onDeletePipelines}
           />
         </>

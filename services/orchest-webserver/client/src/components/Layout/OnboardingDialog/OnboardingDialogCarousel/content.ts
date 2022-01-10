@@ -15,7 +15,11 @@ export type TOnboardingDialogCarouselSlide = { title: string } & (
       variant: "end";
     } & Record<
       "description",
-      { withQuickstart: string; withoutQuickstart: string }
+      {
+        withQuickstart: string;
+        withoutQuickstart: string;
+        importProject: string;
+      }
     >)
 );
 
@@ -69,6 +73,7 @@ export const onboardingDialogCarouselSlides: TOnboardingDialogCarouselSlide[] = 
       withQuickstart:
         "Check out the Quickstart pipeline to see it all in action 🚀",
       withoutQuickstart: "Create your first project to see it all in action 🚀",
+      importProject: "Import your first project to see it all in action 🚀",
     },
   },
 ];

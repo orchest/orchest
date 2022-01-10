@@ -66,7 +66,7 @@ const validProjectName = (projectName: string | undefined) => {
 };
 
 const ProjectsView: React.FC = () => {
-  const { setAlert, setConfirm } = useAppContext();
+  const { state, setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
   const {
@@ -130,7 +130,7 @@ const ProjectsView: React.FC = () => {
                   onEditProjectName(row.uuid, row.path);
                 }}
               >
-                <EditIcon />
+                <EditIcon fontSize="small" />
               </IconButton>
             </Stack>
           );
@@ -148,13 +148,14 @@ const ProjectsView: React.FC = () => {
             <IconButton
               title="settings"
               disabled={disabled}
+              size="small"
               data-test-id={`settings-button-${row.path}`}
               onClick={(e) => {
                 e.stopPropagation();
                 openSettings(row.uuid);
               }}
             >
-              <SettingsIcon />
+              <SettingsIcon fontSize="small" />
             </IconButton>
           );
         },
@@ -379,8 +380,10 @@ const ProjectsView: React.FC = () => {
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
   React.useEffect(() => {
-    if (importUrl !== "") setIsImporting(true);
-  }, [importUrl]);
+    if (state.hasCompletedOnboarding && importUrl !== "") {
+      setIsImporting(true);
+    }
+  }, [importUrl, state.hasCompletedOnboarding]);
 
   return (
     <Layout>
@@ -531,7 +534,7 @@ const ProjectsView: React.FC = () => {
               selectable
               hideSearch
               onRowClick={onRowClick}
-              rowHeight={73}
+              rowHeight={63}
               deleteSelectedRows={deleteSelectedRows}
               columns={columns}
               rows={projectRows}

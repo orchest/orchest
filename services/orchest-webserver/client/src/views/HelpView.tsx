@@ -1,4 +1,5 @@
-import { Layout, useLayout } from "@/components/Layout";
+import { Layout } from "@/components/Layout";
+import { useOnboardingDialog } from "@/components/Layout/OnboardingDialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
@@ -51,7 +52,7 @@ const HelpView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.help.path });
-  const { setIsOnboardingDialogOpen } = useLayout();
+  const { setIsOnboardingDialogOpen } = useOnboardingDialog();
 
   return (
     <Layout>

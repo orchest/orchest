@@ -82,6 +82,14 @@ type AppContextState = {
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
   isCommandPaletteOpen: boolean;
+  // we already store hasCompletedOnboarding in localstorage, which is enough for most cases,
+  // but when first-time user already wants to import a project, we want to
+  // 1. show onboarding dialog (at the root level)
+  // 2. after closing the onboarding dialog, show import dialog (could be at multiple places)
+  // therefore, we had to lift the state into the app context
+  // NOTE: although useLocalstorage has a localstorage event listener, it won't work
+  //       because it is only fired when other tabs are updating the value
+  hasCompletedOnboarding: boolean;
 };
 
 type Action =
@@ -103,6 +111,10 @@ type Action =
     }
   | {
       type: "SET_IS_COMMAND_PALETTE_OPEN";
+      payload: boolean;
+    }
+  | {
+      type: "SET_HAS_COMPLETED_ONBOARDING";
       payload: boolean;
     };
 
@@ -190,6 +202,13 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
       };
     }
 
+    case "SET_HAS_COMPLETED_ONBOARDING": {
+      return {
+        ...state,
+        hasCompletedOnboarding: action.payload,
+      };
+    }
+
     default: {
       console.error(action);
       return state;
@@ -202,6 +221,7 @@ const initialState: AppContextState = {
   isLoaded: false,
   hasUnsavedChanges: false,
   isCommandPaletteOpen: false,
+  hasCompletedOnboarding: false,
 };
 
 const defaultOnConfirm = async (

@@ -75,7 +75,7 @@ const createColumns = ({
               onEditJobNameClick(row.uuid, row.name);
             }}
           >
-            <EditIcon />
+            <EditIcon fontSize="small" />
           </IconButton>
         </Stack>
       );
@@ -87,7 +87,7 @@ const createColumns = ({
     id: "status",
     label: "Status",
     render: function SnapshotDate(row) {
-      return <StatusInline status={row.status} />;
+      return <StatusInline status={row.status} size="small" />;
     },
   },
 ];
@@ -504,6 +504,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             initialOrderBy="snapShotDate"
             initialOrder="desc"
             onRowClick={onRowClick}
+            rowHeight={63}
             deleteSelectedRows={deleteSelectedJobs}
           />
         </>
