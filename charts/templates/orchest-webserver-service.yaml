@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchest-webserver
+  labels:
+    app: orchest-webserver
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+  selector:
+    app: orchest-webserver

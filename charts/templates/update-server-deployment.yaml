@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: update-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: update-server
+  template:
+    metadata:
+      labels:
+        app: update-server
+    spec:
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run
+            type: Directory
+      containers:
+      - name: update-server
+        image: orchest/update-server:latest
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        ports:
+        - containerPort: 80        
+        env:
+        - name: "ORCHEST_PORT"
+          value: "8000"
+        - name: "HOST_USER_DIR"
+          value: "/var/lib/orchest/userdir"
+        - name: "HOST_CONFIG_DIR"
+          value: "/var/lib/orchest/config"
+        - name: "HOST_REPO_DIR"
+          value: "/var/lib/orchest/repo"
+        - name: "HOST_OS"
+          value: "linux"
+        volumeMounts:
+         - name: dockersock
+           mountPath: /var/run

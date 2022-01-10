@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: file-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-manager
+  template:
+    metadata:
+      labels:
+        app: file-manager
+    spec:
+      volumes:
+        - name: userdir
+          hostPath:
+            path: /var/lib/orchest/userdir
+            type: DirectoryOrCreate                     
+      containers:
+      - name: file-manager
+        image: orchest/file-manager:latest
+        ports:
+        - containerPort: 80
+        volumeMounts:
+         - name: userdir
+           mountPath: /userdir

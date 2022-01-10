@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run
+            type: Directory
+        - name: userdir
+          hostPath:
+            path: /var/lib/orchest/userdir
+            type: DirectoryOrCreate                      
+      containers:
+      - name: celery-worker
+        image: orchest/celery-worker:latest
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        env:
+        - name: "MAX_JOB_RUNS_PARALLELISM"
+          value: "1"
+        - name: "MAX_INTERACTIVE_RUNS_PARALLELISM"
+          value: "1"
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "INFO"
+        - name: "ORCHEST_HOST_GID"
+          value: "1"
+        - name: "ORCHEST_GPU_ENABLED_INSTANCE"
+          value: "FALSE"
+        volumeMounts:
+         - name: dockersock
+           mountPath: /var/run
+         - name: userdir
+           mountPath: /userdir

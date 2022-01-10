@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchest-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchest-api
+  template:
+    metadata:
+      labels:
+        app: orchest-api
+    spec:
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run
+            type: Directory
+        - name: userdir
+          hostPath:
+            path: /var/lib/orchest/userdir'
+            type: DirectoryOrCreate
+      containers:
+      - name: orchest-api
+        image: orchest/orchest-api:latest
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        ports:
+        - containerPort: 80
+        env:
+        - name: "ORCHEST_HOST_GID"
+          value: "1"
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"
+        - name: "ORCHEST_GPU_ENABLED_INSTANCE"
+          value: "FALSE"
+        volumeMounts:
+         - name: dockersock
+           mountPath: /var/run
+         - name: userdir
+           mountPath: /userdir

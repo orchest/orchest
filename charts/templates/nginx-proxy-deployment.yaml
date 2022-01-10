@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-proxy
+  template:
+    metadata:
+      labels:
+        app: nginx-proxy
+    spec:                   
+      containers:
+      - name: nginx-proxy
+        image: nginx-proxy:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80

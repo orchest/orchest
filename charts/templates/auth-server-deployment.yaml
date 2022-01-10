@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-server
+  template:
+    metadata:
+      labels:
+        app: auth-server
+    spec:
+      volumes:
+        - name: userdir
+          hostPath:
+            path: /var/lib/orchest/userdir
+            type: DirectoryOrCreate
+        - name: config
+          hostPath:
+            path: /var/lib/orchest/config
+            type: DirectoryOrCreate
+      containers:
+      - name: auth-server
+        image: orchest/auth-server:latest
+        ports:
+        - containerPort: 80
+        env:
+        - name: "HOST_OS"
+          value: "linux"
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"       
+        volumeMounts:
+         - name: userdir
+           mountPath: /userdir
+         - name: config
+           mountPath: /config

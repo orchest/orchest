@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rabbitmq-server
+  template:
+    metadata:
+      labels:
+        app: rabbitmq-server
+    spec:
+      volumes:
+        - name: mnesia
+          hostPath:
+            path: /var/lib/orchest/userdir/.orchest/rabbitmq-mnesia
+            type: DirectoryOrCreate                      
+      containers:
+      - name: rabbitmq-server
+        image: rabbitmq:3
+        ports:
+        - containerPort: 5672
+        volumeMounts:
+         - name: mnesia
+           mountPath: /var/lib/rabbitmq/mnesia
