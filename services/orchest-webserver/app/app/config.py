@@ -28,6 +28,10 @@ class Config:
     ORCHEST_EXAMPLES_JSON_PATH = "orchest_examples_data.json"
     ORCHEST_EXAMPLES_JSON_POLL_INTERVAL = 60
 
+    POLL_ORCHEST_UPDATE_INFO_JSON = True
+    ORCHEST_UPDATE_INFO_JSON_PATH = "orchest_update_info.json"
+    ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL = 60
+
     # TODO: point readthedocs to stable instead of latest once stable
     #  is up
     ORCHEST_WEB_URLS = {
@@ -42,6 +46,10 @@ class Config:
         "orchest_examples_json": (
             "https://raw.githubusercontent.com/orchest/orchest-examples/main/"
             "orchest_examples_data.json"
+        ),
+        "orchest_update_info_json": (
+            "https://update-info.orchest.io/api/orchest/update-info/v1"
+            f'?version={os.getenv("ORCHEST_VERSION")}'
         ),
     }
 
@@ -161,6 +169,7 @@ class TestingConfig(Config):
     TESTING = True
     TELEMETRY_DISABLED = True
     POLL_ORCHEST_EXAMPLES_JSON = False
+    POLL_ORCHEST_UPDATE_INFO_JSON = False
 
     # No file logging.
     LOGGING_CONFIG = {

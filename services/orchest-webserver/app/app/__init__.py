@@ -31,7 +31,11 @@ from app.connections import db, ma
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import fetch_orchest_examples_json_to_disk, get_repo_tag
+from app.utils import (
+    fetch_orchest_examples_json_to_disk,
+    fetch_orchest_update_info_json_to_disk,
+    get_repo_tag,
+)
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -169,6 +173,16 @@ def create_app():
             fetch_orchest_examples_json_to_disk,
             "interval",
             minutes=app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"],
+            args=[app],
+        )
+
+    if app.config["POLL_ORCHEST_UPDATE_INFO_JSON"]:
+        fetch_orchest_update_info_json_to_disk(app)
+
+        scheduler.add_job(
+            fetch_orchest_update_info_json_to_disk,
+            "interval",
+            minutes=app.config["ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL"],
             args=[app],
         )
 
