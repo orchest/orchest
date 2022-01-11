@@ -614,9 +614,6 @@ Index(
     "ix_job_pipeline_runs_text_search",
     NonInteractivePipelineRun._NonInteractivePipelineRun__text_search_vector,
     postgresql_using="gin",
-    postgresql_ops={
-        "title": "gin_trgm_ops",
-    },
 )
 
 

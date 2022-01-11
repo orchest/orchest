@@ -26,7 +26,6 @@ def upgrade():
         ],
         unique=False,
         postgresql_using="gin",
-        postgresql_ops={"title": "gin_trgm_ops"},
     )
 
 
@@ -35,5 +34,4 @@ def downgrade():
         "ix_job_pipeline_runs_text_searchtest",
         table_name="pipeline_runs",
         postgresql_using="gin",
-        postgresql_ops={"title": "gin_trgm_ops"},
     )
