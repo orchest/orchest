@@ -552,6 +552,9 @@ job = Model(
                 "are in an end state that are over this number will be deleted."
             ),
         ),
+        "pipeline_run_status_counts": fields.Raw(
+            required=False, description="Aggregate of the job pipeline run statuses."
+        ),
     },
 )
 
