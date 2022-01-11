@@ -162,27 +162,28 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
             align={index === 0 ? "left" : headCell.align || "center"}
             padding={headCell.disablePadding ? "none" : "normal"}
             sortDirection={orderBy === headCell.id ? order : false}
-            sx={headCell.sx}
           >
-            {headCell.sortable ? (
-              <TableSortLabel
-                active={orderBy === headCell.id}
-                direction={orderBy === headCell.id ? order : "asc"}
-                disabled={disabled}
-                onClick={createSortHandler(headCell.id)}
-              >
-                {headCell.label}
-                {orderBy === headCell.id ? (
-                  <Box component="span" sx={visuallyHidden}>
-                    {order === "desc"
-                      ? "sorted descending"
-                      : "sorted ascending"}
-                  </Box>
-                ) : null}
-              </TableSortLabel>
-            ) : (
-              headCell.label
-            )}
+            <Box sx={headCell.sx}>
+              {headCell.sortable ? (
+                <TableSortLabel
+                  active={orderBy === headCell.id}
+                  direction={orderBy === headCell.id ? order : "asc"}
+                  disabled={disabled}
+                  onClick={createSortHandler(headCell.id)}
+                >
+                  {headCell.label}
+                  {orderBy === headCell.id ? (
+                    <Box component="span" sx={visuallyHidden}>
+                      {order === "desc"
+                        ? "sorted descending"
+                        : "sorted ascending"}
+                    </Box>
+                  ) : null}
+                </TableSortLabel>
+              ) : (
+                headCell.label
+              )}
+            </Box>
           </TableCell>
         ))}
       </TableRow>
@@ -190,10 +191,13 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
   );
 }
 
-const SkeletonContainer: React.FC<{
+// this container has built-in Skeleton
+// and by default, we limit height to ensure consistent rowHeight
+// it could be overwritten with sx if needed.
+const CellContainer: React.FC<{
   isLoading: boolean;
-  rowHeight: number;
-}> = ({ isLoading, rowHeight, children }) => {
+  sx?: SxProps<Theme>;
+}> = ({ isLoading, sx, children }) => {
   return (
     <>
       <Fade in={isLoading} unmountOnExit>
@@ -201,9 +205,7 @@ const SkeletonContainer: React.FC<{
           <Skeleton variant="text" />
         </Box>
       </Fade>
-      {!isLoading && (
-        <Box sx={{ maxHeight: rowHeight, overflowY: "hidden" }}>{children}</Box>
-      )}
+      {!isLoading && <Box sx={sx}>{children}</Box>}
     </>
   );
 };
@@ -277,12 +279,13 @@ function Row<T>({
           ...(!isLoading && !disabled && (selectable || onRowClick)
             ? { cursor: "pointer" }
             : null),
+          height: rowHeight,
         }}
         data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
       >
         {selectable && (
           <TableCell padding="checkbox" align="center">
-            <SkeletonContainer isLoading={isLoading} rowHeight={rowHeight}>
+            <CellContainer isLoading={isLoading}>
               <Checkbox
                 color="primary"
                 checked={isSelected}
@@ -291,28 +294,21 @@ function Row<T>({
                 inputProps={{ "aria-labelledby": labelId }}
                 data-test-id={`${tableId}-row-checkbox`}
               />
-            </SkeletonContainer>
+            </CellContainer>
           </TableCell>
         )}
-        <TableCell
-          component="th"
-          align="left"
-          id={labelId}
-          scope="row"
-          sx={columns[0].sx}
-        >
-          <SkeletonContainer isLoading={isLoading} rowHeight={rowHeight}>
+        <TableCell component="th" align="left" id={labelId} scope="row">
+          <CellContainer isLoading={isLoading} sx={columns[0].sx}>
             {renderCell(columns[0], data, disabled)}
-          </SkeletonContainer>
+          </CellContainer>
         </TableCell>
         {columns.slice(1).map((column) => {
           return (
             <TableCell
               key={column.id.toString()}
               align={column.align || "center"}
-              sx={column.sx}
             >
-              <SkeletonContainer isLoading={isLoading} rowHeight={rowHeight}>
+              <CellContainer isLoading={isLoading} sx={column.sx}>
                 {column.sortable ? (
                   <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
                     {renderCell(column, data, disabled)}
@@ -320,7 +316,7 @@ function Row<T>({
                 ) : (
                   renderCell(column, data, disabled)
                 )}
-              </SkeletonContainer>
+              </CellContainer>
             </TableCell>
           );
         })}
@@ -408,7 +404,11 @@ function generateLoadingRows<T>(
   }) as DataTableRow<T>[];
 }
 
-// 8 * N + 1 for the bottom-border width
+// always 8 * N + 1
+// 1px for the bottom-border width
+// * NOTE: try not to create exceptions and adhere to these pre-defined value
+// if you put Icons in the rows, give negative top/bottom margin (usually -4px)
+// to counter-balance the Table Cell padding
 enum FIXED_ROW_HEIGHT {
   MEDIUM = 57,
   SMALL = 33,

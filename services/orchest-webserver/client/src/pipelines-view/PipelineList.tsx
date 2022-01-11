@@ -8,6 +8,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import { IOrchestSession } from "@/types";
+import { ellipsis } from "@/utils/styles";
 import { checkGate } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
@@ -84,15 +85,13 @@ const getColumns = (
   {
     id: "name",
     label: "Pipeline",
-    sx: { maxWidth: "30%", wordBreak: "break-word" },
+    sx: ellipsis("30vw"),
   },
   {
     id: "path",
     label: "Path",
-    sx: {
-      maxWidth: "30%",
-      wordBreak: "break-word",
-    },
+    align: "left",
+    sx: { margin: (theme) => theme.spacing(-0.5, 0) },
     render: function PipelineName(row) {
       return (
         <Stack
@@ -101,7 +100,6 @@ const getColumns = (
           component="span"
           sx={{
             display: "inline-flex",
-            marginLeft: (theme) => theme.spacing(6),
             button: { visibility: "hidden" },
             "&:hover": {
               button: { visibility: "visible" },
@@ -109,7 +107,9 @@ const getColumns = (
           }}
           data-test-id="pipeline-path"
         >
-          {row.path}
+          <Box component="span" sx={ellipsis("30vw")}>
+            {row.path}
+          </Box>
           <IconButton
             title="Edit pipeline path"
             size="small"
@@ -129,18 +129,20 @@ const getColumns = (
   {
     id: "sessionStatus",
     label: "Session",
+    align: "left",
+    sx: {
+      margin: (theme) => theme.spacing(-0.5, 0),
+      paddingLeft: (theme) => theme.spacing(2),
+      minWidth: (theme) => theme.spacing(26),
+    },
     render: function SessionStatus(row) {
       return (
-        <Box
-          sx={{ minWidth: (theme) => theme.spacing(26), textAlign: "center" }}
-        >
-          <SessionToggleButton
-            projectUuid={projectUuid}
-            pipelineUuid={row.uuid}
-            status={row.sessionStatus}
-            isSwitch
-          />
-        </Box>
+        <SessionToggleButton
+          projectUuid={projectUuid}
+          pipelineUuid={row.uuid}
+          status={row.sessionStatus}
+          isSwitch
+        />
       );
     },
   },
@@ -167,6 +169,7 @@ const PipelinePathTextField: React.FC<{
     <TextField
       margin="normal"
       fullWidth
+      multiline
       autoFocus
       value={value}
       label="Pipeline path"
@@ -439,7 +442,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
             columns={columns}
             rows={pipelineRows}
             onRowClick={onRowClick}
-            rowHeight={63}
             deleteSelectedRows={onDeletePipelines}
           />
         </>

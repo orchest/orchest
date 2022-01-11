@@ -105,6 +105,7 @@ const ProjectsView: React.FC = () => {
       {
         id: "path",
         label: "Project",
+        sx: { margin: (theme) => theme.spacing(-0.5, 0) },
         render: function ProjectPath(row, disabled) {
           return (
             <Stack
@@ -143,6 +144,7 @@ const ProjectsView: React.FC = () => {
       {
         id: "settings",
         label: "Settings",
+        sx: { margin: (theme) => theme.spacing(-0.5, 0) },
         render: function ProjectSettingsButton(row, disabled) {
           return (
             <IconButton
@@ -534,7 +536,6 @@ const ProjectsView: React.FC = () => {
               selectable
               hideSearch
               onRowClick={onRowClick}
-              rowHeight={63}
               deleteSelectedRows={deleteSelectedRows}
               columns={columns}
               rows={projectRows}

@@ -71,8 +71,11 @@ const isWorking = (status: TSessionStatus) =>
 /* Fetchers
   =========================================== */
 
-const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
-  fetcher([ENDPOINT, projectUuid, "/", pipelineUuid].join(""), {
+export const stopSession = ({
+  pipelineUuid,
+  projectUuid,
+}: IOrchestSessionUuid) =>
+  fetcher(`${ENDPOINT}${projectUuid}/${pipelineUuid}`, {
     method: "DELETE",
   });
 
