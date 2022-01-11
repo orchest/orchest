@@ -481,9 +481,10 @@ def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
                 "Internal race condition triggered in docker_client.images.list(): %s"
                 % e
             )
+            return []
         except Exception as e:
             logging.debug("Failed to call docker_client.images.list(): %s" % e)
-            return None
+            return []
 
 
 def is_werkzeug_parent():
