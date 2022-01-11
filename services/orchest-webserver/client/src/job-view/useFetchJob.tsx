@@ -12,7 +12,12 @@ export const useFetchJob = (jobUuid?: string) => {
   const [job, setJob] = React.useState<Job>();
 
   const fetchJob = React.useCallback(() => {
-    if (jobUuid) run(fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`));
+    if (jobUuid)
+      run(
+        fetcher(
+          `/catch/api-proxy/api/jobs/${jobUuid}?aggregate_run_statuses=true`
+        )
+      );
   }, [jobUuid, run]);
 
   React.useEffect(() => {

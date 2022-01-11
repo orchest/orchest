@@ -250,6 +250,7 @@ export type Job = {
   strategy_json: StrategyJson;
   env_variables: Record<string, string>;
   max_retained_pipeline_runs: number;
+  pipeline_run_status_counts: Record<TStatus, number>;
 };
 
 export type Step = {
