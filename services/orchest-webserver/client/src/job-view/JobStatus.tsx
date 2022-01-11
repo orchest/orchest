@@ -1,45 +1,27 @@
-import { StatusGroup, TStatus } from "@/components/Status";
+import { StatusGroup } from "@/components/Status";
 import theme from "@/theme";
-import { PipelineRun } from "@/types";
+import { Job } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
 import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
 
-export const JobStatus: React.FC<{
-  status?: TStatus;
-  pipeline_runs?: PipelineRun[];
-}> = ({ status, pipeline_runs = [] }) => {
-  const count = pipeline_runs.reduce(
-    (acc, cv, i) =>
-      cv && {
-        ...acc,
-        [cv.status]: acc[cv.status] + 1,
-        total: i + 1,
-      },
-    {
-      ABORTED: 0,
-      PENDING: 0,
-      STARTED: 0,
-      SUCCESS: 0,
-      FAILURE: 0,
-      total: 0,
-    }
+export const JobStatus: React.FC<Pick<
+  Job,
+  "status" | "pipeline_run_status_counts"
+>> = ({ status, pipeline_run_status_counts: count }) => {
+  const totalCount = Object.values(count).reduce(
+    (sum, current) => sum + current,
+    0
   );
-
   const getJobStatusVariant = () => {
     if (["STARTED", "PAUSED", "SUCCESS", "ABORTED"].includes(status))
       return status;
 
-    if (
-      ["PENDING"].includes(status) &&
-      count.PENDING + count.STARTED === count.total
-    )
+    if (status === "PENDING" && count.PENDING + count.STARTED === totalCount)
       return "PENDING";
 
-    if (status === "FAILURE" && count.ABORTED + count.FAILURE === count.total)
-      return "FAILURE";
+    if (count.ABORTED + count.FAILURE === totalCount) return "FAILURE";
 
-    if (status === "FAILURE") return "MIXED_FAILURE";
     if (status === "PENDING") return "MIXED_PENDING";
 
     return status;
@@ -50,7 +32,7 @@ export const JobStatus: React.FC<{
     <StatusGroup
       status={status}
       icon={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
+        variant === "MIXED_PENDING" && (
           <PieChart
             startAngle={270}
             background={theme.palette.background.default}
@@ -89,7 +71,7 @@ export const JobStatus: React.FC<{
         }[variant]
       }
       description={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
+        variant === "MIXED_PENDING" &&
         [
           commaSeparatedString(
             [
@@ -98,7 +80,7 @@ export const JobStatus: React.FC<{
               count.SUCCESS && [count.SUCCESS, "successful"].join(" "),
             ].filter(Boolean)
           ),
-          count.total > 1 ? "pipeline runs" : "pipeline run",
+          `pipeline run${totalCount > 1 ? "s" : ""}`,
         ].join(" ")
       }
       data-test-id="job-status"

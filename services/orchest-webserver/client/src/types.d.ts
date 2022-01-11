@@ -181,7 +181,13 @@ export type EnvironmentBuild = {
   uuid: string;
 };
 
-export type JobStatus = "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+export type JobStatus =
+  | "DRAFT"
+  | "PENDING"
+  | "STARTED"
+  | "PAUSED"
+  | "SUCCESS"
+  | "ABORTED";
 
 export type PipelineRun = {
   uuid: string;

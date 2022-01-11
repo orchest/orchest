@@ -279,7 +279,7 @@ function Row<T>({
           ...(!isLoading && !disabled && (selectable || onRowClick)
             ? { cursor: "pointer" }
             : null),
-          height: rowHeight,
+          height: data.details ? rowHeight - 1 : rowHeight,
         }}
         data-test-id={isLoading ? "loading-table-row" : `${tableId}-row`}
       >
