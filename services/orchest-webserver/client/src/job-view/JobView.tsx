@@ -197,7 +197,10 @@ const JobView: React.FC = () => {
               items={[
                 { term: "Name", details: job.name },
                 { term: "Pipeline", details: job.pipeline_name },
-                { term: "Status", details: <JobStatus {...job} /> },
+                {
+                  term: "Status",
+                  details: <JobStatus {...job} totalCount={totalRunCount} />,
+                },
                 {
                   term: "Schedule",
                   details: (

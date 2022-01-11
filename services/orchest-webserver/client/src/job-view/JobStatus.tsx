@@ -1,28 +1,37 @@
-import { StatusGroup } from "@/components/Status";
+import { StatusGroup, TStatus } from "@/components/Status";
 import theme from "@/theme";
 import { Job } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
 import React from "react";
 import { PieChart } from "react-minimal-pie-chart";
 
-export const JobStatus: React.FC<Pick<
-  Job,
-  "status" | "pipeline_run_status_counts"
->> = ({ status, pipeline_run_status_counts: count }) => {
-  const totalCount = Object.values(count).reduce(
-    (sum, current) => sum + current,
-    0
-  );
-  const getJobStatusVariant = () => {
-    if (["STARTED", "PAUSED", "SUCCESS", "ABORTED"].includes(status))
-      return status;
+const getSummedCount = (
+  countObj: Record<TStatus, number | undefined>,
+  keys: string[]
+) => {
+  return keys.reduce((sum, key) => sum + (countObj[key] || 0), 0);
+};
 
-    if (status === "PENDING" && count.PENDING + count.STARTED === totalCount)
+export const JobStatus: React.FC<
+  { totalCount: number } & Pick<Job, "status" | "pipeline_run_status_counts">
+> = ({ status, totalCount, pipeline_run_status_counts: count }) => {
+  const isJobDone = status === "SUCCESS" || status === "ABORTED";
+  const totalPendingCount = getSummedCount(count, ["PENDING", "STARTED"]);
+  const totalFailureCount = getSummedCount(count, ["ABORTED", "FAILURE"]);
+  const totalSuccessCount = getSummedCount(count, ["SUCCESS"]);
+
+  const getJobStatusVariant = () => {
+    if (status === "PENDING" && totalSuccessCount + totalFailureCount > 0)
+      return "MIXED_PENDING";
+    if (status === "PENDING" && totalPendingCount === totalCount)
       return "PENDING";
 
-    if (count.ABORTED + count.FAILURE === totalCount) return "FAILURE";
+    if (!isJobDone) return status;
 
-    if (status === "PENDING") return "MIXED_PENDING";
+    if (totalSuccessCount === totalCount) return "SUCCESS";
+    if (totalFailureCount === totalCount) return "FAILURE";
+    if (totalFailureCount !== totalCount && totalFailureCount > 0)
+      return "MIXED_FAILURE";
 
     return status;
   };
@@ -32,7 +41,7 @@ export const JobStatus: React.FC<Pick<
     <StatusGroup
       status={status}
       icon={
-        variant === "MIXED_PENDING" && (
+        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
           <PieChart
             startAngle={270}
             background={theme.palette.background.default}
@@ -42,17 +51,17 @@ export const JobStatus: React.FC<Pick<
               {
                 title: "Pending",
                 color: theme.palette.warning.main,
-                value: count.PENDING + count.STARTED,
+                value: totalPendingCount,
               },
               {
                 title: "Failed",
                 color: theme.palette.error.main,
-                value: count.FAILURE + count.ABORTED,
+                value: totalFailureCount,
               },
               {
                 title: "Success",
                 color: theme.palette.success.main,
-                value: count.SUCCESS,
+                value: count.SUCCESS || 0,
               },
             ]}
           />
@@ -71,7 +80,7 @@ export const JobStatus: React.FC<Pick<
         }[variant]
       }
       description={
-        variant === "MIXED_PENDING" &&
+        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
         [
           commaSeparatedString(
             [
