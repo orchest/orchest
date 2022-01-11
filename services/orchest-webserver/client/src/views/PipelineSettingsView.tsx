@@ -193,12 +193,11 @@ const PipelineSettingsView: React.FC = () => {
     });
 
   // local states
+  const [pipelinePath, setPipelinePath] = React.useState<string>();
   const [inputParameters, setInputParameters] = React.useState<string>(
     JSON.stringify({}, null, 2)
   );
-  const { data: pipelineJson, mutate, revalidate: fetchPipeline } = useSWR<
-    PipelineJson
-  >(
+  const { data: pipelineJson, mutate } = useSWR<PipelineJson>(
     getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid),
     fetchPipelineJson((data) => {
       setHeaderComponent(data.name);
@@ -215,7 +214,6 @@ const PipelineSettingsView: React.FC = () => {
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
 
-  // const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [servicesChanged, setServicesChanged] = React.useState(false);
 
   const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
@@ -226,7 +224,6 @@ const PipelineSettingsView: React.FC = () => {
 
   const [state, setState] = React.useState({
     restartingMemoryServer: false,
-    pipeline_path: undefined,
     projectEnvVariables: [],
     environmentVariablesChanged: false,
   });
@@ -250,11 +247,6 @@ const PipelineSettingsView: React.FC = () => {
   const [overflowListener] = React.useState(new OverflowListener());
   const promiseManagerRef = React.useRef(new PromiseManager<string>());
 
-  // const fetchPipelineData = () => {
-  //   fetchPipeline();
-  //   fetchPipelineMetadata();
-  // };
-
   const hasLoaded = () => {
     return (
       pipelineJson && envVariables && (isReadOnly || state.projectEnvVariables)
@@ -263,7 +255,6 @@ const PipelineSettingsView: React.FC = () => {
 
   // Fetch pipeline data on initial mount
   React.useEffect(() => {
-    // fetchPipelineData();
     fetchPipelineMetadata();
     return () => promiseManagerRef.current.cancelCancelablePromises();
   }, []);
@@ -349,11 +340,7 @@ const PipelineSettingsView: React.FC = () => {
         let pipeline = JSON.parse(response);
 
         _setEnvVariables(envVariablesDictToArray(pipeline["env_variables"]));
-
-        setState((prevState) => ({
-          ...prevState,
-          pipeline_path: pipeline.path,
-        }));
+        setPipelinePath(pipeline.path);
       });
 
       // get project environment variables
@@ -405,10 +392,7 @@ const PipelineSettingsView: React.FC = () => {
         .then((values) => {
           let [pipeline_path, envVariables] = values;
           _setEnvVariables(envVariables);
-          setState((prevState) => ({
-            ...prevState,
-            pipeline_path,
-          }));
+          setPipelinePath(pipeline_path);
         })
         .catch((err) => console.log(err));
     }
@@ -497,7 +481,7 @@ const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
-  const saveGeneralForm = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const saveGeneralForm = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     // Remove order property from services
@@ -537,38 +521,42 @@ const PipelineSettingsView: React.FC = () => {
     let formData = new FormData();
     formData.append("pipeline_json", JSON.stringify(cleanedPipelineJson));
 
-    makeRequest(
-      "POST",
-      `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-      { type: "FormData", content: formData }
-    )
-      .then((response: string) => {
-        let result = JSON.parse(response);
-        if (result.success) {
-          setState((prevState) => ({
-            ...prevState,
-          }));
-          setAsSaved();
+    Promise.allSettled([
+      makeRequest(
+        "POST",
+        `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
+        { type: "FormData", content: formData }
+      )
+        .then((response: string) => {
+          let result = JSON.parse(response);
+          if (result.success) {
+            // Sync name changes with the global context
+            projectsContext.dispatch({
+              type: "pipelineSet",
+              payload: { pipelineName: pipelineJson?.name },
+            });
+          }
+        })
+        .catch((response) => {
+          setAlert(
+            "Error",
+            "Could not save: pipeline definition OR Notebook JSON"
+          );
 
-          // Sync name changes with the global context
-          projectsContext.dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineName: pipelineJson?.name,
-            },
-          });
-        }
-      })
-      .catch((response) => {
-        console.error("Could not save: pipeline definition OR Notebook JSON");
+          console.error(response);
+          return Promise.reject(response);
+        }),
+      makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+        type: "json",
+        content: { env_variables: envVariablesObj.value },
+      }).catch((response) => {
+        setAlert("Error", "Could not save: environment variables");
         console.error(response);
-      });
-
-    makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-      type: "json",
-      content: { env_variables: envVariablesObj.value },
-    }).catch((response) => {
-      console.error(response);
+        return Promise.reject(response);
+      }),
+    ]).then((value) => {
+      const isAllSaved = !value.some((p) => p.status === "rejected");
+      setAsSaved(isAllSaved);
     });
   };
 
@@ -757,13 +745,11 @@ const PipelineSettingsView: React.FC = () => {
                         <h3>Path</h3>
                       </div>
                       <div className="column">
-                        {state.pipeline_path && (
-                          <Box sx={{ width: "100%" }}>
-                            <Code sx={{ wordBreak: "break-word" }}>
-                              {state.pipeline_path}
-                            </Code>
-                          </Box>
-                        )}
+                        <Box sx={{ width: "100%" }}>
+                          <Code sx={{ wordBreak: "break-word" }}>
+                            {pipelinePath}
+                          </Code>
+                        </Box>
                       </div>
                       <div className="clear"></div>
                     </div>

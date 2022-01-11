@@ -80,7 +80,7 @@ const deletePipelines = (projectUuid: string, pipelineUuid: string) => {
 
 const getColumns = (
   projectUuid: string,
-  onEditPath: (uuid: string, path: string) => void
+  onEditPath: (uuid: string, path: string, sessionStatus: SessionStatus) => void
 ): DataTableColumn<PipelineRowData>[] => [
   {
     id: "name",
@@ -116,7 +116,7 @@ const getColumns = (
             sx={{ marginLeft: (theme) => theme.spacing(2) }}
             onClick={(e: React.MouseEvent<unknown>) => {
               e.stopPropagation();
-              onEditPath(row.uuid, row.path);
+              onEditPath(row.uuid, row.path, row.sessionStatus);
             }}
             data-test-id="pipeline-edit-path"
           >
@@ -148,6 +148,8 @@ const getColumns = (
   },
 ];
 
+const isValidPath = (value: string) => (value || "").endsWith(".orchest");
+
 const PipelinePathTextField: React.FC<{
   value: string;
   onChange: (value: string) => void;
@@ -165,6 +167,8 @@ const PipelinePathTextField: React.FC<{
     }
   }, [value]);
 
+  const isValid = isValidPath(value);
+
   return (
     <TextField
       margin="normal"
@@ -173,6 +177,8 @@ const PipelinePathTextField: React.FC<{
       autoFocus
       value={value}
       label="Pipeline path"
+      error={!isValid}
+      helperText={!isValid ? "path should end in the .orchest extension" : ""}
       inputRef={pathInputRef}
       onChange={(e) => {
         const value = e.target.value;
@@ -206,6 +212,7 @@ const EditProjectPathDialog = ({
   onClose: () => void;
   disabled: boolean;
 }) => {
+  const isValid = isValidPath(pipelineInEdit?.path || "");
   return (
     <Dialog fullWidth maxWidth="xs" open={isOpen} onClose={onClose}>
       <form
@@ -235,7 +242,7 @@ const EditProjectPathDialog = ({
           <Button
             variant="contained"
             startIcon={<SaveIcon />}
-            disabled={disabled}
+            disabled={!isValid || disabled}
             type="submit"
             form="edit-pipeline-path"
             data-test-id="pipeline-edit-path-save"
@@ -280,9 +287,10 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     uuid: string;
     path: string;
   }>(null);
+  const [isEditingPath, setIsEditingPath] = React.useState(false);
 
   const onCloseEditPipelineModal = () => {
-    setPipelineInEdit(null);
+    setIsEditingPath(false);
   };
 
   const onSubmitEditPipelinePathModal = () => {
@@ -320,10 +328,18 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
 
   // Preparing Pipelines DataTable
   const onEditClick = React.useCallback(
-    (uuid: string, path: string) => {
+    (uuid: string, path: string, sessionStatus: SessionStatus) => {
+      if (!["", "STOPPING"].includes(sessionStatus)) {
+        setAlert(
+          "Warning",
+          "In order to change a pipeline path, you need to stop its session."
+        );
+        return;
+      }
       setPipelineInEdit({ uuid, path });
+      setIsEditingPath(true);
     },
-    [setPipelineInEdit]
+    [setPipelineInEdit, setAlert]
   );
   const columns = React.useMemo(() => {
     return getColumns(projectUuid, onEditClick);
@@ -429,7 +445,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           <EditProjectPathDialog
             pipelineInEdit={pipelineInEdit}
             setPipelineInEdit={setPipelineInEdit}
-            isOpen={pipelineInEdit !== null}
+            isOpen={isEditingPath}
             onSubmit={onSubmitEditPipelinePathModal}
             onClose={onCloseEditPipelineModal}
             disabled={isOperating}
