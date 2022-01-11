@@ -7,6 +7,7 @@ __pycache__/
 *.so
 
 .vscode/
+orchest.code-workspace
 
 # Build artifacts
 #  These files are only present during the build process, but we'll add them to

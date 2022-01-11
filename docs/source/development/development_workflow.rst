@@ -52,6 +52,43 @@ to install the dependencies of the services in the correct virtual environment. 
 
    scripts/run_tests.sh
 
+Next you can create a workspace file that sets up VS Code to use the right Python interpreters (do
+note that this won't include all the files defined in the Orchest repo), e.g.:
+
+.. code-block:: json
+
+    {
+        "folders": [
+            {
+                "path": "services/orchest-api"
+            },
+            {
+                "path": "services/orchest-webserver"
+            },
+            {
+                "path": "services/base-images/runnable-shared"
+            },
+            {
+                "path": "services/orchest-ctl"
+            },
+            {
+                "path": "services/session-sidecar"
+            },
+            {
+                "path": "services/memory-server"
+            },
+            {
+                "name": "orchest-sdk",
+                "path": "orchest-sdk/python"
+            },
+            {
+                "name": "internal lib Python",
+                "path": "lib/python/orchest-internals/"
+            }
+        ],
+        "settings": {}
+    }
+
 Building Orchest
 ----------------
 Last but not least, Orchest needs to be build from source:
