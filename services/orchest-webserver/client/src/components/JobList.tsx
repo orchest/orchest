@@ -1,7 +1,8 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/routingConfig";
-import { Job, JobStatus, Project } from "@/types";
+import { EnvironmentValidationData, Job, JobStatus, Project } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -23,13 +24,7 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  fetcher,
-  HEADER,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { IconButton } from "./common/IconButton";
@@ -41,6 +36,203 @@ type DisplayedJob = {
   pipeline: string;
   snapShotDate: string;
   status: JobStatus;
+};
+
+const CreateJobDialog = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  pipelines = [],
+  selectedPipeline,
+  setSelectedPipeline,
+  projectSnapshotSize = 0,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (jobName: string, pipelineUuid: string) => Promise<void>;
+  pipelines: Pipeline[];
+  selectedPipeline?: string;
+  setSelectedPipeline: (uuid: string) => void;
+  projectSnapshotSize?: number;
+}) => {
+  const [isCreatingJob, setIsCreatingJob] = React.useState(false);
+  const [jobName, setJobName] = React.useState("");
+
+  const closeDialog = !isCreatingJob ? onClose : undefined;
+
+  React.useEffect(() => {
+    if (pipelines && pipelines.length > 0) {
+      setSelectedPipeline(pipelines[0].uuid);
+    }
+    return () => setSelectedPipeline(undefined);
+  }, [pipelines, setSelectedPipeline]);
+
+  const hasOnlySpaces = jobName.length > 0 && jobName.trim().length === 0;
+
+  return (
+    <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
+      <form
+        id="create-job"
+        className="create-job-modal"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsCreatingJob(true);
+          await onSubmit(jobName.trim(), selectedPipeline);
+          setIsCreatingJob(false);
+        }}
+      >
+        <DialogTitle>Create a new job</DialogTitle>
+        <DialogContent>
+          {isCreatingJob ? (
+            <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+              <LinearProgress />
+              <Typography sx={{ margin: (theme) => theme.spacing(1, 0) }}>
+                Copying pipeline directory...
+              </Typography>
+            </Box>
+          ) : (
+            <Stack direction="column" spacing={2}>
+              {projectSnapshotSize > 50 && (
+                <Alert severity="warning">
+                  {`Snapshot size exceeds 50MB. Please refer to the `}
+                  <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
+                    docs
+                  </Link>
+                  .
+                </Alert>
+              )}
+              <FormControl fullWidth>
+                <TextField
+                  required
+                  margin="normal"
+                  value={jobName}
+                  autoFocus
+                  error={hasOnlySpaces}
+                  helperText={
+                    hasOnlySpaces
+                      ? "Should contain at least one non-whitespace letter"
+                      : ""
+                  }
+                  onChange={(e) => setJobName(e.target.value)}
+                  label="Job name"
+                  data-test-id="job-create-name"
+                />
+              </FormControl>
+              <FormControl fullWidth>
+                <InputLabel id="select-pipeline-label">Pipeline</InputLabel>
+                <Select
+                  required
+                  labelId="select-pipeline-label"
+                  id="select-pipeline"
+                  value={selectedPipeline}
+                  label="Pipeline"
+                  onChange={(e) => setSelectedPipeline(e.target.value)}
+                >
+                  {pipelines.map((pipeline) => {
+                    return (
+                      <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
+                        {pipeline.name}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button color="secondary" onClick={closeDialog}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            disabled={
+              !jobName || hasOnlySpaces || !selectedPipeline || isCreatingJob
+            }
+            type="submit"
+            form="create-job"
+            data-test-id="job-create-ok"
+          >
+            Create
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+};
+
+const EditJobNameDialog = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  currentValue,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (newName: string) => Promise<void>;
+  currentValue: string;
+}) => {
+  const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
+  const [jobName, setJobName] = React.useState("");
+
+  React.useEffect(() => {
+    if (isOpen && currentValue) setJobName(currentValue);
+  }, [isOpen, currentValue]);
+
+  const closeDialog = !isSubmittingJobName ? onClose : undefined;
+  const hasOnlySpaces = jobName.length > 0 && jobName.trim().length === 0;
+
+  return (
+    <Dialog fullWidth maxWidth="xs" open={isOpen} onClose={closeDialog}>
+      <form
+        id="edit-job-name"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          setIsSubmittingJobName(true);
+          await onSubmit(jobName);
+          setIsSubmittingJobName(false);
+          onClose();
+        }}
+      >
+        <DialogTitle>Edit job name</DialogTitle>
+        <DialogContent>
+          <TextField
+            required
+            margin="normal"
+            fullWidth
+            error={hasOnlySpaces}
+            helperText={
+              hasOnlySpaces
+                ? "Should contain at least one non-whitespace letter"
+                : ""
+            }
+            value={jobName}
+            label="Job name"
+            autoFocus
+            onChange={(e) => setJobName(e.target.value)}
+            data-test-id="job-edit-name-textfield"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button startIcon={<CloseIcon />} onClick={closeDialog}>
+            Cancel
+          </Button>
+          <Button
+            startIcon={<SaveIcon />}
+            disabled={isSubmittingJobName || jobName.length === 0}
+            variant="contained"
+            type="submit"
+            form="edit-job-name"
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
 };
 
 const createColumns = ({
@@ -92,6 +284,37 @@ const createColumns = ({
   },
 ];
 
+const doCreateJob = async (
+  projectUuid: string,
+  newJobName: string,
+  pipelineUuid: string,
+  pipelineName: string
+) => {
+  await checkGate(projectUuid);
+  return fetcher<Job>("/catch/api-proxy/api/jobs/", {
+    method: "POST",
+    headers: HEADER.JSON,
+    body: JSON.stringify({
+      pipeline_uuid: pipelineUuid,
+      project_uuid: projectUuid,
+      pipeline_name: pipelineName, // ? Question: why pipeline_name is needed when pipeline_uuid is given?
+      name: newJobName,
+      draft: true,
+      pipeline_run_spec: {
+        run_type: "full",
+        uuids: [],
+      },
+      parameters: [],
+    }),
+  });
+};
+
+type Pipeline = {
+  uuid: string;
+  path: string;
+  name: string;
+};
+
 const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
@@ -99,8 +322,9 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const {
     data: jobs = [],
     error: fetchJobsError,
-    isValidating,
+    isValidating: isFetchingJobs,
     revalidate: fetchJobs,
+    mutate: setJobs,
   } = useSWR(
     projectUuid
       ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
@@ -109,46 +333,47 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       fetcher<{ jobs: Job[] }>(url).then((response) => response.jobs)
   );
 
+  const { data: pipelines = [] } = useSWR(
+    projectUuid ? `/async/pipelines/${projectUuid}` : null,
+    (url: string) =>
+      fetcher<{
+        success: boolean;
+        result: Pipeline[];
+      }>(url)
+        .then((response) => response.result)
+        .catch((e) => {
+          if (e && e.status == 404) {
+            navigateTo(siteMap.projects.path);
+          }
+        })
+  );
+
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+
+  const { data: projectSnapshotSize = 0 } = useSWR(
+    projectUuid && isCreateDialogOpen ? `/async/projects/${projectUuid}` : null,
+    (url: string) =>
+      fetcher<Project>(url)
+        .then((response) => response.project_snapshot_size)
+        .catch((e) => console.error(e))
+  );
+
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
-  const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
 
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
-
-  const [pipelines, setPipelines] = React.useState<
-    { uuid: string; path: string; name: string }[]
-  >([]);
   const [selectedPipeline, setSelectedPipeline] = React.useState<
     string | undefined
   >();
-
-  const [projectSnapshotSize, setProjectSnapshotSize] = React.useState(0);
-
-  const [isCreatingJob, setIsCreatingJob] = React.useState(false);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
-
-  const promiseManager = React.useRef(new PromiseManager());
 
   React.useEffect(() => {
     if (fetchJobsError)
       setAlert("Error", `Failed to fetch jobs: ${fetchJobsError}`);
   }, [fetchJobsError, setAlert]);
 
-  const fetchProjectDirSize = async () => {
-    try {
-      const result = await fetcher<Project>(`/async/projects/${projectUuid}`);
-      setProjectSnapshotSize(result.project_snapshot_size);
-    } catch (e) {
-      // handle this error silently
-      console.error(e);
-    }
-  };
-
   const onCreateClick = () => {
     if (pipelines !== undefined && pipelines.length > 0) {
       setIsCreateDialogOpen(true);
-      setSelectedPipeline(pipelines[0].uuid);
-      setJobName("");
     } else {
       setAlert("Error", "Could not find any pipelines for this project.");
     }
@@ -183,72 +408,52 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     );
   };
 
-  const createJob = (newJobName: string, pipelineUuid: string) => {
-    // TODO: in this part of the flow copy the pipeline directory to make
-    // sure the pipeline no longer changes
-    setIsCreatingJob(true);
+  const { run, error: createJobError } = useAsync<
+    void,
+    { reason: string; data: EnvironmentValidationData; message: string }
+  >();
 
-    const pipelineName = pipelines.find(
-      (pipeline) => pipeline.uuid === pipelineUuid
-    )?.name;
+  const createJob = React.useCallback(
+    async (newJobName: string, pipelineUuid: string) => {
+      setJobName(newJobName);
+      // TODO: in this part of the flow copy the pipeline directory to make
+      // sure the pipeline no longer changes
 
-    checkGate(projectUuid)
-      .then(() => {
-        let postJobPromise = makeCancelable(
-          makeRequest("POST", "/catch/api-proxy/api/jobs/", {
-            type: "json",
-            content: {
-              pipeline_uuid: pipelineUuid,
-              project_uuid: projectUuid,
-              pipeline_name: pipelineName, // ? Question: why pipeline_name is needed when pipeline_uuid is given?
-              name: newJobName,
-              draft: true,
-              pipeline_run_spec: {
-                run_type: "full",
-                uuids: [],
-              },
-              parameters: [],
-            },
-          }),
-          promiseManager.current
-        );
+      const pipelineName = pipelines.find(
+        (pipeline) => pipeline.uuid === pipelineUuid
+      )?.name;
 
-        postJobPromise.promise
-          .then((response: string) => {
-            let job = JSON.parse(response);
+      return run(
+        doCreateJob(projectUuid, newJobName, pipelineUuid, pipelineName).then(
+          (job) => {
             navigateTo(siteMap.editJob.path, {
               query: {
                 projectUuid,
                 jobUuid: job.uuid,
               },
             });
-          })
-          .catch((response) => {
-            if (!response.isCanceled) {
-              try {
-                let result = JSON.parse(response.body);
+          }
+        )
+      );
+    },
+    [pipelines, run, navigateTo, projectUuid]
+  );
 
-                setIsCreateDialogOpen(false);
-                setIsCreatingJob(false);
-                setAlert("Error", `Failed to create job. ${result.message}`);
-              } catch (error) {
-                console.log(error);
-              }
-            }
-          });
-      })
-      .catch((result) => {
-        if (result.reason === "gate-failed") {
-          setIsCreateDialogOpen(false);
-          setIsCreatingJob(false);
+  React.useEffect(() => {
+    if (createJobError) {
+      setIsCreateDialogOpen(false);
 
-          requestBuild(projectUuid, result.data, "CreateJob", () => {
-            setIsCreateDialogOpen(true);
-            createJob(newJobName, pipelineUuid);
-          });
-        }
-      });
-  };
+      if (createJobError.reason === "gate-failed") {
+        requestBuild(projectUuid, createJobError.data, "CreateJob", () => {
+          setIsCreateDialogOpen(true);
+          createJob(jobName, selectedPipeline);
+        });
+        return;
+      }
+
+      setAlert("Error", `Failed to create job. ${createJobError.message}`);
+    }
+  }, [createJobError, setAlert, requestBuild, createJob]);
 
   const onRowClick = (uuid: string) => {
     const foundJob = jobs.find((job) => job.uuid === uuid);
@@ -266,119 +471,44 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const columns = React.useMemo(() => {
     const onEditJobNameClick = (newJobUuid: string, newJobName: string) => {
-      setIsEditingJobName(true);
       setJobName(newJobName);
       setJobUuid(newJobUuid);
+      setIsEditingJobName(true);
     };
     return createColumns({ onEditJobNameClick });
   }, []);
 
   const onCloseEditJobNameModal = () => {
-    setIsSubmittingJobName(false);
     setIsEditingJobName(false);
     setJobName("");
   };
 
-  const onSubmitEditJobNameModal = async () => {
-    setIsSubmittingJobName(true);
-
+  const onSubmitEditJobNameModal = async (newJobName: string) => {
     try {
       await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
         method: "PUT",
         headers: HEADER.JSON,
-        body: JSON.stringify({ name: jobName }),
+        body: JSON.stringify({ name: newJobName.trim() }),
       });
-      await fetchJobs();
-      onCloseEditJobNameModal();
+      setJobs((currentJobs) => {
+        const found = currentJobs.find(
+          (currentJob) => currentJob.uuid === jobUuid
+        );
+        found.name = newJobName;
+        return currentJobs;
+      }, false);
     } catch (e) {
-      setAlert(
-        "Error",
-        `Failed to update job name: ${JSON.stringify(e)}`,
-        onCloseEditJobNameModal
-      );
+      setAlert("Error", `Failed to update job name: ${JSON.stringify(e)}`);
     }
   };
 
-  React.useEffect(() => {
-    // retrieve pipelines once on component render
-    let pipelinePromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${projectUuid}`),
-      promiseManager.current
-    );
-
-    pipelinePromise.promise
-      .then((response: string) => {
-        let result = JSON.parse(response);
-        setPipelines(result.result);
-      })
-      .catch((e) => {
-        if (e && e.status == 404) {
-          navigateTo(siteMap.projects.path);
-        }
-        console.log(e);
-      });
-
-    // retrieve jobs
-    fetchJobs();
-    // get size of project dir to show warning if necessary
-    fetchProjectDirSize();
-
-    return () => promiseManager.current.cancelCancelablePromises();
-  }, [projectUuid]);
-
   const closeCreateDialog = () => {
     setIsCreateDialogOpen(false);
-    setJobName("");
-    setSelectedPipeline(undefined);
   };
 
   return (
     <div className={"jobs-page"}>
-      <Dialog
-        fullWidth
-        maxWidth="xs"
-        open={isEditingJobName}
-        onClose={onCloseEditJobNameModal}
-      >
-        <form
-          id="edit-job-name"
-          onSubmit={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onSubmitEditJobNameModal();
-          }}
-        >
-          <DialogTitle>Edit job name</DialogTitle>
-          <DialogContent>
-            <TextField
-              margin="normal"
-              fullWidth
-              value={jobName}
-              label="Job name"
-              autoFocus
-              onChange={(e) => setJobName(e.target.value)}
-              data-test-id="job-edit-name-textfield"
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button startIcon={<CloseIcon />} onClick={onCloseEditJobNameModal}>
-              Cancel
-            </Button>
-            <Button
-              startIcon={<SaveIcon />}
-              disabled={isSubmittingJobName}
-              variant="contained"
-              type="submit"
-              form="edit-job-name"
-            >
-              Save
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
-
       <h2>Jobs</h2>
-
       {jobs && pipelines ? (
         <>
           <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
@@ -392,104 +522,24 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               Create job
             </Button>
           </Box>
-          <Dialog
-            open={isCreateDialogOpen}
+          <CreateJobDialog
+            isOpen={isCreateDialogOpen}
             onClose={closeCreateDialog}
-            fullWidth
-            maxWidth="xs"
-          >
-            <form
-              id="create-job"
-              className="create-job-modal"
-              onSubmit={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-
-                if (jobName.length === 0) {
-                  setAlert("Error", "Please enter a name for your job.");
-                  return;
-                }
-
-                if (!selectedPipeline) {
-                  setAlert("Error", "Please choose a pipeline.");
-                  return;
-                }
-
-                createJob(jobName, selectedPipeline);
-              }}
-            >
-              <DialogTitle>Create a new job</DialogTitle>
-              <DialogContent>
-                {isCreatingJob ? (
-                  <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
-                    <LinearProgress />
-                    <Typography sx={{ margin: (theme) => theme.spacing(1, 0) }}>
-                      Copying pipeline directory...
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Stack direction="column" spacing={2}>
-                    {projectSnapshotSize > 50 && (
-                      <Alert severity="warning">
-                        {`Snapshot size exceeds 50MB. Please refer to the `}
-                        <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
-                          docs
-                        </Link>
-                        .
-                      </Alert>
-                    )}
-                    <FormControl fullWidth>
-                      <TextField
-                        margin="normal"
-                        value={jobName}
-                        autoFocus
-                        onChange={(e) => setJobName(e.target.value)}
-                        label="Job name"
-                        data-test-id="job-create-name"
-                      />
-                    </FormControl>
-                    <FormControl fullWidth>
-                      <InputLabel id="select-pipeline-label">
-                        Pipeline
-                      </InputLabel>
-                      <Select
-                        labelId="select-pipeline-label"
-                        id="select-pipeline"
-                        value={selectedPipeline}
-                        label="Pipeline"
-                        onChange={(e) => setSelectedPipeline(e.target.value)}
-                      >
-                        {pipelines.map((pipeline) => {
-                          return (
-                            <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
-                              {pipeline.name}
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
-                  </Stack>
-                )}
-              </DialogContent>
-              <DialogActions>
-                <Button color="secondary" onClick={closeCreateDialog}>
-                  Cancel
-                </Button>
-                <Button
-                  variant="contained"
-                  disabled={!jobName || isCreatingJob}
-                  type="submit"
-                  form="create-job"
-                  data-test-id="job-create-ok"
-                >
-                  Create
-                </Button>
-              </DialogActions>
-            </form>
-          </Dialog>
+            onSubmit={createJob}
+            pipelines={pipelines}
+            selectedPipeline={selectedPipeline}
+            setSelectedPipeline={setSelectedPipeline}
+            projectSnapshotSize={projectSnapshotSize}
+          />
+          <EditJobNameDialog
+            onSubmit={onSubmitEditJobNameModal}
+            isOpen={isEditingJobName}
+            onClose={onCloseEditJobNameModal}
+            currentValue={jobName}
+          />
           <DataTable<DisplayedJob>
             id="job-list"
-            isLoading={isValidating}
+            isLoading={isFetchingJobs}
             selectable
             rows={jobs.map((job) => {
               return {

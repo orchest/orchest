@@ -551,8 +551,10 @@ const EditJobView: React.FC = () => {
                 }}
               >
                 <TextField
+                  required
                   label="Job name"
                   value={job.name}
+                  sx={{ width: "50%" }}
                   onChange={(e) => handleJobNameChange(e.target.value)}
                 />
               </Box>
