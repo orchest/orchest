@@ -1,39 +1,44 @@
-import { useCallback, useLayoutEffect, useReducer, useRef } from "react";
+import React from "react";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
-export type Action<T> = {
+export type Action<T, E> = {
   type: STATUS;
-  data: T;
-  error: Error;
+  data?: T;
+  error?: E;
+  caching?: boolean;
 };
 
-type State<T> = {
+type State<T, E> = {
   status: STATUS;
   data: T | null;
-  error: Error | null;
+  error: E | null;
 };
 
-const useSafeDispatch = <T>(dispatch: React.Dispatch<Action<T>>) => {
-  const mounted = useRef(false);
+const useSafeDispatch = <T, E>(dispatch: React.Dispatch<Action<T, E>>) => {
+  const mounted = React.useRef(false);
 
-  useLayoutEffect(() => {
+  React.useLayoutEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
     };
   }, []);
 
-  return useCallback(
-    (action) => (mounted.current ? dispatch(action) : void 0),
+  return React.useCallback(
+    (action: Action<T, E>) => (mounted.current ? dispatch(action) : void 0),
     [dispatch]
   );
 };
 
-const asyncReducer = <T>(state: State<T>, action: Action<T>): State<T> => {
+const asyncReducer = <T, E>(
+  state: State<T, E>,
+  action: Action<T, E>
+): State<T, E> => {
   switch (action.type) {
     case "PENDING": {
-      return { status: "PENDING", data: null, error: null };
+      const payload = action.caching ? state.data : null;
+      return { status: "PENDING", data: payload, error: null };
     }
     case "RESOLVED": {
       return {
@@ -51,9 +56,15 @@ const asyncReducer = <T>(state: State<T>, action: Action<T>): State<T> => {
   }
 };
 
-const useAsync = <T>(initialState?: T) => {
-  const [state, unsafeDispatch] = useReducer<
-    (state: State<T>, action: Action<T>) => State<T>
+type AsyncParams<T> = {
+  initialState?: T;
+  caching?: boolean; // if true, data will not be set to null when re-fetching data
+};
+
+const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
+  const { initialState, caching = false } = params || {};
+  const [state, unsafeDispatch] = React.useReducer<
+    (state: State<T, E>, action: Action<T, E>) => State<T, E>
   >(asyncReducer, {
     status: "IDLE",
     data: null,
@@ -63,11 +74,11 @@ const useAsync = <T>(initialState?: T) => {
 
   const dispatch = useSafeDispatch(unsafeDispatch);
 
-  const { data, error, status } = state as State<T>;
+  const { data, error, status } = state as State<T, E>;
 
-  const run = useCallback(
+  const run = React.useCallback(
     (promise: Promise<T>) => {
-      dispatch({ type: "PENDING" });
+      dispatch({ type: "PENDING", caching });
       return promise.then(
         (data) => {
           dispatch({ type: "RESOLVED", data });
@@ -77,13 +88,17 @@ const useAsync = <T>(initialState?: T) => {
         }
       );
     },
-    [dispatch]
+    [dispatch, caching]
   );
 
-  const setData = useCallback((data) => dispatch({ type: "RESOLVED", data }), [
-    dispatch,
-  ]);
-  const setError = useCallback(
+  const setData = React.useCallback(
+    (action: T | ((currentValue: T) => T)) => {
+      const newData = action instanceof Function ? action(data) : action;
+      dispatch({ type: "RESOLVED", data: newData });
+    },
+    [dispatch, data]
+  );
+  const setError = React.useCallback(
     (error) => dispatch({ type: "REJECTED", error }),
     [dispatch]
   );

@@ -92,6 +92,7 @@ export const OnboardingDialog: React.FC = () => {
     setIsOnboardingDialogOpen,
     quickstart,
     hasQuickstart,
+    hasImportUrl,
   } = useOnboardingDialog();
 
   const {
@@ -230,7 +231,9 @@ export const OnboardingDialog: React.FC = () => {
 
                       {item.variant === "end" && (
                         <Typography>
-                          {hasQuickstart
+                          {hasImportUrl
+                            ? item.description.importProject
+                            : hasQuickstart
                             ? item.description.withQuickstart
                             : item.description.withoutQuickstart}
                         </Typography>
@@ -263,8 +266,12 @@ export const OnboardingDialog: React.FC = () => {
               <StyledButtonOutlined
                 {...(isLastSlide
                   ? {
-                      startIcon: hasQuickstart && <OpenInNewIcon />,
-                      children: hasQuickstart
+                      startIcon: (hasImportUrl || hasQuickstart) && (
+                        <OpenInNewIcon />
+                      ),
+                      children: hasImportUrl
+                        ? "Import Project"
+                        : hasQuickstart
                         ? "Open Quickstart Pipeline"
                         : "Get Started",
                       variant: "contained",

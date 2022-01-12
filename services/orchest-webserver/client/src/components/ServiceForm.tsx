@@ -28,7 +28,7 @@ import {
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { getServiceURLs } from "../utils/webserver-utils";
 import {
@@ -95,7 +95,7 @@ const ServiceForm: React.FC<{
   }, [props.project_uuid]);
 
   const handleServiceChange = (key: string, value: any) => {
-    let service = _.cloneDeep(props.service);
+    let service = cloneDeep(props.service);
     service[key] = value;
     props.updateService(service);
   };
@@ -106,7 +106,7 @@ const ServiceForm: React.FC<{
   };
 
   const handleServiceBindsChange = (key: string, value: any) => {
-    let service = _.cloneDeep(props.service);
+    let service = cloneDeep(props.service);
     service.binds = service.binds !== undefined ? service.binds : {};
     service.binds[key] = value;
 
@@ -119,7 +119,7 @@ const ServiceForm: React.FC<{
   };
 
   const handleScopeCheckbox = (isChecked, checkboxScope) => {
-    let _scope = _.cloneDeep(props.service.scope);
+    let _scope = cloneDeep(props.service.scope);
     if (!isChecked) {
       _scope = _scope.filter((el) => el !== checkboxScope);
     } else if (_scope.indexOf(checkboxScope) == -1) {

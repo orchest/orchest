@@ -7,7 +7,8 @@
     "pkg:check": "syncpack list-mismatches",
     "pkg:format": "syncpack format",
     "preinstall": "npx only-allow pnpm",
-    "setup": "npm i -g pnpm@6.16.1"
+    "setup": "npm i -g pnpm@6.16.1",
+    "test": "pnpm run test:ci --r --parallel"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "5.4.0",

@@ -5,7 +5,7 @@ import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 
 const ajv = new Ajv({
@@ -92,7 +92,7 @@ export function filterServices(
   services: Record<string, any>,
   scope: "noninteractive" | "interactive"
 ) {
-  let servicesCopy = _.cloneDeep(services);
+  let servicesCopy = cloneDeep(services);
   for (let serviceName in services) {
     if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
       delete servicesCopy[serviceName];
@@ -320,6 +320,8 @@ export function formatServerDateTime(
   serverDateTimeString: string | null | undefined
 ) {
   if (!serverDateTimeString) return "";
+  // Keep this pattern and the one used in fuzzy DB search in sync, see
+  // fuzzy_filter_non_interactive_pipeline_runs.
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
@@ -340,6 +342,7 @@ export function getPipelineJSONEndpoint(
   job_uuid?: string | null,
   pipeline_run_uuid?: string | null
 ) {
+  if (!pipeline_uuid || !project_uuid) return "";
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
   if (job_uuid) {

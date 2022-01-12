@@ -345,6 +345,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
     "environment-list-row",
     () => {
       cy.findByTestId("environment-list").should("exist");
+      cy.findByTestId("loading-table-row").should("not.exist");
       return cy.wait(1000);
     },
     count
@@ -360,6 +361,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
     "environment-list-row",
     () => {
       cy.findByTestId("environment-list").should("exist");
+      cy.findByTestId("loading-table-row").should("not.exist");
       return cy.wait(1000);
     },
     0

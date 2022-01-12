@@ -207,10 +207,9 @@ export function checkHeartbeat(url, retries?) {
 }
 
 // used in orchest-webserver only
-export function extensionFromFilename(filename) {
-  if (filename.indexOf(".") === -1) {
-    return "";
-  }
+export function extensionFromFilename(filename: string) {
+  if (!filename.includes(".")) return "";
+
   let pieces = filename.split(".");
   return pieces[pieces.length - 1];
 }

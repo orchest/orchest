@@ -18,7 +18,8 @@ describe("file system interactions", () => {
     // Need to force a reload to discover.
 
     reloadUntilElementsLoaded("project-list-row", () => {
-      return cy.findByTestId("project-list").should("exist");
+      cy.findByTestId("project-list").should("exist");
+      return cy.findByTestId("loading-table-row").should("not.exist");
     });
   });
 
@@ -30,7 +31,8 @@ describe("file system interactions", () => {
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
-        return cy.findByTestId("project-list").should("exist");
+        cy.findByTestId("project-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       0
     );
@@ -51,9 +53,8 @@ describe("file system interactions", () => {
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
-        return cy
-          .findByTestId("project-list", { timeout: 10000 })
-          .should("exist");
+        cy.findByTestId("project-list", { timeout: 10000 }).should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       10
     );
@@ -75,7 +76,8 @@ describe("file system interactions", () => {
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
-        return cy.findByTestId("project-list").should("exist");
+        cy.findByTestId("project-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       0
     );
@@ -102,7 +104,8 @@ describe("file system interactions", () => {
       reloadUntilElementsLoaded(
         TEST_ID.PIPELINES_TABLE_ROW,
         () => {
-          return cy.findByTestId("pipeline-list").should("exist");
+          cy.findByTestId("pipeline-list").should("exist");
+          return cy.findByTestId("loading-table-row").should("not.exist");
         },
         0
       );
@@ -114,7 +117,8 @@ describe("file system interactions", () => {
       );
 
       reloadUntilElementsLoaded("project-list-row", () => {
-        return cy.findByTestId("project-list").should("exist");
+        cy.findByTestId("project-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       });
 
       cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(

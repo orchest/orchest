@@ -10,7 +10,7 @@ from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
 from sqlalchemy import desc, func
-from sqlalchemy.orm import joinedload, load_only, undefer
+from sqlalchemy.orm import joinedload, load_only, noload, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -22,6 +22,7 @@ from app.celery_app import make_celery
 from app.connections import db
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
+    fuzzy_filter_non_interactive_pipeline_runs,
     get_env_uuids_missing_image,
     get_proj_pip_env_variables,
     lock_environment_images_for_job,
@@ -119,23 +120,44 @@ class NextScheduledJob(Resource):
 @api.param("job_uuid", "UUID of job")
 @api.response(404, "Job not found")
 class Job(Resource):
-    @api.doc("get_job")
+    @api.doc(
+        "get_job",
+        params={
+            "aggregate_run_statuses": {
+                "description": (
+                    "Aggregate job pipeline run statuses. Populates the "
+                    "pipeline_run_status_counts property. Value does not matter as "
+                    "long as it is set."
+                ),
+                "type": None,
+            },
+        },
+    )
     @api.marshal_with(schema.job, code=200)
     def get(self, job_uuid):
         """Fetches a job given its UUID."""
         job = (
             models.Job.query.options(undefer(models.Job.env_variables))
-            # joinedload is to also fetch pipeline_runs.
-            .options(
-                joinedload(models.Job.pipeline_runs).undefer(
-                    models.NonInteractivePipelineRun.env_variables
-                )
-            )
             .filter_by(uuid=job_uuid)
             .one_or_none()
         )
+
         if job is None:
             abort(404, "Job not found.")
+
+        if "aggregate_run_statuses" in request.args:
+            status_agg = (
+                models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                .with_entities(
+                    models.NonInteractivePipelineRun.status,
+                    func.count(models.NonInteractivePipelineRun.status),
+                )
+                .group_by(models.NonInteractivePipelineRun.status)
+            )
+            status_agg = {k: v for k, v in status_agg}
+            job = job.__dict__
+            job["pipeline_run_status_counts"] = status_agg
+
         return job
 
     @api.expect(schema.job_update)
@@ -231,6 +253,12 @@ class PipelineRunsList(Resource):
                 ),
                 "type": int,
             },
+            "fuzzy_filter": {
+                "description": (
+                    "Fuzzy filtering across pipeline run index, status and parameters."
+                ),
+                "type": str,
+            },
         },
     )
     @api.response(200, "Success", schema.paginated_job_pipeline_runs)
@@ -247,6 +275,7 @@ class PipelineRunsList(Resource):
         parser = reqparse.RequestParser()
         parser.add_argument("page", type=int, location="args")
         parser.add_argument("page_size", type=int, location="args")
+        parser.add_argument("fuzzy_filter", type=str, location="args")
         args = parser.parse_args()
         page = args.page
         page_size = args.page_size
@@ -261,11 +290,16 @@ class PipelineRunsList(Resource):
         if page_size is not None and page_size <= 0:
             return {"message": "page_size must be >= 1."}, 400
 
-        models.Job.query.get_or_404(ident=(job_uuid), description="Job not found.")
+        if not db.session.query(
+            db.session.query(models.Job).filter_by(uuid=job_uuid).exists()
+        ).scalar():
+            return {"message": "Job not found"}, 404
 
         job_runs_query = (
             models.NonInteractivePipelineRun.query.options(
-                undefer(models.NonInteractivePipelineRun.env_variables)
+                noload(models.NonInteractivePipelineRun.pipeline_steps),
+                noload(models.NonInteractivePipelineRun.image_mappings),
+                undefer(models.NonInteractivePipelineRun.env_variables),
             )
             .filter_by(
                 job_uuid=job_uuid,
@@ -275,6 +309,13 @@ class PipelineRunsList(Resource):
                 desc(models.NonInteractivePipelineRun.job_run_pipeline_run_index),
             )
         )
+
+        if args.fuzzy_filter is not None:
+            job_runs_query = fuzzy_filter_non_interactive_pipeline_runs(
+                job_runs_query,
+                args.fuzzy_filter,
+            )
+
         if args.page is not None and args.page_size is not None:
             job_runs_pagination = job_runs_query.paginate(
                 args.page, args.page_size, False
