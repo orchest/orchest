@@ -107,7 +107,7 @@ export const StatusInline: React.FC<{
 };
 
 export type IStatusGroupProps = {
-  status: TStatus;
+  status: TStatus | string;
   icon?: React.ReactNode;
   title?: string;
   description?: string;

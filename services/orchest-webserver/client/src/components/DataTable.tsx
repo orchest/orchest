@@ -597,8 +597,11 @@ export const DataTable = <T extends Record<string, any>>({
       const selectedAllItemsInPage =
         event.target.checked && event.target.dataset.indeterminate;
 
-      if (selectedAllItemsInPage && current.length === rowsInPage.length) {
-        return [];
+      if (selectedAllItemsInPage && current.length >= rowsInPage.length) {
+        // select all rows in all pages
+        // note that if it's server-side pagination,
+        // it only selects rowsInPage because rows and rowsInPage are identical
+        return rows.map((n) => n.uuid);
       }
       return [];
     });
@@ -670,7 +673,6 @@ export const DataTable = <T extends Record<string, any>>({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setSearchTerm(e.target.value);
-    // setPage(1);
   };
 
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;

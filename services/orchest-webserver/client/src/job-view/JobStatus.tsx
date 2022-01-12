@@ -13,8 +13,9 @@ const getSummedCount = (
 };
 
 export const JobStatus: React.FC<
-  { totalCount: number } & Pick<Job, "status" | "pipeline_run_status_counts">
+  { totalCount?: number } & Pick<Job, "status" | "pipeline_run_status_counts">
 > = ({ status, totalCount, pipeline_run_status_counts: count }) => {
+  if (!totalCount) return null;
   const isJobDone = status === "SUCCESS" || status === "ABORTED";
   const totalPendingCount = getSummedCount(count, ["PENDING", "STARTED"]);
   const totalFailureCount = getSummedCount(count, ["ABORTED", "FAILURE"]);
@@ -37,9 +38,10 @@ export const JobStatus: React.FC<
   };
 
   const variant = getJobStatusVariant();
+
   return (
     <StatusGroup
-      status={status}
+      status={variant}
       icon={
         ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
           <PieChart

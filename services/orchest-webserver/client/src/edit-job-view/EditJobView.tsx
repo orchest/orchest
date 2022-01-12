@@ -18,6 +18,7 @@ import {
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ListIcon from "@mui/icons-material/List";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SaveIcon from "@mui/icons-material/Save";
@@ -26,8 +27,11 @@ import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import FormGroup from "@mui/material/FormGroup";
+import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
@@ -35,6 +39,7 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import parser from "cron-parser";
@@ -46,6 +51,7 @@ import {
   generatePipelineRunParamCombinations,
   generatePipelineRunRows,
 } from "./commons";
+import { useAutoCleanUpEnabled } from "./useAutoCleanUpEnabled";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
@@ -370,6 +376,13 @@ const EditJobView: React.FC = () => {
     }
   }, [putJobError, setAlert]);
 
+  const {
+    isAutoCleanUpEnabled,
+    numberOfRetainedRuns,
+    onChangeNumberOfRetainedRuns,
+    toggleIsAutoCleanUpEnabled,
+  } = useAutoCleanUpEnabled(selectedRuns);
+
   const runJob = async () => {
     if (!job) return;
 
@@ -391,6 +404,9 @@ const EditJobView: React.FC = () => {
       strategy_json: strategyJson,
       parameters: generateJobParameters(pipelineRuns, selectedRuns),
       env_variables: updatedEnvVariables.value,
+      max_retained_pipeline_runs: isAutoCleanUpEnabled
+        ? numberOfRetainedRuns
+        : undefined,
     };
 
     if (scheduleOption === "scheduled") {
@@ -465,6 +481,9 @@ const EditJobView: React.FC = () => {
             parameters: jobParameters,
             strategy_json: strategyJson,
             env_variables: updatedEnvVariables.value,
+            max_retained_pipeline_runs: isAutoCleanUpEnabled
+              ? numberOfRetainedRuns
+              : undefined,
           }),
         }).then(() => {
           navigateTo(siteMap.job.path, {
@@ -675,6 +694,71 @@ const EditJobView: React.FC = () => {
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={3} name="runs">
               <div className="pipeline-tab-view pipeline-runs">
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={0.5}
+                  sx={{ margin: (theme) => theme.spacing(4, 0, 6) }}
+                >
+                  <FormGroup>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isAutoCleanUpEnabled}
+                          onChange={toggleIsAutoCleanUpEnabled}
+                        />
+                      }
+                      label={`Auto clean-up oldest pipeline runs, retain the last `}
+                    />
+                  </FormGroup>
+                  <TextField
+                    variant="standard"
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          pipeline runs
+                        </InputAdornment>
+                      ),
+                    }}
+                    disabled={!isAutoCleanUpEnabled}
+                    value={numberOfRetainedRuns}
+                    type="number"
+                    size="small"
+                    onChange={(e) =>
+                      onChangeNumberOfRetainedRuns(parseInt(e.target.value))
+                    }
+                  />
+                  <Tooltip
+                    placement="right"
+                    title={
+                      <>
+                        <Typography
+                          variant="body2"
+                          sx={{ marginBottom: (theme) => theme.spacing(1) }}
+                        >
+                          Retain the last finished pipeline runs and
+                          automatically remove the oldest runs. This frees up
+                          disk space to enhance the reliability while executing
+                          large amount of pipeline runs.
+                        </Typography>
+                        <Typography variant="body2">
+                          Enable this carefully if your pipeline produces
+                          results that are stored in the disk. You might want to
+                          backup the results in other places.
+                        </Typography>
+                      </>
+                    }
+                  >
+                    <InfoOutlinedIcon
+                      color="primary"
+                      fontSize="small"
+                      sx={{
+                        marginLeft: (theme) => theme.spacing(2),
+                        cursor: "pointer",
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
                 <DataTable<PipelineRunRow>
                   selectable
                   id="job-edit-pipeline-runs"

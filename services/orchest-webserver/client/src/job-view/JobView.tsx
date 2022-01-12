@@ -171,7 +171,9 @@ const JobView: React.FC = () => {
         })
     );
   };
-  const [totalRunCount, setTotalRunCount] = React.useState(0);
+  const [totalRunCount, setTotalRunCount] = React.useState<
+    number | undefined
+  >();
 
   return (
     <Layout fullHeight>
