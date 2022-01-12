@@ -687,6 +687,7 @@ const EditJobView: React.FC = () => {
                   setSelectedRows={setSelectedRuns}
                   onChangeSelection={() => setAsSaved(false)}
                   rows={pipelineRunRows}
+                  retainSelectionsOnPageChange
                   data-test-id="job-edit-pipeline-runs"
                 />
               </div>

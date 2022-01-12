@@ -389,6 +389,7 @@ type DataTableProps<T> = {
   disabled?: boolean;
   dense?: boolean;
   containerSx?: SxProps<Theme>;
+  retainSelectionsOnPageChange?: boolean;
 } & BoxProps;
 
 function generateLoadingRows<T>(
@@ -440,6 +441,7 @@ export const DataTable = <T extends Record<string, any>>({
   dense,
   disabled,
   refreshInterval = null,
+  retainSelectionsOnPageChange,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -638,10 +640,8 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
-    if (!isDeleting) {
-      setSelected([]);
-      setPage(newPage + 1);
-    }
+    if (!isDeleting) setPage(newPage + 1);
+    if (!retainSelectionsOnPageChange && !isDeleting) setSelected([]);
   };
 
   const handleChangeRowsPerPage = (
