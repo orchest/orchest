@@ -65,7 +65,12 @@ const getQueryString = ({
   page: number;
   rowsPerPage: number;
   searchTerm: string;
-}) => toQueryString({ page, page_size: rowsPerPage, fuzzy_filter: searchTerm });
+}) =>
+  toQueryString({
+    page,
+    page_size: rowsPerPage,
+    fuzzy_filter: encodeURIComponent(searchTerm),
+  });
 
 export const PipelineRunTable: React.FC<{
   jobUuid: string;
