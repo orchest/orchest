@@ -66,8 +66,9 @@ class HandleSchedulerJob(TwoPhaseFunction):
             now = datetime.datetime.now(datetime.timezone.utc)
             job = (
                 query.with_for_update()
-                # TODO: check whether this works because the scheduler
-                # will awake at exactly the right time.
+                # The scheduler will wake up at exactly the right time,
+                # we still check so that concurrent runs don't also
+                # run the collateral.
                 .filter(
                     now
                     >= models.SchedulerJob.timestamp
@@ -76,7 +77,7 @@ class HandleSchedulerJob(TwoPhaseFunction):
             )
 
             # The row was previsouly locked and thus another worker
-            # already handled the telemetry heartbeat signal.
+            # already handled the `handle_func`.
             if job is None:
                 # Use kwarg instead of raising an error as an error
                 # would be logged by the TPE.

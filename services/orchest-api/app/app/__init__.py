@@ -6,7 +6,6 @@ Additinal note:
 
         https://docs.pytest.org/en/latest/goodpractices.html
 """
-import logging
 import os
 from logging.config import dictConfig
 from pprint import pformat
@@ -14,7 +13,7 @@ from pprint import pformat
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request
 from flask_cors import CORS
-from flask_migrate import Migrate, upgrade
+from flask_migrate import Migrate
 from sqlalchemy_utils import create_database, database_exists
 
 from _orchest.internals import config as _config
@@ -38,7 +37,7 @@ from app.models import (
 )
 
 
-def create_app(config_class=None, use_db=True, be_scheduler=False):
+def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db=False):
     """Create the Flask app and return it.
 
     Args:
@@ -53,6 +52,8 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             scheduler, according to the logic in core/scheduler. While
             Orchest runs, only a single process should be acting as
             scheduler.
+        to_migrate_db: If True, then only initialize the DB so that the
+            DB can be migrated.
 
     Returns:
         Flask.app
@@ -60,15 +61,15 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Cross-origin resource sharing. Allow API to be requested from the
-    # different microservices such as the webserver.
-    CORS(app, resources={r"/*": {"origins": "*"}})
-
     init_logging()
 
     # In development we want more verbose logging of every request.
     if os.getenv("FLASK_ENV") == "development":
         app = register_teardown_request(app)
+
+    # Cross-origin resource sharing. Allow API to be requested from the
+    # different microservices such as the webserver.
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     if use_db:
         # Create the database if it does not exist yet. Roughly equal to
@@ -81,13 +82,12 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
         # Necessary for db migrations.
         Migrate().init_app(app, db)
 
-    # Early stopping in case we are running inside a werkzeug reloader
-    # to prevent running the initialization code below more than once.
-    if _utils.is_running_from_reloader():
-        app.register_blueprint(api, url_prefix="/api")
+    # NOTE: In this case we want to return ASAP as otherwise the DB
+    # might be called (inside this function) before it is migrated.
+    if to_migrate_db:
         return app
 
-    if use_db:
+    if use_db and not _utils.is_running_from_reloader:
         with app.app_context():
             # In case of running multiple gunicorn workers, we need to
             # ensure that cleanup is only run once. Therefore, we
@@ -98,11 +98,9 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
             try:
                 if app.config.get("TESTING", False):
                     # Do nothing.
-                    # In case of tests we always want to upgrade the db
-                    # and run cleanup. Because every test will get a
-                    # clean app, the same code should run for all tests.
-                    # In addition, tests get an empty db (no tables) and
-                    # thus the `upgrade` needs to bring the db on par.
+                    # In case of tests we always want to run cleanup.
+                    # Because every test will get a clean app, the same
+                    # code should run for all tests.
                     pass
                 else:
                     app.logger.debug("Trying to create /tmp/cleanup_done")
@@ -113,13 +111,6 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
                     f"/tmp/cleanup_done exists. Skipping cleanup: {os.getpid()}."
                 )
             else:
-                # Upgrade to the latest revision. This also takes care
-                # of bringing an "empty" db (no tables) on par.
-                try:
-                    upgrade()
-                except Exception as e:
-                    logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
-
                 # NOTE: This cleanup code blocks the gunicorn worker
                 # from handling requests, because it is required for the
                 # app to be initialized. So make sure the cleanup is
@@ -210,9 +201,8 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
     # execution because all jobs of the all the schedulers read state
     # from the same DB and lock rows they are handling (using a
     # `with_for_update`).
-    # In case of Flask development mode, only the parent process will
-    # run a scheduler which will survive reloads as that only restarts
-    # the child process.
+    # In case of Flask development mode, every child process will get
+    # its own scheduler.
     if be_scheduler:
         # Create a scheduler and have the scheduling logic running
         # periodically.

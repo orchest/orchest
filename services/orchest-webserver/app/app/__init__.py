@@ -19,7 +19,7 @@ from subprocess import Popen
 import posthog
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, request, send_from_directory
-from flask_migrate import Migrate, upgrade
+from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
 
@@ -52,18 +52,27 @@ def create_app_managed():
             process.kill()
 
 
-def create_app():
+def create_app(to_migrate_db=False):
+    """Create the Flask app and return it.
+
+    Args:
+        to_migrate_db: If True, then only initialize the db.
+
+    Returns:
+        Flask.app
+    """
     app = Flask(__name__)
     app.config.from_object(config.CONFIG_CLASS)
 
     init_logging()
 
-    socketio = SocketIO(app, cors_allowed_origins="*")
-
+    # In development we want more verbose logging of every request.
     if os.getenv("FLASK_ENV") == "development":
         app = register_teardown_request(app)
 
-    # read directory mount based config into Flask config
+    socketio = SocketIO(app, cors_allowed_origins="*")
+
+    # Read directory mount based config into Flask config.
     try:
         global_orchest_config = _utils.GlobalOrchestConfig()
     except _errors.CorruptedFileError:
@@ -75,6 +84,58 @@ def create_app():
         global_orchest_config.save(app)
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
+
+    app.logger.info("Flask CONFIG: %s" % app.config)
+
+    # Create the database if it does not exist yet. Roughly equal to a
+    # "CREATE DATABASE IF NOT EXISTS <db_name>" call.
+    if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
+        create_database(app.config["SQLALCHEMY_DATABASE_URI"])
+    db.init_app(app)
+    ma.init_app(app)
+    # Necessary for DB migrations.
+    Migrate().init_app(app, db)
+
+    # NOTE: In this case we want to return ASAP as otherwise the DB
+    # might be called (inside this function) before it is migrated.
+    if to_migrate_db:
+        return app, None, None
+
+    if not _utils.is_running_from_reloader():
+        with app.app_context():
+            try:
+                if app.config.get("TESTING", False):
+                    # Do nothing.
+                    # In case of tests we always want to run cleanup.
+                    # Because every test will get a clean app, the same
+                    # code should run for all tests.
+                    pass
+                else:
+                    app.logger.debug("Trying to create /tmp/webserver_init_lock")
+                    os.mkdir("/tmp/webserver_init_lock")
+                    app.logger.info("/tmp/webserver_init_lock successfully created.")
+            except FileExistsError:
+                app.logger.info("/tmp/webserver_init_lock already exists.")
+            else:
+                jupyter_boot_lock_path = os.path.join(
+                    "/userdir", _config.JUPYTER_USER_CONFIG, "lab", ".bootlock"
+                )
+                if os.path.exists(jupyter_boot_lock_path):
+                    app.logger.info("Removing dangling jupyter boot lock.")
+                    os.rmdir(jupyter_boot_lock_path)
+
+                # On startup all kernels are refreshed. This is because
+                # updating Orchest might make the kernels in the
+                # userdir/.orchest/kernels directory invalid.
+                projs = Project.query.all()
+                for proj in projs:
+                    try:
+                        populate_kernels(app, db, proj.uuid)
+                    except Exception as e:
+                        logging.error(
+                            "Failed to populate kernels on startup"
+                            " for project %s: %s [%s]" % (proj.uuid, e, type(e))
+                        )
 
     # create thread for non-cpu bound background tasks, e.g. requests
     scheduler = BackgroundScheduler(
@@ -92,58 +153,6 @@ def create_app():
     )
     app.config["SCHEDULER"] = scheduler
     scheduler.start()
-
-    app.logger.info("Flask CONFIG: %s" % app.config)
-
-    # Create the database if it does not exist yet. Roughly equal to a
-    # "CREATE DATABASE IF NOT EXISTS <db_name>" call.
-    if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
-        create_database(app.config["SQLALCHEMY_DATABASE_URI"])
-    db.init_app(app)
-    ma.init_app(app)
-    # necessary for migration
-    Migrate().init_app(app, db)
-
-    with app.app_context():
-
-        # Alembic does not support calling upgrade() concurrently
-        # TODO: needs to be placed after the lock
-        if not _utils.is_werkzeug_parent():
-            # Upgrade to the latest revision. This also takes care of
-            # bringing an "empty" db (no tables) on par.
-            try:
-                upgrade()
-            except Exception as e:
-                logging.error("Failed to run upgrade() %s [%s]" % (e, type(e)))
-
-            # On startup all kernels are freshed. This is because
-            # updating Orchest might make the kernels in the
-            # userdir/.orchest/kernels directory invalid.
-            projs = Project.query.all()
-            for proj in projs:
-                try:
-                    populate_kernels(app, db, proj.uuid)
-                except Exception as e:
-                    logging.error(
-                        "Failed to populate kernels on startup for project %s: %s [%s]"
-                        % (proj.uuid, e, type(e))
-                    )
-
-        # To avoid multiple removals in case of a flask --reload, so
-        # that this code runs once per container.
-        try:
-            os.mkdir("/tmp/jupyter_lock_removed")
-            lock_path = os.path.join(
-                "/userdir", _config.JUPYTER_USER_CONFIG, "lab", ".bootlock"
-            )
-            if os.path.exists(lock_path):
-                app.logger.info("Removing dangling jupyter boot lock.")
-                os.rmdir(lock_path)
-
-        except FileExistsError:
-            app.logger.info(
-                "/tmp/jupyter_lock_removed exists. " " Not removing the lock again."
-            )
 
     # Telemetry
     if not app.config["TELEMETRY_DISABLED"]:
@@ -196,8 +205,10 @@ def create_app():
 
     processes = []
 
-    if not _utils.is_werkzeug_parent():
-
+    if (
+        os.environ.get("FLASK_ENV") != "development"
+        or _utils.is_running_from_reloader()
+    ):
         file_dir = os.path.dirname(os.path.realpath(__file__))
 
         # log_streamer process
