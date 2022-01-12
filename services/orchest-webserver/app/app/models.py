@@ -1,6 +1,8 @@
+import enum
 import uuid
 
-from sqlalchemy import UniqueConstraint
+from sqlalchemy import UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.sql import expression, text
 
 from app.connections import db
@@ -108,3 +110,28 @@ class BackgroundTask(BaseModel):
 
     def __repr__(self):
         return f"<BackgroundTask: {self.uuid}>"
+
+
+class SchedulerJobType(enum.Enum):
+    TELEMETRY_HEARTBEAT = "TELEMETRY HEARTBEAT"
+    ORCHEST_EXAMPLES = "ORCHEST EXAMPLES"
+
+
+class SchedulerJob(BaseModel):
+    """Latest run of a job assigned to a Scheduler."""
+
+    __tablename__ = "scheduler_jobs"
+
+    type = db.Column(db.Enum(SchedulerJobType), primary_key=True)
+
+    # Used to make sure different instances of the Scheduler (due to
+    # multiple gunicorn workers) don't cause a job to be executed
+    # multiple times.
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    def __repr__(self):
+        return f"<SchedulerJob: {self.type}>"

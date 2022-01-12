@@ -143,6 +143,11 @@ class Config:
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
                 "propagate": False,
             },
+            "job-scheduler": {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
             "orchest-lib": {
                 "handlers": ["console"],
                 "propagate": False,

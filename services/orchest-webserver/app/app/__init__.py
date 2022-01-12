@@ -26,12 +26,13 @@ from sqlalchemy_utils import create_database, database_exists
 from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
-from app import analytics, config
+from app import config
 from app.connections import db, ma
+from app.core.scheduler import Scheduler
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
-from app.utils import fetch_orchest_examples_json_to_disk, get_repo_tag
+from app.utils import get_repo_tag
 from app.views.analytics import register_analytics_views
 from app.views.background_tasks import register_background_tasks_view
 from app.views.orchest_api import register_orchest_api_views
@@ -106,6 +107,7 @@ def create_app():
     with app.app_context():
 
         # Alembic does not support calling upgrade() concurrently
+        # TODO: needs to be placed after the lock
         if not _utils.is_werkzeug_parent():
             # Upgrade to the latest revision. This also takes care of
             # bringing an "empty" db (no tables) on par.
@@ -149,27 +151,29 @@ def create_app():
         posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
         posthog.host = app.config["POSTHOG_HOST"]
 
-        # send a ping now
-        analytics.send_heartbeat_signal(app)
+        # Try to send a ping now.
+        interval = app.config["TELEMETRY_INTERVAL"]
+        Scheduler.handle_telemetry_heartbeat_signal(app, interval)
 
         # and every 15 minutes
         scheduler.add_job(
-            analytics.send_heartbeat_signal,
+            Scheduler.handle_telemetry_heartbeat_signal,
             "interval",
-            minutes=app.config["TELEMETRY_INTERVAL"],
-            args=[app],
+            minutes=interval,
+            args=[app, interval],
         )
 
     if app.config["POLL_ORCHEST_EXAMPLES_JSON"]:
-        # Fetch now.
-        fetch_orchest_examples_json_to_disk(app)
+        # Try to fetch now.
+        interval = app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"]
+        Scheduler.handle_orchest_examples(app, interval)
 
         # And every hour.
         scheduler.add_job(
-            fetch_orchest_examples_json_to_disk,
+            Scheduler.handle_orchest_examples,
             "interval",
-            minutes=app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"],
-            args=[app],
+            minutes=interval,
+            args=[app, interval],
         )
 
     # static file serving
