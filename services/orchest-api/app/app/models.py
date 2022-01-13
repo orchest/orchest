@@ -608,7 +608,7 @@ class NonInteractivePipelineRun(PipelineRun):
             ],
             else_=func.lower(PipelineRun.status),
         ),
-        func.lower(cast(parameters, postgresql.TEXT)),
+        func.lower(cast(parameters_text_search_values, postgresql.TEXT)),
     )
 
     # related to inheriting from PipelineRun
