@@ -90,8 +90,6 @@ def create_app(to_migrate_db=False):
 
     app.config["ORCHEST_REPO_TAG"] = get_repo_tag()
 
-    app.logger.info("Flask CONFIG: %s" % app.config)
-
     # Create the database if it does not exist yet. Roughly equal to a
     # "CREATE DATABASE IF NOT EXISTS <db_name>" call.
     if not database_exists(app.config["SQLALCHEMY_DATABASE_URI"]):
@@ -105,6 +103,10 @@ def create_app(to_migrate_db=False):
     # might be called (inside this function) before it is migrated.
     if to_migrate_db:
         return app, None, None
+
+    # Add below `to_migrate_db` check, otherwise it will get logged
+    # twice. Because before the app starts we first migrate.
+    app.logger.info("Flask CONFIG: %s" % app.config)
 
     if not _utils.is_running_from_reloader():
         with app.app_context():

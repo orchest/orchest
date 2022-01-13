@@ -22,7 +22,7 @@ def upgrade():
         "scheduler_jobs",
         sa.Column(
             "type",
-            sa.Enum("TELEMETRY_HEARTBEAT", "ORCHEST_EXAMPLES", name="schedulerjobtype"),
+            sa.String(length=50),
             nullable=False,
         ),
         sa.Column(

@@ -36,6 +36,12 @@ from app.connections import db
 logger = logging.getLogger("job-scheduler")
 
 
+class SchedulerJobType(enum.Enum):
+    TELEMETRY_HEARTBEAT = "TELEMETRY HEARTBEAT"
+    ORCHEST_EXAMPLES = "ORCHEST EXAMPLES"
+    ORCHEST_UPDATE_INFO = "ORCHEST UPDATE INFO"
+
+
 def add_recurring_jobs_to_scheduler(
     scheduler: BackgroundScheduler, app: Flask, run_on_add=False
 ) -> None:
@@ -45,8 +51,9 @@ def add_recurring_jobs_to_scheduler(
         scheduler: Scheduler to which the jobs will be added.
         app: Flask app to read config values from such as the interval
             that is used for the recurring jobs.
-        run_on_add: If True will run the jobs when added to the
-            scheduler.
+        run_on_add: If True will try to run the jobs when added to the
+            scheduler (it will still only run if the interval has
+            passed).
 
     """
     jobs = Jobs()
@@ -80,7 +87,10 @@ def add_recurring_jobs_to_scheduler(
 
             if run_on_add:
                 try:
-                    job["job_func"](app)
+                    # To prevent multiple gunicorn workers on app
+                    # initialization to run the job, we still use the
+                    # interval.
+                    job["job_func"](app, job["interval"])
                 except Exception:
                     app.logger.error(
                         f"Failed to do initial run of recurring job: '{name}'."
@@ -105,7 +115,7 @@ class Jobs:
 
         """
         return self._handle_recurring_scheduler_job(
-            models.SchedulerJobType.TELEMETRY_HEARTBEAT,
+            SchedulerJobType.TELEMETRY_HEARTBEAT.value,
             interval,
             analytics.send_heartbeat_signal,
             app,
@@ -139,7 +149,7 @@ class Jobs:
                 logger.error(f"Could not fetch public examples json: {code}.")
 
         return self._handle_recurring_scheduler_job(
-            models.SchedulerJobType.ORCHEST_EXAMPLES,
+            SchedulerJobType.ORCHEST_EXAMPLES.value,
             interval,
             fetch_orchest_examples_json_to_disk,
             app,
@@ -173,7 +183,7 @@ class Jobs:
                 logger.error(f"Could not fetch update info json: {code}.")
 
         return self._handle_recurring_scheduler_job(
-            models.SchedulerJobType.ORCHEST_EXAMPLES,
+            SchedulerJobType.ORCHEST_UPDATE_INFO.value,
             interval,
             fetch_orchest_update_info_json_to_disk,
             app,
@@ -181,7 +191,7 @@ class Jobs:
 
     @staticmethod
     def _handle_recurring_scheduler_job(
-        job_type: enum.Enum, interval: int, handle_func: Callable, app: Flask
+        job_type: str, interval: int, handle_func: Callable, app: Flask
     ) -> None:
         try:
             with app.app_context():

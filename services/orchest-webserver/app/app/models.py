@@ -1,4 +1,3 @@
-import enum
 import uuid
 
 from sqlalchemy import UniqueConstraint, func
@@ -112,18 +111,12 @@ class BackgroundTask(BaseModel):
         return f"<BackgroundTask: {self.uuid}>"
 
 
-class SchedulerJobType(enum.Enum):
-    TELEMETRY_HEARTBEAT = "TELEMETRY HEARTBEAT"
-    ORCHEST_EXAMPLES = "ORCHEST EXAMPLES"
-    ORCHEST_UPDATE_INFO = "ORCHEST UPDATE INFO"
-
-
 class SchedulerJob(BaseModel):
     """Latest run of a job assigned to a Scheduler."""
 
     __tablename__ = "scheduler_jobs"
 
-    type = db.Column(db.Enum(SchedulerJobType), primary_key=True)
+    type = db.Column(db.String(50), primary_key=True)
 
     # Used to make sure different instances of the Scheduler (due to
     # multiple gunicorn workers) don't cause a job to be executed
