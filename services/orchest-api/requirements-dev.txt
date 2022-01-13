@@ -5,8 +5,8 @@ Flask==1.1.1
 SQLAlchemy-Utils==0.37.4
 aiodocker==0.21.0
 aiohttp==3.7.4
-amqp==2.6.0
-celery==4.4.2
+amqp==5.0.9
+celery==5.2.2
 croniter==1.0.15
 docker>=4.3.0
 eventlet==0.30.2
