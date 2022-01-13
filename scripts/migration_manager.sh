@@ -6,6 +6,9 @@ usage () {
   echo "Usage:"
   echo -e "\e[34mmigration_manager.sh <service-name> <action> <optional action related args>\e[39m"
   echo -e "service-name can be one of: \e[32morchest-api, orchest-webserver, auth-server\e[39m"
+  echo
+  echo "It can be helpful to run orchest with --dev"
+  echo
   echo "Examples: "
   echo "To initialize the migrations directory (already part of the repo):"
   echo "    migration_manager.sh orchest-api init"
@@ -24,7 +27,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 SERVICE=$1
-if [ "${SERVICE}" = "orchest-api" ] || 
+if [ "${SERVICE}" = "orchest-api" ] ||
    [ "${SERVICE}" = "orchest-webserver" ] ||
    [ "${SERVICE}" = "auth-server" ]; then
   SERVICE=$1

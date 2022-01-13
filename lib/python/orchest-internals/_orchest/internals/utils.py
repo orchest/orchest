@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 import docker
 import requests
 from docker.types import DeviceRequest
+from werkzeug.serving import is_running_from_reloader as _irfr
 
 from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
@@ -481,21 +482,25 @@ def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
                 "Internal race condition triggered in docker_client.images.list(): %s"
                 % e
             )
+            return []
         except Exception as e:
             logging.debug("Failed to call docker_client.images.list(): %s" % e)
-            return None
+            return []
 
 
-def is_werkzeug_parent():
-    # When Flask is running in dev mode, Werkzeug
-    # starts a parent and child process to support hot reloading.
+def is_running_from_reloader():
+    """Is this thread running from a werkzeug reloader.
 
-    # For code that needs to run non-concurrently we use this gate
-    # to avoid concurrent exection.
-    if os.environ.get("FLASK_ENV") != "development":
-        return False
-    elif os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        return True
+    When Flask is running in development mode, the application is
+    first initialized and then restarted again in a child process. This
+    means that code will run (concurrently) again inside the reloader,
+    which can case issues with code that should only run once.
+
+    By using this gate, we can prevent from rerunning certain code in
+    the child process.
+
+    """
+    return _irfr()
 
 
 def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
