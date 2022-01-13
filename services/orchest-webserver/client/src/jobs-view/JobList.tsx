@@ -1,8 +1,10 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchJobs } from "@/hooks/useFetchJobs";
+import { useFetchProject } from "@/hooks/useFetchProject";
 import { siteMap } from "@/routingConfig";
-import { EnvironmentValidationData, Job, JobStatus, Project } from "@/types";
+import { EnvironmentValidationData, Job, JobStatus } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
@@ -10,20 +12,14 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import {
-  fetcher,
-  HEADER,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 import { IconButton } from "../components/common/IconButton";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { StatusInline } from "../components/Status";
 import { CreateJobDialog } from "./CreateJobDialog";
 import { EditJobNameDialog } from "./EditJobNameDialog";
+import { useFetchPipelinesOnCreateJob } from "./useFetchPipelinesOnCreateJob";
 
 type DisplayedJob = {
   name: string;
@@ -40,6 +36,7 @@ const createColumns = ({
   {
     id: "name",
     label: "Job",
+    sx: { margin: (theme) => theme.spacing(-0.5, 0) },
     render: function JobName(row) {
       return (
         <Stack
@@ -113,15 +110,9 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const {
     data: jobs = [],
     error: fetchJobsError,
-    isValidating,
-    revalidate: fetchJobs,
-  } = useSWR(
-    projectUuid
-      ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      : null,
-    (url: string) =>
-      fetcher<{ jobs: Job[] }>(url).then((response) => response.jobs)
-  );
+    isFetchingJobs,
+    fetchJobs,
+  } = useFetchJobs(projectUuid);
 
   const { run, error: createJobError } = useAsync<
     void,
@@ -132,42 +123,38 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
-  const [pipelines, setPipelines] = React.useState<
-    { uuid: string; path: string; name: string }[]
-  >([]);
+  const closeCreateDialog = React.useCallback(() => {
+    setIsCreateDialogOpen(false);
+    setJobName("");
+  }, []);
+
+  const pipelines = useFetchPipelinesOnCreateJob({
+    projectUuid,
+    isCreateDialogOpen,
+    navigateTo,
+    setAlert,
+    closeCreateDialog,
+  });
+
   const [selectedPipeline, setSelectedPipeline] = React.useState<
     string | undefined
   >();
 
-  const [projectSnapshotSize, setProjectSnapshotSize] = React.useState(0);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
-
-  const promiseManager = React.useRef(new PromiseManager());
+  const { data: projectSnapshotSize } = useFetchProject({
+    projectUuid,
+    selector: (project) => project.project_snapshot_size,
+  });
 
   React.useEffect(() => {
     if (fetchJobsError)
       setAlert("Error", `Failed to fetch jobs: ${fetchJobsError}`);
   }, [fetchJobsError, setAlert]);
 
-  const fetchProjectDirSize = async () => {
-    try {
-      const result = await fetcher<Project>(`/async/projects/${projectUuid}`);
-      setProjectSnapshotSize(result.project_snapshot_size);
-    } catch (e) {
-      // handle this error silently
-      console.error(e);
-    }
-  };
-
-  const onCreateClick = () => {
-    if (pipelines !== undefined && pipelines.length > 0) {
-      setIsCreateDialogOpen(true);
-      setSelectedPipeline(pipelines[0].uuid);
-      setJobName("");
-    } else {
-      setAlert("Error", "Could not find any pipelines for this project.");
-    }
+  const onCreateClick = async () => {
+    setIsCreateDialogOpen(true);
+    setJobName("");
   };
 
   const deleteSelectedJobs = async (jobUuids: string[]) => {
@@ -279,39 +266,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     }
   };
 
-  React.useEffect(() => {
-    // retrieve pipelines once on component render
-    let pipelinePromise = makeCancelable(
-      makeRequest("GET", `/async/pipelines/${projectUuid}`),
-      promiseManager.current
-    );
-
-    pipelinePromise.promise
-      .then((response: string) => {
-        let result = JSON.parse(response);
-        setPipelines(result.result);
-      })
-      .catch((e) => {
-        if (e && e.status == 404) {
-          navigateTo(siteMap.projects.path);
-        }
-        console.log(e);
-      });
-
-    // retrieve jobs
-    fetchJobs();
-    // get size of project dir to show warning if necessary
-    fetchProjectDirSize();
-
-    return () => promiseManager.current.cancelCancelablePromises();
-  }, [projectUuid]);
-
-  const closeCreateDialog = () => {
-    setIsCreateDialogOpen(false);
-    setJobName("");
-    setSelectedPipeline(undefined);
-  };
-
   return (
     <div className={"jobs-page"}>
       <h2>Jobs</h2>
@@ -330,7 +284,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         onClose={onCloseEditJobNameModal}
         currentValue={jobName}
       />
-      {jobs && pipelines ? (
+      {jobs ? (
         <>
           <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
             <Button
@@ -345,7 +299,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           </Box>
           <DataTable<DisplayedJob>
             id="job-list"
-            isLoading={isValidating}
+            isLoading={isFetchingJobs}
             selectable
             rows={jobs.map((job) => {
               return {
@@ -362,7 +316,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             initialOrderBy="snapShotDate"
             initialOrder="desc"
             onRowClick={onRowClick}
-            rowHeight={63}
             deleteSelectedRows={deleteSelectedJobs}
           />
         </>

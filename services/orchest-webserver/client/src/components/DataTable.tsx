@@ -197,12 +197,16 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
 const CellContainer: React.FC<{
   isLoading: boolean;
   sx?: SxProps<Theme>;
-}> = ({ isLoading, sx, children }) => {
+  skeletonSx?: SxProps<Theme>;
+}> = ({ isLoading, sx, skeletonSx, children }) => {
   return (
     <>
       <Fade in={isLoading} unmountOnExit>
-        <Box sx={{ height: (theme) => theme.spacing(3) }}>
-          <Skeleton variant="text" />
+        <Box sx={skeletonSx}>
+          <Skeleton
+            variant="text"
+            sx={{ height: (theme) => theme.spacing(3) }}
+          />
         </Box>
       </Fade>
       {!isLoading && <Box sx={sx}>{children}</Box>}
@@ -285,7 +289,10 @@ function Row<T>({
       >
         {selectable && (
           <TableCell padding="checkbox" align="center">
-            <CellContainer isLoading={isLoading}>
+            <CellContainer
+              skeletonSx={{ padding: (theme) => theme.spacing(0, 1.5) }}
+              isLoading={isLoading}
+            >
               <Checkbox
                 color="primary"
                 checked={isSelected}

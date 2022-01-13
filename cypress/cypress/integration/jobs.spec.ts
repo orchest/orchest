@@ -129,6 +129,8 @@ describe("jobs", () => {
 
       it("creates a job that runs now", () => {
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -148,6 +150,8 @@ describe("jobs", () => {
           .find("input")
           .type(dateString);
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -167,6 +171,8 @@ describe("jobs", () => {
           dateString
         );
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -183,6 +189,8 @@ describe("jobs", () => {
           .find("input")
           .type("* * * * *");
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -194,6 +202,8 @@ describe("jobs", () => {
         let dumpFiles = [1, 2, 3, 4].map((x) => `jobRun${x}.json`);
         setJobParameter("test-output-file", dumpFiles);
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -213,6 +223,8 @@ describe("jobs", () => {
         setJobParameter("pipeline-param-A", pipePar);
         setJobParameter("step-param-a", stepPar);
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -267,6 +279,8 @@ describe("jobs", () => {
         }
 
         cy.findByTestId(TEST_ID.JOB_RUN).click();
+        cy.url().should("include", "/jobs");
+        cy.reload();
         cy.findByTestId(`job-list-row`)
           .first()
           .contains(SAMPLE_JOB_NAMES.J1)
@@ -320,7 +334,7 @@ describe("jobs", () => {
       assert(envVars.names.length === envVars.values.length)
     );
 
-    it("creates a job with project, pipeline, job env vars", () => {
+    xit("creates a job with project, pipeline, job env vars", () => {
       cy.addProjectEnvVars(
         PROJECTS.DUMP_ENV_PARAMS.name,
         projectEnvVars.names,
@@ -369,6 +383,8 @@ describe("jobs", () => {
       }
 
       cy.findByTestId(TEST_ID.JOB_RUN).click();
+      cy.url().should("include", "/jobs");
+      cy.reload();
       cy.findByTestId(`job-list`).first().contains(SAMPLE_JOB_NAMES.J1).click();
       waitForJobStatus(JOB_STATUS.SUCCESS);
 
@@ -429,6 +445,8 @@ describe("jobs", () => {
             setJobParameter("input_data_name", [paramsA.input_data_name]);
           }
           cy.findByTestId(TEST_ID.JOB_RUN).click();
+          cy.url().should("include", "/jobs");
+          cy.reload();
           cy.findByTestId(`job-list`)
             .first()
             .contains(SAMPLE_JOB_NAMES.J1)
