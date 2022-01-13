@@ -1,46 +1,34 @@
-import { useAsync } from "@/hooks/useAsync";
-import { PipelineJson } from "@/types";
-import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import { Pipeline } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
+import { MutatorCallback } from "swr/dist/types";
 
-export const useFetchPipeline = (
-  pipelineUuid: string,
-  projectUuid: string,
-  jobUuid?: string,
-  pipelineRunUuid?: string
-) => {
-  const { data, run, status, error, setError } = useAsync<PipelineJson>();
-  const pipelineJSONEndpoint = getPipelineJSONEndpoint(
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    pipelineRunUuid
+type FetchPipelineProps = {
+  projectUuid: string | undefined;
+  pipelineUuid: string | undefined;
+};
+
+export const useFetchPipeline = (props: FetchPipelineProps | null) => {
+  const { projectUuid, pipelineUuid } = props || {};
+  const { data, error, isValidating, revalidate, mutate } = useSWR<Pipeline>(
+    projectUuid && pipelineUuid
+      ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
+      : null,
+    fetcher
   );
 
-  const fetchPipeline = React.useCallback(() => {
-    run(
-      fetcher<{
-        pipeline_json: string;
-        success: boolean;
-      }>(pipelineJSONEndpoint).then((result) => {
-        if (!result.success) {
-          throw new Error("Failed to fetch pipeline.json");
-        }
-        return JSON.parse(result.pipeline_json) as PipelineJson;
-      })
-    );
-  }, [pipelineJSONEndpoint, run]);
+  const setPipeline = React.useCallback(
+    (data?: Pipeline | Promise<Pipeline> | MutatorCallback<Pipeline>) =>
+      mutate(data, false),
+    [mutate]
+  );
 
-  React.useEffect(() => {
-    if (pipelineJSONEndpoint) {
-      try {
-        fetchPipeline();
-      } catch (err) {
-        setError(`Unable to load pipeline: ${err}`);
-      }
-    }
-  }, [pipelineJSONEndpoint, fetchPipeline, setError]);
-
-  return { data, error, status };
+  return {
+    pipeline: data,
+    error,
+    isFetchingPipeline: isValidating,
+    fetchPipeline: revalidate,
+    setPipeline,
+  };
 };

@@ -154,10 +154,12 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  session_count: number;
   job_count: number;
   environment_count: number;
   project_snapshot_size: number;
+  env_variables: Record<string, string>;
+  status: "READY" | string;
+  session_count?: number;
 };
 
 export type Environment = {
@@ -290,6 +292,14 @@ export type FileTree = {
   name: string;
   root?: boolean;
   children: FileTree[];
+};
+
+export type Pipeline = {
+  env_variables: Record<string, string>;
+  path: string;
+  project_uuid: string;
+  status: "READY" | string;
+  uuid: string;
 };
 
 export type PipelineJson = {

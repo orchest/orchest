@@ -1,238 +1,30 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProject } from "@/hooks/useFetchProject";
 import { siteMap } from "@/routingConfig";
-import { EnvironmentValidationData, Job, JobStatus, Project } from "@/types";
+import { EnvironmentValidationData, Job, JobStatus } from "@/types";
 import { checkGate, formatServerDateTime } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
-import SaveIcon from "@mui/icons-material/Save";
-import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import FormControl from "@mui/material/FormControl";
-import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import Link from "@mui/material/Link";
-import MenuItem from "@mui/material/MenuItem";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
-import { IconButton } from "./common/IconButton";
-import { DataTable, DataTableColumn } from "./DataTable";
-import { StatusInline } from "./Status";
+import { IconButton } from "../components/common/IconButton";
+import { DataTable, DataTableColumn } from "../components/DataTable";
+import { StatusInline } from "../components/Status";
+import { CreateJobDialog, Pipeline } from "./CreateJobDialog";
+import { EditJobNameDialog } from "./EditJobNameDialog";
 
 type DisplayedJob = {
   name: string;
   pipeline: string;
   snapShotDate: string;
   status: JobStatus;
-};
-
-const CreateJobDialog = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  pipelines = [],
-  selectedPipeline,
-  setSelectedPipeline,
-  projectSnapshotSize = 0,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (jobName: string, pipelineUuid: string) => Promise<void>;
-  pipelines: Pipeline[];
-  selectedPipeline?: string;
-  setSelectedPipeline: (uuid: string) => void;
-  projectSnapshotSize?: number;
-}) => {
-  const [isCreatingJob, setIsCreatingJob] = React.useState(false);
-  const [jobName, setJobName] = React.useState("");
-
-  const closeDialog = !isCreatingJob ? onClose : undefined;
-
-  React.useEffect(() => {
-    if (pipelines && pipelines.length > 0) {
-      setSelectedPipeline(pipelines[0].uuid);
-    }
-    return () => setSelectedPipeline(undefined);
-  }, [pipelines, setSelectedPipeline]);
-
-  const hasOnlySpaces = jobName.length > 0 && jobName.trim().length === 0;
-
-  return (
-    <Dialog open={isOpen} onClose={closeDialog} fullWidth maxWidth="xs">
-      <form
-        id="create-job"
-        className="create-job-modal"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          setIsCreatingJob(true);
-          await onSubmit(jobName.trim(), selectedPipeline);
-          setIsCreatingJob(false);
-        }}
-      >
-        <DialogTitle>Create a new job</DialogTitle>
-        <DialogContent>
-          {isCreatingJob ? (
-            <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
-              <LinearProgress />
-              <Typography sx={{ margin: (theme) => theme.spacing(1, 0) }}>
-                Copying pipeline directory...
-              </Typography>
-            </Box>
-          ) : (
-            <Stack direction="column" spacing={2}>
-              {projectSnapshotSize > 50 && (
-                <Alert severity="warning">
-                  {`Snapshot size exceeds 50MB. Please refer to the `}
-                  <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
-                    docs
-                  </Link>
-                  .
-                </Alert>
-              )}
-              <FormControl fullWidth>
-                <TextField
-                  required
-                  margin="normal"
-                  value={jobName}
-                  autoFocus
-                  error={hasOnlySpaces}
-                  helperText={
-                    hasOnlySpaces
-                      ? "Should contain at least one non-whitespace letter"
-                      : ""
-                  }
-                  onChange={(e) => setJobName(e.target.value)}
-                  label="Job name"
-                  data-test-id="job-create-name"
-                />
-              </FormControl>
-              <FormControl fullWidth>
-                <InputLabel id="select-pipeline-label">Pipeline</InputLabel>
-                <Select
-                  required
-                  labelId="select-pipeline-label"
-                  id="select-pipeline"
-                  value={selectedPipeline}
-                  label="Pipeline"
-                  onChange={(e) => setSelectedPipeline(e.target.value)}
-                >
-                  {pipelines.map((pipeline) => {
-                    return (
-                      <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
-                        {pipeline.name}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-            </Stack>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button color="secondary" onClick={closeDialog}>
-            Cancel
-          </Button>
-          <Button
-            variant="contained"
-            disabled={
-              !jobName || hasOnlySpaces || !selectedPipeline || isCreatingJob
-            }
-            type="submit"
-            form="create-job"
-            data-test-id="job-create-ok"
-          >
-            Create
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
-};
-
-const EditJobNameDialog = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  currentValue,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (newName: string) => Promise<void>;
-  currentValue: string;
-}) => {
-  const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
-  const [jobName, setJobName] = React.useState("");
-
-  React.useEffect(() => {
-    if (isOpen && currentValue) setJobName(currentValue);
-  }, [isOpen, currentValue]);
-
-  const closeDialog = !isSubmittingJobName ? onClose : undefined;
-  const hasOnlySpaces = jobName.length > 0 && jobName.trim().length === 0;
-
-  return (
-    <Dialog fullWidth maxWidth="xs" open={isOpen} onClose={closeDialog}>
-      <form
-        id="edit-job-name"
-        onSubmit={async (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-
-          setIsSubmittingJobName(true);
-          await onSubmit(jobName);
-          setIsSubmittingJobName(false);
-          onClose();
-        }}
-      >
-        <DialogTitle>Edit job name</DialogTitle>
-        <DialogContent>
-          <TextField
-            required
-            margin="normal"
-            fullWidth
-            error={hasOnlySpaces}
-            helperText={
-              hasOnlySpaces
-                ? "Should contain at least one non-whitespace letter"
-                : ""
-            }
-            value={jobName}
-            label="Job name"
-            autoFocus
-            onChange={(e) => setJobName(e.target.value)}
-            data-test-id="job-edit-name-textfield"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button startIcon={<CloseIcon />} onClick={closeDialog}>
-            Cancel
-          </Button>
-          <Button
-            startIcon={<SaveIcon />}
-            disabled={isSubmittingJobName || jobName.length === 0}
-            variant="contained"
-            type="submit"
-            form="edit-job-name"
-          >
-            Save
-          </Button>
-        </DialogActions>
-      </form>
-    </Dialog>
-  );
 };
 
 const createColumns = ({
@@ -309,12 +101,6 @@ const doCreateJob = async (
   });
 };
 
-type Pipeline = {
-  uuid: string;
-  path: string;
-  name: string;
-};
-
 const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
@@ -350,13 +136,10 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
-  const { data: projectSnapshotSize = 0 } = useSWR(
-    projectUuid && isCreateDialogOpen ? `/async/projects/${projectUuid}` : null,
-    (url: string) =>
-      fetcher<Project>(url)
-        .then((response) => response.project_snapshot_size)
-        .catch((e) => console.error(e))
-  );
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
+    projectUuid: isCreateDialogOpen && projectUuid ? projectUuid : null,
+    selector: (project) => project.project_snapshot_size,
+  });
 
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
 
