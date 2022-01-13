@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: orchest-api
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicas }}
   selector:
     matchLabels:
       app: orchest-api
