@@ -813,3 +813,29 @@ def get_orchest_examples_json() -> dict:
                 return _DEFAULT_ORCHEST_EXAMPLES_JSON
             data["entries"].sort(key=lambda x: -x.get("stargazers_count", -1))
             return data
+
+
+_DEFAULT_ORCHEST_UPDATE_INFO_JSON = {"latest_version": None}
+
+
+def get_orchest_update_info_json() -> dict:
+    """Get orchest update info.
+
+    Returns:
+        A dictionary mapping latest_version to the latest Orchest
+        version.
+    """
+
+    path = current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]
+    if not os.path.exists(path):
+        current_app.logger.warning("Could not find orchest update info json.")
+        return _DEFAULT_ORCHEST_UPDATE_INFO_JSON
+    else:
+        with open(current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]) as f:
+            data = json.load(f)
+            if not isinstance(data.get("latest_version"), str):
+                current_app.logger.error(
+                    f"Malformed orchest update info json : {data}."
+                )
+                return _DEFAULT_ORCHEST_EXAMPLES_JSON
+            return data

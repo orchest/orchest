@@ -52,9 +52,11 @@ const useImportProject = (
   const backgroundTaskPollerRef = React.useRef(new BackgroundTaskPoller());
 
   const { data, run, status: fetchStatus, setData } = useAsync<BackgroundTask>({
-    uuid: null,
-    result: null,
-    status: "PENDING",
+    initialState: {
+      uuid: null,
+      result: null,
+      status: "PENDING",
+    },
   });
 
   React.useEffect(() => {

@@ -61,6 +61,11 @@ def add_recurring_jobs_to_scheduler(
             "interval": app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"],
             "job_func": jobs.handle_orchest_examples,
         },
+        "orchest update info": {
+            "allowed_to_run": app.config["POLL_ORCHEST_UPDATE_INFO_JSON"],
+            "interval": app.config["ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL"],
+            "job_func": jobs.handle_orchest_update_info,
+        },
     }
 
     for name, job in recurring_jobs.items():
@@ -137,6 +142,40 @@ class Jobs:
             models.SchedulerJobType.ORCHEST_EXAMPLES,
             interval,
             fetch_orchest_examples_json_to_disk,
+            app,
+        )
+
+    def handle_orchest_update_info(self, app: Flask, interval: int = 0) -> None:
+        """Handles fetching the latest update info for Orchest.
+
+        The schedule is defined by the given interval. E.g.
+        `interval=15` will cause this job to if 15 minutes have passed
+        since the previous run.
+
+        Args:
+            interval: How much time should have passed after the
+                previous execution of this job (in minutes). And thus an
+                `interval=0` will execute the job right away.
+
+        """
+        # Nested function because it won't be called from any other
+        # place.
+        def fetch_orchest_update_info_json_to_disk(app: Flask) -> None:
+            url = app.config["ORCHEST_WEB_URLS"]["orchest_update_info_json"]
+            resp = requests.get(url, timeout=5)
+
+            code = resp.status_code
+            if code == 200:
+                data = resp.json()
+                with open(app.config["ORCHEST_UPDATE_INFO_JSON_PATH"], "w") as f:
+                    json.dump(data, f)
+            else:
+                logger.error(f"Could not fetch update info json: {code}.")
+
+        return self._handle_recurring_scheduler_job(
+            models.SchedulerJobType.ORCHEST_EXAMPLES,
+            interval,
+            fetch_orchest_update_info_json_to_disk,
             app,
         )
 

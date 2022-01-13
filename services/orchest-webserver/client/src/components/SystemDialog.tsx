@@ -40,15 +40,15 @@ export const SystemDialog: React.FC = () => {
 
   if (!promptMessage) return null;
 
-  const confirm = () => {
-    if (promptMessage.onConfirm) promptMessage.onConfirm();
+  const confirm = async () => {
+    if (promptMessage.onConfirm) await promptMessage.onConfirm();
     deletePromptMessage();
   };
 
   const isCancellable = checkCancellable(promptMessage);
 
-  const cancel = () => {
-    if (isCancellable && promptMessage.onCancel) promptMessage.onCancel();
+  const cancel = async () => {
+    if (isCancellable && promptMessage.onCancel) await promptMessage.onCancel();
     deletePromptMessage();
   };
 

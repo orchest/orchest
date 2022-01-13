@@ -55,7 +55,8 @@ import {
   RefManager,
   uuidv4,
 } from "@orchest/lib-utils";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
+import merge from "lodash.merge";
 import React, { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
@@ -409,13 +410,13 @@ const PipelineView: React.FC = () => {
     // generate JSON representation using the internal state of React components
     // describing the pipeline
 
-    let pipelineJSON: PipelineJson = _.cloneDeep(state.pipelineJson);
+    let pipelineJSON: PipelineJson = cloneDeep(state.pipelineJson);
     pipelineJSON["steps"] = {};
 
     for (let key in state.eventVars.steps) {
       if (state.eventVars.steps.hasOwnProperty(key)) {
         // deep copy step
-        let step = _.cloneDeep(state.eventVars.steps[key]);
+        let step = cloneDeep(state.eventVars.steps[key]);
 
         // remove private meta_data (prefixed with underscore)
         let keys = Object.keys(step.meta_data);
@@ -1422,8 +1423,7 @@ const PipelineView: React.FC = () => {
 
       setConfirm(
         "Warning",
-        "A deleted step and its logs cannot be recovered once deleted, are you" +
-          " sure you want to proceed?",
+        `A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?`,
         async () => {
           closeMultistepView();
           closeDetailsView();
@@ -1930,11 +1930,7 @@ const PipelineView: React.FC = () => {
     closeMultistepView();
   };
 
-  const onDeleteMultistep = () => {
-    deleteSelectedSteps();
-  };
-
-  const onDetailsChangeView = (newIndex) => {
+  const onDetailsChangeView = (newIndex: number) => {
     setState({
       defaultDetailViewIndex: newIndex,
     });
@@ -1948,7 +1944,7 @@ const PipelineView: React.FC = () => {
         state.eventVars.steps[uuid][key] = stepChanges[key];
       }
     } else {
-      _.merge(state.eventVars.steps[uuid], stepChanges);
+      merge(state.eventVars.steps[uuid], stepChanges);
     }
 
     updateEventVars();
@@ -2700,8 +2696,9 @@ const PipelineView: React.FC = () => {
             <Button
               variant="contained"
               color="secondary"
-              onClick={onDeleteMultistep}
+              onClick={deleteSelectedSteps}
               startIcon={<DeleteIcon />}
+              disabled={state.eventVars.isDeletingStep}
               data-test-id="step-delete-multi"
             >
               Delete

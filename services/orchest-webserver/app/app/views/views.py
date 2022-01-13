@@ -40,6 +40,7 @@ from app.utils import (
     get_environments,
     get_job_counts,
     get_orchest_examples_json,
+    get_orchest_update_info_json,
     get_pipeline_directory,
     get_pipeline_json,
     get_pipeline_path,
@@ -145,6 +146,10 @@ def register_views(app, db):
     @app.route("/async/orchest-examples", methods=["GET"])
     def orchest_examples():
         return get_orchest_examples_json()
+
+    @app.route("/async/orchest-update-info", methods=["GET"])
+    def orchest_update_info():
+        return get_orchest_update_info_json()
 
     @app.route("/async/server-config", methods=["GET"])
     def server_config():

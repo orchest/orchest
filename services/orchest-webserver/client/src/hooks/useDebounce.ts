@@ -1,6 +1,6 @@
 import React from "react";
 
-export const useDebounce = <T,>(
+export const useDebounce = <T>(
   value: T,
   delay: number,
   callback?: (newValue: T) => void

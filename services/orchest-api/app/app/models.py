@@ -10,7 +10,16 @@ TODO:
 import copy
 from typing import Any, Dict
 
-from sqlalchemy import ForeignKeyConstraint, Index, UniqueConstraint, func, text
+from sqlalchemy import (
+    ForeignKeyConstraint,
+    Index,
+    UniqueConstraint,
+    case,
+    cast,
+    func,
+    text,
+)
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
 from sqlalchemy.orm import deferred
 
@@ -506,6 +515,13 @@ class PipelineRunStep(BaseModel):
         return f"<{self.__class__.__name__}: {self.run_uuid}.{self.step_uuid}>"
 
 
+def _create_text_search_vector(*args):
+    exp = args[0]
+    for e in args[1:]:
+        exp += " " + e
+    return func.to_tsvector("simple", exp)
+
+
 class NonInteractivePipelineRun(PipelineRun):
     # https://docs.sqlalchemy.org/en/14/orm/inheritance.html
     # sqlalchemy has 3 kinds of inheritance: joined table, single table,
@@ -574,10 +590,31 @@ class NonInteractivePipelineRun(PipelineRun):
         )
     )
 
+    __text_search_vector = _create_text_search_vector(
+        func.lower(cast(pipeline_run_index, postgresql.TEXT)),
+        # This is needed to reflect what the FE is showing to the user.
+        case(
+            [
+                (PipelineRun.status == "ABORTED", "cancelled"),
+                (PipelineRun.status == "FAILURE", "failed"),
+                (PipelineRun.status == "STARTED", "running"),
+            ],
+            else_=func.lower(PipelineRun.status),
+        ),
+        func.lower(cast(parameters, postgresql.TEXT)),
+    )
+
     # related to inheriting from PipelineRun
     __mapper_args__ = {
         "polymorphic_identity": "NonInteractivePipelineRun",
     }
+
+
+Index(
+    "ix_job_pipeline_runs_text_search",
+    NonInteractivePipelineRun._NonInteractivePipelineRun__text_search_vector,
+    postgresql_using="gin",
+)
 
 
 # Used to find old job pipeline runs to delete, see
@@ -593,6 +630,7 @@ UniqueConstraint(
     NonInteractivePipelineRun.job_uuid,
     NonInteractivePipelineRun.pipeline_run_index,
 )
+
 
 # Each job execution can be seen as a batch of runs, identified through
 # the job_run_index, each pipeline run id, which is essentially

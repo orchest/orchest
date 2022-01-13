@@ -115,6 +115,7 @@ class BackgroundTask(BaseModel):
 class SchedulerJobType(enum.Enum):
     TELEMETRY_HEARTBEAT = "TELEMETRY HEARTBEAT"
     ORCHEST_EXAMPLES = "ORCHEST EXAMPLES"
+    ORCHEST_UPDATE_INFO = "ORCHEST UPDATE INFO"
 
 
 class SchedulerJob(BaseModel):

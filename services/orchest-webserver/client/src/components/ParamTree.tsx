@@ -6,7 +6,7 @@ import {
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-import _ from "lodash";
+import isString from "lodash.isstring";
 import React from "react";
 
 export interface IParamTreeProps {
@@ -44,7 +44,7 @@ const ParamTree: React.FC<IParamTreeProps> = (props) => {
 
   const truncateParameterValue = (value) => {
     // stringify non string values
-    if (!_.isString(value)) {
+    if (!isString(value)) {
       value = JSON.stringify(value);
     }
 

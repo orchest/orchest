@@ -25,11 +25,13 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   fetcher,
+  HEADER,
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
 import { IconButton } from "./common/IconButton";
 import { DataTable, DataTableColumn } from "./DataTable";
 import { StatusInline } from "./Status";
@@ -73,7 +75,7 @@ const createColumns = ({
               onEditJobNameClick(row.uuid, row.name);
             }}
           >
-            <EditIcon />
+            <EditIcon fontSize="small" />
           </IconButton>
         </Stack>
       );
@@ -85,7 +87,7 @@ const createColumns = ({
     id: "status",
     label: "Status",
     render: function SnapshotDate(row) {
-      return <StatusInline status={row.status} />;
+      return <StatusInline status={row.status} size="small" />;
     },
   },
 ];
@@ -94,14 +96,25 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
 
+  const {
+    data: jobs = [],
+    error: fetchJobsError,
+    isValidating,
+    revalidate: fetchJobs,
+  } = useSWR(
+    projectUuid
+      ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
+      : null,
+    (url: string) =>
+      fetcher<{ jobs: Job[] }>(url).then((response) => response.jobs)
+  );
+
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
   const [isSubmittingJobName, setIsSubmittingJobName] = React.useState(false);
-  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
 
-  const [jobs, setJobs] = React.useState<Job[]>([]);
   const [pipelines, setPipelines] = React.useState<
     { uuid: string; path: string; name: string }[]
   >([]);
@@ -116,16 +129,10 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const promiseManager = React.useRef(new PromiseManager());
 
-  const fetchJobs = async () => {
-    try {
-      const response = await fetcher<{ jobs: Job[] }>(
-        `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      );
-      setJobs(response.jobs);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  React.useEffect(() => {
+    if (fetchJobsError)
+      setAlert("Error", `Failed to fetch jobs: ${fetchJobsError}`);
+  }, [fetchJobsError, setAlert]);
 
   const fetchProjectDirSize = async () => {
     try {
@@ -148,45 +155,30 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   };
 
   const deleteSelectedJobs = async (jobUuids: string[]) => {
-    // this is just a precaution. the button is disabled when isDeleting is true.
-    if (isDeleting) {
-      console.error("Delete UI in progress.");
-      return false;
-    }
-
-    setIsDeleting(true);
-
-    if (jobUuids.length == 0) {
-      setAlert("Error", "You haven't selected any jobs.");
-      setIsDeleting(false);
-
-      return false;
-    }
-
     return setConfirm(
       "Warning",
       "Are you sure you want to delete these jobs? (This cannot be undone.)",
-      async () => {
-        const promises = jobUuids.map((uuid) => {
-          return fetcher(`/catch/api-proxy/api/jobs/cleanup/${uuid}`, {
-            method: "DELETE",
-          });
-        });
-
+      async (resolve) => {
         try {
-          await Promise.all(promises);
-          setIsDeleting(false);
-          fetchJobs();
+          Promise.all(
+            jobUuids.map((uuid) => {
+              return fetcher(`/catch/api-proxy/api/jobs/cleanup/${uuid}`, {
+                method: "DELETE",
+              });
+            })
+          )
+            .then(() => {
+              fetchJobs();
+              resolve(true);
+            })
+            .catch((e) => {
+              setAlert("Error", `Failed to delete selected jobs: ${e}`);
+              resolve(false);
+            });
           return true;
         } catch (e) {
-          setAlert("Error", `Failed to delete selected jobs: ${e}`);
-          setIsDeleting(false);
           return false;
         }
-      },
-      async () => {
-        setIsDeleting(false);
-        return false;
       }
     );
   };
@@ -293,9 +285,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     try {
       await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}`, {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json; charset=UTF-8",
-        },
+        headers: HEADER.JSON,
         body: JSON.stringify({ name: jobName }),
       });
       await fetchJobs();
@@ -391,15 +381,17 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
       {jobs && pipelines ? (
         <>
-          <Button
-            startIcon={<AddIcon />}
-            variant="contained"
-            onClick={onCreateClick}
-            sx={{ marginBottom: (theme) => theme.spacing(2) }}
-            data-test-id="job-create"
-          >
-            Create job
-          </Button>
+          <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={onCreateClick}
+              sx={{ marginBottom: (theme) => theme.spacing(2) }}
+              data-test-id="job-create"
+            >
+              Create job
+            </Button>
+          </Box>
           <Dialog
             open={isCreateDialogOpen}
             onClose={closeCreateDialog}
@@ -497,6 +489,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           </Dialog>
           <DataTable<DisplayedJob>
             id="job-list"
+            isLoading={isValidating}
             selectable
             rows={jobs.map((job) => {
               return {
@@ -513,6 +506,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             initialOrderBy="snapShotDate"
             initialOrder="desc"
             onRowClick={onRowClick}
+            rowHeight={63}
             deleteSelectedRows={deleteSelectedJobs}
           />
         </>

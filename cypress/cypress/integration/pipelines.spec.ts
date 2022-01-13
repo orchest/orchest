@@ -68,7 +68,8 @@ describe("pipelines", () => {
     reloadUntilElementsLoaded(
       "pipeline-list-row",
       () => {
-        return cy.findByTestId("pipeline-list").should("exist");
+        cy.findByTestId("pipeline-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       2
     );

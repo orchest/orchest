@@ -95,7 +95,8 @@ function verifyJobRunsParameters(
 const loadProject = () => {
   cy.goToMenu("projects");
   reloadUntilElementsLoaded("project-list-row", () => {
-    return cy.findByTestId("project-list").should("exist");
+    cy.findByTestId("project-list").should("exist");
+    return cy.findByTestId("loading-table-row").should("not.exist");
   });
 };
 
@@ -111,6 +112,10 @@ describe("jobs", () => {
       cy.exec(
         `cp -r ${PROJECTS.DUMP_ENV_PARAMS.get_path()} ../userdir/projects/`
       );
+      // NOTE: the following tests will create 8 combinations
+      // we need to modify the page size to ensure tests dont' fail because of pagination.
+      cy.setLocalStorage("orchest.job-pipeline-runs-table-page-size", "10");
+
       loadProject();
       assertEnvIsBuilt();
     });
