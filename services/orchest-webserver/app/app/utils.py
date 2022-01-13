@@ -1,3 +1,4 @@
+import collections
 import hashlib
 import json
 import os
@@ -400,22 +401,18 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
         f'http://{current_app.config["ORCHEST_API_ADDRESS"]}{endpoint}', params=params
     )
 
-    data = resp.json()
-    counts = {}
-
     if resp.status_code != 200:
         current_app.logger.error(
             "Failed to fetch entity count "
             "from orchest-api. Endpoint [%s] Entity key[%s]. Status code: %d"
             % (endpoint, entity_key, resp.status_code)
         )
-        return counts
+        return {}
 
+    data = resp.json()
+    counts = collections.defaultdict(int)
     for entity in data[entity_key]:
-        if entity["project_uuid"] in counts:
-            counts[entity["project_uuid"]] += 1
-        else:
-            counts[entity["project_uuid"]] = 1
+        counts[entity["project_uuid"]] += 1
 
     return counts
 

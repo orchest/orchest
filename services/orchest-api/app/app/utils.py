@@ -706,14 +706,14 @@ def delete_dangling_orchest_images() -> None:
         # environment, even a dangling one, will not be removed.
         "dangling": True,
     }
-    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    env_imgs = docker_images_list_safe(docker_client, filters=filters, attempt_count=1)
     for img in env_imgs:
         # Since environment images might be built using Orchest base
         # images, make sure to not delete environment images by mistake
         # because of the filtering.
         env_uuid = img.labels.get("_orchest_environment_uuid")
         if env_uuid is None:
-            docker_images_rm_safe(docker_client, img.id)
+            docker_images_rm_safe(docker_client, img.id, attempt_count=1)
 
 
 def is_orchest_idle() -> dict:
