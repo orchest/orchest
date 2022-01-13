@@ -160,11 +160,11 @@ def create_app(to_migrate_db=False):
         posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
         posthog.host = app.config["POSTHOG_HOST"]
 
-        # Try to send a ping now.
-        interval = app.config["TELEMETRY_INTERVAL"]
-        Scheduler.handle_telemetry_heartbeat_signal(app, interval)
+        # Send a ping now.
+        Scheduler.handle_telemetry_heartbeat_signal(app)
 
-        # and every 15 minutes
+        # And every 15 minutes.
+        interval = app.config["TELEMETRY_INTERVAL"]
         scheduler.add_job(
             Scheduler.handle_telemetry_heartbeat_signal,
             "interval",
@@ -173,11 +173,11 @@ def create_app(to_migrate_db=False):
         )
 
     if app.config["POLL_ORCHEST_EXAMPLES_JSON"]:
-        # Try to fetch now.
-        interval = app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"]
-        Scheduler.handle_orchest_examples(app, interval)
+        # Fetch now.
+        Scheduler.handle_orchest_examples(app)
 
         # And every hour.
+        interval = app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"]
         scheduler.add_job(
             Scheduler.handle_orchest_examples,
             "interval",
