@@ -87,7 +87,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
     if to_migrate_db:
         return app
 
-    if use_db and not _utils.is_running_from_reloader:
+    if use_db and not _utils.is_running_from_reloader():
         with app.app_context():
             # In case of running multiple gunicorn workers, we need to
             # ensure that cleanup is only run once. Therefore, we
@@ -111,6 +111,8 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
                     f"/tmp/cleanup_done exists. Skipping cleanup: {os.getpid()}."
                 )
             else:
+                app.logger.debug("Starting app initialization cleanup.")
+
                 # NOTE: This cleanup code blocks the gunicorn worker
                 # from handling requests, because it is required for the
                 # app to be initialized. So make sure the cleanup is
