@@ -34,8 +34,11 @@ RUN pnpm i && \
 WORKDIR /orchest/services/auth-server
 COPY ./app ./app
 
+WORKDIR /orchest/services/auth-server/app
+COPY ./start.sh /
+
 # Required by base image.
 ENV GUNICORN_CONF /orchest/services/auth-server/app/gunicorn_conf.py
+ENV APP_MODULE "main:app"
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
-WORKDIR /orchest/services/auth-server/app

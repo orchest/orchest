@@ -1,10 +1,9 @@
 """Job scheduler.
 
-Only one scheduler should be running. This means that if the orchest-api
-is run as multiple processes then the scheduler needs to be factored out
-as a stand alone process. The scheduler currently runs in a background
-thread, and its invoked every orchest-api.config.SCHEDULER_INTERVAL
-seconds.
+In case of multiple gunicorn workers, there will be multiple instances
+of the `Scheduler` running. This means that the scheduler needs to lock
+database rows in order to prevent duplicate execution by other scheduler
+instances.
 
 The scheduler works by checking for which jobs are due to be run by
 querying the database, which acts as the ground truth. The column of

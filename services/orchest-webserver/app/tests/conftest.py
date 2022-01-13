@@ -1,6 +1,7 @@
 import os
 
 import pytest
+from flask_migrate import upgrade
 from sqlalchemy_utils import drop_database
 from tests.test_utils import Pipeline, Project
 
@@ -32,6 +33,12 @@ def test_app():
     config.TestingConfig.SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI
     config.CONFIG_CLASS = config.TestingConfig
     _utils.GlobalOrchestConfig._path = os.path.join(TEMP_DIR, "config.json")
+
+    # Migrate DB
+    app, _, _ = create_app(to_migrate_db=True)
+    with app.app_context():
+        upgrade()
+
     app, _, _ = create_app()
     yield app
 

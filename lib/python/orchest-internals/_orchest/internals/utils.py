@@ -503,18 +503,6 @@ def is_running_from_reloader():
     return _irfr()
 
 
-def is_werkzeug_parent():
-    # When Flask is running in dev mode, Werkzeug
-    # starts a parent and child process to support hot reloading.
-
-    # For code that needs to run non-concurrently we use this gate
-    # to avoid concurrent exection.
-    if os.environ.get("FLASK_ENV") != "development":
-        return False
-    elif os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        return True
-
-
 def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
 
     for _ in range(attempt_count):
