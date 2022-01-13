@@ -582,6 +582,13 @@ class NonInteractivePipelineRun(PipelineRun):
         server_default="{}",
     )
 
+    # Used for text search, excludes step uuids.
+    parameters_text_search_values = db.Column(
+        JSONB,
+        nullable=False,
+        server_default="[]",
+    )
+
     env_variables = deferred(
         db.Column(
             JSONB,
