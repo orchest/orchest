@@ -28,7 +28,7 @@ from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from app import config
 from app.connections import db, ma
-from app.core.scheduler import Scheduler
+from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.kernel_manager import populate_kernels
 from app.models import Project
 from app.socketio_server import register_socketio_broadcast
@@ -69,6 +69,11 @@ def create_app(to_migrate_db=False):
     # In development we want more verbose logging of every request.
     if os.getenv("FLASK_ENV") == "development":
         app = register_teardown_request(app)
+
+    if not app.config["TELEMETRY_DISABLED"]:
+        # Initialize posthog.
+        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
+        posthog.host = app.config["POSTHOG_HOST"]
 
     socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -152,38 +157,8 @@ def create_app(to_migrate_db=False):
         }
     )
     app.config["SCHEDULER"] = scheduler
+    add_recurring_jobs_to_scheduler(scheduler, app, run_on_add=True)
     scheduler.start()
-
-    # Telemetry
-    if not app.config["TELEMETRY_DISABLED"]:
-        # initialize posthog
-        posthog.api_key = base64.b64decode(app.config["POSTHOG_API_KEY"]).decode()
-        posthog.host = app.config["POSTHOG_HOST"]
-
-        # Send a ping now.
-        Scheduler.handle_telemetry_heartbeat_signal(app)
-
-        # And every 15 minutes.
-        interval = app.config["TELEMETRY_INTERVAL"]
-        scheduler.add_job(
-            Scheduler.handle_telemetry_heartbeat_signal,
-            "interval",
-            minutes=interval,
-            args=[app, interval],
-        )
-
-    if app.config["POLL_ORCHEST_EXAMPLES_JSON"]:
-        # Fetch now.
-        Scheduler.handle_orchest_examples(app)
-
-        # And every hour.
-        interval = app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"]
-        scheduler.add_job(
-            Scheduler.handle_orchest_examples,
-            "interval",
-            minutes=interval,
-            args=[app, interval],
-        )
 
     # static file serving
     @app.route("/", defaults={"path": ""}, methods=["GET"])

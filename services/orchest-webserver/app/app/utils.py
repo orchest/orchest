@@ -10,7 +10,6 @@ from typing import Optional
 
 import requests
 from flask import current_app
-from flask.app import Flask
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import is_services_definition_valid
@@ -791,24 +790,6 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
         )
     )
     return new_path_abs.startswith(project_path)
-
-
-def fetch_orchest_examples_json_to_disk(app: Flask) -> None:
-    # Coarse but we need to make sure no error happens when intializing
-    # the app when depending on an external resource.
-    try:
-        url = app.config["ORCHEST_WEB_URLS"]["orchest_examples_json"]
-        resp = requests.get(url, timeout=5)
-
-        code = resp.status_code
-        if code == 200:
-            data = resp.json()
-            with open(app.config["ORCHEST_EXAMPLES_JSON_PATH"], "w") as f:
-                json.dump(data, f)
-        else:
-            app.logger.error(f"Could not fetch public examples json: {code}.")
-    except Exception as e:
-        app.logger.error(f"Error in public json fetch: {e}.")
 
 
 _DEFAULT_ORCHEST_EXAMPLES_JSON = {

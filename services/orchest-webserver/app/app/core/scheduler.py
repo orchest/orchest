@@ -1,22 +1,73 @@
 import datetime
 import enum
+import json
 import logging
 import os
 from typing import Callable
 
+import requests
 import sqlalchemy
+from apscheduler.schedulers.background import BackgroundScheduler
 from flask.app import Flask
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import analytics, models, utils
+from app import analytics, models
 from app.connections import db
 
 logger = logging.getLogger("job-scheduler")
 
 
-class Scheduler:
-    @staticmethod
-    def handle_telemetry_heartbeat_signal(app: Flask, interval: int = 0) -> None:
+def add_recurring_jobs_to_scheduler(
+    scheduler: BackgroundScheduler, app: Flask, run_on_add=False
+) -> None:
+    """Adds recurring jobs to the given scheduler.
+
+    Args:
+        scheduler: Scheduler to which the jobs will be added.
+        app: Flask app to read config values from such as the interval
+            that is used for the recurring jobs.
+        run_on_add: If True will run the jobs when added to the
+            scheduler.
+
+    """
+    jobs = Jobs()
+    recurring_jobs = {
+        "telemetry heartbeat signal": {
+            "allowed_to_run": not app.config["TELEMETRY_DISABLED"],
+            "interval": app.config["TELEMETRY_INTERVAL"],
+            "job_func": jobs.handle_telemetry_heartbeat_signal,
+        },
+        "orchest examples": {
+            "allowed_to_run": app.config["POLL_ORCHEST_EXAMPLES_JSON"],
+            "interval": app.config["ORCHEST_EXAMPLES_JSON_POLL_INTERVAL"],
+            "job_func": jobs.handle_orchest_examples,
+        },
+    }
+
+    for name, job in recurring_jobs.items():
+        if job["allowed_to_run"]:
+            app.logger.debug(f"Adding recurring job '{name}' to scheduler.")
+            scheduler.add_job(
+                job["job_func"],
+                "interval",
+                minutes=job["interval"],
+                args=[app, job["interval"]],
+            )
+
+            if run_on_add:
+                try:
+                    job["job_func"](app)
+                except Exception:
+                    app.logger.error(
+                        f"Failed to do initial run of recurring job: '{name}'."
+                    )
+
+
+class Jobs:
+    def __init__(self):
+        pass
+
+    def handle_telemetry_heartbeat_signal(self, app: Flask, interval: int = 0) -> None:
         """Handles sending the telemetry heartbeat signal.
 
         The schedule is defined by the given interval. E.g.
@@ -29,15 +80,14 @@ class Scheduler:
                 `interval=0` will execute the job right away.
 
         """
-        return _handle_scheduler_job(
+        return self._handle_recurring_scheduler_job(
             models.SchedulerJobType.TELEMETRY_HEARTBEAT,
             interval,
             analytics.send_heartbeat_signal,
             app,
         )
 
-    @staticmethod
-    def handle_orchest_examples(app: Flask, interval: int = 0) -> None:
+    def handle_orchest_examples(self, app: Flask, interval: int = 0) -> None:
         """Handles fetching the Orchest examples to disk.
 
         The schedule is defined by the given interval. E.g.
@@ -50,29 +100,43 @@ class Scheduler:
                 `interval=0` will execute the job right away.
 
         """
-        return _handle_scheduler_job(
+
+        def fetch_orchest_examples_json_to_disk(app: Flask) -> None:
+            url = app.config["ORCHEST_WEB_URLS"]["orchest_examples_json"]
+            resp = requests.get(url, timeout=5)
+
+            code = resp.status_code
+            if code == 200:
+                data = resp.json()
+                with open(app.config["ORCHEST_EXAMPLES_JSON_PATH"], "w") as f:
+                    json.dump(data, f)
+            else:
+                logger.error(f"Could not fetch public examples json: {code}.")
+
+        return self._handle_recurring_scheduler_job(
             models.SchedulerJobType.ORCHEST_EXAMPLES,
             interval,
-            utils.fetch_orchest_examples_json_to_disk,
+            fetch_orchest_examples_json_to_disk,
             app,
         )
 
+    @staticmethod
+    def _handle_recurring_scheduler_job(
+        job_type: enum.Enum, interval: int, handle_func: Callable, app: Flask
+    ) -> None:
+        try:
+            with app.app_context():
+                with TwoPhaseExecutor(db.session) as tpe:
+                    _HandleRecurringSchedulerJob(tpe).transaction(
+                        job_type, interval, handle_func, app
+                    )
+        except sqlalchemy.exc.IntegrityError:
+            logger.debug(f"SchedulerJob with type {job_type} already exists.")
+        except Exception:
+            logger.error(f"Failed to run job with type: {job_type}.")
 
-def _handle_scheduler_job(
-    job_type: enum.Enum, interval: int, handle_func: Callable, app: Flask
-) -> None:
-    try:
-        with app.app_context():
-            with TwoPhaseExecutor(db.session) as tpe:
-                HandleSchedulerJob(tpe).transaction(
-                    job_type, interval, handle_func, app
-                )
-    except sqlalchemy.exc.IntegrityError:
-        logger.debug(f"SchedulerJob with type {job_type} already exists.")
-        return
 
-
-class HandleSchedulerJob(TwoPhaseFunction):
+class _HandleRecurringSchedulerJob(TwoPhaseFunction):
     def _transaction(
         self, job_type: str, interval: int, handle_func: Callable, app: Flask
     ):
