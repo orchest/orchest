@@ -121,6 +121,7 @@ def send_heartbeat_signal(app: Flask) -> None:
         active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
 
     send_event(app, Event.HEARTBEAT_TRIGGER, {"active": active})
+    app.logger.debug(f"Successfully sent analytics event '{Event.HEARTBEAT_TRIGGER}'.")
 
 
 def send_event(
