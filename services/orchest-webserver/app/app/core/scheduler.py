@@ -17,6 +17,18 @@ logger = logging.getLogger("job-scheduler")
 class Scheduler:
     @staticmethod
     def handle_telemetry_heartbeat_signal(app: Flask, interval: int = 0) -> None:
+        """Handles sending the telemetry heartbeat signal.
+
+        The schedule is defined by the given interval. E.g.
+        `interval=15` will cause this job to if 15 minutes have passed
+        since the previous run.
+
+        Args:
+            interval: How much time should have passed after the
+                previous execution of this job (in minutes). And thus an
+                `interval=0` will execute the job right away.
+
+        """
         return _handle_scheduler_job(
             models.SchedulerJobType.TELEMETRY_HEARTBEAT,
             interval,
@@ -26,6 +38,18 @@ class Scheduler:
 
     @staticmethod
     def handle_orchest_examples(app: Flask, interval: int = 0) -> None:
+        """Handles fetching the Orchest examples to disk.
+
+        The schedule is defined by the given interval. E.g.
+        `interval=15` will cause this job to if 15 minutes have passed
+        since the previous run.
+
+        Args:
+            interval: How much time should have passed after the
+                previous execution of this job (in minutes). And thus an
+                `interval=0` will execute the job right away.
+
+        """
         return _handle_scheduler_job(
             models.SchedulerJobType.ORCHEST_EXAMPLES,
             interval,
@@ -64,6 +88,21 @@ class HandleSchedulerJob(TwoPhaseFunction):
             db.session.add(models.SchedulerJob(type=job_type))
         else:
             now = datetime.datetime.now(datetime.timezone.utc)
+
+            # Offset in minutes to account for lag in the scheduler
+            # when running jobs. E.g. execution X is slow and execution
+            # X+1 is fast, causing X+1 to not handle the event as the
+            # interval has not yet passed.
+            epsilon = 0.1
+
+            if interval > 0:
+                # The task would always run and thus also for every
+                # concurrent run. This is not what we want.
+                assert epsilon < interval, "Offset too large."
+                dt = interval - epsilon
+            else:
+                dt = 0
+
             job = (
                 query.with_for_update()
                 # The scheduler will wake up at exactly the right time,
@@ -71,8 +110,7 @@ class HandleSchedulerJob(TwoPhaseFunction):
                 # run the collateral.
                 .filter(
                     now
-                    >= models.SchedulerJob.timestamp
-                    + datetime.timedelta(minutes=interval)
+                    >= models.SchedulerJob.timestamp + datetime.timedelta(minutes=dt)
                 ).first()
             )
 
