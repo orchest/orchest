@@ -1,3 +1,22 @@
+"""Handles recurring jobs by assigning them to a given scheduler.
+
+The jobs get activated by the given scheduler and check the DB whether
+they are allowed to run. If not, they exit, else they execute. This
+pattern is used to prevent concurrent invocation of a job to result in
+duplicate side-effects, e.g. sending a heartbeat multiple times when
+only once is warranted. Concurrent invocations of jobs can happen if
+running with multiple gunicorn workers, because every worker will get
+its own dedicated scheduler (the scheduler is reused for non-recurring
+tasks as well to prevent the application from blocking, also if a worker
+dies we still want to make sure that its replacement also knows about
+the recurring jobs).
+
+The DB contains a timestamp for every type of job and locks the specific
+row. Thus concurrent runs with either skip execution due to the lock or
+learn that another job has already run due to the updated timestamp and
+refrain from running.
+
+"""
 import datetime
 import enum
 import json
@@ -100,7 +119,8 @@ class Jobs:
                 `interval=0` will execute the job right away.
 
         """
-
+        # Nested function because it won't be called from any other
+        # place.
         def fetch_orchest_examples_json_to_disk(app: Flask) -> None:
             url = app.config["ORCHEST_WEB_URLS"]["orchest_examples_json"]
             resp = requests.get(url, timeout=5)
@@ -168,18 +188,19 @@ class _HandleRecurringSchedulerJob(TwoPhaseFunction):
                 dt = 0
 
             job = (
-                query.with_for_update()
+                # Skip locked rows to prevent concurrent runs.
+                query.with_for_update(skip_locked=True)
                 # The scheduler will wake up at exactly the right time,
-                # we still check so that concurrent runs don't also
-                # run the collateral.
+                # we still check so that slow concurrent runs don't also
+                # run the collateral in case the row is no longer
+                # locked.
                 .filter(
                     now
                     >= models.SchedulerJob.timestamp + datetime.timedelta(minutes=dt)
                 ).first()
             )
 
-            # The row was previsouly locked and thus another worker
-            # already handled the `handle_func`.
+            # Another worker has already handled `handle_func`.
             if job is None:
                 # Use kwarg instead of raising an error as an error
                 # would be logged by the TPE.
