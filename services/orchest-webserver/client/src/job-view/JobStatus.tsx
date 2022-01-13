@@ -1,4 +1,9 @@
-import { StatusGroup, TStatus } from "@/components/Status";
+import {
+  RenderedJobStatus,
+  StatusGroup,
+  statusMapping,
+  TStatus,
+} from "@/components/Status";
 import theme from "@/theme";
 import { Job } from "@/types";
 import { commaSeparatedString } from "@/utils/text";
@@ -12,10 +17,60 @@ const getSummedCount = (
   return keys.reduce((sum, key) => sum + (countObj[key] || 0), 0);
 };
 
+const getIcon = ({
+  status,
+  totalPendingCount,
+  totalFailureCount,
+  count,
+}: {
+  status: RenderedJobStatus;
+  totalPendingCount: number;
+  totalFailureCount: number;
+  count: Record<TStatus, number>;
+}) => {
+  if (["MIXED_FAILURE", "MIXED_PENDING"].includes(status))
+    return (
+      <PieChart
+        startAngle={270}
+        background={theme.palette.background.default}
+        lineWidth={40}
+        animate={true}
+        data={[
+          {
+            title: "Pending",
+            color: theme.palette.warning.main,
+            value: totalPendingCount,
+          },
+          {
+            title: "Failed",
+            color: theme.palette.error.main,
+            value: totalFailureCount,
+          },
+          {
+            title: "Success",
+            color: theme.palette.success.main,
+            value: count.SUCCESS || 0,
+          },
+        ]}
+      />
+    );
+  return statusMapping[status].icon();
+};
+
+const statusTitleMapping: Partial<Record<RenderedJobStatus, string>> = {
+  ABORTED: "This job was cancelled",
+  PENDING: "Some pipeline runs haven't completed yet",
+  FAILURE: "All pipeline runs were unsuccessful",
+  STARTED: "This job is running",
+  PAUSED: "This job is paused",
+  SUCCESS: "All pipeline runs were successful",
+  MIXED_PENDING: "Some pipeline runs haven't completed yet",
+  MIXED_FAILURE: "Some pipeline runs were unsuccessful",
+};
+
 export const JobStatus: React.FC<
   { totalCount?: number } & Pick<Job, "status" | "pipeline_run_status_counts">
 > = ({ status, totalCount, pipeline_run_status_counts: count }) => {
-  if (!totalCount) return null;
   const isJobDone = status === "SUCCESS" || status === "ABORTED";
   const totalPendingCount = getSummedCount(count, ["PENDING", "STARTED"]);
   const totalFailureCount = getSummedCount(count, ["ABORTED", "FAILURE"]);
@@ -39,48 +94,18 @@ export const JobStatus: React.FC<
 
   const variant = getJobStatusVariant();
 
+  const icon = getIcon({
+    status: variant,
+    totalFailureCount,
+    totalPendingCount,
+    count,
+  });
+
   return (
     <StatusGroup
       status={variant}
-      icon={
-        ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) && (
-          <PieChart
-            startAngle={270}
-            background={theme.palette.background.default}
-            lineWidth={40}
-            animate={true}
-            data={[
-              {
-                title: "Pending",
-                color: theme.palette.warning.main,
-                value: totalPendingCount,
-              },
-              {
-                title: "Failed",
-                color: theme.palette.error.main,
-                value: totalFailureCount,
-              },
-              {
-                title: "Success",
-                color: theme.palette.success.main,
-                value: count.SUCCESS || 0,
-              },
-            ]}
-          />
-        )
-      }
-      title={
-        {
-          ABORTED: "This job was cancelled",
-          PENDING: "Some pipeline runs haven't completed yet",
-          FAILURE: "All pipeline runs were unsuccessful",
-          STARTED: "This job is running",
-          PAUSED: "This job is paused",
-          SUCCESS: "All pipeline runs were successful",
-          MIXED_PENDING: "Some pipeline runs haven't completed yet",
-          MIXED_FAILURE: "Some pipeline runs were unsuccessful",
-        }[variant]
-      }
+      icon={icon}
+      title={statusTitleMapping[variant] || ""}
       description={
         ["MIXED_FAILURE", "MIXED_PENDING"].includes(variant) &&
         [
