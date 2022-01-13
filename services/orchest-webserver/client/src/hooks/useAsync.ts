@@ -82,9 +82,11 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
       return promise.then(
         (data) => {
           dispatch({ type: "RESOLVED", data });
+          return data;
         },
         (error) => {
           dispatch({ type: "REJECTED", error });
+          return;
         }
       );
     },
