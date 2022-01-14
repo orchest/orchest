@@ -7,8 +7,8 @@ import useSWR from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
 type FetchPipelineJsonProps = {
-  jobUuid: string | undefined;
-  runUuid: string | undefined;
+  jobUuid?: string | undefined;
+  runUuid?: string | undefined;
   pipelineUuid: string | undefined;
   projectUuid: string | undefined;
 };

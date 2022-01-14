@@ -1,33 +1,31 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useAsync } from "@/hooks/useAsync";
 import { Job } from "@/types";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
+import useSWR from "swr";
+import { MutatorCallback } from "swr/dist/types";
 
-export const useFetchJob = (jobUuid?: string, runStatuses = true) => {
+export const useFetchJob = (jobUuid?: string, runStatuses?: boolean) => {
   const { setAlert } = useAppContext();
 
-  const { data: job, setData: setJob, error, run, status } = useAsync<Job>();
+  const { data: job, mutate, error, revalidate, isValidating } = useSWR<Job>(
+    jobUuid
+      ? `/catch/api-proxy/api/jobs/${jobUuid}${
+          runStatuses ? "?aggregate_run_statuses=true" : ""
+        }`
+      : null,
+    fetcher
+  );
 
-  const fetchJob = React.useCallback(() => {
-    if (jobUuid)
-      run(
-        fetcher(
-          `/catch/api-proxy/api/jobs/${jobUuid}${
-            runStatuses ? "?aggregate_run_statuses=true" : ""
-          }`
-        )
-      );
-  }, [jobUuid, run, runStatuses]);
+  const setJob = React.useCallback(
+    (data?: Job | Promise<Job> | MutatorCallback<Job>) => mutate(data, false),
+    [mutate]
+  );
 
   React.useEffect(() => {
     if (error) setAlert("Error", error.message);
   }, [error, setAlert]);
-
-  React.useEffect(() => {
-    fetchJob();
-  }, [fetchJob]);
 
   const envVariables: { name: string; value: string }[] = React.useMemo(() => {
     return job ? envVariablesDictToArray(job.env_variables) : [];
@@ -37,8 +35,8 @@ export const useFetchJob = (jobUuid?: string, runStatuses = true) => {
     job,
     setJob,
     envVariables,
-    fetchJob,
+    fetchJob: revalidate,
     fetchJobError: error,
-    fetchJobStatus: status,
+    isFetchingJob: isValidating,
   };
 };

@@ -1,10 +1,10 @@
 import { EnvVarPair } from "@/components/EnvVarList";
 import { useAppContext } from "@/contexts/AppContext";
+import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
 import { useFetchProject } from "@/hooks/useFetchProject";
-import { useFetchJob } from "@/job-view/useFetchJob";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import React from "react";
 
@@ -21,7 +21,7 @@ export const useFetchPipelineMetadata = ({
 }) => {
   const { setAsSaved } = useAppContext();
 
-  const { job } = useFetchJob(jobUuid, false);
+  const { job } = useFetchJob(jobUuid);
   const { pipeline } = useFetchPipeline(
     !jobUuid ? { projectUuid, pipelineUuid } : null
   );
