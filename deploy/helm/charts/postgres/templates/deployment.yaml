@@ -1,16 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: orchest-database
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: orchest-database
-  template:
-    metadata:
-      labels:
-        app: orchest-database
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
     spec:
       volumes:
         - name: pgdata
@@ -29,4 +21,4 @@ spec:
           value: "trust"
         volumeMounts:
          - name: pgdata
-           mountPath: /userdir/.orchest/database/data
+           mountPath: /userdir/.orchest/database/data           
