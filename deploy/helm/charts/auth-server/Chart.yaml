@@ -1,0 +1,7 @@
+apiVersion: v2
+description: The helm chart for aurh-server deployment
+name: auth-server
+version: 0.0.1
+icon: https://orchest.io/docs/source/img/logo.png
+sources:
+  - https://github.com/orchest/orchest
