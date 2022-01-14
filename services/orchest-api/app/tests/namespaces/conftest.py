@@ -2,6 +2,7 @@ import copy
 import os
 
 import pytest
+from flask_migrate import upgrade
 from sqlalchemy_utils import drop_database
 from tests.test_utils import (
     EagerScheduler,
@@ -86,6 +87,12 @@ def test_app():
     config.SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI
 
     config.TESTING = True
+
+    # Migrate DB
+    app = create_app(config, to_migrate_db=True)
+    with app.app_context():
+        upgrade()
+
     app = create_app(config, use_db=True, be_scheduler=False)
     scheduler = EagerScheduler(
         job_defaults={

@@ -1,3 +1,4 @@
+import { PipelineMetaData } from "@/types";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -16,17 +17,11 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-export type Pipeline = {
-  uuid: string;
-  path: string;
-  name: string;
-};
-
 export const CreateJobDialog = ({
   isOpen,
   onClose,
   onSubmit,
-  pipelines = [],
+  pipelines,
   selectedPipeline,
   setSelectedPipeline,
   projectSnapshotSize = 0,
@@ -34,7 +29,7 @@ export const CreateJobDialog = ({
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (jobName: string, pipelineUuid: string) => Promise<void>;
-  pipelines: Pipeline[];
+  pipelines?: PipelineMetaData[];
   selectedPipeline?: string;
   setSelectedPipeline: (uuid: string) => void;
   projectSnapshotSize?: number;
@@ -45,11 +40,11 @@ export const CreateJobDialog = ({
   const closeDialog = !isCreatingJob ? onClose : undefined;
 
   React.useEffect(() => {
-    if (pipelines && pipelines.length > 0) {
+    if (isOpen && pipelines && pipelines.length > 0) {
       setSelectedPipeline(pipelines[0].uuid);
     }
-    return () => setSelectedPipeline(undefined);
-  }, [pipelines, setSelectedPipeline]);
+    return () => setSelectedPipeline("");
+  }, [isOpen, pipelines, setSelectedPipeline]);
 
   const hasOnlySpaces = jobName.length > 0 && jobName.trim().length === 0;
 
@@ -113,7 +108,7 @@ export const CreateJobDialog = ({
                   label="Pipeline"
                   onChange={(e) => setSelectedPipeline(e.target.value)}
                 >
-                  {pipelines.map((pipeline) => {
+                  {(pipelines || []).map((pipeline) => {
                     return (
                       <MenuItem key={pipeline.uuid} value={pipeline.uuid}>
                         {pipeline.name}

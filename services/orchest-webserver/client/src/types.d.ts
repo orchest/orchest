@@ -302,6 +302,12 @@ export type Pipeline = {
   uuid: string;
 };
 
+export type PipelineMetaData = {
+  uuid: string;
+  path: string;
+  name: string;
+};
+
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;

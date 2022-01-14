@@ -338,7 +338,7 @@ def main():
                 else:
                     logging.error(
                         "Tried removing session_uuid (%s) "
-                        + "which is not in log_file_store." % session_uuid
+                        "which is not in log_file_store." % session_uuid
                     )
 
             elif data["action"] == "heartbeat":

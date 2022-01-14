@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchJobs } from "@/hooks/useFetchJobs";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { siteMap } from "@/routingConfig";
 import { EnvironmentValidationData, Job, JobStatus } from "@/types";
@@ -13,12 +14,12 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 import { IconButton } from "../components/common/IconButton";
 import { DataTable, DataTableColumn } from "../components/DataTable";
 import { StatusInline } from "../components/Status";
-import { CreateJobDialog, Pipeline } from "./CreateJobDialog";
+import { CreateJobDialog } from "./CreateJobDialog";
 import { EditJobNameDialog } from "./EditJobNameDialog";
+import { useFetchPipelinesOnCreateJob } from "./useFetchPipelinesOnCreateJob";
 
 type DisplayedJob = {
   name: string;
@@ -35,6 +36,7 @@ const createColumns = ({
   {
     id: "name",
     label: "Job",
+    sx: { margin: (theme) => theme.spacing(-0.5, 0) },
     render: function JobName(row) {
       return (
         <Stack
@@ -108,58 +110,51 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   const {
     data: jobs = [],
     error: fetchJobsError,
-    isValidating: isFetchingJobs,
-    revalidate: fetchJobs,
-    mutate: setJobs,
-  } = useSWR(
-    projectUuid
-      ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
-      : null,
-    (url: string) =>
-      fetcher<{ jobs: Job[] }>(url).then((response) => response.jobs)
-  );
+    isFetchingJobs,
+    fetchJobs,
+  } = useFetchJobs(projectUuid);
 
-  const { data: pipelines = [] } = useSWR(
-    projectUuid ? `/async/pipelines/${projectUuid}` : null,
-    (url: string) =>
-      fetcher<{
-        success: boolean;
-        result: Pipeline[];
-      }>(url)
-        .then((response) => response.result)
-        .catch((e) => {
-          if (e && e.status == 404) {
-            navigateTo(siteMap.projects.path);
-          }
-        })
-  );
-
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
-
-  const { data: projectSnapshotSize = 0 } = useFetchProject({
-    projectUuid: isCreateDialogOpen && projectUuid ? projectUuid : null,
-    selector: (project) => project.project_snapshot_size,
-  });
+  const { run, error: createJobError } = useAsync<
+    void,
+    { reason: string; data: EnvironmentValidationData; message: string }
+  >();
 
   const [isEditingJobName, setIsEditingJobName] = React.useState(false);
 
   const [jobName, setJobName] = React.useState("");
   const [jobUuid, setJobUuid] = React.useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
+
+  const closeCreateDialog = React.useCallback(() => {
+    setIsCreateDialogOpen(false);
+    setJobName("");
+  }, []);
+
+  const pipelines = useFetchPipelinesOnCreateJob({
+    projectUuid,
+    isCreateDialogOpen,
+    navigateTo,
+    setAlert,
+    closeCreateDialog,
+  });
+
   const [selectedPipeline, setSelectedPipeline] = React.useState<
     string | undefined
   >();
+
+  const { data: projectSnapshotSize } = useFetchProject({
+    projectUuid,
+    selector: (project) => project.project_snapshot_size,
+  });
 
   React.useEffect(() => {
     if (fetchJobsError)
       setAlert("Error", `Failed to fetch jobs: ${fetchJobsError}`);
   }, [fetchJobsError, setAlert]);
 
-  const onCreateClick = () => {
-    if (pipelines !== undefined && pipelines.length > 0) {
-      setIsCreateDialogOpen(true);
-    } else {
-      setAlert("Error", "Could not find any pipelines for this project.");
-    }
+  const onCreateClick = async () => {
+    setIsCreateDialogOpen(true);
+    setJobName("");
   };
 
   const deleteSelectedJobs = async (jobUuids: string[]) => {
@@ -191,11 +186,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     );
   };
 
-  const { run, error: createJobError } = useAsync<
-    void,
-    { reason: string; data: EnvironmentValidationData; message: string }
-  >();
-
   const createJob = React.useCallback(
     async (newJobName: string, pipelineUuid: string) => {
       setJobName(newJobName);
@@ -205,7 +195,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       const pipelineName = pipelines.find(
         (pipeline) => pipeline.uuid === pipelineUuid
       )?.name;
-
       return run(
         doCreateJob(projectUuid, newJobName, pipelineUuid, pipelineName).then(
           (job) => {
@@ -233,7 +222,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         });
         return;
       }
-
       setAlert("Error", `Failed to create job. ${createJobError.message}`);
     }
   }, [createJobError, setAlert, requestBuild, createJob]);
@@ -254,9 +242,9 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   const columns = React.useMemo(() => {
     const onEditJobNameClick = (newJobUuid: string, newJobName: string) => {
+      setIsEditingJobName(true);
       setJobName(newJobName);
       setJobUuid(newJobUuid);
-      setIsEditingJobName(true);
     };
     return createColumns({ onEditJobNameClick });
   }, []);
@@ -273,26 +261,30 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         headers: HEADER.JSON,
         body: JSON.stringify({ name: newJobName.trim() }),
       });
-      setJobs((currentJobs) => {
-        const found = currentJobs.find(
-          (currentJob) => currentJob.uuid === jobUuid
-        );
-        found.name = newJobName;
-        return currentJobs;
-      }, false);
     } catch (e) {
       setAlert("Error", `Failed to update job name: ${JSON.stringify(e)}`);
     }
   };
 
-  const closeCreateDialog = () => {
-    setIsCreateDialogOpen(false);
-  };
-
   return (
     <div className={"jobs-page"}>
       <h2>Jobs</h2>
-      {jobs && pipelines ? (
+      <CreateJobDialog
+        isOpen={isCreateDialogOpen}
+        onClose={closeCreateDialog}
+        onSubmit={createJob}
+        pipelines={pipelines}
+        selectedPipeline={selectedPipeline}
+        setSelectedPipeline={setSelectedPipeline}
+        projectSnapshotSize={projectSnapshotSize}
+      />
+      <EditJobNameDialog
+        onSubmit={onSubmitEditJobNameModal}
+        isOpen={isEditingJobName}
+        onClose={onCloseEditJobNameModal}
+        currentValue={jobName}
+      />
+      {jobs ? (
         <>
           <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
             <Button
@@ -305,21 +297,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
               Create job
             </Button>
           </Box>
-          <CreateJobDialog
-            isOpen={isCreateDialogOpen}
-            onClose={closeCreateDialog}
-            onSubmit={createJob}
-            pipelines={pipelines}
-            selectedPipeline={selectedPipeline}
-            setSelectedPipeline={setSelectedPipeline}
-            projectSnapshotSize={projectSnapshotSize}
-          />
-          <EditJobNameDialog
-            onSubmit={onSubmitEditJobNameModal}
-            isOpen={isEditingJobName}
-            onClose={onCloseEditJobNameModal}
-            currentValue={jobName}
-          />
           <DataTable<DisplayedJob>
             id="job-list"
             isLoading={isFetchingJobs}
@@ -339,7 +316,6 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             initialOrderBy="snapShotDate"
             initialOrder="desc"
             onRowClick={onRowClick}
-            rowHeight={63}
             deleteSelectedRows={deleteSelectedJobs}
           />
         </>

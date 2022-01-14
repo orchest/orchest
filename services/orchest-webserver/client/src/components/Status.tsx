@@ -1,3 +1,4 @@
+import { Job } from "@/types";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -23,7 +24,7 @@ type IconSize = "small" | "inherit" | "large" | "medium";
 // Keep this pattern and the one used in fuzzy DB search in sync, see
 // fuzzy_filter_non_interactive_pipeline_runs.
 
-const statusMapping: Partial<Record<
+export const statusMapping: Partial<Record<
   TStatus,
   { icon: (size?: IconSize) => React.ReactNode; text: string }
 >> = {
@@ -106,8 +107,14 @@ export const StatusInline: React.FC<{
   );
 };
 
+export type RenderedJobStatus =
+  | Job["status"]
+  | "FAILURE"
+  | "MIXED_FAILURE"
+  | "MIXED_PENDING";
+
 export type IStatusGroupProps = {
-  status: TStatus | string;
+  status: TStatus | RenderedJobStatus;
   icon?: React.ReactNode;
   title?: string;
   description?: string;
@@ -143,7 +150,7 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
           height: (theme) => theme.spacing(3),
         }}
       >
-        {icon || statusMapping[status].icon()}
+        {icon}
       </Box>
       <Typography
         component="span"
