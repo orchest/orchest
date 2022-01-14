@@ -334,7 +334,7 @@ describe("jobs", () => {
       assert(envVars.names.length === envVars.values.length)
     );
 
-    xit("creates a job with project, pipeline, job env vars", () => {
+    it("creates a job with project, pipeline, job env vars", () => {
       cy.addProjectEnvVars(
         PROJECTS.DUMP_ENV_PARAMS.name,
         projectEnvVars.names,
