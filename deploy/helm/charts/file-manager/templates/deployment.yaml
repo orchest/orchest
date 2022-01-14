@@ -1,16 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: file-manager
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: file-manager
-  template:
-    metadata:
-      labels:
-        app: file-manager
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
     spec:
       volumes:
         - name: userdir
