@@ -263,12 +263,15 @@ const JobView: React.FC = () => {
                         setTotalCount={setTotalRunCount}
                         footnote={
                           job.max_retained_pipeline_runs > 0 ? (
-                            <Typography
-                              variant="caption"
-                              sx={{ marginLeft: (theme) => theme.spacing(3) }}
+                            <Box
+                              sx={{
+                                fontSize: (theme) =>
+                                  theme.typography.body2.fontSize,
+                                marginLeft: (theme) => theme.spacing(1),
+                              }}
                             >
-                              {`Retaining last ${job.max_retained_pipeline_runs} pipeline runs`}
-                            </Typography>
+                              {`Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`}
+                            </Box>
                           ) : null
                         }
                       />
