@@ -230,7 +230,6 @@ const EditJobView: React.FC = () => {
 
   const {
     data: job,
-    revalidate: fetchJob,
     error: fetchJobError,
     isValidating: isFetchingJob,
     mutate: setJob,
@@ -514,10 +513,6 @@ const EditJobView: React.FC = () => {
     setScheduleOption("cron");
     setAsSaved(false);
   };
-
-  React.useEffect(() => {
-    fetchJob();
-  }, []);
 
   const handleChangeTab = (
     event: React.SyntheticEvent<Element, Event>,

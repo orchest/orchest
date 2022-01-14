@@ -10,7 +10,7 @@ type Pipeline = {
 };
 
 export const useFetchPipelines = (projectUuid: string | undefined) => {
-  const { data, error, isValidating, revalidate, mutate } = useSWR<Pipeline[]>(
+  const { data, error, isValidating, mutate } = useSWR<Pipeline[]>(
     projectUuid ? `/async/pipelines/${projectUuid}` : null,
     (url) =>
       fetcher<{ result: Pipeline[] }>(url).then((response) => response.result)
@@ -26,7 +26,7 @@ export const useFetchPipelines = (projectUuid: string | undefined) => {
     pipelines: data,
     error,
     isFetchingPipelines: isValidating,
-    fetchPipelines: revalidate,
+    fetchPipelines: mutate,
     setPipelines,
   };
 };

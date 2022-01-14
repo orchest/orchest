@@ -186,15 +186,20 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     );
   };
 
+  console.log("HM", pipelines);
+
   const createJob = React.useCallback(
     async (newJobName: string, pipelineUuid: string) => {
       setJobName(newJobName);
       // TODO: in this part of the flow copy the pipeline directory to make
       // sure the pipeline no longer changes
 
-      const pipelineName = pipelines.find(
+      console.log("HM", "inside", pipelines);
+
+      const pipelineName = (pipelines || []).find(
         (pipeline) => pipeline.uuid === pipelineUuid
       )?.name;
+
       return run(
         doCreateJob(projectUuid, newJobName, pipelineUuid, pipelineName).then(
           (job) => {

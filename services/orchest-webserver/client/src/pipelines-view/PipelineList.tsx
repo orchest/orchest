@@ -268,7 +268,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   const {
     data: pipelines,
     error,
-    revalidate: requestFetchPipelines,
+    mutate: requestFetchPipelines,
     isValidating,
   } = useSWR<PipelineMetaData[]>(
     `/async/pipelines/${projectUuid}`,
@@ -281,6 +281,9 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
       navigateTo(siteMap.projects.path);
     }
   }, [error, setAlert, navigateTo]);
+
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void | boolean>();
 
   // Edit pipeline
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
@@ -395,8 +398,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     );
   };
 
-  // monitor if there's any operations ongoing, if so, disable action buttons
-  const { run, status } = useAsync<void>();
   const isOperating = status === "PENDING";
 
   const createPipeline = React.useCallback(
