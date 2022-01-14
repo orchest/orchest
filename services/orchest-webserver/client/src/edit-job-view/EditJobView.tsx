@@ -30,7 +30,6 @@ import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
-import FormGroup from "@mui/material/FormGroup";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
 import Radio from "@mui/material/Radio";
@@ -697,20 +696,19 @@ const EditJobView: React.FC = () => {
                 <Stack
                   direction="row"
                   alignItems="center"
-                  spacing={0.5}
+                  spacing={2}
                   sx={{ margin: (theme) => theme.spacing(4, 0, 6) }}
                 >
-                  <FormGroup>
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={isAutoCleanUpEnabled}
-                          onChange={toggleIsAutoCleanUpEnabled}
-                        />
-                      }
-                      label={`Auto clean-up oldest pipeline runs, retain the last `}
-                    />
-                  </FormGroup>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isAutoCleanUpEnabled}
+                        onChange={toggleIsAutoCleanUpEnabled}
+                      />
+                    }
+                    label={`Auto clean-up oldest pipeline runs, retain the last `}
+                    sx={{ marginRight: 0 }}
+                  />
                   <TextField
                     variant="standard"
                     InputProps={{
