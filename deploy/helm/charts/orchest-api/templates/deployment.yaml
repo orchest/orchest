@@ -1,16 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: orchest-api
-spec:
-  replicas: {{ .Values.replicas }}
-  selector:
-    matchLabels:
-      app: orchest-api
-  template:
-    metadata:
-      labels:
-        app: orchest-api
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
     spec:
       volumes:
         - name: dockersock
@@ -24,9 +16,6 @@ spec:
       containers:
       - name: orchest-api
         image: orchest/orchest-api:latest
-        securityContext:
-          privileged: true
-          runAsUser: 0
         ports:
         - containerPort: 80
         env:
