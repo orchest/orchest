@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import pathlib
 import signal
 import time
 from datetime import datetime
@@ -10,6 +11,7 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
+from app.connections import k8s_api
 from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
@@ -183,6 +185,29 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
             )
 
 
+def create_mock_project(task_uuid, project_path, environment_uuid):
+    path = f"/userdir/projects/{project_path}/.orchest/environments/{environment_uuid}"
+    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
+
+    with open(f"/userdir/projects/{project_path}/file.txt", "w") as f:
+        f.write("hello world from a file")
+
+    with open(os.path.join(path, "properties.json"), "w") as properties_file:
+        data = {
+            "name": "Python 3",
+            "uuid": environment_uuid,
+            "language": "python",
+            # "base_image": "orchest/base-kernel-py",
+            "base_image": "python:slim-buster",
+            "gpu_support": False,
+        }
+        json.dump(data, properties_file)
+
+    with open(os.path.join(path, "setup_script.sh"), "w") as setup_script:
+        setup_script.write("#!/bin/bash\n")
+        setup_script.write('echo "hello world"\n')
+
+
 def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_path):
     """Prepares the docker build context for a given environment.
 
@@ -205,6 +230,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     Raises:
         See the check_environment_correctness_function
     """
+    create_mock_project(task_uuid, project_path, environment_uuid)
     dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     userdir_project_path = os.path.join("/userdir/projects", project_path)
@@ -212,8 +238,10 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # sanity checks, if not respected exception will be raised
     check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
-    # make a snapshot of the project state
-    snapshot_path = f"/tmp/{dockerfile_name}"
+    if not os.path.exists("/userdir/.orchest/env-builds"):
+        os.mkdir("/userdir/.orchest/env-builds")
+    # Make a snapshot of the project state, used for the context.
+    snapshot_path = f"/userdir/.orchest/env-builds/{dockerfile_name}"
     os.system('rm -rf "%s"' % snapshot_path)
     os.system('cp -R "%s" "%s"' % (userdir_project_path, snapshot_path))
     # take the environment from the snapshot
@@ -302,6 +330,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
                 task_lambda=lambda user_logs_fo: build_docker_image(
+                    task_uuid,
                     docker_image_name,
                     build_context,
                     task_uuid,
@@ -319,8 +348,8 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 abort_lambda=lambda: AbortableAsyncResult(task_uuid).is_aborted(),
             )
 
-            # cleanup
-            os.system('rm -rf "%s"' % build_context["snapshot_path"])
+            # Cleanup.
+            # os.system('rm -rf "%s"' % build_context["snapshot_path"])
 
             update_environment_build_status(status, session, task_uuid)
 
@@ -336,9 +365,10 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                     f"_orchest_env_build_task_uuid={task_uuid}",
                 ]
             }
-            # Necessary to avoid the case where the abortion of a task
-            # comes too late, leaving a dangling image.
             if AbortableAsyncResult(task_uuid).is_aborted():
+                k8s_api.delete_namespaced_pod(f"env-build-{task_uuid}", "argo")
+                # Necessary to avoid the case where the abortion of a
+                # task comes too late, leaving a dangling image.
                 filters["label"].pop(0)
 
             # Artifacts of this build (intermediate containers, images,

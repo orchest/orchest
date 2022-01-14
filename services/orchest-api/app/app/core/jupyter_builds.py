@@ -172,6 +172,7 @@ def build_jupyter_task(task_uuid):
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
                 task_lambda=lambda user_logs_fo: build_docker_image(
+                    task_uuid,
                     docker_image_name,
                     build_context,
                     task_uuid,

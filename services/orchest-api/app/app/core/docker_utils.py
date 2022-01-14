@@ -1,18 +1,61 @@
-import json
 import logging
 import time
 
 import docker
+from kubernetes import watch
 
-from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
-from app.connections import docker_client
+from app.connections import docker_client, k8s_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 
 
+def _generate_env_build_pod_manifest(
+    task_uuid, image_name, build_context, dockerfile_path
+) -> dict:
+    pod_manifest = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {"name": f"env-build-{task_uuid}"},
+        "spec": {
+            "containers": [
+                {
+                    "name": "kaniko",
+                    "image": "gcr.io/kaniko-project/executor:latest",
+                    "args": [
+                        f"--dockerfile={dockerfile_path}",
+                        f"--context=dir://{build_context}",
+                        f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
+                        "--cleanup",
+                        "--log-format=json",
+                        "--reproducible",
+                        "--insecure",
+                        "--cache=true",
+                        "--cache-repo=registry.kube-system.svc.cluster.local",
+                        "--registry-mirror=registry.kube-system.svc.cluster.local",
+                    ],
+                    "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
+                }
+            ],
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "volumes": [
+                {
+                    "name": "userdir",
+                    "hostPath": {
+                        "path": "/var/lib/orchest/userdir",
+                        "type": "DirectoryOrCreate",
+                    },
+                }
+            ],
+        },
+    }
+    return pod_manifest
+
+
 def build_docker_image(
+    task_uuid,
     image_name,
     build_context,
     dockerfile_path,
@@ -23,6 +66,7 @@ def build_docker_image(
         file.
 
     Args:
+        task_uuid:
         image_name:
         build_context:
         dockerfile_path:
@@ -57,76 +101,61 @@ def build_docker_image(
                 "docker_client.images.get() call to Docker API failed."
             )
 
-        # connect to docker and issue the build
-        generator = docker_client.api.build(
-            path=build_context["snapshot_path"],
-            dockerfile=dockerfile_path,
-            tag=image_name,
-            rm=True,
-            nocache=True,
-            container_limits={"cpushares": _config.USER_CONTAINERS_CPU_SHARES},
+        pod_manifest = _generate_env_build_pod_manifest(
+            task_uuid, image_name, build_context["snapshot_path"], dockerfile_path
         )
+        resp = k8s_api.create_namespaced_pod(body=pod_manifest, namespace="argo")
 
-        flag = __DOCKERFILE_RESERVED_FLAG + "\n"
+        pod_name = f"env-build-{task_uuid}"
+        for _ in range(100):
+            resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="argo")
+            status = resp.status.phase
+            if status in ["Running", "Succeeded", "Failed", "Unknown"]:
+                break
+            time.sleep(1)
+        else:
+            # Still Pending, consider this an issue.
+            raise Exception()
+
+        flag = __DOCKERFILE_RESERVED_FLAG
         found_beginning_flag = False
         found_ending_flag = False
-        had_errors = False
-        while True:
-            try:
-                output = next(generator)
-                json_output = json.loads(output)
-                # Checking for logs. Even if we consider to be done with
-                # the logs (found_ending_flag == True) we do not break
-                # out of the while loop because the build needs to keep
-                # going, both for error reporting and for actually
-                # allowing the build to keep going, which would not
-                # happen if the process exits.
-                if "stream" in json_output:
-                    stream = json_output["stream"]
-
-                    complete_logs_file_object.write(stream)
-                    complete_logs_file_object.flush()
-
+        w = watch.Watch()
+        for event in w.stream(
+            k8s_api.read_namespaced_pod_log,
+            name=pod_name,
+            namespace="argo",
+            follow=True,
+        ):
+            complete_logs_file_object.write(f"{event}\n")
+            complete_logs_file_object.flush()
+            if not found_ending_flag:
+                # Beginning flag not found --> do not log.
+                # Beginning flag found --> log until you find
+                # the ending flag.
+                if not found_beginning_flag:
+                    found_beginning_flag = event.startswith(flag)
+                    if found_beginning_flag:
+                        event = event.replace(flag, "")
+                        if len(event) > 0:
+                            user_logs_file_object.write(event + "\n")
+                else:
+                    found_ending_flag = event.endswith(flag)
                     if not found_ending_flag:
-                        # Beginning flag not found --> do not log.
-                        # Beginning flag found --> log until you find
-                        # the ending flag.
-                        if not found_beginning_flag:
-                            found_beginning_flag = stream.startswith(flag)
-                            if found_beginning_flag:
-                                stream = stream.replace(flag, "")
-                                if len(stream) > 1:
-                                    user_logs_file_object.write(stream)
-                        else:
-                            found_ending_flag = stream.endswith(flag)
-                            if not found_ending_flag:
-                                user_logs_file_object.write(stream)
+                        user_logs_file_object.write(event + "\n")
 
-                had_errors = (
-                    had_errors
-                    or ("error" in json_output)
-                    or ("errorDetail" in json_output)
-                )
+        # The w.stream loop exits once the pod has finished running.
+        resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="argo")
 
-            # Build is done.
-            except StopIteration:
-                break
-            except ValueError:
-                pass
-            # Any other exception will lead to a fail of the build.
-            except Exception:
-                had_errors = True
-
-        if had_errors:
+        if resp.status.phase == "Failed":
             msg = (
                 "There was a problem building the image. "
                 "Either the base image does not exist or the "
-                "building script had a non 0 exit code, build failed\n"
+                "building script had a non 0 exit code, build failed.\n"
             )
             user_logs_file_object.write(msg)
             complete_logs_file_object.write(msg)
             complete_logs_file_object.flush()
-
             return "FAILURE"
 
         return "SUCCESS"
