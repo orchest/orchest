@@ -32,6 +32,8 @@ export const useFetchPipelines = (projectUuid: string | undefined) => {
     // provide a simple way to get fetched data via projectUuid
     // in case that we need to fetch pipelines conditionally
     getCache: (projectUuid: string) =>
-      cache.get(`/async/pipelines/${projectUuid}`),
+      cache.get(`/async/pipelines/${projectUuid}`) as
+        | PipelineMetaData[]
+        | undefined,
   };
 };
