@@ -1,16 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rabbitmq-server
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: rabbitmq-server
-  template:
-    metadata:
-      labels:
-        app: rabbitmq-server
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
     spec:
       volumes:
         - name: mnesia
