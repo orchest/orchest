@@ -268,6 +268,7 @@ const JobView: React.FC = () => {
                                 fontSize: (theme) =>
                                   theme.typography.body2.fontSize,
                                 marginLeft: (theme) => theme.spacing(1),
+                                color: (theme) => theme.palette.grey[800],
                               }}
                             >
                               {`Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`}
