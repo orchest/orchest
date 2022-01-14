@@ -11,7 +11,7 @@ type FetchPipelineProps = {
 
 export const useFetchPipeline = (props: FetchPipelineProps | null) => {
   const { projectUuid, pipelineUuid } = props || {};
-  const { data, error, isValidating, revalidate, mutate } = useSWR<Pipeline>(
+  const { data, error, isValidating, mutate } = useSWR<Pipeline>(
     projectUuid && pipelineUuid
       ? `/async/pipelines/${projectUuid}/${pipelineUuid}`
       : null,
@@ -28,7 +28,7 @@ export const useFetchPipeline = (props: FetchPipelineProps | null) => {
     pipeline: data,
     error,
     isFetchingPipeline: isValidating,
-    fetchPipeline: revalidate,
+    fetchPipeline: mutate,
     setPipeline,
   };
 };

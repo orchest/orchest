@@ -15,9 +15,7 @@ type FetchPipelineJsonProps = {
 
 export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
   const { pipelineUuid, projectUuid, jobUuid, runUuid } = props || {};
-  const { data, error, isValidating, revalidate, mutate } = useSWR<
-    PipelineJson
-  >(
+  const { data, error, isValidating, mutate } = useSWR<PipelineJson>(
     getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid) ||
       null,
     (url: string) =>
@@ -71,7 +69,7 @@ export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
     pipelineJson: data,
     error,
     isFetchingPipelineJson: isValidating,
-    fetchPipelineJson: revalidate,
+    fetchPipelineJson: mutate,
     setPipelineJson,
   };
 };

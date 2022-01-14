@@ -269,6 +269,9 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     }
   }, [error, setAlert, navigateTo]);
 
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void>();
+
   // Edit pipeline
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
     uuid: string;
@@ -382,8 +385,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     );
   };
 
-  // monitor if there's any operations ongoing, if so, disable action buttons
-  const { run, status } = useAsync<void>();
   const isOperating = status === "PENDING";
 
   const createPipeline = React.useCallback(

@@ -1,6 +1,7 @@
 import { styled } from "@mui/material/styles";
 import { AnimatePresence, m } from "framer-motion";
 import React from "react";
+import { Slide } from ".";
 import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
 export const OnboardingDialogCarousel = ({ children }) => {
@@ -111,9 +112,11 @@ const IndicatorLabel = styled("span")({
   position: "absolute",
 });
 
-export const OnboardingDialogCarouselIndicator: React.FC = () => {
-  const { length, slideIndex, setSlide } = useOnboardingDialogCarousel();
-
+export const OnboardingDialogCarouselIndicator: React.FC<{
+  length: number;
+  slideIndex: number;
+  setSlide: React.Dispatch<React.SetStateAction<Slide>>;
+}> = ({ length, slideIndex, setSlide }) => {
   return (
     <IndicatorList role="list" data-test-id="onboarding-indicator-list">
       {Array(length)
@@ -127,7 +130,8 @@ export const OnboardingDialogCarouselIndicator: React.FC = () => {
             <IndicatorButton
               isCurrent={i === slideIndex}
               onClick={() => {
-                if (i !== slideIndex) setSlide([i, slideIndex > i ? -1 : 1]);
+                if (i !== slideIndex)
+                  setSlide({ index: i, direction: slideIndex > i ? -1 : 1 });
               }}
               data-test-id="onboarding-indicator-button"
             >

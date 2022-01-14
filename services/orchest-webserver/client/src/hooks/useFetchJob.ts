@@ -9,7 +9,7 @@ import { MutatorCallback } from "swr/dist/types";
 export const useFetchJob = (jobUuid?: string, runStatuses?: boolean) => {
   const { setAlert } = useAppContext();
 
-  const { data: job, mutate, error, revalidate, isValidating } = useSWR<Job>(
+  const { data: job, mutate, error, isValidating } = useSWR<Job>(
     jobUuid
       ? `/catch/api-proxy/api/jobs/${jobUuid}${
           runStatuses ? "?aggregate_run_statuses=true" : ""
@@ -35,7 +35,7 @@ export const useFetchJob = (jobUuid?: string, runStatuses?: boolean) => {
     job,
     setJob,
     envVariables,
-    fetchJob: revalidate,
+    fetchJob: mutate,
     fetchJobError: error,
     isFetchingJob: isValidating,
   };

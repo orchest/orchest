@@ -11,7 +11,7 @@ type FetchPipelineRunProps = {
 
 export const useFetchPipelineRun = (props: FetchPipelineRunProps | null) => {
   const { jobUuid, runUuid } = props || {};
-  const { data, error, isValidating, revalidate, mutate } = useSWR<PipelineRun>(
+  const { data, error, isValidating, mutate } = useSWR<PipelineRun>(
     jobUuid && runUuid
       ? `/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`
       : null,
@@ -29,7 +29,7 @@ export const useFetchPipelineRun = (props: FetchPipelineRunProps | null) => {
     pipelineRun: data,
     error,
     isFetchingPipelineRun: isValidating,
-    fetchPipelineRun: revalidate,
+    fetchPipelineRun: mutate,
     setPipelineRun,
   };
 };

@@ -1,16 +1,17 @@
 import type { PipelineMetaData } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { cache } from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
 export const useFetchPipelines = (projectUuid: string | undefined) => {
-  const { data, error, isValidating, revalidate, mutate } = useSWR<
-    PipelineMetaData[]
-  >(projectUuid ? `/async/pipelines/${projectUuid}` : null, (url) =>
-    fetcher<{ result: PipelineMetaData[] }>(url).then(
-      (response) => response.result
-    )
+  const { cache } = useSWRConfig();
+  const { data, error, isValidating, mutate } = useSWR<PipelineMetaData[]>(
+    projectUuid ? `/async/pipelines/${projectUuid}` : null,
+    (url) =>
+      fetcher<{ result: PipelineMetaData[] }>(url).then(
+        (response) => response.result
+      )
   );
 
   const setPipelines = React.useCallback(
@@ -27,7 +28,7 @@ export const useFetchPipelines = (projectUuid: string | undefined) => {
     pipelines: data,
     error,
     isFetchingPipelines: isValidating,
-    fetchPipelines: revalidate,
+    fetchPipelines: mutate,
     setPipelines,
     // provide a simple way to get fetched data via projectUuid
     // in case that we need to fetch pipelines conditionally

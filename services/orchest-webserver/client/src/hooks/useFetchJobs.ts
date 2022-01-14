@@ -3,7 +3,7 @@ import { fetcher } from "@orchest/lib-utils";
 import useSWR from "swr";
 
 export function useFetchJobs(projectUuid: string | undefined) {
-  const { data, error, isValidating, revalidate } = useSWR<Job[]>(
+  const { data, error, isValidating, mutate } = useSWR<Job[]>(
     projectUuid
       ? `/catch/api-proxy/api/jobs/?project_uuid=${projectUuid}`
       : null,
@@ -14,6 +14,6 @@ export function useFetchJobs(projectUuid: string | undefined) {
     data,
     error,
     isFetchingJobs: isValidating,
-    fetchJobs: revalidate,
+    fetchJobs: mutate,
   };
 }
