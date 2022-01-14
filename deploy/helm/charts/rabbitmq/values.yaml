@@ -1,0 +1,3 @@
+
+#Default port for rabbitmq
+port: 5672

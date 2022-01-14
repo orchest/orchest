@@ -13,7 +13,7 @@ deployment
       - name: rabbitmq-server
         image: rabbitmq:3
         ports:
-        - containerPort: 5672
+        - containerPort: {{ include "library.container.port" . }}
         volumeMounts:
          - name: mnesia
            mountPath: /var/lib/rabbitmq/mnesia

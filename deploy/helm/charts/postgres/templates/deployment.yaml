@@ -13,7 +13,7 @@ deployment
       - name: orchest-database
         image: postgres:13.1
         ports:
-        - containerPort: 5432
+        - containerPort: {{ include "library.container.port" . }}
         env:
         - name: "PGDATA"
           value: "/userdir/.orchest/database/data"
