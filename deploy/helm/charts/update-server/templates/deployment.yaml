@@ -1,16 +1,8 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: update-server
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: update-server
-  template:
-    metadata:
-      labels:
-        app: update-server
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
     spec:
       volumes:
         - name: dockersock
