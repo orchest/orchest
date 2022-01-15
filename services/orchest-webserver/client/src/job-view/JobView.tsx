@@ -264,6 +264,20 @@ const JobView: React.FC = () => {
                         jobUuid={jobUuid}
                         pipelineName={job.pipeline_name}
                         setTotalCount={setTotalRunCount}
+                        footnote={
+                          job.max_retained_pipeline_runs > 0 ? (
+                            <Box
+                              sx={{
+                                fontSize: (theme) =>
+                                  theme.typography.body2.fontSize,
+                                marginLeft: (theme) => theme.spacing(1),
+                                color: (theme) => theme.palette.grey[800],
+                              }}
+                            >
+                              {`Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`}
+                            </Box>
+                          ) : null
+                        }
                       />
                     </CustomTabPanel>
                     <CustomTabPanel
