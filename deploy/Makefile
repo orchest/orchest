@@ -10,20 +10,20 @@ ORCHEST_API_TAG := ${if ${ORCHEST_API_TAG},${ORCHEST_API_TAG},${DEFAULT_TAG}}
 SHARED_DEPLOY_CONFIG := --kubeconfig ${KUBECONFIG} \
 	${DEBUG} --namespace ${NAMESPACE} --create-namespace
 
-ORCHEST_DEPLOY_CONFIG := ${NAMESPACE}-orchest \
+ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} helm
 
-ROOK_DEPLOY_CONFIG := ${NAMESPACE}-rook \
+ROOK_DEPLOY_CONFIG := rook \
 	${SHARED_DEPLOY_CONFIG} thirdparty/rook/rook-ceph -f values-override.yaml .
 
-JUPYTER_EGW_DEPLOY_CONFIG := ${NAMESPACE}-jupyter-egw \
+JUPYTER_EGW_DEPLOY_CONFIG := jupyter-egw \
 	${SHARED_DEPLOY_CONFIG} thirdparty/enterprise-gateway
 
-ARGO_WORKFLOW_DEPLOY_CONFIG := ${NAMESPACE}-argo-workflow \
+ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 	${SHARED_DEPLOY_CONFIG} thirdparty/argo-workflows
 
 .PHONY: orchest
-orchest:
+orchest: argo-workflow
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
 .PHONY: jupyter-egw
