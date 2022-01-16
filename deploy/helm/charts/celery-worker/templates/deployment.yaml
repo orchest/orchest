@@ -16,9 +16,6 @@ deployment
       containers:
       - name: celery-worker
         image: orchest/celery-worker:latest
-        securityContext:
-          privileged: true
-          runAsUser: 0
         env:
         - name: "MAX_JOB_RUNS_PARALLELISM"
           value: "1"
