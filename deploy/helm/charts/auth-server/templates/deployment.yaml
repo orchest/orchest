@@ -16,11 +16,15 @@ deployment
       containers:
       - name: auth-server
         image: orchest/auth-server:latest
+        {{ if .Values.service.port}}
         ports:
-        - containerPort: 80
+        - containerPort: {{ .Values.service.port }}
+        {{ end }}
         env:
         - name: "HOST_OS"
           value: "linux"
+        - name: "ORCHEST_LOG_LEVEL"
+          value: DEBUG  
         - name: "PYTHONUNBUFFERED"
           value: "TRUE"       
         volumeMounts:

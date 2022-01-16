@@ -1,6 +1,4 @@
 
-
 # Service and port configuration
 service:
-  #Default port for rabbitmq
-  port: 5672
+  port: 80
