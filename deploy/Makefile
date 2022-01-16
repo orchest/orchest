@@ -19,6 +19,8 @@ ROOK_DEPLOY_CONFIG := ${NAMESPACE}-rook \
 JUPYTER_EGW_DEPLOY_CONFIG := ${NAMESPACE}-jupyter-egw \
 	${SHARED_DEPLOY_CONFIG} thirdparty/enterprise-gateway
 
+ARGO_WORKFLOW_DEPLOY_CONFIG := ${NAMESPACE}-argo-workflow \
+	${SHARED_DEPLOY_CONFIG} thirdparty/argo-workflows
 
 .PHONY: orchest
 orchest:
@@ -27,6 +29,10 @@ orchest:
 .PHONY: jupyter-egw
 jupyter-egw:
 	helm install ${JUPYTER_EGW_DEPLOY_CONFIG}
+
+.PHONY: argo-workflow
+argo-workflow:
+	helm install ${ARGO_WORKFLOW_DEPLOY_CONFIG}	
 
 .PHONY: rook
 rook:
