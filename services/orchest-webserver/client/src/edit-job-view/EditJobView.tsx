@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
@@ -739,8 +740,9 @@ const EditJobView: React.FC = () => {
                         </Typography>
                         <Typography variant="body2">
                           Enable this carefully if your pipeline produces
-                          results that are stored in the disk. You might want to
-                          backup the results in other places.
+                          artifacts that are stored on disk. You might want to
+                          backup the results to external sources or the{" "}
+                          <Code>/data</Code> directory.
                         </Typography>
                       </>
                     }
