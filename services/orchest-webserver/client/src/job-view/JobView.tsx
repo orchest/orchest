@@ -6,6 +6,7 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Job } from "@/types";
@@ -28,6 +29,7 @@ import cronstrue from "cronstrue";
 import React from "react";
 import { useFetchJob } from "../hooks/useFetchJob";
 import { formatPipelineParams, PARAMETERLESS_RUN } from "./common";
+import { JobDocLink } from "./JobDocLink";
 import { JobStatus } from "./JobStatus";
 import { JobViewTabs } from "./JobViewTabs";
 import { PipelineRunTable } from "./PipelineRunTable";
@@ -43,7 +45,7 @@ const JobView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.job.path });
 
   // data from route
-  const { navigateTo, projectUuid, jobUuid } = useCustomRoute();
+  const { navigateTo, jobUuid } = useCustomRoute();
 
   // data states
   const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob(
@@ -120,7 +122,7 @@ const JobView: React.FC = () => {
   const editJob = () => {
     navigateTo(siteMap.editJob.path, {
       query: {
-        projectUuid,
+        projectUuid: job.project_uuid,
         jobUuid: job.uuid,
       },
     });
@@ -177,6 +179,31 @@ const JobView: React.FC = () => {
   const [totalRunCount, setTotalRunCount] = React.useState<
     number | undefined
   >();
+
+  const isJobDone = job?.status === "SUCCESS" || job?.status === "ABORTED";
+
+  // we only need to check snapshot size if necessary (i.e. job is not done, and auto clean-up is not enabled)
+  // because we need to show the warning to user if their snapshot size is too big
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
+    projectUuid:
+      !isJobDone && job?.max_retained_pipeline_runs < 0 && job?.project_uuid
+        ? job.project_uuid
+        : null,
+    selector: (project) => project.project_snapshot_size,
+  });
+
+  const footnote =
+    job?.max_retained_pipeline_runs > 0 ? (
+      `Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`
+    ) : job?.max_retained_pipeline_runs === 0 ? (
+      `all finished jobs will be automatically cleaned up`
+    ) : projectSnapshotSize > 50 ? (
+      <>
+        {`Snapshot size exceeds 50MB. You might want to enable Auto Clean-up to free up disk space regularly. Check the `}
+        <JobDocLink />
+        {` for more details.`}
+      </>
+    ) : null;
 
   return (
     <Layout fullHeight>
@@ -264,20 +291,7 @@ const JobView: React.FC = () => {
                         jobUuid={jobUuid}
                         pipelineName={job.pipeline_name}
                         setTotalCount={setTotalRunCount}
-                        footnote={
-                          job.max_retained_pipeline_runs > 0 ? (
-                            <Box
-                              sx={{
-                                fontSize: (theme) =>
-                                  theme.typography.body2.fontSize,
-                                marginLeft: (theme) => theme.spacing(1),
-                                color: (theme) => theme.palette.grey[800],
-                              }}
-                            >
-                              {`Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`}
-                            </Box>
-                          ) : null
-                        }
+                        footnote={footnote}
                       />
                     </CustomTabPanel>
                     <CustomTabPanel

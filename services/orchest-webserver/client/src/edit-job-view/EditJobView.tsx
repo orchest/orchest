@@ -10,7 +10,9 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/Routes";
 import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
@@ -26,6 +28,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
@@ -33,6 +36,7 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
@@ -247,6 +251,11 @@ const EditJobView: React.FC = () => {
         }
       : undefined
   );
+
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
+    projectUuid,
+    selector: (project) => project.project_snapshot_size,
+  });
 
   const isLoading = isFetchingJob || isFetchingPipelineJson;
 
@@ -640,12 +649,34 @@ const EditJobView: React.FC = () => {
                 />
               )}
               {scheduleOption === "cron" && (
-                <CronScheduleInput
-                  value={cronString}
-                  onChange={setCronSchedule}
-                  disabled={scheduleOption !== "cron"}
-                  dataTestId="job-edit-schedule-cronjob-input"
-                />
+                <>
+                  <CronScheduleInput
+                    value={cronString}
+                    onChange={setCronSchedule}
+                    disabled={scheduleOption !== "cron"}
+                    dataTestId="job-edit-schedule-cronjob-input"
+                  />
+                  {projectSnapshotSize > 50 && (
+                    <Alert
+                      severity="warning"
+                      sx={{
+                        marginTop: (theme) => theme.spacing(3),
+                        width: "500px",
+                      }}
+                    >
+                      {`Snapshot size exceeds 50MB. You might want to enable `}
+                      <Link
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => setTabIndex(3)}
+                      >
+                        Auto Clean-up
+                      </Link>
+                      {` to free up disk space regularly. Check the `}
+                      <JobDocLink />
+                      {` for more details.`}
+                    </Alert>
+                  )}
+                </>
               )}
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
