@@ -798,8 +798,10 @@ export const DataTable = <T extends Record<string, any>>({
                 flex: 1,
                 display: "flex",
                 alignItems: "center",
-                marginLeft: (theme) => theme.spacing(2.5),
+                fontSize: (theme) => theme.typography.body2.fontSize,
+                marginLeft: (theme) => theme.spacing(3.5),
                 marginRight: (theme) => theme.spacing(2),
+                color: (theme) => theme.palette.grey[800],
               }}
             >
               {isDeleting &&

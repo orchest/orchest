@@ -142,7 +142,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     string | undefined
   >();
 
-  const { data: projectSnapshotSize } = useFetchProject({
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
     projectUuid,
     selector: (project) => project.project_snapshot_size,
   });
