@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
@@ -232,7 +233,10 @@ const EditJobView: React.FC = () => {
     error: fetchJobError,
     isValidating: isFetchingJob,
     mutate: setJob,
-  } = useSWR<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`, fetcher);
+  } = useSWR<Job>(
+    jobUuid ? `/catch/api-proxy/api/jobs/${jobUuid}` : null,
+    fetcher
+  );
 
   const { pipelineJson, isFetchingPipelineJson } = useFetchPipelineJson(
     projectUuid && job
@@ -365,7 +369,10 @@ const EditJobView: React.FC = () => {
     numberOfRetainedRuns,
     onChangeNumberOfRetainedRuns,
     toggleIsAutoCleanUpEnabled,
-  } = useAutoCleanUpEnabled(selectedRuns);
+  } = useAutoCleanUpEnabled(
+    job?.max_retained_pipeline_runs || -1,
+    selectedRuns
+  );
 
   const runJob = async () => {
     if (!job) return;
@@ -722,8 +729,9 @@ const EditJobView: React.FC = () => {
                         </Typography>
                         <Typography variant="body2">
                           Enable this carefully if your pipeline produces
-                          results that are stored in the disk. You might want to
-                          backup the results in other places.
+                          artifacts that are stored on disk. You might want to
+                          backup the results to external sources or the{" "}
+                          <Code>/data</Code> directory.
                         </Typography>
                       </>
                     }
