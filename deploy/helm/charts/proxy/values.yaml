@@ -2,3 +2,4 @@
 # Service and port configuration
 service:
   port: 80
+  type: NodePort
