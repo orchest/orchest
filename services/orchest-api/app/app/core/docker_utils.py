@@ -2,42 +2,54 @@ import logging
 import time
 
 import docker
-from kubernetes import watch
+from kubernetes import client, watch
 
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
-from app.connections import docker_client, k8s_api
+from app.connections import docker_client, k8s_api, k8s_custom_obj_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 
 
-def _generate_env_build_pod_manifest(
-    task_uuid, image_name, build_context, dockerfile_path
+def _generate_image_build_workflow_manifest(
+    workflow_name, image_name, build_context, dockerfile_path
 ) -> dict:
-    pod_manifest = {
-        "apiVersion": "v1",
-        "kind": "Pod",
-        "metadata": {"name": f"env-build-{task_uuid}"},
+    manifest = {
+        "apiVersion": "argoproj.io/v1alpha1",
+        "kind": "Workflow",
+        "metadata": {"name": workflow_name},
         "spec": {
-            "containers": [
+            "entrypoint": "build-env",
+            "templates": [
                 {
-                    "name": "kaniko",
-                    "image": "gcr.io/kaniko-project/executor:latest",
-                    "args": [
-                        f"--dockerfile={dockerfile_path}",
-                        f"--context=dir://{build_context}",
-                        f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
-                        "--cleanup",
-                        "--log-format=json",
-                        "--reproducible",
-                        "--insecure",
-                        "--cache=true",
-                        "--cache-repo=registry.kube-system.svc.cluster.local",
-                        "--registry-mirror=registry.kube-system.svc.cluster.local",
-                    ],
-                    "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
+                    "name": "build-env",
+                    "container": {
+                        "name": "kaniko",
+                        "image": "gcr.io/kaniko-project/executor:latest",
+                        "command": ["/kaniko/executor"],
+                        "args": [
+                            f"--dockerfile={dockerfile_path}",
+                            f"--context=dir://{build_context}",
+                            f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
+                            "--cleanup",
+                            "--log-format=json",
+                            "--reproducible",
+                            "--insecure",
+                            "--cache=true",
+                            "--cache-repo=registry.kube-system.svc.cluster.local",
+                            "--registry-mirror=registry.kube-system.svc.cluster.local",
+                        ],
+                        "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
+                    },
                 }
             ],
+            # The celery task actually takes care of deleting the
+            # workflow, this is just a failsafe.
+            "ttlStrategy": {
+                "secondsAfterCompletion": 1000,
+                "secondsAfterSuccess": 1000,
+                "secondsAfterFailure": 1000,
+            },
             "dnsPolicy": "ClusterFirst",
             "restartPolicy": "Never",
             "volumes": [
@@ -51,7 +63,7 @@ def _generate_env_build_pod_manifest(
             ],
         },
     }
-    return pod_manifest
+    return manifest
 
 
 def build_docker_image(
@@ -101,17 +113,25 @@ def build_docker_image(
                 "docker_client.images.get() call to Docker API failed."
             )
 
-        pod_manifest = _generate_env_build_pod_manifest(
-            task_uuid, image_name, build_context["snapshot_path"], dockerfile_path
+        pod_name = f"image-build-task-{task_uuid}"
+        manifest = _generate_image_build_workflow_manifest(
+            pod_name, image_name, build_context["snapshot_path"], dockerfile_path
         )
-        resp = k8s_api.create_namespaced_pod(body=pod_manifest, namespace="orchest")
+        k8s_custom_obj_api.create_namespaced_custom_object(
+            "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
+        )
 
-        pod_name = f"env-build-{task_uuid}"
         for _ in range(100):
-            resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
-            status = resp.status.phase
-            if status in ["Running", "Succeeded", "Failed", "Unknown"]:
-                break
+            try:
+                resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
+            except client.ApiException as e:
+                if e.status != 404:
+                    raise
+                time.sleep(1)
+            else:
+                status = resp.status.phase
+                if status in ["Running", "Succeeded", "Failed", "Unknown"]:
+                    break
             time.sleep(1)
         else:
             # Still Pending, consider this an issue.
@@ -124,6 +144,7 @@ def build_docker_image(
         for event in w.stream(
             k8s_api.read_namespaced_pod_log,
             name=pod_name,
+            container="main",
             namespace="orchest",
             follow=True,
         ):
@@ -143,6 +164,8 @@ def build_docker_image(
                     found_ending_flag = event.endswith(flag)
                     if not found_ending_flag:
                         user_logs_file_object.write(event + "\n")
+                    else:
+                        user_logs_file_object.write("Storing image...\n")
 
         # The w.stream loop exits once the pod has finished running.
         resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")

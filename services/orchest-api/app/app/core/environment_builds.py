@@ -11,7 +11,7 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from app.connections import k8s_api
+from app.connections import k8s_custom_obj_api
 from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
@@ -359,6 +359,16 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             update_environment_build_status("FAILURE", session, task_uuid)
             raise e
         finally:
+            # We get here either because the task was successful or was
+            # aborted, in any case, delete the workflow.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-build-task-{task_uuid}",
+            )
+
             filters = {
                 "label": [
                     "_orchest_env_build_is_intermediate=1",
@@ -366,7 +376,6 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 ]
             }
             if AbortableAsyncResult(task_uuid).is_aborted():
-                k8s_api.delete_namespaced_pod(f"env-build-{task_uuid}", "orchest")
                 # Necessary to avoid the case where the abortion of a
                 # task comes too late, leaving a dangling image.
                 filters["label"].pop(0)
