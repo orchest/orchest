@@ -1,6 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
@@ -35,10 +34,6 @@ export const HeaderBar = ({
   const { navigateTo } = useCustomRoute();
   const { state } = useProjectsContext();
   const appContext = useAppContext();
-  const {
-    state: { sessions },
-  } = useSessionsContext();
-  const currentSession = sessions.find((session) => isSession(session, state));
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
