@@ -238,8 +238,6 @@ const EditJobView: React.FC = () => {
     fetcher
   );
 
-  console.log("HM", job);
-
   const {
     data: pipeline,
     error: fetchPipelineError,
