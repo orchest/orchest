@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import pathlib
 import signal
 import time
 from datetime import datetime
@@ -185,29 +184,6 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
             )
 
 
-def create_mock_project(task_uuid, project_path, environment_uuid):
-    path = f"/userdir/projects/{project_path}/.orchest/environments/{environment_uuid}"
-    pathlib.Path(path).mkdir(parents=True, exist_ok=True)
-
-    with open(f"/userdir/projects/{project_path}/file.txt", "w") as f:
-        f.write("hello world from a file")
-
-    with open(os.path.join(path, "properties.json"), "w") as properties_file:
-        data = {
-            "name": "Python 3",
-            "uuid": environment_uuid,
-            "language": "python",
-            # "base_image": "orchest/base-kernel-py",
-            "base_image": "python:slim-buster",
-            "gpu_support": False,
-        }
-        json.dump(data, properties_file)
-
-    with open(os.path.join(path, "setup_script.sh"), "w") as setup_script:
-        setup_script.write("#!/bin/bash\n")
-        setup_script.write('echo "hello world"\n')
-
-
 def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_path):
     """Prepares the docker build context for a given environment.
 
@@ -230,7 +206,6 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     Raises:
         See the check_environment_correctness_function
     """
-    create_mock_project(task_uuid, project_path, environment_uuid)
     dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     userdir_project_path = os.path.join("/userdir/projects", project_path)
