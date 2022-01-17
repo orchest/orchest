@@ -177,22 +177,24 @@ const JobView: React.FC = () => {
     number | undefined
   >();
 
+  const isJobDone = job?.status === "SUCCESS" || job?.status === "ABORTED";
+
+  // we only need to check snapshot size if necessary (i.e. job is not done, and auto clean-up is not enabled)
+  // because we need to show the warning to user if their snapshot size is too big
   const { data: projectSnapshotSize = 0 } = useFetchProject({
     projectUuid:
-      job?.max_retained_pipeline_runs < 0 && job?.project_uuid
+      !isJobDone && job?.max_retained_pipeline_runs < 0 && job?.project_uuid
         ? job.project_uuid
         : null,
     selector: (project) => project.project_snapshot_size,
   });
-
-  const isJobDone = job?.status === "SUCCESS" || job?.status === "ABORTED";
 
   const footnote =
     job?.max_retained_pipeline_runs > 0 ? (
       `Only the ${job.max_retained_pipeline_runs} most recent pipeline runs are kept`
     ) : job?.max_retained_pipeline_runs === 0 ? (
       `all finished jobs will be automatically cleaned up`
-    ) : projectSnapshotSize > 50 && !isJobDone ? (
+    ) : projectSnapshotSize > 50 ? (
       <>
         {`Snapshot size exceeds 50MB. You might want to enable Auto Clean-up to free up disk space regularly. Check the `}
         <JobDocLink />
