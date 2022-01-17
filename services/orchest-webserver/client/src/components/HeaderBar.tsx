@@ -48,8 +48,8 @@ export const HeaderBar = ({
     navigateTo(siteMap.projects.path);
   };
 
-  const showHelp = () => {
-    navigateTo(siteMap.help.path);
+  const showHelp = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    navigateTo(siteMap.help.path, undefined, e);
   };
 
   const showPipeline = () => {
