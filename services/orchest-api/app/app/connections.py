@@ -26,6 +26,7 @@ docker_client = DockerClient.from_env()
 # registry as a service (even with a complete path) is not working. Also
 # retrieving the ip this way does not work because of permission issues.
 # K8S_TODO: fix.
-# registry = k8s_api.read_namespaced_service("registry", "kube-system").spec.cluster_ip
-registry = "10.98.173.204"
+# registry = k8s_api.read_namespaced_service("registry", "kube-system")
+# .spec.cluster_ip
+registry = "10.111.248.253"
 docker_client.login(username="", registry=registry)

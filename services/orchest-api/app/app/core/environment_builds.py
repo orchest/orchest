@@ -366,7 +366,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 ]
             }
             if AbortableAsyncResult(task_uuid).is_aborted():
-                k8s_api.delete_namespaced_pod(f"env-build-{task_uuid}", "argo")
+                k8s_api.delete_namespaced_pod(f"env-build-{task_uuid}", "orchest")
                 # Necessary to avoid the case where the abortion of a
                 # task comes too late, leaving a dangling image.
                 filters["label"].pop(0)

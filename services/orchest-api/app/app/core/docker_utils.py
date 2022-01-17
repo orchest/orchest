@@ -104,11 +104,11 @@ def build_docker_image(
         pod_manifest = _generate_env_build_pod_manifest(
             task_uuid, image_name, build_context["snapshot_path"], dockerfile_path
         )
-        resp = k8s_api.create_namespaced_pod(body=pod_manifest, namespace="argo")
+        resp = k8s_api.create_namespaced_pod(body=pod_manifest, namespace="orchest")
 
         pod_name = f"env-build-{task_uuid}"
         for _ in range(100):
-            resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="argo")
+            resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
             status = resp.status.phase
             if status in ["Running", "Succeeded", "Failed", "Unknown"]:
                 break
@@ -124,7 +124,7 @@ def build_docker_image(
         for event in w.stream(
             k8s_api.read_namespaced_pod_log,
             name=pod_name,
-            namespace="argo",
+            namespace="orchest",
             follow=True,
         ):
             complete_logs_file_object.write(f"{event}\n")
@@ -145,7 +145,7 @@ def build_docker_image(
                         user_logs_file_object.write(event + "\n")
 
         # The w.stream loop exits once the pod has finished running.
-        resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="argo")
+        resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
 
         if resp.status.phase == "Failed":
             msg = (
