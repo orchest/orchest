@@ -237,9 +237,9 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             },
             "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
-        "rabbitmq-server": {
+        "rabbitmq": {
             "Image": "rabbitmq:3",
-            "HostName": "rabbitmq-server",
+            "HostName": "rabbitmq",
             "HostConfig": {
                 "Binds": [
                     # Persisting RabbitMQ Queues.

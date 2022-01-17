@@ -31,7 +31,7 @@ class Config:
     # NOTE: the configurations have to be lowercase.
     # NOTE: Flask will not configure lowercase variables. Therefore the
     # config class will be loaded directly by the Celery instance.
-    broker_url = "amqp://guest:guest@rabbitmq-server:5672//"
+    broker_url = "amqp://guest:guest@rabbitmq:5672//"
 
     # NOTE: the database might require trimming from time to time, to
     # enable having the db trimmed automatically use:
