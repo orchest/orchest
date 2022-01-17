@@ -87,7 +87,7 @@ Contributions are more than welcome! Please see our
 [contributor guides](https://docs.orchest.io/en/stable/developer_guide/contributing.html)
 for more details.
 
-You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users import your pipeline with one-click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
+You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
 
 ![Open in Orchest example](docs/source/img/open_in_orchest.svg)
 
