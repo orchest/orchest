@@ -133,6 +133,9 @@ describe("onboarding", () => {
         });
       };
 
+      reset();
+      cy.clearLocalStorageSnapshot();
+
       visitNextSlideIfPossible();
     });
 
