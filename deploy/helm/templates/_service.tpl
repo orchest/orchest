@@ -2,7 +2,11 @@
 Get the port, this method might be overwritten but subcharts
 */}}
 {{- define "library.service.port" -}}
-{{ .Values.port | default 80 }}
+  {{- if .Values.service.port -}}
+    {{ .Values.service.port }}
+  {{- else -}}
+    {{ 80 }}
+  {{- end }}
 {{- end -}}
 
 {{/*
