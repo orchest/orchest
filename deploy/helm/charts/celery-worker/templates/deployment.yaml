@@ -12,7 +12,8 @@ deployment
         - name: userdir
           hostPath:
             path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate                      
+            type: DirectoryOrCreate
+      serviceAccountName: {{ template "library.metadata.name" . }}      
       containers:
       - name: celery-worker
         image: orchest/celery-worker:latest
