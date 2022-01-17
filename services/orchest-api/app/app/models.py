@@ -582,6 +582,13 @@ class NonInteractivePipelineRun(PipelineRun):
         server_default="{}",
     )
 
+    # Used for text search, excludes step uuids.
+    parameters_text_search_values = db.Column(
+        JSONB,
+        nullable=False,
+        server_default="[]",
+    )
+
     env_variables = deferred(
         db.Column(
             JSONB,
@@ -601,7 +608,7 @@ class NonInteractivePipelineRun(PipelineRun):
             ],
             else_=func.lower(PipelineRun.status),
         ),
-        func.lower(cast(parameters, postgresql.TEXT)),
+        func.lower(cast(parameters_text_search_values, postgresql.TEXT)),
     )
 
     # related to inheriting from PipelineRun

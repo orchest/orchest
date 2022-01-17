@@ -1,21 +1,29 @@
 """empty message
 
-Revision ID: 0fd04e9ab2c3
-Revises: da828f0ba13b
-Create Date: 2022-01-05 10:21:42.690454
+Revision ID: 8708c2c44585
+Revises: c863bf044ab9
+Create Date: 2022-01-13 12:52:07.266720
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "0fd04e9ab2c3"
-down_revision = "da828f0ba13b"
+revision = "8708c2c44585"
+down_revision = "c863bf044ab9"
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
+    op.drop_index(
+        "ix_job_pipeline_runs_text_search",
+        table_name="pipeline_runs",
+        postgresql_using="gin",
+    )
+
+
+def downgrade():
     op.create_index(
         "ix_job_pipeline_runs_text_search",
         "pipeline_runs",
@@ -25,13 +33,5 @@ def upgrade():
             )
         ],
         unique=False,
-        postgresql_using="gin",
-    )
-
-
-def downgrade():
-    op.drop_index(
-        "ix_job_pipeline_runs_text_search",
-        table_name="pipeline_runs",
         postgresql_using="gin",
     )
