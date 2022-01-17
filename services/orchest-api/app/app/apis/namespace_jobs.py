@@ -762,6 +762,7 @@ class RunJob(TwoPhaseFunction):
                 "project_uuid": job.project_uuid,
                 "status": "PENDING",
                 "parameters": run_parameters,
+                "parameters_text_search_values": list(run_parameters.values()),
                 "job_run_index": job.total_scheduled_executions,
                 "job_run_pipeline_run_index": run_index,
                 "pipeline_run_index": job.total_scheduled_pipeline_runs,
