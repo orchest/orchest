@@ -26,7 +26,7 @@ RUN git clone https://github.com/orchest/visual-tags.git /jupyter-extensions/vis
     && jupyter labextension install /jupyter-extensions/orchest-integration \
         --no-build \
         --BaseExtensionApp.app_dir=$extension_dir \
-    && pip3 install jupyterlab-git==0.30.1 \
+    && pip3 install jupyterlab-git==0.34.2 \
     # Requires `ipywidgets` to be installed in the kernels, which it is
     # by default because we depend on the Jupyter Stacks.
     && pip3 install jupyterlab-widgets==1.0.2 \
