@@ -9,6 +9,7 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
+from app.connections import k8s_custom_obj_api
 from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
@@ -103,7 +104,10 @@ def prepare_build_context(task_uuid):
     # the project path we receive is relative to the projects directory
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
 
-    snapshot_path = f"/tmp/{dockerfile_name}"
+    jupyter_builds_dir = "/userdir/.orchest/jupyter_builds_dir"
+    if not os.path.exists(jupyter_builds_dir):
+        os.mkdir(jupyter_builds_dir)
+    snapshot_path = f"{jupyter_builds_dir}/{dockerfile_name}"
 
     if os.path.isdir(snapshot_path):
         os.system('rm -rf "%s"' % snapshot_path)
@@ -201,6 +205,16 @@ def build_jupyter_task(task_uuid):
             update_jupyter_build_status("FAILURE", session, task_uuid)
             raise e
         finally:
+            # We get here either because the task was successful or was
+            # aborted, in any case, delete the workflow.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-build-task-{task_uuid}",
+            )
+
             filters = {
                 "label": [
                     "_orchest_jupyter_build_is_intermediate=1",

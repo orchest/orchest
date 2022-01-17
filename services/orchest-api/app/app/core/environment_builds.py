@@ -213,10 +213,11 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # sanity checks, if not respected exception will be raised
     check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
-    if not os.path.exists("/userdir/.orchest/env-builds"):
-        os.mkdir("/userdir/.orchest/env-builds")
+    env_builds_dir = "/userdir/.orchest/env-builds"
+    if not os.path.exists(env_builds_dir):
+        os.mkdir(env_builds_dir)
     # Make a snapshot of the project state, used for the context.
-    snapshot_path = f"/userdir/.orchest/env-builds/{dockerfile_name}"
+    snapshot_path = f"{env_builds_dir}/{dockerfile_name}"
     os.system('rm -rf "%s"' % snapshot_path)
     os.system('cp -R "%s" "%s"' % (userdir_project_path, snapshot_path))
     # take the environment from the snapshot
@@ -324,7 +325,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             )
 
             # Cleanup.
-            # os.system('rm -rf "%s"' % build_context["snapshot_path"])
+            os.system('rm -rf "%s"' % build_context["snapshot_path"])
 
             update_environment_build_status(status, session, task_uuid)
 
