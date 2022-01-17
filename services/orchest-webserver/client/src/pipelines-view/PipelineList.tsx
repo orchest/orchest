@@ -346,12 +346,16 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     });
   }, [pipelines, projectUuid, getSession]);
 
-  const onRowClick = async (pipelineUuid: string) => {
+  const onRowClick = async (e: React.MouseEvent, pipelineUuid: string) => {
     const goToPipeline = (isReadOnly: boolean) => {
-      navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid, pipelineUuid },
-        state: { isReadOnly },
-      });
+      navigateTo(
+        siteMap.pipeline.path,
+        {
+          query: { projectUuid, pipelineUuid },
+          state: { isReadOnly },
+        },
+        e
+      );
     };
     try {
       await checkGate(projectUuid);

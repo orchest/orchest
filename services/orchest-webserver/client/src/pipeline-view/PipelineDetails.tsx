@@ -43,8 +43,8 @@ const PipelineDetailsContainer = styled("div")(({ theme }) => ({
 }));
 
 const PipelineDetails: React.FC<{
-  onOpenNotebook: () => void;
-  onOpenFilePreviewView?: (uuid: string) => void;
+  onOpenNotebook: (e: React.MouseEvent) => void;
+  onOpenFilePreviewView?: (e: React.MouseEvent, uuid: string) => void;
   onChangeView: (index: number) => void;
   onClose: () => void;
   onDelete: () => void;
@@ -79,8 +79,8 @@ const PipelineDetails: React.FC<{
 
   const [subViewIndex, setSubViewIndex] = React.useState(defaultViewIndex);
 
-  const openFilePreviewView = (step_uuid: string) =>
-    onOpenFilePreviewView && onOpenFilePreviewView(step_uuid);
+  const openFilePreviewView = (e: React.MouseEvent, step_uuid: string) =>
+    onOpenFilePreviewView && onOpenFilePreviewView(e, step_uuid);
 
   const onStartDragging = React.useCallback((e: React.MouseEvent) => {
     eventVars.current.prevClientX = e.clientX;
@@ -203,7 +203,7 @@ const PipelineDetails: React.FC<{
             startIcon={<VisibilityIcon />}
             variant="contained"
             color="secondary"
-            onClick={() => openFilePreviewView(step.uuid)}
+            onClick={(e) => openFilePreviewView(e, step.uuid)}
             data-test-id="step-view-file"
           >
             View file

@@ -168,10 +168,8 @@ const BuildPendingDialog: React.FC = () => {
       });
   };
 
-  const onViewBuildStatus = () => {
-    navigateTo(siteMap.environments.path, {
-      query: { projectUuid },
-    });
+  const onViewBuildStatus = (e: React.MouseEvent) => {
+    navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
 
     onClose();
   };

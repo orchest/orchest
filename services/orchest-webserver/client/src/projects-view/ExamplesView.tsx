@@ -88,12 +88,12 @@ const ExamplesView: React.FC = () => {
     );
   }, [data]);
 
-  const goToProjects = () => {
-    navigateTo(siteMap.projects.path);
+  const goToProjects = (e: React.MouseEvent) => {
+    navigateTo(siteMap.projects.path, undefined, e);
   };
 
-  const goToSelectedProject = () => {
-    navigateTo(siteMap.pipelines.path, { query: { projectUuid } });
+  const goToSelectedProject = (e: React.MouseEvent) => {
+    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
   };
 
   const changeTabByIndex = (

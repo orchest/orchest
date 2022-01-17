@@ -146,7 +146,10 @@ export const PipelineRunTable: React.FC<{
     [jobUuid, setAlert, setConfirm]
   );
 
-  const onDetailPipelineView = (pipelineRun: PipelineRun) => {
+  const onDetailPipelineView = (
+    e: React.MouseEvent,
+    pipelineRun: PipelineRun
+  ) => {
     if (pipelineRun.status == "PENDING") {
       setAlert(
         "Error",
@@ -156,15 +159,19 @@ export const PipelineRunTable: React.FC<{
       return;
     }
 
-    navigateTo(siteMap.pipeline.path, {
-      query: {
-        projectUuid: pipelineRun.project_uuid,
-        pipelineUuid: pipelineRun.pipeline_uuid,
-        jobUuid: pipelineRun.job_uuid,
-        runUuid: pipelineRun.uuid,
+    navigateTo(
+      siteMap.pipeline.path,
+      {
+        query: {
+          projectUuid: pipelineRun.project_uuid,
+          pipelineUuid: pipelineRun.pipeline_uuid,
+          jobUuid: pipelineRun.job_uuid,
+          runUuid: pipelineRun.uuid,
+        },
+        state: { isReadOnly: true },
       },
-      state: { isReadOnly: true },
-    });
+      e
+    );
   };
 
   return (
@@ -233,7 +240,7 @@ export const PipelineRunTable: React.FC<{
                 <Button
                   variant="contained"
                   startIcon={<VisibilityIcon />}
-                  onClick={() => onDetailPipelineView(pipelineRun)}
+                  onClick={(e) => onDetailPipelineView(e, pipelineRun)}
                   data-test-id="job-pipeline-runs-row-view-pipeline"
                 >
                   View pipeline

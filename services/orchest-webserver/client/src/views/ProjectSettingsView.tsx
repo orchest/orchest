@@ -81,8 +81,8 @@ const ProjectSettingsView: React.FC = () => {
       .catch(console.log);
   };
 
-  const returnToProjects = () => {
-    navigateTo(siteMap.projects.path);
+  const returnToProjects = (e: React.MouseEvent) => {
+    navigateTo(siteMap.projects.path, undefined, e);
   };
 
   const saveGeneralForm = (e) => {

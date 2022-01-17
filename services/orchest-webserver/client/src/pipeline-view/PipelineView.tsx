@@ -475,29 +475,37 @@ const PipelineView: React.FC = () => {
     setState({ pipelineJson, eventVars: state.eventVars });
   };
 
-  const openSettings = (initialTab?: string) => {
-    navigateTo(siteMap.pipelineSettings.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        jobUuid: jobUuidFromRoute,
-        runUuid: runUuidFromRoute,
-        initialTab,
+  const openSettings = (e: React.MouseEvent, initialTab?: string) => {
+    navigateTo(
+      siteMap.pipelineSettings.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          jobUuid: jobUuidFromRoute,
+          runUuid: runUuidFromRoute,
+          initialTab,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
-  const openLogs = () => {
-    navigateTo(siteMap.logs.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        jobUuid: jobUuidFromRoute,
-        runUuid: runUuidFromRoute,
+  const openLogs = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.logs.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          jobUuid: jobUuidFromRoute,
+          runUuid: runUuidFromRoute,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
   const showServices = () => {
@@ -1357,11 +1365,11 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const onDoubleClickStepHandler = (stepUUID: string) => {
+  const onDoubleClickStepHandler = (e: React.MouseEvent, stepUUID: string) => {
     if (isReadOnly) {
-      onOpenFilePreviewView(stepUUID);
+      onOpenFilePreviewView(e, stepUUID);
     } else {
-      openNotebook(stepUUID);
+      openNotebook(e, stepUUID);
     }
   };
 
@@ -1514,19 +1522,23 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const openNotebook = (stepUUID: string) => {
+  const openNotebook = (e: React.MouseEvent, stepUUID: string) => {
     if (session === undefined) {
       setAlert(
         "Error",
         "Please start the session before opening the Notebook in Jupyter."
       );
     } else if (session.status === "RUNNING") {
-      navigateTo(siteMap.jupyterLab.path, {
-        query: {
-          projectUuid,
-          pipelineUuid,
+      navigateTo(
+        siteMap.jupyterLab.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+          },
         },
-      });
+        e
+      );
 
       window.orchest.jupyter.navigateTo(
         collapseDoubleDots(
@@ -1546,21 +1558,25 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const onOpenFilePreviewView = (stepUuid: string) => {
-    navigateTo(siteMap.filePreview.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        stepUuid,
-        jobUuid: jobUuidFromRoute,
-        runUuid: runUuidFromRoute,
+  const onOpenFilePreviewView = (e: React.MouseEvent, stepUuid: string) => {
+    navigateTo(
+      siteMap.filePreview.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          stepUuid,
+          jobUuid: jobUuidFromRoute,
+          runUuid: runUuidFromRoute,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
-  const onOpenNotebook = () => {
-    openNotebook(state.eventVars.openedStep);
+  const onOpenNotebook = (e: React.MouseEvent) => {
+    openNotebook(e, state.eventVars.openedStep);
   };
 
   const parseRunStatuses = (result) => {
@@ -2226,13 +2242,14 @@ const PipelineView: React.FC = () => {
     return serviceLinks;
   };
 
-  const returnToJob = () => {
-    navigateTo(siteMap.job.path, {
-      query: {
-        projectUuid,
-        jobUuid: jobUuidFromRoute,
+  const returnToJob = (e?: React.MouseEvent) => {
+    navigateTo(
+      siteMap.job.path,
+      {
+        query: { projectUuid, jobUuid: jobUuidFromRoute },
       },
-    });
+      e
+    );
   };
 
   let connections_list = {};
@@ -2608,7 +2625,7 @@ const PipelineView: React.FC = () => {
                 )}
                 <Divider />
                 <List>
-                  <ListItemButton onClick={() => openSettings("services")}>
+                  <ListItemButton onClick={(e) => openSettings(e, "services")}>
                     <ListItemIcon>
                       <TuneIcon />
                     </ListItemIcon>
@@ -2622,7 +2639,7 @@ const PipelineView: React.FC = () => {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={() => openSettings()}
+                onClick={(e) => openSettings(e)}
                 startIcon={<TuneIcon />}
                 data-test-id="pipeline-settings"
               >

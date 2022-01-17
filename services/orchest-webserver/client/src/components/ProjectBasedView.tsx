@@ -14,7 +14,8 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
 }) => {
   const { navigateTo } = useCustomRoute();
 
-  const goToProjects = () => navigateTo(siteMap.projects.path);
+  const goToProjects = (e: React.MouseEvent) =>
+    navigateTo(siteMap.projects.path, undefined, e);
   const message =
     "It looks like you don't have any projects yet! To get started using Orchest create your first project.";
 

@@ -44,30 +44,31 @@ export const HeaderBar = ({
     exact: true,
   });
 
-  const goToHome = () => {
-    navigateTo(siteMap.projects.path);
+  const goToHome = (e: React.MouseEvent) => {
+    navigateTo(siteMap.projects.path, undefined, e);
   };
 
   const showHelp = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     navigateTo(siteMap.help.path, undefined, e);
   };
 
-  const showPipeline = () => {
-    navigateTo(siteMap.pipeline.path, {
-      query: {
-        projectUuid: state.projectUuid,
-        pipelineUuid: state.pipelineUuid,
-      },
-    });
+  const showPipeline = (e: React.MouseEvent) => {
+    const { projectUuid, pipelineUuid } = state;
+    navigateTo(
+      siteMap.pipeline.path,
+      { query: { projectUuid, pipelineUuid } },
+      e
+    );
   };
 
-  const showJupyter = () => {
-    navigateTo(siteMap.jupyterLab.path, {
-      query: {
-        projectUuid: state.projectUuid,
-        pipelineUuid: state.pipelineUuid,
-      },
-    });
+  const showJupyter = (e: React.MouseEvent) => {
+    const { projectUuid, pipelineUuid } = state;
+
+    navigateTo(
+      siteMap.jupyterLab.path,
+      { query: { projectUuid, pipelineUuid } },
+      e
+    );
   };
 
   const logoutHandler = () => {

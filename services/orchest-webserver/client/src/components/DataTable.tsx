@@ -248,14 +248,14 @@ function Row<T>({
   selectable: boolean;
   isDetailsOpen?: boolean;
   onRowClick?: (
-    e: React.MouseEvent<unknown>,
+    e: React.MouseEvent,
     uuid: string,
     isShowingDetail: boolean
   ) => void;
   rowHeight: number;
 }) {
   const [isOpen, setIsOpen] = React.useState(isDetailsOpen);
-  const handleClickRow = (e: React.MouseEvent<unknown>) => {
+  const handleClickRow = (e: React.MouseEvent) => {
     if (!disabled) {
       setIsOpen((current) => {
         onRowClick(e, data.uuid, !current);
@@ -386,7 +386,7 @@ type DataTableProps<T> = {
   initialOrder?: Order;
   initialRowsPerPage?: number;
   deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
-  onRowClick?: (uuid: string) => void;
+  onRowClick?: (e: React.MouseEvent, uuid: string) => void;
   rowHeight?: number;
   debounceTime?: number;
   refreshInterval?:
@@ -636,13 +636,13 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   const handleClickRow = (
-    e: React.MouseEvent<unknown>,
+    e: React.MouseEvent,
     uuid: string,
     isShowingDetails: boolean
   ) => {
     if (onRowClick) {
       e.preventDefault();
-      onRowClick(uuid);
+      onRowClick(e, uuid);
     }
     setRowsShowingDetails((current) => {
       if (isShowingDetails) {

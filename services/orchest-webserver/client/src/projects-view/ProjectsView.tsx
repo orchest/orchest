@@ -89,10 +89,14 @@ const ProjectsView: React.FC = () => {
   const [isImporting, setIsImporting] = React.useState(false);
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
-    const openSettings = (projectUuid: string) => {
-      navigateTo(siteMap.projectSettings.path, {
-        query: { projectUuid },
-      });
+    const openSettings = (e: React.MouseEvent, projectUuid: string) => {
+      navigateTo(
+        siteMap.projectSettings.path,
+        {
+          query: { projectUuid },
+        },
+        e
+      );
     };
     const onEditProjectName = (
       projectUUID: string,
@@ -154,7 +158,7 @@ const ProjectsView: React.FC = () => {
               data-test-id={`settings-button-${row.path}`}
               onClick={(e) => {
                 e.stopPropagation();
-                openSettings(row.uuid);
+                openSettings(e, row.uuid);
               }}
             >
               <SettingsIcon fontSize="small" />
@@ -250,10 +254,8 @@ const ProjectsView: React.FC = () => {
     });
   }, [projects]);
 
-  const onRowClick = (projectUuid: string) => {
-    navigateTo(siteMap.pipelines.path, {
-      query: { projectUuid },
-    });
+  const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
+    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
   };
 
   const deleteSelectedRows = async (projectUuids: string[]) => {
@@ -318,8 +320,8 @@ const ProjectsView: React.FC = () => {
     setIsShowingCreateModal(true);
   };
 
-  const goToExamples = () => {
-    navigateTo(siteMap.examples.path);
+  const goToExamples = (e: React.MouseEvent) => {
+    navigateTo(siteMap.examples.path, undefined, e);
   };
 
   const onClickCreateProject = () => {
