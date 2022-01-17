@@ -229,11 +229,13 @@ const EditJobView: React.FC = () => {
 
   const {
     data: job,
-    revalidate: fetchJob,
     error: fetchJobError,
     isValidating: isFetchingJob,
     mutate: setJob,
-  } = useSWR<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`, fetcher);
+  } = useSWR<Job>(
+    jobUuid ? `/catch/api-proxy/api/jobs/${jobUuid}` : null,
+    fetcher
+  );
 
   const {
     data: pipeline,
@@ -513,10 +515,6 @@ const EditJobView: React.FC = () => {
     setScheduleOption("cron");
     setAsSaved(false);
   };
-
-  React.useEffect(() => {
-    fetchJob();
-  }, []);
 
   const handleChangeTab = (
     event: React.SyntheticEvent<Element, Event>,

@@ -5,7 +5,9 @@ export const useAutoCleanUpEnabled = (selectedRuns: string[]) => {
   const [numberOfRetainedRuns, setNumberOfRetainedRuns] = React.useState(0);
 
   const onChangeNumberOfRetainedRuns = (value: number) => {
-    setNumberOfRetainedRuns(Math.max(value, 0));
+    // A possible value of 0 might make sense once we keep artifacts such as logs around for users to inspect
+    // even if the pipeline run was deleted.
+    setNumberOfRetainedRuns(Math.max(value, 1));
   };
 
   React.useEffect(() => {
