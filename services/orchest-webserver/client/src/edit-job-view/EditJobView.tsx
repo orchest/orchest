@@ -238,6 +238,8 @@ const EditJobView: React.FC = () => {
     fetcher
   );
 
+  console.log("HM", job);
+
   const {
     data: pipeline,
     error: fetchPipelineError,
@@ -383,7 +385,10 @@ const EditJobView: React.FC = () => {
     numberOfRetainedRuns,
     onChangeNumberOfRetainedRuns,
     toggleIsAutoCleanUpEnabled,
-  } = useAutoCleanUpEnabled(selectedRuns);
+  } = useAutoCleanUpEnabled(
+    job?.max_retained_pipeline_runs || -1,
+    selectedRuns
+  );
 
   const runJob = async () => {
     if (!job) return;
