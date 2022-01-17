@@ -11,6 +11,7 @@ import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/Routes";
 import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
@@ -265,7 +266,7 @@ const EditJobView: React.FC = () => {
       })
   );
 
-  const { data: projectSnapshotSize } = useFetchProject({
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
     projectUuid,
     selector: (project) => project.project_snapshot_size,
   });
@@ -685,13 +686,7 @@ const EditJobView: React.FC = () => {
                         Auto Clean-up
                       </Link>
                       {` to free up disk space regularly. Check the `}
-                      <Link
-                        href="https://docs.orchest.io/en/stable/fundamentals/jobs.html"
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        docs
-                      </Link>
+                      <JobDocLink />
                       {` for more details.`}
                     </Alert>
                   )}
