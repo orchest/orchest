@@ -80,7 +80,11 @@ export const CreateJobDialog = ({
               {projectSnapshotSize > 50 && (
                 <Alert severity="warning">
                   {`Snapshot size exceeds 50MB. Please refer to the `}
-                  <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
+                  <Link
+                    href="https://docs.orchest.io/en/stable/fundamentals/jobs.html"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     docs
                   </Link>
                   .
