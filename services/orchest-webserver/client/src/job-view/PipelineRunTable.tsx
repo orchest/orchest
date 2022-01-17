@@ -65,13 +65,19 @@ const getQueryString = ({
   page: number;
   rowsPerPage: number;
   searchTerm: string;
-}) => toQueryString({ page, page_size: rowsPerPage, fuzzy_filter: searchTerm });
+}) =>
+  toQueryString({
+    page,
+    page_size: rowsPerPage,
+    fuzzy_filter: encodeURIComponent(searchTerm),
+  });
 
 export const PipelineRunTable: React.FC<{
   jobUuid: string;
   pipelineName: string;
   setTotalCount: (count: number) => void;
-}> = ({ jobUuid, pipelineName, setTotalCount }) => {
+  footnote: React.ReactNode;
+}> = ({ jobUuid, pipelineName, setTotalCount, footnote }) => {
   const { setAlert, setConfirm } = useAppContext();
   const { navigateTo } = useCustomRoute();
 
@@ -257,6 +263,7 @@ export const PipelineRunTable: React.FC<{
       initialOrderBy="pipeline_run_index"
       initialOrder="desc"
       initialRowsPerPage={10}
+      footnote={footnote}
     />
   );
 };

@@ -292,6 +292,20 @@ export type FileTree = {
   children: FileTree[];
 };
 
+export type Pipeline = {
+  env_variables: Record<string, string>;
+  path: string;
+  project_uuid: string;
+  status: "READY" | string;
+  uuid: string;
+};
+
+export type PipelineMetaData = {
+  uuid: string;
+  path: string;
+  name: string;
+};
+
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;

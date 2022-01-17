@@ -197,12 +197,16 @@ function EnhancedTableHead<T>(props: EnhancedTableProps<T>) {
 const CellContainer: React.FC<{
   isLoading: boolean;
   sx?: SxProps<Theme>;
-}> = ({ isLoading, sx, children }) => {
+  skeletonSx?: SxProps<Theme>;
+}> = ({ isLoading, sx, skeletonSx, children }) => {
   return (
     <>
       <Fade in={isLoading} unmountOnExit>
-        <Box sx={{ height: (theme) => theme.spacing(3) }}>
-          <Skeleton variant="text" />
+        <Box sx={skeletonSx}>
+          <Skeleton
+            variant="text"
+            sx={{ height: (theme) => theme.spacing(3) }}
+          />
         </Box>
       </Fade>
       {!isLoading && <Box sx={sx}>{children}</Box>}
@@ -285,7 +289,10 @@ function Row<T>({
       >
         {selectable && (
           <TableCell padding="checkbox" align="center">
-            <CellContainer isLoading={isLoading}>
+            <CellContainer
+              skeletonSx={{ padding: (theme) => theme.spacing(0, 1.5) }}
+              isLoading={isLoading}
+            >
               <Checkbox
                 color="primary"
                 checked={isSelected}
@@ -346,7 +353,9 @@ type DataTableFetcher<T> = (props: {
   page?: number;
   rowsPerPage?: number;
   searchTerm?: string;
-  run: (promise: Promise<DataTableFetcherResponse<T>>) => Promise<void>;
+  run: (
+    promise: Promise<DataTableFetcherResponse<T>>
+  ) => Promise<void | DataTableFetcherResponse<T>>;
 }) => void;
 
 type DataTableProps<T> = {
@@ -389,6 +398,8 @@ type DataTableProps<T> = {
   disabled?: boolean;
   dense?: boolean;
   containerSx?: SxProps<Theme>;
+  retainSelectionsOnPageChange?: boolean;
+  footnote?: React.ReactNode;
 } & BoxProps;
 
 function generateLoadingRows<T>(
@@ -440,6 +451,8 @@ export const DataTable = <T extends Record<string, any>>({
   dense,
   disabled,
   refreshInterval = null,
+  retainSelectionsOnPageChange,
+  footnote,
   ...props
 }: DataTableProps<T>) => {
   const mounted = useMounted();
@@ -595,8 +608,11 @@ export const DataTable = <T extends Record<string, any>>({
       const selectedAllItemsInPage =
         event.target.checked && event.target.dataset.indeterminate;
 
-      if (selectedAllItemsInPage && current.length === rowsInPage.length) {
-        return [];
+      if (selectedAllItemsInPage && current.length >= rowsInPage.length) {
+        // select all rows in all pages
+        // note that if it's server-side pagination,
+        // it only selects rowsInPage because rows and rowsInPage are identical
+        return rows.map((n) => n.uuid);
       }
       return [];
     });
@@ -638,10 +654,8 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleChangePage = (event: unknown, newPage: number) => {
-    if (!isDeleting) {
-      setSelected([]);
-      setPage(newPage + 1);
-    }
+    if (!isDeleting) setPage(newPage + 1);
+    if (!retainSelectionsOnPageChange && !isDeleting) setSelected([]);
   };
 
   const handleChangeRowsPerPage = (
@@ -670,7 +684,6 @@ export const DataTable = <T extends Record<string, any>>({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     setSearchTerm(e.target.value);
-    // setPage(1);
   };
 
   const isSelected = (uuid: string) => selected.indexOf(uuid) !== -1;
@@ -776,40 +789,40 @@ export const DataTable = <T extends Record<string, any>>({
           </Table>
         </TableContainer>
         <Stack direction="row">
-          {selected.length > 0 && (
-            <Stack direction="row" alignItems="center">
-              <Typography
-                color={selected.length > 0 ? "inherit" : "initial"}
-                variant="subtitle1"
-                component="div"
-                sx={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  marginLeft: (theme) => theme.spacing(2.5),
-                  marginRight: (theme) => theme.spacing(2),
-                }}
+          <Stack direction="row" alignItems="center">
+            <Typography
+              color={selected.length > 0 ? "inherit" : "initial"}
+              variant="subtitle1"
+              component="div"
+              sx={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                fontSize: (theme) => theme.typography.body2.fontSize,
+                marginLeft: (theme) => theme.spacing(3.5),
+                marginRight: (theme) => theme.spacing(2),
+                color: (theme) => theme.palette.grey[800],
+              }}
+            >
+              {isDeleting &&
+                `Deleting selected ${selected.length} item${
+                  selected.length > 1 ? "s" : ""
+                }...`}
+              {!isDeleting && selected.length > 0
+                ? `${selected.length} selected`
+                : footnote}
+            </Typography>
+            {selected.length > 0 && deleteSelectedRows && (
+              <IconButton
+                title="Delete"
+                data-test-id={`${id}-delete`}
+                disabled={isTableDisabled}
+                onClick={handleDeleteSelectedRows}
               >
-                {isDeleting &&
-                  `Deleting selected ${selected.length} item${
-                    selected.length > 1 ? "s" : ""
-                  }...`}
-                {!isDeleting && selected.length > 0
-                  ? `${selected.length} selected`
-                  : ""}
-              </Typography>
-              {deleteSelectedRows && (
-                <IconButton
-                  title="Delete"
-                  data-test-id={`${id}-delete`}
-                  disabled={isTableDisabled}
-                  onClick={handleDeleteSelectedRows}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              )}
-            </Stack>
-          )}
+                <DeleteIcon />
+              </IconButton>
+            )}
+          </Stack>
           <TablePagination
             sx={{ flex: 1 }}
             rowsPerPageOptions={[5, 10, 25]}

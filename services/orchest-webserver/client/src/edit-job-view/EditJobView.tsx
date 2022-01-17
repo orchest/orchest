@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
@@ -8,7 +9,9 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/Routes";
 import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
@@ -18,23 +21,29 @@ import {
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ListIcon from "@mui/icons-material/List";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SaveIcon from "@mui/icons-material/Save";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import parser from "cron-parser";
@@ -46,6 +55,7 @@ import {
   generatePipelineRunParamCombinations,
   generatePipelineRunRows,
 } from "./commons";
+import { useAutoCleanUpEnabled } from "./useAutoCleanUpEnabled";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
@@ -224,11 +234,13 @@ const EditJobView: React.FC = () => {
 
   const {
     data: job,
-    revalidate: fetchJob,
     error: fetchJobError,
     isValidating: isFetchingJob,
     mutate: setJob,
-  } = useSWR<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`, fetcher);
+  } = useSWR<Job>(
+    jobUuid ? `/catch/api-proxy/api/jobs/${jobUuid}` : null,
+    fetcher
+  );
 
   const {
     data: pipeline,
@@ -253,6 +265,11 @@ const EditJobView: React.FC = () => {
         }
       })
   );
+
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
+    projectUuid,
+    selector: (project) => project.project_snapshot_size,
+  });
 
   const isLoading = isFetchingJob || isFetchingPipeline;
 
@@ -370,6 +387,16 @@ const EditJobView: React.FC = () => {
     }
   }, [putJobError, setAlert]);
 
+  const {
+    isAutoCleanUpEnabled,
+    numberOfRetainedRuns,
+    onChangeNumberOfRetainedRuns,
+    toggleIsAutoCleanUpEnabled,
+  } = useAutoCleanUpEnabled(
+    job?.max_retained_pipeline_runs || -1,
+    selectedRuns
+  );
+
   const runJob = async () => {
     if (!job) return;
 
@@ -391,6 +418,9 @@ const EditJobView: React.FC = () => {
       strategy_json: strategyJson,
       parameters: generateJobParameters(pipelineRuns, selectedRuns),
       env_variables: updatedEnvVariables.value,
+      max_retained_pipeline_runs: isAutoCleanUpEnabled
+        ? numberOfRetainedRuns
+        : undefined,
     };
 
     if (scheduleOption === "scheduled") {
@@ -465,6 +495,9 @@ const EditJobView: React.FC = () => {
             parameters: jobParameters,
             strategy_json: strategyJson,
             env_variables: updatedEnvVariables.value,
+            max_retained_pipeline_runs: isAutoCleanUpEnabled
+              ? numberOfRetainedRuns
+              : undefined,
           }),
         }).then(() => {
           navigateTo(siteMap.job.path, {
@@ -495,10 +528,6 @@ const EditJobView: React.FC = () => {
     setScheduleOption("cron");
     setAsSaved(false);
   };
-
-  React.useEffect(() => {
-    fetchJob();
-  }, []);
 
   const handleChangeTab = (
     event: React.SyntheticEvent<Element, Event>,
@@ -551,8 +580,10 @@ const EditJobView: React.FC = () => {
                 }}
               >
                 <TextField
+                  required
                   label="Job name"
                   value={job.name}
+                  sx={{ width: "50%" }}
                   onChange={(e) => handleJobNameChange(e.target.value)}
                 />
               </Box>
@@ -632,12 +663,34 @@ const EditJobView: React.FC = () => {
                 />
               )}
               {scheduleOption === "cron" && (
-                <CronScheduleInput
-                  value={cronString}
-                  onChange={setCronSchedule}
-                  disabled={scheduleOption !== "cron"}
-                  dataTestId="job-edit-schedule-cronjob-input"
-                />
+                <>
+                  <CronScheduleInput
+                    value={cronString}
+                    onChange={setCronSchedule}
+                    disabled={scheduleOption !== "cron"}
+                    dataTestId="job-edit-schedule-cronjob-input"
+                  />
+                  {projectSnapshotSize > 50 && (
+                    <Alert
+                      severity="warning"
+                      sx={{
+                        marginTop: (theme) => theme.spacing(3),
+                        width: "500px",
+                      }}
+                    >
+                      {`Snapshot size exceeds 50MB. You might want to enable `}
+                      <Link
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => setTabIndex(3)}
+                      >
+                        Auto Clean-up
+                      </Link>
+                      {` to free up disk space regularly. Check the `}
+                      <JobDocLink />
+                      {` for more details.`}
+                    </Alert>
+                  )}
+                </>
               )}
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
@@ -673,6 +726,71 @@ const EditJobView: React.FC = () => {
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={3} name="runs">
               <div className="pipeline-tab-view pipeline-runs">
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={2}
+                  sx={{ margin: (theme) => theme.spacing(4, 0, 6) }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isAutoCleanUpEnabled}
+                        onChange={toggleIsAutoCleanUpEnabled}
+                      />
+                    }
+                    label={`Auto clean-up oldest pipeline runs, retain the last `}
+                    sx={{ marginRight: 0 }}
+                  />
+                  <TextField
+                    variant="standard"
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          pipeline runs
+                        </InputAdornment>
+                      ),
+                    }}
+                    disabled={!isAutoCleanUpEnabled}
+                    value={numberOfRetainedRuns}
+                    type="number"
+                    size="small"
+                    onChange={(e) =>
+                      onChangeNumberOfRetainedRuns(parseInt(e.target.value))
+                    }
+                  />
+                  <Tooltip
+                    placement="right"
+                    title={
+                      <>
+                        <Typography
+                          variant="body2"
+                          sx={{ marginBottom: (theme) => theme.spacing(1) }}
+                        >
+                          Retain the last finished pipeline runs and
+                          automatically remove the oldest runs. This frees up
+                          disk space to enhance the reliability while executing
+                          large amount of pipeline runs.
+                        </Typography>
+                        <Typography variant="body2">
+                          Enable this carefully if your pipeline produces
+                          artifacts that are stored on disk. You might want to
+                          backup the results to external sources or the{" "}
+                          <Code>/data</Code> directory.
+                        </Typography>
+                      </>
+                    }
+                  >
+                    <InfoOutlinedIcon
+                      color="primary"
+                      fontSize="small"
+                      sx={{
+                        marginLeft: (theme) => theme.spacing(2),
+                        cursor: "pointer",
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
                 <DataTable<PipelineRunRow>
                   selectable
                   id="job-edit-pipeline-runs"
@@ -685,6 +803,7 @@ const EditJobView: React.FC = () => {
                   setSelectedRows={setSelectedRuns}
                   onChangeSelection={() => setAsSaved(false)}
                   rows={pipelineRunRows}
+                  retainSelectionsOnPageChange
                   data-test-id="job-edit-pipeline-runs"
                 />
               </div>

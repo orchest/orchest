@@ -5,8 +5,10 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
+import type { PipelineMetaData } from "@/types";
 import { IOrchestSession } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import { checkGate } from "@/utils/webserver-utils";
@@ -24,7 +26,6 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 import { INITIAL_PIPELINE_NAME } from "./common";
 import { CreatePipelineDialog } from "./CreatePipelineDialog";
 
@@ -55,22 +56,11 @@ const getErrorMessages = (path: string) => ({
   6: "Can't move the pipeline outside of the project.",
 });
 
-type PipelineMetaData = {
-  name: string;
-  path: string;
-  uuid: string;
-};
-
 type SessionStatus = IOrchestSession["status"] | "";
 
 type PipelineRowData = PipelineMetaData & {
   sessionStatus: SessionStatus;
 };
-
-const fetchPipelines = (uuid: string) =>
-  fetcher<{ success: boolean; result: PipelineMetaData[] }>(uuid).then(
-    (response) => response.result
-  );
 
 const deletePipelines = (projectUuid: string, pipelineUuid: string) => {
   return fetcher(`/async/pipelines/delete/${projectUuid}/${pipelineUuid}`, {
@@ -266,14 +256,11 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
 
   // data fetching state
   const {
-    data: pipelines,
+    pipelines,
     error,
-    revalidate: requestFetchPipelines,
-    isValidating,
-  } = useSWR<PipelineMetaData[]>(
-    `/async/pipelines/${projectUuid}`,
-    fetchPipelines
-  );
+    fetchPipelines,
+    isFetchingPipelines,
+  } = useFetchPipelines(projectUuid);
 
   React.useEffect(() => {
     if (error) {
@@ -309,7 +296,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
         }),
       })
         .then(() => {
-          requestFetchPipelines();
+          fetchPipelines();
         })
         .catch((e) => {
           try {
@@ -382,7 +369,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           )
         )
           .then(() => {
-            requestFetchPipelines();
+            fetchPipelines();
             resolve(true);
           })
           .catch((e) => {
@@ -408,7 +395,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           body: JSON.stringify({ name, pipeline_path: path }),
         })
           .then(() => {
-            requestFetchPipelines();
+            fetchPipelines();
           })
           .catch((response) => {
             if (!response.isCanceled) {
@@ -422,7 +409,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           })
       );
     },
-    [requestFetchPipelines, run, projectUuid, setAlert]
+    [fetchPipelines, run, projectUuid, setAlert]
   );
 
   const isLoaded = hasValue(pipelines) && !error;
@@ -454,7 +441,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
             id="pipeline-list"
             selectable
             hideSearch
-            isLoading={isValidating}
+            isLoading={isFetchingPipelines}
             columns={columns}
             rows={pipelineRows}
             onRowClick={onRowClick}

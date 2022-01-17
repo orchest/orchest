@@ -207,7 +207,12 @@ const BuildPendingDialog: React.FC = () => {
           </Button>
         )}
         {state?.allowBuild && (
-          <Button variant="contained" color="primary" onClick={onBuild}>
+          <Button
+            autoFocus
+            variant="contained"
+            color="primary"
+            onClick={onBuild}
+          >
             Build
           </Button>
         )}

@@ -54,6 +54,7 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
   {
     id: "gpu_support",
     label: "GPU Support",
+    sx: { margin: (theme) => theme.spacing(-0.5, 0) },
     render: function GpuSupport({ gpu_support }) {
       return (
         <Stack direction="row" alignItems="center" justifyContent="center">
@@ -284,7 +285,6 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
             id="environment-list"
             columns={columns}
             rows={environmentRows}
-            rowHeight={63}
             onRowClick={onRowClick}
             deleteSelectedRows={onDeleteClick}
             data-test-id="environments"
