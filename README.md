@@ -89,11 +89,13 @@ for more details.
 
 You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
 
-![Open in Orchest example](docs/source/img/open_in_orchest.svg)
-
 ```markdown
 [![Open in Orchest](https://github.com/orchest/orchest/blob/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
 ```
+
+An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
+
+[![Open in Orchest](https://github.com/orchest/orchest/blob/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
 
 ## Contributors
 
