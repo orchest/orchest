@@ -10,6 +10,7 @@
 <a href=https://www.orchest.io/video-tutorials><img src="https://img.shields.io/badge/Video tutorials-blue?style=flat&logo=airplayvideo&labelColor=5c5c5c"></a>
 <a href=https://docs.orchest.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 <a href=https://www.orchest.io/#orchest-cloud><img src="https://img.shields.io/badge/Orchest%20Cloud-blue?style=flat&logo=iCloud&labelColor=5c5c5c&logoColor=white"></a>
+<a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="docs/source/img/open_in_orchest.svg"></a>
 <a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-blue?style=flat&logo=slack&labelColor=5c5c5c"></a>
 </p>
 
@@ -43,6 +44,8 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
 [docs](https://docs.orchest.io/en/stable/getting_started/when_to_use_orchest.html).
 
 ## Installation
+
+[![Open in Orchest](docs/source/img/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
 For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
 docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
@@ -89,11 +92,13 @@ for more details.
 
 You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
 
-![Open in Orchest example](docs/source/img/open_in_orchest.svg)
-
 ```markdown
-[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
+[![Open in Orchest](https://github.com/orchest/orchest/blob/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
 ```
+
+An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
+
+[![Open in Orchest](https://github.com/orchest/orchest/blob/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
 
 ## Contributors
 
