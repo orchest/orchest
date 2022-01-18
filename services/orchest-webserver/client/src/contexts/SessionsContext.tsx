@@ -1,10 +1,9 @@
 import { useAppContext } from "@/contexts/AppContext";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 import { fetcher } from "@/utils/fetcher";
-import { HEADER } from "@orchest/lib-utils";
+import { hasValue, HEADER } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
-import useSWR from "swr";
 
 type TSessionStatus = IOrchestSession["status"];
 
@@ -16,7 +15,7 @@ const ENDPOINT = "/catch/api-proxy/api/sessions/";
 const lowerCaseFirstLetter = (str: string) =>
   str.charAt(0).toLowerCase() + str.slice(1);
 
-function convertKeyToCamelCase<T>(data: T, keys?: string[]) {
+function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
   if (!data) return data;
   if (keys) {
     for (const key of keys) {
@@ -65,16 +64,10 @@ export const isSession = (a: Session, b: Session) => {
 const isStoppable = (status: TSessionStatus) =>
   ["RUNNING", "LAUNCHING"].includes(status);
 
-const isWorking = (status: TSessionStatus) =>
-  ["LAUNCHING", "STOPPING"].includes(status);
-
 /* Fetchers
   =========================================== */
 
-export const stopSession = ({
-  pipelineUuid,
-  projectUuid,
-}: IOrchestSessionUuid) =>
+const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
   fetcher(`${ENDPOINT}${projectUuid}/${pipelineUuid}`, {
     method: "DELETE",
   });
@@ -85,28 +78,19 @@ export const stopSession = ({
  */
 
 type SessionsContextState = {
-  sessions?: IOrchestSession[] | [];
+  sessions?: IOrchestSession[];
   sessionsIsLoading?: boolean;
   sessionsKillAllInProgress?: boolean;
-  _sessionsToFetch?: IOrchestSessionUuid[] | [];
-  _startSessionPayload?: IOrchestSessionUuid;
-  _sessionsIsPolling: boolean;
 };
 
 type Action =
   | {
-      type: "sessionToggle";
-      payload: IOrchestSessionUuid;
+      type: "SET_SESSIONS";
+      payload: Pick<SessionsContextState, "sessions"> & {
+        sessionsIsLoading?: boolean;
+      };
     }
-  | { type: "_sessionsToggleClear" }
-  | {
-      type: "_sessionsSet";
-      payload: Pick<SessionsContextState, "sessions" | "sessionsIsLoading">;
-    }
-  | { type: "sessionsKillAll" }
-  | { type: "_sessionsKillAllClear" }
-  | { type: "_sessionsPollingStart" }
-  | { type: "_sessionsPollingClear" };
+  | { type: "SET_IS_KILLING_ALL_SESSIONS"; payload: boolean };
 
 type ActionCallback = (previousState: SessionsContextState) => Action;
 
@@ -118,6 +102,8 @@ type SessionsContext = {
   getSession: (
     session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
   ) => IOrchestSession | undefined;
+  toggleSession: (payload: IOrchestSessionUuid) => Promise<void>;
+  deleteAllSessions: () => Promise<void>;
 };
 
 const Context = React.createContext<SessionsContext | null>(null);
@@ -133,20 +119,19 @@ const reducer = (
   if (process.env.NODE_ENV === "development")
     console.log("(Dev Mode) useUserContext: action ", action);
   switch (action.type) {
-    case "sessionToggle":
-      return { ...state, _startSessionPayload: action.payload };
-    case "_sessionsToggleClear":
-      return { ...state, _startSessionPayload: null };
-    case "_sessionsSet":
-      return { ...state, ...action.payload };
-    case "_sessionsPollingStart":
-      return { ...state, _sessionsIsPolling: true };
-    case "_sessionsPollingClear":
-      return { ...state, _sessionsIsPolling: false };
-    case "sessionsKillAll":
-      return { ...state, sessionsKillAllInProgress: true };
-    case "_sessionsKillAllClear":
-      return { ...state, sessionsKillAllInProgress: false };
+    case "SET_SESSIONS": {
+      const { sessionsIsLoading, sessions } = action.payload;
+
+      return {
+        ...state,
+        sessions,
+        sessionsIsLoading: hasValue(sessionsIsLoading)
+          ? sessionsIsLoading
+          : state.sessionsIsLoading,
+      };
+    }
+    case "SET_IS_KILLING_ALL_SESSIONS":
+      return { ...state, sessionsKillAllInProgress: action.payload };
 
     default: {
       console.error(action);
@@ -159,128 +144,103 @@ const initialState: SessionsContextState = {
   sessions: [],
   sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
-  _sessionsToFetch: [],
-  _startSessionPayload: null,
-  _sessionsIsPolling: false,
+  // isPollingSessions: false,
 };
 
 /* Provider
   =========================================== */
 
 export const SessionsContextProvider: React.FC = ({ children }) => {
-  const appContext = useAppContext();
+  const { setAlert } = useAppContext();
 
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  const getSession = (
-    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
-  ) => state.sessions.find((stateSession) => isSession(session, stateSession));
+  const getSession = React.useCallback(
+    (session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">) =>
+      state.sessions.find((stateSession) => isSession(session, stateSession)),
+    [state]
+  );
 
   /**
-   * Use SWR to fetch and cache the data from our sessions endpoint
-   *
-   * Note: the endpoint does **not** return `STOPPED` sessions. This is handled
-   * in a later side-effect.
+   * a wrapper of SET_SESSIONS action dispatcher, used for updating single session
    */
-  const { data, mutate, error } = useSWR<{
-    sessions: (IOrchestSession & {
-      project_uuid: string;
-      pipeline_uuid: string;
-    })[];
-    status: TSessionStatus;
-  }>(ENDPOINT, fetcher, {
-    refreshInterval: state._sessionsIsPolling ? 1000 : 0,
-  });
+  const setSession = React.useCallback(
+    (newSessionData?: Partial<IOrchestSession>) => {
+      if (!newSessionData) return;
+      dispatch((currentState) => {
+        let found = false;
+        const newSessions = currentState.sessions.map((sessionData) => {
+          const isMatching = isSession(newSessionData, sessionData);
+          if (isMatching) found = true;
 
-  const isLoading = !data && !error;
-  const isLoaded = !isLoading;
+          return isMatching
+            ? { ...sessionData, ...newSessionData }
+            : sessionData;
+        });
 
-  if (error) {
-    console.error("Unable to fetch sessions", error);
-  }
+        // not found, insert newSessionData as the temporary session
+        const outcome = (found
+          ? newSessions
+          : [
+              ...newSessions,
+              { ...newSessionData, status: "LAUNCHING" },
+            ]) as IOrchestSession[];
 
-  /**
-   * SYNC
-   *
-   * Push SWR changes to Orchest Context when at least one session exists
-   * NOTE: we need to convert project_uuid and pipeline_uuid to camelcase because they were used everywhere
-   */
-  React.useEffect(() => {
-    const sessions =
-      data?.sessions.map((session) =>
-        convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) || [];
-
-    dispatch({
-      type: "_sessionsSet",
-      payload: {
-        sessions: sessions as IOrchestSession[],
-        sessionsIsLoading: isLoading,
-      },
-    });
-  }, [data, isLoading]);
-
-  /**
-   * TOGGLE
-   */
-  React.useEffect(() => {
-    const foundSession =
-      isLoaded &&
-      data?.sessions?.find((dataSession) =>
-        isSession(dataSession, state?._startSessionPayload)
-      );
-
-    // no cashed session from useSWR, nor previous session in the memory
-    if (!foundSession && !state._startSessionPayload) {
-      dispatch({ type: "_sessionsToggleClear" });
-      return;
-    }
-
-    /* use the cashed session from useSWR or create a temporary one out of previous one */
-    const session = convertKeyToCamelCase<IOrchestSession>(foundSession, [
-      "project_uuid",
-      "pipeline_uuid",
-    ]) || { ...state._startSessionPayload, status: null };
-
-    /**
-     * Any session-specific cache mutations must be made with this helper to
-     * ensure we're only mutating the requested session
-     */
-    const mutateSession = (
-      newSessionData?: Partial<IOrchestSession>,
-      shouldRevalidate?: boolean
-    ) =>
-      mutate(
-        (cachedData) =>
-          newSessionData && {
-            ...cachedData,
-            sessions: cachedData?.sessions.map((sessionData) =>
-              sessionData && isSession(session, sessionData)
-                ? { ...sessionData, ...newSessionData }
-                : sessionData
-            ),
+        return {
+          type: "SET_SESSIONS",
+          payload: {
+            sessions: outcome,
           },
-        shouldRevalidate
+        };
+      });
+    },
+    [dispatch]
+  );
+
+  // NOTE: launch/delete session is an async operation from BE
+  // the caller of toggleSession MUST also have useSessionsPoller
+  const toggleSession = React.useCallback(
+    async (payload: IOrchestSessionUuid) => {
+      const foundSession = state.sessions.find((session) =>
+        isSession(session, payload)
       );
 
-    /**
-     * LAUNCH
-     */
-    if (!session.status) {
-      mutateSession({ status: "LAUNCHING" }, false);
+      /* use the cashed session from useSWR or create a temporary one out of previous one */
+      const session = convertKeyToCamelCase<IOrchestSession>(foundSession, [
+        "project_uuid",
+        "pipeline_uuid",
+      ]);
 
-      fetcher(ENDPOINT, {
+      const isWorking = ["LAUNCHING", "STOPPING"].includes(session?.status);
+      if (isWorking) return;
+
+      // both "RUNNING", "LAUNCHING" are stoppable
+      // but we only allow RUNNING to be stopped here
+      if (session?.status === "RUNNING") {
+        setSession({ ...session, status: "STOPPING" });
+        try {
+          await stopSession(session);
+        } catch (error) {
+          setAlert("Error", "Failed to stop session.");
+          console.error(error);
+        }
+        return;
+      }
+
+      // session is undefined, launching a new session
+      setSession({ ...payload, status: "LAUNCHING" });
+      await fetcher(ENDPOINT, {
         method: "POST",
         headers: HEADER.JSON,
         body: JSON.stringify({
-          pipeline_uuid: session.pipelineUuid,
-          project_uuid: session.projectUuid,
+          pipeline_uuid: payload.pipelineUuid,
+          project_uuid: payload.projectUuid,
         }),
       })
-        .then((sessionDetails) => mutateSession(sessionDetails))
+        .then((sessionDetails) => setSession(sessionDetails))
         .catch((err) => {
           if (err?.message) {
-            appContext.setAlert(
+            setAlert(
               "Error",
               `Error while starting the session: ${err.message}`
             );
@@ -288,90 +248,44 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
 
           console.error(err);
         });
+    },
+    [setAlert, setSession, state]
+  );
 
-      dispatch({ type: "_sessionsToggleClear" });
-      return;
-    }
+  const deleteAllSessions = React.useCallback(async () => {
+    dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: true });
+    let sessionsToStop: { projectUuid: string; pipelineUuid: string }[] = [];
+    dispatch((currentState) => {
+      const newSessions = currentState.sessions.map((sessionValue) => {
+        const shouldStop = isStoppable(sessionValue.status);
 
-    /**
-     * WORKING
-     * Note: Our UI should prevent users from ever seeing this error – e.g. by
-     * disabling buttons – but it's here just in case.
-     */
-    if (isWorking(session.status)) {
-      appContext.setAlert(
-        "Error",
-        `Please wait, the pipeline session is still ${
-          { STARTING: "launching", STOPPING: "shutting down" }[session.status]
-        }.`
-      );
-
-      dispatch({ type: "_sessionsToggleClear" });
-      return;
-    }
-
-    /**
-     * DELETE
-     */
-    if (isStoppable(session.status)) {
-      mutateSession({ status: "STOPPING" }, false);
-
-      stopSession(session)
-        .then(() => mutate())
-        .catch((err) => {
-          console.error(err);
-        });
-      dispatch({ type: "_sessionsToggleClear" });
-      return;
-    }
-
-    dispatch({ type: "_sessionsToggleClear" });
-  }, [state._startSessionPayload]);
-
-  /**
-   * DELETE ALL
-   */
-  React.useEffect(() => {
-    if (state.sessionsKillAllInProgress !== true || !data) return;
-
-    // Mutate `isStoppable` sessions to "STOPPING"
-    mutate(
-      (cachedData) => ({
-        ...cachedData,
-        sessions: cachedData?.sessions.map((sessionValue) => ({
+        if (shouldStop) {
+          const { projectUuid, pipelineUuid } = sessionValue;
+          sessionsToStop.push({ projectUuid, pipelineUuid });
+        }
+        return {
           ...sessionValue,
-          status: isStoppable(sessionValue.status)
-            ? "STOPPING"
-            : sessionValue.status,
-        })),
-      }),
-      false
-    );
+          status: shouldStop ? "STOPPING" : sessionValue.status,
+        };
+      });
 
-    // Send delete requests for `isStoppable` sessions
-    Promise.all(
-      data?.sessions
-        .filter((sessionData) => isStoppable(sessionData.status))
-        .map((sessionData) => {
-          stopSession({
-            projectUuid: sessionData.project_uuid,
-            pipelineUuid: sessionData.pipeline_uuid,
-          });
-        })
+      return {
+        type: "SET_SESSIONS",
+        payload: { sessions: newSessions },
+      };
+    });
+
+    await Promise.all(
+      sessionsToStop.map((sessionToStop) => stopSession(sessionToStop))
     )
       .then(() => {
-        mutate();
-        dispatch({
-          type: "_sessionsKillAllClear",
-        });
+        dispatch({ type: "SET_SESSIONS", payload: { sessions: [] } });
+        dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: false });
       })
       .catch((err) => {
         console.error("Unable to stop all sessions", err);
-        dispatch({
-          type: "_sessionsKillAllClear",
-        });
       });
-  }, [state.sessionsKillAllInProgress]);
+  }, [dispatch]);
 
   return (
     <Context.Provider
@@ -379,6 +293,8 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         state,
         dispatch,
         getSession,
+        toggleSession,
+        deleteAllSessions,
       }}
     >
       {children}

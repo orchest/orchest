@@ -2,11 +2,8 @@ import { styled } from "@mui/material/styles";
 import { AnimatePresence, m } from "framer-motion";
 import React from "react";
 import { Slide } from ".";
-import { useOnboardingDialogCarousel } from "./use-onboarding-dialog-carousel";
 
-export const OnboardingDialogCarousel = ({ children }) => {
-  const { slideDirection } = useOnboardingDialogCarousel();
-
+export const OnboardingDialogCarousel = ({ children, slideDirection }) => {
   return (
     <AnimatePresence initial={false} custom={slideDirection}>
       {children}
@@ -14,13 +11,14 @@ export const OnboardingDialogCarousel = ({ children }) => {
   );
 };
 
-export const OnboardingDialogCarouselSlide = ({ children, ...props }) => {
-  const {
-    slideDirection,
-    slideIndex,
-    setIsAnimating,
-    length,
-  } = useOnboardingDialogCarousel();
+export const OnboardingDialogCarouselSlide = ({
+  children,
+  slideDirection,
+  slideIndex,
+  setIsAnimating,
+  length,
+  ...props
+}) => {
   return (
     <m.div
       data-test-id="onboarding-slide"

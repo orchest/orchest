@@ -98,6 +98,8 @@ export const OnboardingDialog: React.FC = () => {
   const {
     length,
     slideIndex,
+    slideDirection,
+    setIsAnimating,
     isLastSlide,
     cycleSlide,
     setSlide,
@@ -135,11 +137,15 @@ export const OnboardingDialog: React.FC = () => {
         sx={{ paddingTop: (theme) => theme.spacing(4), overflow: "hidden" }}
         data-test-id="onboarding-dialog-content"
       >
-        <OnboardingDialogCarousel>
+        <OnboardingDialogCarousel slideDirection={slideDirection}>
           {onboardingDialogCarouselSlides.map(
             (item, i) =>
               i === slideIndex && (
                 <OnboardingDialogCarouselSlide
+                  slideDirection={slideDirection}
+                  slideIndex={slideIndex}
+                  setIsAnimating={setIsAnimating}
+                  length={length}
                   key={`OnboardingDialogCarouselSlide-${i}`}
                 >
                   <Stack
