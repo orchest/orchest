@@ -17,7 +17,7 @@ from flask import current_app
 
 from _orchest.internals import config as _config
 from app import errors, utils
-from app.core import docker_utils
+from app.core import image_utils
 from config import CONFIG_CLASS
 
 
@@ -378,7 +378,7 @@ class Session:
             except (requests.exceptions.HTTPError, NotFound, APIError):
                 pass
 
-        docker_utils.delete_project_dangling_images(project_uuid)
+        image_utils.delete_project_dangling_images(project_uuid)
         return
 
 

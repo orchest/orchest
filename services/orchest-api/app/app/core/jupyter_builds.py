@@ -11,7 +11,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
 from app.connections import k8s_custom_obj_api
-from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
+from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
