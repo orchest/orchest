@@ -11,7 +11,7 @@ deployment
             type: Directory
         - name: userdir
           hostPath:
-            path: /var/lib/orchest/userdir'
+            path: /var/lib/orchest/userdir
             type: DirectoryOrCreate
       containers:
       - name: orchest-api
