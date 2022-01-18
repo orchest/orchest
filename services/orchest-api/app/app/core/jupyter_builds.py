@@ -3,6 +3,7 @@ import os
 import signal
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import requests
@@ -105,8 +106,11 @@ def prepare_build_context(task_uuid):
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
 
     jupyter_builds_dir = "/userdir/.orchest/jupyter_builds_dir"
-    if not os.path.exists(jupyter_builds_dir):
-        os.mkdir(jupyter_builds_dir)
+    # K8S_TODO: remove this?
+    Path(jupyter_builds_dir).mkdir(parents=True, exist_ok=True)
+    Path("/userdir/.orchest/user-configurations/jupyterlab").mkdir(
+        parents=True, exist_ok=True
+    )
     snapshot_path = f"{jupyter_builds_dir}/{dockerfile_name}"
 
     if os.path.isdir(snapshot_path):
