@@ -32,3 +32,21 @@ spec:
   selector:
     {{- include "library.labels.selector" . | nindent 4 }}
 {{- end }}
+
+{{/*
+fqdn of the auth-server url.
+*/}}
+{{- define "library.service.auth" -}}
+{{ printf "http://auth-server.%s.svc.cluster.local/auth" .Release.Namespace }}
+{{- end -}}
+
+{{/*
+Ingress host
+*/}}
+{{- define "library.ingress.host" -}}
+  {{- if .Values.global.ingress.host -}}
+    {{ .Values.global.ingress.host }}
+  {{- else -}}
+    {{ "www.localorchest.io" }}
+  {{- end }}
+{{- end -}}
