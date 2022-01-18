@@ -95,7 +95,7 @@ You could also submit your pipeline to [the curated list of examples](https://gi
 
 An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
 
-[![Open in Orchest](https://github.com/orchest/orchest/blob/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
+[![Open in Orchest](docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
 
 ## Contributors
 
