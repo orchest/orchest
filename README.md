@@ -42,18 +42,25 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
 **When to use Orchest?** Read it in the
 [docs](https://docs.orchest.io/en/stable/getting_started/when_to_use_orchest.html).
 
+👉 Get started with our
+[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
+check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
+users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
+explaining some of Orchest's core concepts.
+
 ## Installation
+
+Want to skip the installation and jump right in? Then try out our managed service by clicking:
 
 [![Open in Orchest](docs/source/img/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
-docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
+### Linux and macOS
 
-#### Requirements
+Requirements:
 
 - [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
 
-#### Linux and macOS
+Installation:
 
 ```bash
 git clone https://github.com/orchest/orchest.git && cd orchest
@@ -63,11 +70,10 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ./orchest start
 ```
 
-🎉 Now that you have installed Orchest, get started with our
-[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
-check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
-users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
-explaining some of Orchest's core concepts.
+### Windows, GPU & more
+
+For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
+docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License
 
