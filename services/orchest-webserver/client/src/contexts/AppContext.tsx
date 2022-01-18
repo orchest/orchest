@@ -58,14 +58,14 @@ export type PromptMessage = Alert | Confirm;
 type AlertConverter = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm?: () => void
+  onConfirmHandler?: () => Promise<boolean>
 ) => Alert;
 
 type ConfirmConverter = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => Promise<boolean>,
-  onCancel?: () => Promise<false>
+  onConfirmHandler: () => Promise<boolean>,
+  onCancelHandler?: () => Promise<false>
 ) => Confirm;
 
 type PromptMessageConverter<T extends PromptMessage> = T extends Alert
@@ -82,6 +82,14 @@ type AppContextState = {
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
   isCommandPaletteOpen: boolean;
+  // we already store hasCompletedOnboarding in localstorage, which is enough for most cases,
+  // but when first-time user already wants to import a project, we want to
+  // 1. show onboarding dialog (at the root level)
+  // 2. after closing the onboarding dialog, show import dialog (could be at multiple places)
+  // therefore, we had to lift the state into the app context
+  // NOTE: although useLocalstorage has a localstorage event listener, it won't work
+  //       because it is only fired when other tabs are updating the value
+  hasCompletedOnboarding: boolean;
 };
 
 type Action =
@@ -104,6 +112,10 @@ type Action =
   | {
       type: "SET_IS_COMMAND_PALETTE_OPEN";
       payload: boolean;
+    }
+  | {
+      type: "SET_HAS_COMPLETED_ONBOARDING";
+      payload: boolean;
     };
 
 type ActionCallback = (previousState: AppContextState) => Action;
@@ -119,8 +131,12 @@ type AlertDispatcher = (
 export type ConfirmDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: () => Promise<boolean>,
-  onCancel?: () => Promise<false>
+  onConfirm: (
+    resolve: (value: boolean | PromiseLike<boolean>) => void
+  ) => Promise<boolean>,
+  onCancel?: (
+    resolve: (value: boolean | PromiseLike<boolean>) => void
+  ) => Promise<false>
 ) => Promise<boolean>;
 
 export type RequestBuildDispatcher = (
@@ -153,8 +169,6 @@ export const useAppContext = () => React.useContext(Context) as AppContext;
 const reducer = (state: AppContextState, _action: AppContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useUserContext: action ", action);
   switch (action.type) {
     case "SET_PROMPT_MESSAGES": {
       return { ...state, promptMessages: action.payload };
@@ -188,6 +202,13 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
       };
     }
 
+    case "SET_HAS_COMPLETED_ONBOARDING": {
+      return {
+        ...state,
+        hasCompletedOnboarding: action.payload,
+      };
+    }
+
     default: {
       console.error(action);
       return state;
@@ -200,13 +221,89 @@ const initialState: AppContextState = {
   isLoaded: false,
   hasUnsavedChanges: false,
   isCommandPaletteOpen: false,
+  hasCompletedOnboarding: false,
+};
+
+const defaultOnConfirm = async (
+  resolve: (value: boolean | PromiseLike<boolean>) => void
+) => {
+  resolve(true);
+  return true;
+};
+
+const defaultOnCancel = async (
+  resolve: (value: boolean | PromiseLike<boolean>) => void
+) => {
+  resolve(false);
+  return false as const;
+};
+
+const withPromptMessageDispatcher = function <T extends PromptMessage>(
+  dispatch: (value: AppContextAction) => void,
+  convert: PromptMessageConverter<T>
+) {
+  // store.promptMessages is an array of messages that contains functions like `onConfirm` and `onCancel`
+  // in order to subscribe to the state of these functions, we wrap the corresponding dispatcher with a Promise<boolean>
+  // therefore, when this async operation within these functions is done, the caller of this dispatcher gets notified.
+  // see ProjectsView, deleteSelectedRows for example
+  const dispatcher = (
+    title: string,
+    content: string | JSX.Element | JSX.Element[],
+    onConfirm = defaultOnConfirm, // is required for 'confirm'
+    onCancel = defaultOnCancel
+  ) => {
+    return new Promise<boolean>((resolve) => {
+      const message = convert(
+        title,
+        content,
+        // the resolve function should be called when the inner (async) operation is resolved
+        // the resolve function expects a boolean, which allows you to indicate if the operation is success or not.
+        () => onConfirm(resolve),
+        () => onCancel(resolve)
+      );
+      dispatch((store) => {
+        return {
+          type: "SET_PROMPT_MESSAGES",
+          payload: [...store.promptMessages, message],
+        };
+      });
+    });
+  };
+
+  return dispatcher as PromptMessageDispatcher<T>;
+};
+
+const convertAlert: PromptMessageConverter<Alert> = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirmHandler?: () => void
+) => {
+  return {
+    type: "alert",
+    title,
+    content: contentParser(content),
+    onConfirm: onConfirmHandler,
+  };
+};
+
+const convertConfirm: PromptMessageConverter<Confirm> = (
+  title: string,
+  content: string | JSX.Element | JSX.Element[],
+  onConfirmHandler: () => Promise<boolean>,
+  onCancelHandler?: () => Promise<false>
+) => {
+  return {
+    type: "confirm",
+    title,
+    content: contentParser(content),
+    onConfirm: onConfirmHandler,
+    onCancel: onCancelHandler,
+  };
 };
 
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  if (process.env.NODE_ENV === "development" && false)
-    console.log("(Dev Mode) useAppContext: state updated", state);
   /**
    * =========================== side effects
    */
@@ -240,89 +337,53 @@ export const AppContextProvider: React.FC = ({ children }) => {
   /* Action dispatchers
   =========================== */
 
-  const withPromptMessageDispatcher = React.useCallback(
-    function <T extends PromptMessage>(convert: PromptMessageConverter<T>) {
-      const dispatcher = (
-        title: string,
-        content: string | JSX.Element | JSX.Element[],
-        onConfirm?: () => Promise<boolean>, // is required for 'confirm'
-        onCancel?: () => Promise<false>
-      ) => {
-        const message = convert(title, content, onConfirm, onCancel);
-        dispatch((store) => {
-          return {
-            type: "SET_PROMPT_MESSAGES",
-            payload: [...store.promptMessages, message],
-          };
-        });
-      };
-
-      return dispatcher as PromptMessageDispatcher<T>;
-    },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setAlert = React.useCallback(
+    withPromptMessageDispatcher<Alert>(dispatch, convertAlert),
     [dispatch]
   );
 
-  const setAlert = withPromptMessageDispatcher<Alert>(
-    (
-      title: string,
-      content: string | JSX.Element | JSX.Element[],
-      onConfirm?: () => void
-    ) => {
-      return {
-        type: "alert",
-        title,
-        content: contentParser(content),
-        onConfirm,
-      };
-    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setConfirm = React.useCallback(
+    withPromptMessageDispatcher<Confirm>(dispatch, convertConfirm),
+    [dispatch]
   );
 
-  const setConfirm = withPromptMessageDispatcher<Confirm>(
-    (
-      title: string,
-      content: string | JSX.Element | JSX.Element[],
-      onConfirm: () => Promise<boolean>,
-      onCancel?: () => Promise<false>
-    ) => {
-      return {
-        type: "confirm",
-        title,
-        content: contentParser(content),
-        onConfirm,
-        onCancel,
-      };
-    }
-  );
-
-  const deletePromptMessage = () => {
+  const deletePromptMessage = React.useCallback(() => {
     dispatch((store) => ({
       type: "SET_PROMPT_MESSAGES",
       payload: store.promptMessages.slice(1),
     }));
-  };
+  }, [dispatch]);
 
-  const setAsSaved = (value = true) => {
-    dispatch({ type: "SET_HAS_UNSAVED_CHANGES", payload: !value });
-  };
+  const setAsSaved = React.useCallback(
+    (value = true) => {
+      dispatch({ type: "SET_HAS_UNSAVED_CHANGES", payload: !value });
+    },
+    [dispatch]
+  );
 
-  const requestBuild = (
-    projectUuid: string,
-    environmentValidationData: EnvironmentValidationData,
-    requestedFromView: string,
-    onBuildComplete: () => void,
-    onCancel?: () => void
-  ) => {
-    dispatch({
-      type: "SET_BUILD_REQUEST",
-      payload: {
-        projectUuid,
-        environmentValidationData,
-        requestedFromView,
-        onBuildComplete,
-        onCancel,
-      },
-    });
-  };
+  const requestBuild = React.useCallback(
+    (
+      projectUuid: string,
+      environmentValidationData: EnvironmentValidationData,
+      requestedFromView: string,
+      onBuildComplete: () => void,
+      onCancel?: () => void
+    ) => {
+      dispatch({
+        type: "SET_BUILD_REQUEST",
+        payload: {
+          projectUuid,
+          environmentValidationData,
+          requestedFromView,
+          onBuildComplete,
+          onCancel,
+        },
+      });
+    },
+    [dispatch]
+  );
 
   return (
     <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>

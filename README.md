@@ -10,7 +10,7 @@
 <a href=https://www.orchest.io/video-tutorials><img src="https://img.shields.io/badge/Video tutorials-blue?style=flat&logo=airplayvideo&labelColor=5c5c5c"></a>
 <a href=https://docs.orchest.io/en/stable/getting_started/quickstart.html><img src="https://img.shields.io/badge/Quickstart-blue?style=flat&logo=readthedocs&labelColor=5c5c5c&color=fc0373"></a>
 <a href=https://www.orchest.io/#orchest-cloud><img src="https://img.shields.io/badge/Orchest%20Cloud-blue?style=flat&logo=iCloud&labelColor=5c5c5c&logoColor=white"></a>
-<a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-blue?style=flat&logo=slack&labelColor=5c5c5c"></a>
+<a href=https://join.slack.com/t/orchest/shared_invite/zt-g6wooj3r-6XI8TCWJrXvUnXKdIKU_8w><img src="https://img.shields.io/badge/Slack-violet?style=flat&logo=slack&labelColor=5c5c5c"></a>
 </p>
 
 ## Build data pipelines, the easy way 🙌
@@ -42,16 +42,25 @@ No frameworks. No YAML. Just write Python and R code in Notebooks.
 **When to use Orchest?** Read it in the
 [docs](https://docs.orchest.io/en/stable/getting_started/when_to_use_orchest.html).
 
+👉 Get started with our
+[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
+check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
+users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
+explaining some of Orchest's core concepts.
+
 ## Installation
 
-For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
-docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
+Want to skip the installation and jump right in? Then try out our managed service by clicking:
 
-#### Requirements
+[![Open in Orchest](docs/source/img/open_in_orchest_large.svg)](https://cloud.orchest.io/)
+
+### Linux and macOS
+
+Requirements:
 
 - [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
 
-#### Linux and macOS
+Installation:
 
 ```bash
 git clone https://github.com/orchest/orchest.git && cd orchest
@@ -61,11 +70,10 @@ git clone https://github.com/orchest/orchest.git && cd orchest
 ./orchest start
 ```
 
-🎉 Now that you have installed Orchest, get started with our
-[quickstart](https://docs.orchest.io/en/stable/getting_started/quickstart.html) tutorial,
-check out [pipelines](https://github.com/orchest/orchest-examples) made by your fellow
-users, or have a look at our [video tutorials](https://www.orchest.io/video-tutorials)
-explaining some of Orchest's core concepts.
+### Windows, GPU & more
+
+For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
+docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License
 
@@ -86,6 +94,16 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 Contributions are more than welcome! Please see our
 [contributor guides](https://docs.orchest.io/en/stable/developer_guide/contributing.html)
 for more details.
+
+You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
+
+```markdown
+[![Open in Orchest](https://github.com/orchest/orchest/raw/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
+```
+
+An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
+
+[![Open in Orchest](https://github.com/orchest/orchest/raw/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
 
 ## Contributors
 

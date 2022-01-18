@@ -99,6 +99,9 @@ class Event(Enum):
             )
 
 
+# NOTE: You might actually want to use the concurrent safe wrapper
+# `Scheduler.handle_telemetry_heartbeat_signal` in ../core/scheduler.py
+# instead.
 def send_heartbeat_signal(app: Flask) -> None:
     """Sends a heartbeat signal to the telemetry service.
 
@@ -121,6 +124,7 @@ def send_heartbeat_signal(app: Flask) -> None:
         active = diff_minutes < (app.config["TELEMETRY_INTERVAL"] * 0.5)
 
     send_event(app, Event.HEARTBEAT_TRIGGER, {"active": active})
+    app.logger.debug(f"Successfully sent analytics event '{Event.HEARTBEAT_TRIGGER}'.")
 
 
 def send_event(

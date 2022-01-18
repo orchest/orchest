@@ -345,6 +345,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
     "environment-list-row",
     () => {
       cy.findByTestId("environment-list").should("exist");
+      cy.findByTestId("loading-table-row").should("not.exist");
       return cy.wait(1000);
     },
     count
@@ -360,6 +361,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
     "environment-list-row",
     () => {
       cy.findByTestId("environment-list").should("exist");
+      cy.findByTestId("loading-table-row").should("not.exist");
       return cy.wait(1000);
     },
     0
@@ -415,15 +417,7 @@ Cypress.Commands.add(
       ])
       .should("include", entry);
 
-    if (entry == "jobs") {
-      // Wait for the pipelines list to be retrieved, or some commands
-      // might fail because JobList will say that the project has no
-      // pipelines.
-      cy.intercept("GET", "/async/pipelines/*").as("pipelinesList");
-      cy.findByTestId(`menu-${entry}`).click().wait("@pipelinesList");
-    } else {
-      cy.findByTestId(`menu-${entry}`).click();
-    }
+    cy.findByTestId(`menu-${entry}`).click();
 
     if (predicate) {
       cy.location().should("satisfy", predicate);

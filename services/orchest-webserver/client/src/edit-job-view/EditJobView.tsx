@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
@@ -5,10 +6,12 @@ import DateTimeInput from "@/components/DateTimeInput";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ParameterEditor from "@/components/ParameterEditor";
-import { NoParameterAlert } from "@/components/ParamTree";
 import { useAppContext } from "@/contexts/AppContext";
+import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/Routes";
 import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
@@ -18,77 +21,49 @@ import {
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ListIcon from "@mui/icons-material/List";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import SaveIcon from "@mui/icons-material/Save";
 import ScheduleIcon from "@mui/icons-material/Schedule";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
+import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
+import InputAdornment from "@mui/material/InputAdornment";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import parser from "cron-parser";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
+import useSWR from "swr";
+import {
+  flattenStrategyJson,
+  generatePipelineRunParamCombinations,
+  generatePipelineRunRows,
+} from "./commons";
+import { useAutoCleanUpEnabled } from "./useAutoCleanUpEnabled";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
 }));
 
-type EditJobState = {
-  generatedPipelineRuns: Record<string, Json>[];
-  runJobLoading: boolean;
-  runJobCompleted: boolean;
-  strategyJSON: StrategyJson;
-};
-
 const DEFAULT_CRON_STRING = "* * * * *";
 
 type ScheduleOption = "now" | "cron" | "scheduled";
-
-// TODO: should be converted to map/reduce style
-
-function recursivelyGenerate(
-  params: Record<string, Record<string, Json>>,
-  accum: any[],
-  unpacked: any[]
-) {
-  // deep clone unpacked
-  unpacked = JSON.parse(JSON.stringify(unpacked));
-
-  for (const fullParam in params) {
-    if (unpacked.indexOf(fullParam) === -1) {
-      unpacked.push(fullParam);
-
-      for (const idx in params[fullParam]) {
-        // deep clone params
-        let localParams = JSON.parse(JSON.stringify(params));
-
-        // collapse param list to paramValue
-        localParams[fullParam] = params[fullParam][idx];
-
-        recursivelyGenerate(localParams, accum, unpacked);
-      }
-      return;
-    }
-  }
-
-  accum.push(params);
-}
 
 const generateJobParameters = (
   generatedPipelineRuns: Record<string, Json>[],
@@ -128,7 +103,7 @@ const parseParameters = (
   parameters: Record<string, Json>[],
   generatedPipelineRuns: Record<string, Json>[]
 ) => {
-  let _parameters = _.cloneDeep(parameters);
+  let _parameters = cloneDeep(parameters);
   let selectedIndices = new Set<string>();
   generatedPipelineRuns.forEach((run, index) => {
     let encodedParameterization = generateJobParameters([run], ["0"])[0];
@@ -149,89 +124,21 @@ const parseParameters = (
   return Array.from(selectedIndices);
 };
 
-const parameterValueOverride = (
-  strategyJSON: StrategyJson,
-  parameters: Record<string, string>
-) => {
-  for (let key in parameters) {
-    let splitKey = key.split("#");
-    let strategyJSONKey = splitKey[0];
-    let paramKey = splitKey.slice(1).join("#");
-    let paramValue = parameters[key];
+type PipelineRunRow = { uuid: string; spec: string; details: React.ReactNode };
 
-    strategyJSON[strategyJSONKey].parameters[paramKey] = paramValue;
-  }
-
-  return strategyJSON;
-};
-
-const generateWithStrategy = (
-  pipelineName: string,
+const generatePipelineRuns = (
   strategyJSON: Record<string, { parameters: Record<string, string> }>
 ) => {
-  // flatten and JSONify strategyJSON to prep data structure for algo
-  let flatParameters = {};
+  // flatten and JSONify strategyJSON to prep data structure for later
+  const flatParameters = flattenStrategyJson(strategyJSON);
+  const pipelineRuns: Record<
+    string,
+    Json
+  >[] = generatePipelineRunParamCombinations(flatParameters, [], []);
 
-  for (const strategyJSONKey in strategyJSON) {
-    for (const paramKey in strategyJSON[strategyJSONKey].parameters) {
-      let fullParam = strategyJSONKey + "#" + paramKey;
-
-      flatParameters[fullParam] = JSON.parse(
-        strategyJSON[strategyJSONKey].parameters[paramKey]
-      );
-    }
-  }
-
-  let generatedPipelineRuns: Record<string, Json>[] = [];
-
-  recursivelyGenerate(flatParameters, generatedPipelineRuns, []);
-
-  // transform pipelineRuns for generatedPipelineRunRows DataTable format
-  const generatedPipelineRunRows: PipelineRunRow[] = generatedPipelineRuns.map(
-    (params: Record<string, Json>, index: number) => {
-      const pipelineRunSpec = Object.entries(params).map(
-        ([fullParam, value]) => {
-          // pipeline_parameters#something#another_something: "some-value"
-          let paramName = fullParam.split("#").slice(1).join("");
-          return `${paramName}: ${JSON.stringify(value)}`;
-        }
-      );
-
-      return {
-        uuid: index.toString(),
-        spec: pipelineRunSpec.join(", ") || "Parameterless run",
-        details: (
-          <Stack
-            direction="column"
-            alignItems="flex-start"
-            sx={{ padding: (theme) => theme.spacing(2, 1) }}
-          >
-            {pipelineRunSpec.length === 0 ? (
-              <NoParameterAlert />
-            ) : (
-              <>
-                <Typography variant="body2">{pipelineName}</Typography>
-                {pipelineRunSpec.map((param, index) => (
-                  <Typography
-                    variant="caption"
-                    key={index}
-                    sx={{ paddingLeft: (theme) => theme.spacing(1) }}
-                  >
-                    {param}
-                  </Typography>
-                ))}
-              </>
-            )}
-          </Stack>
-        ),
-      };
-    }
-  );
-
-  return [generatedPipelineRuns, generatedPipelineRunRows] as const;
+  return pipelineRuns;
 };
 
-type PipelineRunRow = { uuid: string; spec: string; details: React.ReactNode };
 const columns: DataTableColumn<PipelineRunRow>[] = [
   {
     id: "spec",
@@ -241,6 +148,53 @@ const columns: DataTableColumn<PipelineRunRow>[] = [
     },
   },
 ];
+
+const generateParameterLists = (parameters: Record<string, Json>) => {
+  let parameterLists = {};
+
+  for (const paramKey in parameters) {
+    // Note: the list of parameters for each key will always be
+    // a string in the 'strategyJSON' data structure. This
+    // facilitates preserving user added indendation.
+
+    // Validity of the user string as JSON is checked client
+    // side (for now).
+    parameterLists[paramKey] = JSON.stringify([parameters[paramKey]]);
+  }
+
+  return parameterLists;
+};
+
+const generateStrategyJson = (pipeline: PipelineJson, reservedKey: string) => {
+  let strategyJSON = {};
+
+  if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
+    strategyJSON[reservedKey] = {
+      key: reservedKey,
+      parameters: generateParameterLists(pipeline.parameters),
+      title: pipeline.name,
+    };
+  }
+
+  for (const stepUUID in pipeline.steps) {
+    let stepStrategy = JSON.parse(JSON.stringify(pipeline.steps[stepUUID]));
+
+    if (
+      stepStrategy.parameters &&
+      Object.keys(stepStrategy.parameters).length > 0
+    ) {
+      // selectively persist only required fields for use in parameter
+      // related React components
+      strategyJSON[stepUUID] = {
+        key: stepUUID,
+        parameters: generateParameterLists(stepStrategy.parameters),
+        title: stepStrategy.title,
+      };
+    }
+  }
+
+  return strategyJSON;
+};
 
 const EditJobView: React.FC = () => {
   // global states
@@ -252,8 +206,6 @@ const EditJobView: React.FC = () => {
   const { projectUuid, jobUuid, navigateTo } = useCustomRoute();
 
   // local states
-  const [job, setJob] = React.useState<Job>();
-  const [pipeline, setPipeline] = React.useState<PipelineJson>();
   const [cronString, setCronString] = React.useState("");
   const [scheduledDateTime, setScheduledDateTime] = React.useState<Date>(
     new Date(new Date().getTime() + 60000)
@@ -270,166 +222,112 @@ const EditJobView: React.FC = () => {
 
   const [tabIndex, setTabIndex] = React.useState(0);
 
-  const [pipelineRuns, setPipelineRuns] = React.useState<PipelineRunRow[]>([]);
+  const [pipelineRunRows, setPipelineRunRows] = React.useState<
+    PipelineRunRow[]
+  >([]);
+  const [pipelineRuns, setPipelineRuns] = React.useState<
+    Record<string, Json>[]
+  >([]);
   const [selectedRuns, setSelectedRuns] = React.useState<string[]>([]);
 
-  const [state, setState] = React.useState<EditJobState>({
-    generatedPipelineRuns: [],
-    runJobLoading: false,
-    runJobCompleted: false,
-    strategyJSON: {},
-  });
+  const [runJobLoading, setRunJobLoading] = React.useState(false);
 
-  const [promiseManager] = React.useState(new PromiseManager());
+  const {
+    data: job,
+    error: fetchJobError,
+    isValidating: isFetchingJob,
+    mutate: setJob,
+  } = useSWR<Job>(
+    jobUuid ? `/catch/api-proxy/api/jobs/${jobUuid}` : null,
+    fetcher
+  );
 
-  const fetchJob = () => {
-    let fetchJobPromise = makeCancelable(
-      makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`),
-      promiseManager
-    );
-
-    fetchJobPromise.promise.then((response: string) => {
-      try {
-        let fetchedJob: Job = JSON.parse(response);
-        setJob(fetchedJob);
-
-        if (fetchedJob.pipeline_uuid && fetchedJob.uuid) {
-          fetchPipeline(fetchedJob);
-        }
-        _setEnvVariables(envVariablesDictToArray(fetchedJob.env_variables));
-
-        setScheduleOption(!fetchedJob.schedule ? "now" : "cron");
-        setCronString(fetchedJob.schedule || DEFAULT_CRON_STRING);
-
-        setState((prevState) => ({
-          ...prevState,
-          strategyJSON:
-            fetchedJob.status !== "DRAFT"
-              ? fetchedJob.strategy_json
-              : prevState.strategyJSON,
-        }));
-
-        if (fetchedJob.status === "DRAFT") {
-          setAsSaved(false);
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    });
-  };
-
-  const fetchPipeline = (fetchedJob: Job) => {
-    if (!projectUuid) return;
-    let fetchPipelinePromise = makeCancelable(
-      makeRequest(
-        "GET",
-        getPipelineJSONEndpoint(
-          fetchedJob.pipeline_uuid,
-          projectUuid,
-          fetchedJob.uuid
-        )
-      ),
-      promiseManager
-    );
-
-    fetchPipelinePromise.promise.then((response: string) => {
-      let result: {
+  const {
+    data: pipeline,
+    error: fetchPipelineError,
+    isValidating: isFetchingPipeline,
+  } = useSWR<PipelineJson>(
+    projectUuid && job
+      ? getPipelineJSONEndpoint(job.pipeline_uuid, projectUuid, job.uuid)
+      : null,
+    (url) =>
+      fetcher<{
         pipeline_json: string;
         success: boolean;
-      } = JSON.parse(response);
-      if (result.success) {
-        const fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
+      }>(url).then((result) => {
+        if (result.success) {
+          const fetchedPipeline: PipelineJson = JSON.parse(
+            result.pipeline_json
+          );
+          return fetchedPipeline;
+        } else {
+          throw new Error("Could not load pipeline.json");
+        }
+      })
+  );
 
-        setPipeline(fetchedPipeline);
+  const { data: projectSnapshotSize = 0 } = useFetchProject({
+    projectUuid,
+    selector: (project) => project.project_snapshot_size,
+  });
 
-        // Do not generate another strategy_json if it has been defined
-        // already.
+  const isLoading = isFetchingJob || isFetchingPipeline;
 
-        const strategyJSON =
-          fetchedJob.status === "DRAFT" &&
-          Object.keys(fetchedJob.strategy_json).length === 0
-            ? generateStrategyJson(fetchedPipeline)
-            : fetchedJob.strategy_json;
+  const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(null);
 
-        const [
-          generatedPipelineRuns,
-          generatedPipelineRunRows,
-        ] = generateWithStrategy(fetchedPipeline?.name, strategyJSON);
-
-        setPipelineRuns(generatedPipelineRunRows);
-
-        // Account for the fact that a job might have a list of
-        // parameters already defined, i.e. when editing a non draft
-        // job or when duplicating a job.
-        // if fetchedJob has no set parameters, we select all parameters as default
-        setSelectedRuns(
-          fetchedJob.parameters.length > 0
-            ? parseParameters(fetchedJob.parameters, generatedPipelineRuns)
-            : generatedPipelineRunRows.map((run) => run.uuid)
-        );
-
-        setState((prevState) => ({
-          ...prevState,
-          strategyJSON,
-          generatedPipelineRuns,
-        }));
-      } else {
-        console.warn("Could not load pipeline.json");
-      }
-    });
-  };
-
-  const generateParameterLists = (parameters: Record<string, any>) => {
-    let parameterLists = {};
-
-    for (const paramKey in parameters) {
-      // Note: the list of parameters for each key will always be
-      // a string in the 'strategyJSON' data structure. This
-      // facilitates preserving user added indendation.
-
-      // Validity of the user string as JSON is checked client
-      // side (for now).
-      parameterLists[paramKey] = JSON.stringify([parameters[paramKey]]);
-    }
-
-    return parameterLists;
-  };
-
-  const generateStrategyJson = (pipeline) => {
-    let strategyJSON = {};
-
-    if (pipeline.parameters && Object.keys(pipeline.parameters).length > 0) {
-      strategyJSON[
-        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY
-      ] = {
-        key: appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
-        parameters: generateParameterLists(pipeline.parameters),
-        title: pipeline.name,
-      };
-    }
-
-    for (const stepUUID in pipeline.steps) {
-      let stepStrategy = JSON.parse(JSON.stringify(pipeline.steps[stepUUID]));
-
-      if (
-        stepStrategy.parameters &&
-        Object.keys(stepStrategy.parameters).length > 0
-      ) {
-        // selectively persist only required fields for use in parameter
-        // related React components
-        strategyJSON[stepUUID] = {
-          key: stepUUID,
-          parameters: generateParameterLists(stepStrategy.parameters),
-          title: stepStrategy.title,
-        };
+  React.useEffect(() => {
+    if (job) {
+      _setEnvVariables(envVariablesDictToArray(job.env_variables));
+      setScheduleOption(!job.schedule ? "now" : "cron");
+      setCronString(job.schedule || DEFAULT_CRON_STRING);
+      setStrategyJson((prev) =>
+        job.status !== "DRAFT" ? job.strategy_json : prev
+      );
+      if (job.status === "DRAFT") {
+        setAsSaved(false);
       }
     }
+  }, [job, setAsSaved]);
 
-    return strategyJSON;
-  };
+  React.useEffect(() => {
+    if (job && pipeline) {
+      // Do not generate another strategy_json if it has been defined
+      // already.
+      const reserveKey =
+        appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
+      const generatedStrategyJson =
+        job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
+          ? generateStrategyJson(pipeline, reserveKey)
+          : job.strategy_json;
+
+      const newPipelineRuns = generatePipelineRuns(generatedStrategyJson);
+      const newPipelineRunRows = generatePipelineRunRows(
+        pipeline.name,
+        newPipelineRuns
+      );
+
+      // Account for the fact that a job might have a list of
+      // parameters already defined, i.e. when editing a non draft
+      // job or when duplicating a job.
+      // if fetchedJob has no set parameters, we select all parameters as default
+      setSelectedRuns(
+        job.parameters.length > 0
+          ? parseParameters(job.parameters, newPipelineRuns)
+          : newPipelineRunRows.map((run) => run.uuid)
+      );
+      setStrategyJson(generatedStrategyJson);
+      setPipelineRuns(newPipelineRuns);
+      setPipelineRunRows(newPipelineRunRows);
+    }
+  }, [
+    job,
+    pipeline,
+    appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
+  ]);
 
   const handleJobNameChange = (name: string) => {
-    setJob((prev) => (prev ? { ...prev, name } : prev));
+    setJob((prev) => (prev ? { ...prev, name } : prev), false);
+    setAsSaved(false);
   };
 
   const validateJobConfig = () => {
@@ -481,24 +379,35 @@ const EditJobView: React.FC = () => {
     }
   };
 
-  const runJob = () => {
+  const { run, error: putJobError } = useAsync<void>();
+
+  React.useEffect(() => {
+    if (putJobError) {
+      setAlert("Error", `Failed to modify job. ${putJobError.message}`);
+    }
+  }, [putJobError, setAlert]);
+
+  const {
+    isAutoCleanUpEnabled,
+    numberOfRetainedRuns,
+    onChangeNumberOfRetainedRuns,
+    toggleIsAutoCleanUpEnabled,
+  } = useAutoCleanUpEnabled(
+    job?.max_retained_pipeline_runs || -1,
+    selectedRuns
+  );
+
+  const runJob = async () => {
     if (!job) return;
 
-    setState((prevState) => ({
-      ...prevState,
-      runJobLoading: true,
-    }));
-
+    setRunJobLoading(true);
     setAsSaved();
 
     let updatedEnvVariables = envVariablesArrayToDict(envVariables);
     // Do not go through if env variables are not correctly defined.
     if (updatedEnvVariables.status === "rejected") {
       setAlert("Error", updatedEnvVariables.error);
-      setState((prevState) => ({
-        ...prevState,
-        runJobLoading: false,
-      }));
+      setRunJobLoading(false);
       setTabIndex(1);
       return;
     }
@@ -506,12 +415,12 @@ const EditJobView: React.FC = () => {
     let jobPUTData = {
       name: job.name,
       confirm_draft: true,
-      strategy_json: state.strategyJSON,
-      parameters: generateJobParameters(
-        state.generatedPipelineRuns,
-        selectedRuns
-      ),
+      strategy_json: strategyJson,
+      parameters: generateJobParameters(pipelineRuns, selectedRuns),
       env_variables: updatedEnvVariables.value,
+      max_retained_pipeline_runs: isAutoCleanUpEnabled
+        ? numberOfRetainedRuns
+        : undefined,
     };
 
     if (scheduleOption === "scheduled") {
@@ -537,39 +446,20 @@ const EditJobView: React.FC = () => {
 
     // Update orchest-api through PUT.
     // Note: confirm_draft will trigger the start the job.
-    let putJobPromise = makeCancelable(
-      makeRequest("PUT", "/catch/api-proxy/api/jobs/" + job.uuid, {
-        type: "json",
-        content: jobPUTData,
-      }),
-      promiseManager
-    );
 
-    putJobPromise.promise
-      .then(() => {
-        setState((prevState) => ({
-          ...prevState,
-          runJobCompleted: true,
-        }));
-
+    run(
+      fetcher<void>(`/catch/api-proxy/api/jobs/${job.uuid}`, {
+        method: "PUT",
+        headers: HEADER.JSON,
+        body: JSON.stringify(jobPUTData),
+      }).finally(() => {
         setAsSaved();
+        if (projectUuid)
+          navigateTo(siteMap.jobs.path, {
+            query: { projectUuid },
+          });
       })
-      .catch((response: any) => {
-        if (!response.isCanceled) {
-          try {
-            let result = JSON.parse(response.body);
-            setAlert("Error", `Failed to start job. ${result.message}`);
-            setState((prevState) => ({
-              ...prevState,
-              runJobCompleted: true,
-            }));
-
-            setAsSaved();
-          } catch (error) {
-            console.log("error");
-          }
-        }
-      });
+    );
   };
 
   const putJobChanges = () => {
@@ -583,10 +473,7 @@ const EditJobView: React.FC = () => {
     // validate job configuration
     let validation = validateJobConfig();
     if (validation.pass === true) {
-      let jobParameters = generateJobParameters(
-        state.generatedPipelineRuns,
-        selectedRuns
-      );
+      let jobParameters = generateJobParameters(pipelineRuns, selectedRuns);
 
       let updatedEnvVariables = envVariablesArrayToDict(envVariables);
       // Do not go through if env variables are not correctly defined.
@@ -598,22 +485,21 @@ const EditJobView: React.FC = () => {
 
       setAsSaved();
 
-      let putJobRequest = makeCancelable(
-        makeRequest("PUT", `/catch/api-proxy/api/jobs/${job.uuid}`, {
-          type: "json",
-          content: {
+      run(
+        fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, {
+          method: "PUT",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
             name: job.name,
             cron_schedule: cronString,
             parameters: jobParameters,
-            strategy_json: state.strategyJSON,
+            strategy_json: strategyJson,
             env_variables: updatedEnvVariables.value,
-          },
-        }),
-        promiseManager
-      );
-
-      putJobRequest.promise
-        .then(() => {
+            max_retained_pipeline_runs: isAutoCleanUpEnabled
+              ? numberOfRetainedRuns
+              : undefined,
+          }),
+        }).then(() => {
           navigateTo(siteMap.job.path, {
             query: {
               projectUuid,
@@ -621,9 +507,7 @@ const EditJobView: React.FC = () => {
             },
           });
         })
-        .catch((error) => {
-          console.error(error);
-        });
+      );
     } else {
       setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
@@ -644,20 +528,6 @@ const EditJobView: React.FC = () => {
     setScheduleOption("cron");
     setAsSaved(false);
   };
-
-  React.useEffect(() => {
-    fetchJob();
-  }, []);
-
-  React.useEffect(() => {
-    if (state.runJobCompleted) {
-      setState((prevState) => ({ ...prevState, runJobCompleted: false }));
-      if (projectUuid)
-        navigateTo(siteMap.jobs.path, {
-          query: { projectUuid },
-        });
-    }
-  }, [state.runJobCompleted]);
 
   const handleChangeTab = (
     event: React.SyntheticEvent<Element, Event>,
@@ -685,11 +555,11 @@ const EditJobView: React.FC = () => {
       },
       {
         id: "runs",
-        label: `Pipeline runs (${selectedRuns.length}/${state.generatedPipelineRuns.length})`,
+        label: `Pipeline runs (${selectedRuns.length}/${pipelineRuns.length})`,
         icon: <ListIcon />,
       },
     ];
-  }, [selectedRuns, state.generatedPipelineRuns.length]);
+  }, [selectedRuns, pipelineRuns.length]);
 
   return (
     <Layout fullHeight>
@@ -710,8 +580,10 @@ const EditJobView: React.FC = () => {
                 }}
               >
                 <TextField
+                  required
                   label="Job name"
                   value={job.name}
+                  sx={{ width: "50%" }}
                   onChange={(e) => handleJobNameChange(e.target.value)}
                 />
               </Box>
@@ -791,36 +663,54 @@ const EditJobView: React.FC = () => {
                 />
               )}
               {scheduleOption === "cron" && (
-                <CronScheduleInput
-                  value={cronString}
-                  onChange={setCronSchedule}
-                  disabled={scheduleOption !== "cron"}
-                  dataTestId="job-edit-schedule-cronjob-input"
-                />
+                <>
+                  <CronScheduleInput
+                    value={cronString}
+                    onChange={setCronSchedule}
+                    disabled={scheduleOption !== "cron"}
+                    dataTestId="job-edit-schedule-cronjob-input"
+                  />
+                  {projectSnapshotSize > 50 && (
+                    <Alert
+                      severity="warning"
+                      sx={{
+                        marginTop: (theme) => theme.spacing(3),
+                        width: "500px",
+                      }}
+                    >
+                      {`Snapshot size exceeds 50MB. You might want to enable `}
+                      <Link
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => setTabIndex(3)}
+                      >
+                        Auto Clean-up
+                      </Link>
+                      {` to free up disk space regularly. Check the `}
+                      <JobDocLink />
+                      {` for more details.`}
+                    </Alert>
+                  )}
+                </>
               )}
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
               <ParameterEditor
                 pipelineName={pipeline.name}
-                onParameterChange={(strategyJSON) => {
-                  let [
-                    generatedPipelineRuns,
-                    generatedPipelineRunRows,
-                  ] = generateWithStrategy(pipeline?.name, strategyJSON);
-
-                  setPipelineRuns(generatedPipelineRunRows);
-                  setSelectedRuns(
-                    generatedPipelineRunRows.map((row) => row.uuid)
+                onParameterChange={(value: StrategyJson) => {
+                  const newPipelineRuns = generatePipelineRuns(value);
+                  const newPipelineRunRows = generatePipelineRunRows(
+                    pipeline.name,
+                    newPipelineRuns
                   );
-                  setState((prevState) => ({
-                    ...prevState,
-                    strategyJSON,
-                    generatedPipelineRuns,
-                  }));
+
+                  setPipelineRuns(newPipelineRuns);
+                  setPipelineRunRows(newPipelineRunRows);
+                  setSelectedRuns(newPipelineRunRows.map((row) => row.uuid));
+                  setStrategyJson(value);
 
                   setAsSaved(false);
                 }}
-                strategyJSON={_.cloneDeep(state.strategyJSON)}
+                strategyJSON={strategyJson}
                 data-test-id="job-edit"
               />
             </CustomTabPanel>
@@ -836,17 +726,84 @@ const EditJobView: React.FC = () => {
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={3} name="runs">
               <div className="pipeline-tab-view pipeline-runs">
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={2}
+                  sx={{ margin: (theme) => theme.spacing(4, 0, 6) }}
+                >
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={isAutoCleanUpEnabled}
+                        onChange={toggleIsAutoCleanUpEnabled}
+                      />
+                    }
+                    label={`Auto clean-up oldest pipeline runs, retain the last `}
+                    sx={{ marginRight: 0 }}
+                  />
+                  <TextField
+                    variant="standard"
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          pipeline runs
+                        </InputAdornment>
+                      ),
+                    }}
+                    disabled={!isAutoCleanUpEnabled}
+                    value={numberOfRetainedRuns}
+                    type="number"
+                    size="small"
+                    onChange={(e) =>
+                      onChangeNumberOfRetainedRuns(parseInt(e.target.value))
+                    }
+                  />
+                  <Tooltip
+                    placement="right"
+                    title={
+                      <>
+                        <Typography
+                          variant="body2"
+                          sx={{ marginBottom: (theme) => theme.spacing(1) }}
+                        >
+                          Retain the last finished pipeline runs and
+                          automatically remove the oldest runs. This frees up
+                          disk space to enhance the reliability while executing
+                          large amount of pipeline runs.
+                        </Typography>
+                        <Typography variant="body2">
+                          Enable this carefully if your pipeline produces
+                          artifacts that are stored on disk. You might want to
+                          backup the results to external sources or the{" "}
+                          <Code>/data</Code> directory.
+                        </Typography>
+                      </>
+                    }
+                  >
+                    <InfoOutlinedIcon
+                      color="primary"
+                      fontSize="small"
+                      sx={{
+                        marginLeft: (theme) => theme.spacing(2),
+                        cursor: "pointer",
+                      }}
+                    />
+                  </Tooltip>
+                </Stack>
                 <DataTable<PipelineRunRow>
                   selectable
                   id="job-edit-pipeline-runs"
                   columns={columns}
-                  initialSelectedRows={pipelineRuns.map(
-                    (pipelineRun) => pipelineRun.uuid
+                  isLoading={isLoading}
+                  initialSelectedRows={pipelineRunRows.map(
+                    (pipelineRunRow) => pipelineRunRow.uuid
                   )}
                   selectedRows={selectedRuns}
                   setSelectedRows={setSelectedRuns}
                   onChangeSelection={() => setAsSaved(false)}
-                  rows={pipelineRuns}
+                  rows={pipelineRunRows}
+                  retainSelectionsOnPageChange
                   data-test-id="job-edit-pipeline-runs"
                 />
               </div>
@@ -854,7 +811,7 @@ const EditJobView: React.FC = () => {
             <Stack direction="row" spacing={2}>
               {job.status === "DRAFT" && (
                 <Button
-                  disabled={state.runJobLoading || !job.name}
+                  disabled={runJobLoading || !job.name}
                   variant="contained"
                   startIcon={<PlayArrowIcon />}
                   onClick={attemptRunJob}

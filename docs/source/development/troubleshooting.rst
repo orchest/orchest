@@ -39,7 +39,18 @@ done by:
    # port 8080
    ./orchest start --dev
 
-   # Now you can visit `localhost:8080`
+   # Now you can visit `localhost:8080/api`
+
+Inspecting ``orchest-database`` using Postgres
+----------------------------------------------
+.. code-block:: sh
+
+    docker exec -it orchest-database /bin/bash
+
+   # Connect to a database as a user.
+   # The -U and -d values can be found in the config.py
+   # of the resp. services.
+   psql -U postgres -d orchest_api
 
 Breaking schema changes
 -----------------------
@@ -70,24 +81,3 @@ Breaking schema changes
     Check the webserver and the api logs by using ``docker logs orchest-webserver`` or ``docker logs
     orchest-api``. It will be easy to spot because the service won't produce other logs but the ones
     related to incompatible schema changes.
-
-Connecting to a local Postgres database
----------------------------------------
-.. note::
-   For this to work in Linux you need to have at least Docker version ``Docker 20.10-beta1``
-   installed.  More information about support can be found in this `thread on GitHub
-   <https://github.com/docker/for-linux/issues/264#issuecomment-714253414>`_.
-
-First, refer to Stack Overflow to learn `how to configure Postgres to listen on all network interfaces
-<https://stackoverflow.com/questions/3278379/how-to-configure-postgresql-to-accept-all-incoming-connections>`_
-so you can connect from within containers.
-
-Finally, to connect to your host machine from within Orchest you can use ``host.docker.internal``
-(which points to ``127.0.0.1`` on your host) as the hostname. This allows you to point to services
-running on your host.
-
-.. seealso::
-
-   `Docker networking features <https://docs.docker.com/docker-for-windows/networking/#use-cases-and-workarounds>`_
-       Connecting from a container to a service on the host.
-

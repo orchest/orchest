@@ -1,0 +1,22 @@
+{
+  "include": [
+    "_orchest/",
+    "../../../services/orchest-webserver/app/",
+    "../../../services/orchest-api/app/",
+    "../../../services/auth-server/app/",
+    "../../../services/memory-server/app/",
+    "../../../services/orchest-ctl/app/",
+    "../../../services/session-sidecar/app/",
+    "../../../services/jupyter-server/",
+    "../../../services/update-server/app/",
+    "../../../services/base-images/runnable-shared/runner/"
+  ],
+
+  "exclude": ["**/node_modules", "**/__pycache__", ".venv"],
+
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+
+  "pythonVersion": "3.8",
+  "pythonPlatform": "Linux"
+}
