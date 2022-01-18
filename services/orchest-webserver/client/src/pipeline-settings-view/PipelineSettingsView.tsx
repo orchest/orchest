@@ -122,8 +122,7 @@ const PipelineSettingsView: React.FC = () => {
 
   useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
 
-  const sessionsContext = useSessionsContext();
-  const { getSession } = sessionsContext;
+  const { getSession } = useSessionsContext();
   useSessionsPoller();
 
   // data from route
