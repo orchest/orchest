@@ -19,7 +19,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { useRouteMatch } from "react-router-dom";
+import { useLocation, useRouteMatch } from "react-router-dom";
 import { IconButton } from "./common/IconButton";
 import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
@@ -32,8 +32,24 @@ export const HeaderBar = ({
   isDrawerOpen: boolean;
 }) => {
   const { navigateTo } = useCustomRoute();
-  const { state } = useProjectsContext();
+  const { state, dispatch } = useProjectsContext();
+  const location = useLocation();
   const appContext = useAppContext();
+
+  React.useEffect(() => {
+    /*
+      Always unset the pipeline for the header bar on navigation. 
+      It's up to pages to request the headerbar pipeline if they 
+      need it.
+    */
+    dispatch({
+      type: "pipelineSet",
+      payload: {
+        pipelineUuid: undefined,
+        pipelineName: undefined,
+      },
+    });
+  }, [location]);
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
