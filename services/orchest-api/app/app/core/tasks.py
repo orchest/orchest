@@ -7,16 +7,16 @@ from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 from celery import Task
-from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
+from celery.contrib.abortable import AbortableTask
 from celery.utils.log import get_task_logger
 
 from app import create_app
 from app.celery_app import make_celery
-from app.connections import docker_client
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
-from app.core.pipelines import Pipeline, PipelineDefinition
+from app.core.pipelines import Pipeline, PipelineDefinition, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
+from app.connections import k8s_custom_obj_api
 from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
@@ -86,53 +86,19 @@ async def get_run_status(
             return await response.json()
 
 
-# Periodically check whether task has been aborted, if it has been, kill
-# all running containers to short-circuit pipeline run.
-async def check_pipeline_run_task_status(run_config, pipeline, task_id):
-
-    while True:
-
-        # check status every second
-        await asyncio.sleep(1)
-
-        aborted = AbortableAsyncResult(task_id).is_aborted()
-        run_status = await get_run_status(
-            task_id, "pipeline", run_config["run_endpoint"]
-        )
-
-        # might be missing if the record has been removed, i.e.
-        # due to a cleanup that might happen if the project has been
-        # removed
-        aborted = aborted or "status" not in run_status
-        ready = run_status.get("status", "FAILURE") in ["SUCCESS", "FAILURE"]
-
-        if aborted:
-            pipeline.kill_all_running_steps(
-                task_id, "docker", {"docker_client": docker_client}
-            )
-        if ready or aborted:
-            break
-
-
 async def run_pipeline_async(run_config, pipeline, task_id):
     try:
-        await asyncio.gather(
-            *[
-                asyncio.create_task(pipeline.run(task_id, run_config=run_config)),
-                asyncio.create_task(
-                    check_pipeline_run_task_status(run_config, pipeline, task_id)
-                ),
-            ]
-        )
-    # Make sure to cleanup containers in any case.
+        await run_pipeline_workflow(task_id, pipeline, run_config=run_config)
     finally:
-        # Any code that depends on the fact that both pipeline.run and
-        # check_pipeline_run_task_status have terminated should be here.
-        # for example, pipeline.run  PUTs the state of the run when it
-        # ends, so any code dependant on the status being set cannot be
-        # run in check_pipeline_run_task_status.
-        run_config["docker_client"] = docker_client
-        pipeline.remove_containerization_resources(task_id, "docker", run_config)
+        # We get here either because the task was successful or was
+        # aborted, in any case, delete the workflow.
+        k8s_custom_obj_api.delete_namespaced_custom_object(
+            "argoproj.io",
+            "v1alpha1",
+            "orchest",
+            "workflows",
+            f"pipeline-run-task-{task_id}",
+        )
 
     # The celery task has completed successfully. This is not
     # related to the success or failure of the pipeline itself.
@@ -273,14 +239,15 @@ def start_non_interactive_pipeline_run(
         "env_uuid_docker_id_mappings"
     ]
 
-    with launch_noninteractive_session(
-        docker_client,
-        session_uuid,
-        session_config,
-    ):
-        status = run_pipeline(
-            pipeline_definition, project_uuid, run_config, task_id=self.request.id
-        )
+    # K8S_TODO: fix.
+    # with launch_noninteractive_session(
+    #     docker_client,
+    #     session_uuid,
+    #     session_config,
+    # ):
+    status = run_pipeline(
+        pipeline_definition, project_uuid, run_config, task_id=self.request.id
+    )
 
     return status
 

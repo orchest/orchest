@@ -40,6 +40,8 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
     docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
         project_uuid=project_uuid, environment_uuid=env_uuid
     )
+    # K8S_TODO: fix.
+    return "pass", None
     try:
         # NOTE: using the orchest-env-* name is required to comply with
         # the logic that makes environment images stale on update.

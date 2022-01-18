@@ -8,7 +8,7 @@ import time
 import uuid
 from collections import ChainMap
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import docker
 import requests
@@ -416,6 +416,33 @@ def get_environment_capabilities(environment_uuid, project_uuid):
     return capabilities
 
 
+def get_orchest_volumes(
+    host_user_dir: str,
+    host_project_dir: str,
+    host_pipeline_file: str,
+) -> List[dict]:
+
+    return [
+        {"name": "project-dir", "hostPath": {"path": host_project_dir}},
+        {"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}},
+        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}},
+    ]
+
+
+def get_orchest_volume_mounts(
+    project_dir,
+    pipeline_file,
+) -> List[dict]:
+    """Prepare all volume mounts that are needed to run Orchest."""
+
+    return [
+        {"name": "project-dir", "mountPath": project_dir},
+        {"name": "pipeline-file", "mountPath": pipeline_file},
+        {"name": "data", "mountPath": "/data"},
+    ]
+
+
+# K8S_TODO: remove this after jupyter* tasks are done.
 def get_orchest_mounts(
     project_dir,
     pipeline_file,

@@ -18,7 +18,7 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # load. This is only enforced when CPU cycles are constrained. For more
 # information, see
 # https://docs.docker.com/config/containers/resource_constraints/.
-USER_CONTAINERS_CPU_SHARES = 500
+USER_CONTAINERS_CPU_SHARES = "500m"
 
 # Databases
 database_naming_convention = {
