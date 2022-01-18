@@ -144,12 +144,12 @@ describe("services", () => {
     cy.findByTestId(TEST_ID.PIPELINE_SETTINGS_SAVE).click();
 
     // Restart the session.
-    cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
-    cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
-      "Start session",
-      { timeout: 60000 }
-    );
-    cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
+    cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON)
+      .contains("Stop session")
+      .click();
+    cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON)
+      .contains("Start session", { timeout: 60000 })
+      .click();
     cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Stop session", {
       timeout: 60000,
     });
@@ -340,11 +340,12 @@ describe("services", () => {
       }
 
       // Restart the session.
-      cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
-      cy.findAllByTestId(
-        TEST_ID.SESSION_TOGGLE_BUTTON
-      ).contains("Start session", { timeout: 60000 });
-      cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).click();
+      cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON)
+        .contains("Stop session")
+        .click();
+      cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON)
+        .contains("Start session", { timeout: 60000 })
+        .click();
       cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains(
         "Stop session",
         { timeout: 60000 }
@@ -512,7 +513,12 @@ describe("services", () => {
       }
 
       cy.findByTestId(TEST_ID.JOB_RUN).click();
-      cy.findByTestId(`job-list`).first().contains(SAMPLE_JOB_NAMES.J1).click();
+      cy.url().should("include", "/jobs");
+      cy.reload();
+      cy.findByTestId(`job-list-row`)
+        .first()
+        .contains(SAMPLE_JOB_NAMES.J1)
+        .click();
       waitForJobStatus(JOB_STATUS.SUCCESS);
 
       let expectedFileContent = expectedValues.map(String).join(",") + "\n";
