@@ -80,7 +80,7 @@ export const SystemDialog: React.FC = () => {
         <DialogActions>
           {isCancellable && (
             <Button color="secondary" onClick={cancel}>
-              Cancel
+              {promptMessage.cancelLabel || "Cancel"}
             </Button>
           )}
           <Button
@@ -90,7 +90,7 @@ export const SystemDialog: React.FC = () => {
             variant="contained"
             data-test-id="confirm-dialog-ok"
           >
-            Confirm
+            {promptMessage.confirmLabel || "Confirm"}
           </Button>
         </DialogActions>
       </form>

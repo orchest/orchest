@@ -62,6 +62,7 @@ describe("file system interactions", () => {
     // ! This can break if MUI implementation changes
     cy.findAllByTestId("project-list-pagination", { timeout: 10000 })
       .find(".MuiTablePagination-displayedRows")
+      .scrollIntoView()
       .contains(` of ${projects.length}`); // 1–10 of 20
   });
 
