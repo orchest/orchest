@@ -256,6 +256,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   // data fetching state
   const {
     pipelines,
+    setPipelines,
     error,
     fetchPipelines,
     isFetchingPipelines,
@@ -305,7 +306,13 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
         }),
       })
         .then(() => {
-          fetchPipelines();
+          setPipelines((currentPipelines) => {
+            return currentPipelines.map((currentPipeline) =>
+              currentPipeline.uuid === pipelineInEdit.uuid
+                ? { ...currentPipeline, path: pipelineInEdit.path }
+                : currentPipeline
+            );
+          });
         })
         .catch((e) => {
           try {
@@ -378,11 +385,18 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           )
         )
           .then(() => {
-            fetchPipelines();
+            setPipelines((current) =>
+              current.filter(
+                (currentPipeline) =>
+                  !pipelineUuids.includes(currentPipeline.uuid)
+              )
+            );
+
             resolve(true);
           })
           .catch((e) => {
             setAlert("Error", `Failed to delete pipeline: ${e}`);
+            fetchPipelines();
             resolve(false);
           });
 

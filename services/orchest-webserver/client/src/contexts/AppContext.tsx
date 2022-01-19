@@ -128,7 +128,7 @@ type ActionCallback = (previousState: AppContextState) => Action;
 
 type AppContextAction = Action | ActionCallback;
 
-type AlertDispatcher = (
+export type AlertDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
   callbackOrParams?:
