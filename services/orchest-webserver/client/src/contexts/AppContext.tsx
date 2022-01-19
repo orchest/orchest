@@ -58,30 +58,6 @@ export type Confirm = {
 
 export type PromptMessage = Alert | Confirm;
 
-// type AlertConverter = (
-//   title: string,
-//   content: string | JSX.Element | JSX.Element[],
-//   callbackOrParams:
-//     | (() => Promise<boolean>)
-//     | {
-//         onConfirm: () => Promise<boolean>;
-//         confirmLabel?: string;
-//       }
-// ) => Alert;
-
-// type ConfirmConverter = (
-//   title: string,
-//   content: string | JSX.Element | JSX.Element[],
-//   callbackOrParams:
-//     | (() => Promise<boolean>)
-//     | {
-//         onConfirm: () => Promise<boolean>;
-//         onCancel?: () => Promise<false>;
-//         confirmLabel?: string;
-//         cancelLabel?: string;
-//       }
-// ) => Confirm;
-
 type AlertConverter = (props: {
   title: string;
   content: string | JSX.Element | JSX.Element[];
@@ -343,53 +319,6 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   return dispatcher as PromptMessageDispatcher<T>;
 };
 
-// const convertAlert: PromptMessageConverter<Alert> = (
-//   title: string,
-//   content: string | JSX.Element | JSX.Element[],
-//   callbackOrParams:
-//     | (() => Promise<boolean>)
-//     | {
-//         onConfirm: () => Promise<boolean>;
-//         confirmLabel?: string;
-//       }
-// ) => {
-//   const params =
-//     callbackOrParams instanceof Function
-//       ? { onConfirm: callbackOrParams }
-//       : callbackOrParams;
-
-//   return {
-//     type: "alert",
-//     title,
-//     content: contentParser(content),
-//     ...params,
-//   };
-// };
-
-// const convertConfirm: PromptMessageConverter<Confirm> = (
-//   title: string,
-//   content: string | JSX.Element | JSX.Element[],
-//   callbackOrParams:
-//     | (() => Promise<boolean>)
-//     | {
-//         onConfirm: () => Promise<boolean>;
-//         onCancel?: () => Promise<false>;
-//         confirmLabel?: string;
-//         cancelLabel?: string;
-//       }
-// ) => {
-//   const params =
-//     callbackOrParams instanceof Function
-//       ? { onConfirm: callbackOrParams }
-//       : callbackOrParams;
-
-//   return {
-//     type: "confirm",
-//     title,
-//     content: contentParser(content),
-//     ...params,
-//   };
-// };
 const convertAlert: PromptMessageConverter<Alert> = ({
   title,
   content,
