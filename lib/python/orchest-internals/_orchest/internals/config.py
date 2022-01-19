@@ -2,9 +2,6 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
-# General.
-TEMP_DIRECTORY_PATH = "/tmp/orchest"
-TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
@@ -109,7 +106,7 @@ DEFAULT_ENVIRONMENTS = [
 DOCKER_NETWORK = "orchest"
 
 # memory-server
-MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH
+MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
 
 SIDECAR_PORT = 1111
 
