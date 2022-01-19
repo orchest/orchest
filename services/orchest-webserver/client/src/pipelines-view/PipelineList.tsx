@@ -252,7 +252,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
   const { getSession } = useSessionsContext();
-  useSessionsPoller();
 
   // data fetching state
   const {
@@ -262,12 +261,22 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     isFetchingPipelines,
   } = useFetchPipelines(projectUuid);
 
+  useSessionsPoller(
+    (pipelines || []).map((pipeline) => ({
+      pipelineUuid: pipeline.uuid,
+      projectUuid,
+    }))
+  );
+
   React.useEffect(() => {
     if (error) {
       setAlert("Error", `Failed to fetch pipelines: ${error}`);
       navigateTo(siteMap.projects.path);
     }
   }, [error, setAlert, navigateTo]);
+
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void>();
 
   // Edit pipeline
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
@@ -382,8 +391,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     );
   };
 
-  // monitor if there's any operations ongoing, if so, disable action buttons
-  const { run, status } = useAsync<void>();
   const isOperating = status === "PENDING";
 
   const createPipeline = React.useCallback(

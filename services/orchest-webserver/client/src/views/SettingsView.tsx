@@ -219,7 +219,7 @@ const SettingsView: React.FC = () => {
     return setConfirm(
       "Warning",
       "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
-      async () => {
+      async (resolve) => {
         setState((prevState) => ({
           ...prevState,
           restarting: true,
@@ -228,6 +228,7 @@ const SettingsView: React.FC = () => {
         }));
         try {
           await makeRequest("POST", "/async/restart");
+          resolve(true);
 
           setTimeout(() => {
             checkHeartbeat("/heartbeat")
@@ -249,8 +250,9 @@ const SettingsView: React.FC = () => {
           }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
           return true;
         } catch (error) {
-          console.log(error);
-          console.error("Could not trigger restart.");
+          console.error(error);
+          resolve(false);
+          setAlert("Error", "Could not trigger restart.");
           return false;
         }
       }

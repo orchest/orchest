@@ -96,7 +96,10 @@ export const OnboardingDialog: React.FC = () => {
   } = useOnboardingDialog();
 
   const {
+    length,
     slideIndex,
+    slideDirection,
+    setIsAnimating,
     isLastSlide,
     cycleSlide,
     setSlide,
@@ -104,7 +107,7 @@ export const OnboardingDialog: React.FC = () => {
 
   const onClose = (loadQuickstart = false) => {
     setIsOnboardingDialogOpen(false, () => {
-      setSlide([0, 0]);
+      setSlide({ index: 0, direction: 0 });
       if (loadQuickstart && hasQuickstart) {
         navigateTo(siteMap.pipeline.path, {
           query: {
@@ -118,7 +121,7 @@ export const OnboardingDialog: React.FC = () => {
 
   const onDismiss = () => {
     setIsOnboardingDialogOpen(false, () => {
-      setSlide([0, 0]);
+      setSlide({ index: 0, direction: 0 });
     });
   };
 
@@ -134,11 +137,15 @@ export const OnboardingDialog: React.FC = () => {
         sx={{ paddingTop: (theme) => theme.spacing(4), overflow: "hidden" }}
         data-test-id="onboarding-dialog-content"
       >
-        <OnboardingDialogCarousel>
+        <OnboardingDialogCarousel slideDirection={slideDirection}>
           {onboardingDialogCarouselSlides.map(
             (item, i) =>
               i === slideIndex && (
                 <OnboardingDialogCarouselSlide
+                  slideDirection={slideDirection}
+                  slideIndex={slideIndex}
+                  setIsAnimating={setIsAnimating}
+                  length={length}
                   key={`OnboardingDialogCarouselSlide-${i}`}
                 >
                   <Stack
@@ -246,7 +253,11 @@ export const OnboardingDialog: React.FC = () => {
         </OnboardingDialogCarousel>
       </DialogContent>
       <Stack direction="column">
-        <OnboardingDialogCarouselIndicator />
+        <OnboardingDialogCarouselIndicator
+          length={length}
+          setSlide={setSlide}
+          slideIndex={slideIndex}
+        />
         <Box
           sx={{
             marginTop: (theme) => theme.spacing(4),

@@ -28,7 +28,11 @@ const ConfigureJupyterLabView: React.FC = () => {
   // global
   const appContext = useAppContext();
   const { setAlert, setConfirm, setAsSaved } = appContext;
-  const sessionContext = useSessionsContext();
+  const {
+    deleteAllSessions,
+    state: { sessionsKillAllInProgress, sessions },
+  } = useSessionsContext();
+
   useSessionsPoller();
 
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
@@ -101,8 +105,16 @@ const ConfigureJupyterLabView: React.FC = () => {
                   "Warning",
                   "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
                     "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
-                  async () => {
-                    sessionContext.dispatch({ type: "sessionsKillAll" });
+                  async (resolve) => {
+                    deleteAllSessions()
+                      .then(() => {
+                        resolve(true);
+                      })
+                      .catch((error) => {
+                        setAlert("Error", "Unable to stop all sessions.");
+                        console.error(error);
+                        resolve(false);
+                      });
                     setState((prevState) => ({
                       ...prevState,
                       sessionKillStatus: "WAITING",
@@ -206,10 +218,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (
-      sessionContext.state.sessionsKillAllInProgress &&
-      state.sessionKillStatus === "WAITING"
-    ) {
+    if (sessionsKillAllInProgress && state.sessionKillStatus === "WAITING") {
       setState((prevState) => ({
         ...prevState,
         sessionKillStatus: "VALIDATING",
@@ -217,10 +226,10 @@ const ConfigureJupyterLabView: React.FC = () => {
     }
 
     if (
-      !sessionContext.state.sessionsKillAllInProgress &&
+      !sessionsKillAllInProgress &&
       state.sessionKillStatus === "VALIDATING"
     ) {
-      const hasActiveSessions = sessionContext.state?.sessions
+      const hasActiveSessions = sessions
         .map((session) => (session.status ? true : false))
         .find((isActive) => isActive === true);
 
@@ -232,11 +241,7 @@ const ConfigureJupyterLabView: React.FC = () => {
         buildImage();
       }
     }
-  }, [
-    sessionContext.state.sessions,
-    sessionContext.state.sessionsKillAllInProgress,
-    state.sessionKillStatus,
-  ]);
+  }, [sessions, sessionsKillAllInProgress, state.sessionKillStatus]);
 
   return (
     <Layout>

@@ -1,4 +1,3 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
 import { UpdateDialog } from "./components/UpdateDialog";
@@ -7,24 +6,6 @@ import { getOrderedRoutes, siteMap, toQueryString } from "./routingConfig";
 const Routes = () => {
   let location = useLocation();
   const routesPromptingUpdate = ["projects", "settings", "help"];
-  const { dispatch } = useProjectsContext();
-
-  React.useEffect(() => {
-    /*
-      Always unset the pipeline for the header bar on navigation.
-      It's up to pages to request the headerbar pipeline if they
-      need it.
-
-      TODO: move to HeaderBar in the future.
-    */
-    dispatch({
-      type: "pipelineSet",
-      payload: {
-        pipelineUuid: undefined,
-        pipelineName: undefined,
-      },
-    });
-  }, [location]);
 
   return (
     <Switch>
