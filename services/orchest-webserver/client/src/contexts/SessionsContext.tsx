@@ -144,7 +144,6 @@ const initialState: SessionsContextState = {
   sessions: [],
   sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
-  // isPollingSessions: false,
 };
 
 /* Provider
