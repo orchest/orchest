@@ -1,3 +1,4 @@
+import { AlertDispatcher } from "@/contexts/AppContext";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/routingConfig";
 import React from "react";
@@ -12,11 +13,7 @@ export const useFetchPipelinesOnCreateJob = ({
   projectUuid: string;
   isCreateDialogOpen: boolean;
   navigateTo: (path: string) => void;
-  setAlert: (
-    title: string,
-    content: string | JSX.Element | JSX.Element[],
-    onConfirm?: () => void
-  ) => void;
+  setAlert: AlertDispatcher;
   closeCreateDialog: () => void;
 }) => {
   // we don't need to fetch pipelines when page load

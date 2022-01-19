@@ -112,6 +112,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     error: fetchJobsError,
     isFetchingJobs,
     fetchJobs,
+    setJobs,
   } = useFetchJobs(projectUuid);
 
   const { run, error: createJobError } = useAsync<
@@ -262,6 +263,13 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         method: "PUT",
         headers: HEADER.JSON,
         body: JSON.stringify({ name: newJobName.trim() }),
+      });
+      setJobs((currentJobs) => {
+        return currentJobs.map((currentJob) => {
+          return currentJob.uuid === jobUuid
+            ? { ...currentJob, name: newJobName }
+            : currentJob;
+        });
       });
     } catch (e) {
       setAlert("Error", `Failed to update job name: ${JSON.stringify(e)}`);
