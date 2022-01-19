@@ -59,7 +59,8 @@ const SettingsView: React.FC = () => {
 
   const getVersion = () => {
     makeRequest("GET", "/async/version").then((data) => {
-      setState((prevState) => ({ ...prevState, version: data }));
+      let parsed_data = JSON.parse(data);
+      setState((prevState) => ({ ...prevState, version: parsed_data.version }));
     });
   };
 

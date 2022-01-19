@@ -236,7 +236,7 @@ def register_views(app, db):
 
     @app.route("/async/version", methods=["GET"])
     def version():
-        return get_repo_tag()
+        return {"version": get_repo_tag()}
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
