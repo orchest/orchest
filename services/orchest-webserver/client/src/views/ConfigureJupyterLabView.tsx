@@ -105,8 +105,16 @@ const ConfigureJupyterLabView: React.FC = () => {
                   "Warning",
                   "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
                     "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
-                  async () => {
-                    deleteAllSessions();
+                  async (resolve) => {
+                    deleteAllSessions()
+                      .then(() => {
+                        resolve(true);
+                      })
+                      .catch((error) => {
+                        setAlert("Error", "Unable to stop all sessions.");
+                        console.error(error);
+                        resolve(false);
+                      });
                     setState((prevState) => ({
                       ...prevState,
                       sessionKillStatus: "WAITING",

@@ -494,7 +494,18 @@ const PipelineSettingsView: React.FC = () => {
               setConfirm(
                 "Warning",
                 `Are you sure you want to delete the service: ${row.name}?`,
-                async () => deleteService(row.name)
+                async (resolve) => {
+                  deleteService(row.name)
+                    .then(() => {
+                      resolve(true);
+                    })
+                    .catch((error) => {
+                      setAlert("Error", `Unable to delete service ${row.name}`);
+                      console.error(error);
+                      resolve(false);
+                    });
+                  return true;
+                }
               );
             }}
           >
