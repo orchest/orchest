@@ -29,13 +29,13 @@ const JupyterLabView: React.FC = () => {
   // global states
   const { dispatch } = useProjectsContext();
   const { requestBuild } = useAppContext();
-  const { getSession, toggleSession, state } = useSessionsContext();
-
-  useSessionsPoller();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
+
+  const { getSession, toggleSession, state } = useSessionsContext();
+  useSessionsPoller([{ projectUuid, pipelineUuid }]);
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(

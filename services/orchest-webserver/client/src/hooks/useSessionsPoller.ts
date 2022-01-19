@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { useSessionsContext } from "@/contexts/SessionsContext";
+import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { IOrchestSession } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
@@ -30,9 +30,13 @@ function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
   }, {}) as T;
 }
 
-export const useSessionsPoller = () => {
-  const { dispatch } = useSessionsContext();
+export const useSessionsPoller = (
+  sessionsToObserve?: { projectUuid: string; pipelineUuid: string }[]
+) => {
+  const { dispatch, state } = useSessionsContext();
   const { setAlert } = useAppContext();
+
+  const [refreshInterval, setRefreshInterval] = React.useState(1000);
 
   const { data, error } = useSWR<{
     sessions: (IOrchestSession & {
@@ -41,7 +45,7 @@ export const useSessionsPoller = () => {
     })[];
     status: TSessionStatus;
   }>(ENDPOINT, fetcher, {
-    refreshInterval: 1000,
+    refreshInterval,
   });
 
   const isLoading = !data && !error;
@@ -53,18 +57,40 @@ export const useSessionsPoller = () => {
     }
   }, [error, setAlert]);
 
-  React.useEffect(() => {
-    const sessions =
+  const sessions: IOrchestSession[] = React.useMemo(() => {
+    return (
       data?.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) || [];
+      ) || []
+    );
+  }, [data]);
 
+  // only poll if session status is transitional, e.g. LAUNCHING, STOPPING
+  const shouldPoll = React.useMemo(() => {
+    return (
+      !sessionsToObserve ||
+      sessionsToObserve.filter((sessionToObserve) => {
+        return state.sessions.some((session) => {
+          return (
+            isSession(sessionToObserve, session) &&
+            ["LAUNCHING", "STOPPING"].includes(session.status)
+          );
+        });
+      }).length > 0
+    );
+  }, [sessionsToObserve, state.sessions]);
+
+  React.useEffect(() => {
+    setRefreshInterval(shouldPoll ? 1000 : 0);
+  }, [shouldPoll]);
+
+  React.useEffect(() => {
     dispatch({
       type: "SET_SESSIONS",
       payload: {
-        sessions: sessions as IOrchestSession[],
+        sessions: sessions,
         sessionsIsLoading: isLoading,
       },
     });
-  }, [data, dispatch, isLoading]);
+  }, [sessions, dispatch, isLoading]);
 };

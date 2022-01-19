@@ -122,9 +122,6 @@ const PipelineSettingsView: React.FC = () => {
 
   useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
 
-  const { getSession } = useSessionsContext();
-  useSessionsPoller();
-
   // data from route
   const {
     navigateTo,
@@ -135,6 +132,9 @@ const PipelineSettingsView: React.FC = () => {
     initialTab,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
+
+  const { getSession } = useSessionsContext();
+  useSessionsPoller([{ projectUuid, pipelineUuid }]);
 
   const isReadOnly =
     (hasValue(runUuid) && hasValue(jobUuid)) || isReadOnlyFromQueryString;

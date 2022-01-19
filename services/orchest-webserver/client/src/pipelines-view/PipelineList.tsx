@@ -252,7 +252,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
   const { getSession } = useSessionsContext();
-  useSessionsPoller();
 
   // data fetching state
   const {
@@ -261,6 +260,13 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     fetchPipelines,
     isFetchingPipelines,
   } = useFetchPipelines(projectUuid);
+
+  useSessionsPoller(
+    (pipelines || []).map((pipeline) => ({
+      pipelineUuid: pipeline.uuid,
+      projectUuid,
+    }))
+  );
 
   React.useEffect(() => {
     if (error) {

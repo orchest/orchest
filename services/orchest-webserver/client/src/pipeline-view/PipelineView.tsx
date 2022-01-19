@@ -154,13 +154,6 @@ const PipelineView: React.FC = () => {
   const sessionContext = useSessionsContext();
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
 
-  useSessionsPoller();
-
-  const {
-    state: { sessionsIsLoading },
-    getSession,
-  } = sessionContext;
-
   const {
     projectUuid,
     pipelineUuid,
@@ -169,6 +162,12 @@ const PipelineView: React.FC = () => {
     isReadOnly: isReadOnlyFromQueryString,
     navigateTo,
   } = useCustomRoute();
+
+  const {
+    state: { sessionsIsLoading },
+    getSession,
+  } = sessionContext;
+  useSessionsPoller([{ projectUuid, pipelineUuid }]);
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const setIsReadOnly = (readOnly: boolean) => {
