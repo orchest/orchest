@@ -1,16 +1,18 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
+import { UpdateDialog } from "./components/UpdateDialog";
 import { getOrderedRoutes, siteMap, toQueryString } from "./routingConfig";
 
 const Routes = () => {
   let location = useLocation();
+  const routesPromptingUpdate = ["projects", "settings", "help"];
   const { dispatch } = useProjectsContext();
 
   React.useEffect(() => {
     /*
-      Always unset the pipeline for the header bar on navigation. 
-      It's up to pages to request the headerbar pipeline if they 
+      Always unset the pipeline for the header bar on navigation.
+      It's up to pages to request the headerbar pipeline if they
       need it.
 
       TODO: move to HeaderBar in the future.
@@ -32,6 +34,7 @@ const Routes = () => {
       {getOrderedRoutes().map((route) => {
         const { name, path, component, title } = route;
         const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback, it cannot be exact
+
         return (
           <Route
             exact={shouldBeExact}
@@ -40,6 +43,14 @@ const Routes = () => {
             render={() => {
               window.document.title = title;
               const Component = component;
+              if (routesPromptingUpdate.includes(name)) {
+                return (
+                  <div>
+                    <UpdateDialog />
+                    <Component />
+                  </div>
+                );
+              }
               return <Component />;
             }}
           />
