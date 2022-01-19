@@ -130,7 +130,7 @@ const PipelineSettingsView: React.FC = () => {
     jobUuid,
     runUuid,
     initialTab,
-    isReadOnly: isReadOnlyFromQueryString,
+    readonly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
@@ -277,8 +277,8 @@ const PipelineSettingsView: React.FC = () => {
         pipelineUuid,
         jobUuid,
         runUuid,
+        readonly: isReadOnly,
       },
-      state: { isReadOnly },
     });
   };
 

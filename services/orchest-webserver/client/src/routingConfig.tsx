@@ -1,3 +1,4 @@
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import EditJobView from "./edit-job-view/EditJobView";
 import JobView from "./job-view/JobView";
@@ -222,7 +223,7 @@ export const toQueryString = <T extends string>(
     ? Object.entries<string | number | boolean | undefined | null>(query)
         .reduce((str, entry) => {
           const [key, value] = entry;
-          return value // we don't pass along null or undefined since it doesn't mean much to the receiver
+          return hasValue(value) // we don't pass along null or undefined since it doesn't mean much to the receiver
             ? `${str}${snakeCase(key)}=${value.toString().toLowerCase()}&`
             : str;
         }, "?")

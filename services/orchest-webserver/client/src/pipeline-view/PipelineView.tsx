@@ -159,7 +159,7 @@ const PipelineView: React.FC = () => {
     pipelineUuid,
     jobUuid: jobUuidFromRoute,
     runUuid: runUuidFromRoute,
-    isReadOnly: isReadOnlyFromQueryString,
+    readonly: isReadOnlyFromQueryString,
     navigateTo,
   } = useCustomRoute();
 
@@ -484,8 +484,8 @@ const PipelineView: React.FC = () => {
           jobUuid: jobUuidFromRoute,
           runUuid: runUuidFromRoute,
           initialTab,
+          readonly: isReadOnly,
         },
-        state: { isReadOnly },
       },
       e
     );
@@ -500,8 +500,8 @@ const PipelineView: React.FC = () => {
           pipelineUuid,
           jobUuid: jobUuidFromRoute,
           runUuid: runUuidFromRoute,
+          readonly: isReadOnly,
         },
-        state: { isReadOnly },
       },
       e
     );
@@ -1569,8 +1569,8 @@ const PipelineView: React.FC = () => {
           stepUuid,
           jobUuid: jobUuidFromRoute,
           runUuid: runUuidFromRoute,
+          readonly: isReadOnly,
         },
-        state: { isReadOnly },
       },
       e
     );

@@ -23,9 +23,9 @@ const useLocationState = <T>(stateNames: string[]) => {
 // console.log(foo); // '123'
 // console.log(bar); // 'abc'
 // NOTE: the returned value is ALWAYS a string
-const useLocationQuery = (
+const useLocationQuery = <T extends (string | boolean | null | undefined)[]>(
   queryStrings: string[]
-): (string | boolean | null | undefined)[] => {
+): T => {
   const location = useLocation();
   const query = new URLSearchParams(location.search);
   return queryStrings.map((str) => {
@@ -36,7 +36,7 @@ const useLocationQuery = (
     if (value === "false") return false;
     // NOTE: we don't handle numbers!
     return value;
-  });
+  }) as T;
 };
 
 const useHistoryListener = <T>({
@@ -75,14 +75,27 @@ const useHistoryListener = <T>({
   }, []);
 };
 
+type Some<T> = T | undefined;
+type Option<T> = Some<T> | null;
+
 // these are common use cases that are all over the place
 // if there are specific cases that you need to pass some querystrings or states
 // better make use of useLocationQuery and useLocationState
 const useCustomRoute = () => {
   const history = useHistory();
 
-  const [isReadOnly] = useLocationState<[boolean]>(["isReadOnly"]);
-  const valueArray = useLocationQuery([
+  const valueArray = useLocationQuery<
+    [
+      Option<string>,
+      Option<string>,
+      Option<string>,
+      Option<string>,
+      Option<string>,
+      Option<string>,
+      Option<string>,
+      Option<boolean>
+    ]
+  >([
     "job_uuid",
     "run_uuid",
     "initial_tab",
@@ -90,6 +103,7 @@ const useCustomRoute = () => {
     "pipeline_uuid",
     "environment_uuid",
     "step_uuid",
+    "readonly",
   ]);
 
   const [
@@ -100,7 +114,8 @@ const useCustomRoute = () => {
     pipelineUuid,
     environmentUuid,
     stepUuid,
-  ] = valueArray as (string | undefined | null)[]; // asserting all values are string
+    readonly,
+  ] = valueArray;
 
   type NavigateParams = {
     query?: Record<string, string | number | boolean>;
@@ -146,7 +161,7 @@ const useCustomRoute = () => {
 
   return {
     navigateTo,
-    isReadOnly,
+    readonly,
     projectUuid,
     pipelineUuid,
     environmentUuid,

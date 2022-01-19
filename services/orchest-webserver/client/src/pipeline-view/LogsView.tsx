@@ -51,7 +51,7 @@ const LogsView: React.FC = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
-    isReadOnly,
+    readonly,
     navigateTo,
   } = useCustomRoute();
 
@@ -273,8 +273,8 @@ const LogsView: React.FC = () => {
         pipelineUuid,
         jobUuid,
         runUuid,
+        readonly,
       },
-      state: { isReadOnly },
     });
   };
 

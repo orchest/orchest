@@ -357,8 +357,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
       navigateTo(
         siteMap.pipeline.path,
         {
-          query: { projectUuid, pipelineUuid },
-          state: { isReadOnly },
+          query: { projectUuid, pipelineUuid, readonly: isReadOnly },
         },
         e
       );

@@ -42,7 +42,7 @@ const FilePreviewView: React.FC = () => {
     navigateTo,
     projectUuid,
     pipelineUuid,
-    isReadOnly,
+    readonly,
     stepUuid,
     jobUuid,
     runUuid,
@@ -73,8 +73,13 @@ const FilePreviewView: React.FC = () => {
     navigateTo(
       siteMap.pipeline.path,
       {
-        query: { projectUuid, pipelineUuid, jobUuid, runUuid },
-        state: { isReadOnly },
+        query: {
+          projectUuid,
+          pipelineUuid,
+          jobUuid,
+          runUuid,
+          readonly,
+        },
       },
       e
     );
@@ -180,8 +185,8 @@ const FilePreviewView: React.FC = () => {
           stepUuid: newStepUuid,
           jobUuid,
           runUuid,
+          readonly,
         },
-        state: { isReadOnly },
       },
       e
     );

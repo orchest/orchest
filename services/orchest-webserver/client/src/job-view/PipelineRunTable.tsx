@@ -167,8 +167,8 @@ export const PipelineRunTable: React.FC<{
           pipelineUuid: pipelineRun.pipeline_uuid,
           jobUuid: pipelineRun.job_uuid,
           runUuid: pipelineRun.uuid,
+          readonly: true,
         },
-        state: { isReadOnly: true },
       },
       e
     );
