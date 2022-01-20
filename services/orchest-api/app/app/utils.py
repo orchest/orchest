@@ -22,7 +22,7 @@ from _orchest.internals.utils import (
 )
 from app import errors as self_errors
 from app import schema
-from app.connections import db, docker_client, k8s_api
+from app.connections import db, docker_client, k8s_core_api
 from app.core import sessions
 
 
@@ -186,7 +186,8 @@ def get_env_uuids_to_docker_id_mappings(
         env_uuid_docker_id_mappings[env_uuid] = _config.ENVIRONMENT_IMAGE_NAME.format(
             project_uuid=project_uuid, environment_uuid=env_uuid
         )
-        # env_uuid_docker_id_mappings[env_uuid] = get_environment_image_docker_id(
+        # env_uuid_docker_id_mappings[env_uuid] =
+        # get_environment_image_docker_id(
         #     _config.ENVIRONMENT_IMAGE_NAME.format(
         #         project_uuid=project_uuid, environment_uuid=env_uuid
         #     )
@@ -810,7 +811,7 @@ def page_to_pagination_data(pagination: Pagination) -> dict:
 def create_namespace(
     project_uuid: str, pipeline_or_run_uuid: str, wait_ready=True
 ) -> dict:
-    k8s_api.create_namespace(
+    k8s_core_api.create_namespace(
         get_k8s_namespace_manifest(project_uuid, pipeline_or_run_uuid)
     )
     if not wait_ready:
@@ -818,7 +819,7 @@ def create_namespace(
     namespace_name = get_k8s_namespace_name(project_uuid, pipeline_or_run_uuid)
     for _ in range(120):
         try:
-            phase = k8s_api.read_namespace_status(namespace_name).status.phase
+            phase = k8s_core_api.read_namespace_status(namespace_name).status.phase
             if phase == "Active":
                 logging.error("Found")
                 break

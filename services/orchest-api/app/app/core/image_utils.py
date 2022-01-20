@@ -6,7 +6,7 @@ from kubernetes import client, watch
 
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
-from app.connections import docker_client, k8s_api, k8s_custom_obj_api
+from app.connections import docker_client, k8s_core_api, k8s_custom_obj_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 
@@ -123,7 +123,9 @@ def build_docker_image(
 
         for _ in range(100):
             try:
-                resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
+                resp = k8s_core_api.read_namespaced_pod(
+                    name=pod_name, namespace="orchest"
+                )
             except client.ApiException as e:
                 if e.status != 404:
                     raise
@@ -142,7 +144,7 @@ def build_docker_image(
         found_ending_flag = False
         w = watch.Watch()
         for event in w.stream(
-            k8s_api.read_namespaced_pod_log,
+            k8s_core_api.read_namespaced_pod_log,
             name=pod_name,
             container="main",
             namespace="orchest",
@@ -168,7 +170,7 @@ def build_docker_image(
                         user_logs_file_object.write("Storing image...\n")
 
         # The w.stream loop exits once the pod has finished running.
-        resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
+        resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace="orchest")
 
         if resp.status.phase == "Failed":
             msg = (

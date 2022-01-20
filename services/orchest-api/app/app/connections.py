@@ -19,7 +19,8 @@ db = SQLAlchemy(metadata=metadata)
 
 
 config.load_incluster_config()
-k8s_api = client.CoreV1Api()
+k8s_core_api = client.CoreV1Api()
+k8s_apps_api = client.AppsV1Api()
 k8s_custom_obj_api = client.CustomObjectsApi()
 
 docker_client = DockerClient.from_env()
