@@ -252,15 +252,17 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
   const { getSession } = useSessionsContext();
-  useSessionsPoller();
 
   // data fetching state
   const {
     pipelines,
+    setPipelines,
     error,
     fetchPipelines,
     isFetchingPipelines,
   } = useFetchPipelines(projectUuid);
+
+  useSessionsPoller();
 
   React.useEffect(() => {
     if (error) {
@@ -268,6 +270,9 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
       navigateTo(siteMap.projects.path);
     }
   }, [error, setAlert, navigateTo]);
+
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void>();
 
   // Edit pipeline
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
@@ -296,7 +301,13 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
         }),
       })
         .then(() => {
-          fetchPipelines();
+          setPipelines((currentPipelines) => {
+            return currentPipelines.map((currentPipeline) =>
+              currentPipeline.uuid === pipelineInEdit.uuid
+                ? { ...currentPipeline, path: pipelineInEdit.path }
+                : currentPipeline
+            );
+          });
         })
         .catch((e) => {
           try {
@@ -369,11 +380,18 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           )
         )
           .then(() => {
-            fetchPipelines();
+            setPipelines((current) =>
+              current.filter(
+                (currentPipeline) =>
+                  !pipelineUuids.includes(currentPipeline.uuid)
+              )
+            );
+
             resolve(true);
           })
           .catch((e) => {
             setAlert("Error", `Failed to delete pipeline: ${e}`);
+            fetchPipelines();
             resolve(false);
           });
 
@@ -382,8 +400,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     );
   };
 
-  // monitor if there's any operations ongoing, if so, disable action buttons
-  const { run, status } = useAsync<void>();
   const isOperating = status === "PENDING";
 
   const createPipeline = React.useCallback(

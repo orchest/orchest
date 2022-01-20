@@ -42,9 +42,8 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 const LogsView: React.FC = () => {
   // global states
   const { dispatch } = useProjectsContext();
-  const { getSession } = useSessionsContext();
+
   useSendAnalyticEvent("view load", { name: siteMap.logs.path });
-  useSessionsPoller();
 
   // data from route
   const {
@@ -55,6 +54,9 @@ const LogsView: React.FC = () => {
     isReadOnly,
     navigateTo,
   } = useCustomRoute();
+
+  const { getSession } = useSessionsContext();
+  useSessionsPoller();
 
   const [promiseManager] = React.useState(new PromiseManager());
 

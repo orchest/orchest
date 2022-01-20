@@ -154,13 +154,6 @@ const PipelineView: React.FC = () => {
   const sessionContext = useSessionsContext();
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
 
-  useSessionsPoller();
-
-  const {
-    state: { sessionsIsLoading },
-    getSession,
-  } = sessionContext;
-
   const {
     projectUuid,
     pipelineUuid,
@@ -169,6 +162,12 @@ const PipelineView: React.FC = () => {
     isReadOnly: isReadOnlyFromQueryString,
     navigateTo,
   } = useCustomRoute();
+
+  const {
+    state: { sessionsIsLoading },
+    getSession,
+  } = sessionContext;
+  useSessionsPoller();
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const setIsReadOnly = (readOnly: boolean) => {
@@ -518,10 +517,7 @@ const PipelineView: React.FC = () => {
     if (!sessionsIsLoading) {
       // If session doesn't exist and first load
       if (shouldAutoStart && !session) {
-        sessionContext.dispatch({
-          type: "sessionToggle",
-          payload: { pipelineUuid, projectUuid },
-        });
+        sessionContext.toggleSession({ pipelineUuid, projectUuid });
         setShouldAutoStart(false);
         return;
       }
@@ -1424,27 +1420,31 @@ const PipelineView: React.FC = () => {
       setConfirm(
         "Warning",
         `A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?`,
-        async () => {
-          closeMultistepView();
-          closeDetailsView();
+        {
+          onConfirm: async (resolve) => {
+            closeMultistepView();
+            closeDetailsView();
 
-          // DeleteStep is going to remove the step from state.selected
-          // Steps, modifying the collection while we are iterating on it.
-          let stepsToRemove = state.eventVars.selectedSteps.slice();
-          for (let x = 0; x < stepsToRemove.length; x++) {
-            deleteStep(stepsToRemove[x]);
-          }
+            // DeleteStep is going to remove the step from state.selected
+            // Steps, modifying the collection while we are iterating on it.
+            let stepsToRemove = state.eventVars.selectedSteps.slice();
+            for (let x = 0; x < stepsToRemove.length; x++) {
+              deleteStep(stepsToRemove[x]);
+            }
 
-          state.eventVars.selectedSteps = [];
-          state.eventVars.isDeletingStep = false;
-          updateEventVars();
-          setState({ saveHash: uuidv4() });
-          return true;
-        },
-        () => {
-          state.eventVars.isDeletingStep = false;
-          updateEventVars();
-          return false;
+            state.eventVars.selectedSteps = [];
+            state.eventVars.isDeletingStep = false;
+            updateEventVars();
+            setState({ saveHash: uuidv4() });
+            resolve(true);
+            return true;
+          },
+          onCancel: (resolve) => {
+            state.eventVars.isDeletingStep = false;
+            updateEventVars();
+            resolve(false);
+            return false;
+          },
         }
       );
     }
@@ -1497,12 +1497,13 @@ const PipelineView: React.FC = () => {
       "Warning",
       "A deleted step and its logs cannot be recovered once deleted, are you" +
         " sure you want to proceed?",
-      async () => {
+      async (resolve) => {
         state.eventVars.openedStep = undefined;
         state.eventVars.selectedSteps = [];
         updateEventVars();
         deleteStep(uuid);
         setState({ saveHash: uuidv4() });
+        resolve(true);
         return true;
       }
     );

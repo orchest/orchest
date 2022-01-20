@@ -9,7 +9,7 @@ export function useFetchProject<T = Project>({
   projectUuid?: string;
   selector?: (project: Project) => T;
 }) {
-  const { data, error, isValidating, revalidate } = useSWR<T>(
+  const { data, error, isValidating, mutate } = useSWR<T>(
     projectUuid ? `/async/projects/${projectUuid}` : null,
     (url: string) =>
       fetcher<Project>(url).then((response) => selector(response))
@@ -18,6 +18,6 @@ export function useFetchProject<T = Project>({
     data,
     error,
     isFetching: isValidating,
-    fetchProject: revalidate,
+    fetchProject: mutate,
   };
 }

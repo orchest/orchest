@@ -217,7 +217,7 @@ const ProjectsView: React.FC = () => {
 
   const {
     data: projects = [],
-    revalidate: fetchProjects,
+    mutate: fetchProjects,
     error: fetchProjectsError,
     isValidating,
   } = useSWR<Project[]>(

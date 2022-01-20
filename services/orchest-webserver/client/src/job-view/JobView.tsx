@@ -27,13 +27,13 @@ import Typography from "@mui/material/Typography";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
 import React from "react";
+import { useFetchJob } from "../hooks/useFetchJob";
 import { formatPipelineParams, PARAMETERLESS_RUN } from "./common";
 import { JobDocLink } from "./JobDocLink";
 import { JobStatus } from "./JobStatus";
 import { JobViewTabs } from "./JobViewTabs";
 import { PipelineRunTable } from "./PipelineRunTable";
 import { RunSpecTable } from "./RunSpecTable";
-import { useFetchJob } from "./useFetchJob";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
@@ -48,13 +48,14 @@ const JobView: React.FC = () => {
   const { navigateTo, jobUuid } = useCustomRoute();
 
   // data states
-  const { job, setJob, fetchJob, envVariables, fetchJobStatus } = useFetchJob(
-    jobUuid
+  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob(
+    jobUuid,
+    true
   );
 
   // monitor if there's any operations ongoing, if so, disable action buttons
   const { run, status } = useAsync<void>();
-  const isOperating = status === "PENDING" || fetchJobStatus === "PENDING";
+  const isOperating = status === "PENDING" || isFetchingJob;
 
   // use this to force PipelineRunTable to re-fetch data
   const [pipelineRunTableKey, forceUpdatePipelineRunTable] = React.useReducer(
@@ -70,7 +71,9 @@ const JobView: React.FC = () => {
   const cancelJob = () => {
     run(
       fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
-        .then(() => setJob((prevJob) => ({ ...prevJob, status: "ABORTED" })))
+        .then(() => {
+          setJob((prevJob) => ({ ...prevJob, status: "ABORTED" }));
+        })
         .catch((error) => {
           console.error(error);
           setAlert("Error", `Failed to delete job: ${error}`);
@@ -83,13 +86,13 @@ const JobView: React.FC = () => {
       fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
         method: "POST",
       })
-        .then(() =>
+        .then(() => {
           setJob((job) => ({
             ...job,
             status: "PAUSED",
             next_scheduled_time: undefined,
-          }))
-        )
+          }));
+        })
         .catch((error) => {
           console.error(error);
           setAlert("Error", `Failed to pause job: ${error}`);
@@ -303,7 +306,7 @@ const JobView: React.FC = () => {
                       />
                       <div className="pipeline-runs push-up">
                         <RunSpecTable
-                          isLoading={fetchJobStatus === "PENDING"}
+                          isLoading={isFetchingJob}
                           rows={
                             job.parameters
                               ? job.parameters.map((param, index) => {

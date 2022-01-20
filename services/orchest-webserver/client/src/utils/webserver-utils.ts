@@ -459,7 +459,9 @@ export function envVariablesArrayToDict(
 }
 
 // Sorted by key.
-export function envVariablesDictToArray<T>(envVariables: Record<string, T>) {
+export function envVariablesDictToArray(
+  envVariables: Record<string, string>
+): EnvVarPair[] {
   return Object.keys(envVariables)
     .map((name) => {
       return { name, value: envVariables[name] };
