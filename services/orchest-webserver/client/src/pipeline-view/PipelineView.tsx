@@ -167,7 +167,7 @@ const PipelineView: React.FC = () => {
     state: { sessionsIsLoading },
     getSession,
   } = sessionContext;
-  useSessionsPoller([{ projectUuid, pipelineUuid }]);
+  useSessionsPoller();
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const setIsReadOnly = (readOnly: boolean) => {

@@ -56,7 +56,7 @@ const LogsView: React.FC = () => {
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
-  useSessionsPoller([{ projectUuid, pipelineUuid }]);
+  useSessionsPoller();
 
   const [promiseManager] = React.useState(new PromiseManager());
 
