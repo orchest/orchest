@@ -35,7 +35,7 @@ const JupyterLabView: React.FC = () => {
   const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
 
   const { getSession, toggleSession, state } = useSessionsContext();
-  useSessionsPoller([{ projectUuid, pipelineUuid }]);
+  useSessionsPoller();
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(

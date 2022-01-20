@@ -262,12 +262,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     isFetchingPipelines,
   } = useFetchPipelines(projectUuid);
 
-  useSessionsPoller(
-    (pipelines || []).map((pipeline) => ({
-      pipelineUuid: pipeline.uuid,
-      projectUuid,
-    }))
-  );
+  useSessionsPoller();
 
   React.useEffect(() => {
     if (error) {
