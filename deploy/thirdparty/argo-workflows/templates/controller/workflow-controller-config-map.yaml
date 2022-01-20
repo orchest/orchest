@@ -1,0 +1,101 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "argo-workflows.controller.fullname" . }}-configmap
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.controller.name "name" "cm") | nindent 4 }}
+data:
+  config: |
+    {{- if .Values.controller.instanceID.enabled }}
+      {{- if .Values.controller.instanceID.useReleaseName }}
+    instanceID: {{ .Release.Name }}
+      {{- else }}
+    instanceID: {{ .Values.controller.instanceID.explicitID }}
+      {{- end }}
+    {{- end }}
+    containerRuntimeExecutor: {{ .Values.controller.containerRuntimeExecutor }}
+    {{- with .Values.controller.containerRuntimeExecutors }}
+    containerRuntimeExecutors:
+    {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- if .Values.controller.parallelism }}
+    parallelism: {{ .Values.controller.parallelism }}
+    {{- end }}
+    {{- if .Values.controller.resourceRateLimit }}
+    resourceRateLimit: {{ toYaml .Values.controller.resourceRateLimit | nindent 6 }}
+    {{- end }}
+    {{- with .Values.controller.namespaceParallelism }}
+    namespaceParallelism: {{ . }}
+    {{- end }}
+    {{- with .Values.controller.initialDelay }}
+    initialDelay: {{ . }}
+    {{- end }}
+    {{- if or .Values.executor.resources .Values.executor.env .Values.executor.securityContext}}
+    executor:
+      imagePullPolicy: {{ .Values.images.pullPolicy }}
+      {{- with .Values.executor.resources }}
+      resources: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.executor.env }}
+      env: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.executor.securityContext }}
+      securityContext: {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.useDefaultArtifactRepo }}
+    artifactRepository:
+      {{- if .Values.artifactRepository.archiveLogs }}
+      archiveLogs: {{ .Values.artifactRepository.archiveLogs }}
+      {{- end }}
+      {{- if .Values.artifactRepository.gcs }}
+      gcs:
+{{ toYaml .Values.artifactRepository.gcs | indent 8}}
+      {{- else }}
+      s3:
+        {{- if .Values.useStaticCredentials }}
+        accessKeySecret:
+          key: {{ .Values.artifactRepository.s3.accessKeySecret.key }}
+          name: {{ .Values.artifactRepository.s3.accessKeySecret.name }}
+        secretKeySecret:
+          key: {{ .Values.artifactRepository.s3.secretKeySecret.key }}
+          name: {{ .Values.artifactRepository.s3.secretKeySecret.name }}
+        {{- end }}
+        bucket: {{ .Values.artifactRepository.s3.bucket }}
+        endpoint: {{ .Values.artifactRepository.s3.endpoint }}
+        insecure: {{ .Values.artifactRepository.s3.insecure }}
+        {{- if .Values.artifactRepository.s3.keyFormat }}
+        keyFormat: {{ .Values.artifactRepository.s3.keyFormat | quote }}
+        {{- end }}
+        {{- if .Values.artifactRepository.s3.region }}
+        region: {{ .Values.artifactRepository.s3.region }}
+        {{- end }}
+        {{- if .Values.artifactRepository.s3.roleARN }}
+        roleARN: {{ .Values.artifactRepository.s3.roleARN }}
+        {{- end }}
+        {{- if .Values.artifactRepository.s3.useSDKCreds }}
+        useSDKCreds: {{ .Values.artifactRepository.s3.useSDKCreds }}
+        {{- end }}
+      {{- end }}
+    {{- end}}
+    {{- if .Values.controller.metricsConfig.enabled }}
+    metricsConfig:
+{{ toYaml .Values.controller.metricsConfig | indent 6}}{{- end }}
+    {{- if .Values.controller.telemetryConfig.enabled }}
+    telemetryConfig:
+{{ toYaml .Values.controller.telemetryConfig | indent 6}}{{- end }}
+    {{- if .Values.controller.persistence }}
+    persistence:
+{{ toYaml .Values.controller.persistence | indent 6 }}{{- end }}
+    {{- if .Values.controller.workflowDefaults }}
+    workflowDefaults:
+{{ toYaml .Values.controller.workflowDefaults | indent 6 }}{{- end }}
+    {{- with .Values.server.sso }}
+    sso: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.controller.workflowRestrictions }}
+    workflowRestrictions: {{- toYaml . | nindent 6 }}
+    {{- end }}
+    {{- with .Values.controller.links }}
+    links: {{- toYaml . | nindent 6 }}
+    {{- end }}
