@@ -41,10 +41,11 @@ export const useSessionsPoller = () => {
     })[];
     status: TSessionStatus;
   }>(ENDPOINT, fetcher, {
-    // Ideally we would like to only poll if session status is transitional, e.g. LAUNCHING, STOPPING.
-    // however, currently Orchest doesn't have user sessions (yet)
-    // this session (i.e. pipeline session) is shared by potentially multiple users
-    // in order to facilitate multi-user working at the same time, FE needs to check pipeline sessions at all times
+    // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
+    // the reason is that Orchest session is not a user session, but a session of a pipeline.
+    // and Orchest sessions are not bound to a single user, therefore
+    // this session (i.e. pipeline session) is used by potentially multiple users
+    // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
     refreshInterval: 1000,
   });
 
