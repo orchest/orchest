@@ -2,6 +2,6 @@ apiVersion: v2
 description: The helm chart for celery-worker deployment
 name: celery-worker
 version: 0.0.1
-icon: https://orchest.io/docs/source/img/logo.png
+icon: https://docs.celeryproject.org/en/stable/_static/celery_512.png
 sources:
-  - https://github.com/orchest/orchest
+  - https://github.com/celery/celery
