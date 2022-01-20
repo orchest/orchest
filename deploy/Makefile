@@ -16,7 +16,7 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 ROOK_DEPLOY_CONFIG := rook \
 	${SHARED_DEPLOY_CONFIG} thirdparty/rook/rook-ceph -f values-override.yaml .
 
-JUPYTER_EGW_DEPLOY_CONFIG := jupyter-egw \
+JUPYTER_EG_DEPLOY_CONFIG := jupyter-eg \
 	${SHARED_DEPLOY_CONFIG} thirdparty/enterprise-gateway
 
 ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
@@ -26,9 +26,9 @@ ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 orchest: argo-workflow
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
-.PHONY: jupyter-egw
-jupyter-egw:
-	helm install ${JUPYTER_EGW_DEPLOY_CONFIG}
+.PHONY: jupyter-eg
+jupyter-eg:
+	helm install ${JUPYTER_EG_DEPLOY_CONFIG}
 
 .PHONY: argo-workflow
 argo-workflow:
