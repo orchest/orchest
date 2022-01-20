@@ -24,9 +24,6 @@ deployment
       containers:
       - name: orchest-webserver
         image: orchest/orchest-webserver:latest
-        securityContext:
-          privileged: true
-          runAsUser: 0
         ports:
         - containerPort: 80        
         env:
