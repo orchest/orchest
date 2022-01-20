@@ -1,3 +1,4 @@
+import collections
 import copy
 import logging
 import os
@@ -343,9 +344,15 @@ def _anonymize_pipeline_definition(definition: dict) -> dict:
 
     environments = set()
     step_parameters_count = 0
+    ext_count = collections.defaultdict(int)
     for _, step in steps.items():
         step.pop("title")
-        step.pop("file_path")
+
+        # Remove file path and count extension. This way we learn what
+        # file type is primarily used.
+        _, file_ext = os.path.splitext(step.pop("file_path"))
+        ext_count[file_ext] += 1
+
         step_parameters_count += len(step.pop("parameters", {}))
 
         # NOTE: a step with no defined environments will have a step
@@ -359,6 +366,7 @@ def _anonymize_pipeline_definition(definition: dict) -> dict:
         "step_count": step_count,
         "unique_environments_count": len(environments),
         "step_parameters_count": step_parameters_count,
+        "step_file_extension_count": ext_count,
         "services": {},
     }
 
