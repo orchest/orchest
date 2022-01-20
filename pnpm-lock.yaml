@@ -182,6 +182,7 @@ importers:
       swr: 1.1.2
       ts-jest: ^27.1.2
       typescript: 4.5.4
+      use-deep-compare-effect: ^1.8.1
       xterm: ^4.0.0
       xterm-addon-fit: ^0.4.0
       xterm-for-react: ^1.0.4
@@ -218,6 +219,7 @@ importers:
       react-use-intercom: 1.4.0_react-dom@17.0.2+react@17.0.2
       socket.io-client: 2.4.0
       swr: 1.1.2_react@17.0.2
+      use-deep-compare-effect: 1.8.1_react@17.0.2
       xterm: 4.15.0
       xterm-addon-fit: 0.4.0_xterm@4.15.0
       xterm-for-react: 1.0.4_react-dom@17.0.2+react@17.0.2
@@ -1410,8 +1412,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
+      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
       '@mui/base': 5.0.0-alpha.59_ba191c0052acfa37659f3ba04a2d9405
       '@mui/system': 5.2.3_98944ee4dd5f6cfd31442cef9ca2b57e
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -1460,8 +1462,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
+      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -1483,8 +1485,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
+      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
       '@mui/private-theming': 5.2.3_@types+react@17.0.3+react@17.0.2
       '@mui/styled-engine': 5.2.0_3ca9f49da28f3590cbe49aab51aa421d
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -3298,6 +3300,11 @@ packages:
   /denque/1.5.1:
     resolution: {integrity: sha512-XwE+iZ4D6ZUB7mfYRMb5wByE8L74HCn30FBN7sWnXksWc1LO1bPDl67pBR9o/kC4z/xSNAwkMYcGgqDV3BE3Hw==}
     engines: {node: '>=0.10'}
+    dev: false
+
+  /dequal/2.0.2:
+    resolution: {integrity: sha512-q9K8BlJVxK7hQYqa6XISGmBZbtQQWVXSrRrWreHC94rMt1QL/Impruc+7p2CYSYuVIUr+YCt6hjrs1kkdJRTug==}
+    engines: {node: '>=6'}
     dev: false
 
   /detect-newline/3.1.0:
@@ -7691,6 +7698,17 @@ packages:
         optional: true
     dependencies:
       '@types/react': 17.0.3
+      react: 17.0.2
+    dev: false
+
+  /use-deep-compare-effect/1.8.1_react@17.0.2:
+    resolution: {integrity: sha512-kbeNVZ9Zkc0RFGpfMN3MNfaKNvcLNyxOAAd9O4CBZ+kCBXXscn9s/4I+8ytUER4RDpEYs5+O6Rs4PqiZ+rHr5Q==}
+    engines: {node: '>=10', npm: '>=6'}
+    peerDependencies:
+      react: '>=16.13'
+    dependencies:
+      '@babel/runtime': 7.16.7
+      dequal: 2.0.2
       react: 17.0.2
     dev: false
 

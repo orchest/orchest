@@ -5,7 +5,7 @@ import { fetcher } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
 import useSWR from "swr";
-
+import useDeepCompareEffect from "use-deep-compare-effect";
 type TSessionStatus = IOrchestSession["status"];
 
 const ENDPOINT = "/catch/api-proxy/api/sessions/";
@@ -65,7 +65,7 @@ export const useSessionsPoller = () => {
     );
   }, [data]);
 
-  React.useEffect(() => {
+  useDeepCompareEffect(() => {
     dispatch({
       type: "SET_SESSIONS",
       payload: {

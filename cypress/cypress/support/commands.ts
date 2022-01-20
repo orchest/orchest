@@ -10,8 +10,7 @@ import {
   TEST_ID,
 } from "../support/common";
 
-type TBooleanString = "true" | "false";
-
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Cypress {
     interface Chainable {
@@ -33,7 +32,7 @@ declare global {
         waitBuild?: boolean
       ): Chainable<undefined>;
       createPipeline(name: string, path?: string): Chainable<undefined>;
-      createProject(name: string): Chainable<undefined>;
+      createProject(name: string): Chainable<JQuery<HTMLElement>>;
       createStep(
         title: string,
         createNewFile?: boolean,
@@ -50,7 +49,7 @@ declare global {
         environment: string
       ): Chainable<string>;
       getIframe(dataTestId: string): Chainable<JQuery<any>>;
-      getOnboardingCompleted(): Chainable<TBooleanString>;
+      getOnboardingCompleted(): Chainable<string>;
       getProjectUUID(project: string): Chainable<string>;
       goToMenu(
         entry: string,
@@ -66,6 +65,9 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */
+
+type TBooleanString = "true" | "false";
 
 Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.setLocalStorage(LOCAL_STORAGE_KEY, value);
@@ -398,8 +400,8 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
   return cy
     .request("async/projects")
     .its("body")
-    .then((body: Array<any>) =>
-      cy.wrap(body.filter((obj) => obj.path == project)[0].uuid)
+    .then((body: Array<{ path: string }>) =>
+      cy.wrap(body.find((obj) => obj.path === project)[0].uuid as string)
     );
 });
 
@@ -435,8 +437,8 @@ Cypress.Commands.add(
     return cy
       .request(`store/environments/${projectUUID}`)
       .its("body")
-      .then((body: Array<any>) =>
-        cy.wrap(body.filter((obj) => obj.name == environment)[0].uuid)
+      .then((body: Array<{ name: string; uuid: string }>) =>
+        cy.wrap(body.find((obj) => obj.name === environment).uuid as string)
       );
   }
 );
