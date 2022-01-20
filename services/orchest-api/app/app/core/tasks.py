@@ -10,11 +10,10 @@ from celery import Task
 from celery.contrib.abortable import AbortableTask
 from celery.utils.log import get_task_logger
 
-import app.utils as utils
 from _orchest.internals.utils import get_k8s_namespace_name
 from app import create_app
 from app.celery_app import make_celery
-from app.connections import k8s_api, k8s_custom_obj_api
+from app.connections import k8s_custom_obj_api
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, PipelineDefinition, run_pipeline_workflow
@@ -241,21 +240,12 @@ def start_non_interactive_pipeline_run(
         "env_uuid_docker_id_mappings"
     ]
 
-    # K8S_TODO: fix.
-    # with launch_noninteractive_session(
-    #     docker_client,
-    #     session_uuid,
-    #     session_config,
-    # ):
-    try:
-        utils.create_namespace(run_config["project_uuid"], self.request.id)
-
+    with launch_noninteractive_session(
+        session_uuid,
+        session_config,
+    ):
         status = run_pipeline(
             pipeline_definition, project_uuid, run_config, task_id=self.request.id
-        )
-    finally:
-        k8s_api.delete_namespace(
-            get_k8s_namespace_name(run_config["project_uuid"], self.request.id)
         )
 
     return status
