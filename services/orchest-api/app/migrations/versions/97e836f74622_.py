@@ -1,16 +1,16 @@
 """empty message
 
-Revision ID: 0fd04e9ab2c3
-Revises: da828f0ba13b
-Create Date: 2022-01-05 10:21:42.690454
+Revision ID: 97e836f74622
+Revises: 8708c2c44585
+Create Date: 2022-01-13 13:28:08.049155
 
 """
 import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = "0fd04e9ab2c3"
-down_revision = "da828f0ba13b"
+revision = "97e836f74622"
+down_revision = "8708c2c44585"
 branch_labels = None
 depends_on = None
 
@@ -21,7 +21,7 @@ def upgrade():
         "pipeline_runs",
         [
             sa.text(
-                "to_tsvector('simple', lower(CAST(pipeline_run_index AS TEXT)) || ' ' || CASE WHEN (status = 'STARTED') THEN 'running' WHEN (status = 'ABORTED') THEN 'cancelled' WHEN (status = 'FAILURE') THEN 'failed' ELSE lower(status) END || ' ' || lower(CAST(parameters AS TEXT)))"  # noqa
+                "to_tsvector('simple', lower(CAST(pipeline_run_index AS TEXT)) || ' ' || CASE WHEN (status = 'STARTED') THEN 'running' WHEN (status = 'ABORTED') THEN 'cancelled' WHEN (status = 'FAILURE') THEN 'failed' ELSE lower(status) END || ' ' || lower(CAST(parameters_text_search_values AS TEXT)))"  # noqa
             )
         ],
         unique=False,

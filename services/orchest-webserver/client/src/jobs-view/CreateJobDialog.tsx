@@ -1,3 +1,4 @@
+import { JobDocLink } from "@/job-view/JobDocLink";
 import { PipelineMetaData } from "@/types";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -9,7 +10,6 @@ import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -72,15 +72,6 @@ export const CreateJobDialog = ({
             </Box>
           ) : (
             <Stack direction="column" spacing={2}>
-              {projectSnapshotSize > 50 && (
-                <Alert severity="warning">
-                  {`Snapshot size exceeds 50MB. Please refer to the `}
-                  <Link href="https://docs.orchest.io/en/stable/fundamentals/jobs.html">
-                    docs
-                  </Link>
-                  .
-                </Alert>
-              )}
               <FormControl fullWidth>
                 <TextField
                   required
@@ -117,6 +108,13 @@ export const CreateJobDialog = ({
                   })}
                 </Select>
               </FormControl>
+              {projectSnapshotSize > 50 && (
+                <Alert severity="warning">
+                  {`Snapshot size exceeds 50MB. You might want to enable Auto Clean-up to free up disk space regularly. Check the `}
+                  <JobDocLink />
+                  {` for more details.`}
+                </Alert>
+              )}
             </Stack>
           )}
         </DialogContent>

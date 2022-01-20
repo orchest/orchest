@@ -18,7 +18,7 @@ type ISessionToggleButtonProps = {
 };
 
 const SessionToggleButton = (props: ISessionToggleButtonProps) => {
-  const { state, dispatch, getSession } = useSessionsContext();
+  const { state, getSession, toggleSession } = useSessionsContext();
 
   const { className, isSwitch, pipelineUuid, projectUuid } = props;
 
@@ -41,10 +41,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   const handleEvent = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dispatch({
-      type: "sessionToggle",
-      payload: { pipelineUuid, projectUuid },
-    });
+    toggleSession({ pipelineUuid, projectUuid });
   };
   const isSessionAlive = status === "RUNNING";
 
