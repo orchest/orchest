@@ -9,14 +9,20 @@ from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
+from kubernetes import client
 from sqlalchemy.orm import undefer
 
 import app.models as models
 from _orchest.internals import config as _config
-from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
+from _orchest.internals.utils import (
+    docker_images_list_safe,
+    docker_images_rm_safe,
+    get_k8s_namespace_manifest,
+    get_k8s_namespace_name,
+)
 from app import errors as self_errors
 from app import schema
-from app.connections import db, docker_client
+from app.connections import db, docker_client, k8s_api
 from app.core import sessions
 
 
@@ -799,3 +805,26 @@ def page_to_pagination_data(pagination: Pagination) -> dict:
         "total_items": pagination.total,
         "total_pages": pagination.pages,
     }
+
+
+def create_namespace(
+    project_uuid: str, pipeline_or_run_uuid: str, wait_ready=True
+) -> dict:
+    k8s_api.create_namespace(
+        get_k8s_namespace_manifest(project_uuid, pipeline_or_run_uuid)
+    )
+    if not wait_ready:
+        return
+    namespace_name = get_k8s_namespace_name(project_uuid, pipeline_or_run_uuid)
+    for _ in range(120):
+        try:
+            phase = k8s_api.read_namespace_status(namespace_name).status.phase
+            if phase == "Active":
+                logging.error("Found")
+                break
+        except client.ApiException as e:
+            if e.status != 404:
+                raise
+        time.sleep(0.5)
+    else:
+        raise Exception(f"Could not create namespace {namespace_name}.")

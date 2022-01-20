@@ -638,3 +638,37 @@ def docker_has_gpu_capabilities(
             pass
         return False
     return True
+
+
+def get_k8s_namespace_name(project_uuid: str, pipeline_or_run_uuid: str) -> str:
+    """Get k8s namespace name given project and pipeline/run uuid.
+
+    Only the first 18 characters of each uuid are used, this is because
+    k8s has a limit of 64 characters for the name of a namespace.
+
+    Args:
+        project_uuid:
+        pipeline_or_run_uuid:
+
+    Returns:
+        Name of the namespace to use.
+    """
+    if len(project_uuid) < 18:
+        raise ValueError("project_uuid needs to be of, at least, length 18.")
+    if len(pipeline_or_run_uuid) < 18:
+        raise ValueError("project_uuid needs to be of, at least, length 18.")
+    return f"orchest-{project_uuid[:18]}-{pipeline_or_run_uuid[:18]}"
+
+
+def get_k8s_namespace_manifest(project_uuid: str, pipeline_or_run_uuid: str) -> dict:
+    return {
+        "apiVersion": "v1",
+        "kind": "Namespace",
+        "metadata": {
+            "name": get_k8s_namespace_name(project_uuid, pipeline_or_run_uuid),
+            "labels": {
+                "project_uuid": project_uuid,
+                "pipeline_or_run_uuid": pipeline_or_run_uuid,
+            },
+        },
+    }

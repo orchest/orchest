@@ -10,7 +10,11 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_orchest_volume_mounts, get_orchest_volumes
+from _orchest.internals.utils import (
+    get_k8s_namespace_name,
+    get_orchest_volume_mounts,
+    get_orchest_volumes,
+)
 from app.connections import k8s_custom_obj_api
 from config import CONFIG_CLASS
 
@@ -670,12 +674,14 @@ async def run_pipeline_workflow(
             run_endpoint=run_config["run_endpoint"],
         )
 
+        namespace = get_k8s_namespace_name(run_config["project_uuid"], task_id)
+
         try:
             manifest = pipeline_to_workflow_manifest(
                 f"pipeline-run-task-{task_id}", pipeline, run_config
             )
             k8s_custom_obj_api.create_namespaced_custom_object(
-                "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
+                "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
             )
 
             steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
@@ -686,7 +692,7 @@ async def run_pipeline_workflow(
                 resp = k8s_custom_obj_api.get_namespaced_custom_object(
                     "argoproj.io",
                     "v1alpha1",
-                    "orchest",
+                    namespace,
                     "workflows",
                     f"pipeline-run-task-{task_id}",
                 )

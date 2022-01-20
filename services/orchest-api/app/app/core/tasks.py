@@ -10,13 +10,15 @@ from celery import Task
 from celery.contrib.abortable import AbortableTask
 from celery.utils.log import get_task_logger
 
+import app.utils as utils
+from _orchest.internals.utils import get_k8s_namespace_name
 from app import create_app
 from app.celery_app import make_celery
+from app.connections import k8s_api, k8s_custom_obj_api
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, PipelineDefinition, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
-from app.connections import k8s_custom_obj_api
 from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
@@ -95,7 +97,7 @@ async def run_pipeline_async(run_config, pipeline, task_id):
         k8s_custom_obj_api.delete_namespaced_custom_object(
             "argoproj.io",
             "v1alpha1",
-            "orchest",
+            get_k8s_namespace_name(run_config["project_uuid"], task_id),
             "workflows",
             f"pipeline-run-task-{task_id}",
         )
@@ -245,9 +247,16 @@ def start_non_interactive_pipeline_run(
     #     session_uuid,
     #     session_config,
     # ):
-    status = run_pipeline(
-        pipeline_definition, project_uuid, run_config, task_id=self.request.id
-    )
+    try:
+        utils.create_namespace(run_config["project_uuid"], self.request.id)
+
+        status = run_pipeline(
+            pipeline_definition, project_uuid, run_config, task_id=self.request.id
+        )
+    finally:
+        k8s_api.delete_namespace(
+            get_k8s_namespace_name(run_config["project_uuid"], self.request.id)
+        )
 
     return status
 
