@@ -1,17 +1,36 @@
+import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { siteMap } from "@/Routes";
 import { OrchestVersion, UpdateInfo } from "@/types";
+import Typography from "@mui/material/Typography";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
+import useSWRImmutable from "swr/immutable";
 
-export const UpdateDialog: React.FC = () => {
-  const [skipVersion, setSkipVersion] = useLocalStorage("skip_version", null);
+type UpdateDialogProps = {
+  skipVersion?: string | null;
+};
+
+export const UpdateDialog: React.FC<UpdateDialogProps> = (props) => {
+  let [skipVersion, setSkipVersion] = useLocalStorage("skip_version", null);
+
+  // The value passed through props overrules the localStorage value
+  // so that we can manually trigger to show the dialog.
+  skipVersion = props.skipVersion || skipVersion;
+
+  console.log("SKIPVERSION:", skipVersion);
   const [state, setState] = React.useState({
     isOpen: false,
   });
 
   const { setConfirm } = useAppContext();
+  const { navigateTo } = useCustomRoute();
+
+  const updateView = () => {
+    navigateTo(siteMap.update.path);
+  };
 
   const shouldPromptOrchestUpdate = (
     currentVersion: string,
@@ -34,23 +53,22 @@ export const UpdateDialog: React.FC = () => {
   };
 
   // Only make requests every hour, because the latest Orchest version gets
-  // fetched once per hour.
-  // TODO: should become instead `import useSWRImmutable from 'swr/immutable'` ?
-  const { data: updateInfo } = useSWR<UpdateInfo>(
+  // fetched once per hour. Use `useSWRImmutable` to disable all kinds of
+  // automatic revalidation; just serve from cache and refresh cache
+  // once per hour.
+  const { data: updateInfo } = useSWRImmutable<UpdateInfo>(
     "/async/orchest-update-info",
     fetcher,
     { refreshInterval: 3600000 }
   );
-  const { data: orchestVersion } = useSWR<OrchestVersion>(
+  const { data: orchestVersion } = useSWRImmutable<OrchestVersion>(
     "/async/version",
     fetcher,
     { refreshInterval: 3600000 }
   );
 
-  // TODO: This code should run the moment both SWR hooks are done.
   let shouldPrompt = false;
   if (updateInfo && orchestVersion) {
-    console.log("CHECKING PROMPT CHECK");
     // shouldPrompt = shouldPromptOrchestUpdate(orchestVersion.version, updateInfo.latest_version, skipVersion);
 
     // TODO: remove as this is for development to trigger it.
@@ -60,36 +78,35 @@ export const UpdateDialog: React.FC = () => {
       skipVersion
     );
   }
-  console.log("Version", orchestVersion);
-  console.log("SHOULD PROMPT", shouldPrompt);
-  console.log("IS OPEN", state.isOpen);
 
   if (!state.isOpen && shouldPrompt) {
-    console.log("DOING THE SETCONFIRM THING");
     setState({ isOpen: true });
-    console.log("IS OPEN", state.isOpen);
 
-    // TODO: make the version use the <Code>
     setConfirm(
       "Update available",
-      `Orchest can be updated from ${orchestVersion.version} to ${updateInfo.latest_version}. Would you like to update?`,
-      async (resolve) => {
-        // TODO: Add code to actually do the update
-        console.log("DO UPDATE");
-        resolve(true);
-        return true;
-      },
-      async (resolve) => {
-        // TODO: The button on the confirm modal should actually be
-        // "SKIP THIS VERSION" and instead of confirm would be cool
-        // if its "UPDATE". Do I need to make my cystom <Dialog>?
-        console.log("Skip this version.");
-        setSkipVersion(updateInfo.latest_version);
-        resolve(false);
-        return false;
+      <Typography variant="body2">
+        Orchest can be updated from <Code>{orchestVersion.version}</Code> to{" "}
+        <Code>{updateInfo.latest_version}</Code>. Would you like to update now?
+      </Typography>,
+      {
+        onConfirm: async (resolve) => {
+          console.log("DO UPDATE");
+          updateView();
+          resolve(true);
+          return true;
+        },
+        onCancel: async (resolve) => {
+          console.log("Skip this version.");
+          // TODO: just for development to test.
+          // setSkipVersion(updateInfo.latest_version);
+          setSkipVersion("v2022.10.1");
+          resolve(false);
+          return false;
+        },
+        confirmLabel: "Update",
+        cancelLabel: "Skip this version",
       }
     ).then(() => {
-      console.log("IS OPEN is NOW", state.isOpen);
       setState({ isOpen: false });
     });
   }
