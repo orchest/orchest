@@ -1,5 +1,7 @@
+import datetime
 import json
 import os
+import time
 import traceback
 from contextlib import contextmanager
 from enum import Enum
@@ -9,7 +11,7 @@ from docker.types import LogConfig, Mount
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_k8s_namespace_name
-from app import utils
+from app import errors, utils
 from app.connections import k8s_apps_api, k8s_core_api
 from config import CONFIG_CLASS
 
@@ -144,7 +146,9 @@ class Session:
         )
         # K8S_TODO: delete dangling environment images.
 
-    def restart_resource(self, service_name="memory-server"):
+    def restart_session_service(
+        self, service_name: bool, wait_for_readiness: bool = True
+    ) -> None:
         """Restarts a session service by name.
 
         Especially for the `memory-server` this comes in handy. Because
@@ -154,7 +158,42 @@ class Session:
         state, which is exactly what we want.
 
         """
-        ...
+        # We make use of the fact that session services are implemented
+        # as deployment by patching them to provoke a rolling restart.
+        # https://github.com/kubernetes-client/python/issues/1378
+
+        now = datetime.datetime.utcnow()
+        now = str(now.isoformat("T") + "Z")
+
+        if service_name == "memory-server":
+            manifest = (
+                Session._get_memory_server_deployment_manifest(
+                    self.pipeline_or_run_uuid, self._session_config, self._session_type
+                ),
+            )
+        elif service_name == "session-sidecar":
+            manifest = (
+                Session._get_memory_server_deployment_manifest(
+                    self.pipeline_or_run_uuid, self._session_config, self._session_type
+                ),
+            )
+        else:
+            raise errors.NoSuchSessionServiceError()
+
+        manifest["spec"]["metadata"]["annotations"] = {
+            "kubectl.kubernetes.io/restartedAt": now
+        }
+        ns = get_k8s_namespace_name(
+            self._session_config["project_uuid"], self.pipeline_or_run_uuid
+        )
+        k8s_apps_api.patch_namespaced_deployment(service_name, ns, manifest)
+
+        if not wait_for_readiness:
+            return
+
+        deployment = k8s_apps_api.read_namespaced_deployment_status(service_name, ns)
+        while deployment.status.updated_replicas != deployment.spec.replicas:
+            time.sleep(1)
 
     @classmethod
     def _get_memory_server_deployment_manifest(
