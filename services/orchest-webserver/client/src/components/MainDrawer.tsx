@@ -159,6 +159,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               key={id}
               data-test-id={id}
               onClick={(e) => navigateTo(item.path, undefined, e)}
+              onAuxClick={(e) => navigateTo(item.path, undefined, e)}
               selected={isSelected(item.path, false)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
@@ -181,6 +182,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               data-test-id={id}
               selected={isSelected(item.path, true)}
               onClick={(e) => navigateTo(item.path, undefined, e)}
+              onAuxClick={(e) => navigateTo(item.path, undefined, e)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.label} />

@@ -395,6 +395,7 @@ const SettingsView: React.FC = () => {
               color="secondary"
               startIcon={<TuneIcon />}
               onClick={loadConfigureJupyterLab}
+              onAuxClick={loadConfigureJupyterLab}
             >
               Configure JupyterLab
             </StyledButtonOutlined>
@@ -413,6 +414,7 @@ const SettingsView: React.FC = () => {
               color="secondary"
               startIcon={<SystemUpdateAltIcon />}
               onClick={updateView}
+              onAuxClick={updateView}
             >
               Check for updates
             </StyledButtonOutlined>
@@ -469,6 +471,7 @@ const SettingsView: React.FC = () => {
               variant="outlined"
               color="secondary"
               onClick={onClickManageUsers}
+              onAuxClick={onClickManageUsers}
               startIcon={<PeopleIcon />}
               data-test-id="manage-users"
             >

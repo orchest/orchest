@@ -116,6 +116,7 @@ export const HeaderBar = ({
         <Box
           component="img"
           onClick={goToHome}
+          onAuxClick={goToHome}
           src="/image/logo.svg"
           data-test-id="orchest-logo"
           sx={{
@@ -168,6 +169,7 @@ export const HeaderBar = ({
               variant="outlined"
               color="secondary"
               onClick={showPipeline}
+              onAuxClick={showPipeline}
               startIcon={<DeviceHubIcon />}
             >
               Switch to Pipeline
@@ -178,6 +180,7 @@ export const HeaderBar = ({
               variant="outlined"
               color="secondary"
               onClick={showJupyter}
+              onAuxClick={showJupyter}
               startIcon={<ScienceIcon />}
               data-test-id="switch-to-jupyterlab"
             >
@@ -198,7 +201,12 @@ export const HeaderBar = ({
                 <LogoutIcon />
               </IconButton>
             )}
-            <IconButton title="Help" onClick={showHelp} color="secondary">
+            <IconButton
+              title="Help"
+              onClick={showHelp}
+              onAuxClick={showHelp}
+              color="secondary"
+            >
               <HelpIcon />
             </IconButton>
           </Stack>

@@ -155,6 +155,7 @@ const ProjectSettingsView: React.FC = () => {
               color="secondary"
               startIcon={<ArrowBackIcon />}
               onClick={returnToProjects}
+              onAuxClick={returnToProjects}
             >
               Back to projects
             </Button>

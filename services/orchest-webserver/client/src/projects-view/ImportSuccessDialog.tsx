@@ -26,7 +26,11 @@ const ImportSuccessDialog: React.FC<{
         <Button color="secondary" onClick={onClose}>
           Continue browsing
         </Button>
-        <Button variant="contained" onClick={goToPipelines}>
+        <Button
+          variant="contained"
+          onClick={goToPipelines}
+          onAuxClick={goToPipelines}
+        >
           View pipelines
         </Button>
       </DialogActions>

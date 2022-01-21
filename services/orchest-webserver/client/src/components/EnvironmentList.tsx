@@ -278,6 +278,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={onCreateClick}
+              onAuxClick={onCreateClick}
               data-test-id="environments-create"
             >
               Create environment

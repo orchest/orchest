@@ -194,6 +194,7 @@ const PipelineDetails: React.FC<{
               startIcon={<LaunchIcon />}
               variant="contained"
               onClick={onOpenNotebook}
+              onAuxClick={onOpenNotebook}
               data-test-id="step-view-in-jupyterlab"
             >
               Edit in JupyterLab
@@ -204,6 +205,7 @@ const PipelineDetails: React.FC<{
             variant="contained"
             color="secondary"
             onClick={(e) => openFilePreviewView(e, step.uuid)}
+            onAuxClick={(e) => openFilePreviewView(e, step.uuid)}
             data-test-id="step-view-file"
           >
             View file

@@ -451,6 +451,7 @@ const EnvironmentEditView: React.FC = () => {
                 startIcon={<ArrowBackIcon />}
                 color="secondary"
                 onClick={returnToEnvironments}
+                onAuxClick={returnToEnvironments}
               >
                 Back to environments
               </Button>

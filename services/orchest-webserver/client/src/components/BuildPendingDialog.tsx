@@ -200,6 +200,7 @@ const BuildPendingDialog: React.FC = () => {
             variant={!state?.allowBuild ? "contained" : undefined}
             color={!state?.allowBuild ? "primary" : undefined}
             onClick={onViewBuildStatus}
+            onAuxClick={onViewBuildStatus}
           >
             View build status
           </Button>

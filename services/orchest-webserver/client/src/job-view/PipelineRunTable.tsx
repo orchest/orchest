@@ -241,6 +241,7 @@ export const PipelineRunTable: React.FC<{
                   variant="contained"
                   startIcon={<VisibilityIcon />}
                   onClick={(e) => onDetailPipelineView(e, pipelineRun)}
+                  onAuxClick={(e) => onDetailPipelineView(e, pipelineRun)}
                   data-test-id="job-pipeline-runs-row-view-pipeline"
                 >
                   View pipeline

@@ -219,6 +219,7 @@ const JobView: React.FC = () => {
               <Button
                 color="secondary"
                 startIcon={<ArrowBackIcon />}
+                onAuxClick={returnToJobs}
                 onClick={returnToJobs}
               >
                 Back to jobs
@@ -361,6 +362,7 @@ const JobView: React.FC = () => {
                 disabled={isOperating}
                 startIcon={<FileCopyIcon />}
                 onClick={onJobDuplicate}
+                onAuxClick={onJobDuplicate}
                 color="secondary"
               >
                 Copy config to new job
@@ -372,6 +374,7 @@ const JobView: React.FC = () => {
                     disabled={isOperating}
                     variant="contained"
                     onClick={editJob}
+                    onAuxClick={editJob}
                     startIcon={<TuneIcon />}
                   >
                     Edit

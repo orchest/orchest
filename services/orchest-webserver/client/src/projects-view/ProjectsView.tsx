@@ -89,7 +89,9 @@ const ProjectsView: React.FC = () => {
   const [isImporting, setIsImporting] = React.useState(false);
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
-    const openSettings = (e: React.MouseEvent, projectUuid: string) => {
+    const openSettings = (projectUuid: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
       navigateTo(
         siteMap.projectSettings.path,
         {
@@ -132,7 +134,12 @@ const ProjectsView: React.FC = () => {
                 disabled={disabled}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onEditProjectName(row.uuid, row.path);
+                }}
+                onAuxClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
                 }}
               >
                 <EditIcon fontSize="small" />
@@ -156,10 +163,8 @@ const ProjectsView: React.FC = () => {
               disabled={disabled}
               size="small"
               data-test-id={`settings-button-${row.path}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                openSettings(e, row.uuid);
-              }}
+              onClick={openSettings(row.uuid)}
+              onAuxClick={openSettings(row.uuid)}
             >
               <SettingsIcon fontSize="small" />
             </IconButton>
@@ -527,6 +532,7 @@ const ProjectsView: React.FC = () => {
                 color="secondary"
                 startIcon={<LightbulbIcon />}
                 onClick={goToExamples}
+                onAuxClick={goToExamples}
                 data-test-id="explore-examples"
               >
                 Explore Examples

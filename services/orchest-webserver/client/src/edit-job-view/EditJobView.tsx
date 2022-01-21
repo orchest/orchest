@@ -796,6 +796,7 @@ const EditJobView: React.FC = () => {
                   variant="contained"
                   startIcon={<PlayArrowIcon />}
                   onClick={attemptRunJob}
+                  onAuxClick={attemptRunJob}
                   data-test-id="job-run"
                 >
                   Run job
@@ -805,6 +806,7 @@ const EditJobView: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={putJobChanges}
+                  onAuxClick={putJobChanges}
                   startIcon={<SaveIcon />}
                   data-test-id="job-update"
                 >
@@ -813,6 +815,7 @@ const EditJobView: React.FC = () => {
               )}
               <Button
                 onClick={cancel}
+                onAuxClick={cancel}
                 startIcon={<CloseIcon />}
                 color="secondary"
                 data-test-id="update-job"

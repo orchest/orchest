@@ -50,6 +50,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       {isSwitch ? (
         <FormControlLabel
           onClick={handleEvent}
+          onAuxClick={(e) => {
+            // middle click on this button shouldn't open new tab
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           disableTypography
           control={
             <Switch
@@ -71,6 +76,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
           color="secondary"
           disabled={disabled}
           onClick={handleEvent}
+          onAuxClick={(e) => {
+            // middle click on this button shouldn't open new tab
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           className={classNames(
             className,
             ["LAUNCHING", "STOPPING"].includes(status) ? "working" : "active"

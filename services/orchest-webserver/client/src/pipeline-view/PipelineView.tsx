@@ -1361,11 +1361,11 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const onDoubleClickStepHandler = (e: React.MouseEvent, stepUUID: string) => {
+  const onDoubleClickStepHandler = (stepUUID: string) => {
     if (isReadOnly) {
-      onOpenFilePreviewView(e, stepUUID);
+      onOpenFilePreviewView(undefined, stepUUID);
     } else {
-      openNotebook(e, stepUUID);
+      openNotebook(undefined, stepUUID);
     }
   };
 
@@ -2449,6 +2449,7 @@ const PipelineView: React.FC = () => {
                 }}
                 startIcon={<ArrowBackIcon />}
                 onClick={returnToJob}
+                onAuxClick={returnToJob}
                 data-test-id="pipeline-back-to-job"
               >
                 Back to job
@@ -2543,6 +2544,7 @@ const PipelineView: React.FC = () => {
                 variant="contained"
                 color="secondary"
                 onClick={openLogs}
+                onAuxClick={openLogs}
                 startIcon={<ViewHeadlineIcon />}
               >
                 Logs
@@ -2626,7 +2628,10 @@ const PipelineView: React.FC = () => {
                 )}
                 <Divider />
                 <List>
-                  <ListItemButton onClick={(e) => openSettings(e, "services")}>
+                  <ListItemButton
+                    onClick={(e) => openSettings(e, "services")}
+                    onAuxClick={(e) => openSettings(e, "services")}
+                  >
                     <ListItemIcon>
                       <TuneIcon />
                     </ListItemIcon>

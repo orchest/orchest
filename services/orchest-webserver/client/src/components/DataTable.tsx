@@ -198,7 +198,13 @@ const CellContainer: React.FC<{
   isLoading: boolean;
   sx?: SxProps<Theme>;
   skeletonSx?: SxProps<Theme>;
-}> = ({ isLoading, sx, skeletonSx, children }) => {
+  onAuxClick?: (e: React.MouseEvent) => void;
+}> = ({ isLoading, sx, skeletonSx, onAuxClick, children }) => {
+  const auxClickHandler = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onAuxClick(e);
+  };
   return (
     <>
       <Fade in={isLoading} unmountOnExit>
@@ -209,7 +215,11 @@ const CellContainer: React.FC<{
           />
         </Box>
       </Fade>
-      {!isLoading && <Box sx={sx}>{children}</Box>}
+      {!isLoading && (
+        <Box sx={sx} onAuxClick={auxClickHandler}>
+          {children}
+        </Box>
+      )}
     </>
   );
 };
@@ -270,7 +280,7 @@ function Row<T>({
     <>
       <TableRow
         hover={!isLoading && !disabled}
-        onClick={(e) => handleClickRow(e)}
+        onClick={handleClickRow}
         role="checkbox"
         aria-checked={isSelected}
         tabIndex={-1}
@@ -305,7 +315,11 @@ function Row<T>({
           </TableCell>
         )}
         <TableCell component="th" align="left" id={labelId} scope="row">
-          <CellContainer isLoading={isLoading} sx={columns[0].sx}>
+          <CellContainer
+            isLoading={isLoading}
+            sx={columns[0].sx}
+            onAuxClick={handleClickRow}
+          >
             {renderCell(columns[0], data, disabled)}
           </CellContainer>
         </TableCell>
@@ -315,7 +329,11 @@ function Row<T>({
               key={column.id.toString()}
               align={column.align || "center"}
             >
-              <CellContainer isLoading={isLoading} sx={column.sx}>
+              <CellContainer
+                isLoading={isLoading}
+                sx={column.sx}
+                onAuxClick={handleClickRow}
+              >
                 {column.sortable ? (
                   <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
                     {renderCell(column, data, disabled)}

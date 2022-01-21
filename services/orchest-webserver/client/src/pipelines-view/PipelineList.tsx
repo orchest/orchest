@@ -104,9 +104,15 @@ const getColumns = (
             title="Edit pipeline path"
             size="small"
             sx={{ marginLeft: (theme) => theme.spacing(2) }}
-            onClick={(e: React.MouseEvent<unknown>) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
+              e.preventDefault();
               onEditPath(row.uuid, row.path, row.sessionStatus);
+            }}
+            onAuxClick={(e) => {
+              // middle click on this button shouldn't open new tab
+              e.stopPropagation();
+              e.preventDefault();
             }}
             data-test-id="pipeline-edit-path"
           >

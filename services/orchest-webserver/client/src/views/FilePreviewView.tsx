@@ -193,6 +193,7 @@ const FilePreviewView: React.FC = () => {
         variant="text"
         key={step.uuid}
         onClick={(e) => stepNavigate(e, step.uuid)}
+        onAuxClick={(e) => stepNavigate(e, step.uuid)}
       >
         {step.title}
       </Button>
@@ -309,7 +310,11 @@ const FilePreviewView: React.FC = () => {
           <IconButton title="refresh" onClick={loadFile}>
             <RefreshIcon />
           </IconButton>
-          <IconButton title="Close" onClick={loadPipelineView}>
+          <IconButton
+            title="Close"
+            onClick={loadPipelineView}
+            onAuxClick={loadPipelineView}
+          >
             <CloseIcon />
           </IconButton>
         </div>

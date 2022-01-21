@@ -29,6 +29,7 @@ const ProjectBasedView: React.FC<IProjectBasedViewProps> = ({
           <Button
             variant="contained"
             onClick={goToProjects}
+            onAuxClick={goToProjects}
             startIcon={<AddIcon />}
             autoFocus
           >

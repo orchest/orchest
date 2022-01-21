@@ -140,7 +140,11 @@ const ExamplesView: React.FC = () => {
           goToPipelines={goToSelectedProject}
         />
         <div className="push-down">
-          <Button startIcon={<ArrowBackIcon />} onClick={goToProjects}>
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={goToProjects}
+            onAuxClick={goToProjects}
+          >
             Back to projects
           </Button>
         </div>
