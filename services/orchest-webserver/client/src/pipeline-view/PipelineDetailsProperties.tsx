@@ -43,6 +43,17 @@ const KERNEL_OPTIONS = [
   { value: "julia", label: "Julia" },
 ];
 
+const titleToFileName = (title: string) => {
+  const alphanumeric = /[^a-zA-Z0-9-]/g;
+  const concatDashes = /(-+)/g;
+  const tempTitle = title
+    .replace(alphanumeric, "-")
+    .replace(concatDashes, "-")
+    .toLowerCase();
+  const matches = tempTitle.match(/(.*)-$/);
+  return matches ? matches[1] : tempTitle;
+};
+
 const PipelineDetailsProperties: React.FC<{
   [key: string]: any;
   menuMaxWidth?: string;
@@ -164,33 +175,11 @@ const PipelineDetailsProperties: React.FC<{
   };
 
   const onChangeKernel = (updatedKernel: string) => {
-    props.onSave(
-      {
-        kernel: { name: updatedKernel },
-      },
-      props.step.uuid
-    );
-  };
-
-  const titleToFileName = (title) => {
-    const alphanumeric = /[^a-zA-Z0-9-]/g;
-    title = title.replace(alphanumeric, "-");
-    const concatDashes = /(-+)/g;
-    title = title.replace(concatDashes, "-");
-    if (title.slice(-1) == "-") {
-      title = title.slice(0, -1);
-    }
-    title = title.toLowerCase();
-    return title;
+    props.onSave({ kernel: { name: updatedKernel } }, props.step.uuid);
   };
 
   const onChangeTitle = (updatedTitle) => {
-    props.onSave(
-      {
-        title: updatedTitle,
-      },
-      props.step.uuid
-    );
+    props.onSave({ title: updatedTitle }, props.step.uuid);
   };
 
   const swapConnectionOrder = (oldConnectionIndex, newConnectionIndex) => {

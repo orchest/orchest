@@ -18,7 +18,6 @@ import {
   filterServices,
   getPipelineJSONEndpoint,
   getScrollLineHeight,
-  getServiceURLs,
   serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
@@ -28,23 +27,13 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
-import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RemoveIcon from "@mui/icons-material/Remove";
 import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Button from "@mui/material/Button";
-import Divider from "@mui/material/Divider";
-import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
-import ListItemButton from "@mui/material/ListItemButton";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
-import ListSubheader from "@mui/material/ListSubheader";
-import Menu from "@mui/material/Menu";
 import { darken } from "@mui/material/styles";
-import Typography from "@mui/material/Typography";
 import {
   activeElementIsInput,
   collapseDoubleDots,
@@ -54,7 +43,7 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
-  uuidv4 as uuid,
+  uuidv4,
 } from "@orchest/lib-utils";
 import cloneDeep from "lodash.clonedeep";
 import merge from "lodash.merge";
@@ -69,6 +58,7 @@ import PipelineStep, {
   STEP_WIDTH,
 } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
+import { ServicesMenu } from "./ServicesMenu";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -116,7 +106,6 @@ export interface IPipelineViewState {
   eventVars: {
     steps: Record<string, IPipelineStepState>;
     selectedSteps: string[];
-    showServices: boolean;
     connections: Connection[];
     selectedConnection: Connection;
     newConnection: Connection;
@@ -139,10 +128,6 @@ export interface IPipelineViewState {
   defaultDetailViewIndex: number;
   pipelineJson?: PipelineJson;
 }
-
-const formatUrl = (url: string) => {
-  return "Port " + url.split("/")[3].split("_").slice(-1)[0];
-};
 
 const PipelineView: React.FC = () => {
   const { $ } = window;
@@ -236,7 +221,6 @@ const PipelineView: React.FC = () => {
       openedStep: undefined,
       openedMultistep: undefined,
       selectedSteps: [],
-      showServices: false,
       stepSelector: {
         active: false,
         x1: 0,
@@ -476,7 +460,7 @@ const PipelineView: React.FC = () => {
     setState({ pipelineJson, eventVars: state.eventVars });
   };
 
-  const openSettings = (e: React.MouseEvent, initialTab?: string) => {
+  const openSettings = (e: React.MouseEvent) => {
     navigateTo(
       siteMap.pipelineSettings.path,
       {
@@ -485,7 +469,6 @@ const PipelineView: React.FC = () => {
           pipelineUuid,
           jobUuid: jobUuidFromRoute,
           runUuid: runUuidFromRoute,
-          initialTab,
         },
         state: { isReadOnly },
       },
@@ -509,18 +492,14 @@ const PipelineView: React.FC = () => {
     );
   };
 
+  const [isShowingServices, setIsShowingServices] = React.useState(false);
+
   const showServices = () => {
-    if (!state.eventVars.showServices) {
-      state.eventVars.showServices = true;
-      updateEventVars();
-    }
+    setIsShowingServices(true);
   };
 
   const hideServices = () => {
-    if (state.eventVars.showServices) {
-      state.eventVars.showServices = false;
-      updateEventVars();
-    }
+    setIsShowingServices(false);
   };
 
   React.useEffect(() => {
@@ -1010,7 +989,7 @@ const PipelineView: React.FC = () => {
         updateEventVars();
       }
 
-      if (stepDragged) setSaveHash(uuid());
+      if (stepDragged) setSaveHash(uuidv4());
 
       if (e.button === 0 && state.eventVars.selectedSteps.length == 0) {
         // when space bar is held make sure deselection does not occur
@@ -1296,7 +1275,7 @@ const PipelineView: React.FC = () => {
 
       let step = {
         title: "",
-        uuid: uuid(),
+        uuid: uuidv4(),
         incoming_connections: [],
         file_path: "",
         kernel: {
@@ -1339,7 +1318,7 @@ const PipelineView: React.FC = () => {
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
         _step["meta_data"]["hidden"] = false;
         updateEventVars();
-        setSaveHash(uuid());
+        setSaveHash(uuidv4());
         state.refManager.refs[step.uuid].updatePosition(
           state.eventVars.steps[step.uuid].meta_data.position
         );
@@ -1379,7 +1358,7 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setSaveHash(uuid());
+    setSaveHash(uuidv4());
   };
 
   const getStepExecutionState = (stepUUID: string) => {
@@ -1413,7 +1392,7 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setSaveHash(uuid());
+    setSaveHash(uuidv4());
   };
 
   const deleteSelectedSteps = () => {
@@ -1441,7 +1420,7 @@ const PipelineView: React.FC = () => {
             state.eventVars.selectedSteps = [];
             state.eventVars.isDeletingStep = false;
             updateEventVars();
-            setSaveHash(uuid());
+            setSaveHash(uuidv4());
             resolve(true);
             return true;
           },
@@ -1508,7 +1487,7 @@ const PipelineView: React.FC = () => {
         state.eventVars.selectedSteps = [];
         updateEventVars();
         deleteStep(uuid);
-        setSaveHash(uuid());
+        setSaveHash(uuidv4());
         resolve(true);
         return true;
       }
@@ -1737,7 +1716,7 @@ const PipelineView: React.FC = () => {
     setPipelineJSON(_pipelineJson, _pipelineJson.steps);
 
     // and save
-    setSaveHash(uuid());
+    setSaveHash(uuidv4());
   };
 
   const scaleCorrectedPosition = (position, scaleFactor) => {
@@ -1897,7 +1876,7 @@ const PipelineView: React.FC = () => {
       return;
     }
 
-    setSaveHash(uuid());
+    setSaveHash(uuidv4());
     setPendingRuns({ uuids, type });
   };
 
@@ -1934,7 +1913,11 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const onSaveDetails = (stepChanges, uuid, replace) => {
+  const onSaveDetails = (
+    stepChanges: Record<string, any>,
+    uuid: string,
+    replace: boolean
+  ) => {
     // Mutate step with changes
     if (replace) {
       // Replace works on the top level keys that are provided
@@ -1946,7 +1929,7 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setSaveHash(uuid());
+    setSaveHash(uuidv4());
   };
 
   const deselectSteps = () => {
@@ -2049,22 +2032,6 @@ const PipelineView: React.FC = () => {
     origin[0] *= adjustedScaleFactor;
     origin[1] *= adjustedScaleFactor;
     return origin;
-  };
-
-  const servicesAvailable = () => {
-    if (
-      (!jobUuidFromRoute && session && session.status == "RUNNING") ||
-      (jobUuidFromRoute && state.pipelineJson && pipelineRunning)
-    ) {
-      let services = getServices();
-      if (services !== undefined) {
-        return Object.keys(services).length > 0;
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
   };
 
   useEffect(() => {
@@ -2190,37 +2157,22 @@ const PipelineView: React.FC = () => {
     state.eventVars.mouseClientY = e.clientY;
   };
 
-  const getServices = () => {
-    const services = jobUuidFromRoute
+  const services = React.useMemo(() => {
+    if (
+      (!jobUuidFromRoute && session && session.status == "RUNNING") ||
+      (jobUuidFromRoute && state.pipelineJson && pipelineRunning)
+    ) {
+      return null;
+    }
+    const allServices = jobUuidFromRoute
       ? state.pipelineJson.services
       : session && session.user_services
       ? session.user_services
       : {};
     // Filter services based on scope
     let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
-    return filterServices(services, scope);
-  };
-
-  // How to show services?
-  const generateServiceEndpoints = () => {
-    let serviceLinks: { name: string; urls: string[] }[] = [];
-    let services = getServices();
-
-    for (let serviceName in services) {
-      let service = services[serviceName];
-
-      serviceLinks.push({
-        name: serviceName,
-        urls: getServiceURLs(
-          service,
-          projectUuid,
-          pipelineUuid,
-          runUuidFromRoute
-        ),
-      });
-    }
-    return serviceLinks;
-  };
+    return filterServices(allServices, scope);
+  }, [state.pipelineJson, session, jobUuidFromRoute, pipelineRunning]);
 
   const returnToJob = (e?: React.MouseEvent) => {
     navigateTo(
@@ -2533,92 +2485,17 @@ const PipelineView: React.FC = () => {
               >
                 Services
               </Button>
-              <Menu
-                id="running-services-menu"
-                anchorEl={servicesButtonRef.current}
-                open={state.eventVars.showServices}
+              <ServicesMenu
+                isOpen={isShowingServices}
                 onClose={hideServices}
-                MenuListProps={{
-                  "aria-labelledby": "running-services-button",
-                }}
-                anchorOrigin={{
-                  vertical: "bottom",
-                  horizontal: "center",
-                }}
-                transformOrigin={{
-                  vertical: "top",
-                  horizontal: "center",
-                }}
-              >
-                <ListItem>
-                  <Typography
-                    variant="subtitle1"
-                    component="h3"
-                    sx={{ paddingBottom: 0 }}
-                  >
-                    Running services
-                  </Typography>
-                </ListItem>
-                {servicesAvailable() ? (
-                  generateServiceEndpoints().map((serviceLink) => {
-                    return (
-                      <List
-                        key={serviceLink.name}
-                        subheader={
-                          <ListSubheader>{serviceLink.name}</ListSubheader>
-                        }
-                      >
-                        {serviceLink.urls.length === 0 && (
-                          <ListItem>
-                            <Typography variant="caption">
-                              <i>This service has no endpoints.</i>
-                            </Typography>
-                          </ListItem>
-                        )}
-                        {serviceLink.urls.map((url) => {
-                          return (
-                            <ListItemButton
-                              key={url}
-                              component="a"
-                              href={url}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              <ListItemIcon>
-                                <OpenInNewIcon />
-                              </ListItemIcon>
-                              <ListItemText primary={formatUrl(url)} />
-                            </ListItemButton>
-                          );
-                        })}
-                      </List>
-                    );
-                  })
-                ) : (
-                  <ListItem>
-                    <ListItemText secondary={<i>No services are running.</i>} />
-                  </ListItem>
-                )}
-                <Divider />
-                <List>
-                  <ListItemButton
-                    onClick={(e) => openSettings(e, "services")}
-                    onAuxClick={(e) => openSettings(e, "services")}
-                  >
-                    <ListItemIcon>
-                      <TuneIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={`${!isReadOnly ? "Edit" : "View"} services`}
-                    />
-                  </ListItemButton>
-                </List>
-              </Menu>
+                anchor={servicesButtonRef}
+                services={services}
+              />
 
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={(e) => openSettings(e)}
+                onClick={openSettings}
                 startIcon={<TuneIcon />}
                 data-test-id="pipeline-settings"
               >
