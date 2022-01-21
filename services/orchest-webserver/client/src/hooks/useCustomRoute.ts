@@ -116,7 +116,8 @@ const useCustomRoute = () => {
       const [pathname, existingQueryString] = path.split("?");
       const { query = null, state = {} } = params || {};
 
-      const shouldOpenNewTab = e?.ctrlKey || e?.metaKey;
+      const isMouseMiddleClick = e?.nativeEvent && e.nativeEvent.button === 1;
+      const shouldOpenNewTab = e?.ctrlKey || e?.metaKey || isMouseMiddleClick;
       const queryString = existingQueryString
         ? `${existingQueryString}&${toQueryString(query)}`
         : toQueryString(query);
