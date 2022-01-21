@@ -119,24 +119,23 @@ const JobView: React.FC = () => {
     );
   };
 
-  const editJob = () => {
-    navigateTo(siteMap.editJob.path, {
-      query: {
-        projectUuid: job.project_uuid,
-        jobUuid: job.uuid,
-      },
-    });
+  const editJob = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.editJob.path,
+      { query: { projectUuid: job.project_uuid, jobUuid: job.uuid } },
+      e
+    );
   };
 
-  const returnToJobs = () => {
-    navigateTo(siteMap.jobs.path, {
-      query: {
-        projectUuid: job.project_uuid,
-      },
-    });
+  const returnToJobs = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.jobs.path,
+      { query: { projectUuid: job.project_uuid } },
+      e
+    );
   };
 
-  const onJobDuplicate = () => {
+  const onJobDuplicate = (e: React.MouseEvent) => {
     if (!job) return;
 
     run(
@@ -149,12 +148,16 @@ const JobView: React.FC = () => {
           })
             .then((response) => {
               // we need to re-navigate to ensure the URL is with correct job uuid
-              navigateTo(siteMap.editJob.path, {
-                query: {
-                  projectUuid: response.project_uuid,
-                  jobUuid: response.uuid,
+              navigateTo(
+                siteMap.editJob.path,
+                {
+                  query: {
+                    projectUuid: response.project_uuid,
+                    jobUuid: response.uuid,
+                  },
                 },
-              });
+                e
+              );
             })
             .catch((error) => {
               try {
@@ -170,7 +173,7 @@ const JobView: React.FC = () => {
         .catch((result) => {
           if (result.reason === "gate-failed") {
             requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
-              onJobDuplicate();
+              onJobDuplicate(e);
             });
           }
         })
@@ -216,6 +219,7 @@ const JobView: React.FC = () => {
               <Button
                 color="secondary"
                 startIcon={<ArrowBackIcon />}
+                onAuxClick={returnToJobs}
                 onClick={returnToJobs}
               >
                 Back to jobs
@@ -358,6 +362,7 @@ const JobView: React.FC = () => {
                 disabled={isOperating}
                 startIcon={<FileCopyIcon />}
                 onClick={onJobDuplicate}
+                onAuxClick={onJobDuplicate}
                 color="secondary"
               >
                 Copy config to new job
@@ -369,6 +374,7 @@ const JobView: React.FC = () => {
                     disabled={isOperating}
                     variant="contained"
                     onClick={editJob}
+                    onAuxClick={editJob}
                     startIcon={<TuneIcon />}
                   >
                     Edit

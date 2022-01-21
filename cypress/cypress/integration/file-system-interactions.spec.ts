@@ -59,13 +59,13 @@ describe("file system interactions", () => {
       10
     );
 
+    cy.reload();
+
     // ! This can break if MUI implementation changes
     cy.get(
       `[data-test-id=project-list-pagination] .MuiTablePagination-displayedRows`,
       { timeout: 10000 }
-    )
-      .invoke("text")
-      .should("contain", ` of ${projects.length}`); // 1–10 of 20
+    ).contains(` of ${projects.length}`); // 1–10 of 20
   });
 
   it("deletes multiple projects through the FS", () => {

@@ -1,4 +1,5 @@
 import { toQueryString } from "@/routingConfig";
+import { openInNewTab } from "@/utils/openInNewTab";
 import React from "react";
 import { useHistory, useLocation } from "react-router-dom";
 
@@ -89,6 +90,7 @@ const useCustomRoute = () => {
     "pipeline_uuid",
     "environment_uuid",
     "step_uuid",
+    "file_path",
   ]);
 
   const [
@@ -99,6 +101,7 @@ const useCustomRoute = () => {
     pipelineUuid,
     environmentUuid,
     stepUuid,
+    filePath,
   ] = valueArray as (string | undefined | null)[]; // asserting all values are string
 
   type NavigateParams = {
@@ -107,16 +110,29 @@ const useCustomRoute = () => {
   };
 
   const navigateTo = React.useCallback(
-    (path: string, params?: NavigateParams) => {
+    (
+      path: string,
+      params?: NavigateParams | undefined,
+      e?: React.MouseEvent
+    ) => {
       const [pathname, existingQueryString] = path.split("?");
       const { query = null, state = {} } = params || {};
-      history.push({
-        pathname,
-        search: existingQueryString
-          ? `${existingQueryString}&${toQueryString(query)}`
-          : toQueryString(query),
-        state,
-      });
+
+      const isMouseMiddleClick = e?.nativeEvent && e.nativeEvent.button === 1;
+      const shouldOpenNewTab = e?.ctrlKey || e?.metaKey || isMouseMiddleClick;
+      const queryString = existingQueryString
+        ? `${existingQueryString}&${toQueryString(query)}`
+        : toQueryString(query);
+
+      if (shouldOpenNewTab) {
+        openInNewTab(`${window.location.origin}${pathname}${queryString}`);
+      } else {
+        history.push({
+          pathname,
+          search: queryString,
+          state,
+        });
+      }
     },
     [history]
   );
@@ -140,6 +156,7 @@ const useCustomRoute = () => {
     stepUuid,
     jobUuid,
     runUuid,
+    filePath,
     initialTab,
   };
 };

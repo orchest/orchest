@@ -81,8 +81,8 @@ const ProjectSettingsView: React.FC = () => {
       .catch(console.log);
   };
 
-  const returnToProjects = () => {
-    navigateTo(siteMap.projects.path);
+  const returnToProjects = (e: React.MouseEvent) => {
+    navigateTo(siteMap.projects.path, undefined, e);
   };
 
   const saveGeneralForm = (e) => {
@@ -155,6 +155,7 @@ const ProjectSettingsView: React.FC = () => {
               color="secondary"
               startIcon={<ArrowBackIcon />}
               onClick={returnToProjects}
+              onAuxClick={returnToProjects}
             >
               Back to projects
             </Button>

@@ -352,11 +352,11 @@ const EditJobView: React.FC = () => {
     return { pass: true };
   };
 
-  const attemptRunJob = () => {
+  const attemptRunJob = (e: React.MouseEvent) => {
     // validate job configuration
     let validation = validateJobConfig();
     if (validation.pass === true) {
-      runJob();
+      runJob(e);
     } else {
       setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
@@ -383,7 +383,7 @@ const EditJobView: React.FC = () => {
     selectedRuns
   );
 
-  const runJob = async () => {
+  const runJob = async (e: React.MouseEvent) => {
     if (!job) return;
 
     setRunJobLoading(true);
@@ -441,14 +441,12 @@ const EditJobView: React.FC = () => {
       }).finally(() => {
         setAsSaved();
         if (projectUuid)
-          navigateTo(siteMap.jobs.path, {
-            query: { projectUuid },
-          });
+          navigateTo(siteMap.jobs.path, { query: { projectUuid } }, e);
       })
     );
   };
 
-  const putJobChanges = () => {
+  const putJobChanges = (e: React.MouseEvent) => {
     if (!job || !projectUuid) return;
     /* This function should only be called
      *  for jobs with a cron schedule. As those
@@ -486,12 +484,11 @@ const EditJobView: React.FC = () => {
               : undefined,
           }),
         }).then(() => {
-          navigateTo(siteMap.job.path, {
-            query: {
-              projectUuid,
-              jobUuid: job.uuid,
-            },
-          });
+          navigateTo(
+            siteMap.job.path,
+            { query: { projectUuid, jobUuid: job.uuid } },
+            e
+          );
         })
       );
     } else {
@@ -502,11 +499,9 @@ const EditJobView: React.FC = () => {
     }
   };
 
-  const cancel = () => {
+  const cancel = (e: React.MouseEvent) => {
     if (projectUuid)
-      navigateTo(siteMap.jobs.path, {
-        query: { projectUuid },
-      });
+      navigateTo(siteMap.jobs.path, { query: { projectUuid } }, e);
   };
 
   const setCronSchedule = (newCronString: string) => {
@@ -801,6 +796,7 @@ const EditJobView: React.FC = () => {
                   variant="contained"
                   startIcon={<PlayArrowIcon />}
                   onClick={attemptRunJob}
+                  onAuxClick={attemptRunJob}
                   data-test-id="job-run"
                 >
                   Run job
@@ -810,6 +806,7 @@ const EditJobView: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={putJobChanges}
+                  onAuxClick={putJobChanges}
                   startIcon={<SaveIcon />}
                   data-test-id="job-update"
                 >
@@ -818,6 +815,7 @@ const EditJobView: React.FC = () => {
               )}
               <Button
                 onClick={cancel}
+                onAuxClick={cancel}
                 startIcon={<CloseIcon />}
                 color="secondary"
                 data-test-id="update-job"

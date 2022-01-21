@@ -53,8 +53,8 @@ const SettingsView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const updateView = () => {
-    navigateTo(siteMap.update.path);
+  const updateView = (e: React.MouseEvent) => {
+    navigateTo(siteMap.update.path, undefined, e);
   };
 
   const getVersion = () => {
@@ -103,8 +103,8 @@ const SettingsView: React.FC = () => {
       .catch((error) => console.log(error));
   };
 
-  const onClickManageUsers = () => {
-    navigateTo(siteMap.manageUsers.path);
+  const onClickManageUsers = (e: React.MouseEvent) => {
+    navigateTo(siteMap.manageUsers.path, undefined, e);
   };
 
   const configToVisibleConfig = (configJSON) => {
@@ -258,8 +258,8 @@ const SettingsView: React.FC = () => {
     );
   };
 
-  const loadConfigureJupyterLab = () => {
-    navigateTo(siteMap.configureJupyterLab.path);
+  const loadConfigureJupyterLab = (e: React.MouseEvent) => {
+    navigateTo(siteMap.configureJupyterLab.path, undefined, e);
   };
 
   React.useEffect(() => {
@@ -395,6 +395,7 @@ const SettingsView: React.FC = () => {
               color="secondary"
               startIcon={<TuneIcon />}
               onClick={loadConfigureJupyterLab}
+              onAuxClick={loadConfigureJupyterLab}
             >
               Configure JupyterLab
             </StyledButtonOutlined>
@@ -413,6 +414,7 @@ const SettingsView: React.FC = () => {
               color="secondary"
               startIcon={<SystemUpdateAltIcon />}
               onClick={updateView}
+              onAuxClick={updateView}
             >
               Check for updates
             </StyledButtonOutlined>
@@ -469,6 +471,7 @@ const SettingsView: React.FC = () => {
               variant="outlined"
               color="secondary"
               onClick={onClickManageUsers}
+              onAuxClick={onClickManageUsers}
               startIcon={<PeopleIcon />}
               data-test-id="manage-users"
             >
