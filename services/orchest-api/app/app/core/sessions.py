@@ -120,7 +120,10 @@ class Session:
         deployment_manifests = [
             Session._get_memory_server_deployment_manifest(
                 self.pipeline_or_run_uuid, self._session_config, self._session_type
-            )
+            ),
+            Session._get_session_sidecar_deployment_manifest(
+                self.pipeline_or_run_uuid, self._session_config, self._session_type
+            ),
         ]
 
         # Wait for orchest services to be ready. User services might
@@ -235,6 +238,88 @@ class Session:
                                     volume_mounts_dict["pipeline-file"],
                                     volume_mounts_dict["project-dir"],
                                     {"name": "dev-shm", "mountPath": "/dev/shm"},
+                                ],
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+
+    @classmethod
+    def _get_session_sidecar_deployment_manifest(
+        cls,
+        pipeline_or_run_uuid: str,
+        session_config: str,
+        session_type: SessionType,
+    ) -> dict:
+        project_uuid = session_config["project_uuid"]
+        pipeline_uuid = session_config["pipeline_uuid"]
+        host_pipeline_path = session_config["pipeline_path"]
+        host_project_dir = session_config["project_dir"]
+        host_userdir = session_config["host_userdir"]
+
+        metadata = {
+            "name": "session-sidecar",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "pipeline_or_run_uuid": pipeline_or_run_uuid,
+            },
+        }
+        volumes_dict = _get_volumes(
+            project_uuid, host_project_dir, host_pipeline_path, host_userdir
+        )
+        volume_mounts_dict = _get_volume_mounts(
+            _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
+        )
+        return {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": metadata,
+            "spec": {
+                "replicas": 1,
+                "selector": {"matchLabels": {"app": metadata["name"]}},
+                "template": {
+                    "metadata": metadata,
+                    "spec": {
+                        "securityContext": {
+                            "runAsUser": 0,
+                            "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                            "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        },
+                        "resources": {
+                            "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                        },
+                        "volumes": [
+                            volumes_dict["project-dir"],
+                        ],
+                        "containers": [
+                            {
+                                "name": metadata["name"],
+                                "image": "orchest/session-sidecar:latest",
+                                # K8S_TODO: fix me.
+                                "imagePullPolicy": "IfNotPresent",
+                                "env": [
+                                    {
+                                        "name": "ORCHEST_PROJECT_UUID",
+                                        "value": project_uuid,
+                                    },
+                                    {
+                                        "name": "ORCHEST_PIPELINE_UUID",
+                                        "value": pipeline_uuid,
+                                    },
+                                    {
+                                        "name": "ORCHEST_SESSION_UUID",
+                                        "value": pipeline_or_run_uuid,
+                                    },
+                                    {
+                                        "name": "ORCHEST_SESSION_TYPE",
+                                        "value": session_type.value,
+                                    },
+                                ],
+                                "volumeMounts": [
+                                    volume_mounts_dict["project-dir"],
                                 ],
                             }
                         ],
@@ -661,14 +746,6 @@ def _get_orchest_services_specs(
     orchest_services_specs = {}
 
     orchest_services_specs["session-sidecar"] = {
-        "image": "orchest/session-sidecar:latest",
-        "detach": True,
-        # "mounts": [mounts["project_dir"]],
-        "name": f"session-sidecar-{project_uuid}-{uuid}",
-        # It will try to create the logs directory for a given run if it
-        # does not exist, so this is needed to avoid permission issues.
-        "group_add": [os.environ.get("ORCHEST_HOST_GID")],
-        "network": network,
         "environment": [
             f"ORCHEST_PROJECT_UUID={project_uuid}",
             f"ORCHEST_PIPELINE_UUID={pipeline_uuid}",
