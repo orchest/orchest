@@ -111,8 +111,9 @@ class Session:
         self._session_type = session_type
 
     def launch(self):
-        # logger = utils.get_logger()
+        logger = utils.get_logger()
         project_uuid = self._session_config["project_uuid"]
+        logger.info("Creating namespace.")
         utils.create_namespace(project_uuid, self.pipeline_or_run_uuid)
 
         # Internal Orchest session services.
@@ -139,26 +140,48 @@ class Session:
             user_service_deployment_manifests.append(dep)
             user_service_services_manifests.append(serv)
 
-        # Wait for orchest services to be ready. User services might
-        # depend on them.
-
+        logger.info("Creating Orchest session services deployments.")
         ns = get_k8s_namespace_name(project_uuid, self.pipeline_or_run_uuid)
         for manifest in orchest_service_deployment_manifests:
+            logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
             k8s_apps_api.create_namespaced_deployment(
                 ns,
                 manifest,
             )
 
+        logger.info("Waiting for Orchest session service deployments to be ready.")
+        for manifest in orchest_service_deployment_manifests:
+            name = manifest["metadata"]["name"]
+            deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
+            while deployment.status.updated_replicas != deployment.spec.replicas:
+                logger.info(f"Waiting for {name}.")
+                time.sleep(1)
+                deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
+
+        logger.info("Creating user session services deployments.")
+        ns = get_k8s_namespace_name(project_uuid, self.pipeline_or_run_uuid)
         for manifest in user_service_deployment_manifests:
+            logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
             k8s_apps_api.create_namespaced_deployment(
                 ns,
                 manifest,
             )
+        logger.info("Creating user session services k8s services.")
         for manifest in user_service_services_manifests:
+            logger.info(f'Creating service {manifest["metadata"]["name"]}')
             k8s_core_api.create_namespaced_service(
                 ns,
                 manifest,
             )
+
+        logger.info("Waiting for user session service deployments to be ready.")
+        for manifest in user_service_deployment_manifests:
+            name = manifest["metadata"]["name"]
+            deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
+            while deployment.status.updated_replicas != deployment.spec.replicas:
+                logger.info(f"Waiting for {name}.")
+                time.sleep(1)
+                deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
 
     def shutdown(self):
         """Shutdowns the session, deleting all related resources."""
@@ -217,6 +240,9 @@ class Session:
         deployment = k8s_apps_api.read_namespaced_deployment_status(service_name, ns)
         while deployment.status.updated_replicas != deployment.spec.replicas:
             time.sleep(1)
+            deployment = k8s_apps_api.read_namespaced_deployment_status(
+                service_name, ns
+            )
 
     @classmethod
     def _get_memory_server_deployment_manifest(
