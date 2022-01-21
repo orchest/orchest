@@ -1,13 +1,10 @@
 import datetime
-import json
 import os
 import time
 import traceback
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, NamedTuple, Optional
-
-from docker.types import LogConfig, Mount
+from typing import Any, Dict, NamedTuple, Tuple
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_k8s_namespace_name
@@ -119,7 +116,7 @@ class Session:
         utils.create_namespace(project_uuid, self.pipeline_or_run_uuid)
 
         # Internal Orchest session services.
-        deployment_manifests = [
+        orchest_service_deployment_manifests = [
             Session._get_memory_server_deployment_manifest(
                 self.pipeline_or_run_uuid, self._session_config, self._session_type
             ),
@@ -128,12 +125,38 @@ class Session:
             ),
         ]
 
+        user_service_deployment_manifests = []
+        user_service_services_manifests = []
+        for service_config in self._session_config.get("services", {}).values():
+            if self._session_type.value not in service_config["scope"]:
+                continue
+            dep, serv = Session._get_user_service_deployment_service_manifest(
+                self.pipeline_or_run_uuid,
+                self._session_config,
+                service_config,
+                self._session_type,
+            )
+            user_service_deployment_manifests.append(dep)
+            user_service_services_manifests.append(serv)
+
         # Wait for orchest services to be ready. User services might
         # depend on them.
 
-        for manifest in deployment_manifests:
+        ns = get_k8s_namespace_name(project_uuid, self.pipeline_or_run_uuid)
+        for manifest in orchest_service_deployment_manifests:
             k8s_apps_api.create_namespaced_deployment(
-                get_k8s_namespace_name(project_uuid, self.pipeline_or_run_uuid),
+                ns,
+                manifest,
+            )
+
+        for manifest in user_service_deployment_manifests:
+            k8s_apps_api.create_namespaced_deployment(
+                ns,
+                manifest,
+            )
+        for manifest in user_service_services_manifests:
+            k8s_core_api.create_namespaced_service(
+                ns,
                 manifest,
             )
 
@@ -367,6 +390,164 @@ class Session:
             },
         }
 
+    @classmethod
+    def _get_user_service_deployment_service_manifest(
+        cls,
+        pipeline_or_run_uuid: str,
+        session_config: str,
+        service_config: Dict[str, Any],
+        session_type: SessionType,
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Get deployment and service manifest for a user service.
+
+        Args:
+            pipeline_or_run_uuid:
+            session_config: See `Args` section in class :class:`Session`
+                __init__ method.
+            service_config: See `Args` section in class :class:`Session`
+                __init__ method.
+            session_type: Type of session: interactive, or
+                noninteractive.
+
+        Returns:
+            Tuple of k8s deployment and service manifests to deploy this
+            user service in the session.
+
+        """
+        project_uuid = session_config["project_uuid"]
+        pipeline_uuid = session_config["pipeline_uuid"]
+        host_pipeline_path = session_config["pipeline_path"]
+        host_project_dir = session_config["project_dir"]
+        host_userdir = session_config["host_userdir"]
+        img_mappings = session_config["env_uuid_docker_id_mappings"]
+
+        # Get user configured environment variables
+        try:
+            if session_type == SessionType.NONINTERACTIVE:
+                # Get job environment variable overrides
+                user_env_variables = session_config["user_env_variables"]
+            else:
+                user_env_variables = utils.get_proj_pip_env_variables(
+                    project_uuid, pipeline_uuid
+                )
+        except Exception as e:
+
+            utils.get_logger().error(
+                "Failed to fetch user_env_variables: %s [%s]" % (e, type(e))
+            )
+
+            traceback.print_exc()
+
+            user_env_variables = {}
+
+        environment = service_config.get("env_variables", {})
+        # Inherited env vars supersede inherited ones.
+        for inherited_key in service_config.get("env_variables_inherit", []):
+            if inherited_key in user_env_variables:
+                environment[inherited_key] = user_env_variables[inherited_key]
+
+        # These are all required for the Orchest SDK to work.
+        environment["ORCHEST_PROJECT_UUID"] = project_uuid
+        environment["ORCHEST_PIPELINE_UUID"] = pipeline_uuid
+        # So that the SDK can access the pipeline file.
+        environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
+        environment["ORCHEST_SESSION_UUID"] = pipeline_or_run_uuid
+        environment["ORCHEST_SESSION_TYPE"] = session_type.value
+        env = []
+        for k, v in environment.items():
+            env.append({"name": k, "value": v})
+
+        volumes = []
+        volume_mounts = []
+        sbinds = service_config.get("binds", {})
+        volumes_dict = _get_volumes(
+            project_uuid, host_project_dir, host_pipeline_path, host_userdir
+        )
+        # Can be later extended into adding a Mount for every "custom"
+        # key, e.g. key != data and key != project_directory.
+        if "/data" in sbinds:
+            volumes.append(volumes_dict["data"])
+            volume_mounts.append({"name": "data", "mountPath": sbinds["/data"]})
+        if "/project-dir" in sbinds:
+            volumes.append(volumes_dict["project-dir"])
+            volume_mounts.append(
+                {"name": "project-dir", "mountPath": sbinds["/project-dir"]}
+            )
+
+        # To support orchest environments as services.
+        image = service_config["image"]
+        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
+        if image.startswith(prefix):
+            image = image.replace(prefix, "")
+            image = img_mappings[image]
+
+        metadata = {
+            "name": service_config["name"],
+            "labels": {
+                "app": service_config["name"],
+                "project_uuid": project_uuid,
+                "pipeline_or_run_uuid": pipeline_or_run_uuid,
+            },
+        }
+
+        deployment_manifest = {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "metadata": metadata,
+            "spec": {
+                "replicas": 1,
+                "selector": {"matchLabels": {"app": metadata["name"]}},
+                "template": {
+                    "metadata": metadata,
+                    "spec": {
+                        "securityContext": {
+                            "runAsUser": 0,
+                            "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                            "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        },
+                        "resources": {
+                            "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                        },
+                        "volumes": volumes,
+                        "containers": [
+                            {
+                                "name": metadata["name"],
+                                "image": image,
+                                # K8S_TODO: fix me.
+                                "imagePullPolicy": "IfNotPresent",
+                                "env": env,
+                                "volumeMounts": volume_mounts,
+                            }
+                        ],
+                    },
+                },
+            },
+        }
+
+        # K8S_TODO: GUI & data changes to go from entrypoint and command
+        # to command and args.
+        if "entrypoint" in service_config:
+            deployment_manifest["spec"]["template"]["spec"]["containers"][0][
+                "command"
+            ] = service_config["entrypoint"]
+
+        if "command" in service_config:
+            deployment_manifest["spec"]["template"]["spec"]["containers"][0][
+                "args"
+            ] = service_config["command"]
+
+        service_manifest = {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "metadata": metadata,
+            "spec": {
+                "type": "ClusterIP",
+                "selector": {"app": metadata["name"]},
+                "ports": [{"port": port} for port in service_config.get("ports", [])],
+            },
+        }
+        return deployment_manifest, service_manifest
+
 
 class InteractiveSession(Session):
     def __init__(self, pipeline_or_run_uuid: str, session_config: Dict[str, Any]):
@@ -557,191 +738,6 @@ def _get_volume_mounts(
         }
 
     return volumes_mounts
-
-
-def _get_user_services_specs(
-    uuid: str,
-    session_config: Optional[Dict[str, Any]],
-    session_type: SessionType,
-    sidecar_address,
-    network: str,
-) -> Dict[str, Any]:
-    """Constructs the container specifications for all services.
-
-    These specifications can be unpacked into the
-    ``docker.client.DockerClient.containers.run`` method.
-
-    Args:
-        uuid: Some UUID to identify the session with. For interactive
-            runs using the pipeline UUID is required, for non-
-            interactive runs we recommend using the pipeline run UUID.
-        session_config: See `Args` section in class :class:`Session`.
-        session_type: Type of session: interactive, or noninteractive,
-        sidecar_address: Address of the sidecar container, to be passed
-            to the log driver for collecting logs. Note that docker does
-            not provide host name resolution for containers in the log
-            driver, meaning that passing an address like
-            tcp://{container name}:1111, will not work. If you want to
-            reach a container within the same docker network you will
-            have to pass the ip, tcp://{ip}:1111. External hosts can be
-            reached normally, e.g. as if trying to reach them from the
-            actual hosts, i.e.  pass the address normally.
-        network: Docker network. This is put directly into the specs, so
-            that the containers are started on the specified network.
-
-    Returns:
-        Mapping from container name to container specification for the
-        run method. The return dict looks as follows:
-            container_specs = {
-                '{service name} spec dict,
-                ...
-            }
-
-    """
-    project_uuid = session_config["project_uuid"]
-    pipeline_uuid = session_config["pipeline_uuid"]
-    project_dir = session_config["project_dir"]
-    # pipeline_path = session_config["pipeline_path"]
-    host_userdir = session_config["host_userdir"]
-    services = session_config.get("services", {})
-    img_mappings = session_config["env_uuid_docker_id_mappings"]
-
-    # orc_mounts = _get_mounts(
-    #     uuid, project_uuid, project_dir, pipeline_path, host_userdir
-    # )
-
-    specs = {}
-
-    for service_name, service in services.items():
-
-        # Skip if service_scope does not include this type of session.
-        if session_type.value not in service["scope"]:
-            continue
-
-        container_name = (
-            f"service-{service_name}"
-            f'-{project_uuid.split("-")[0]}-{uuid.split("-")[0]}'
-        )
-        # This way nginx won't match & proxy to it.
-        if not service.get("ports", []):
-            container_name = f"internal-{container_name}"
-        else:
-            # To preserve the base path when proxying, for more details
-            # check the nginx config, services section.
-            pbp = "pbp-" if service.get("preserve_base_path", False) else ""
-            service_base_url = f"/{pbp}{container_name}"
-
-            # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
-            # this substitution happens after service["name"] is read,
-            # so that JSON entry does not support $BASE_PATH_PREFIX
-            # substitution.  This allows the user to specify
-            # $BASE_PATH_PREFIX as the value of an env variable, so that
-            # the base path can be passsed dynamically to the service.
-            service_str = json.dumps(service)
-            service_str = service_str.replace("$BASE_PATH_PREFIX", service_base_url)
-            service = json.loads(service_str)
-
-        # Get user configured environment variables
-        try:
-            if session_type == SessionType.NONINTERACTIVE:
-                # Get job environment variable overrides
-                user_env_variables = session_config["user_env_variables"]
-            else:
-                user_env_variables = utils.get_proj_pip_env_variables(
-                    project_uuid, pipeline_uuid
-                )
-        except Exception as e:
-
-            utils.get_logger().error(
-                "Failed to fetch user_env_variables: %s [%s]" % (e, type(e))
-            )
-
-            traceback.print_exc()
-
-            user_env_variables = {}
-
-        environment = service.get("env_variables", {})
-
-        # Inherited env vars supersede inherited ones.
-        for inherited_key in service.get("env_variables_inherit", []):
-            if inherited_key in user_env_variables:
-                environment[inherited_key] = user_env_variables[inherited_key]
-
-        # These are all required for the Orchest SDK to work.
-        environment["ORCHEST_PROJECT_UUID"] = project_uuid
-        environment["ORCHEST_PIPELINE_UUID"] = pipeline_uuid
-        # So that the SDK can access the pipeline file.
-        environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
-        environment["ORCHEST_SESSION_UUID"] = uuid
-        environment["ORCHEST_SESSION_TYPE"] = session_type.value
-
-        # mounts = [orc_mounts["pipeline_file"]]
-        mounts = []
-
-        sbinds = service.get("binds", {})
-        # Can be later extended into adding a Mount for every "custom"
-        # key, e.g. key != data and key != project_directory.
-        if "/data" in sbinds:
-            mounts.append(
-                Mount(  # data directory
-                    target=sbinds["/data"],
-                    source=os.path.join(host_userdir, "data"),
-                    type="bind",
-                ),
-            )
-
-        if "/project-dir" in sbinds:
-            mounts.append(
-                Mount(
-                    target=sbinds["/project-dir"],
-                    source=project_dir,
-                    type="bind",
-                ),
-            )
-
-        # To support orchest environments as services.
-        image = service["image"]
-        prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-        if image.startswith(prefix):
-            image = image.replace(prefix, "")
-            image = img_mappings[image]
-
-        specs[service_name] = {
-            "image": image,
-            "detach": True,
-            "mounts": mounts,
-            "name": container_name,
-            "group_add": [os.environ.get("ORCHEST_HOST_GID")],
-            "network": network,
-            "environment": environment,
-            # Labels are used to have a way of keeping track of the
-            # containers attributes through
-            # ``Session.from_container_IDs``
-            "labels": {
-                "session_identity_uuid": uuid,
-                "project_uuid": project_uuid,
-            },
-            "log_config": LogConfig(
-                type=LogConfig.types.SYSLOG,
-                config={
-                    "mode": "non-blocking",
-                    "max-buffer-size": "10mb",
-                    "syslog-format": "rfc3164",
-                    "syslog-address": sidecar_address,
-                    # Used by the sidecar to detect who is sending logs.
-                    "tag": f"user-service-{service_name}-metadata-end",
-                },
-            ),
-            "cpu_shares": _config.USER_CONTAINERS_CPU_SHARES,
-        }
-
-        if "entrypoint" in service:
-            specs[service_name]["entrypoint"] = service["entrypoint"]
-
-        if "command" in service:
-            specs[service_name]["command"] = service["command"]
-
-    return specs
 
 
 def _get_orchest_services_specs(
