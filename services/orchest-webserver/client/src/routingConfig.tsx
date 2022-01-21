@@ -237,8 +237,12 @@ export const toQueryString = <T extends string>(
     ? Object.entries<string | number | boolean | undefined | null>(query)
         .reduce((str, entry) => {
           const [key, value] = entry;
-          return value // we don't pass along null or undefined since it doesn't mean much to the receiver
-            ? `${str}${snakeCase(key)}=${value.toString().toLowerCase()}&`
+          const encodedValue =
+            value && value !== "null" && value !== "undefined" // we don't pass along null or undefined since it doesn't mean much to the receiver
+              ? encodeURIComponent(value.toString().toLowerCase())
+              : null;
+          return encodedValue
+            ? `${str}${snakeCase(key)}=${encodedValue}&`
             : str;
         }, "?")
         .slice(0, -1) // remove the trailing '&' or '?'.

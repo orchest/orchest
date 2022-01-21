@@ -69,7 +69,7 @@ const getQueryString = ({
   toQueryString({
     page,
     page_size: rowsPerPage,
-    fuzzy_filter: encodeURIComponent(searchTerm),
+    fuzzy_filter: searchTerm,
   });
 
 export const PipelineRunTable: React.FC<{

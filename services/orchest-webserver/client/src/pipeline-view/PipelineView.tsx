@@ -1530,21 +1530,19 @@ const PipelineView: React.FC = () => {
         "Please start the session before opening the Notebook in Jupyter."
       );
     } else if (session.status === "RUNNING") {
+      const filePath = collapseDoubleDots(
+        state.pipelineCwd + state.eventVars.steps[stepUUID].file_path
+      ).slice(1);
       navigateTo(
         siteMap.jupyterLab.path,
         {
           query: {
             projectUuid,
             pipelineUuid,
+            filePath,
           },
         },
         e
-      );
-
-      window.orchest.jupyter.navigateTo(
-        collapseDoubleDots(
-          state.pipelineCwd + state.eventVars.steps[stepUUID].file_path
-        ).slice(1)
       );
     } else if (session.status === "LAUNCHING") {
       setAlert(

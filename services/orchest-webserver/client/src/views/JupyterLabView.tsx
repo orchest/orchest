@@ -32,7 +32,7 @@ const JupyterLabView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
 
   // data from route
-  const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
+  const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
 
   const { getSession, toggleSession, state } = useSessionsContext();
   useSessionsPoller();
@@ -203,6 +203,7 @@ const JupyterLabView: React.FC = () => {
     if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
         window.orchest.jupyter.show();
+        if (filePath) window.orchest.jupyter.navigateTo(filePath);
       } else {
         window.orchest.jupyter.hide();
       }

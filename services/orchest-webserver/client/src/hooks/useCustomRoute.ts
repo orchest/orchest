@@ -90,6 +90,7 @@ const useCustomRoute = () => {
     "pipeline_uuid",
     "environment_uuid",
     "step_uuid",
+    "file_path",
   ]);
 
   const [
@@ -100,6 +101,7 @@ const useCustomRoute = () => {
     pipelineUuid,
     environmentUuid,
     stepUuid,
+    filePath,
   ] = valueArray as (string | undefined | null)[]; // asserting all values are string
 
   type NavigateParams = {
@@ -154,6 +156,7 @@ const useCustomRoute = () => {
     stepUuid,
     jobUuid,
     runUuid,
+    filePath,
     initialTab,
   };
 };
