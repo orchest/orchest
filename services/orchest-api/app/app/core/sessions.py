@@ -543,7 +543,7 @@ class Session:
             "spec": {
                 "type": "ClusterIP",
                 "selector": {"app": metadata["name"]},
-                "ports": [{"port": port} for port in service_config.get("ports", [])],
+                "ports": [{"port": port} for port in service_config["ports"]],
             },
         }
         return deployment_manifest, service_manifest

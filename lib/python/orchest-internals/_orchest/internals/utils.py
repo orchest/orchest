@@ -585,8 +585,9 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and
         # Allowed binds.
         all([bind in ["/data", "/project-dir"] for bind in service.get("binds", {})])
-        and isinstance(service.get("ports", []), list)
-        and all([isinstance(port, int) for port in service.get("ports", [])])
+        and isinstance(service.get("ports"), list)
+        and all([isinstance(port, int) for port in service["ports"]])
+        and len(service["ports"]) > 0
         and isinstance(service.get("env_variables_inherit", []), list)
         and all(
             [
