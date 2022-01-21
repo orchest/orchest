@@ -1,11 +1,16 @@
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import React from "react";
 import { Redirect, Route, Switch, useLocation } from "react-router-dom";
-import { UpdateDialog } from "./components/UpdateDialog";
 import { getOrderedRoutes, siteMap, toQueryString } from "./routingConfig";
 
 const Routes = () => {
   let location = useLocation();
-  const routesPromptingUpdate = ["projects", "settings", "help"];
+  // const routesCheckingUpdate = ["projects", "settings", "help"];
+
+  // if (routesCheckingUpdate.includes(name)) {
+  // TODO: It now runs on all routes, but it should only display on
+  // the routes defined by routesCheckingUpdate
+  useCheckUpdate();
 
   return (
     <Switch>
@@ -24,14 +29,6 @@ const Routes = () => {
             render={() => {
               window.document.title = title;
               const Component = component;
-              if (routesPromptingUpdate.includes(name)) {
-                return (
-                  <div>
-                    <UpdateDialog />
-                    <Component />
-                  </div>
-                );
-              }
               return <Component />;
             }}
           />
