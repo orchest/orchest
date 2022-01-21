@@ -48,16 +48,17 @@ import Typography from "@mui/material/Typography";
 import {
   activeElementIsInput,
   collapseDoubleDots,
+  fetcher,
   intersectRect,
   makeCancelable,
   makeRequest,
   PromiseManager,
   RefManager,
-  uuidv4,
+  uuidv4 as uuid,
 } from "@orchest/lib-utils";
 import cloneDeep from "lodash.clonedeep";
 import merge from "lodash.merge";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
 import PipelineConnection from "./PipelineConnection";
@@ -95,7 +96,10 @@ export interface IPipelineStepState {
     name: string;
   };
 }
+
 export type Step = Record<string, IPipelineStepState>;
+
+type RunStepsType = "selection" | "incoming";
 
 type Connection = {
   startNode: HTMLElement;
@@ -129,17 +133,10 @@ export interface IPipelineViewState {
   promiseManager: any;
   refManager: any;
   runStatusEndpoint: string;
-  pipelineRunning: boolean;
-  waitingOnCancel: boolean;
   runUuid?: string;
-  pendingRunUuids?: string[];
-  pendingRunType?: string;
   stepExecutionState: ExecutionState;
   pipelineCwd?: string;
   defaultDetailViewIndex: number;
-  // The save hash is used to propagate a save's side-effects
-  // to components.
-  saveHash?: string;
   pipelineJson?: PipelineJson;
 }
 
@@ -169,7 +166,9 @@ const PipelineView: React.FC = () => {
   } = sessionContext;
   useSessionsPoller();
 
-  const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
+  const [isReadOnly, _setIsReadOnly] = React.useState(
+    isReadOnlyFromQueryString
+  );
   const setIsReadOnly = (readOnly: boolean) => {
     dispatch({
       type: "pipelineUpdateReadOnlyState",
@@ -179,9 +178,9 @@ const PipelineView: React.FC = () => {
     if (!readOnly) initializePipelineEditListeners();
   };
 
-  const [shouldAutoStart, setShouldAutoStart] = useState(!isReadOnly);
+  const [shouldAutoStart, setShouldAutoStart] = React.useState(!isReadOnly);
 
-  useEffect(() => {
+  React.useEffect(() => {
     setShouldAutoStart(!isReadOnly);
   }, [isReadOnly]);
 
@@ -264,19 +263,22 @@ const PipelineView: React.FC = () => {
     promiseManager: new PromiseManager(),
     refManager: new RefManager(),
     runStatusEndpoint: "/catch/api-proxy/api/runs/",
-    pipelineRunning: false,
-    waitingOnCancel: false,
     runUuid: undefined,
-    pendingRunUuids: undefined,
-    pendingRunType: undefined,
     stepExecutionState: {},
     pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
-    // The save hash is used to propagate a save's side-effects
-    // to components.
-    saveHash: undefined,
     pipelineJson: undefined,
   };
+
+  // The save hash is used to propagate a save's side-effects to components.
+  const [saveHash, setSaveHash] = React.useState<string>();
+
+  const [pendingRuns, setPendingRuns] = React.useState<
+    { uuids: string[]; type: string } | undefined
+  >();
+
+  const [pipelineRunning, setPipelineRunning] = React.useState(false);
+  const [isCancellingRun, setIsCancellingRun] = React.useState(false);
 
   if (runUuidFromRoute && jobUuidFromRoute) {
     initialState.runUuid = runUuidFromRoute;
@@ -1008,11 +1010,7 @@ const PipelineView: React.FC = () => {
         updateEventVars();
       }
 
-      if (stepDragged) {
-        setState({
-          saveHash: uuidv4(),
-        });
-      }
+      if (stepDragged) setSaveHash(uuid());
 
       if (e.button === 0 && state.eventVars.selectedSteps.length == 0) {
         // when space bar is held make sure deselection does not occur
@@ -1298,7 +1296,7 @@ const PipelineView: React.FC = () => {
 
       let step = {
         title: "",
-        uuid: uuidv4(),
+        uuid: uuid(),
         incoming_connections: [],
         file_path: "",
         kernel: {
@@ -1341,7 +1339,7 @@ const PipelineView: React.FC = () => {
         // to avoid repositioning flash (creating a step can affect the size of the viewport)
         _step["meta_data"]["hidden"] = false;
         updateEventVars();
-        setState({ saveHash: uuidv4() });
+        setSaveHash(uuid());
         state.refManager.refs[step.uuid].updatePosition(
           state.eventVars.steps[step.uuid].meta_data.position
         );
@@ -1381,7 +1379,7 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setState({ saveHash: uuidv4() });
+    setSaveHash(uuid());
   };
 
   const getStepExecutionState = (stepUUID: string) => {
@@ -1415,7 +1413,7 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setState({ saveHash: uuidv4() });
+    setSaveHash(uuid());
   };
 
   const deleteSelectedSteps = () => {
@@ -1443,7 +1441,7 @@ const PipelineView: React.FC = () => {
             state.eventVars.selectedSteps = [];
             state.eventVars.isDeletingStep = false;
             updateEventVars();
-            setState({ saveHash: uuidv4() });
+            setSaveHash(uuid());
             resolve(true);
             return true;
           },
@@ -1510,7 +1508,7 @@ const PipelineView: React.FC = () => {
         state.eventVars.selectedSteps = [];
         updateEventVars();
         deleteStep(uuid);
-        setState({ saveHash: uuidv4() });
+        setSaveHash(uuid());
         resolve(true);
         return true;
       }
@@ -1626,9 +1624,7 @@ const PipelineView: React.FC = () => {
           parseRunStatuses(result);
 
           if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
-            setState({
-              pipelineRunning: true,
-            });
+            setPipelineRunning(true);
           }
 
           if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
@@ -1638,10 +1634,9 @@ const PipelineView: React.FC = () => {
             if (window.orchest.jupyter)
               window.orchest.jupyter.reloadFilesFromDisk();
 
-            setState({
-              pipelineRunning: false,
-              waitingOnCancel: false,
-            });
+            setPipelineRunning(false);
+            setIsCancellingRun(false);
+
             clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
           }
         })
@@ -1742,9 +1737,7 @@ const PipelineView: React.FC = () => {
     setPipelineJSON(_pipelineJson, _pipelineJson.steps);
 
     // and save
-    setState({
-      saveHash: uuidv4(),
-    });
+    setSaveHash(uuid());
   };
 
   const scaleCorrectedPosition = (position, scaleFactor) => {
@@ -1817,32 +1810,27 @@ const PipelineView: React.FC = () => {
     runStepUUIDs(state.eventVars.selectedSteps, "incoming");
   };
 
-  const cancelRun = () => {
-    if (!state.pipelineRunning) {
+  const cancelRun = async () => {
+    if (!pipelineRunning) {
       setAlert("Error", "There is no pipeline running.");
       return;
     }
 
     const { runUuid } = state;
 
-    makeRequest("DELETE", `/catch/api-proxy/api/runs/${runUuid}`)
-      .then(() => {
-        setState({
-          waitingOnCancel: true,
-        });
-      })
-      .catch(() => {
-        setAlert(
-          "Error",
-          `Could not cancel pipeline run for runUuid ${runUuid}`
-        );
+    try {
+      setIsCancellingRun(true);
+      await fetcher(`/catch/api-proxy/api/runs/${runUuid}`, {
+        method: "DELETE",
       });
+      setIsCancellingRun(false);
+    } catch (error) {
+      setAlert("Error", `Could not cancel pipeline run for runUuid ${runUuid}`);
+    }
   };
 
-  const _runStepUUIDs = (uuids, type) => {
-    setState({
-      pipelineRunning: true,
-    });
+  const _runStepUUIDs = (uuids: string[], type: RunStepsType) => {
+    setPipelineRunning(true);
 
     // store pipeline.json
     let data = {
@@ -1874,9 +1862,7 @@ const PipelineView: React.FC = () => {
       })
       .catch((response) => {
         if (!response.isCanceled) {
-          setState({
-            pipelineRunning: false,
-          });
+          setPipelineRunning(false);
 
           try {
             let data = JSON.parse(response.body);
@@ -1894,7 +1880,7 @@ const PipelineView: React.FC = () => {
       });
   };
 
-  const runStepUUIDs = (uuids, type) => {
+  const runStepUUIDs = (uuids: string[], type: RunStepsType) => {
     if (!session || session.status !== "RUNNING") {
       setAlert(
         "Error",
@@ -1903,7 +1889,7 @@ const PipelineView: React.FC = () => {
       return;
     }
 
-    if (state.pipelineRunning) {
+    if (pipelineRunning) {
       setAlert(
         "Error",
         "The pipeline is currently executing, please wait until it completes."
@@ -1911,11 +1897,8 @@ const PipelineView: React.FC = () => {
       return;
     }
 
-    setState({
-      pendingRunUuids: uuids,
-      pendingRunType: type,
-      saveHash: uuidv4(),
-    });
+    setSaveHash(uuid());
+    setPendingRuns({ uuids, type });
   };
 
   const startStatusInterval = () => {
@@ -1963,9 +1946,7 @@ const PipelineView: React.FC = () => {
     }
 
     updateEventVars();
-    setState({
-      saveHash: uuidv4(),
-    });
+    setSaveHash(uuid());
   };
 
   const deselectSteps = () => {
@@ -2073,7 +2054,7 @@ const PipelineView: React.FC = () => {
   const servicesAvailable = () => {
     if (
       (!jobUuidFromRoute && session && session.status == "RUNNING") ||
-      (jobUuidFromRoute && state.pipelineJson && state.pipelineRunning)
+      (jobUuidFromRoute && state.pipelineJson && pipelineRunning)
     ) {
       let services = getServices();
       if (services !== undefined) {
@@ -2322,25 +2303,19 @@ const PipelineView: React.FC = () => {
   }, [state.runUuid]);
 
   React.useEffect(() => {
-    if (state.saveHash !== undefined) {
-      if (
-        state.pendingRunUuids !== undefined &&
-        state.pendingRunType !== undefined
-      ) {
-        let uuids = state.pendingRunUuids;
-        let runType = state.pendingRunType;
-        setState({
-          pendingRunUuids: undefined,
-          pendingRunType: undefined,
-        });
+    // TODO: running selected steps results in saving twice
+    if (saveHash !== undefined) {
+      if (pendingRuns) {
+        const { uuids, type } = pendingRuns;
+        setPendingRuns(undefined);
         savePipeline(() => {
-          _runStepUUIDs(uuids, runType);
+          _runStepUUIDs(uuids, type);
         });
       } else {
         savePipeline();
       }
     }
-  }, [state.saveHash, state.pendingRunUuids, state.pendingRunType]);
+  }, [saveHash, pendingRuns]);
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
@@ -2476,7 +2451,7 @@ const PipelineView: React.FC = () => {
             </div>
 
             {!isReadOnly &&
-              !state.pipelineRunning &&
+              !pipelineRunning &&
               state.eventVars.selectedSteps.length > 0 &&
               !state.eventVars.stepSelector.active && (
                 <div className="selection-buttons">
@@ -2498,14 +2473,14 @@ const PipelineView: React.FC = () => {
                   )}
                 </div>
               )}
-            {!isReadOnly && state.pipelineRunning && (
+            {!isReadOnly && pipelineRunning && (
               <div className="selection-buttons">
                 <Button
                   variant="contained"
                   color="secondary"
                   onClick={cancelRun}
                   startIcon={<CloseIcon />}
-                  disabled={state.waitingOnCancel}
+                  disabled={isCancellingRun}
                   data-test-id="interactive-run-cancel"
                 >
                   Cancel run
