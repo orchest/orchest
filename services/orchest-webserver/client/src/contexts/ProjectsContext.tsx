@@ -30,8 +30,8 @@ type Action =
       payload: Project[];
     }
   | {
-      type: "pipelineUpdateReadOnlyState";
-      payload: IProjectsContextState["pipelineIsReadOnly"];
+      type: "SET_PIPELINE_IS_READONLY";
+      payload: boolean;
     };
 
 type ActionCallback = (currentState: IProjectsContextState) => Action;
@@ -54,7 +54,7 @@ const reducer = (
       return { ...state, pipelineFetchHash: uuidv4(), ...action.payload };
     case "pipelineSetSaveStatus":
       return { ...state, pipelineSaveStatus: action.payload };
-    case "pipelineUpdateReadOnlyState":
+    case "SET_PIPELINE_IS_READONLY":
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
       return { ...state, projectUuid: action.payload };

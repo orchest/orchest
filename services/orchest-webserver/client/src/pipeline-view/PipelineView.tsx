@@ -4,7 +4,6 @@ import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -59,6 +58,7 @@ import PipelineStep, {
 } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
+import { useAutoStartSession } from "./useAutoStartSession";
 
 const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -121,19 +121,18 @@ export interface IPipelineViewState {
   initializedPipeline: boolean;
   promiseManager: any;
   refManager: any;
-  runStatusEndpoint: string;
-  runUuid?: string;
   stepExecutionState: ExecutionState;
   pipelineCwd?: string;
   defaultDetailViewIndex: number;
   pipelineJson?: PipelineJson;
 }
 
+const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
+
 const PipelineView: React.FC = () => {
   const { $ } = window;
   const { dispatch } = useProjectsContext();
   const { setAlert, setConfirm, requestBuild } = useAppContext();
-  const sessionContext = useSessionsContext();
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
 
   const {
@@ -145,33 +144,23 @@ const PipelineView: React.FC = () => {
     navigateTo,
   } = useCustomRoute();
 
-  const {
-    state: { sessionsIsLoading },
-    getSession,
-  } = sessionContext;
-  useSessionsPoller();
-
   const [isReadOnly, _setIsReadOnly] = React.useState(
     isReadOnlyFromQueryString
   );
   const setIsReadOnly = (readOnly: boolean) => {
     dispatch({
-      type: "pipelineUpdateReadOnlyState",
+      type: "SET_PIPELINE_IS_READONLY",
       payload: readOnly,
     });
     _setIsReadOnly(readOnly);
     if (!readOnly) initializePipelineEditListeners();
   };
 
-  const [shouldAutoStart, setShouldAutoStart] = React.useState(!isReadOnly);
-
-  React.useEffect(() => {
-    setShouldAutoStart(!isReadOnly);
-  }, [isReadOnly]);
-
-  const session = getSession({
+  useSessionsPoller();
+  const session = useAutoStartSession({
     projectUuid,
     pipelineUuid,
+    isReadOnly,
   });
 
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
@@ -246,8 +235,6 @@ const PipelineView: React.FC = () => {
     initializedPipeline: false,
     promiseManager: new PromiseManager(),
     refManager: new RefManager(),
-    runStatusEndpoint: "/catch/api-proxy/api/runs/",
-    runUuid: undefined,
     stepExecutionState: {},
     pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
@@ -264,11 +251,10 @@ const PipelineView: React.FC = () => {
   const [pipelineRunning, setPipelineRunning] = React.useState(false);
   const [isCancellingRun, setIsCancellingRun] = React.useState(false);
 
-  if (runUuidFromRoute && jobUuidFromRoute) {
-    initialState.runUuid = runUuidFromRoute;
-    initialState.runStatusEndpoint =
-      "/catch/api-proxy/api/jobs/" + jobUuidFromRoute + "/";
-  }
+  const [runUuid, setRunUuid] = React.useState(runUuidFromRoute);
+  const runStatusEndpoint = jobUuidFromRoute
+    ? `${PIPELINE_RUN_STATUS_ENDPOINT}${jobUuidFromRoute}/`
+    : PIPELINE_RUN_STATUS_ENDPOINT;
 
   const [state, _setState] = React.useState<IPipelineViewState>(initialState);
   // TODO: clean up this class-component-stye setState
@@ -309,9 +295,7 @@ const PipelineView: React.FC = () => {
           if (data["runs"].length > 0) {
             let run = data["runs"][0];
 
-            setState({
-              runUuid: run.uuid,
-            });
+            setRunUuid(run.uuid);
           }
         } catch (e) {
           console.log("Error parsing return from orchest-api " + e);
@@ -468,7 +452,7 @@ const PipelineView: React.FC = () => {
           projectUuid,
           pipelineUuid,
           jobUuid: jobUuidFromRoute,
-          runUuid: runUuidFromRoute,
+          runUuid,
         },
         state: { isReadOnly },
       },
@@ -484,7 +468,7 @@ const PipelineView: React.FC = () => {
           projectUuid,
           pipelineUuid,
           jobUuid: jobUuidFromRoute,
-          runUuid: runUuidFromRoute,
+          runUuid,
         },
         state: { isReadOnly },
       },
@@ -501,29 +485,6 @@ const PipelineView: React.FC = () => {
   const hideServices = () => {
     setIsShowingServices(false);
   };
-
-  React.useEffect(() => {
-    if (!sessionsIsLoading) {
-      // If session doesn't exist and first load
-      if (shouldAutoStart && !session) {
-        sessionContext.toggleSession({ pipelineUuid, projectUuid });
-        setShouldAutoStart(false);
-        return;
-      }
-
-      if (session?.status == "RUNNING" && shouldAutoStart) {
-        setShouldAutoStart(false);
-      }
-
-      if (session?.status === "STOPPING") {
-        window.orchest.jupyter.unload();
-      }
-
-      if (session?.notebook_server_info) {
-        updateJupyterInstance();
-      }
-    }
-  }, [session, sessionsIsLoading, shouldAutoStart]);
 
   const initializeResizeHandlers = () => {
     $(window).resize(() => {
@@ -1131,7 +1092,7 @@ const PipelineView: React.FC = () => {
       pipelineUuid,
       projectUuid,
       jobUuidFromRoute,
-      runUuidFromRoute
+      runUuid
     );
 
     if (!isReadOnly) {
@@ -1173,7 +1134,7 @@ const PipelineView: React.FC = () => {
           let pipelineJson = decodeJSON(JSON.parse(result["pipeline_json"]));
 
           dispatch({
-            type: "pipelineUpdateReadOnlyState",
+            type: "SET_PIPELINE_IS_READONLY",
             payload: isReadOnly,
           });
 
@@ -1218,15 +1179,6 @@ const PipelineView: React.FC = () => {
       .catch((error) => {
         console.error(error);
       });
-  };
-
-  const updateJupyterInstance = () => {
-    const base_url = session?.notebook_server_info?.base_url;
-
-    if (base_url) {
-      let baseAddress = "//" + window.location.host + base_url;
-      window.orchest.jupyter.updateJupyterInstance(baseAddress);
-    }
   };
 
   /**
@@ -1543,7 +1495,7 @@ const PipelineView: React.FC = () => {
           pipelineUuid,
           stepUuid,
           jobUuid: jobUuidFromRoute,
-          runUuid: runUuidFromRoute,
+          runUuid,
         },
         state: { isReadOnly },
       },
@@ -1590,9 +1542,9 @@ const PipelineView: React.FC = () => {
   };
 
   const pollPipelineStepStatuses = () => {
-    if (state.runUuid) {
+    if (runUuid) {
       let pollPromise = makeCancelable(
-        makeRequest("GET", state.runStatusEndpoint + state.runUuid),
+        makeRequest("GET", runStatusEndpoint + runUuid),
         state.promiseManager
       );
 
@@ -1795,8 +1747,6 @@ const PipelineView: React.FC = () => {
       return;
     }
 
-    const { runUuid } = state;
-
     try {
       setIsCancellingRun(true);
       await fetcher(`/catch/api-proxy/api/runs/${runUuid}`, {
@@ -1833,9 +1783,7 @@ const PipelineView: React.FC = () => {
 
         parseRunStatuses(result);
 
-        setState({
-          runUuid: result.uuid,
-        });
+        setRunUuid(result.uuid);
 
         startStatusInterval();
       })
@@ -2252,7 +2200,7 @@ const PipelineView: React.FC = () => {
   React.useEffect(() => {
     pollPipelineStepStatuses();
     startStatusInterval();
-  }, [state.runUuid]);
+  }, [runUuid]);
 
   React.useEffect(() => {
     // TODO: running selected steps results in saving twice
@@ -2280,7 +2228,7 @@ const PipelineView: React.FC = () => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
-    const hasActiveRun = runUuidFromRoute && jobUuidFromRoute;
+    const hasActiveRun = runUuid && jobUuidFromRoute;
     if (hasActiveRun) {
       try {
         pollPipelineStepStatuses();
@@ -2556,7 +2504,7 @@ const PipelineView: React.FC = () => {
             pipelineCwd={state.pipelineCwd}
             project_uuid={projectUuid}
             job_uuid={jobUuidFromRoute}
-            run_uuid={runUuidFromRoute}
+            run_uuid={runUuid}
             sio={state.sio}
             readOnly={isReadOnly}
             step={state.eventVars.steps[state.eventVars.openedStep]}
