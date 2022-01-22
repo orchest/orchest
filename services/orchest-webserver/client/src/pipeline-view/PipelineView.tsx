@@ -1,5 +1,4 @@
 // @ts-nocheck
-
 import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -9,7 +8,7 @@ import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
-import type { PipelineJson } from "@/types";
+import type { PipelineJson, PipelineRun } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import {
   addOutgoingConnections,
@@ -17,7 +16,6 @@ import {
   filterServices,
   getPipelineJSONEndpoint,
   getScrollLineHeight,
-  serverTimeToDate,
   validatePipeline,
 } from "@/utils/webserver-utils";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
@@ -37,6 +35,7 @@ import {
   activeElementIsInput,
   collapseDoubleDots,
   fetcher,
+  HEADER,
   intersectRect,
   makeCancelable,
   makeRequest,
@@ -51,16 +50,15 @@ import io from "socket.io-client";
 import { siteMap } from "../Routes";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
-import PipelineStep, {
-  ExecutionState,
-  STEP_HEIGHT,
-  STEP_WIDTH,
-} from "./PipelineStep";
+import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { useAutoStartSession } from "./useAutoStartSession";
+import {
+  convertStepsToObject,
+  useStepExecutionState,
+} from "./useStepExecutionState";
 
-const STATUS_POLL_FREQUENCY = 1000;
 const DRAG_CLICK_SENSITIVITY = 3;
 const CANVAS_VIEW_MULTIPLE = 3;
 const DOUBLE_CLICK_TIMEOUT = 300;
@@ -121,7 +119,6 @@ export interface IPipelineViewState {
   initializedPipeline: boolean;
   promiseManager: any;
   refManager: any;
-  stepExecutionState: ExecutionState;
   pipelineCwd?: string;
   defaultDetailViewIndex: number;
   pipelineJson?: PipelineJson;
@@ -183,7 +180,6 @@ const PipelineView: React.FC = () => {
   );
 
   const timersRef = useRef({
-    pipelineStepStatusPollingInterval: undefined,
     doubleClickTimeout: undefined,
     saveIndicatorTimeout: undefined,
   });
@@ -235,7 +231,6 @@ const PipelineView: React.FC = () => {
     initializedPipeline: false,
     promiseManager: new PromiseManager(),
     refManager: new RefManager(),
-    stepExecutionState: {},
     pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
     pipelineJson: undefined,
@@ -255,6 +250,26 @@ const PipelineView: React.FC = () => {
   const runStatusEndpoint = jobUuidFromRoute
     ? `${PIPELINE_RUN_STATUS_ENDPOINT}${jobUuidFromRoute}/`
     : PIPELINE_RUN_STATUS_ENDPOINT;
+
+  const { stepExecutionState, setStepExecutionState } = useStepExecutionState(
+    runUuid ? `${runStatusEndpoint}${runUuid}` : null,
+    (runStatus) => {
+      if (["PENDING", "STARTED"].includes(runStatus)) {
+        setPipelineRunning(true);
+      }
+
+      if (["SUCCESS", "ABORTED", "FAILURE"].includes(runStatus)) {
+        // make sure stale opened files are reloaded in active
+        // Jupyter instance
+
+        if (window.orchest.jupyter)
+          window.orchest.jupyter.reloadFilesFromDisk();
+
+        setPipelineRunning(false);
+        setIsCancellingRun(false);
+      }
+    }
+  );
 
   const [state, _setState] = React.useState<IPipelineViewState>(initialState);
   // TODO: clean up this class-component-stye setState
@@ -280,7 +295,7 @@ const PipelineView: React.FC = () => {
     let pipelineRunsPromise = makeCancelable(
       makeRequest(
         "GET",
-        `/catch/api-proxy/api/runs/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
+        `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
       ),
       state.promiseManager
     );
@@ -1313,22 +1328,6 @@ const PipelineView: React.FC = () => {
     setSaveHash(uuidv4());
   };
 
-  const getStepExecutionState = (stepUUID: string) => {
-    if (state.stepExecutionState[stepUUID]) {
-      return state.stepExecutionState[stepUUID];
-    } else {
-      return { status: "IDLE" };
-    }
-  };
-
-  const setStepExecutionState = (stepUUID, executionState) => {
-    state.stepExecutionState[stepUUID] = executionState;
-
-    setState({
-      stepExecutionState: state.stepExecutionState,
-    });
-  };
-
   const onRemoveConnection = (
     sourcePipelineStepUUID,
     targetPipelineStepUUID
@@ -1507,76 +1506,6 @@ const PipelineView: React.FC = () => {
     openNotebook(e, state.eventVars.openedStep);
   };
 
-  const parseRunStatuses = (result) => {
-    if (
-      result.pipeline_steps === undefined ||
-      result.pipeline_steps.length === undefined
-    ) {
-      console.error(
-        "Did not contain pipeline_steps list. Invalid `result` object"
-      );
-    }
-
-    for (let x = 0; x < result.pipeline_steps.length; x++) {
-      // finished_time takes priority over started_time
-      let started_time = undefined;
-      let finished_time = undefined;
-      let server_time = serverTimeToDate(result.server_time);
-
-      if (result.pipeline_steps[x].started_time) {
-        started_time = serverTimeToDate(result.pipeline_steps[x].started_time);
-      }
-      if (result.pipeline_steps[x].finished_time) {
-        finished_time = serverTimeToDate(
-          result.pipeline_steps[x].finished_time
-        );
-      }
-
-      setStepExecutionState(result.pipeline_steps[x].step_uuid, {
-        status: result.pipeline_steps[x].status,
-        started_time: started_time,
-        finished_time: finished_time,
-        server_time: server_time,
-      });
-    }
-  };
-
-  const pollPipelineStepStatuses = () => {
-    if (runUuid) {
-      let pollPromise = makeCancelable(
-        makeRequest("GET", runStatusEndpoint + runUuid),
-        state.promiseManager
-      );
-
-      pollPromise.promise
-        .then((response) => {
-          let result = JSON.parse(response);
-
-          parseRunStatuses(result);
-
-          if (["PENDING", "STARTED"].indexOf(result.status) !== -1) {
-            setPipelineRunning(true);
-          }
-
-          if (["SUCCESS", "ABORTED", "FAILURE"].includes(result.status)) {
-            // make sure stale opened files are reloaded in active
-            // Jupyter instance
-
-            if (window.orchest.jupyter)
-              window.orchest.jupyter.reloadFilesFromDisk();
-
-            setPipelineRunning(false);
-            setIsCancellingRun(false);
-
-            clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
-          }
-        })
-        .catch((error) => {
-          console.warn(error);
-        });
-    }
-  };
-
   const centerView = () => {
     state.eventVars.scaleFactor = DEFAULT_SCALE_FACTOR;
     updateEventVars();
@@ -1749,7 +1678,7 @@ const PipelineView: React.FC = () => {
 
     try {
       setIsCancellingRun(true);
-      await fetcher(`/catch/api-proxy/api/runs/${runUuid}`, {
+      await fetcher(`${PIPELINE_RUN_STATUS_ENDPOINT}${runUuid}`, {
         method: "DELETE",
       });
       setIsCancellingRun(false);
@@ -1762,30 +1691,22 @@ const PipelineView: React.FC = () => {
     setPipelineRunning(true);
 
     // store pipeline.json
-    let data = {
-      uuids: uuids,
-      project_uuid: projectUuid,
-      run_type: type,
-      pipeline_definition: getPipelineJSON(),
-    };
-
-    let runStepUUIDsPromise = makeCancelable(
-      makeRequest("POST", "/catch/api-proxy/api/runs/", {
-        type: "json",
-        content: data,
+    fetcher<PipelineRun>(PIPELINE_RUN_STATUS_ENDPOINT, {
+      method: "POST",
+      headers: HEADER.JSON,
+      body: JSON.stringify({
+        uuids: uuids,
+        project_uuid: projectUuid,
+        run_type: type,
+        pipeline_definition: getPipelineJSON(),
       }),
-      state.promiseManager
-    );
-
-    runStepUUIDsPromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
-
-        parseRunStatuses(result);
-
+    })
+      .then((result) => {
+        setStepExecutionState((current) => ({
+          ...current,
+          ...convertStepsToObject(result),
+        }));
         setRunUuid(result.uuid);
-
-        startStatusInterval();
       })
       .catch((response) => {
         if (!response.isCanceled) {
@@ -1826,15 +1747,6 @@ const PipelineView: React.FC = () => {
 
     setSaveHash(uuidv4());
     setPendingRuns({ uuids, type });
-  };
-
-  const startStatusInterval = () => {
-    // initialize interval
-    clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
-    timersRef.current.pipelineStepStatusPollingInterval = setInterval(
-      pollPipelineStepStatuses,
-      STATUS_POLL_FREQUENCY
-    );
   };
 
   const onCloseDetails = () => {
@@ -2175,7 +2087,7 @@ const PipelineView: React.FC = () => {
         step={step}
         selected={selected}
         ref={state.refManager.nrefs[step.uuid]}
-        executionState={getStepExecutionState(step.uuid)}
+        executionState={stepExecutionState[step.uuid] || { status: "IDLE" }}
         onConnect={makeConnection}
         onClick={onClickStepHandler}
         onDoubleClick={onDoubleClickStepHandler}
@@ -2196,11 +2108,6 @@ const PipelineView: React.FC = () => {
       );
     }
   );
-
-  React.useEffect(() => {
-    pollPipelineStepStatuses();
-    startStatusInterval();
-  }, [runUuid]);
 
   React.useEffect(() => {
     // TODO: running selected steps results in saving twice
@@ -2229,15 +2136,6 @@ const PipelineView: React.FC = () => {
 
   React.useEffect(() => {
     const hasActiveRun = runUuid && jobUuidFromRoute;
-    if (hasActiveRun) {
-      try {
-        pollPipelineStepStatuses();
-        startStatusInterval();
-      } catch (e) {
-        console.log("could not start pipeline status updates: " + e);
-      }
-    }
-
     const isNonPipelineRun = !hasActiveRun && isReadOnly;
     if (isNonPipelineRun) {
       // for non pipelineRun - read only check gate

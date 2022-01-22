@@ -324,7 +324,8 @@ export function formatServerDateTime(
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
-export function serverTimeToDate(serverDateTimeString: string) {
+export function serverTimeToDate(serverDateTimeString: string | undefined) {
+  if (!serverDateTimeString) return undefined;
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
   return parseISO(serverDateTimeString + "Z");
 }

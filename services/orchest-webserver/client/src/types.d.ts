@@ -183,13 +183,21 @@ export type EnvironmentBuild = {
   uuid: string;
 };
 
+export type PipelineStepStatus =
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED"
+  | "PENDING"
+  | "IDLE";
+
 export type JobStatus =
-  | "DRAFT"
   | "PENDING"
   | "STARTED"
   | "PAUSED"
   | "SUCCESS"
-  | "ABORTED";
+  | "ABORTED"
+  | "DRAFT";
 
 export type PipelineRun = {
   uuid: string;
@@ -201,7 +209,7 @@ export type PipelineRun = {
   pipeline_steps: {
     run_uuid: string;
     step_uuid: string;
-    status: TStatus;
+    status: PipelineStepStatus;
     started_time: string;
     finished_time: string;
   }[];
