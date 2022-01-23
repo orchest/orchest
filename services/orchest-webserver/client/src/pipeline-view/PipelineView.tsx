@@ -292,18 +292,10 @@ const PipelineView: React.FC = () => {
   };
 
   const fetchActivePipelineRuns = () => {
-    let pipelineRunsPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
-      ),
-      state.promiseManager
-    );
-
-    pipelineRunsPromise.promise
-      .then((response) => {
-        let data = JSON.parse(response);
-
+    fetcher(
+      `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
+    )
+      .then((data) => {
         try {
           // Note that runs are returned by the orchest-api by
           // started_time DESC. So we can just retrieve the first run.
@@ -354,16 +346,10 @@ const PipelineView: React.FC = () => {
         }, 100);
 
         // perform POST to save
-        let savePromise = makeCancelable(
-          makeRequest(
-            "POST",
-            `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-            { type: "FormData", content: formData }
-          ),
-          state.promiseManager
-        );
-
-        savePromise.promise
+        fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
+          method: "POST",
+          body: formData,
+        })
           .then(() => {
             if (callback && typeof callback == "function") {
               callback();
@@ -1103,12 +1089,6 @@ const PipelineView: React.FC = () => {
 
   const fetchPipelineAndInitialize = () => {
     let promises = [];
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineUuid,
-      projectUuid,
-      jobUuidFromRoute,
-      runUuid
-    );
 
     if (!isReadOnly) {
       // fetch pipeline cwd
@@ -1135,6 +1115,13 @@ const PipelineView: React.FC = () => {
           }
         });
     }
+
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+      pipelineUuid,
+      projectUuid,
+      jobUuidFromRoute,
+      runUuid
+    );
 
     let fetchPipelinePromise = makeCancelable(
       makeRequest("GET", pipelineJSONEndpoint),
