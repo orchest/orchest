@@ -8,7 +8,6 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import type { PipelineJson } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
@@ -167,7 +166,6 @@ const PipelineView: React.FC = () => {
     state: { sessionsIsLoading },
     getSession,
   } = sessionContext;
-  useSessionsPoller();
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const setIsReadOnly = (readOnly: boolean) => {

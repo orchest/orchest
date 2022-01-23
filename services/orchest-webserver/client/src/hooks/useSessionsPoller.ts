@@ -1,10 +1,13 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { siteMap } from "@/Routes";
 import { IOrchestSession } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
-import useSWR from "swr";
+import { useRouteMatch } from "react-router-dom";
+import useSWR, { useSWRConfig } from "swr";
 
 type TSessionStatus = IOrchestSession["status"];
 
@@ -30,9 +33,28 @@ function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
   }, {}) as T;
 }
 
+/**
+ * useSessionsPoller should only be placed in HeaderBar
+ */
 export const useSessionsPoller = () => {
   const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
+  const {
+    state: { pipelineUuid, pipelineIsReadOnly },
+  } = useProjectsContext();
+
+  const matchPipelines = useRouteMatch({
+    path: siteMap.pipelines.path,
+    exact: true,
+  });
+
+  // sessions are only needed when
+  // 1. pipelineUuid is given, and is not read-only
+  // 2. in the pipeline list
+  const shouldPoll =
+    (!pipelineIsReadOnly && hasValue(pipelineUuid)) || hasValue(matchPipelines);
+
+  const { cache } = useSWRConfig();
 
   const { data, error } = useSWR<{
     sessions: (IOrchestSession & {
@@ -40,7 +62,7 @@ export const useSessionsPoller = () => {
       pipeline_uuid: string;
     })[];
     status: TSessionStatus;
-  }>(ENDPOINT, fetcher, {
+  }>(shouldPoll ? ENDPOINT : null, fetcher, {
     // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
     // the reason is that Orchest session is not a user session, but a session of a pipeline.
     // and Orchest sessions are not bound to a single user, therefore
@@ -62,7 +84,9 @@ export const useSessionsPoller = () => {
     return (
       data?.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) || []
+      ) ||
+      cache.get(ENDPOINT)?.sessions || // in case sessions are need when polling is not active
+      []
     );
   }, [data]);
 

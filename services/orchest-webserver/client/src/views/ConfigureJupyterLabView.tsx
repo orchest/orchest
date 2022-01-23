@@ -4,7 +4,6 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/routingConfig";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -32,8 +31,6 @@ const ConfigureJupyterLabView: React.FC = () => {
     deleteAllSessions,
     state: { sessionsKillAllInProgress, sessions },
   } = useSessionsContext();
-
-  useSessionsPoller();
 
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
 
