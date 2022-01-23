@@ -37,17 +37,15 @@ import {
   fetcher,
   HEADER,
   intersectRect,
-  makeCancelable,
-  makeRequest,
   PromiseManager,
   RefManager,
   uuidv4,
 } from "@orchest/lib-utils";
-import cloneDeep from "lodash.clonedeep";
 import merge from "lodash.merge";
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
+import { extractStepsFromPipelineJson, updatePipelineJson } from "./common";
 import PipelineConnection from "./PipelineConnection";
 import PipelineDetails from "./PipelineDetails";
 import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
@@ -116,12 +114,10 @@ export interface IPipelineViewState {
   // misc. state
   sio: any;
   currentOngoingSaves: number;
-  initializedPipeline: boolean;
   promiseManager: any;
   refManager: any;
-  pipelineCwd?: string;
   defaultDetailViewIndex: number;
-  pipelineJson?: PipelineJson;
+  // pipelineJson?: PipelineJson;
 }
 
 const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
@@ -144,14 +140,24 @@ const PipelineView: React.FC = () => {
   const [isReadOnly, _setIsReadOnly] = React.useState(
     isReadOnlyFromQueryString
   );
+
+  const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>(null);
+
   const setIsReadOnly = (readOnly: boolean) => {
     dispatch({
       type: "SET_PIPELINE_IS_READONLY",
       payload: readOnly,
     });
     _setIsReadOnly(readOnly);
-    if (!readOnly) initializePipelineEditListeners();
   };
+
+  const isPipelineInitialized = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!isReadOnly && !isPipelineInitialized.current) {
+      initializePipelineEditListeners();
+    }
+  }, [isReadOnly]);
 
   useSessionsPoller();
   const session = useAutoStartSession({
@@ -228,16 +234,14 @@ const PipelineView: React.FC = () => {
     // misc. state
     sio: undefined,
     currentOngoingSaves: 0,
-    initializedPipeline: false,
     promiseManager: new PromiseManager(),
     refManager: new RefManager(),
-    pipelineCwd: undefined,
     defaultDetailViewIndex: 0,
-    pipelineJson: undefined,
   };
 
   // The save hash is used to propagate a save's side-effects to components.
   const [saveHash, setSaveHash] = React.useState<string>();
+  const [pipelineCwd, setPipelineCwd] = React.useState("");
 
   const [pendingRuns, setPendingRuns] = React.useState<
     { uuids: string[]; type: string } | undefined
@@ -317,19 +321,22 @@ const PipelineView: React.FC = () => {
 
   const savePipeline = (callback?: () => void) => {
     if (!isReadOnly) {
-      let pipelineJSON = encodeJSON();
+      let updatedPipelineJson = updatePipelineJson(
+        pipelineJson,
+        state.eventVars.steps
+      );
 
       // validate pipelineJSON
-      let pipelineValidation = validatePipeline(pipelineJSON);
+      let pipelineValidation = validatePipeline(updatedPipelineJson);
 
       // if invalid
-      if (pipelineValidation.valid !== true) {
+      if (!pipelineValidation.valid) {
         // Just show the first error
         setAlert("Error", pipelineValidation.errors[0]);
       } else {
         // store pipeline.json
         let formData = new FormData();
-        formData.append("pipeline_json", JSON.stringify(pipelineJSON));
+        formData.append("pipeline_json", JSON.stringify(updatedPipelineJson));
 
         setState((state) => {
           return {
@@ -375,74 +382,14 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const encodeJSON = (): PipelineJson => {
-    if (!state.pipelineJson) return;
-    // generate JSON representation using the internal state of React components
-    // describing the pipeline
-
-    let pipelineJSON: PipelineJson = cloneDeep(state.pipelineJson);
-    pipelineJSON["steps"] = {};
-
-    for (let key in state.eventVars.steps) {
-      if (state.eventVars.steps.hasOwnProperty(key)) {
-        // deep copy step
-        let step = cloneDeep(state.eventVars.steps[key]);
-
-        // remove private meta_data (prefixed with underscore)
-        let keys = Object.keys(step.meta_data);
-        for (let x = 0; x < keys.length; x++) {
-          let key = keys[x];
-          if (key[0] === "_") {
-            delete step.meta_data[key];
-          }
-        }
-
-        // we do not encode outgoing connections explicitly according to
-        // pipeline.json spec.
-        if (step["outgoing_connections"]) {
-          delete step["outgoing_connections"];
-        }
-
-        pipelineJSON["steps"][step.uuid] = step;
-      }
-    }
-
-    return pipelineJSON;
-  };
-
-  const decodeJSON = (pipelineJson) => {
-    // initialize React components based on incoming JSON description of the pipeline
-
-    // add steps to the state
-    let steps = state.eventVars.steps;
-
-    for (let key in pipelineJson.steps) {
-      if (pipelineJson.steps.hasOwnProperty(key)) {
-        steps[key] = pipelineJson.steps[key];
-
-        // augmenting state with runtime data in meta_data
-        steps[key].meta_data._drag_count = 0;
-        steps[key].meta_data._dragged = false;
-      }
-    }
-
-    // in addition to creating steps explicitly in the React state, also attach full pipelineJson
-    setPipelineJSON(pipelineJson, steps);
-
-    return pipelineJson;
-  };
-
   const getPipelineJSON = () => {
     let steps = state.eventVars.steps;
-    return { ...state.pipelineJson, steps };
+    return { ...pipelineJson, steps };
   };
 
-  const setPipelineJSON = (
-    pipelineJson: PipelineJson,
-    steps: Record<string, IPipelineStepState>
-  ) => {
+  const setPipelineSteps = (steps: Record<string, IPipelineStepState>) => {
     state.eventVars.steps = steps;
-    setState({ pipelineJson, eventVars: state.eventVars });
+    setState({ eventVars: state.eventVars });
   };
 
   const openSettings = (e: React.MouseEvent) => {
@@ -1037,14 +984,9 @@ const PipelineView: React.FC = () => {
 
     pipelineSetHolderSize();
 
-    if (state.initializedPipeline) {
-      console.error("PipelineView component should only be initialized once.");
-      return;
-    } else {
-      setState({
-        initializedPipeline: true,
-      });
-    }
+    if (isPipelineInitialized.current) return;
+
+    isPipelineInitialized.current = true;
 
     // add all existing connections (this happens only at initialization)
     for (let key in state.eventVars.steps) {
@@ -1080,11 +1022,6 @@ const PipelineView: React.FC = () => {
 
     // initialize all listeners related to viewing/navigating the pipeline
     initializePipelineNavigationListeners();
-
-    if (!isReadOnly) {
-      // initialize all listeners related to editing the pipeline
-      initializePipelineEditListeners();
-    }
   };
 
   const fetchPipelineAndInitialize = () => {
@@ -1092,87 +1029,76 @@ const PipelineView: React.FC = () => {
 
     if (!isReadOnly) {
       // fetch pipeline cwd
-      let cwdFetchPromise = makeCancelable(
-        makeRequest(
-          "GET",
+      promises.push(
+        fetcher(
           `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-        ),
-        state.promiseManager
+        )
+          .then((cwdPromiseResult) => {
+            // relativeToAbsolutePath expects trailing / for directories
+            setPipelineCwd(`${cwdPromiseResult["cwd"]}/`);
+          })
+          .catch((error) => {
+            if (!error.isCanceled) {
+              console.error(error);
+            }
+          })
       );
-      promises.push(cwdFetchPromise.promise);
+    }
 
-      cwdFetchPromise.promise
-        .then((cwdPromiseResult) => {
-          // relativeToAbsolutePath expects trailing / for directories
-          let cwd = JSON.parse(cwdPromiseResult)["cwd"] + "/";
-          setState({
-            pipelineCwd: cwd,
-          });
+    promises.push(
+      fetcher(
+        getPipelineJSONEndpoint(
+          pipelineUuid,
+          projectUuid,
+          jobUuidFromRoute,
+          runUuid
+        )
+      )
+        .then((result) => {
+          if (result.success) {
+            const newPipelineJson = JSON.parse(result.pipeline_json);
+            let newSteps = extractStepsFromPipelineJson(
+              newPipelineJson,
+              state.eventVars.steps
+            );
+            // update steps & pipelineJson
+            setPipelineJson(newPipelineJson);
+            setPipelineSteps(newSteps);
+
+            dispatch({
+              type: "pipelineSet",
+              payload: {
+                pipelineUuid,
+                projectUuid,
+                pipelineName: newPipelineJson.name,
+              },
+            });
+          } else {
+            console.error("Could not load pipeline.json");
+            console.error(result);
+          }
         })
         .catch((error) => {
           if (!error.isCanceled) {
-            console.error(error);
+            if (jobUuidFromRoute) {
+              // This case is hit when a user tries to load a pipeline that belongs
+              // to a run that has not started yet. The project files are only
+              // copied when the run starts. Before start, the pipeline.json thus
+              // cannot be found. Alert the user about missing pipeline and return
+              // to JobView.
+
+              setAlert(
+                "Error",
+                "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
+                returnToJob
+              );
+            } else {
+              console.error("Could not load pipeline.json");
+              console.error(error);
+            }
           }
-        });
-    }
-
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineUuid,
-      projectUuid,
-      jobUuidFromRoute,
-      runUuid
+        })
     );
-
-    let fetchPipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineJSONEndpoint),
-      state.promiseManager
-    );
-    promises.push(fetchPipelinePromise.promise);
-
-    fetchPipelinePromise.promise
-      .then((fetchPipelinePromiseResult) => {
-        let result = JSON.parse(fetchPipelinePromiseResult);
-        if (result.success) {
-          let pipelineJson = decodeJSON(JSON.parse(result["pipeline_json"]));
-
-          dispatch({
-            type: "SET_PIPELINE_IS_READONLY",
-            payload: isReadOnly,
-          });
-
-          dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineUuid,
-              projectUuid,
-              pipelineName: pipelineJson.name,
-            },
-          });
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(result);
-        }
-      })
-      .catch((error) => {
-        if (!error.isCanceled) {
-          if (jobUuidFromRoute) {
-            // This case is hit when a user tries to load a pipeline that belongs
-            // to a run that has not started yet. The project files are only
-            // copied when the run starts. Before start, the pipeline.json thus
-            // cannot be found. Alert the user about missing pipeline and return
-            // to JobView.
-
-            setAlert(
-              "Error",
-              "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-              returnToJob
-            );
-          } else {
-            console.error("Could not load pipeline.json");
-            console.error(error);
-          }
-        }
-      });
 
     Promise.all(promises)
       .then(() => {
@@ -1210,15 +1136,7 @@ const PipelineView: React.FC = () => {
   const newStep = () => {
     deselectSteps();
 
-    let environmentsEndpoint = `/store/environments/${projectUuid}`;
-    let fetchEnvironmentsPromise = makeCancelable(
-      makeRequest("GET", environmentsEndpoint),
-      state.promiseManager
-    );
-
-    fetchEnvironmentsPromise.promise.then((response) => {
-      let result = JSON.parse(response);
-
+    fetcher(`/store/environments/${projectUuid}`).then((result) => {
       let environmentUUID = "";
       let environmentName = "";
 
@@ -1446,7 +1364,7 @@ const PipelineView: React.FC = () => {
       );
     } else if (session.status === "RUNNING") {
       const filePath = collapseDoubleDots(
-        state.pipelineCwd + state.eventVars.steps[stepUUID].file_path
+        pipelineCwd + state.eventVars.steps[stepUUID].file_path
       ).slice(1);
       navigateTo(
         siteMap.jupyterLab.path,
@@ -1581,7 +1499,9 @@ const PipelineView: React.FC = () => {
         _pipelineJson.steps[stepUUID].meta_data.position
       );
     }
-    setPipelineJSON(_pipelineJson, _pipelineJson.steps);
+
+    setPipelineJson(_pipelineJson);
+    setPipelineSteps(_pipelineJson.steps);
 
     // and save
     setSaveHash(uuidv4());
@@ -1696,22 +1616,14 @@ const PipelineView: React.FC = () => {
         setRunUuid(result.uuid);
       })
       .catch((response) => {
-        if (!response.isCanceled) {
-          setPipelineRunning(false);
+        setPipelineRunning(false);
 
-          try {
-            let data = JSON.parse(response.body);
-            setAlert(
-              "Error",
-              `Failed to start interactive run. ${data["message"]}`
-            );
-          } catch {
-            setAlert(
-              "Error",
-              "Failed to start interactive run. Unknown error."
-            );
-          }
-        }
+        setAlert(
+          "Error",
+          `Failed to start interactive run. ${
+            response.message || "Unknown error"
+          }`
+        );
       });
   };
 
@@ -1881,7 +1793,7 @@ const PipelineView: React.FC = () => {
     return origin;
   };
 
-  useEffect(() => {
+  React.useEffect(() => {
     fetchPipelineAndInitialize();
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.key === " " && !state.eventVars.draggingPipeline) {
@@ -2007,19 +1919,19 @@ const PipelineView: React.FC = () => {
   const services = React.useMemo(() => {
     if (
       (!jobUuidFromRoute && session && session.status == "RUNNING") ||
-      (jobUuidFromRoute && state.pipelineJson && pipelineRunning)
+      (jobUuidFromRoute && pipelineJson && pipelineRunning)
     ) {
       return null;
     }
     const allServices = jobUuidFromRoute
-      ? state.pipelineJson.services
+      ? pipelineJson?.services || {}
       : session && session.user_services
       ? session.user_services
       : {};
     // Filter services based on scope
     let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(allServices, scope);
-  }, [state.pipelineJson, session, jobUuidFromRoute, pipelineRunning]);
+  }, [pipelineJson, session, jobUuidFromRoute, pipelineRunning]);
 
   const returnToJob = (e?: React.MouseEvent) => {
     navigateTo(
@@ -2274,7 +2186,7 @@ const PipelineView: React.FC = () => {
             )}
           </div>
 
-          {state.pipelineJson && (
+          {pipelineJson && (
             <div className={"pipeline-actions top-right"}>
               {!isReadOnly && (
                 <Button
@@ -2385,8 +2297,8 @@ const PipelineView: React.FC = () => {
             onChangeView={onDetailsChangeView}
             connections={connections_list}
             defaultViewIndex={state.defaultDetailViewIndex}
-            pipeline={state.pipelineJson}
-            pipelineCwd={state.pipelineCwd}
+            pipeline={pipelineJson}
+            pipelineCwd={pipelineCwd}
             project_uuid={projectUuid}
             job_uuid={jobUuidFromRoute}
             run_uuid={runUuid}

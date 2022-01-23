@@ -280,6 +280,16 @@ export type Step = {
   uuid: string;
 };
 
+export type IPipelineStepState = Step & {
+  outgoing_connections?: string[];
+  meta_data: {
+    hidden: boolean;
+    position: [number, number];
+    _drag_count: number;
+    _dragged: boolean;
+  };
+};
+
 export type Service = {
   image: string;
   name: string;
