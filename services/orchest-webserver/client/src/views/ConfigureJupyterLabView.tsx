@@ -195,16 +195,17 @@ const ConfigureJupyterLabView: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (!sessionsKillAllInProgress && state.sessionKillStatus === "WAITING") {
-      const hasActiveSessions = sessions.length > 0;
+    const isAllSessionsDeletedForBuildingImage =
+      state.sessionKillStatus === "WAITING" && // an attempt to delete all sessions was initiated
+      !sessionsKillAllInProgress && // the operation of deleting sessions was started
+      sessions.length === 0; // all sessions are finally cleaned up;
 
-      if (!hasActiveSessions) {
-        setState((prevState) => ({
-          ...prevState,
-          sessionKillStatus: undefined,
-        }));
-        buildImage();
-      }
+    if (isAllSessionsDeletedForBuildingImage) {
+      setState((prevState) => ({
+        ...prevState,
+        sessionKillStatus: undefined,
+      }));
+      buildImage();
     }
   }, [sessions, sessionsKillAllInProgress, state.sessionKillStatus]);
 
