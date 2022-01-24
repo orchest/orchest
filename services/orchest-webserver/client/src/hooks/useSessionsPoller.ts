@@ -85,7 +85,7 @@ export const useSessionsPoller = () => {
       data?.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
       ) ||
-      cache.get(ENDPOINT)?.sessions || // in case sessions are need when polling is not active
+      cache.get(ENDPOINT)?.sessions || // in case sessions are needed when polling is not active
       []
     );
   }, [data]);
