@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { IOrchestSession } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
@@ -30,13 +30,9 @@ function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
   }, {}) as T;
 }
 
-export const useSessionsPoller = (
-  sessionsToObserve?: { projectUuid: string; pipelineUuid: string }[]
-) => {
-  const { dispatch, state } = useSessionsContext();
+export const useSessionsPoller = () => {
+  const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
-
-  const [refreshInterval, setRefreshInterval] = React.useState(1000);
 
   const { data, error } = useSWR<{
     sessions: (IOrchestSession & {
@@ -45,7 +41,12 @@ export const useSessionsPoller = (
     })[];
     status: TSessionStatus;
   }>(ENDPOINT, fetcher, {
-    refreshInterval,
+    // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
+    // the reason is that Orchest session is not a user session, but a session of a pipeline.
+    // and Orchest sessions are not bound to a single user, therefore
+    // this session (i.e. pipeline session) is used by potentially multiple users
+    // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
+    refreshInterval: 1000,
   });
 
   const isLoading = !data && !error;
@@ -64,25 +65,6 @@ export const useSessionsPoller = (
       ) || []
     );
   }, [data]);
-
-  // only poll if session status is transitional, e.g. LAUNCHING, STOPPING
-  const shouldPoll = React.useMemo(() => {
-    return (
-      !sessionsToObserve ||
-      sessionsToObserve.filter((sessionToObserve) => {
-        return state.sessions.some((session) => {
-          return (
-            isSession(sessionToObserve, session) &&
-            ["LAUNCHING", "STOPPING"].includes(session.status)
-          );
-        });
-      }).length > 0
-    );
-  }, [sessionsToObserve, state.sessions]);
-
-  React.useEffect(() => {
-    setRefreshInterval(shouldPoll ? 1000 : 0);
-  }, [shouldPoll]);
 
   React.useEffect(() => {
     dispatch({

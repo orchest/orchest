@@ -92,10 +92,16 @@ const ProjectsView: React.FC = () => {
   useCheckUpdate();
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
-    const openSettings = (projectUuid: string) => {
-      navigateTo(siteMap.projectSettings.path, {
-        query: { projectUuid },
-      });
+    const openSettings = (projectUuid: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      navigateTo(
+        siteMap.projectSettings.path,
+        {
+          query: { projectUuid },
+        },
+        e
+      );
     };
     const onEditProjectName = (
       projectUUID: string,
@@ -131,7 +137,12 @@ const ProjectsView: React.FC = () => {
                 disabled={disabled}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onEditProjectName(row.uuid, row.path);
+                }}
+                onAuxClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
                 }}
               >
                 <EditIcon fontSize="small" />
@@ -155,10 +166,8 @@ const ProjectsView: React.FC = () => {
               disabled={disabled}
               size="small"
               data-test-id={`settings-button-${row.path}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                openSettings(row.uuid);
-              }}
+              onClick={openSettings(row.uuid)}
+              onAuxClick={openSettings(row.uuid)}
             >
               <SettingsIcon fontSize="small" />
             </IconButton>
@@ -253,10 +262,8 @@ const ProjectsView: React.FC = () => {
     });
   }, [projects]);
 
-  const onRowClick = (projectUuid: string) => {
-    navigateTo(siteMap.pipelines.path, {
-      query: { projectUuid },
-    });
+  const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
+    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
   };
 
   const deleteSelectedRows = async (projectUuids: string[]) => {
@@ -321,8 +328,8 @@ const ProjectsView: React.FC = () => {
     setIsShowingCreateModal(true);
   };
 
-  const goToExamples = () => {
-    navigateTo(siteMap.examples.path);
+  const goToExamples = (e: React.MouseEvent) => {
+    navigateTo(siteMap.examples.path, undefined, e);
   };
 
   const onClickCreateProject = () => {
@@ -528,6 +535,7 @@ const ProjectsView: React.FC = () => {
                 color="secondary"
                 startIcon={<LightbulbIcon />}
                 onClick={goToExamples}
+                onAuxClick={goToExamples}
                 data-test-id="explore-examples"
               >
                 Explore Examples

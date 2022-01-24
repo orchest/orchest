@@ -198,7 +198,13 @@ const CellContainer: React.FC<{
   isLoading: boolean;
   sx?: SxProps<Theme>;
   skeletonSx?: SxProps<Theme>;
-}> = ({ isLoading, sx, skeletonSx, children }) => {
+  onAuxClick?: (e: React.MouseEvent) => void;
+}> = ({ isLoading, sx, skeletonSx, onAuxClick, children }) => {
+  const auxClickHandler = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onAuxClick(e);
+  };
   return (
     <>
       <Fade in={isLoading} unmountOnExit>
@@ -209,7 +215,11 @@ const CellContainer: React.FC<{
           />
         </Box>
       </Fade>
-      {!isLoading && <Box sx={sx}>{children}</Box>}
+      {!isLoading && (
+        <Box sx={sx} onAuxClick={auxClickHandler}>
+          {children}
+        </Box>
+      )}
     </>
   );
 };
@@ -248,14 +258,14 @@ function Row<T>({
   selectable: boolean;
   isDetailsOpen?: boolean;
   onRowClick?: (
-    e: React.MouseEvent<unknown>,
+    e: React.MouseEvent,
     uuid: string,
     isShowingDetail: boolean
   ) => void;
   rowHeight: number;
 }) {
   const [isOpen, setIsOpen] = React.useState(isDetailsOpen);
-  const handleClickRow = (e: React.MouseEvent<unknown>) => {
+  const handleClickRow = (e: React.MouseEvent) => {
     if (!disabled) {
       setIsOpen((current) => {
         onRowClick(e, data.uuid, !current);
@@ -270,7 +280,7 @@ function Row<T>({
     <>
       <TableRow
         hover={!isLoading && !disabled}
-        onClick={(e) => handleClickRow(e)}
+        onClick={handleClickRow}
         role="checkbox"
         aria-checked={isSelected}
         tabIndex={-1}
@@ -305,7 +315,11 @@ function Row<T>({
           </TableCell>
         )}
         <TableCell component="th" align="left" id={labelId} scope="row">
-          <CellContainer isLoading={isLoading} sx={columns[0].sx}>
+          <CellContainer
+            isLoading={isLoading}
+            sx={columns[0].sx}
+            onAuxClick={handleClickRow}
+          >
             {renderCell(columns[0], data, disabled)}
           </CellContainer>
         </TableCell>
@@ -315,7 +329,11 @@ function Row<T>({
               key={column.id.toString()}
               align={column.align || "center"}
             >
-              <CellContainer isLoading={isLoading} sx={column.sx}>
+              <CellContainer
+                isLoading={isLoading}
+                sx={column.sx}
+                onAuxClick={handleClickRow}
+              >
                 {column.sortable ? (
                   <Box sx={{ marginRight: (theme) => theme.spacing(2.75) }}>
                     {renderCell(column, data, disabled)}
@@ -386,7 +404,7 @@ type DataTableProps<T> = {
   initialOrder?: Order;
   initialRowsPerPage?: number;
   deleteSelectedRows?: (rowUuids: string[]) => Promise<boolean>;
-  onRowClick?: (uuid: string) => void;
+  onRowClick?: (e: React.MouseEvent, uuid: string) => void;
   rowHeight?: number;
   debounceTime?: number;
   refreshInterval?:
@@ -636,13 +654,13 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   const handleClickRow = (
-    e: React.MouseEvent<unknown>,
+    e: React.MouseEvent,
     uuid: string,
     isShowingDetails: boolean
   ) => {
     if (onRowClick) {
       e.preventDefault();
-      onRowClick(uuid);
+      onRowClick(e, uuid);
     }
     setRowsShowingDetails((current) => {
       if (isShowingDetails) {

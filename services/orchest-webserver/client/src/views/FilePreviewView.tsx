@@ -69,11 +69,15 @@ const FilePreviewView: React.FC = () => {
   const [refManager] = React.useState(new RefManager());
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const loadPipelineView = () => {
-    navigateTo(siteMap.pipeline.path, {
-      query: { projectUuid, pipelineUuid, jobUuid, runUuid },
-      state: { isReadOnly },
-    });
+  const loadPipelineView = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.pipeline.path,
+      {
+        query: { projectUuid, pipelineUuid, jobUuid, runUuid },
+        state: { isReadOnly },
+      },
+      e
+    );
   };
 
   const fetchPipeline = () =>
@@ -166,17 +170,21 @@ const FilePreviewView: React.FC = () => {
         });
     });
 
-  const stepNavigate = (newStepUuid: string) => {
-    navigateTo(siteMap.filePreview.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        stepUuid: newStepUuid,
-        jobUuid,
-        runUuid,
+  const stepNavigate = (e: React.MouseEvent, newStepUuid: string) => {
+    navigateTo(
+      siteMap.filePreview.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          stepUuid: newStepUuid,
+          jobUuid,
+          runUuid,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
   const renderNavStep = (steps) => {
@@ -184,7 +192,8 @@ const FilePreviewView: React.FC = () => {
       <Button
         variant="text"
         key={step.uuid}
-        onClick={() => stepNavigate(step.uuid)}
+        onClick={(e) => stepNavigate(e, step.uuid)}
+        onAuxClick={(e) => stepNavigate(e, step.uuid)}
       >
         {step.title}
       </Button>
@@ -301,7 +310,11 @@ const FilePreviewView: React.FC = () => {
           <IconButton title="refresh" onClick={loadFile}>
             <RefreshIcon />
           </IconButton>
-          <IconButton title="Close" onClick={loadPipelineView}>
+          <IconButton
+            title="Close"
+            onClick={loadPipelineView}
+            onAuxClick={loadPipelineView}
+          >
             <CloseIcon />
           </IconButton>
         </div>

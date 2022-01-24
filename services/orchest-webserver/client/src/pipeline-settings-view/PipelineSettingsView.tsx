@@ -134,7 +134,7 @@ const PipelineSettingsView: React.FC = () => {
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
-  useSessionsPoller([{ projectUuid, pipelineUuid }]);
+  useSessionsPoller();
 
   const isReadOnly =
     (hasValue(runUuid) && hasValue(jobUuid)) || isReadOnlyFromQueryString;

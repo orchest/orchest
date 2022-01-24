@@ -17,7 +17,7 @@ import { CSSObject, styled, Theme } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
-import { siteMap, toQueryString } from "../routingConfig";
+import { getOrderedRoutes, siteMap, toQueryString } from "../routingConfig";
 
 type ItemData = { label: string; icon: JSX.Element; path: string };
 
@@ -114,6 +114,8 @@ const ListItemText = (props: ListItemTextProps) => {
   );
 };
 
+const routes = getOrderedRoutes();
+
 export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   const {
     state: { projectUuid },
@@ -136,7 +138,13 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   }, [isOpen]);
 
   const isSelected = (path: string, exact = false) => {
-    return matchPath(pathname, { path: path.split("?")[0], exact }) !== null;
+    const route = routes.find((route) => route.path === pathname);
+    return (
+      matchPath(route?.root || route?.path || pathname, {
+        path: path.split("?")[0],
+        exact,
+      }) !== null
+    );
   };
 
   return (
@@ -150,7 +158,8 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               id={id}
               key={id}
               data-test-id={id}
-              onClick={() => navigateTo(item.path)}
+              onClick={(e) => navigateTo(item.path, undefined, e)}
+              onAuxClick={(e) => navigateTo(item.path, undefined, e)}
               selected={isSelected(item.path, false)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
@@ -172,7 +181,8 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
               key={id}
               data-test-id={id}
               selected={isSelected(item.path, true)}
-              onClick={() => navigateTo(item.path)}
+              onClick={(e) => navigateTo(item.path, undefined, e)}
+              onAuxClick={(e) => navigateTo(item.path, undefined, e)}
             >
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.label} />

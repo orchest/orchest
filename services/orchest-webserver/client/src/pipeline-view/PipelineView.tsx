@@ -167,7 +167,7 @@ const PipelineView: React.FC = () => {
     state: { sessionsIsLoading },
     getSession,
   } = sessionContext;
-  useSessionsPoller([{ projectUuid, pipelineUuid }]);
+  useSessionsPoller();
 
   const [isReadOnly, _setIsReadOnly] = useState(isReadOnlyFromQueryString);
   const setIsReadOnly = (readOnly: boolean) => {
@@ -474,29 +474,37 @@ const PipelineView: React.FC = () => {
     setState({ pipelineJson, eventVars: state.eventVars });
   };
 
-  const openSettings = (initialTab?: string) => {
-    navigateTo(siteMap.pipelineSettings.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        jobUuid: jobUuidFromRoute,
-        runUuid: runUuidFromRoute,
-        initialTab,
+  const openSettings = (e: React.MouseEvent, initialTab?: string) => {
+    navigateTo(
+      siteMap.pipelineSettings.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          jobUuid: jobUuidFromRoute,
+          runUuid: runUuidFromRoute,
+          initialTab,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
-  const openLogs = () => {
-    navigateTo(siteMap.logs.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        jobUuid: jobUuidFromRoute,
-        runUuid: runUuidFromRoute,
+  const openLogs = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.logs.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          jobUuid: jobUuidFromRoute,
+          runUuid: runUuidFromRoute,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
   const showServices = () => {
@@ -1355,9 +1363,9 @@ const PipelineView: React.FC = () => {
 
   const onDoubleClickStepHandler = (stepUUID: string) => {
     if (isReadOnly) {
-      onOpenFilePreviewView(stepUUID);
+      onOpenFilePreviewView(undefined, stepUUID);
     } else {
-      openNotebook(stepUUID);
+      openNotebook(undefined, stepUUID);
     }
   };
 
@@ -1515,24 +1523,26 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const openNotebook = (stepUUID: string) => {
+  const openNotebook = (e: React.MouseEvent, stepUUID: string) => {
     if (session === undefined) {
       setAlert(
         "Error",
         "Please start the session before opening the Notebook in Jupyter."
       );
     } else if (session.status === "RUNNING") {
-      navigateTo(siteMap.jupyterLab.path, {
-        query: {
-          projectUuid,
-          pipelineUuid,
+      const filePath = collapseDoubleDots(
+        state.pipelineCwd + state.eventVars.steps[stepUUID].file_path
+      ).slice(1);
+      navigateTo(
+        siteMap.jupyterLab.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            filePath,
+          },
         },
-      });
-
-      window.orchest.jupyter.navigateTo(
-        collapseDoubleDots(
-          state.pipelineCwd + state.eventVars.steps[stepUUID].file_path
-        ).slice(1)
+        e
       );
     } else if (session.status === "LAUNCHING") {
       setAlert(
@@ -1547,21 +1557,25 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const onOpenFilePreviewView = (stepUuid: string) => {
-    navigateTo(siteMap.filePreview.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        stepUuid,
-        jobUuid: jobUuidFromRoute,
-        runUuid: runUuidFromRoute,
+  const onOpenFilePreviewView = (e: React.MouseEvent, stepUuid: string) => {
+    navigateTo(
+      siteMap.filePreview.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          stepUuid,
+          jobUuid: jobUuidFromRoute,
+          runUuid: runUuidFromRoute,
+        },
+        state: { isReadOnly },
       },
-      state: { isReadOnly },
-    });
+      e
+    );
   };
 
-  const onOpenNotebook = () => {
-    openNotebook(state.eventVars.openedStep);
+  const onOpenNotebook = (e: React.MouseEvent) => {
+    openNotebook(e, state.eventVars.openedStep);
   };
 
   const parseRunStatuses = (result) => {
@@ -2227,13 +2241,14 @@ const PipelineView: React.FC = () => {
     return serviceLinks;
   };
 
-  const returnToJob = () => {
-    navigateTo(siteMap.job.path, {
-      query: {
-        projectUuid,
-        jobUuid: jobUuidFromRoute,
+  const returnToJob = (e?: React.MouseEvent) => {
+    navigateTo(
+      siteMap.job.path,
+      {
+        query: { projectUuid, jobUuid: jobUuidFromRoute },
       },
-    });
+      e
+    );
   };
 
   let connections_list = {};
@@ -2432,6 +2447,7 @@ const PipelineView: React.FC = () => {
                 }}
                 startIcon={<ArrowBackIcon />}
                 onClick={returnToJob}
+                onAuxClick={returnToJob}
                 data-test-id="pipeline-back-to-job"
               >
                 Back to job
@@ -2526,6 +2542,7 @@ const PipelineView: React.FC = () => {
                 variant="contained"
                 color="secondary"
                 onClick={openLogs}
+                onAuxClick={openLogs}
                 startIcon={<ViewHeadlineIcon />}
               >
                 Logs
@@ -2609,7 +2626,10 @@ const PipelineView: React.FC = () => {
                 )}
                 <Divider />
                 <List>
-                  <ListItemButton onClick={() => openSettings("services")}>
+                  <ListItemButton
+                    onClick={(e) => openSettings(e, "services")}
+                    onAuxClick={(e) => openSettings(e, "services")}
+                  >
                     <ListItemIcon>
                       <TuneIcon />
                     </ListItemIcon>
@@ -2623,7 +2643,7 @@ const PipelineView: React.FC = () => {
               <Button
                 variant="contained"
                 color="secondary"
-                onClick={() => openSettings()}
+                onClick={(e) => openSettings(e)}
                 startIcon={<TuneIcon />}
                 data-test-id="pipeline-settings"
               >

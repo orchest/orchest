@@ -213,10 +213,8 @@ const EnvironmentEditView: React.FC = () => {
     }
   };
 
-  const returnToEnvironments = () => {
-    navigateTo(siteMap.environments.path, {
-      query: { projectUuid },
-    });
+  const returnToEnvironments = (e: React.MouseEvent) => {
+    navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
   };
 
   const onChangeName = (value: string) => {
@@ -453,6 +451,7 @@ const EnvironmentEditView: React.FC = () => {
                 startIcon={<ArrowBackIcon />}
                 color="secondary"
                 onClick={returnToEnvironments}
+                onAuxClick={returnToEnvironments}
               >
                 Back to environments
               </Button>
