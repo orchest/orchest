@@ -97,9 +97,8 @@ Cypress.Commands.add("createProject", (name) => {
     .click();
   cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
   cy.findByTestId(TEST_ID.CREATE_PROJECT).click();
-  return cy
-    .findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW)
-    .should("have.length.at.least", 1);
+  cy.url().should("include", "/pipelines");
+  return cy.findByTestId("project-selector").contains(name);
 });
 
 Cypress.Commands.add("importProject", (url, name) => {
