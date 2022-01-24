@@ -98,7 +98,9 @@ Cypress.Commands.add("createProject", (name) => {
   cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
   cy.findByTestId(TEST_ID.CREATE_PROJECT).click();
   cy.url().should("include", "/pipelines");
-  return cy.findByTestId("project-selector").contains(name);
+  cy.findByTestId("project-selector").contains(name);
+  cy.goToMenu("projects");
+  return cy.reload();
 });
 
 Cypress.Commands.add("importProject", (url, name) => {
