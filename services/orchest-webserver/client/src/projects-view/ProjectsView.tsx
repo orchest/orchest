@@ -15,24 +15,18 @@ import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InputIcon from "@mui/icons-material/Input";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
-import SaveIcon from "@mui/icons-material/Save";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import { fetcher, hasValue, HEADER, makeRequest } from "@orchest/lib-utils";
+import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
+import { CreateProjectDialog } from "./CreateProjectDialog";
+import { EditProjectPathDialog } from "./EditProjectPathDialog";
+import { useFetchProjects } from "./hooks/useFetchProjects";
 import { ImportDialog } from "./ImportDialog";
 
 type ProjectRow = Pick<
@@ -44,25 +38,6 @@ type ProjectRow = Pick<
   | "environment_count"
 > & {
   settings: string;
-};
-
-const validProjectName = (projectName: string | undefined) => {
-  if (projectName === undefined || projectName.length === 0) {
-    return {
-      valid: false,
-      reason: "Project name cannot be empty.",
-    };
-  } else if (projectName.match("[^A-Za-z0-9_.-]")) {
-    return {
-      valid: false,
-      reason:
-        "A project name has to be a valid git repository name and" +
-        " thus can only contain alphabetic characters, numbers and" +
-        " the special characters: '_.-'. The regex would be" +
-        " [A-Za-z0-9_.-].",
-    };
-  }
-  return { valid: true };
 };
 
 const ProjectsView: React.FC = () => {
@@ -80,9 +55,6 @@ const ProjectsView: React.FC = () => {
   const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
     string | undefined
   >();
-  const [isUpdatingProjectPath, setIsUpdatingProjectPath] = React.useState(
-    false
-  );
 
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
@@ -176,63 +148,15 @@ const ProjectsView: React.FC = () => {
 
   const onCloseEditProjectPathModal = () => {
     setProjectUuidOnEdit(undefined);
-    setIsUpdatingProjectPath(false);
-  };
-
-  const onSubmitEditProjectPathModal = () => {
-    if (!validateProjectNameAndAlert(projectPath)) {
-      return;
-    }
-    setIsUpdatingProjectPath(true);
-
-    fetcher(`/async/projects/${projectUuidOnEdit}`, {
-      method: "PUT",
-      headers: HEADER.JSON,
-      body: JSON.stringify({ name: projectPath }),
-    });
-
-    makeRequest("PUT", `/async/projects/${projectUuidOnEdit}`, {
-      type: "json",
-      content: {
-        name: projectPath,
-      },
-    })
-      .then(() => {
-        fetchProjects();
-      })
-      .catch((e) => {
-        try {
-          let resp = JSON.parse(e.body);
-
-          if (resp.code == 0) {
-            setAlert(
-              "Error",
-              "Cannot rename project when an interactive session is running."
-            );
-          } else if (resp.code == 1) {
-            setAlert(
-              "Error",
-              `Cannot rename project, a project with the name "${projectPath}" already exists.`
-            );
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .finally(() => {
-        onCloseEditProjectPathModal();
-      });
   };
 
   const {
-    data: projects = [],
-    mutate: fetchProjects,
-    error: fetchProjectsError,
-    isValidating,
-  } = useSWR<Project[]>(
-    "/async/projects?session_counts=true&job_counts=true",
-    fetcher
-  );
+    projects,
+    fetchProjects,
+    setProjects,
+    fetchProjectsError,
+    isFetchingProjects,
+  } = useFetchProjects({ sessionCounts: true, jobCounts: true });
 
   const mounted = useMounted();
 
@@ -242,13 +166,13 @@ const ProjectsView: React.FC = () => {
   }, [fetchProjectsError, setAlert, mounted]);
 
   React.useEffect(() => {
-    if (mounted && !isValidating && !fetchProjectsError && projects) {
+    if (mounted && !isFetchingProjects && !fetchProjectsError && projects) {
       dispatch({
         type: "projectsSet",
         payload: projects,
       });
     }
-  }, [projects, mounted, isValidating, fetchProjectsError, dispatch]);
+  }, [projects, mounted, isFetchingProjects, fetchProjectsError, dispatch]);
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
     return projects.map((project) => {
@@ -329,50 +253,8 @@ const ProjectsView: React.FC = () => {
     navigateTo(siteMap.examples.path, undefined, e);
   };
 
-  const onClickCreateProject = () => {
-    if (!validateProjectNameAndAlert(projectName)) {
-      return;
-    }
-
-    makeRequest("POST", "/async/projects", {
-      type: "json",
-      content: { name: projectName },
-    })
-      .then(() => {
-        // reload list once creation succeeds
-        // fetchList(projectName);
-        fetchProjects();
-      })
-      .catch((response) => {
-        try {
-          let data = JSON.parse(response.body);
-
-          setAlert("Error", `Could not create project. ${data.message}`);
-        } catch {
-          setAlert("Error", "Could not create project. Reason unknown.");
-        }
-      })
-      .finally(() => {
-        setProjectName("");
-      });
-
-    setIsShowingCreateModal(false);
-  };
-
-  const validateProjectNameAndAlert = (projectName: string) => {
-    let projectNameValidation = validProjectName(projectName);
-    if (!projectNameValidation.valid) {
-      setAlert(
-        "Error",
-        `Please make sure you enter a valid project name. ${projectNameValidation.reason}`
-      );
-    }
-    return projectNameValidation.valid;
-  };
-
   const onCloseCreateProjectModal = () => {
     setIsShowingCreateModal(false);
-    setProjectName("");
   };
 
   const onImport = () => {
@@ -406,102 +288,19 @@ const ProjectsView: React.FC = () => {
           open={isImporting}
           onClose={() => setIsImporting(false)}
         />
-        <Dialog
-          fullWidth
-          maxWidth="xs"
-          open={hasValue(projectUuidOnEdit)}
+        <EditProjectPathDialog
+          projects={projects}
+          projectUuid={projectUuidOnEdit}
           onClose={onCloseEditProjectPathModal}
-        >
-          <form
-            id="edit-name"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onSubmitEditProjectPathModal();
-            }}
-          >
-            <DialogTitle>Edit project name</DialogTitle>
-            <DialogContent>
-              <TextField
-                fullWidth
-                autoFocus
-                sx={{ marginTop: (theme) => theme.spacing(2) }}
-                value={projectPath}
-                label="Project name"
-                onChange={(e) => {
-                  setProjectPath(e.target.value);
-                }}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                color="secondary"
-                startIcon={<CloseIcon />}
-                onClick={onCloseEditProjectPathModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                startIcon={<SaveIcon />}
-                variant="contained"
-                disabled={isUpdatingProjectPath}
-                type="submit"
-                form="edit-name"
-              >
-                Save
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-        <Dialog
-          open={isShowingCreateModal}
+          setProjects={setProjects}
+        />
+        <CreateProjectDialog
+          projects={projects}
+          isOpen={isShowingCreateModal}
           onClose={onCloseCreateProjectModal}
-          fullWidth
-          maxWidth="xs"
-        >
-          <form
-            id="create-project"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onClickCreateProject();
-            }}
-          >
-            <DialogTitle>Create a new project</DialogTitle>
-            <DialogContent>
-              <TextField
-                fullWidth
-                autoFocus
-                sx={{ marginTop: (theme) => theme.spacing(2) }}
-                label="Project name"
-                value={projectName}
-                onChange={(e) =>
-                  setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
-                }
-                data-test-id="project-name-textfield"
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                startIcon={<CloseIcon />}
-                color="secondary"
-                onClick={onCloseCreateProjectModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<FormatListBulletedIcon />}
-                type="submit"
-                form="create-project"
-                data-test-id="create-project"
-              >
-                Create project
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-
+        />
         <h2>Projects</h2>
-        {projectRows.length === 0 && isValidating ? (
+        {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
           <>
@@ -540,7 +339,7 @@ const ProjectsView: React.FC = () => {
             </Stack>
             <DataTable<ProjectRow>
               id="project-list"
-              isLoading={isValidating}
+              isLoading={isFetchingProjects}
               selectable
               hideSearch
               onRowClick={onRowClick}

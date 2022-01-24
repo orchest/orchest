@@ -1,4 +1,4 @@
-import type { IProjectsContext, IProjectsContextState, Project } from "@/types";
+import type { IOrchestSession, Project } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 
@@ -36,6 +36,22 @@ type Action =
 
 type ActionCallback = (currentState: IProjectsContextState) => Action;
 type ProjectsContextAction = Action | ActionCallback;
+export interface IProjectsContextState
+  extends Pick<
+    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
+    "projectUuid" | "pipelineUuid"
+  > {
+  pipelineName?: string;
+  pipelineFetchHash?: string;
+  pipelineIsReadOnly: boolean;
+  pipelineSaveStatus: "saved" | "saving";
+  projects: Project[];
+  hasLoadedProjects: boolean;
+}
+export interface IProjectsContext {
+  state: IProjectsContextState;
+  dispatch: (value: ProjectsContextAction) => void;
+}
 
 const reducer = (
   state: IProjectsContextState,
