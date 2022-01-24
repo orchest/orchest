@@ -376,11 +376,15 @@ class Session:
                             "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                             "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         },
+                        # This account is needed to get pods and their
+                        # logs, K8S_TODO: make an ad hoc role for the
+                        # session sidecar?
                         "resources": {
                             "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                         },
                         "volumes": [
                             volumes_dict["project-dir"],
+                            volumes_dict["pipeline-file"],
                         ],
                         "containers": [
                             {
@@ -398,6 +402,10 @@ class Session:
                                         "value": pipeline_uuid,
                                     },
                                     {
+                                        "name": "ORCHEST_PIPELINE_PATH",
+                                        "value": _config.PIPELINE_FILE,
+                                    },
+                                    {
                                         "name": "ORCHEST_SESSION_UUID",
                                         "value": pipeline_or_run_uuid,
                                     },
@@ -405,9 +413,16 @@ class Session:
                                         "name": "ORCHEST_SESSION_TYPE",
                                         "value": session_type.value,
                                     },
+                                    {
+                                        "name": "K8S_NAMESPACE",
+                                        "value": get_k8s_namespace_name(
+                                            project_uuid, pipeline_or_run_uuid
+                                        ),
+                                    },
                                 ],
                                 "volumeMounts": [
                                     volume_mounts_dict["project-dir"],
+                                    volume_mounts_dict["pipeline-file"],
                                 ],
                             }
                         ],
