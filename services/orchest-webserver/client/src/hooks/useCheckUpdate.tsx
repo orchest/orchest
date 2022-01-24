@@ -9,8 +9,9 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWRImmutable from "swr/immutable";
 
-// To limit the number of api calls it is best to place this hook in
-// top-level components (i.e. the ones defined in the routingConfig.tsx).
+// To limit the number of api calls and make sure only one prompt is shown,
+// it is best to place this hook in top-level components (i.e. the ones
+// defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
   const [skipVersion, setSkipVersion] = useLocalStorage("skip_version", null);
 

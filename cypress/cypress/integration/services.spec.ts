@@ -28,6 +28,7 @@ describe("services", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
   });
 
   context("requires the services-connectivity project ", () => {
