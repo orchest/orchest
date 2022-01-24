@@ -9,21 +9,25 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWRImmutable from "swr/immutable";
 
+// To limit the number of api calls it is best to place this hook in
+// top-level components (i.e. the ones defined in the routingConfig.tsx).
 export const useCheckUpdate = () => {
-  let [skipVersion, setSkipVersion] = useLocalStorage("skip_version", null);
+  const [skipVersion, setSkipVersion] = useLocalStorage("skip_version", null);
 
   // Only make requests every hour, because the latest Orchest version gets
   // fetched once per hour. Use `useSWRImmutable` to disable all kinds of
   // automatic revalidation; just serve from cache and refresh cache
   // once per hour.
-  const { data: updateInfo, mutate: mutateInfo } = useSWRImmutable<UpdateInfo>(
+  const { data: orchestVersion } = useSWRImmutable<OrchestVersion>(
+    "/async/version",
+    fetcher,
+    { refreshInterval: 3600000 }
+  );
+  const { data: updateInfo } = useSWRImmutable<UpdateInfo>(
     "/async/orchest-update-info",
     fetcher,
     { refreshInterval: 3600000 }
   );
-  const { data: orchestVersion, mutate: mutateVersion } = useSWRImmutable<
-    OrchestVersion
-  >("/async/version", fetcher, { refreshInterval: 3600000 });
 
   const { setConfirm } = useAppContext();
   const { navigateTo } = useCustomRoute();
@@ -53,37 +57,12 @@ export const useCheckUpdate = () => {
     }
   };
 
-  const checkUpdateNow = async () => {
-    const [newInfo, newVersion] = await Promise.all([
-      mutateInfo(),
-      mutateVersion(),
-    ]);
-    if (newInfo && newVersion) {
-      const shouldPrompt = shouldPromptOrchestUpdate(
-        newVersion.version,
-        newInfo.latest_version
-      );
-      if (shouldPrompt) {
-        // TODO: Isn't it strange that promptUpdate actually doesn't use
-        // the newVersion and newInfo but the mutated orchestVersion and
-        // updateInfo. Does it actually work correctly? Otherwise I can just
-        // pass the values to the function.
-        promptUpdate();
-      } else {
-        setConfirm(
-          "No update available",
-          "There doesn't seem to be a new update available."
-        );
-      }
-    }
-  };
-
-  const promptUpdate = () => {
+  const promptUpdate = (currentVersion: string, latestVersion: string) => {
     setConfirm(
       "Update available",
       <Typography variant="body2">
-        Orchest can be updated from <Code>{orchestVersion.version}</Code> to{" "}
-        <Code>{updateInfo.latest_version}</Code>. Would you like to update now?
+        Orchest can be updated from <Code>{currentVersion}</Code> to{" "}
+        <Code>{latestVersion}</Code>. Would you like to update now?
       </Typography>,
       {
         onConfirm: async (resolve) => {
@@ -102,22 +81,54 @@ export const useCheckUpdate = () => {
     );
   };
 
-  // TODO: Couldn't this actually trigger multiple setConfirm dialogs?
-  // Because the updateInfo value could get updated due to a call to
-  // checkUpdateNow. It would then get prompted by the functioncall and
-  // by this effect, right?
-  React.useEffect(() => {
-    if (updateInfo && orchestVersion) {
-      const shouldPrompt = shouldPromptOrchestUpdate(
-        orchestVersion.version,
-        updateInfo.latest_version,
-        skipVersion
-      );
-      if (shouldPrompt) {
-        promptUpdate();
+  const handlePrompt = (
+    orchestVersion: OrchestVersion,
+    updateInfo: UpdateInfo,
+    skipVersion: string | null,
+    noOp: boolean
+  ) => {
+    const currentVersion = orchestVersion.version;
+    const latestVersion = updateInfo.latest_version;
+
+    const shouldPrompt = shouldPromptOrchestUpdate(
+      currentVersion,
+      latestVersion,
+      skipVersion
+    );
+    if (shouldPrompt) {
+      promptUpdate(currentVersion, latestVersion);
+    } else {
+      if (!noOp) {
+        setConfirm(
+          "No update available",
+          "There doesn't seem to be a new update available."
+        );
       }
     }
-  }, [updateInfo, orchestVersion]);
+  };
+  const checkUpdateNow = async () => {
+    // Use fetcher directly instead of mutate function from the SWR
+    // calls to prevent updating the values which would trigger the
+    // useEffect and thereby prompting the user twice. In addition,
+    // we want to be able to tell the user that no update is available
+    // if this function is invoked.
+    const [orchestVersion, updateInfo]: [
+      OrchestVersion,
+      UpdateInfo
+    ] = await Promise.all([
+      fetcher("/async/version"),
+      fetcher("/async/orchest-update-info"),
+    ]);
+    if (orchestVersion && updateInfo) {
+      handlePrompt(orchestVersion, updateInfo, null, false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (orchestVersion && updateInfo) {
+      handlePrompt(orchestVersion, updateInfo, skipVersion, true);
+    }
+  }, [orchestVersion, updateInfo, skipVersion]);
 
   return checkUpdateNow;
 };
