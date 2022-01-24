@@ -4,7 +4,7 @@ import time
 import traceback
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Dict, NamedTuple, Tuple
+from typing import Any, Callable, Dict, NamedTuple, Optional, Tuple
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_k8s_namespace_name
@@ -110,7 +110,18 @@ class Session:
         self._session_config = session_config
         self._session_type = session_type
 
-    def launch(self):
+    def launch(self, should_abort: Optional[Callable] = None):
+        """Starts all resources needed by the session.
+
+        Args:
+            should_abort: A callable that can be used to abort the
+                launch logic. When the callable returns True the launch
+                is interrupted. Note that no resource cleanup takes
+                place, and the caller of launch should make sure to call
+                the cleanup_resources method if desired.
+        """
+        if should_abort is None:
+            should_abort = bool  # Returns False.
         logger = utils.get_logger()
         project_uuid = self._session_config["project_uuid"]
         logger.info("Creating namespace.")
@@ -140,6 +151,9 @@ class Session:
             user_service_deployment_manifests.append(dep)
             user_service_services_manifests.append(serv)
 
+        if should_abort():
+            return
+
         logger.info("Creating Orchest session services deployments.")
         ns = get_k8s_namespace_name(project_uuid, self.pipeline_or_run_uuid)
         for manifest in orchest_service_deployment_manifests:
@@ -149,14 +163,22 @@ class Session:
                 manifest,
             )
 
+        if should_abort():
+            return
+
         logger.info("Waiting for Orchest session service deployments to be ready.")
         for manifest in orchest_service_deployment_manifests:
             name = manifest["metadata"]["name"]
             deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
             while deployment.status.updated_replicas != deployment.spec.replicas:
+                if should_abort():
+                    return
                 logger.info(f"Waiting for {name}.")
                 time.sleep(1)
                 deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
+
+        if should_abort():
+            return
 
         logger.info("Creating user session services deployments.")
         ns = get_k8s_namespace_name(project_uuid, self.pipeline_or_run_uuid)
@@ -166,6 +188,10 @@ class Session:
                 ns,
                 manifest,
             )
+
+        if should_abort():
+            return
+
         logger.info("Creating user session services k8s services.")
         for manifest in user_service_services_manifests:
             logger.info(f'Creating service {manifest["metadata"]["name"]}')
@@ -179,18 +205,24 @@ class Session:
             name = manifest["metadata"]["name"]
             deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
             while deployment.status.updated_replicas != deployment.spec.replicas:
+                if should_abort():
+                    return
                 logger.info(f"Waiting for {name}.")
                 time.sleep(1)
                 deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
 
     def shutdown(self):
-        """Shutdowns the session, deleting all related resources."""
+        """Shutdowns the session."""
+        self.cleanup_resources()
+        # K8S_TODO: delete dangling environment images.
+
+    def cleanup_resources(self):
+        """Deletes all related resources."""
         k8s_core_api.delete_namespace(
             get_k8s_namespace_name(
                 self._session_config["project_uuid"], self.pipeline_or_run_uuid
             ),
         )
-        # K8S_TODO: delete dangling environment images.
 
     def restart_session_service(
         self, service_name: bool, wait_for_readiness: bool = True
@@ -645,23 +677,21 @@ class NonInteractiveSession(Session):
 
 @contextmanager
 def launch_noninteractive_session(
-    uuid: str, session_config: Dict[str, Any]
+    uuid: str, session_config: Dict[str, Any], should_abort: Optional[Callable] = None
 ) -> NonInteractiveSession:
     """Launches a non-interactive session for a particular pipeline.
 
     Args:
-        See `Args` section in class :class:`NonInteractiveSession`.
-        docker_client (docker.client.DockerClient): docker client to
-            manage Docker resources.
+        See the launch args of the Session class.
 
     Yields:
         A Session object that has already launched its resources, set
-        in NONINTERacti mode.
+        in NonInteractive mode.
 
     """
     session = NonInteractiveSession(uuid, session_config)
     try:
-        session.launch()
+        session.launch(should_abort)
         yield session
     finally:
         session.shutdown()

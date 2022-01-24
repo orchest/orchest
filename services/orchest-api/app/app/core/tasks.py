@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 
 import aiohttp
 from celery import Task
-from celery.contrib.abortable import AbortableTask
+from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
 from _orchest.internals.utils import get_k8s_namespace_name
@@ -243,6 +243,7 @@ def start_non_interactive_pipeline_run(
     with launch_noninteractive_session(
         session_uuid,
         session_config,
+        lambda: AbortableAsyncResult(session_uuid).is_aborted(),
     ):
         status = run_pipeline(
             pipeline_definition, project_uuid, run_config, task_id=self.request.id
