@@ -6,7 +6,7 @@ import { IOrchestSession } from "@/types";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
-import { useRouteMatch } from "react-router-dom";
+import { matchPath, useLocation } from "react-router-dom";
 import useSWR, { useSWRConfig } from "swr";
 
 type TSessionStatus = IOrchestSession["status"];
@@ -43,16 +43,23 @@ export const useSessionsPoller = () => {
     state: { pipelineUuid, pipelineIsReadOnly },
   } = useProjectsContext();
 
-  const matchPipelines = useRouteMatch({
-    path: siteMap.pipelines.path,
-    exact: true,
-  });
+  const location = useLocation();
+
+  const matches = matchPath(location.pathname, [
+    siteMap.pipelines.path,
+    siteMap.pipelineSettings.path,
+    siteMap.logs.path,
+    siteMap.pipeline.path,
+    siteMap.pipelines.path,
+    siteMap.configureJupyterLab.path,
+    siteMap.jupyterLab.path,
+  ]);
 
   // sessions are only needed when
   // 1. pipelineUuid is given, and is not read-only
   // 2. in the pipeline list
   const shouldPoll =
-    (!pipelineIsReadOnly && hasValue(pipelineUuid)) || hasValue(matchPipelines);
+    (!pipelineIsReadOnly && hasValue(pipelineUuid)) || hasValue(matches);
 
   const { cache } = useSWRConfig();
 
