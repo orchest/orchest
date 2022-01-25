@@ -284,7 +284,16 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
       .type(path);
   }
   cy.findByTestId(TEST_ID.PIPELINE_CREATE_OK).click();
-  cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 1);
+  cy.url().should("include", "/pipeline?");
+  cy.findByTestId("pipeline-name").contains(name);
+  // Expect a session just started. Stop it when it's done starting.
+  cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON)
+    .contains("Stop session", { timeout: 60000 })
+    .click();
+  cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Start session", {
+    timeout: 60000,
+  });
+  cy.goToMenu("pipelines");
   cy.log("======== Done creating pipeline");
 });
 
