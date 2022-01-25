@@ -199,6 +199,18 @@ class CreateInteractiveSession(TwoPhaseFunction):
         self.collateral_kwargs["session_config"] = session_config
 
     @classmethod
+    def _should_abort_session_start(cls, project_uuid, pipeline_uuid) -> bool:
+        session_entry = (
+            models.InteractiveSession.query.options(
+                lazyload(models.InteractiveSession.image_mappings)
+            )
+            .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
+            .one_or_none()
+        )
+        # Has been stopped or is in the process of being stopped.
+        return session_entry is None or session_entry.status != "LAUNCHING"
+
+    @classmethod
     def _background_session_start(
         cls, app, session_uuid: str, session_config: Dict[str, Any]
     ):
@@ -225,10 +237,15 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 ] = env_uuid_docker_id_mappings
 
                 sessions.launch(
-                    session_uuid, session_config, sessions.SessionType.INTERACTIVE
+                    session_uuid,
+                    sessions.SessionType.INTERACTIVE,
+                    session_config,
+                    should_abort=lambda: cls._should_abort_session_start(
+                        project_uuid, pipeline_uuid
+                    ),
                 )
 
-                # with for update to avoid overwriting the state of a
+                # with_for_update to avoid overwriting the state of a
                 # STOPPING instance.
                 session_entry = (
                     models.InteractiveSession.query
@@ -258,14 +275,14 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
                 # Attempt containers cleanup.
                 try:
-                    sessions.shutdown(session_uuid)
+                    sessions.cleanup_resources(session_uuid)
                 except Exception:
                     pass
 
-                # Error handling. If it does not succeed then the
-                # initial entry has to be removed from the database as
-                # otherwise no session can be started in the future due
-                # to the uniqueness constraint.
+                # If it does not succeed then the initial entry has to
+                # be removed from the database as otherwise no session
+                # can be started in the future due to the uniqueness
+                # constraint.
                 models.InteractiveSession.query.filter_by(
                     project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
                 ).delete()
@@ -336,7 +353,7 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
     ):
 
-        # K8S_TODO: see if this requires changes.
+        # K8S_TODO: see if this can be removed.
         # Note that a session that is still LAUNCHING should not be
         # killed until it has done launching, because the jupyterlab
         # user configuration is managed through a lock that is removed
@@ -344,17 +361,7 @@ class StopInteractiveSession(TwoPhaseFunction):
         with app.app_context():
             try:
                 sessions.shutdown(session_uuid)
-
-                # Deletion happens here and not in the transactional
-                # phase because this way we can show the session
-                # STOPPING to the user.
-                models.InteractiveSession.query.filter_by(
-                    project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
-                ).delete()
-                db.session.commit()
-            except Exception as e:
-                current_app.logger.error(e)
-
+            finally:
                 # Make sure that the session is deleted in any case,
                 # because otherwise the user will not be able to have an
                 # active session for the given pipeline.

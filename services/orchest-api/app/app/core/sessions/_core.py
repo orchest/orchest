@@ -136,9 +136,8 @@ def launch(
     if should_abort is None:
         should_abort = bool  # Returns False.
     logger = utils.get_logger()
-    project_uuid = session_config["project_uuid"]
     logger.info("Creating namespace.")
-    _create_session_k8s_namespace(session_uuid, session_config)
+    _create_session_k8s_namespace(session_uuid, session_type, session_config)
 
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
@@ -190,7 +189,7 @@ def launch(
         return
 
     logger.info("Creating Orchest session services deployments.")
-    ns = get_k8s_namespace_name(project_uuid, session_uuid)
+    ns = get_k8s_namespace_name(session_uuid)
     for manifest in orchest_session_service_k8s_deployment_manifests:
         logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
         k8s_apps_api.create_namespaced_deployment(
@@ -340,7 +339,7 @@ def launch_noninteractive_session(
 
     """
     try:
-        launch(session_uuid, session_config, should_abort)
+        launch(session_uuid, SessionType.NONINTERACTIVE, session_config, should_abort)
         yield None
     finally:
         shutdown(session_uuid)
