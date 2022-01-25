@@ -360,23 +360,30 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     });
   }, [pipelines, projectUuid, getSession]);
 
+  const navigateToPipeline = React.useCallback(
+    async (pipelineUuid: string, e?: React.MouseEvent) => {
+      const goToPipeline = (isReadOnly: boolean) => {
+        navigateTo(
+          siteMap.pipeline.path,
+          {
+            query: { projectUuid, pipelineUuid },
+            state: { isReadOnly },
+          },
+          e
+        );
+      };
+      try {
+        await checkGate(projectUuid);
+        goToPipeline(false);
+      } catch (error) {
+        goToPipeline(true);
+      }
+    },
+    [navigateTo, projectUuid]
+  );
+
   const onRowClick = async (e: React.MouseEvent, pipelineUuid: string) => {
-    const goToPipeline = (isReadOnly: boolean) => {
-      navigateTo(
-        siteMap.pipeline.path,
-        {
-          query: { projectUuid, pipelineUuid },
-          state: { isReadOnly },
-        },
-        e
-      );
-    };
-    try {
-      await checkGate(projectUuid);
-      goToPipeline(false);
-    } catch (error) {
-      goToPipeline(true);
-    }
+    return navigateToPipeline(pipelineUuid, e);
   };
 
   const onDeletePipelines = async (pipelineUuids: string[]) => {
@@ -415,14 +422,15 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   const createPipeline = React.useCallback(
     ({ name, path }: { name: string; path: string }) => {
       return run(
-        fetcher(`/async/pipelines/create/${projectUuid}`, {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({ name, pipeline_path: path }),
-        })
-          .then(() => {
-            fetchPipelines();
-          })
+        fetcher<{ pipeline_uuid: string }>(
+          `/async/pipelines/create/${projectUuid}`,
+          {
+            method: "POST",
+            headers: HEADER.JSON,
+            body: JSON.stringify({ name, pipeline_path: path }),
+          }
+        )
+          .then(({ pipeline_uuid }) => navigateToPipeline(pipeline_uuid))
           .catch((error) => {
             setAlert(
               "Error",
@@ -431,7 +439,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           })
       );
     },
-    [fetchPipelines, run, projectUuid, setAlert]
+    [run, projectUuid, setAlert, navigateToPipeline]
   );
 
   const isLoaded = hasValue(pipelines) && !error;

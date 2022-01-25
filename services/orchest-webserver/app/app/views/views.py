@@ -367,9 +367,11 @@ def register_views(app, db):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreatePipeline(tpe).transaction(
+                pipeline_uuid = CreatePipeline(tpe).transaction(
                     project_uuid, pipeline_name, pipeline_path
                 )
+                return jsonify({"pipeline_uuid": pipeline_uuid})
+
         except FileExistsError:
             return (
                 jsonify({"message": "A pipeline with the given path already exists."}),
@@ -377,8 +379,6 @@ def register_views(app, db):
             )
         except Exception as e:
             return jsonify({"message": str(e)}), 409
-
-        return jsonify({"success": True})
 
     class ImportGitProjectListResource(Resource):
         def post(self):
