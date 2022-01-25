@@ -641,35 +641,36 @@ def docker_has_gpu_capabilities(
     return True
 
 
-def get_k8s_namespace_name(project_uuid: str, pipeline_or_run_uuid: str) -> str:
-    """Get k8s namespace name given project and pipeline/run uuid.
-
-    Only the first 18 characters of each uuid are used, this is because
-    k8s has a limit of 64 characters for the name of a namespace.
+def get_k8s_namespace_name(uuid: str) -> str:
+    """Get k8s namespace name given a uuid4 string.
 
     Args:
-        project_uuid:
-        pipeline_or_run_uuid:
+        uuid:
 
     Returns:
         Name of the namespace to use.
     """
-    if len(project_uuid) < 18:
-        raise ValueError("project_uuid needs to be of, at least, length 18.")
-    if len(pipeline_or_run_uuid) < 18:
-        raise ValueError("project_uuid needs to be of, at least, length 18.")
-    return f"orchest-{project_uuid[:18]}-{pipeline_or_run_uuid[:18]}"
+    if len(uuid) != 36:
+        raise ValueError("Needs to be a uuid4 string")
+    return f"orchest-{uuid}"
 
 
-def get_k8s_namespace_manifest(project_uuid: str, pipeline_or_run_uuid: str) -> dict:
+def get_k8s_namespace_manifest(uuid: str, labels: Dict[str, str]) -> dict:
+    """Returns a k8s namespace manifest given the arguments.
+
+    The namespace name will be set according to get_k8s_namespace_name.
+
+    Args:
+        uuid of the namespace. Will be used for the name.
+        labels: dictionary mapping string to string. Will be used for
+        the namespace labels.
+
+    Returns:
+        Dictionary representing a valid k8s namespace manifest.
+
+    """
     return {
         "apiVersion": "v1",
         "kind": "Namespace",
-        "metadata": {
-            "name": get_k8s_namespace_name(project_uuid, pipeline_or_run_uuid),
-            "labels": {
-                "project_uuid": project_uuid,
-                "pipeline_or_run_uuid": pipeline_or_run_uuid,
-            },
-        },
+        "metadata": {"name": get_k8s_namespace_name(uuid), "labels": labels},
     }

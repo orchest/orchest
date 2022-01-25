@@ -96,7 +96,7 @@ async def run_pipeline_async(run_config, pipeline, task_id):
         k8s_custom_obj_api.delete_namespaced_custom_object(
             "argoproj.io",
             "v1alpha1",
-            get_k8s_namespace_name(run_config["project_uuid"], task_id),
+            get_k8s_namespace_name(task_id),
             "workflows",
             f"pipeline-run-task-{task_id}",
         )
@@ -246,7 +246,7 @@ def start_non_interactive_pipeline_run(
         lambda: AbortableAsyncResult(session_uuid).is_aborted(),
     ):
         status = run_pipeline(
-            pipeline_definition, project_uuid, run_config, task_id=self.request.id
+            pipeline_definition, project_uuid, run_config, task_id=session_uuid
         )
 
     return status

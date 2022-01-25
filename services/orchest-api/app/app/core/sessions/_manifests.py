@@ -122,7 +122,7 @@ def _get_volume_mounts(
 
 
 def _get_memory_server_deployment_manifest(
-    pipeline_or_run_uuid: str,
+    session_uuid: str,
     session_config: str,
     session_type: str,
 ) -> dict:
@@ -137,7 +137,7 @@ def _get_memory_server_deployment_manifest(
         "labels": {
             "app": "memory-server",
             "project_uuid": project_uuid,
-            "pipeline_or_run_uuid": pipeline_or_run_uuid,
+            "session_uuid": session_uuid,
         },
     }
     volumes_dict = _get_volumes(
@@ -190,7 +190,7 @@ def _get_memory_server_deployment_manifest(
                                 },
                                 {
                                     "name": "ORCHEST_SESSION_UUID",
-                                    "value": pipeline_or_run_uuid,
+                                    "value": session_uuid,
                                 },
                                 {
                                     "name": "ORCHEST_SESSION_TYPE",
@@ -211,7 +211,7 @@ def _get_memory_server_deployment_manifest(
 
 
 def _get_session_sidecar_deployment_manifest(
-    pipeline_or_run_uuid: str,
+    session_uuid: str,
     session_config: str,
     session_type: str,
 ) -> dict:
@@ -226,7 +226,7 @@ def _get_session_sidecar_deployment_manifest(
         "labels": {
             "app": "session-sidecar",
             "project_uuid": project_uuid,
-            "pipeline_or_run_uuid": pipeline_or_run_uuid,
+            "session_uuid": session_uuid,
         },
     }
     volumes_dict = _get_volumes(
@@ -281,7 +281,7 @@ def _get_session_sidecar_deployment_manifest(
                                 },
                                 {
                                     "name": "ORCHEST_SESSION_UUID",
-                                    "value": pipeline_or_run_uuid,
+                                    "value": session_uuid,
                                 },
                                 {
                                     "name": "ORCHEST_SESSION_TYPE",
@@ -289,9 +289,7 @@ def _get_session_sidecar_deployment_manifest(
                                 },
                                 {
                                     "name": "K8S_NAMESPACE",
-                                    "value": get_k8s_namespace_name(
-                                        project_uuid, pipeline_or_run_uuid
-                                    ),
+                                    "value": get_k8s_namespace_name(session_uuid),
                                 },
                             ],
                             "volumeMounts": [
@@ -307,7 +305,7 @@ def _get_session_sidecar_deployment_manifest(
 
 
 def _get_user_service_deployment_service_manifest(
-    pipeline_or_run_uuid: str,
+    session_uuid: str,
     session_config: str,
     service_config: Dict[str, Any],
     session_type: str,
@@ -315,7 +313,7 @@ def _get_user_service_deployment_service_manifest(
     """Get deployment and service manifest for a user service.
 
     Args:
-            pipeline_or_run_uuid:
+            session_uuid:
             session_config: See `Args` section in class :class:`Session`
                     __init__ method.
             service_config: See `Args` section in class :class:`Session`
@@ -365,7 +363,7 @@ def _get_user_service_deployment_service_manifest(
     environment["ORCHEST_PIPELINE_UUID"] = pipeline_uuid
     # So that the SDK can access the pipeline file.
     environment["ORCHEST_PIPELINE_PATH"] = _config.PIPELINE_FILE
-    environment["ORCHEST_SESSION_UUID"] = pipeline_or_run_uuid
+    environment["ORCHEST_SESSION_UUID"] = session_uuid
     environment["ORCHEST_SESSION_TYPE"] = session_type
     env = []
     for k, v in environment.items():
@@ -400,7 +398,7 @@ def _get_user_service_deployment_service_manifest(
         "labels": {
             "app": service_config["name"],
             "project_uuid": project_uuid,
-            "pipeline_or_run_uuid": pipeline_or_run_uuid,
+            "session_uuid": session_uuid,
         },
     }
 

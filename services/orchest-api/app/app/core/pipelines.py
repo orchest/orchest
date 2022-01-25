@@ -674,7 +674,7 @@ async def run_pipeline_workflow(
             run_endpoint=run_config["run_endpoint"],
         )
 
-        namespace = get_k8s_namespace_name(run_config["project_uuid"], task_id)
+        namespace = get_k8s_namespace_name(task_id)
 
         try:
             manifest = pipeline_to_workflow_manifest(
