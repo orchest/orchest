@@ -552,10 +552,10 @@ def register_views(app, db):
 
     @app.route("/async/projects", methods=["POST"])
     def projects_post():
-        project_uuid = ""
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 project_uuid = CreateProject(tpe).transaction(request.json["name"])
+                return jsonify({"project_uuid": project_uuid})
         except Exception as e:
 
             # The sql integrity error message can be quite ugly.
@@ -567,8 +567,6 @@ def register_views(app, db):
                 jsonify({"message": msg}),
                 500,
             )
-
-        return jsonify({"project_uuid": project_uuid})
 
     @app.route("/async/projects", methods=["DELETE"])
     def projects_delete():
