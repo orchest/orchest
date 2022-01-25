@@ -423,15 +423,11 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           .then(() => {
             fetchPipelines();
           })
-          .catch((response) => {
-            if (!response.isCanceled) {
-              try {
-                let data = JSON.parse(response.body);
-                setAlert("Error", `Could not create pipeline. ${data.message}`);
-              } catch {
-                setAlert("Error", "Could not create pipeline. Reason unknown.");
-              }
-            }
+          .catch((error) => {
+            setAlert(
+              "Error",
+              `Could not create pipeline. ${error.message || "Reason unknown."}`
+            );
           })
       );
     },
