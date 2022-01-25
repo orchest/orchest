@@ -30,5 +30,5 @@ docker_client = DockerClient.from_env()
 # K8S_TODO: fix.
 # registry = k8s_api.read_namespaced_service("registry", "kube-system")
 # .spec.cluster_ip
-registry = "10.111.248.253"
+registry = "10.111.164.4"
 docker_client.login(username="", registry=registry)

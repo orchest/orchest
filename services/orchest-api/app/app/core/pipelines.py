@@ -552,7 +552,7 @@ def step_to_workflow_manifest_task(
                     "name": "image",
                     "value":
                     # K8S_TODO: fix.
-                    "10.111.248.253/"
+                    "10.111.164.4/"
                     + run_config["env_uuid_docker_id_mappings"][
                         step.properties["environment"]
                     ],
