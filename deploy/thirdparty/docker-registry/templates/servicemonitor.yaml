@@ -1,0 +1,21 @@
+{{- if and .Values.metrics.enabled .Values.metrics.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "docker-registry.fullname" . }}-servicemonitor
+  labels:
+    app: {{ template "docker-registry.name" . }}-metrics
+    release: {{ .Release.Name }}
+{{- if .Values.metrics.serviceMonitor.labels }}
+{{ toYaml .Values.metrics.serviceMonitor.labels | indent 4 }}
+{{- end }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ template "docker-registry.name" . }}
+      release: {{ .Release.Name }}
+      heritage: {{ .Release.Service }}
+  endpoints:
+  - port: metrics
+    interval: 15s
+{{- end }}
