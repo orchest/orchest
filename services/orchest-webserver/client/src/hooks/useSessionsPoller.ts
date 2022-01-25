@@ -34,7 +34,7 @@ function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
 }
 
 /**
- * useSessionsPoller should only be placed in HeaderBar
+ * NOTE: useSessionsPoller should only be placed in HeaderBar
  */
 export const useSessionsPoller = () => {
   const { dispatch } = useSessionsContext();
@@ -44,7 +44,6 @@ export const useSessionsPoller = () => {
   } = useProjectsContext();
 
   const location = useLocation();
-
   const matches = matchPath(location.pathname, [
     siteMap.pipelines.path,
     siteMap.pipelineSettings.path,
@@ -55,11 +54,11 @@ export const useSessionsPoller = () => {
     siteMap.jupyterLab.path,
   ]);
 
-  // sessions are only needed when
+  // sessions are only needed when both conditions are met
   // 1. pipelineUuid is given, and is not read-only
-  // 2. in the pipeline list
+  // 2. in the list above
   const shouldPoll =
-    (!pipelineIsReadOnly && hasValue(pipelineUuid)) || hasValue(matches);
+    !pipelineIsReadOnly && hasValue(pipelineUuid) && matches?.isExact;
 
   const { cache } = useSWRConfig();
 
@@ -95,7 +94,7 @@ export const useSessionsPoller = () => {
       cache.get(ENDPOINT)?.sessions || // in case sessions are needed when polling is not active
       []
     );
-  }, [data]);
+  }, [data, cache]);
 
   React.useEffect(() => {
     dispatch({
