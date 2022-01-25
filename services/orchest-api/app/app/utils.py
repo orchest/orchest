@@ -133,6 +133,8 @@ def update_status_db(
 
 
 def get_environment_image_docker_id(name_or_id: str):
+    # K8S_TODO: fix this, needs registry.
+    return None
     try:
         return docker_client.images.get(name_or_id).id
     except errors.ImageNotFound:

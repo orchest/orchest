@@ -5,12 +5,13 @@ from typing import Any, Dict, Tuple
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_k8s_namespace_name
 from app import utils
+from config import CONFIG_CLASS
 
 
 def _get_volumes(
     project_uuid: str,
     host_project_dir: str,
-    host_pipeline_path: str,
+    project_relative_pipeline_path: str,
     host_userdir: str,
 ) -> Dict[str, Dict]:
     # Make sure the same set of keys is available for all cases.
@@ -31,7 +32,9 @@ def _get_volumes(
     }
     volumes["pipeline-file"] = {
         "name": "pipeline-file",
-        "hostPath": {"path": os.path.join(host_project_dir, host_pipeline_path)},
+        "hostPath": {
+            "path": os.path.join(host_project_dir, project_relative_pipeline_path)
+        },
     }
 
     # The `host_userdir` is only passed for interactive runs.
@@ -128,7 +131,7 @@ def _get_memory_server_deployment_manifest(
 ) -> dict:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    host_pipeline_path = session_config["pipeline_path"]
+    project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
 
@@ -141,7 +144,7 @@ def _get_memory_server_deployment_manifest(
         },
     }
     volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, host_pipeline_path, host_userdir
+        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
     )
     volume_mounts_dict = _get_volume_mounts(
         _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
@@ -217,7 +220,7 @@ def _get_session_sidecar_deployment_manifest(
 ) -> dict:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    host_pipeline_path = session_config["pipeline_path"]
+    project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
 
@@ -230,7 +233,7 @@ def _get_session_sidecar_deployment_manifest(
         },
     }
     volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, host_pipeline_path, host_userdir
+        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
     )
     volume_mounts_dict = _get_volume_mounts(
         _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
@@ -304,6 +307,237 @@ def _get_session_sidecar_deployment_manifest(
     }
 
 
+def _get_jupyter_server_deployment_service_manifest(
+    session_uuid: str,
+    session_config: str,
+    session_type: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    project_uuid = session_config["project_uuid"]
+    project_relative_pipeline_path = session_config["pipeline_path"]
+    host_project_dir = session_config["project_dir"]
+    host_userdir = session_config["host_userdir"]
+
+    metadata = {
+        "name": "jupyter-server",
+        "labels": {
+            "app": "jupyter-server",
+            "project_uuid": project_uuid,
+            "session_uuid": session_uuid,
+        },
+    }
+
+    # Check if user tweaked JupyterLab image exists.
+    if utils.get_environment_image_docker_id(_config.JUPYTER_IMAGE_NAME) is not None:
+        image = _config.JUPYTER_IMAGE_NAME
+    else:
+        image = "orchest/jupyter-server:latest"
+
+    volumes_dict = _get_volumes(
+        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
+    )
+    volume_mounts_dict = _get_volume_mounts(
+        _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
+    )
+    deployment_manifest = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": metadata,
+        "spec": {
+            "replicas": 1,
+            "selector": {"matchLabels": {"app": metadata["name"]}},
+            "template": {
+                "metadata": metadata,
+                "spec": {
+                    "securityContext": {
+                        "runAsUser": 0,
+                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                    },
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
+                    "volumes": [
+                        volumes_dict["project-dir"],
+                        volumes_dict["pipeline-file"],
+                        volumes_dict["jupyterlab-lab"],
+                        volumes_dict["jupyterlab-user-settings"],
+                        volumes_dict["jupyterlab-data"],
+                    ],
+                    "containers": [
+                        {
+                            "name": metadata["name"],
+                            "image": image,
+                            # K8S_TODO: fix me.
+                            "imagePullPolicy": "IfNotPresent",
+                            "volumeMounts": [
+                                volume_mounts_dict["project-dir"],
+                                volume_mounts_dict["pipeline-file"],
+                                volume_mounts_dict["jupyterlab-lab"],
+                                volume_mounts_dict["jupyterlab-user-settings"],
+                                volume_mounts_dict["jupyterlab-data"],
+                            ],
+                            # K8S_TODO: will require changes based on
+                            # how ingress is implemented.
+                            "args": [
+                                "--allow-root",
+                                "--port=8888",
+                                "--no-browser",
+                                (
+                                    "--gateway-url=http://jupyter-EG:8888/"
+                                    f'{metadata["name"]}'
+                                ),
+                                f"--notebook-dir={_config.PROJECT_DIR}",
+                                f'--ServerApp.base_url=/{metadata["name"]}',
+                            ],
+                        }
+                    ],
+                },
+            },
+        },
+    }
+
+    # K8S_TODO: will require changes based on
+    # how ingress is implemented.
+    service_manifest = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": metadata,
+        "spec": {
+            "type": "ClusterIP",
+            "selector": {"app": metadata["name"]},
+            "ports": [{"port": 8888}],
+        },
+    }
+    return deployment_manifest, service_manifest
+
+
+def _get_jupyter_enterprise_gateway_deployment_service_manifest(
+    session_uuid: str,
+    session_config: str,
+    session_type: str,
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    project_uuid = session_config["project_uuid"]
+    pipeline_uuid = session_config["pipeline_uuid"]
+    project_relative_pipeline_path = session_config["pipeline_path"]
+    host_project_dir = session_config["project_dir"]
+    host_userdir = session_config["host_userdir"]
+
+    metadata = {
+        "name": "jupyter-EG",
+        "labels": {
+            "app": "jupyter-EG",
+            "project_uuid": project_uuid,
+            "session_uuid": session_uuid,
+        },
+    }
+
+    # Get user environment variables to pass to Jupyter kernels.
+    try:
+        user_defined_env_vars = utils.get_proj_pip_env_variables(
+            project_uuid, pipeline_uuid
+        )
+    except Exception:
+        user_defined_env_vars = {}
+    process_env_whitelist = (
+        "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,"
+        "ORCHEST_PIPELINE_PATH,"
+        "ORCHEST_PROJECT_UUID,"
+        "ORCHEST_HOST_PROJECT_DIR,"
+        "ORCHEST_HOST_PIPELINE_FILE,"
+        "ORCHEST_HOST_GID,"
+        "ORCHEST_SESSION_UUID,"
+        "ORCHEST_SESSION_TYPE,"
+        "ORCHEST_GPU_ENABLED_INSTANCE,"
+    )
+    process_env_whitelist += ",".join([key for key in user_defined_env_vars.keys()])
+
+    environment = {
+        "EG_MIRROR_WORKING_DIRS": "True",
+        "EG_LIST_KERNELS": "True",
+        "EG_KERNEL_WHITELIST": "[]",
+        "EG_PROHIBITED_UIDS": "[]",
+        "EG_UNAUTHORIZED_USERS": '["dummy"]',
+        "EG_UID_BLACKLIST": '["-1"]',
+        "EG_ALLOW_ORIGIN": "*",
+        "EG_BASE_URL": "/jupyter-server",
+        process_env_whitelist: "",
+        "ORCHEST_PIPELINE_UUID": pipeline_uuid,
+        "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
+        "ORCHEST_PROJECT_UUID": project_uuid,
+        "ORCHEST_HOST_PROJECT_DIR": host_project_dir,
+        "ORCHEST_HOST_PIPELINE_FILE": os.path.join(
+            host_project_dir, project_relative_pipeline_path
+        ),
+        "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
+        "ORCHEST_SESSION_UUID": session_uuid,
+        "ORCHEST_SESSION_TYPE": session_type.value,
+        "ORCHEST_GPU_ENABLED_INSTANCE": CONFIG_CLASS.GPU_ENABLED_INSTANCE,
+    }
+    environment = [{"name": k, "value": v} for k, v in environment.items()]
+    user_defined_env_vars = [
+        {"name": key, "value": value} for key, value in user_defined_env_vars.items()
+    ]
+    environment.extend(user_defined_env_vars)
+
+    volumes_dict = _get_volumes(
+        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
+    )
+    volume_mounts_dict = _get_volume_mounts(
+        _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
+    )
+    deployment_manifest = {
+        "apiVersion": "apps/v1",
+        "kind": "Deployment",
+        "metadata": metadata,
+        "spec": {
+            "replicas": 1,
+            "selector": {"matchLabels": {"app": metadata["name"]}},
+            "template": {
+                "metadata": metadata,
+                "spec": {
+                    "securityContext": {
+                        "runAsUser": 0,
+                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                    },
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
+                    "volumes": [
+                        volumes_dict["kernelspec"],
+                    ],
+                    "containers": [
+                        {
+                            "name": metadata["name"],
+                            "image": "orchest/jupyter-enterprise-gateway",
+                            # K8S_TODO: fix me.
+                            "imagePullPolicy": "IfNotPresent",
+                            "env": environment,
+                            "volumeMounts": [
+                                volume_mounts_dict["kernelspec"],
+                            ],
+                        }
+                    ],
+                },
+            },
+        },
+    }
+
+    # K8S_TODO: will require changes based on how ingress is
+    # implemented.
+    service_manifest = {
+        "apiVersion": "v1",
+        "kind": "Service",
+        "metadata": metadata,
+        "spec": {
+            "type": "ClusterIP",
+            "selector": {"app": metadata["name"]},
+            "ports": [{"port": 8888}],
+        },
+    }
+    return deployment_manifest, service_manifest
+
+
 def _get_user_service_deployment_service_manifest(
     session_uuid: str,
     session_config: str,
@@ -328,7 +562,7 @@ def _get_user_service_deployment_service_manifest(
     """
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    host_pipeline_path = session_config["pipeline_path"]
+    project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
     img_mappings = session_config["env_uuid_docker_id_mappings"]
@@ -373,7 +607,7 @@ def _get_user_service_deployment_service_manifest(
     volume_mounts = []
     sbinds = service_config.get("binds", {})
     volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, host_pipeline_path, host_userdir
+        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.

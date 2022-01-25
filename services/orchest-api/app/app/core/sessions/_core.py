@@ -1,8 +1,9 @@
 import time
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, List, Optional
 
+import requests
 from kubernetes import client
 
 from _orchest.internals.utils import get_k8s_namespace_manifest, get_k8s_namespace_name
@@ -140,19 +141,39 @@ def launch(
     _create_session_k8s_namespace(session_uuid, session_config)
 
     # Internal Orchest session services.
-    orchest_service_deployment_manifests = [
-        _manifests._get_memory_server_deployment_manifest(
-            session_uuid,
-            session_config,
-        ),
-        _manifests._get_session_sidecar_deployment_manifest(
-            session_uuid,
-            session_config,
-        ),
-    ]
+    orchest_session_service_k8s_deployment_manifests = []
+    orchest_session_service_k8s_service_manifests = []
+    if session_type in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
+        orchest_session_service_k8s_deployment_manifests.append(
+            _manifests._get_memory_server_deployment_manifest(
+                session_uuid, session_config, session_type.value
+            )
+        )
+        orchest_session_service_k8s_deployment_manifests.append(
+            _manifests._get_session_sidecar_deployment_manifest(
+                session_uuid, session_config, session_type.value
+            )
+        )
+    else:
+        raise ValueError(f"Invalid session type: {session_type}.")
 
-    user_service_deployment_manifests = []
-    user_service_services_manifests = []
+    if session_type == SessionType.INTERACTIVE:
+        (
+            depl,
+            serv,
+        ) = _manifests._get_jupyter_enterprise_gateway_deployment_service_manifest(
+            session_uuid, session_config, session_type.value
+        )
+        orchest_session_service_k8s_deployment_manifests.append(depl)
+        orchest_session_service_k8s_service_manifests.append(serv)
+        depl, serv = _manifests._get_jupyter_server_deployment_service_manifest(
+            session_uuid, session_config, session_type.value
+        )
+        orchest_session_service_k8s_deployment_manifests.append(depl)
+        orchest_session_service_k8s_service_manifests.append(serv)
+
+    user_session_service_k8s_deployment_manifests = []
+    user_session_service_k8s_service_manifests = []
     for service_config in session_config.get("services", {}).values():
         if session_type.value not in service_config["scope"]:
             continue
@@ -162,15 +183,15 @@ def launch(
             service_config,
             session_type.value,
         )
-        user_service_deployment_manifests.append(dep)
-        user_service_services_manifests.append(serv)
+        user_session_service_k8s_deployment_manifests.append(dep)
+        user_session_service_k8s_service_manifests.append(serv)
 
     if should_abort():
         return
 
     logger.info("Creating Orchest session services deployments.")
     ns = get_k8s_namespace_name(project_uuid, session_uuid)
-    for manifest in orchest_service_deployment_manifests:
+    for manifest in orchest_session_service_k8s_deployment_manifests:
         logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
         k8s_apps_api.create_namespaced_deployment(
             ns,
@@ -180,8 +201,16 @@ def launch(
     if should_abort():
         return
 
+    logger.info("Creating Orchest session services k8s services.")
+    for manifest in orchest_session_service_k8s_service_manifests:
+        logger.info(f'Creating service {manifest["metadata"]["name"]}')
+        k8s_core_api.create_namespaced_service(
+            ns,
+            manifest,
+        )
+
     logger.info("Waiting for Orchest session service deployments to be ready.")
-    for manifest in orchest_service_deployment_manifests:
+    for manifest in orchest_session_service_k8s_deployment_manifests:
         name = manifest["metadata"]["name"]
         deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
         while deployment.status.updated_replicas != deployment.spec.replicas:
@@ -195,7 +224,7 @@ def launch(
         return
 
     logger.info("Creating user session services deployments.")
-    for manifest in user_service_deployment_manifests:
+    for manifest in user_session_service_k8s_deployment_manifests:
         logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
         k8s_apps_api.create_namespaced_deployment(
             ns,
@@ -206,7 +235,7 @@ def launch(
         return
 
     logger.info("Creating user session services k8s services.")
-    for manifest in user_service_services_manifests:
+    for manifest in user_session_service_k8s_service_manifests:
         logger.info(f'Creating service {manifest["metadata"]["name"]}')
         k8s_core_api.create_namespaced_service(
             ns,
@@ -214,7 +243,7 @@ def launch(
         )
 
     logger.info("Waiting for user session service deployments to be ready.")
-    for manifest in user_service_deployment_manifests:
+    for manifest in user_session_service_k8s_deployment_manifests:
         name = manifest["metadata"]["name"]
         deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
         while deployment.status.updated_replicas != deployment.spec.replicas:
@@ -244,39 +273,21 @@ def has_busy_kernels(session_uuid: str) -> bool:
         session_config: Requires a "project_uuid" and a
         "pipeline_uuid".
 
-    #"""
-    return False
-    # IP = self.get_containers_IP()
-
-    # if self._notebook_server_info is None:
-    #     self._notebook_server_info = {
-    #         "port": 8888,
-    #         "base_url": "/"
-    #         + _config.JUPYTER_SERVER_NAME.format(
-    #             project_uuid=session_config["project_uuid"][
-    #                 : _config.TRUNCATED_UUID_LENGTH
-    #             ],
-    #             pipeline_uuid=session_config["pipeline_uuid"][
-    #                 : _config.TRUNCATED_UUID_LENGTH
-    #             ],
-    #         ),
-    #     }
-
+    """
+    # K8S_TODO: tweak this once the jupyter k8s integration is done.
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
-    # url = (
-    #     f"http://{IP.jupyter_server}"
-    #     f":8888{self._notebook_server_info['base_url']}/api/kernels"
-    # )
-    # response = requests.get(url, timeout=2.0)
+    ns = get_k8s_namespace_name(session_uuid)
+    service_dns_name = f"jupyter-server.{ns}.svc.cluster.local"
+    url = f"http://{service_dns_name}:8888/jupyter-server/api/kernels"
+    response = requests.get(url, timeout=2.0)
 
-    # # Expected format: a list of dictionaries.
-    # # [{'id': '3af6f3b9-4358-43b9-b2dd-03b51c4f7881', 'name':
-    # # 'orchest-kernel-c56ab762-539c-4cce-9b1e-c4b00300ec6f',
-    # # 'last_activity': '2021-11-10T09:04:10.508031Z',
-    # # 'execution_state': 'idle', 'connections': 2}]
-    # kernels: List[dict] = response.json()
-    # return any(
-    # kernel.get("execution_state") == "busy" for kernel in kernels)
+    # Expected format: a list of dictionaries.
+    # [{'id': '3af6f3b9-4358-43b9-b2dd-03b51c4f7881', 'name':
+    # 'orchest-kernel-c56ab762-539c-4cce-9b1e-c4b00300ec6f',
+    # 'last_activity': '2021-11-10T09:04:10.508031Z',
+    # 'execution_state': 'idle', 'connections': 2}]
+    kernels: List[dict] = response.json()
+    return any(kernel.get("execution_state") == "busy" for kernel in kernels)
 
 
 def restart_session_service(
