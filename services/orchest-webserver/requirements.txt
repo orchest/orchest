@@ -1,5 +1,7 @@
 nbconvert~=6.0.0
-ipython==7.19.0
+# ipython is required for consistent HTML rendering, see:
+# https://github.com/jupyter/nbconvert/issues/1443
+ipython==7.31.1
 Flask==1.1.2
 flask_sqlalchemy==2.4.4
 Flask-RESTful==0.3.8
