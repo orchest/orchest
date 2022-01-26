@@ -438,18 +438,20 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         )
     except Exception:
         user_defined_env_vars = {}
-    process_env_whitelist = (
-        "EG_ENV_PROCESS_WHITELIST=ORCHEST_PIPELINE_UUID,"
-        "ORCHEST_PIPELINE_PATH,"
-        "ORCHEST_PROJECT_UUID,"
-        "ORCHEST_HOST_PROJECT_DIR,"
-        "ORCHEST_HOST_PIPELINE_FILE,"
-        "ORCHEST_HOST_GID,"
-        "ORCHEST_SESSION_UUID,"
-        "ORCHEST_SESSION_TYPE,"
-        "ORCHEST_GPU_ENABLED_INSTANCE,"
-    )
-    process_env_whitelist += ",".join([key for key in user_defined_env_vars.keys()])
+
+    process_env_whitelist = [
+        "ORCHEST_PIPELINE_UUID",
+        "ORCHEST_PIPELINE_PATH",
+        "ORCHEST_PROJECT_UUID",
+        "ORCHEST_HOST_PROJECT_DIR",
+        "ORCHEST_HOST_PIPELINE_FILE",
+        "ORCHEST_HOST_GID",
+        "ORCHEST_SESSION_UUID",
+        "ORCHEST_SESSION_TYPE",
+        "ORCHEST_GPU_ENABLED_INSTANCE",
+    ]
+    process_env_whitelist.extend(list(user_defined_env_vars.keys()))
+    process_env_whitelist = ",".join(process_env_whitelist)
 
     environment = {
         "EG_MIRROR_WORKING_DIRS": "True",
@@ -460,7 +462,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "EG_UID_BLACKLIST": '["-1"]',
         "EG_ALLOW_ORIGIN": "*",
         "EG_BASE_URL": "/jupyter-server",
-        process_env_whitelist: "",
+        "EG_ENV_PROCESS_WHITELIST": process_env_whitelist,
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
         "ORCHEST_PROJECT_UUID": project_uuid,
@@ -470,7 +472,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         ),
         "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
         "ORCHEST_SESSION_UUID": session_uuid,
-        "ORCHEST_SESSION_TYPE": session_type.value,
+        "ORCHEST_SESSION_TYPE": session_type,
         "ORCHEST_GPU_ENABLED_INSTANCE": CONFIG_CLASS.GPU_ENABLED_INSTANCE,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
