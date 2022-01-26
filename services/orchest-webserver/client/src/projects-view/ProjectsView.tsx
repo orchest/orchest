@@ -263,7 +263,9 @@ const ProjectsView: React.FC = () => {
 
   const onImportComplete = (result: BackgroundTask) => {
     if (result.status === "SUCCESS") {
-      fetchProjects();
+      navigateTo(siteMap.pipelines.path, {
+        query: { projectUuid: result.result },
+      });
     }
   };
 
