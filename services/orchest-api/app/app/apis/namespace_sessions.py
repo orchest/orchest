@@ -275,7 +275,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
                 # Attempt containers cleanup.
                 try:
-                    sessions.cleanup_resources(session_uuid)
+                    sessions.cleanup_resources(session_uuid, wait_for_completion=True)
                 except Exception:
                     pass
 
@@ -355,7 +355,7 @@ class StopInteractiveSession(TwoPhaseFunction):
 
         with app.app_context():
             try:
-                sessions.shutdown(session_uuid)
+                sessions.shutdown(session_uuid, wait_for_completion=True)
             finally:
                 # Make sure that the session is deleted in any case,
                 # because otherwise the user will not be able to have an

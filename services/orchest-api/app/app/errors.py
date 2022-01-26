@@ -16,3 +16,7 @@ class PipelineDefinitionNotValid(Exception):
 
 class NoSuchSessionServiceError(Exception):
     pass
+
+
+class SessionCleanupFailedError(Exception):
+    pass

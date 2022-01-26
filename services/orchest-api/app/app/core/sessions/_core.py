@@ -7,7 +7,7 @@ import requests
 from kubernetes import client
 
 from _orchest.internals.utils import get_k8s_namespace_manifest, get_k8s_namespace_name
-from app import utils
+from app import errors, utils
 from app.connections import k8s_apps_api, k8s_core_api
 from app.core.sessions import _manifests
 
@@ -253,20 +253,33 @@ def launch(
             deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
 
 
-def shutdown(session_uuid: str):
+def shutdown(session_uuid: str, wait_for_completion: bool = False):
     """Shutdowns the session."""
-    cleanup_resources(session_uuid)
+    cleanup_resources(session_uuid, wait_for_completion)
 
 
-def cleanup_resources(session_uuid: str):
+def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     """Deletes all related resources."""
     # Note: we rely on the fact that deleting the namespace leads to a
     # SIGTERM to the container, which will be used to delete the
     # existing jupyterlab user config lock for interactive sessions.
     # See PR #254.
-    k8s_core_api.delete_namespace(
-        get_k8s_namespace_name(session_uuid),
-    )
+    ns = get_k8s_namespace_name(session_uuid)
+    k8s_core_api.delete_namespace(ns)
+
+    if not wait_for_completion:
+        return
+
+    for _ in range(1000):
+        try:
+            k8s_core_api.read_namespace_status(ns)
+        except client.ApiException as e:
+            if e.status == 404:
+                break
+            raise
+        time.sleep(1)
+    else:
+        raise errors.SessionCleanupFailedError()
 
 
 def has_busy_kernels(session_uuid: str) -> bool:
