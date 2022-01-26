@@ -82,6 +82,9 @@ through the following commands:
    echo "chmod 400 /data/id_rsa" >> ~/.bashrc
    echo "ssh-add /data/id_rsa 2>/dev/null" >> ~/.bashrc
    echo "if [ -z \$SSH_AGENT_PID ]; then exec ssh-agent bash; fi" >> ~/.bashrc
+   mkdir -p ~/.ssh
+   printf "%s\n" "Host github.com" " IdentityFile /data/id_rsa" >> ~/.ssh/config
+   ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
 Make sure the ``id_rsa`` private key file is uploaded through the file manager in "File Manager" 
 in the root ``data`` folder. *Note, this exposes this private key file to everyone using 
