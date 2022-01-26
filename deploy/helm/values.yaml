@@ -1,4 +1,30 @@
-#orchest-api:
 global:
   ingress:
     host: www.localorchest.io
+
+auth-server:
+  enabled: false
+
+celery-worker:
+  enabled: false
+
+file-manager:
+  enabled: false
+
+orchest-api:
+  enabled: false
+
+orchest-webserver:
+  enabled: false
+
+postgres:
+  enabled: false
+
+rabbitmq:
+  enabled: false
+
+update-server:
+  enabled: false
+
+cluster-resources:
+  enabled: false
