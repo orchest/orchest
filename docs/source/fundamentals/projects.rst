@@ -65,8 +65,8 @@ Using ``git`` inside Orchest
    <https://www.tella.tv/video/cknr9z9x0000709kz7vzh0wdx/view>`_.
 
 Using ``git`` inside Orchest works using the `jupyterlab-git
-<https://github.com/jupyterlab/jupyterlab-git>`_ extension which we ship pre-installed. All that you
-to do is :ref:`configure JupyterLab <configuration jupyterlab>` (go to *settings* > *configure
+<https://github.com/jupyterlab/jupyterlab-git>`_ extension which we ship pre-installed. The only thing that 
+you need to do is :ref:`configure JupyterLab <configuration jupyterlab>` (go to *settings* > *configure
 JupyterLab*) and set your ``user.name`` and ``user.email``, for example:
 
 .. code-block:: sh
@@ -74,7 +74,8 @@ JupyterLab*) and set your ``user.name`` and ``user.email``, for example:
    git config --global user.name "John Doe"
    git config --global user.email "john@example.org"
 
-If you'd like to add a private SSH key to your terminal session in JupyterLab you can do so through the following commands:
+If you'd like to add a private SSH key to your terminal session in JupyterLab you can do so 
+through the following commands:
 
 .. code-block:: sh
 
@@ -82,7 +83,9 @@ If you'd like to add a private SSH key to your terminal session in JupyterLab yo
    echo "ssh-add /data/id_rsa 2>/dev/null" >> ~/.bashrc
    echo "if [ -z \$SSH_AGENT_PID ]; then exec ssh-agent bash; fi" >> ~/.bashrc
 
-Make sure the ``id_rsa`` private key file is uploaded through the file manager in "File Manager" in the root ``data`` folder. *Note, this exposes this private key file to everyone using this Orchest instance.*
+Make sure the ``id_rsa`` private key file is uploaded through the file manager in "File Manager" 
+in the root ``data`` folder. *Note, this exposes this private key file to everyone using 
+this Orchest instance.*
 
 Now you can version using ``git`` through a JupyterLab terminal or use the extension through the
 JupyterLab UI.
