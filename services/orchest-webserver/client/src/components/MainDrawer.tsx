@@ -15,6 +15,7 @@ import MuiListItemIcon from "@mui/material/ListItemIcon";
 import MuiListItemText, { ListItemTextProps } from "@mui/material/ListItemText";
 import { CSSObject, styled, Theme } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
+import { toValidFileName } from "@orchest/lib-utils";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { getOrderedRoutes, siteMap, toQueryString } from "../routingConfig";
@@ -58,7 +59,7 @@ const rootMenuItems: ItemData[] = [
 ];
 
 const getItemKey = (item: { label: string; path: string }) =>
-  `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
+  `menu-${toValidFileName(item.label)}`;
 
 const DEFAULT_DRAWER_WIDTH = 240;
 

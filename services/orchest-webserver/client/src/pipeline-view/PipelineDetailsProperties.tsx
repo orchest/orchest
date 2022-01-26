@@ -15,6 +15,7 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
+  toValidFileName,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
@@ -42,17 +43,6 @@ const KERNEL_OPTIONS = [
   { value: "r", label: "R" },
   { value: "julia", label: "Julia" },
 ];
-
-const titleToFileName = (title: string) => {
-  const alphanumeric = /[^a-zA-Z0-9-]/g;
-  const concatDashes = /(-+)/g;
-  const tempTitle = title
-    .replace(alphanumeric, "-")
-    .replace(concatDashes, "-")
-    .toLowerCase();
-  const matches = tempTitle.match(/(.*)-$/);
-  return matches ? matches[1] : tempTitle;
-};
 
 const PipelineDetailsProperties: React.FC<{
   [key: string]: any;
@@ -324,7 +314,7 @@ const PipelineDetailsProperties: React.FC<{
   React.useEffect(() => {
     if (state.autogenerateFilePath) {
       // Make sure the props have been updated
-      onChangeFileName(titleToFileName(props.step.title), true);
+      onChangeFileName(toValidFileName(props.step.title), true);
     }
   }, [props?.step?.title]);
 

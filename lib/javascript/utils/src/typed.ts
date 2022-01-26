@@ -339,3 +339,13 @@ export function globalMDCVars() {
 export const hasValue = <T>(variable: T | undefined | null): variable is T => {
   return variable !== undefined && variable !== null;
 };
+/**
+ *
+ * @param title any string
+ * @param replaceBy the token to replace non-word characters, default "-"
+ * @returns a string that could be a valid file name
+ */
+export const toValidFileName = (title: string, replaceBy = "-") => {
+  const nonWordExceptDash = /[^\w-]/g;
+  return title.replace(nonWordExceptDash, replaceBy).toLowerCase();
+};

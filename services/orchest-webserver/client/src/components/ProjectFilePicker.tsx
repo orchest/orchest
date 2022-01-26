@@ -24,6 +24,7 @@ import {
   FetchError,
   hasValue,
   HEADER,
+  toValidFileName,
 } from "@orchest/lib-utils";
 import React from "react";
 import { Code } from "./common/Code";
@@ -140,11 +141,15 @@ const ProjectFilePicker: React.FC<{
 
   // local states
   const [createFileModal, setCreateFileModal] = React.useState(false);
-  const [fileName, setFileName] = React.useState("");
+  const [fileName, setRawFileName] = React.useState("");
   const [createFileDir, setCreateFileDir] = React.useState("");
   const [fileExtension, setFileExtension] = React.useState(
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
+
+  const setFileName = (value: string) => {
+    setRawFileName(toValidFileName(value));
+  };
 
   const onChangeFileValue = (value: string) => onChange(value);
 
@@ -161,8 +166,6 @@ const ProjectFilePicker: React.FC<{
   const fullProjectPath = `${createFileDir}${fileName}${fileExtension}`;
 
   const onCloseCreateFileModal = () => setCreateFileModal(false);
-
-  const onChangeNewFilename = (value: string) => setFileName(value);
 
   const onChangeNewFilenameExtension = (value: string) =>
     setFileExtension(value);
@@ -265,7 +268,7 @@ const ProjectFilePicker: React.FC<{
                   value={fileName}
                   fullWidth
                   disabled={isCreating}
-                  onChange={(e) => onChangeNewFilename(e.target.value)}
+                  onChange={(e) => setFileName(e.target.value)}
                   data-test-id="project-file-picker-file-name-textfield"
                 />
                 <FormControl fullWidth>

@@ -8,11 +8,12 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
+import { toValidFileName } from "@orchest/lib-utils";
 import React from "react";
 import { INITIAL_PIPELINE_NAME, INITIAL_PIPELINE_PATH } from "./common";
 
 const getPathFromName = (name: string) =>
-  `${name.toLowerCase().replace(/[\W]/g, "_")}.orchest`;
+  `${toValidFileName(name, "_")}.orchest`;
 
 export const CreatePipelineDialog = ({
   pipelineRows,
