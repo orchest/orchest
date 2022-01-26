@@ -66,7 +66,7 @@ export const useSessionsPoller = () => {
 
   const { cache } = useSWRConfig();
 
-  const { data, error } = useSWR<{
+  const { data, error, mutate } = useSWR<{
     sessions: (IOrchestSession & {
       project_uuid: string;
       pipeline_uuid: string;
@@ -80,6 +80,10 @@ export const useSessionsPoller = () => {
     // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
     refreshInterval: 1000,
   });
+
+  React.useEffect(() => {
+    if (shouldPoll) mutate();
+  }, [location, shouldPoll, mutate]);
 
   const isLoading = !data && !error;
 
