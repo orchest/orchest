@@ -253,38 +253,22 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
 
   const deleteAllSessions = React.useCallback(async () => {
     dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: true });
-    let sessionsToStop: { projectUuid: string; pipelineUuid: string }[] = [];
-    dispatch((currentState) => {
-      const newSessions = currentState.sessions.map((sessionValue) => {
-        const shouldStop = isStoppable(sessionValue.status);
-
-        if (shouldStop) {
-          const { projectUuid, pipelineUuid } = sessionValue;
-          sessionsToStop.push({ projectUuid, pipelineUuid });
-        }
-        return {
-          ...sessionValue,
-          status: shouldStop ? "STOPPING" : sessionValue.status,
-        };
-      });
-
-      return {
-        type: "SET_SESSIONS",
-        payload: { sessions: newSessions },
-      };
-    });
-
-    await Promise.all(
-      sessionsToStop.map((sessionToStop) => stopSession(sessionToStop))
-    )
-      .then(() => {
-        dispatch({ type: "SET_SESSIONS", payload: { sessions: [] } });
-        dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: false });
-      })
-      .catch((err) => {
-        console.error("Unable to stop all sessions", err);
-      });
-  }, [dispatch]);
+    try {
+      await Promise.all(
+        state.sessions
+          .map((sessionValue) => {
+            const shouldStop = isStoppable(sessionValue.status);
+            return shouldStop ? stopSession(sessionValue) : null;
+          })
+          .filter((value) => hasValue(value))
+      );
+      // NOTE: deleting sessions is async, we cannot manually set sessions to an empty array
+      // instead, we need to count on useSessionsPoller to get updates to know if all sessions are deleted
+      dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: false });
+    } catch (error) {
+      console.error("Unable to stop all sessions", error);
+    }
+  }, [dispatch, state]);
 
   return (
     <Context.Provider

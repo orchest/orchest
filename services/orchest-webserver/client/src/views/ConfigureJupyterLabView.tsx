@@ -4,7 +4,6 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/routingConfig";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -32,8 +31,6 @@ const ConfigureJupyterLabView: React.FC = () => {
     deleteAllSessions,
     state: { sessionsKillAllInProgress, sessions },
   } = useSessionsContext();
-
-  useSessionsPoller();
 
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
 
@@ -66,7 +63,7 @@ const ConfigureJupyterLabView: React.FC = () => {
     }));
   };
 
-  const buildImage = () => {
+  const buildImage = async () => {
     window.orchest.jupyter.unload();
 
     setState((prevState) => ({
@@ -75,66 +72,52 @@ const ConfigureJupyterLabView: React.FC = () => {
       ignoreIncomingLogs: true,
     }));
 
-    save(() => {
-      let buildPromise = makeCancelable(
+    try {
+      await save();
+      let response = await makeCancelable(
         makeRequest("POST", "/catch/api-proxy/api/jupyter-builds"),
         promiseManager
-      );
+      ).promise;
+      let jupyterBuild = JSON.parse(response)["jupyter_build"];
+      onUpdateBuild(jupyterBuild);
+    } catch (error) {
+      if (!error.isCanceled) {
+        setState((prevState) => ({
+          ...prevState,
+          ignoreIncomingLogs: false,
+        }));
 
-      buildPromise.promise
-        .then((response) => {
-          try {
-            let jupyterBuild = JSON.parse(response)["jupyter_build"];
-            onUpdateBuild(jupyterBuild);
-          } catch (error) {
-            console.error(error);
-          }
-        })
-        .catch((e) => {
-          if (!e.isCanceled) {
-            setState((prevState) => ({
-              ...prevState,
-              ignoreIncomingLogs: false,
-            }));
+        let resp = JSON.parse(error.body);
 
-            try {
-              let resp = JSON.parse(e.body);
-
-              if (resp.message == "SessionInProgressException") {
-                setConfirm(
-                  "Warning",
-                  "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
-                    "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
-                  async (resolve) => {
-                    deleteAllSessions()
-                      .then(() => {
-                        resolve(true);
-                      })
-                      .catch((error) => {
-                        setAlert("Error", "Unable to stop all sessions.");
-                        console.error(error);
-                        resolve(false);
-                      });
-                    setState((prevState) => ({
-                      ...prevState,
-                      sessionKillStatus: "WAITING",
-                    }));
-                    return true;
-                  }
-                );
-              }
-            } catch (error) {
-              console.error(error);
+        if (resp.message == "SessionInProgressException") {
+          setConfirm(
+            "Warning",
+            "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
+              "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
+            async (resolve) => {
+              deleteAllSessions()
+                .then(() => {
+                  resolve(true);
+                })
+                .catch((error) => {
+                  setAlert("Error", "Unable to stop all sessions.");
+                  console.error(error);
+                  resolve(false);
+                });
+              setState((prevState) => ({
+                ...prevState,
+                sessionKillStatus: "WAITING",
+              }));
+              return true;
             }
-          }
-        })
-        .finally(() => {
-          setState((prevState) => ({
-            ...prevState,
-            buildRequestInProgress: false,
-          }));
-        });
-    });
+          );
+        }
+      }
+    }
+    setState((prevState) => ({
+      ...prevState,
+      buildRequestInProgress: false,
+    }));
   };
 
   const cancelImageBuild = () => {
@@ -191,25 +174,19 @@ const ConfigureJupyterLabView: React.FC = () => {
     });
   };
 
-  const save = (cb) => {
+  const save = async () => {
     setAsSaved();
 
     // auto save the bash script
     let formData = new FormData();
 
     formData.append("setup_script", state.jupyterSetupScript);
-    makeRequest("POST", "/async/jupyter-setup-script", {
+    return makeRequest("POST", "/async/jupyter-setup-script", {
       type: "FormData",
       content: formData,
-    })
-      .then(() => {
-        if (cb) {
-          cb();
-        }
-      })
-      .catch((e) => {
-        console.error(e);
-      });
+    }).catch((e) => {
+      console.error(e);
+    });
   };
 
   React.useEffect(() => {
@@ -218,28 +195,17 @@ const ConfigureJupyterLabView: React.FC = () => {
   }, []);
 
   React.useEffect(() => {
-    if (sessionsKillAllInProgress && state.sessionKillStatus === "WAITING") {
+    const isAllSessionsDeletedForBuildingImage =
+      state.sessionKillStatus === "WAITING" && // an attempt to delete all sessions was initiated
+      !sessionsKillAllInProgress && // the operation of deleting sessions was started
+      sessions.length === 0; // all sessions are finally cleaned up;
+
+    if (isAllSessionsDeletedForBuildingImage) {
       setState((prevState) => ({
         ...prevState,
-        sessionKillStatus: "VALIDATING",
+        sessionKillStatus: undefined,
       }));
-    }
-
-    if (
-      !sessionsKillAllInProgress &&
-      state.sessionKillStatus === "VALIDATING"
-    ) {
-      const hasActiveSessions = sessions
-        .map((session) => (session.status ? true : false))
-        .find((isActive) => isActive === true);
-
-      if (!hasActiveSessions) {
-        setState((prevState) => ({
-          ...prevState,
-          sessionKillStatus: undefined,
-        }));
-        buildImage();
-      }
+      buildImage();
     }
   }, [sessions, sessionsKillAllInProgress, state.sessionKillStatus]);
 
@@ -309,7 +275,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               <Button
                 startIcon={<SaveIcon />}
                 variant="contained"
-                onClick={() => save(undefined)}
+                onClick={save}
               >
                 {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
               </Button>

@@ -5,7 +5,6 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
@@ -35,7 +34,6 @@ const JupyterLabView: React.FC = () => {
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
 
   const { getSession, toggleSession, state } = useSessionsContext();
-  useSessionsPoller();
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
