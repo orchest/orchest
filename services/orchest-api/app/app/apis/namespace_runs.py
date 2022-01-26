@@ -304,12 +304,15 @@ class CreateInteractiveRun(TwoPhaseFunction):
         run_config["user_env_variables"] = env_variables
         # For interactive runs the session uuid is equal to the pipeline
         # uuid.
-        run_config["session_uuid"] = pipeline.properties["uuid"]
+        run_config["session_uuid"] = (
+            project_uuid[:18] + pipeline.properties["uuid"][:18]
+        )
         run_config["session_type"] = "interactive"
         celery_job_kwargs = {
             "pipeline_definition": pipeline.to_dict(),
             "project_uuid": project_uuid,
             "run_config": run_config,
+            "session_uuid": run_config["session_uuid"],
         }
 
         # Start the run as a background task on Celery. Due to circular

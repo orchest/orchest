@@ -87,16 +87,18 @@ async def get_run_status(
             return await response.json()
 
 
-async def run_pipeline_async(run_config, pipeline, task_id):
+async def run_pipeline_async(session_uuid, run_config, pipeline, task_id):
     try:
-        await run_pipeline_workflow(task_id, pipeline, run_config=run_config)
+        await run_pipeline_workflow(
+            session_uuid, task_id, pipeline, run_config=run_config
+        )
     finally:
         # We get here either because the task was successful or was
         # aborted, in any case, delete the workflow.
         k8s_custom_obj_api.delete_namespaced_custom_object(
             "argoproj.io",
             "v1alpha1",
-            get_k8s_namespace_name(task_id),
+            get_k8s_namespace_name(session_uuid),
             "workflows",
             f"pipeline-run-task-{task_id}",
         )
@@ -112,6 +114,7 @@ def run_pipeline(
     pipeline_definition: PipelineDefinition,
     project_uuid: str,
     run_config: Dict[str, Union[str, Dict[str, str]]],
+    session_uuid: str,
     task_id: Optional[str] = None,
 ) -> str:
     """Runs a pipeline partially.
@@ -157,7 +160,7 @@ def run_pipeline(
     # failed. Although the run did complete successfully from a task
     # scheduler perspective.
     # https://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
-    return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
+    return asyncio.run(run_pipeline_async(session_uuid, run_config, pipeline, task_id))
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -211,7 +214,7 @@ def start_non_interactive_pipeline_run(
     host_base_user_dir = os.path.split(host_userdir)[0]
 
     # For non interactive runs the session uuid is equal to the task
-    # uuid.
+    # uuid, which is actually the pipeline run uuid.
     session_uuid = self.request.id
     run_config["session_uuid"] = session_uuid
     run_config["session_type"] = "noninteractive"
@@ -246,7 +249,11 @@ def start_non_interactive_pipeline_run(
         lambda: AbortableAsyncResult(session_uuid).is_aborted(),
     ):
         status = run_pipeline(
-            pipeline_definition, project_uuid, run_config, task_id=session_uuid
+            pipeline_definition,
+            project_uuid,
+            run_config,
+            session_uuid,
+            task_id=self.request.id,
         )
 
     return status
