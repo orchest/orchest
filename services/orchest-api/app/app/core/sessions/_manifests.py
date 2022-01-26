@@ -393,6 +393,14 @@ def _get_jupyter_server_deployment_service_manifest(
                                 f"--notebook-dir={_config.PROJECT_DIR}",
                                 f'--ServerApp.base_url=/{metadata["name"]}',
                             ],
+                            "startupProbe": {
+                                "httpGet": {
+                                    "path": "/jupyter-server/api",
+                                    "port": 8888,
+                                },
+                                "periodSeconds": 1,
+                                "failureThreshold": 120,
+                            },
                         }
                     ],
                 },
