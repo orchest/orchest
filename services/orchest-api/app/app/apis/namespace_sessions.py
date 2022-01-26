@@ -421,4 +421,5 @@ class RestartMemoryServer(TwoPhaseFunction):
         return True
 
     def _collateral(self, session_uuid: str):
-        sessions.restart_session_service(session_uuid, "memory-server")
+        if session_uuid is not None:
+            sessions.restart_session_service(session_uuid, "memory-server", True)

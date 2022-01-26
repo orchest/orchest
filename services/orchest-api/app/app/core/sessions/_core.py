@@ -318,7 +318,7 @@ def restart_session_service(
     state, which is exactly what we want.
 
     """
-    ns = (get_k8s_namespace_name(session_uuid),)
+    ns = get_k8s_namespace_name(session_uuid)
     old_replicas = k8s_apps_api.read_namespaced_deployment_status(
         service_name, ns
     ).spec.replicas
