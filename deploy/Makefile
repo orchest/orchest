@@ -31,17 +31,44 @@ CLUSTER_RSC_REG_SECRET_CONFIG := --set cluster-resources.registry.secret=${REGIS
 CLUSTER_RSC_REG_NAME_CONFIG := --set cluster-resources.registry.name=${REGISTRY_NAME}
 CLUSTER_RSC_ISSUER_CONFIG := --set cluster-resources.issuer.name=${ISSUER_NAME}
 CLUSTER_RSC_ENABLE_CONFIG := --set cluster-resources.enabled=true
-
-# Orchest Api deployment configs
-ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
-
-# Orchest deployment configs
-ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG}
-
 CLUSTER_RSC_DEPLOY_CONFIG := cluster-resources \
 	${SHARED_DEPLOY_CONFIG}	${CLUSTER_RSC_REG_SECRET_CONFIG} ${CLUSTER_RSC_REG_NAME_CONFIG} \
 	${CLUSTER_RSC_ISSUER_CONFIG} ${CLUSTER_RSC_ENABLE_CONFIG} helm
- 
+
+# orchest Api deployment configs
+ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
+
+# auth-server deployment configs
+AUTH_SERVER_ENABLE_CONFIG := --set auth-server.enabled: false
+
+# celery-worker deployment configs
+AUTH_SERVER_ENABLE_CONFIG := --set celery-worker.enabled: false
+
+# file-manager deployment configs
+FILE_MANAGER_ENABLE_CONFIG := --set file-manager.enabled: false
+
+# orchest-webserver deployment configs
+ORCHEST_WEBSERVER_ENABLE_CONFIG := --set orchest-webserver.enabled: false
+
+# postgres deployment configs
+POSTGRES_ENABLE_CONFIG := --set postgres.enabled: false
+
+# rabbitmq deployment configs
+RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled: false
+
+# update-server deployment configs
+UPDATE_SERVER_ENABLE_CONFIG := --set update-server.enabled: false
+
+# Orchest deployment configs
+ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
+						 ${AUTH_SERVER_ENABLE_CONFIG} \
+						 ${AUTH_SERVER_ENABLE_CONFIG} \
+						 ${FILE_MANAGER_ENABLE_CONFIG} \
+						 ${ORCHEST_WEBSERVER_ENABLE_CONFIG} \
+						 ${POSTGRES_ENABLE_CONFIG} \
+						 ${RABBITMQ_ENABLE_CONFIG} \
+						 ${UPDATE_SERVER_ENABLE_CONFIG}
+
 ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} ${ORCHEST_ENABLE_CONFIG} helm 
 
@@ -89,7 +116,7 @@ argo-workflow: ./bin/argo-workflow
 docker-registry : ./bin/docker-registry
 
 .SECONDARY: ./bin/docker-registry
-./bin/docker-registry: | ${ROOK_TARGET} ./bin/initialize
+./bin/docker-registry: ./bin/cluster-resources ${ROOK_TARGET} | create-bin
 	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
 	touch $@
 
@@ -101,7 +128,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: | create-bin ./bin/cluster-resources ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET} 
+./bin/initialize: | create-bin ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET} 
 	touch $@
 
 .PHONY: rook
