@@ -86,8 +86,8 @@ through the following commands:
    printf "%s\n" "Host github.com" " IdentityFile /data/id_rsa" >> ~/.ssh/config
    ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 
-Make sure the ``id_rsa`` private key file is uploaded through the file manager in "File Manager"
-in the root ``/data`` folder.
+Make sure the ``id_rsa`` private key file is uploaded through the file manager (go to *File
+manager*) in the root ``data/`` folder.
 
 .. warning::
    🚨 Putting your private key in the ``/data`` folder exposes the private key file to everyone
@@ -99,4 +99,4 @@ JupyterLab UI.
 Importing private ``git`` repositories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To import private ``git`` repositories upload them directly through the *File manager* into the
-``userdir/projects/`` directory. Orchest will then pick up the project automatically.
+root ``projects/`` directory. Orchest will then pick up the project automatically.
