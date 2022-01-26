@@ -2,6 +2,8 @@ import json
 import logging
 import os
 import re
+import signal
+import sys
 import time
 import uuid
 from multiprocessing.pool import ThreadPool
@@ -98,6 +100,7 @@ def follow_service_logs(service):
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, lambda: sys.exit(0))
     logging.getLogger().setLevel(logging.INFO)
 
     # Needs to be here since the logs directory does not exists for
