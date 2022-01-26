@@ -164,6 +164,10 @@ def _get_memory_server_deployment_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
+                    # The memory server is not respecting the SIGTERM
+                    # signal handler, apparently because of the plasma
+                    # client.
+                    "terminationGracePeriodSeconds": 1,
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
