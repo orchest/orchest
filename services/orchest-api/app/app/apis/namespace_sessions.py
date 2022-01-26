@@ -353,11 +353,6 @@ class StopInteractiveSession(TwoPhaseFunction):
         pipeline_uuid: str,
     ):
 
-        # K8S_TODO: see if this can be removed.
-        # Note that a session that is still LAUNCHING should not be
-        # killed until it has done launching, because the jupyterlab
-        # user configuration is managed through a lock that is removed
-        # by the jupyterlab start script. See PR #254.
         with app.app_context():
             try:
                 sessions.shutdown(session_uuid)

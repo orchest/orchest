@@ -260,6 +260,10 @@ def shutdown(session_uuid: str):
 
 def cleanup_resources(session_uuid: str):
     """Deletes all related resources."""
+    # Note: we rely on the fact that deleting the namespace leads to a
+    # SIGTERM to the container, which will be used to delete the
+    # existing jupyterlab user config lock for interactive sessions.
+    # See PR #254.
     k8s_core_api.delete_namespace(
         get_k8s_namespace_name(session_uuid),
     )
