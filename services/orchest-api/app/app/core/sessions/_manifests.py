@@ -383,7 +383,7 @@ def _get_jupyter_server_deployment_service_manifest(
                                 "--port=8888",
                                 "--no-browser",
                                 (
-                                    "--gateway-url=http://jupyter-EG:8888/"
+                                    "--gateway-url=http://jupyter-eg:8888/"
                                     f'{metadata["name"]}'
                                 ),
                                 f"--notebook-dir={_config.PROJECT_DIR}",
@@ -423,9 +423,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     host_userdir = session_config["host_userdir"]
 
     metadata = {
-        "name": "jupyter-EG",
+        "name": "jupyter-eg",
         "labels": {
-            "app": "jupyter-EG",
+            "app": "jupyter-eg",
             "project_uuid": project_uuid,
             "session_uuid": session_uuid,
         },
@@ -473,7 +473,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
         "ORCHEST_SESSION_UUID": session_uuid,
         "ORCHEST_SESSION_TYPE": session_type,
-        "ORCHEST_GPU_ENABLED_INSTANCE": CONFIG_CLASS.GPU_ENABLED_INSTANCE,
+        "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
     user_defined_env_vars = [

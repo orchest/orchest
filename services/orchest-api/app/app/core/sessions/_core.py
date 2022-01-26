@@ -73,7 +73,7 @@ def launch(
         session_type: Implies which orchest session services are part
             of the session. For "noninteractive" sessions these are
             the memory-server and session-sidecar, "interactive"
-            sessions also include jupyter-EG and jupyter-server. These
+            sessions also include jupyter-eg and jupyter-server. These
             services, along with any user defined service, can be
             interacted with using the functions in this module through
             their name.
