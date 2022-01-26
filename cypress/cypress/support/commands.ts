@@ -45,6 +45,7 @@ declare global {
       deleteAllPipelines(): Chainable<undefined>;
       deleteAllUsers(): Chainable<undefined>;
       deleteUser(name: string): Chainable<undefined>;
+      disableCheckUpdate(): Chainable<undefined>;
       getEnvironmentUUID(
         projectUUID: string,
         environment: string
@@ -71,6 +72,14 @@ Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.setLocalStorage(LOCAL_STORAGE_KEY, value);
   // Needed to close the onboarding modal.
   cy.reload(true);
+});
+
+Cypress.Commands.add("disableCheckUpdate", () => {
+  // If the latest version can't be fetched, then we will never
+  // prompt asking users to update.
+  cy.intercept("GET", "/async/orchest-update-info", {
+    latest_version: null,
+  });
 });
 
 Cypress.Commands.add("getOnboardingCompleted", () =>

@@ -11,6 +11,7 @@ describe("file system interactions", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
   });
 
   it("creates a project through the FS", () => {

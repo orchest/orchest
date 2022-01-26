@@ -7,6 +7,7 @@ import {
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useMounted } from "@/hooks/useMounted";
@@ -87,6 +88,8 @@ const ProjectsView: React.FC = () => {
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
   const [isImporting, setIsImporting] = React.useState(false);
+
+  useCheckUpdate();
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
     const openSettings = (projectUuid: string) => (e: React.MouseEvent) => {

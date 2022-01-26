@@ -27,6 +27,7 @@ describe("pipelines", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.goToMenu("pipelines");
   });

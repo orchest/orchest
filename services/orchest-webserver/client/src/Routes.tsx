@@ -13,6 +13,7 @@ const Routes = () => {
       {getOrderedRoutes().map((route) => {
         const { name, path, component, title } = route;
         const shouldBeExact = name !== "notFound"; // notFound uses * as a fallback, it cannot be exact
+
         return (
           <Route
             exact={shouldBeExact}
