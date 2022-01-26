@@ -9,6 +9,27 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWRImmutable from "swr/immutable";
 
+const shouldPromptOrchestUpdate = (
+  currentVersion: string,
+  latestVersion: string | null,
+  skipVersion: string | null = null
+) => {
+  // The latest version information has not yet been fetched by Orchest.
+  if (latestVersion === null) {
+    return false;
+  }
+
+  if (latestVersion > currentVersion) {
+    if (skipVersion === latestVersion) {
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return false;
+  }
+};
+
 // To limit the number of api calls and make sure only one prompt is shown,
 // it is best to place this hook in top-level components (i.e. the ones
 // defined in the routingConfig.tsx).
@@ -35,27 +56,6 @@ export const useCheckUpdate = () => {
 
   const updateView = () => {
     navigateTo(siteMap.update.path);
-  };
-
-  const shouldPromptOrchestUpdate = (
-    currentVersion: string,
-    latestVersion: string | null,
-    skipVersion: string | null = null
-  ) => {
-    // The latest version information has not yet been fetched by Orchest.
-    if (latestVersion === null) {
-      return false;
-    }
-
-    if (latestVersion > currentVersion) {
-      if (skipVersion === latestVersion) {
-        return false;
-      } else {
-        return true;
-      }
-    } else {
-      return false;
-    }
   };
 
   const promptUpdate = (currentVersion: string, latestVersion: string) => {
@@ -86,25 +86,23 @@ export const useCheckUpdate = () => {
     orchestVersion: OrchestVersion,
     updateInfo: UpdateInfo,
     skipVersion: string | null,
-    noOp: boolean
+    shouldPromptNoUpdate: boolean
   ) => {
     const currentVersion = orchestVersion.version;
     const latestVersion = updateInfo.latest_version;
 
-    const shouldPrompt = shouldPromptOrchestUpdate(
+    const shouldPromptUpdate = shouldPromptOrchestUpdate(
       currentVersion,
       latestVersion,
       skipVersion
     );
-    if (shouldPrompt) {
+    if (shouldPromptUpdate) {
       promptUpdate(currentVersion, latestVersion);
-    } else {
-      if (!noOp) {
-        setConfirm(
-          "No update available",
-          "There doesn't seem to be a new update available."
-        );
-      }
+    } else if (shouldPromptNoUpdate) {
+      setConfirm(
+        "No update available",
+        "There doesn't seem to be a new update available."
+      );
     }
   };
   const checkUpdateNow = async () => {
@@ -113,21 +111,18 @@ export const useCheckUpdate = () => {
     // useEffect and thereby prompting the user twice. In addition,
     // we want to be able to tell the user that no update is available
     // if this function is invoked.
-    const [orchestVersion, updateInfo]: [
-      OrchestVersion,
-      UpdateInfo
-    ] = await Promise.all([
-      fetcher("/async/version"),
-      fetcher("/async/orchest-update-info"),
+    const [orchestVersion, updateInfo] = await Promise.all([
+      fetcher<OrchestVersion>("/async/version"),
+      fetcher<UpdateInfo>("/async/orchest-update-info"),
     ]);
     if (orchestVersion && updateInfo) {
-      handlePrompt(orchestVersion, updateInfo, null, false);
+      handlePrompt(orchestVersion, updateInfo, null, true);
     }
   };
 
   React.useEffect(() => {
     if (orchestVersion && updateInfo) {
-      handlePrompt(orchestVersion, updateInfo, skipVersion, true);
+      handlePrompt(orchestVersion, updateInfo, skipVersion, false);
     }
   }, [orchestVersion, updateInfo, skipVersion]);
 
