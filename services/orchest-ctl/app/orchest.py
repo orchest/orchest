@@ -261,8 +261,8 @@ class OrchestApp:
         # fix permissions of files on start because users can only
         # manipulate and add files through Orchest directly.
         if not cloud:
-            utils.fix_userdir_permissions()
             logger.info("Fixing permissions on the 'userdir/'.")
+            utils.fix_userdir_permissions()
 
         utils.echo("Starting Orchest...")
         logger.info("Starting containers:\n" + "\n".join(start_req_images))
