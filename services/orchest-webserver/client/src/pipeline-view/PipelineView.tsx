@@ -158,7 +158,6 @@ const PipelineView: React.FC = () => {
     }
   }, [isReadOnly]);
 
-  useSessionsPoller();
   const session = useAutoStartSession({
     projectUuid,
     pipelineUuid,
