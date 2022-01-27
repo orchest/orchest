@@ -6,7 +6,6 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { PipelineMetaData } from "@/types";
 import { IOrchestSession } from "@/types";
@@ -267,8 +266,6 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     fetchPipelines,
     isFetchingPipelines,
   } = useFetchPipelines(projectUuid);
-
-  useSessionsPoller();
 
   React.useEffect(() => {
     if (error) {

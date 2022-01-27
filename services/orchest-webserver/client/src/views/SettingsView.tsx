@@ -1,6 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -59,7 +60,8 @@ const SettingsView: React.FC = () => {
 
   const getVersion = () => {
     makeRequest("GET", "/async/version").then((data) => {
-      setState((prevState) => ({ ...prevState, version: data }));
+      let parsed_data = JSON.parse(data);
+      setState((prevState) => ({ ...prevState, version: parsed_data.version }));
     });
   };
 
@@ -262,6 +264,8 @@ const SettingsView: React.FC = () => {
     navigateTo(siteMap.configureJupyterLab.path, undefined, e);
   };
 
+  const checkUpdate = useCheckUpdate();
+
   React.useEffect(() => {
     checkOrchestStatus();
     getConfig();
@@ -413,8 +417,8 @@ const SettingsView: React.FC = () => {
               variant="outlined"
               color="secondary"
               startIcon={<SystemUpdateAltIcon />}
-              onClick={updateView}
-              onAuxClick={updateView}
+              onClick={checkUpdate}
+              onAuxClick={checkUpdate}
             >
               Check for updates
             </StyledButtonOutlined>

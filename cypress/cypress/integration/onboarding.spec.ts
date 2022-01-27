@@ -10,6 +10,7 @@ describe("onboarding", () => {
     beforeEach(() => {
       reset();
       cy.clearLocalStorageSnapshot();
+      cy.disableCheckUpdate();
     });
 
     afterEach(() => {

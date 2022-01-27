@@ -4,7 +4,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type {
@@ -56,7 +55,6 @@ const LogsView: React.FC = () => {
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
-  useSessionsPoller();
 
   const [promiseManager] = React.useState(new PromiseManager());
 
