@@ -9,7 +9,7 @@ Get the name of the certificate which will be used by docker-registry.
 Get the dns of docker-registry.
 */}}
 {{- define "library.cluster.registry.dns" -}}
-{{ .Values.registry.name }}
+{{ printf "%s.%s.svc.cluster.local" .Values.registry.name .Release.Namespace }}
 {{- end -}}
 
 
