@@ -16,14 +16,16 @@ REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
 ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
 
 SHARED_DEPLOY_CONFIG := --kubeconfig ${KUBECONFIG} \
-	${DEBUG} --namespace ${NAMESPACE} --create-namespace
+	${DEBUG} --namespace ${NAMESPACE} --create-namespace --wait
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
-REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},registry}
+REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
+DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
+
 
 # Orchest cluster resource deployment configs
 ISSUER_NAME := ${if ${ISSUER_NAME},${ISSUER_NAME},certificate-issuer}
@@ -81,26 +83,19 @@ JUPYTER_EG_DEPLOY_CONFIG := jupyter-eg \
 ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 	${SHARED_DEPLOY_CONFIG} thirdparty/argo-workflows
 
+# Docker-registry deployment configs
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
-	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} thirdparty/docker-registry
+	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} thirdparty/docker-registry	
 
 .PHONY: orchest
 orchest: initialize
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
-.PHONY: cluster-resources
-cluster-resources: ./bin/cluster-resources
-	
-.SECONDARY: ./bin/cluster-resources
-./bin/cluster-resources:
-	helm install ${CLUSTER_RSC_DEPLOY_CONFIG}
-	touch $@
-
 .PHONY: jupyter-eg
 jupyter-eg: ./bin/jupyter-eg
 	
 .SECONDARY: ./bin/jupyter-eg
-./bin/jupyter-eg:
+./bin/jupyter-eg: create-bin
 	helm install ${JUPYTER_EG_DEPLOY_CONFIG}
 	touch $@
 
@@ -108,7 +103,7 @@ jupyter-eg: ./bin/jupyter-eg
 argo-workflow: ./bin/argo-workflow
 
 .SECONDARY: ./bin/argo-workflow
-./bin/argo-workflow:
+./bin/argo-workflow: create-bin
 	helm install ${ARGO_WORKFLOW_DEPLOY_CONFIG}
 	touch $@
 
@@ -116,8 +111,26 @@ argo-workflow: ./bin/argo-workflow
 docker-registry : ./bin/docker-registry
 
 .SECONDARY: ./bin/docker-registry
-./bin/docker-registry: ./bin/cluster-resources ${ROOK_TARGET} | create-bin
+./bin/docker-registry: | create-bin cluster-resources ${ROOK_TARGET} 
 	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
+	touch $@
+
+.PHONY: cert-manager
+cert-manager : ./bin/cert-manager
+
+.SECONDARY: ./bin/cert-manager
+./bin/cert-manager: | create-bin
+	kubectl apply -f thirdparty/cert-manager
+	# TODO, This is a hack, evaluate using wait
+	sleep 30
+	touch $@
+
+.PHONY: cluster-resources
+cluster-resources: ./bin/cluster-resources
+	
+.SECONDARY: ./bin/cluster-resources
+./bin/cluster-resources: | create-bin cert-manager
+	helm install ${CLUSTER_RSC_DEPLOY_CONFIG}
 	touch $@
 
 .PHONY: create-bin
@@ -128,7 +141,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: | create-bin ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET} 
+./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET} 
 	touch $@
 
 .PHONY: rook
