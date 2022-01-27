@@ -15,5 +15,7 @@ git checkout $DIR/../userdir
 
 echo "[Cleaning up userdir]: success"
 
+# The find command includes setting the sticky bit on the userdir
+# directory itself.
 echo "Setting the right permissions on the userdir..."
-chmod g+s $DIR/../userdir
+find $DIR/../userdir -type d -not -perm -g+s -exec chmod g+s {} \;
