@@ -1,7 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { FileTree } from "@/types";
-import { toValidFilename } from "@/utils/toValidFilename";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -141,15 +140,14 @@ const ProjectFilePicker: React.FC<{
 
   // local states
   const [createFileModal, setCreateFileModal] = React.useState(false);
-  const [fileName, setRawFileName] = React.useState("");
+  // we don't want to apply toValidFilename here
+  // because user needs to use relative path as part of file name change the final path
+  // ? allow user to change file path, so user is not forced to abuse "file name"?
+  const [fileName, setFileName] = React.useState("");
   const [createFileDir, setCreateFileDir] = React.useState("");
   const [fileExtension, setFileExtension] = React.useState(
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
-
-  const setFileName = (value: string) => {
-    setRawFileName(toValidFilename(value));
-  };
 
   const onChangeFileValue = (value: string) => onChange(value);
 
