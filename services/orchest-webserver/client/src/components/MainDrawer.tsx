@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { toValidFilename } from "@/utils/toValidFilename";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
@@ -15,7 +16,6 @@ import MuiListItemIcon from "@mui/material/ListItemIcon";
 import MuiListItemText, { ListItemTextProps } from "@mui/material/ListItemText";
 import { CSSObject, styled, Theme } from "@mui/material/styles";
 import Toolbar from "@mui/material/Toolbar";
-import { toValidFileName } from "@orchest/lib-utils";
 import React from "react";
 import { matchPath, useLocation } from "react-router-dom";
 import { getOrderedRoutes, siteMap, toQueryString } from "../routingConfig";
@@ -59,7 +59,7 @@ const rootMenuItems: ItemData[] = [
 ];
 
 const getItemKey = (item: { label: string; path: string }) =>
-  `menu-${toValidFileName(item.label)}`;
+  `menu-${toValidFilename(item.label)}`;
 
 const DEFAULT_DRAWER_WIDTH = 240;
 

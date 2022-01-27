@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { FileTree } from "@/types";
+import { toValidFilename } from "@/utils/toValidFilename";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
@@ -24,7 +25,6 @@ import {
   FetchError,
   hasValue,
   HEADER,
-  toValidFileName,
 } from "@orchest/lib-utils";
 import React from "react";
 import { Code } from "./common/Code";
@@ -148,7 +148,7 @@ const ProjectFilePicker: React.FC<{
   );
 
   const setFileName = (value: string) => {
-    setRawFileName(toValidFileName(value));
+    setRawFileName(toValidFilename(value));
   };
 
   const onChangeFileValue = (value: string) => onChange(value);

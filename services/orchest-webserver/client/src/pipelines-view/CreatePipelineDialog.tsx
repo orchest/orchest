@@ -1,3 +1,4 @@
+import { toValidFilename } from "@/utils/toValidFilename";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
@@ -7,12 +8,10 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
-import { toValidFileName } from "@orchest/lib-utils";
 import React from "react";
 import { INITIAL_PIPELINE_NAME, INITIAL_PIPELINE_PATH } from "./common";
 
-const getPathFromName = (name: string) =>
-  `${toValidFileName(name, "_")}.orchest`;
+const getPathFromName = (name: string) => `${toValidFilename(name)}.orchest`;
 
 export const CreatePipelineDialog = ({
   pipelineRows,

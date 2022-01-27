@@ -1,3 +1,4 @@
+import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
@@ -15,7 +16,6 @@ import {
   makeRequest,
   PromiseManager,
   RefManager,
-  toValidFileName,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
@@ -314,7 +314,7 @@ const PipelineDetailsProperties: React.FC<{
   React.useEffect(() => {
     if (state.autogenerateFilePath) {
       // Make sure the props have been updated
-      onChangeFileName(toValidFileName(props.step.title), true);
+      onChangeFileName(toValidFilename(props.step.title), true);
     }
   }, [props?.step?.title]);
 
