@@ -150,16 +150,21 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     }));
   }, [fetchedEnvironments, environmentBuilds]);
 
-  const onRowClick = (environmentUuid: string) => {
-    navigateTo(siteMap.environment.path, {
-      query: { projectUuid, environmentUuid },
-    });
+  const onRowClick = (e: React.MouseEvent, environmentUuid: string) => {
+    navigateTo(
+      siteMap.environment.path,
+      { query: { projectUuid, environmentUuid } },
+      e
+    );
   };
 
-  const onCreateClick = () => {
-    navigateTo(siteMap.environment.path, {
-      query: { projectUuid, environmentUuid: "create" }, // TODO: check how current implementation of create environment
-    });
+  const onCreateClick = (e: React.MouseEvent) => {
+    // TODO: check how current implementation of create environment
+    navigateTo(
+      siteMap.environment.path,
+      { query: { projectUuid, environmentUuid: "create" } },
+      e
+    );
   };
 
   const removeEnvironment = async (
@@ -273,6 +278,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
               variant="contained"
               startIcon={<AddIcon />}
               onClick={onCreateClick}
+              onAuxClick={onCreateClick}
               data-test-id="environments-create"
             >
               Create environment

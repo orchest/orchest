@@ -18,7 +18,7 @@ type ISessionToggleButtonProps = {
 };
 
 const SessionToggleButton = (props: ISessionToggleButtonProps) => {
-  const { state, dispatch, getSession } = useSessionsContext();
+  const { state, getSession, toggleSession } = useSessionsContext();
 
   const { className, isSwitch, pipelineUuid, projectUuid } = props;
 
@@ -41,10 +41,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   const handleEvent = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dispatch({
-      type: "sessionToggle",
-      payload: { pipelineUuid, projectUuid },
-    });
+    toggleSession({ pipelineUuid, projectUuid });
   };
   const isSessionAlive = status === "RUNNING";
 
@@ -53,6 +50,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       {isSwitch ? (
         <FormControlLabel
           onClick={handleEvent}
+          onAuxClick={(e) => {
+            // middle click on this button shouldn't open new tab
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           disableTypography
           control={
             <Switch
@@ -74,6 +76,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
           color="secondary"
           disabled={disabled}
           onClick={handleEvent}
+          onAuxClick={(e) => {
+            // middle click on this button shouldn't open new tab
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           className={classNames(
             className,
             ["LAUNCHING", "STOPPING"].includes(status) ? "working" : "active"

@@ -112,6 +112,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     error: fetchJobsError,
     isFetchingJobs,
     fetchJobs,
+    setJobs,
   } = useFetchJobs(projectUuid);
 
   const { run, error: createJobError } = useAsync<
@@ -192,9 +193,10 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       // TODO: in this part of the flow copy the pipeline directory to make
       // sure the pipeline no longer changes
 
-      const pipelineName = pipelines.find(
+      const pipelineName = (pipelines || []).find(
         (pipeline) => pipeline.uuid === pipelineUuid
       )?.name;
+
       return run(
         doCreateJob(projectUuid, newJobName, pipelineUuid, pipelineName).then(
           (job) => {
@@ -226,7 +228,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     }
   }, [createJobError, setAlert, requestBuild, createJob]);
 
-  const onRowClick = (uuid: string) => {
+  const onRowClick = (e: React.MouseEvent, uuid: string) => {
     const foundJob = jobs.find((job) => job.uuid === uuid);
     if (!foundJob) return;
     navigateTo(
@@ -236,7 +238,8 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
           projectUuid,
           jobUuid: uuid,
         },
-      }
+      },
+      e
     );
   };
 
@@ -260,6 +263,13 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         method: "PUT",
         headers: HEADER.JSON,
         body: JSON.stringify({ name: newJobName.trim() }),
+      });
+      setJobs((currentJobs) => {
+        return currentJobs.map((currentJob) => {
+          return currentJob.uuid === jobUuid
+            ? { ...currentJob, name: newJobName }
+            : currentJob;
+        });
       });
     } catch (e) {
       setAlert("Error", `Failed to update job name: ${JSON.stringify(e)}`);

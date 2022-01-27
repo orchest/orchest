@@ -236,7 +236,7 @@ def register_views(app, db):
 
     @app.route("/async/version", methods=["GET"])
     def version():
-        return get_repo_tag()
+        return {"version": get_repo_tag()}
 
     @app.route("/async/user-config", methods=["GET", "POST"])
     def user_config():
@@ -367,9 +367,11 @@ def register_views(app, db):
 
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreatePipeline(tpe).transaction(
+                pipeline_uuid = CreatePipeline(tpe).transaction(
                     project_uuid, pipeline_name, pipeline_path
                 )
+                return jsonify({"pipeline_uuid": pipeline_uuid})
+
         except FileExistsError:
             return (
                 jsonify({"message": "A pipeline with the given path already exists."}),
@@ -377,8 +379,6 @@ def register_views(app, db):
             )
         except Exception as e:
             return jsonify({"message": str(e)}), 409
-
-        return jsonify({"success": True})
 
     class ImportGitProjectListResource(Resource):
         def post(self):
@@ -552,10 +552,10 @@ def register_views(app, db):
 
     @app.route("/async/projects", methods=["POST"])
     def projects_post():
-
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                CreateProject(tpe).transaction(request.json["name"])
+                project_uuid = CreateProject(tpe).transaction(request.json["name"])
+                return jsonify({"project_uuid": project_uuid})
         except Exception as e:
 
             # The sql integrity error message can be quite ugly.
@@ -567,8 +567,6 @@ def register_views(app, db):
                 jsonify({"message": msg}),
                 500,
             )
-
-        return jsonify({"message": "Project created."})
 
     @app.route("/async/projects", methods=["DELETE"])
     def projects_delete():

@@ -5,7 +5,6 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
@@ -29,13 +28,12 @@ const JupyterLabView: React.FC = () => {
   // global states
   const { dispatch } = useProjectsContext();
   const { requestBuild } = useAppContext();
-  const sessionsContext = useSessionsContext();
-  const { getSession } = sessionsContext;
-  useSessionsPoller();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
 
   // data from route
-  const { navigateTo, projectUuid, pipelineUuid } = useCustomRoute();
+  const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
+
+  const { getSession, toggleSession, state } = useSessionsContext();
 
   // local states
   const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
@@ -48,10 +46,15 @@ const JupyterLabView: React.FC = () => {
     setHasEnvironmentCheckCompleted,
   ] = React.useState(false);
 
-  const session = getSession({
-    pipelineUuid,
-    projectUuid,
-  });
+  const session = React.useMemo(
+    () =>
+      getSession({
+        pipelineUuid,
+        projectUuid,
+      }),
+    [pipelineUuid, projectUuid, getSession]
+  );
+
   const [promiseManager] = React.useState(new PromiseManager());
 
   React.useEffect(() => {
@@ -69,16 +72,10 @@ const JupyterLabView: React.FC = () => {
 
   // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (
-      !sessionsContext.state.sessionsIsLoading &&
-      (typeof session === "undefined" || !session?.status)
-    ) {
-      sessionsContext.dispatch({
-        type: "sessionToggle",
-        payload: { pipelineUuid, projectUuid },
-      });
+    if (!state.sessionsIsLoading && !session) {
+      toggleSession({ pipelineUuid, projectUuid });
     }
-  }, [session, sessionsContext.state.sessionsIsLoading]);
+  }, [session, toggleSession, state, pipelineUuid, projectUuid]);
 
   // On any session change
   React.useEffect(() => {
@@ -204,6 +201,7 @@ const JupyterLabView: React.FC = () => {
     if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
         window.orchest.jupyter.show();
+        if (filePath) window.orchest.jupyter.navigateTo(filePath);
       } else {
         window.orchest.jupyter.hide();
       }

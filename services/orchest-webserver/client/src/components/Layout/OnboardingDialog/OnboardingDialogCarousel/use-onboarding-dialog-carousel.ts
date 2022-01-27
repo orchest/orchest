@@ -1,49 +1,34 @@
 import { wrapNumber } from "@/utils/wrap-number";
-import useSWR from "swr";
+import React from "react";
 import { onboardingDialogCarouselSlides } from "./content";
 
-export const useOnboardingDialogCarousel = () => {
-  const initialState = { isAnimating: false, slide: [0, 0] };
+export type Slide = { index: number; direction: number };
 
-  const { data: state, mutate: setState } = useSWR(
-    "useOnboardingCarousel",
-    null,
-    {
-      initialData: initialState,
-    }
-  );
+export const useOnboardingDialogCarousel = () => {
+  const [isAnimating, setIsAnimating] = React.useState(false);
+  const [slide, setSlide] = React.useState<Slide>({ index: 0, direction: 0 });
 
   const length = onboardingDialogCarouselSlides.length;
 
-  const [slideIndexState, slideDirection] = state?.slide;
-
-  const slideIndex = wrapNumber(0, length, slideIndexState);
+  const slideIndex = wrapNumber(0, length, slide.index);
   const isLastSlide = slideIndex === length - 1;
 
-  const setSlide = (slide: [number, number]) =>
-    setState((prevState) => ({ ...prevState, slide }));
-
   const cycleSlide = (newSlideDirection: number) =>
-    setState((prevState) => {
-      const [prevSlideIndex] = prevState?.slide || initialState?.slide;
-
+    setSlide(({ index }) => {
       return {
-        ...prevState,
-        slide: [prevSlideIndex + newSlideDirection, newSlideDirection],
+        index: index + newSlideDirection,
+        direction: newSlideDirection,
       };
     });
-
-  const setIsAnimating = (isAnimating: boolean) =>
-    setState((prevState) => ({ ...prevState, isAnimating }));
 
   return {
     length,
     slideIndex,
-    slideDirection,
+    slideDirection: slide.direction,
     isLastSlide,
     cycleSlide,
     setSlide,
-    isAnimating: state?.isAnimating,
+    isAnimating,
     setIsAnimating,
   };
 };

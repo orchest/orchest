@@ -98,4 +98,4 @@ def reg(
             "to monitor for source code changes."
         )
 
-    app.start(container_config)
+    app.start(container_config, cloud=cloud)

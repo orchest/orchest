@@ -27,13 +27,13 @@ import Typography from "@mui/material/Typography";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import cronstrue from "cronstrue";
 import React from "react";
+import { useFetchJob } from "../hooks/useFetchJob";
 import { formatPipelineParams, PARAMETERLESS_RUN } from "./common";
 import { JobDocLink } from "./JobDocLink";
 import { JobStatus } from "./JobStatus";
 import { JobViewTabs } from "./JobViewTabs";
 import { PipelineRunTable } from "./PipelineRunTable";
 import { RunSpecTable } from "./RunSpecTable";
-import { useFetchJob } from "./useFetchJob";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(3, 0),
@@ -48,13 +48,14 @@ const JobView: React.FC = () => {
   const { navigateTo, jobUuid } = useCustomRoute();
 
   // data states
-  const { job, setJob, fetchJob, envVariables, fetchJobStatus } = useFetchJob(
-    jobUuid
+  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob(
+    jobUuid,
+    true
   );
 
   // monitor if there's any operations ongoing, if so, disable action buttons
   const { run, status } = useAsync<void>();
-  const isOperating = status === "PENDING" || fetchJobStatus === "PENDING";
+  const isOperating = status === "PENDING" || isFetchingJob;
 
   // use this to force PipelineRunTable to re-fetch data
   const [pipelineRunTableKey, forceUpdatePipelineRunTable] = React.useReducer(
@@ -70,7 +71,9 @@ const JobView: React.FC = () => {
   const cancelJob = () => {
     run(
       fetcher(`/catch/api-proxy/api/jobs/${job.uuid}`, { method: "DELETE" })
-        .then(() => setJob((prevJob) => ({ ...prevJob, status: "ABORTED" })))
+        .then(() => {
+          setJob((prevJob) => ({ ...prevJob, status: "ABORTED" }));
+        })
         .catch((error) => {
           console.error(error);
           setAlert("Error", `Failed to delete job: ${error}`);
@@ -83,13 +86,13 @@ const JobView: React.FC = () => {
       fetcher(`/catch/api-proxy/api/jobs/cronjobs/pause/${job.uuid}`, {
         method: "POST",
       })
-        .then(() =>
+        .then(() => {
           setJob((job) => ({
             ...job,
             status: "PAUSED",
             next_scheduled_time: undefined,
-          }))
-        )
+          }));
+        })
         .catch((error) => {
           console.error(error);
           setAlert("Error", `Failed to pause job: ${error}`);
@@ -116,24 +119,23 @@ const JobView: React.FC = () => {
     );
   };
 
-  const editJob = () => {
-    navigateTo(siteMap.editJob.path, {
-      query: {
-        projectUuid: job.project_uuid,
-        jobUuid: job.uuid,
-      },
-    });
+  const editJob = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.editJob.path,
+      { query: { projectUuid: job.project_uuid, jobUuid: job.uuid } },
+      e
+    );
   };
 
-  const returnToJobs = () => {
-    navigateTo(siteMap.jobs.path, {
-      query: {
-        projectUuid: job.project_uuid,
-      },
-    });
+  const returnToJobs = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.jobs.path,
+      { query: { projectUuid: job.project_uuid } },
+      e
+    );
   };
 
-  const onJobDuplicate = () => {
+  const onJobDuplicate = (e: React.MouseEvent) => {
     if (!job) return;
 
     run(
@@ -146,12 +148,16 @@ const JobView: React.FC = () => {
           })
             .then((response) => {
               // we need to re-navigate to ensure the URL is with correct job uuid
-              navigateTo(siteMap.editJob.path, {
-                query: {
-                  projectUuid: response.project_uuid,
-                  jobUuid: response.uuid,
+              navigateTo(
+                siteMap.editJob.path,
+                {
+                  query: {
+                    projectUuid: response.project_uuid,
+                    jobUuid: response.uuid,
+                  },
                 },
-              });
+                e
+              );
             })
             .catch((error) => {
               try {
@@ -167,7 +173,7 @@ const JobView: React.FC = () => {
         .catch((result) => {
           if (result.reason === "gate-failed") {
             requestBuild(job.project_uuid, result.data, "DuplicateJob", () => {
-              onJobDuplicate();
+              onJobDuplicate(e);
             });
           }
         })
@@ -213,6 +219,7 @@ const JobView: React.FC = () => {
               <Button
                 color="secondary"
                 startIcon={<ArrowBackIcon />}
+                onAuxClick={returnToJobs}
                 onClick={returnToJobs}
               >
                 Back to jobs
@@ -303,7 +310,7 @@ const JobView: React.FC = () => {
                       />
                       <div className="pipeline-runs push-up">
                         <RunSpecTable
-                          isLoading={fetchJobStatus === "PENDING"}
+                          isLoading={isFetchingJob}
                           rows={
                             job.parameters
                               ? job.parameters.map((param, index) => {
@@ -355,6 +362,7 @@ const JobView: React.FC = () => {
                 disabled={isOperating}
                 startIcon={<FileCopyIcon />}
                 onClick={onJobDuplicate}
+                onAuxClick={onJobDuplicate}
                 color="secondary"
               >
                 Copy config to new job
@@ -366,6 +374,7 @@ const JobView: React.FC = () => {
                     disabled={isOperating}
                     variant="contained"
                     onClick={editJob}
+                    onAuxClick={editJob}
                     startIcon={<TuneIcon />}
                   >
                     Edit

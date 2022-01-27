@@ -4,6 +4,7 @@ describe("auth system", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
   });
 
   it("can create and delete a user", () => {

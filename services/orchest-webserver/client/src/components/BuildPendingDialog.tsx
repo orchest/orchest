@@ -168,10 +168,8 @@ const BuildPendingDialog: React.FC = () => {
       });
   };
 
-  const onViewBuildStatus = () => {
-    navigateTo(siteMap.environments.path, {
-      query: { projectUuid },
-    });
+  const onViewBuildStatus = (e: React.MouseEvent) => {
+    navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
 
     onClose();
   };
@@ -202,6 +200,7 @@ const BuildPendingDialog: React.FC = () => {
             variant={!state?.allowBuild ? "contained" : undefined}
             color={!state?.allowBuild ? "primary" : undefined}
             onClick={onViewBuildStatus}
+            onAuxClick={onViewBuildStatus}
           >
             View build status
           </Button>

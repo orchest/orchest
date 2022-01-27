@@ -1,4 +1,5 @@
 import { JobDocLink } from "@/job-view/JobDocLink";
+import { PipelineMetaData } from "@/types";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
@@ -16,12 +17,6 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import React from "react";
 
-type Pipeline = {
-  uuid: string;
-  path: string;
-  name: string;
-};
-
 export const CreateJobDialog = ({
   isOpen,
   onClose,
@@ -34,7 +29,7 @@ export const CreateJobDialog = ({
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (jobName: string, pipelineUuid: string) => Promise<void>;
-  pipelines?: Pipeline[];
+  pipelines?: PipelineMetaData[];
   selectedPipeline?: string;
   setSelectedPipeline: (uuid: string) => void;
   projectSnapshotSize?: number;

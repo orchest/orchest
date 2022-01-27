@@ -6,7 +6,6 @@ import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type { PipelineMetaData } from "@/types";
 import { IOrchestSession } from "@/types";
@@ -104,9 +103,15 @@ const getColumns = (
             title="Edit pipeline path"
             size="small"
             sx={{ marginLeft: (theme) => theme.spacing(2) }}
-            onClick={(e: React.MouseEvent<unknown>) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
+              e.preventDefault();
               onEditPath(row.uuid, row.path, row.sessionStatus);
+            }}
+            onAuxClick={(e) => {
+              // middle click on this button shouldn't open new tab
+              e.stopPropagation();
+              e.preventDefault();
             }}
             data-test-id="pipeline-edit-path"
           >
@@ -252,11 +257,11 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
   const { getSession } = useSessionsContext();
-  useSessionsPoller();
 
   // data fetching state
   const {
     pipelines,
+    setPipelines,
     error,
     fetchPipelines,
     isFetchingPipelines,
@@ -268,6 +273,9 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
       navigateTo(siteMap.projects.path);
     }
   }, [error, setAlert, navigateTo]);
+
+  // monitor if there's any operations ongoing, if so, disable action buttons
+  const { run, status } = useAsync<void>();
 
   // Edit pipeline
   const [pipelineInEdit, setPipelineInEdit] = React.useState<{
@@ -296,7 +304,13 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
         }),
       })
         .then(() => {
-          fetchPipelines();
+          setPipelines((currentPipelines) => {
+            return currentPipelines.map((currentPipeline) =>
+              currentPipeline.uuid === pipelineInEdit.uuid
+                ? { ...currentPipeline, path: pipelineInEdit.path }
+                : currentPipeline
+            );
+          });
         })
         .catch((e) => {
           try {
@@ -343,19 +357,30 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     });
   }, [pipelines, projectUuid, getSession]);
 
-  const onRowClick = async (pipelineUuid: string) => {
-    const goToPipeline = (isReadOnly: boolean) => {
-      navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid, pipelineUuid },
-        state: { isReadOnly },
-      });
-    };
-    try {
-      await checkGate(projectUuid);
-      goToPipeline(false);
-    } catch (error) {
-      goToPipeline(true);
-    }
+  const navigateToPipeline = React.useCallback(
+    async (pipelineUuid: string, e?: React.MouseEvent) => {
+      const goToPipeline = (isReadOnly: boolean) => {
+        navigateTo(
+          siteMap.pipeline.path,
+          {
+            query: { projectUuid, pipelineUuid },
+            state: { isReadOnly },
+          },
+          e
+        );
+      };
+      try {
+        await checkGate(projectUuid);
+        goToPipeline(false);
+      } catch (error) {
+        goToPipeline(true);
+      }
+    },
+    [navigateTo, projectUuid]
+  );
+
+  const onRowClick = async (e: React.MouseEvent, pipelineUuid: string) => {
+    return navigateToPipeline(pipelineUuid, e);
   };
 
   const onDeletePipelines = async (pipelineUuids: string[]) => {
@@ -369,11 +394,18 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           )
         )
           .then(() => {
-            fetchPipelines();
+            setPipelines((current) =>
+              current.filter(
+                (currentPipeline) =>
+                  !pipelineUuids.includes(currentPipeline.uuid)
+              )
+            );
+
             resolve(true);
           })
           .catch((e) => {
             setAlert("Error", `Failed to delete pipeline: ${e}`);
+            fetchPipelines();
             resolve(false);
           });
 
@@ -382,34 +414,29 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
     );
   };
 
-  // monitor if there's any operations ongoing, if so, disable action buttons
-  const { run, status } = useAsync<void>();
   const isOperating = status === "PENDING";
 
   const createPipeline = React.useCallback(
     ({ name, path }: { name: string; path: string }) => {
       return run(
-        fetcher(`/async/pipelines/create/${projectUuid}`, {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({ name, pipeline_path: path }),
-        })
-          .then(() => {
-            fetchPipelines();
-          })
-          .catch((response) => {
-            if (!response.isCanceled) {
-              try {
-                let data = JSON.parse(response.body);
-                setAlert("Error", `Could not create pipeline. ${data.message}`);
-              } catch {
-                setAlert("Error", "Could not create pipeline. Reason unknown.");
-              }
-            }
+        fetcher<{ pipeline_uuid: string }>(
+          `/async/pipelines/create/${projectUuid}`,
+          {
+            method: "POST",
+            headers: HEADER.JSON,
+            body: JSON.stringify({ name, pipeline_path: path }),
+          }
+        )
+          .then(({ pipeline_uuid }) => navigateToPipeline(pipeline_uuid))
+          .catch((error) => {
+            setAlert(
+              "Error",
+              `Could not create pipeline. ${error.message || "Reason unknown."}`
+            );
           })
       );
     },
-    [fetchPipelines, run, projectUuid, setAlert]
+    [run, projectUuid, setAlert, navigateToPipeline]
   );
 
   const isLoaded = hasValue(pipelines) && !error;

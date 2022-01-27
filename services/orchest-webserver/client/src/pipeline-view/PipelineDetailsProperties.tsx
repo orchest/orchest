@@ -1,3 +1,4 @@
+import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
@@ -164,33 +165,11 @@ const PipelineDetailsProperties: React.FC<{
   };
 
   const onChangeKernel = (updatedKernel: string) => {
-    props.onSave(
-      {
-        kernel: { name: updatedKernel },
-      },
-      props.step.uuid
-    );
-  };
-
-  const titleToFileName = (title) => {
-    const alphanumeric = /[^a-zA-Z0-9-]/g;
-    title = title.replace(alphanumeric, "-");
-    const concatDashes = /(-+)/g;
-    title = title.replace(concatDashes, "-");
-    if (title.slice(-1) == "-") {
-      title = title.slice(0, -1);
-    }
-    title = title.toLowerCase();
-    return title;
+    props.onSave({ kernel: { name: updatedKernel } }, props.step.uuid);
   };
 
   const onChangeTitle = (updatedTitle) => {
-    props.onSave(
-      {
-        title: updatedTitle,
-      },
-      props.step.uuid
-    );
+    props.onSave({ title: updatedTitle }, props.step.uuid);
   };
 
   const swapConnectionOrder = (oldConnectionIndex, newConnectionIndex) => {
@@ -335,7 +314,7 @@ const PipelineDetailsProperties: React.FC<{
   React.useEffect(() => {
     if (state.autogenerateFilePath) {
       // Make sure the props have been updated
-      onChangeFileName(titleToFileName(props.step.title), true);
+      onChangeFileName(toValidFilename(props.step.title), true);
     }
   }, [props?.step?.title]);
 

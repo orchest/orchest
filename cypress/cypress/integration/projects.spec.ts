@@ -9,6 +9,7 @@ describe("projects", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
     cy.goToMenu("projects");
   });
 

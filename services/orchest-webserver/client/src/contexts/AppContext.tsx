@@ -42,31 +42,37 @@ export type Alert = {
   type: "alert";
   title: string | JSX.Element;
   content: string | JSX.Element | JSX.Element[];
-  onConfirm?: () => void;
+  onConfirm?: () => Promise<boolean | void> | boolean | void;
+  confirmLabel?: string;
 };
 
 export type Confirm = {
   type: "confirm";
   title: string | JSX.Element;
   content: string | JSX.Element | JSX.Element[];
-  onConfirm: () => Promise<boolean>; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
-  onCancel?: () => Promise<false>;
+  onConfirm: () => Promise<boolean> | boolean; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
+  onCancel?: () => Promise<false | void> | void | false;
+  confirmLabel?: string;
+  cancelLabel?: string;
 };
 
 export type PromptMessage = Alert | Confirm;
 
-type AlertConverter = (
-  title: string,
-  content: string | JSX.Element | JSX.Element[],
-  onConfirmHandler?: () => Promise<boolean>
-) => Alert;
+type AlertConverter = (props: {
+  title: string;
+  content: string | JSX.Element | JSX.Element[];
+  confirmHandler?: () => Promise<boolean> | boolean;
+  confirmLabel?: string;
+}) => Alert;
 
-type ConfirmConverter = (
-  title: string,
-  content: string | JSX.Element | JSX.Element[],
-  onConfirmHandler: () => Promise<boolean>,
-  onCancelHandler?: () => Promise<false>
-) => Confirm;
+type ConfirmConverter = (props: {
+  title: string;
+  content: string | JSX.Element | JSX.Element[];
+  confirmHandler: () => Promise<boolean> | boolean;
+  cancelHandler?: () => Promise<false | void> | void | false;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}) => Confirm;
 
 type PromptMessageConverter<T extends PromptMessage> = T extends Alert
   ? AlertConverter
@@ -122,21 +128,28 @@ type ActionCallback = (previousState: AppContextState) => Action;
 
 type AppContextAction = Action | ActionCallback;
 
-type AlertDispatcher = (
+export type AlertDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm?: () => void
-) => void;
+  callbackOrParams?:
+    | ConfirmHandler
+    | {
+        onConfirm: ConfirmHandler;
+        confirmLabel?: string;
+      }
+) => Promise<boolean>;
 
 export type ConfirmDispatcher = (
   title: string,
   content: string | JSX.Element | JSX.Element[],
-  onConfirm: (
-    resolve: (value: boolean | PromiseLike<boolean>) => void
-  ) => Promise<boolean>,
-  onCancel?: (
-    resolve: (value: boolean | PromiseLike<boolean>) => void
-  ) => Promise<false>
+  callbackOrParams?:
+    | ConfirmHandler
+    | {
+        onConfirm: ConfirmHandler;
+        onCancel?: CancelHandler;
+        confirmLabel?: string;
+        cancelLabel?: string;
+      }
 ) => Promise<boolean>;
 
 export type RequestBuildDispatcher = (
@@ -224,19 +237,16 @@ const initialState: AppContextState = {
   hasCompletedOnboarding: false,
 };
 
-const defaultOnConfirm = async (
+type ConfirmHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
-) => {
-  resolve(true);
-  return true;
-};
+) => Promise<boolean> | boolean;
 
-const defaultOnCancel = async (
+type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
-) => {
-  resolve(false);
-  return false as const;
-};
+) => Promise<false | void> | void | false;
+
+const defaultOnConfirm: ConfirmHandler = () => true;
+const defaultOnCancel: CancelHandler = () => false as const;
 
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,
@@ -249,18 +259,47 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   const dispatcher = (
     title: string,
     content: string | JSX.Element | JSX.Element[],
-    onConfirm = defaultOnConfirm, // is required for 'confirm'
-    onCancel = defaultOnCancel
+    callbackOrParams?:
+      | ConfirmHandler
+      | {
+          onConfirm: ConfirmHandler;
+          onCancel?: CancelHandler;
+          confirmLabel?: string;
+          cancelLabel?: string;
+        }
   ) => {
+    // NOTE: consumer could either provide a callback function for onConfirm (for most use cases), or provide an object for more detailed config
     return new Promise<boolean>((resolve) => {
-      const message = convert(
+      const confirmHandler = !callbackOrParams
+        ? () => defaultOnConfirm(resolve)
+        : callbackOrParams instanceof Function
+        ? () => callbackOrParams(resolve)
+        : () => callbackOrParams.onConfirm(resolve);
+
+      const cancelHandler =
+        !callbackOrParams || callbackOrParams instanceof Function
+          ? () => defaultOnCancel(resolve)
+          : () => callbackOrParams.onCancel(resolve);
+
+      const confirmLabel =
+        callbackOrParams instanceof Function
+          ? "Confirm"
+          : callbackOrParams?.confirmLabel || "Confirm";
+
+      const cancelLabel =
+        callbackOrParams instanceof Function
+          ? "Cancel"
+          : callbackOrParams?.cancelLabel || "Cancel";
+
+      const message = convert({
         title,
         content,
-        // the resolve function should be called when the inner (async) operation is resolved
-        // the resolve function expects a boolean, which allows you to indicate if the operation is success or not.
-        () => onConfirm(resolve),
-        () => onCancel(resolve)
-      );
+        confirmHandler,
+        cancelHandler,
+        confirmLabel,
+        cancelLabel,
+      });
+
       dispatch((store) => {
         return {
           type: "SET_PROMPT_MESSAGES",
@@ -273,31 +312,37 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   return dispatcher as PromptMessageDispatcher<T>;
 };
 
-const convertAlert: PromptMessageConverter<Alert> = (
-  title: string,
-  content: string | JSX.Element | JSX.Element[],
-  onConfirmHandler?: () => void
-) => {
+const convertAlert: PromptMessageConverter<Alert> = ({
+  title,
+  content,
+  confirmHandler,
+  confirmLabel,
+}) => {
   return {
     type: "alert",
     title,
     content: contentParser(content),
-    onConfirm: onConfirmHandler,
+    onConfirm: confirmHandler,
+    confirmLabel,
   };
 };
 
-const convertConfirm: PromptMessageConverter<Confirm> = (
-  title: string,
-  content: string | JSX.Element | JSX.Element[],
-  onConfirmHandler: () => Promise<boolean>,
-  onCancelHandler?: () => Promise<false>
-) => {
+const convertConfirm: PromptMessageConverter<Confirm> = ({
+  title,
+  content,
+  confirmHandler,
+  cancelHandler,
+  confirmLabel,
+  cancelLabel,
+}) => {
   return {
     type: "confirm",
     title,
     content: contentParser(content),
-    onConfirm: onConfirmHandler,
-    onCancel: onCancelHandler,
+    onConfirm: confirmHandler,
+    onCancel: cancelHandler,
+    confirmLabel,
+    cancelLabel,
   };
 };
 
