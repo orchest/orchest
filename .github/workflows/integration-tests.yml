@@ -64,8 +64,10 @@ jobs:
 
       # Orchest won't be able to write files that are part of a project
       # that was copied in the existing project directory otherwise.
+      # NOTE: the permissions have to be `2775` to make sure the sticky
+      # bit is set on the userdir.
       - name: Fix group w/x permissions.
-        run: chmod 775 -R ${{ github.workspace }}
+        run: chmod 775 -R ${{ github.workspace }} && chmod 2775 -R userdir
 
       - name: Build and Start Orchest
         run: |

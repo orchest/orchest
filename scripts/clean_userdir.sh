@@ -14,3 +14,6 @@ sudo rm -rf $DIR/../userdir
 git checkout $DIR/../userdir
 
 echo "[Cleaning up userdir]: success"
+
+echo "Setting the right permissions on the userdir..."
+chmod g+s $DIR/../userdir
