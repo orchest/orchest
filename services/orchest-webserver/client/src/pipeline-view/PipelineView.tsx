@@ -6,7 +6,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import type { PipelineJson, PipelineRun } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";

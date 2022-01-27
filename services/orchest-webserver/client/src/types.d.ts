@@ -373,3 +373,11 @@ export type Pagination = {
   total_items: number;
   total_pages: number;
 };
+
+export type UpdateInfo = {
+  latest_version: string | null;
+};
+
+export type OrchestVersion = {
+  version: string | null;
+};

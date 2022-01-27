@@ -1,10 +1,13 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { siteMap } from "@/Routes";
 import { IOrchestSession } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
-import useSWR from "swr";
+import { matchPath, useLocation } from "react-router-dom";
+import useSWR, { useSWRConfig } from "swr";
 
 type TSessionStatus = IOrchestSession["status"];
 
@@ -30,17 +33,46 @@ function convertKeyToCamelCase<T>(data: T | undefined, keys?: string[]) {
   }, {}) as T;
 }
 
+/**
+ * NOTE: useSessionsPoller should only be placed in HeaderBar
+ */
 export const useSessionsPoller = () => {
   const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
+  const {
+    state: { pipelineUuid, pipelineIsReadOnly },
+  } = useProjectsContext();
 
-  const { data, error } = useSWR<{
+  const location = useLocation();
+  const matchRooViews = matchPath(location.pathname, [
+    siteMap.configureJupyterLab.path,
+    siteMap.pipelines.path,
+  ]);
+  const matchPipelineViews = matchPath(location.pathname, [
+    siteMap.pipelineSettings.path,
+    siteMap.logs.path,
+    siteMap.pipeline.path,
+    siteMap.jupyterLab.path,
+  ]);
+
+  // sessions are only needed when both conditions are met
+  // 1. in the PipelinesView or ConfigureJupyterLabView (they are root views without a pipeline_uuid)
+  // 2. in the above views AND pipelineUuid is given AND is not read-only
+  const shouldPoll =
+    matchRooViews?.isExact ||
+    (!pipelineIsReadOnly &&
+      hasValue(pipelineUuid) &&
+      matchPipelineViews?.isExact);
+
+  const { cache } = useSWRConfig();
+
+  const { data, error, mutate } = useSWR<{
     sessions: (IOrchestSession & {
       project_uuid: string;
       pipeline_uuid: string;
     })[];
     status: TSessionStatus;
-  }>(ENDPOINT, fetcher, {
+  }>(shouldPoll ? ENDPOINT : null, fetcher, {
     // We cannot poll conditionally, e.g. only poll if a session status is transitional, e.g. LAUNCHING, STOPPING
     // the reason is that Orchest session is not a user session, but a session of a pipeline.
     // and Orchest sessions are not bound to a single user, therefore
@@ -48,6 +80,10 @@ export const useSessionsPoller = () => {
     // in order to facilitate multiple users working at the same time, FE needs to check pipeline sessions at all times
     refreshInterval: 1000,
   });
+
+  React.useEffect(() => {
+    if (shouldPoll) mutate();
+  }, [location, shouldPoll, mutate]);
 
   const isLoading = !data && !error;
 
@@ -62,9 +98,11 @@ export const useSessionsPoller = () => {
     return (
       data?.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) || []
+      ) ||
+      cache.get(ENDPOINT)?.sessions || // in case sessions are needed when polling is not active
+      []
     );
-  }, [data]);
+  }, [data, cache]);
 
   React.useEffect(() => {
     dispatch({

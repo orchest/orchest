@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -32,9 +33,20 @@ export const HeaderBar = ({
   isDrawerOpen: boolean;
 }) => {
   const { navigateTo } = useCustomRoute();
-  const { state, dispatch } = useProjectsContext();
   const location = useLocation();
+
+  const {
+    state: {
+      projectUuid,
+      pipelineUuid,
+      pipelineName,
+      pipelineSaveStatus,
+      pipelineIsReadOnly,
+    },
+    dispatch,
+  } = useProjectsContext();
   const appContext = useAppContext();
+  useSessionsPoller();
 
   React.useEffect(() => {
     /*
@@ -69,7 +81,6 @@ export const HeaderBar = ({
   };
 
   const showPipeline = (e: React.MouseEvent) => {
-    const { projectUuid, pipelineUuid } = state;
     navigateTo(
       siteMap.pipeline.path,
       { query: { projectUuid, pipelineUuid } },
@@ -78,8 +89,6 @@ export const HeaderBar = ({
   };
 
   const showJupyter = (e: React.MouseEvent) => {
-    const { projectUuid, pipelineUuid } = state;
-
     navigateTo(
       siteMap.jupyterLab.path,
       { query: { projectUuid, pipelineUuid } },
@@ -128,14 +137,14 @@ export const HeaderBar = ({
         <ProjectSelector />
         <LinearProgress />
         <Box sx={{ flex: 1 }}>
-          {state.pipelineName && (
+          {pipelineName && (
             <Stack
               direction="row"
               alignItems="center"
               justifyContent="center"
               spacing={2}
             >
-              {state.pipelineSaveStatus === "saved" ? (
+              {pipelineSaveStatus === "saved" ? (
                 <Tooltip title="Pipeline saved">
                   <CheckCircleIcon />
                 </Tooltip>
@@ -150,21 +159,21 @@ export const HeaderBar = ({
                   overflow: "hidden",
                   whiteSpace: "nowrap",
                 }}
-                title={state.pipelineName}
+                title={pipelineName}
               >
-                {state.pipelineName}
+                {pipelineName}
               </Typography>
             </Stack>
           )}
         </Box>
         <Stack spacing={2} direction="row">
-          {state.pipelineName && !state.pipelineIsReadOnly && (
+          {pipelineName && !pipelineIsReadOnly && (
             <SessionToggleButton
-              pipelineUuid={state.pipelineUuid}
-              projectUuid={state.projectUuid}
+              pipelineUuid={pipelineUuid}
+              projectUuid={projectUuid}
             />
           )}
-          {state.pipelineName && matchJupyter && (
+          {pipelineName && matchJupyter && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
@@ -175,7 +184,7 @@ export const HeaderBar = ({
               Switch to Pipeline
             </StyledButtonOutlined>
           )}
-          {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
+          {pipelineName && !pipelineIsReadOnly && matchPipeline && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
