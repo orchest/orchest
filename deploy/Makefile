@@ -111,7 +111,7 @@ argo-workflow: ./bin/argo-workflow
 docker-registry : ./bin/docker-registry
 
 .SECONDARY: ./bin/docker-registry
-./bin/docker-registry: | create-bin cluster-resources ${ROOK_TARGET} 
+./bin/docker-registry: | create-bin cluster-resources
 	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
 	touch $@
 
