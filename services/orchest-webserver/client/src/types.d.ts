@@ -1,4 +1,3 @@
-import React from "react";
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
 
@@ -109,24 +108,6 @@ export interface IOrchestSession extends IOrchestSessionUuid {
       image: string;
     };
   };
-}
-
-export interface IProjectsContextState
-  extends Pick<
-    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
-    "projectUuid" | "pipelineUuid"
-  > {
-  pipelineName?: string;
-  pipelineFetchHash?: string;
-  pipelineIsReadOnly: boolean;
-  pipelineSaveStatus: "saved" | "saving";
-  projects: Project[];
-  hasLoadedProjects: boolean;
-}
-
-export interface IProjectsContext {
-  state: IProjectsContextState;
-  dispatch: React.Dispatch<OrchestAction>;
 }
 
 export interface IQueryArgs

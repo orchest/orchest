@@ -51,6 +51,8 @@ class CreatePipeline(TwoPhaseFunction):
         self.collateral_kwargs["pipeline_name"] = pipeline_name
         self.collateral_kwargs["pipeline_path"] = pipeline_path
 
+        return pipeline_uuid
+
     def _collateral(
         self,
         project_uuid: str,

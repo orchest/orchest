@@ -160,6 +160,7 @@ export const HeaderBar = ({
                   whiteSpace: "nowrap",
                 }}
                 title={pipelineName}
+                data-test-id="pipeline-name"
               >
                 {pipelineName}
               </Typography>
