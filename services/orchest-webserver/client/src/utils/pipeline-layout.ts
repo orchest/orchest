@@ -1,5 +1,4 @@
-import { IPipelineStepState } from "@/pipeline-view/PipelineView";
-import { PipelineJson } from "@/types";
+import { IPipelineStepState, PipelineJson } from "@/types";
 import {
   coordCenter,
   dagStratify,

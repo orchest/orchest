@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { toValidFilename } from "@/utils/toValidFilename";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
@@ -58,7 +59,7 @@ const rootMenuItems: ItemData[] = [
 ];
 
 const getItemKey = (item: { label: string; path: string }) =>
-  `menu-${item.label.toLowerCase().replace(/[\W]/g, "-")}`;
+  `menu-${toValidFilename(item.label)}`;
 
 const DEFAULT_DRAWER_WIDTH = 240;
 

@@ -185,14 +185,16 @@ describe("pipelines", () => {
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
       cy.createStep(SAMPLE_STEP_NAMES.ST1, true);
       cy.readFile(
-        `${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/${SAMPLE_STEP_NAMES.ST1}.ipynb`
+        `${PROJECTS_DIR}/${
+          SAMPLE_PROJECT_NAMES.P1
+        }/${SAMPLE_STEP_NAMES.ST1.replaceAll("-", "_")}.ipynb`
       );
     });
 
     it("creates a step, modifies the file name", () => {
       cy.findByTestId(TEST_ID.PIPELINES_TABLE_ROW).click();
-      cy.createStep(SAMPLE_STEP_NAMES.ST1, true, "my-test");
-      let fileName = "my-test";
+      cy.createStep(SAMPLE_STEP_NAMES.ST1, true, "my_test");
+      let fileName = "my_test";
       cy.readFile(
         `${PROJECTS_DIR}/${SAMPLE_PROJECT_NAMES.P1}/${fileName}.ipynb`
       );

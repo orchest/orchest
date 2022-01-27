@@ -197,7 +197,7 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   );
 
   // NOTE: launch/delete session is an async operation from BE
-  // the caller of toggleSession MUST also have useSessionsPoller
+  // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
   const toggleSession = React.useCallback(
     async (payload: IOrchestSessionUuid) => {
       const foundSession = state.sessions.find((session) =>

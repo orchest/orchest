@@ -42,7 +42,7 @@ export type Alert = {
   type: "alert";
   title: string | JSX.Element;
   content: string | JSX.Element | JSX.Element[];
-  onConfirm?: () => void;
+  onConfirm?: () => Promise<boolean | void> | boolean | void;
   confirmLabel?: string;
 };
 
@@ -50,8 +50,8 @@ export type Confirm = {
   type: "confirm";
   title: string | JSX.Element;
   content: string | JSX.Element | JSX.Element[];
-  onConfirm: () => Promise<boolean>; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
-  onCancel?: () => Promise<false>;
+  onConfirm: () => Promise<boolean> | boolean; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
+  onCancel?: () => Promise<false | void> | void | false;
   confirmLabel?: string;
   cancelLabel?: string;
 };
@@ -61,15 +61,15 @@ export type PromptMessage = Alert | Confirm;
 type AlertConverter = (props: {
   title: string;
   content: string | JSX.Element | JSX.Element[];
-  confirmHandler?: () => Promise<boolean>;
+  confirmHandler?: () => Promise<boolean> | boolean;
   confirmLabel?: string;
 }) => Alert;
 
 type ConfirmConverter = (props: {
   title: string;
   content: string | JSX.Element | JSX.Element[];
-  confirmHandler: () => Promise<boolean>;
-  cancelHandler?: () => Promise<false>;
+  confirmHandler: () => Promise<boolean> | boolean;
+  cancelHandler?: () => Promise<false | void> | void | false;
   confirmLabel?: string;
   cancelLabel?: string;
 }) => Confirm;
@@ -239,21 +239,14 @@ const initialState: AppContextState = {
 
 type ConfirmHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
-) => Promise<boolean>;
+) => Promise<boolean> | boolean;
 
 type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
-) => Promise<false>;
+) => Promise<false | void> | void | false;
 
-const defaultOnConfirm: ConfirmHandler = async (resolve) => {
-  resolve(true);
-  return true;
-};
-
-const defaultOnCancel: CancelHandler = async (resolve) => {
-  resolve(false);
-  return false as const;
-};
+const defaultOnConfirm: ConfirmHandler = () => true;
+const defaultOnCancel: CancelHandler = () => false as const;
 
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,

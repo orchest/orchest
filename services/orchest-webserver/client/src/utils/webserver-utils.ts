@@ -140,15 +140,17 @@ export function clearOutgoingConnections(steps: {
 }
 
 export function getServiceURLs(
-  service: Record<string, any>,
+  service: {
+    ports: number[];
+    preserve_base_path: string;
+    name: string;
+  },
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
 ): string[] {
-  let urls = [];
-
   if (service.ports === undefined) {
-    return urls;
+    return [];
   }
 
   let serviceUuid = runUuid || pipelineUuid;
@@ -158,24 +160,21 @@ export function getServiceURLs(
     pbpPrefix = "pbp-";
   }
 
-  for (let port of service.ports) {
-    urls.push(
+  return service.ports.map(
+    (port) =>
       window.location.origin +
-        "/" +
-        pbpPrefix +
-        "service-" +
-        service.name +
-        "-" +
-        projectUuid.split("-")[0] +
-        "-" +
-        serviceUuid.split("-")[0] +
-        "_" +
-        port +
-        "/"
-    );
-  }
-
-  return urls;
+      "/" +
+      pbpPrefix +
+      "service-" +
+      service.name +
+      "-" +
+      projectUuid.split("-")[0] +
+      "-" +
+      serviceUuid.split("-")[0] +
+      "_" +
+      port +
+      "/"
+  );
 }
 
 export function checkGate(project_uuid: string) {
@@ -325,7 +324,8 @@ export function formatServerDateTime(
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
-export function serverTimeToDate(serverDateTimeString: string) {
+export function serverTimeToDate(serverDateTimeString: string | undefined) {
+  if (!serverDateTimeString) return undefined;
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
   return parseISO(serverDateTimeString + "Z");
 }

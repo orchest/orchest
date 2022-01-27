@@ -1,3 +1,4 @@
+import { toValidFilename } from "@/utils/toValidFilename";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
@@ -10,8 +11,7 @@ import TextField from "@mui/material/TextField";
 import React from "react";
 import { INITIAL_PIPELINE_NAME, INITIAL_PIPELINE_PATH } from "./common";
 
-const getPathFromName = (name: string) =>
-  `${name.toLowerCase().replace(/[\W]/g, "_")}.orchest`;
+const getPathFromName = (name: string) => `${toValidFilename(name)}.orchest`;
 
 export const CreatePipelineDialog = ({
   pipelineRows,
