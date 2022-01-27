@@ -201,7 +201,7 @@ class OrchestApp:
             utils.echo("Update completed. To start Orchest again, run:")
             utils.echo("\torchest start")
 
-    def start(self, container_config: dict, cloud=False):
+    def start(self, container_config: dict, cloud: bool = False):
         """Starts Orchest.
 
         Raises:
