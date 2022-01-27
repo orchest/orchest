@@ -51,5 +51,8 @@ ENV CONDA_ENV="base"
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}
 
+# Set a default renderer for plotly that actually renders in JupyterLab.
+ENV PLOTLY_RENDERER="iframe"
+
 COPY ./runnable-shared/bootscript.sh /orchest/bootscript.sh
 CMD [ "/orchest/bootscript.sh" ]

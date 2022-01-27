@@ -10,9 +10,11 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
     responseAsString === "" ? {} : JSON.parse(responseAsString);
 
   if (!response.ok || response.status >= 299) {
+    const { message, ...rest } = jsonResponse;
     return Promise.reject({
       status: response.status,
-      message: jsonResponse.message || response.statusText,
+      message: message || response.statusText,
+      ...rest, // pass along the payload of the error
     } as FetchError);
   }
 

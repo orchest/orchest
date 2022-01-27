@@ -1,4 +1,3 @@
-import { useAppContext } from "@/contexts/AppContext";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
@@ -29,8 +28,6 @@ export const CreatePipelineDialog = ({
   }) => Promise<void>;
   disabled: boolean;
 }) => {
-  const { setAlert } = useAppContext();
-
   const [isOpen, setIsOpen] = React.useState(false);
   const [newPipeline, setNewPipeline] = React.useState({
     name: INITIAL_PIPELINE_NAME,
@@ -52,25 +49,21 @@ export const CreatePipelineDialog = ({
 
   const isPathTaken = pipelineRows.some((row) => row.path === newPipeline.path);
 
-  const onSubmit = async () => {
-    if (!newPipeline.name) {
-      setAlert("Error", "Please enter a name.");
-      return;
-    }
+  const pathValidation = isPathTaken
+    ? "File already exists"
+    : !newPipeline.path.endsWith(".orchest")
+    ? "The path should end in the .orchest extension."
+    : newPipeline.path === ".orchest"
+    ? "a file name is required"
+    : "";
 
-    if (!newPipeline.path || newPipeline.path === ".orchest") {
-      setAlert("Error", "Please enter the path for the pipeline.");
-      return;
-    }
+  const isFormValid = newPipeline.name.length > 0 && !pathValidation;
 
-    if (!newPipeline.path.endsWith(".orchest")) {
-      setAlert("Error", "The path should end in the .orchest extension.");
-      return;
-    }
-
-    createPipeline(newPipeline);
+  const onSubmit = () => {
+    if (!isFormValid) return;
 
     setIsOpen(false);
+    createPipeline(newPipeline);
   };
 
   return (
@@ -100,6 +93,7 @@ export const CreatePipelineDialog = ({
               margin="normal"
               fullWidth
               autoFocus
+              required
               value={newPipeline.name}
               label="Pipeline name"
               onChange={(e) => {
@@ -111,14 +105,15 @@ export const CreatePipelineDialog = ({
             <TextField
               margin="normal"
               fullWidth
+              required
               label="Pipeline path"
               onChange={(e) => {
                 const path = e.target.value;
                 setNewPipeline((prev) => ({ ...prev, path }));
               }}
               value={newPipeline.path}
-              error={isPathTaken}
-              helperText={isPathTaken ? "File already exists" : ""}
+              error={pathValidation.length > 0}
+              helperText={pathValidation}
               data-test-id="pipeline-path-textfield"
             />
           </DialogContent>
@@ -135,7 +130,7 @@ export const CreatePipelineDialog = ({
               variant="contained"
               type="submit"
               form="create-pipeline"
-              disabled={isPathTaken || disabled}
+              disabled={!isFormValid || disabled}
               data-test-id="pipeline-create-ok"
             >
               Create pipeline
