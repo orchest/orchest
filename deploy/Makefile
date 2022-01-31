@@ -41,25 +41,25 @@ CLUSTER_RSC_DEPLOY_CONFIG := cluster-resources \
 ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
 
 # auth-server deployment configs
-AUTH_SERVER_ENABLE_CONFIG := --set auth-server.enabled: false
+AUTH_SERVER_ENABLE_CONFIG := --set auth-server.enabled=true
 
 # celery-worker deployment configs
-AUTH_SERVER_ENABLE_CONFIG := --set celery-worker.enabled: false
+AUTH_SERVER_ENABLE_CONFIG := --set celery-worker.enabled=true
 
 # file-manager deployment configs
-FILE_MANAGER_ENABLE_CONFIG := --set file-manager.enabled: false
+FILE_MANAGER_ENABLE_CONFIG := --set file-manager.enabled=true
 
 # orchest-webserver deployment configs
-ORCHEST_WEBSERVER_ENABLE_CONFIG := --set orchest-webserver.enabled: false
+ORCHEST_WEBSERVER_ENABLE_CONFIG := --set orchest-webserver.enabled=true
 
 # postgres deployment configs
-POSTGRES_ENABLE_CONFIG := --set postgres.enabled: false
+POSTGRES_ENABLE_CONFIG := --set postgres.enabled=true
 
 # rabbitmq deployment configs
-RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled: false
+RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 
 # update-server deployment configs
-UPDATE_SERVER_ENABLE_CONFIG := --set update-server.enabled: false
+UPDATE_SERVER_ENABLE_CONFIG := --set update-server.enabled=true
 
 # Orchest deployment configs
 ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
