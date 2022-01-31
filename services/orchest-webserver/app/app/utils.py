@@ -495,10 +495,12 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
     )
 
     copytree(project_dir, snapshot_path)
+    # TODO: check whether we can indeed remove this.
     # Ignore the ".orchest/pipelines" directory containing the logs and
     # data directories. Ignore errors because the directory might not be
     # there.
-    rmtree(os.path.join(snapshot_path, ".orchest/pipelines"), ignore_errors=True)
+    # rmtree(os.path.join(snapshot_path,
+    # ".orchest/pipelines"), ignore_errors=True)
 
 
 def rmtree(path, ignore_errors=False):
@@ -517,7 +519,7 @@ def rmtree(path, ignore_errors=False):
 
 
 def copytree(source: str, target: str):
-    """A wrapped cp -r.
+    """A wrapped cp -r that ignores source/.gitignore patterns.
 
     If eventlet is being used and it's either patching all modules or
     patchng subprocess, this function is not going to block the thread.
@@ -526,8 +528,24 @@ def copytree(source: str, target: str):
         OSError if it failed to copy.
 
     """
+    # With a trailing `/` rsync copies the content of the directory
+    # instead of the directory itself.
+    if not source.endswith("/"):
+        source += "/"
+
+    # Construct copy command.
+    # Using rsync with `-W` copies files as a whole which drastically
+    # improves its performance, making it almost as fast as the `cp`
+    # command. The other options (`-aHAX`) are to preserve all kinds
+    # of attributes, e.g. symlinks, `-a` also automatically copies
+    # recursively.
+    copy_cmd = ["rsync", "-aWHAX"]
+    if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
+        copy_cmd += [f"--exclude-from={source}.gitignore"]
+    copy_cmd += [f"{source} {target}"]
+
     exit_code = subprocess.call(
-        f"cp -r {source} {target}", stderr=subprocess.STDOUT, shell=True
+        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
     )
     if exit_code != 0:
         raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
