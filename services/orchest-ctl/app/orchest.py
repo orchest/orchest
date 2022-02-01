@@ -284,7 +284,7 @@ class OrchestApp:
 
                 utils.wait_for_zero_exitcode(
                     self.docker_client,
-                    stdouts["rabbitmq"]["id"],
+                    stdouts["rabbitmq-server"]["id"],
                     (
                         'su rabbitmq -c "/opt/rabbitmq/sbin/rabbitmq-diagnostics '
                         '-q ping"'
