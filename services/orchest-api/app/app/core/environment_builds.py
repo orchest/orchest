@@ -261,6 +261,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     return {
         "snapshot_path": snapshot_path,
+        "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
         "base_image": environment_properties["base_image"],
     }
 

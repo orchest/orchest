@@ -12,8 +12,22 @@ __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 
 
 def _generate_image_build_workflow_manifest(
-    workflow_name, image_name, build_context, dockerfile_path
+    workflow_name, image_name, build_context_host_path, dockerfile_path
 ) -> dict:
+    """Returns a workflow manifest given the arguments.
+
+    Args:
+        workflow_name: Name with which the workflow will be run.
+        image_name: Name of the resulting image, can include repository
+            and tags.
+        build_context_host_path: Path on the host where the build
+            context is to be found.
+        dockerfile_path: Path to the dockerfile, relative to the
+            context.
+
+    Returns:
+        Valid k8s workflow manifest.
+    """
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -29,7 +43,7 @@ def _generate_image_build_workflow_manifest(
                         "command": ["/kaniko/executor"],
                         "args": [
                             f"--dockerfile={dockerfile_path}",
-                            f"--context=dir://{build_context}",
+                            "--context=dir:///build-context",
                             f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
                             "--cleanup",
                             "--log-format=json",
@@ -39,7 +53,9 @@ def _generate_image_build_workflow_manifest(
                             "--cache-repo=registry.kube-system.svc.cluster.local",
                             "--registry-mirror=registry.kube-system.svc.cluster.local",
                         ],
-                        "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
+                        "volumeMounts": [
+                            {"name": "build-context", "mountPath": "/build-context"}
+                        ],
                     },
                 }
             ],
@@ -54,9 +70,9 @@ def _generate_image_build_workflow_manifest(
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "userdir",
+                    "name": "build-context",
                     "hostPath": {
-                        "path": "/var/lib/orchest/userdir",
+                        "path": build_context_host_path,
                         "type": "DirectoryOrCreate",
                     },
                 }
@@ -115,7 +131,7 @@ def build_docker_image(
 
         pod_name = f"image-build-task-{task_uuid}"
         manifest = _generate_image_build_workflow_manifest(
-            pod_name, image_name, build_context["snapshot_path"], dockerfile_path
+            pod_name, image_name, build_context["snapshot_host_path"], dockerfile_path
         )
         k8s_custom_obj_api.create_namespaced_custom_object(
             "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
