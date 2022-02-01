@@ -139,7 +139,7 @@ def build_docker_image(
             namespace="orchest",
             follow=True,
         ):
-            complete_logs_file_object.write(f"{event}\n")
+            complete_logs_file_object.writelines([event, "\n"])
             complete_logs_file_object.flush()
             if not found_ending_flag:
                 # Beginning flag not found --> do not log.
@@ -150,11 +150,11 @@ def build_docker_image(
                     if found_beginning_flag:
                         event = event.replace(flag, "")
                         if len(event) > 0:
-                            user_logs_file_object.write(event + "\n")
+                            user_logs_file_object.writelines([event, "\n"])
                 else:
                     found_ending_flag = event.endswith(flag)
                     if not found_ending_flag:
-                        user_logs_file_object.write(event + "\n")
+                        user_logs_file_object.writelines([event, "\n"])
                     else:
                         user_logs_file_object.write("Storing image...\n")
 
