@@ -2,7 +2,7 @@ import logging
 import time
 
 import docker
-from kubernetes import client, watch
+from kubernetes import k8s_client, watch
 
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
@@ -124,7 +124,7 @@ def build_docker_image(
         for _ in range(100):
             try:
                 resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
-            except client.ApiException as e:
+            except k8s_client.ApiException as e:
                 if e.status != 404:
                     raise
                 time.sleep(1)
