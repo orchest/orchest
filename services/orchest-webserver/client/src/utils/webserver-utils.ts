@@ -5,7 +5,7 @@ import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 
 const ajv = new Ajv({
@@ -92,7 +92,7 @@ export function filterServices(
   services: Record<string, any>,
   scope: "noninteractive" | "interactive"
 ) {
-  let servicesCopy = _.cloneDeep(services);
+  let servicesCopy = cloneDeep(services);
   for (let serviceName in services) {
     if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
       delete servicesCopy[serviceName];
@@ -140,15 +140,17 @@ export function clearOutgoingConnections(steps: {
 }
 
 export function getServiceURLs(
-  service: Record<string, any>,
+  service: {
+    ports: number[];
+    preserve_base_path: string;
+    name: string;
+  },
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
 ): string[] {
-  let urls = [];
-
   if (service.ports === undefined) {
-    return urls;
+    return [];
   }
 
   let serviceUuid = runUuid || pipelineUuid;
@@ -158,24 +160,21 @@ export function getServiceURLs(
     pbpPrefix = "pbp-";
   }
 
-  for (let port of service.ports) {
-    urls.push(
+  return service.ports.map(
+    (port) =>
       window.location.origin +
-        "/" +
-        pbpPrefix +
-        "service-" +
-        service.name +
-        "-" +
-        projectUuid.split("-")[0] +
-        "-" +
-        serviceUuid.split("-")[0] +
-        "_" +
-        port +
-        "/"
-    );
-  }
-
-  return urls;
+      "/" +
+      pbpPrefix +
+      "service-" +
+      service.name +
+      "-" +
+      projectUuid.split("-")[0] +
+      "-" +
+      serviceUuid.split("-")[0] +
+      "_" +
+      port +
+      "/"
+  );
 }
 
 export function checkGate(project_uuid: string) {
@@ -320,10 +319,13 @@ export function formatServerDateTime(
   serverDateTimeString: string | null | undefined
 ) {
   if (!serverDateTimeString) return "";
+  // Keep this pattern and the one used in fuzzy DB search in sync, see
+  // fuzzy_filter_non_interactive_pipeline_runs.
   return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
 }
 
-export function serverTimeToDate(serverDateTimeString: string) {
+export function serverTimeToDate(serverDateTimeString: string | undefined) {
+  if (!serverDateTimeString) return undefined;
   serverDateTimeString = cleanServerDateTime(serverDateTimeString);
   return parseISO(serverDateTimeString + "Z");
 }
@@ -340,6 +342,7 @@ export function getPipelineJSONEndpoint(
   job_uuid?: string | null,
   pipeline_run_uuid?: string | null
 ) {
+  if (!pipeline_uuid || !project_uuid) return "";
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
   if (job_uuid) {
@@ -456,7 +459,9 @@ export function envVariablesArrayToDict(
 }
 
 // Sorted by key.
-export function envVariablesDictToArray<T>(envVariables: Record<string, T>) {
+export function envVariablesDictToArray(
+  envVariables: Record<string, string>
+): EnvVarPair[] {
   return Object.keys(envVariables)
     .map((name) => {
       return { name, value: envVariables[name] };

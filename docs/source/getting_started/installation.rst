@@ -29,6 +29,11 @@ Windows
 For Orchest to work on Windows, Docker has to be configured to use WSL 2 (`Docker Desktop WSL 2
 backend <https://docs.docker.com/desktop/windows/wsl/>`_).
 
+.. note::
+   Make sure you don't clone `orchest` in the paths shared with Windows (`/mnt/C/...` etc.).
+   Due to permission handling in WSL2 this is not supported. Use the native filesystem in for example
+   the Linux user home directory (`~/orchest`).
+
 .. caution::
    For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
    opening the distribution using the Start menu or by `setting up the Windows Terminal

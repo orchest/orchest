@@ -19,12 +19,13 @@ describe("app", () => {
 
   it("restarts", () => {
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
     cy.visit("settings");
     cy.findAllByTestId(TEST_ID.RESTART).scrollIntoView().click();
     cy.findAllByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();
     // NOTE: can't use --ext because dev mode currently breaks health
     // for the web and auth server due to requests being proxied.
-    let status_check = `for i in $(seq 1 10);  do ${ORCHEST_EXECUTABLE_PATH} status;
+    let status_check = `for i in $(seq 1 10);  do ${ORCHEST_EXECUTABLE_PATH} status --ext;
       s=$? && ( test $s -eq 0 ) && break ||
       timeout 5s tail -f /dev/null; done; exit $s`;
     // Will fail the test if the exit code is != 0.

@@ -18,7 +18,7 @@ import {
 import React from "react";
 
 const UpdateView: React.FC = () => {
-  const { setConfirm } = useAppContext();
+  const { setConfirm, setAlert } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
   const [state, setState] = React.useState((prevState) => ({
@@ -34,7 +34,7 @@ const UpdateView: React.FC = () => {
     return setConfirm(
       "Warning",
       "Are you sure you want to update Orchest? This will kill all active sessions and ongoing runs.",
-      async () => {
+      async (resolve) => {
         setState({
           updating: true,
           updateOutput: "",
@@ -46,11 +46,11 @@ const UpdateView: React.FC = () => {
 
           checkHeartbeat("/update-server/heartbeat")
             .then(() => {
-              console.log("Update service available");
+              resolve(true);
               requestUpdate();
             })
             .catch((retries) => {
-              console.log(
+              console.error(
                 "Update service heartbeat checking timed out after " +
                   retries +
                   " retries."
@@ -59,7 +59,9 @@ const UpdateView: React.FC = () => {
 
           return true;
         } catch (error) {
-          console.log("Failed to trigger update", error);
+          resolve(false);
+          setAlert("Error", "Failed to trigger update");
+          console.error("Failed to trigger update", error);
           return false;
         }
       }

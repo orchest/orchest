@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
-import { makeRequest, validURL } from "@orchest/lib-utils";
+import { fetcher, HEADER, validURL } from "@orchest/lib-utils";
 import React from "react";
 
 const validProjectName = (
@@ -52,9 +52,11 @@ const useImportProject = (
   const backgroundTaskPollerRef = React.useRef(new BackgroundTaskPoller());
 
   const { data, run, status: fetchStatus, setData } = useAsync<BackgroundTask>({
-    uuid: null,
-    result: null,
-    status: "PENDING",
+    initialState: {
+      uuid: null,
+      result: null,
+      status: "PENDING",
+    },
   });
 
   React.useEffect(() => {
@@ -84,10 +86,11 @@ const useImportProject = (
         : { url: importUrl };
 
     run(
-      makeRequest("POST", `/async/projects/import-git`, {
-        type: "json",
-        content: jsonData,
-      }).then((response) => JSON.parse(response))
+      fetcher<BackgroundTask>(`/async/projects/import-git`, {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify(jsonData),
+      })
     );
   };
 

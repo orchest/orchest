@@ -1,4 +1,3 @@
-import React from "react";
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
 
@@ -111,24 +110,6 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
-export interface IProjectsContextState
-  extends Pick<
-    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
-    "projectUuid" | "pipelineUuid"
-  > {
-  pipelineName?: string;
-  pipelineFetchHash?: string;
-  pipelineIsReadOnly: boolean;
-  pipelineSaveStatus: "saved" | "saving";
-  projects: Project[];
-  hasLoadedProjects: boolean;
-}
-
-export interface IProjectsContext {
-  state: IProjectsContextState;
-  dispatch: React.Dispatch<OrchestAction>;
-}
-
 export interface IQueryArgs
   extends Partial<
     Record<
@@ -154,10 +135,12 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  session_count: number;
   job_count: number;
   environment_count: number;
   project_snapshot_size: number;
+  env_variables: Record<string, string>;
+  status: "READY" | string;
+  session_count?: number;
 };
 
 export type Environment = {
@@ -181,29 +164,43 @@ export type EnvironmentBuild = {
   uuid: string;
 };
 
-export type JobStatus = "STARTED" | "PAUSED" | "PENDING" | "ABORTED" | "DRAFT";
+export type PipelineStepStatus =
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED"
+  | "PENDING"
+  | "IDLE";
+
+export type JobStatus =
+  | "PENDING"
+  | "STARTED"
+  | "PAUSED"
+  | "SUCCESS"
+  | "ABORTED"
+  | "DRAFT";
 
 export type PipelineRun = {
-  env_variables: Record<string, string>;
+  uuid: string;
+  project_uuid: string;
+  pipeline_uuid: string;
+  status: TStatus;
+  started_time: string;
   finished_time: string;
+  pipeline_steps: {
+    run_uuid: string;
+    step_uuid: string;
+    status: PipelineStepStatus;
+    started_time: string;
+    finished_time: string;
+  }[];
+  env_variables: Record<string, string>;
+  job_uuid: string;
   job_run_index: number;
   job_run_pipeline_run_index: number;
-  job_uuid: string;
-  parameters: Record<string, any>;
   pipeline_run_index: number;
-  pipeline_steps: {
-    finished_time: string;
-    run_uuid: string;
-    started_time: string;
-    status: TStatus;
-    step_uuid: string;
-  }[];
-  pipeline_uuid: string;
-  project_uuid: string;
+  parameters: Record<string, Json>;
   server_time: string;
-  started_time: string;
-  status: TStatus;
-  uuid: string;
 };
 
 export type StrategyJson = Record<
@@ -212,15 +209,14 @@ export type StrategyJson = Record<
 >;
 
 export type Job = {
-  created_time: string;
-  env_variables: Record<string, string>;
-  last_scheduled_time: string;
-  name: string;
-  next_scheduled_time: string;
-  parameters: Record<string, Json>[];
+  uuid: string;
+  pipeline_uuid: string;
+  project_uuid: string;
+  total_scheduled_executions: number;
+  total_scheduled_pipeline_runs: number;
   pipeline_definition: {
     name: string;
-    parameters: Record<string, unknown>;
+    parameters: Record<string, Json>;
     settings: {
       auto_eviction: boolean;
       data_passing_memory_size: string;
@@ -229,26 +225,29 @@ export type Job = {
     steps: Record<string, Step>;
     version: string;
   };
-  pipeline_name: string;
-  pipeline_run_spec: {
-    run_config: {
-      host_user_dir: string;
-      pipeline_path: string;
-      project_dir: string;
-    };
-    scheduled_start: null;
-    uuids: string[];
-    project_uuid: string | null;
-    run_type: string;
-  };
-  pipeline_runs: PipelineRun[];
-  pipeline_uuid: string;
-  project_uuid: string;
+  next_scheduled_time: string;
+  last_scheduled_time: string;
+  parameters: Record<string, Json>[];
   schedule: string;
+  pipeline_run_spec: {
+    uuids: string[];
+    project_uuid: string;
+    run_type: string;
+    run_config: {
+      project_dir: string;
+      pipeline_path: string;
+      host_user_dir: string;
+    };
+    scheduled_start: string;
+  };
   status: JobStatus;
+  created_time: string;
+  pipeline_name: string;
+  name: string;
   strategy_json: StrategyJson;
-  total_scheduled_executions: number;
-  uuid: string;
+  env_variables: Record<string, string>;
+  max_retained_pipeline_runs: number;
+  pipeline_run_status_counts: Record<TStatus, number | undefined>;
 };
 
 export type Step = {
@@ -260,6 +259,16 @@ export type Step = {
   parameters: Record<string, any>;
   title: string;
   uuid: string;
+};
+
+export type IPipelineStepState = Step & {
+  outgoing_connections?: string[];
+  meta_data: {
+    hidden: boolean;
+    position: [number, number];
+    _drag_count: number;
+    _dragged: boolean;
+  };
 };
 
 export type Service = {
@@ -282,6 +291,20 @@ export type FileTree = {
   name: string;
   root?: boolean;
   children: FileTree[];
+};
+
+export type Pipeline = {
+  env_variables: Record<string, string>;
+  path: string;
+  project_uuid: string;
+  status: "READY" | string;
+  uuid: string;
+};
+
+export type PipelineMetaData = {
+  uuid: string;
+  path: string;
+  name: string;
 };
 
 export type PipelineJson = {
@@ -319,4 +342,23 @@ export type BuildRequest = {
   requestedFromView: string;
   onBuildComplete: () => void;
   onCancel?: () => void;
+};
+
+export type Pagination = {
+  has_next_page: boolean;
+  has_prev_page: boolean;
+  next_page_num: number | null;
+  prev_page_num: number | null;
+  items_per_page: number;
+  items_in_this_page: number;
+  total_items: number;
+  total_pages: number;
+};
+
+export type UpdateInfo = {
+  latest_version: string | null;
+};
+
+export type OrchestVersion = {
+  version: string | null;
 };

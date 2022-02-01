@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # This shell script is used to start either
 
 # 1) the kernel for Jupyter or

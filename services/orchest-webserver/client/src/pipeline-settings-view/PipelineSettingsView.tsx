@@ -6,7 +6,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
-import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
+import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
@@ -16,7 +16,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import type {
   PipelineJson,
@@ -25,8 +24,6 @@ import type {
 } from "@/types";
 import {
   envVariablesArrayToDict,
-  envVariablesDictToArray,
-  getPipelineJSONEndpoint,
   isValidEnvironmentVariableName,
   OverflowListener,
   validatePipeline,
@@ -60,21 +57,29 @@ import {
   Link,
 } from "@orchest/design-system";
 import {
-  fetcher,
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import useSWR from "swr";
-import { MutatorCallback } from "swr/dist/types";
+import { getOrderValue } from "./common";
+import { useFetchPipelineMetadata } from "./useFetchPipelineMetadata";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
 }));
+
+const scopeMap = {
+  interactive: "Interactive sessions",
+  noninteractive: "Job sessions",
+};
+
+const isValidMemorySize = (value: string) =>
+  value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
 
 export type IPipelineSettingsView = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -104,60 +109,9 @@ const tabs = [
   },
 ];
 
-const getOrderValue = () => {
-  const lsKey = "_monotonic_getOrderValue";
-  // returns monotinically increasing digit
-  if (!window.localStorage.getItem(lsKey)) {
-    window.localStorage.setItem(lsKey, "0");
-  }
-  let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
-  window.localStorage.setItem(lsKey, value + "");
-  return value;
-};
-
-const fetchPipelineJson = (callback: (data: PipelineJson) => void) => async (
-  url: string
-) => {
-  const response = await fetcher<{ pipeline_json: string }>(url);
-  const pipelineObj = JSON.parse(response.pipeline_json) as PipelineJson;
-  // as settings are optional, populate defaults if no values exist
-  if (pipelineObj.settings === undefined) {
-    pipelineObj.settings = {};
-  }
-  if (pipelineObj.settings.auto_eviction === undefined) {
-    pipelineObj.settings.auto_eviction = false;
-  }
-  if (pipelineObj.settings.data_passing_memory_size === undefined) {
-    pipelineObj.settings.data_passing_memory_size = "1GB";
-  }
-  if (pipelineObj.parameters === undefined) {
-    pipelineObj.parameters = {};
-  }
-  if (pipelineObj.services === undefined) {
-    pipelineObj.services = {};
-  }
-
-  // Augment services with order key
-  for (let service in pipelineObj.services) {
-    pipelineObj.services[service].order = getOrderValue();
-  }
-
-  callback(pipelineObj);
-
-  return pipelineObj;
-};
-
-const isValidMemorySize = (value: string) =>
-  value.match(/^(\d+(\.\d+)?\s*(KB|MB|GB))$/);
-
-const scopeMap = {
-  interactive: "Interactive sessions",
-  noninteractive: "Job sessions",
-};
-
 const PipelineSettingsView: React.FC = () => {
   // global states
-  const projectsContext = useProjectsContext();
+  const { dispatch } = useProjectsContext();
   const {
     state: { hasUnsavedChanges },
     setAlert,
@@ -167,10 +121,6 @@ const PipelineSettingsView: React.FC = () => {
 
   useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
 
-  const sessionsContext = useSessionsContext();
-  const { getSession } = sessionsContext;
-  useSessionsPoller();
-
   // data from route
   const {
     navigateTo,
@@ -179,104 +129,90 @@ const PipelineSettingsView: React.FC = () => {
     jobUuid,
     runUuid,
     initialTab,
-    isReadOnly,
+    isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
-  const setHeaderComponent = (pipelineName: string) =>
-    projectsContext.dispatch({
-      type: "pipelineSet",
-      payload: {
-        pipelineUuid,
-        projectUuid,
-        pipelineName,
-      },
-    });
+  const { getSession } = useSessionsContext();
+
+  const isReadOnly =
+    (hasValue(runUuid) && hasValue(jobUuid)) || isReadOnlyFromQueryString;
+
+  // Fetching data
+  const {
+    projectEnvVariables,
+    envVariables,
+    setEnvVariables,
+    pipelinePath,
+    pipelineJson,
+    setPipelineJson,
+  } = useFetchPipelineMetadata({ projectUuid, pipelineUuid, jobUuid, runUuid });
+
+  React.useEffect(() => {
+    if (pipelineJson) {
+      dispatch({
+        type: "pipelineSet",
+        payload: {
+          pipelineUuid,
+          projectUuid,
+          pipelineName: pipelineJson.name,
+        },
+      });
+    }
+  }, [pipelineJson, pipelineUuid, projectUuid, dispatch]);
 
   // local states
   const [inputParameters, setInputParameters] = React.useState<string>(
     JSON.stringify({}, null, 2)
   );
-  const { data: pipelineJson, mutate, revalidate: fetchPipeline } = useSWR<
-    PipelineJson
-  >(
-    getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid),
-    fetchPipelineJson((data) => {
-      setHeaderComponent(data.name);
-      setInputParameters(JSON.stringify(data.parameters));
-    })
-  );
 
-  // use mutate to act like local state setter
-  const setPipelineJson = (
-    data?: PipelineJson | Promise<PipelineJson> | MutatorCallback<PipelineJson>
-  ) => mutate(data, false);
+  React.useEffect(() => {
+    if (pipelineJson) {
+      setInputParameters(JSON.stringify(pipelineJson.parameters));
+      dispatch({
+        type: "pipelineSet",
+        payload: {
+          pipelineUuid,
+          projectUuid,
+          pipelineName: pipelineJson.name,
+        },
+      });
+    }
+  }, [pipelineJson, pipelineUuid, projectUuid, dispatch]);
 
   const [tabIndex, setTabIndex] = React.useState<number>(
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
   );
 
-  // const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
   const [servicesChanged, setServicesChanged] = React.useState(false);
-
-  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
-  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
-    _setEnvVariables(value);
-    setAsSaved(false);
-  };
-
-  const [state, setState] = React.useState({
-    restartingMemoryServer: false,
-    pipeline_path: undefined,
-    projectEnvVariables: [],
-    environmentVariablesChanged: false,
-  });
+  const [restartingMemoryServer, setRestartingMemoryServer] = React.useState(
+    false
+  );
+  const [envVarsChanged, setEnvVarsChanged] = React.useState(false);
 
   const session = getSession({
     pipelineUuid,
     projectUuid,
   });
-  if (
-    !session &&
-    !hasUnsavedChanges &&
-    (servicesChanged || state.environmentVariablesChanged)
-  ) {
+  if (!session && !hasUnsavedChanges && (servicesChanged || envVarsChanged)) {
     setServicesChanged(false);
-    setState((prevState) => ({
-      ...prevState,
-      environmentVariablesChanged: false,
-    }));
+    setEnvVarsChanged(false);
   }
 
-  const [overflowListener] = React.useState(new OverflowListener());
   const promiseManagerRef = React.useRef(new PromiseManager<string>());
 
-  // const fetchPipelineData = () => {
-  //   fetchPipeline();
-  //   fetchPipelineMetadata();
-  // };
-
-  const hasLoaded = () => {
-    return (
-      pipelineJson && envVariables && (isReadOnly || state.projectEnvVariables)
-    );
-  };
-
-  // Fetch pipeline data on initial mount
-  React.useEffect(() => {
-    // fetchPipelineData();
-    fetchPipelineMetadata();
-    return () => promiseManagerRef.current.cancelCancelablePromises();
-  }, []);
+  const hasLoaded =
+    pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
 
   // If the component has loaded, attach the resize listener
+  const overflowListener = React.useRef(new OverflowListener());
   React.useEffect(() => {
-    if (hasLoaded()) {
-      attachResizeListener();
+    if (hasLoaded) {
+      overflowListener.current.attach();
     }
-  }, [state]);
+  }, [hasLoaded]);
 
   const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
-    let clonedService = _.cloneDeep(service);
+    let clonedService = cloneDeep(service);
 
     // Take care of service name collisions
     let x = 1;
@@ -325,93 +261,11 @@ const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
-  const attachResizeListener = () => overflowListener.attach();
-
   const onSelectTab = (
     e: React.SyntheticEvent<Element, Event>,
     index: number
   ) => {
     setTabIndex(index);
-  };
-
-  const fetchPipelineMetadata = () => {
-    if (!jobUuid) {
-      // get pipeline path
-      let cancelableRequest = makeCancelable<string>(
-        makeRequest(
-          "GET",
-          `/async/pipelines/${projectUuid}/${pipelineUuid}`
-        ) as Promise<string>,
-        promiseManagerRef.current
-      );
-
-      cancelableRequest.promise.then((response: string) => {
-        let pipeline = JSON.parse(response);
-
-        _setEnvVariables(envVariablesDictToArray(pipeline["env_variables"]));
-
-        setState((prevState) => ({
-          ...prevState,
-          pipeline_path: pipeline.path,
-        }));
-      });
-
-      // get project environment variables
-      let cancelableProjectRequest = makeCancelable<string>(
-        makeRequest("GET", `/async/projects/${projectUuid}`) as Promise<string>,
-        promiseManagerRef.current
-      );
-
-      cancelableProjectRequest.promise
-        .then((response) => {
-          let project = JSON.parse(response);
-
-          setState((prevState) => ({
-            ...prevState,
-            projectEnvVariables: envVariablesDictToArray(
-              project["env_variables"]
-            ),
-          }));
-        })
-        .catch((error) => {
-          console.error(error);
-        });
-    } else {
-      let cancelableJobPromise = makeCancelable<string>(
-        makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`) as Promise<
-          string
-        >,
-        promiseManagerRef.current
-      );
-      let cancelableRunPromise = makeCancelable<string>(
-        makeRequest(
-          "GET",
-          `/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`
-        ) as Promise<string>,
-        promiseManagerRef.current
-      );
-
-      Promise.all([
-        cancelableJobPromise.promise.then((response) => {
-          let job = JSON.parse(response);
-          return job.pipeline_run_spec.run_config.pipeline_path;
-        }),
-
-        cancelableRunPromise.promise.then((response) => {
-          let run = JSON.parse(response);
-          return envVariablesDictToArray(run["env_variables"]);
-        }),
-      ])
-        .then((values) => {
-          let [pipeline_path, envVariables] = values;
-          _setEnvVariables(envVariables);
-          setState((prevState) => ({
-            ...prevState,
-            pipeline_path,
-          }));
-        })
-        .catch((err) => console.log(err));
-    }
   };
 
   const closeSettings = () => {
@@ -442,9 +296,7 @@ const PipelineSettingsView: React.FC = () => {
       }));
 
       setAsSaved(false);
-    } catch (err) {
-      console.log("JSON did not parse");
-    }
+    } catch (err) {}
   };
 
   const onChangeDataPassingMemorySize = (value: string) => {
@@ -471,7 +323,7 @@ const PipelineSettingsView: React.FC = () => {
   const cleanPipelineJson = (
     pipelineJson: PipelineJson
   ): Omit<PipelineJson, "order"> => {
-    let pipelineCopy = _.cloneDeep(pipelineJson);
+    let pipelineCopy = cloneDeep(pipelineJson);
     for (let serviceName in pipelineCopy.services) {
       delete pipelineCopy.services[serviceName].order;
     }
@@ -499,7 +351,7 @@ const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
-  const saveGeneralForm = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const saveGeneralForm = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
 
     // Remove order property from services
@@ -539,47 +391,48 @@ const PipelineSettingsView: React.FC = () => {
     let formData = new FormData();
     formData.append("pipeline_json", JSON.stringify(cleanedPipelineJson));
 
-    makeRequest(
-      "POST",
-      `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-      { type: "FormData", content: formData }
-    )
-      .then((response: string) => {
-        let result = JSON.parse(response);
-        if (result.success) {
-          setState((prevState) => ({
-            ...prevState,
-          }));
-          setAsSaved();
+    Promise.allSettled([
+      makeRequest(
+        "POST",
+        `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
+        { type: "FormData", content: formData }
+      )
+        .then((response: string) => {
+          let result = JSON.parse(response);
+          if (result.success) {
+            // Sync name changes with the global context
+            dispatch({
+              type: "pipelineSet",
+              payload: { pipelineName: pipelineJson?.name },
+            });
+          }
+        })
+        .catch((response) => {
+          setAlert(
+            "Error",
+            "Could not save: pipeline definition OR Notebook JSON"
+          );
 
-          // Sync name changes with the global context
-          projectsContext.dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineName: pipelineJson?.name,
-            },
-          });
-        }
-      })
-      .catch((response) => {
-        console.error("Could not save: pipeline definition OR Notebook JSON");
+          console.error(response);
+          return Promise.reject(response);
+        }),
+      makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+        type: "json",
+        content: { env_variables: envVariablesObj.value },
+      }).catch((response) => {
+        setAlert("Error", "Could not save: environment variables");
         console.error(response);
-      });
-
-    makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-      type: "json",
-      content: { env_variables: envVariablesObj.value },
-    }).catch((response) => {
-      console.error(response);
+        return Promise.reject(response);
+      }),
+    ]).then((value) => {
+      const isAllSaved = !value.some((p) => p.status === "rejected");
+      setAsSaved(isAllSaved);
     });
   };
 
   const restartMemoryServer = () => {
-    if (!state.restartingMemoryServer) {
-      setState((prevState) => ({
-        ...prevState,
-        restartingMemoryServer: true,
-      }));
+    if (!restartingMemoryServer) {
+      setRestartingMemoryServer(true);
 
       // perform POST to save
       let restartPromise = makeCancelable(
@@ -592,10 +445,7 @@ const PipelineSettingsView: React.FC = () => {
 
       restartPromise.promise
         .then(() => {
-          setState((prevState) => ({
-            ...prevState,
-            restartingMemoryServer: false,
-          }));
+          setRestartingMemoryServer(false);
         })
         .catch((response) => {
           if (!response.isCanceled) {
@@ -612,11 +462,7 @@ const PipelineSettingsView: React.FC = () => {
             }
 
             setAlert("Error", errorMessage);
-
-            setState((prevState) => ({
-              ...prevState,
-              restartingMemoryServer: false,
-            }));
+            setRestartingMemoryServer(false);
           }
         });
     } else {
@@ -645,10 +491,19 @@ const PipelineSettingsView: React.FC = () => {
 
               setConfirm(
                 "Warning",
-                "Are you sure you want to delete the service: " +
-                  row.name +
-                  "?",
-                async () => deleteService(row.name)
+                `Are you sure you want to delete the service: ${row.name}?`,
+                async (resolve) => {
+                  deleteService(row.name)
+                    .then(() => {
+                      resolve(true);
+                    })
+                    .catch((error) => {
+                      setAlert("Error", `Unable to delete service ${row.name}`);
+                      console.error(error);
+                      resolve(false);
+                    });
+                  return true;
+                }
               );
             }}
           >
@@ -693,7 +548,7 @@ const PipelineSettingsView: React.FC = () => {
   return (
     <Layout>
       <div className="view-page pipeline-settings-view">
-        {hasLoaded() ? (
+        {hasLoaded ? (
           <div className="pipeline-settings">
             <Stack
               direction="row"
@@ -761,13 +616,11 @@ const PipelineSettingsView: React.FC = () => {
                         <h3>Path</h3>
                       </div>
                       <div className="column">
-                        {state.pipeline_path && (
-                          <Box sx={{ width: "100%" }}>
-                            <Code sx={{ wordBreak: "break-word" }}>
-                              {state.pipeline_path}
-                            </Code>
-                          </Box>
-                        )}
+                        <Box sx={{ width: "100%" }}>
+                          <Code sx={{ wordBreak: "break-word" }}>
+                            {pipelinePath}
+                          </Code>
+                        </Box>
                       </div>
                       <div className="clear"></div>
                     </div>
@@ -897,7 +750,7 @@ const PipelineSettingsView: React.FC = () => {
                         </p>
                         <div className="push-down">
                           {(() => {
-                            if (state.restartingMemoryServer) {
+                            if (restartingMemoryServer) {
                               return (
                                 <p className="push-p push-down">
                                   Restarting in progress...
@@ -907,7 +760,7 @@ const PipelineSettingsView: React.FC = () => {
                           })()}
 
                           <Button
-                            disabled={state.restartingMemoryServer}
+                            disabled={restartingMemoryServer}
                             color="secondary"
                             variant="contained"
                             startIcon={<MemoryIcon />}
@@ -928,7 +781,7 @@ const PipelineSettingsView: React.FC = () => {
                 index={1}
                 name="environment-variables"
               >
-                {state.environmentVariablesChanged && session && (
+                {envVarsChanged && session && (
                   <Alert severity="warning">
                     Note: changes to environment variables require a session
                     restart to take effect.
@@ -952,7 +805,7 @@ const PipelineSettingsView: React.FC = () => {
                         Project environment variables
                       </Typography>
                       <EnvVarList
-                        value={state.projectEnvVariables}
+                        value={projectEnvVariables}
                         readOnly
                         data-test-id="project-read-only"
                       />

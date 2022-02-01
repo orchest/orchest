@@ -197,7 +197,9 @@ def test_job_put_on_draft(
                     == env_variables
                 )
 
-            pipeline_runs = job["pipeline_runs"]
+            pipeline_runs = client.get(
+                f"/api/jobs/{job_uuid}/pipeline_runs"
+            ).get_json()["pipeline_runs"]
             assert len(pipeline_runs) == len(parameters)
             # Note that the reversed is there because the runs are
             # sorted descendingly.
@@ -273,7 +275,9 @@ def test_job_put_revert(client, pipeline, monkeypatch):
 
     job = client.get(f"/api/jobs/{job_uuid}").get_json()
     assert job["status"] == "FAILURE"
-    pipeline_runs = job["pipeline_runs"]
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
     for run in pipeline_runs:
         assert run["status"] == "FAILURE"
 
@@ -290,7 +294,9 @@ def test_job_delete_draft_job(client, celery, pipeline, abortable_async_res):
 
     job = client.get(f"/api/jobs/{job_uuid}").get_json()
     assert job["status"] == "ABORTED"
-    assert not job["pipeline_runs"]
+    assert not client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
 
 
 def test_job_delete_running_job(
@@ -307,8 +313,11 @@ def test_job_delete_running_job(
 
     job = client.get(f"/api/jobs/{job_uuid}").get_json()
     assert job["status"] == "ABORTED"
-    assert job["pipeline_runs"]
-    for run in job["pipeline_runs"]:
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    assert pipeline_runs
+    for run in pipeline_runs:
         assert run["status"] == "ABORTED"
         for step in run["pipeline_steps"]:
             assert step["status"] == "ABORTED"
@@ -333,8 +342,10 @@ def test_pipelinerun_get(client, celery, pipeline):
     job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
     client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
 
-    job = client.get(f"/api/jobs/{job_uuid}").get_json()
-    for run in job["pipeline_runs"]:
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    for run in pipeline_runs:
         resp = client.get(f'/api/jobs/{job_uuid}/{run["uuid"]}')
         assert resp.status_code == 200
 
@@ -352,7 +363,10 @@ def test_pipelinerun_set(client, celery, pipeline):
     job_uuid = client.post("/api/jobs/", json=job_spec).get_json()["uuid"]
     client.put(f"/api/jobs/{job_uuid}", json={"confirm_draft": True})
 
-    pipeline_runs = client.get(f"/api/jobs/{job_uuid}").get_json()["pipeline_runs"]
+    pipeline_runs = client.get(f"/api/jobs/{job_uuid}/pipeline_runs").get_json()[
+        "pipeline_runs"
+    ]
+    print(pipeline_runs)
     for run in pipeline_runs:
         client.put(
             f'/api/jobs/{job_uuid}/{run["uuid"]}',

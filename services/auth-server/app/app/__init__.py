@@ -11,14 +11,22 @@ from logging.config import dictConfig
 from pprint import pformat
 
 from flask import Flask, request
-from flask_migrate import Migrate, upgrade
+from flask_migrate import Migrate
 from sqlalchemy_utils import create_database, database_exists
 
 from app.connections import db
 from app.views import register_views
 
 
-def create_app(config_class=None):
+def create_app(config_class=None, to_migrate_db=False):
+    """Create the Flask app and return it.
+
+    Args:
+        to_migrate_db: If True, then only initialize the db.
+
+    Returns:
+        Flask.app
+    """
     app = Flask(__name__)
     app.config.from_object(config_class)
 
@@ -36,10 +44,10 @@ def create_app(config_class=None):
     # necessary for migration
     Migrate().init_app(app, db)
 
-    with app.app_context():
-        # Upgrade to the latest revision. This also takes care of
-        # bringing an "empty" db (no tables) on par.
-        upgrade()
+    # NOTE: In this case we want to return ASAP as otherwise the DB
+    # might be called (inside this function) before it is migrated.
+    if to_migrate_db:
+        return app
 
     register_views(app)
 

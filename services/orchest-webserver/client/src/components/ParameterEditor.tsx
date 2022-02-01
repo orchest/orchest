@@ -10,9 +10,7 @@ interface IParameterEditorProps {
   strategyJSON: StrategyJson;
   pipelineName: string;
   readOnly?: boolean;
-  onParameterChange?: (
-    value: Record<string, { parameters: Record<string, string> }>
-  ) => void;
+  onParameterChange?: (value: StrategyJson) => void;
 }
 
 const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {

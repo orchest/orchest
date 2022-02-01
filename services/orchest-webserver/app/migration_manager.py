@@ -8,7 +8,7 @@ from app import create_app
 # info.
 
 if __name__ == "__main__":
-    app, _, _ = create_app()
+    app, _, _ = create_app(to_migrate_db=True)
     manager = Manager(app)
     manager.add_command("db", MigrateCommand)
     manager.run()

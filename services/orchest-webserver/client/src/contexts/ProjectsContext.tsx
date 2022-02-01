@@ -1,4 +1,4 @@
-import type { IProjectsContext, IProjectsContextState, Project } from "@/types";
+import type { IOrchestSession, Project } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 
@@ -30,12 +30,28 @@ type Action =
       payload: Project[];
     }
   | {
-      type: "pipelineUpdateReadOnlyState";
-      payload: IProjectsContextState["pipelineIsReadOnly"];
+      type: "SET_PIPELINE_IS_READONLY";
+      payload: boolean;
     };
 
 type ActionCallback = (currentState: IProjectsContextState) => Action;
 type ProjectsContextAction = Action | ActionCallback;
+export interface IProjectsContextState
+  extends Pick<
+    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
+    "projectUuid" | "pipelineUuid"
+  > {
+  pipelineName?: string;
+  pipelineFetchHash?: string;
+  pipelineIsReadOnly: boolean;
+  pipelineSaveStatus: "saved" | "saving";
+  projects: Project[];
+  hasLoadedProjects: boolean;
+}
+export interface IProjectsContext {
+  state: IProjectsContextState;
+  dispatch: (value: ProjectsContextAction) => void;
+}
 
 const reducer = (
   state: IProjectsContextState,
@@ -54,7 +70,7 @@ const reducer = (
       return { ...state, pipelineFetchHash: uuidv4(), ...action.payload };
     case "pipelineSetSaveStatus":
       return { ...state, pipelineSaveStatus: action.payload };
-    case "pipelineUpdateReadOnlyState":
+    case "SET_PIPELINE_IS_READONLY":
       return { ...state, pipelineIsReadOnly: action.payload };
     case "projectSet":
       return { ...state, projectUuid: action.payload };

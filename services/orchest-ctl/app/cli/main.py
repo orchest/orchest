@@ -8,7 +8,7 @@ import typer
 from app.cli import start as cli_start
 from app.orchest import OrchestApp
 from app.spec import get_container_config
-from app.utils import echo
+from app.utils import echo, fix_userdir_permissions
 
 
 # TODO: utils.py
@@ -192,6 +192,10 @@ def install(
     Installation might take some time depending on your network
     bandwidth.
     """
+    # Make sure the permissions of the userdir are correctly set in case
+    # Orchest will always be started using `--cloud` in the future (as
+    # in other modes the permissions are fixed on start).
+    fix_userdir_permissions()
     app.install(language, gpu=gpu)
 
 
