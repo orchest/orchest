@@ -1,3 +1,18 @@
+"""Module about pipeline definition/de-serialization and pipeline runs.
+
+Essentially, it covers:
+- transforming a pipeline definition, e.g. obtained by the pipeline
+    json, into an instance of the Pipeline class, which adds some nice
+    to have logic.
+- transforming said Pipeline instance to a valid k8s workflow
+    definition, where the pipeline is run as an argo workflow.
+- the required function to actually perform a pipeline run.
+
+As a client of this module you are most likely interested in how to get
+a pipeline json to a Pipeline instance (point 1) and how to use that to
+perform a pipeline run (point 3), with "run_pipeline_workflow".
+
+"""
 import asyncio
 import copy
 import json
