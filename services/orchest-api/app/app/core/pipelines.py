@@ -416,7 +416,7 @@ class Pipeline:
         return f"Pipeline({self.steps!r})"
 
 
-def step_to_workflow_manifest_task(
+def _step_to_workflow_manifest_task(
     step: PipelineStep, run_config: Dict[str, Any]
 ) -> dict:
     # The working directory is the location of the file being
@@ -512,7 +512,7 @@ def step_to_workflow_manifest_task(
     return task
 
 
-def pipeline_to_workflow_manifest(
+def _pipeline_to_workflow_manifest(
     workflow_name: str, pipeline: Pipeline, run_config: Dict[str, Any]
 ) -> dict:
     manifest = {
@@ -546,7 +546,7 @@ def pipeline_to_workflow_manifest(
                     "dag": {
                         "failFast": True,
                         "tasks": [
-                            step_to_workflow_manifest_task(step, run_config)
+                            _step_to_workflow_manifest_task(step, run_config)
                             for step in pipeline.steps
                         ],
                     },
@@ -616,7 +616,7 @@ async def run_pipeline_workflow(
         namespace = get_k8s_namespace_name(session_uuid)
 
         try:
-            manifest = pipeline_to_workflow_manifest(
+            manifest = _pipeline_to_workflow_manifest(
                 f"pipeline-run-task-{task_id}", pipeline, run_config
             )
             k8s_custom_obj_api.create_namespaced_custom_object(
