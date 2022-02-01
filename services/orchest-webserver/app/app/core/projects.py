@@ -72,6 +72,13 @@ class CreateProject(TwoPhaseFunction):
         # filesystem or initializing a project from scratch.
         os.makedirs(full_project_path, exist_ok=True)
 
+        # Create top-level `.gitignore` file with sane defaults, in case
+        # it not already exists.
+        root_gitignore = os.path.join(full_project_path, ".gitignore")
+        if not os.path.exists(root_gitignore):
+            with open(root_gitignore, "w") as f:
+                f.write("\n".join(current_app.config["GIT_IGNORE_PROJECT_ROOT"]))
+
         # This would actually be created as a collateral effect when
         # populating with default environments, do not rely on that.
         expected_internal_dir = os.path.join(full_project_path, ".orchest")
@@ -82,7 +89,11 @@ class CreateProject(TwoPhaseFunction):
         elif not os.path.isdir(expected_internal_dir):
             os.makedirs(expected_internal_dir, exist_ok=True)
 
-        # Init the .gitignore file if it is not there already.
+        # Init the `.orchest/.gitignore` file if it is not there
+        # already. NOTE: This `.gitignore` file is created inside the
+        # `.orchest/` directory because an existing project might be
+        # added to Orchest and already contain a root-level
+        # `.gitignore`, which we don't want to inject ourselves in.
         expected_git_ignore_file = os.path.join(
             full_project_path, ".orchest", ".gitignore"
         )
@@ -90,7 +101,9 @@ class CreateProject(TwoPhaseFunction):
             raise FileExistsError(".orchest/.gitignore is a directory")
         elif not os.path.isfile(expected_git_ignore_file):
             with open(expected_git_ignore_file, "w") as ign_file:
-                ign_file.write(current_app.config["PROJECT_ORCHEST_GIT_IGNORE_CONTENT"])
+                ign_file.write(
+                    "\n".join(current_app.config["GIT_IGNORE_PROJECT_HIDDEN_ORCHEST"])
+                )
 
         # Initialize with default environments only if the project has
         # no environments directory.
