@@ -10,6 +10,7 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
+from _orchest.internals.utils import rmtree
 from app.connections import k8s_custom_obj_api
 from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
@@ -114,7 +115,7 @@ def prepare_build_context(task_uuid):
     snapshot_path = f"{jupyter_builds_dir}/{dockerfile_name}"
 
     if os.path.isdir(snapshot_path):
-        os.system('rm -rf "%s"' % snapshot_path)
+        rmtree(snapshot_path)
 
     os.system('mkdir "%s"' % (snapshot_path))
 
@@ -200,7 +201,7 @@ def build_jupyter_task(task_uuid):
             )
 
             # cleanup
-            os.system('rm -rf "%s"' % build_context["snapshot_path"])
+            rmtree(build_context["snapshot_path"])
 
             update_jupyter_build_status(status, session, task_uuid)
 
