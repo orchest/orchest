@@ -495,12 +495,6 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
     )
 
     copytree(project_dir, snapshot_path)
-    # TODO: check whether we can indeed remove this.
-    # Ignore the ".orchest/pipelines" directory containing the logs and
-    # data directories. Ignore errors because the directory might not be
-    # there.
-    # rmtree(os.path.join(snapshot_path,
-    # ".orchest/pipelines"), ignore_errors=True)
 
 
 def rmtree(path, ignore_errors=False):
