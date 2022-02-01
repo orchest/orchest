@@ -3,7 +3,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -12,7 +11,7 @@ import requests
 from flask import current_app
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import is_services_definition_valid
+from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -495,57 +494,6 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
     )
 
     copytree(project_dir, snapshot_path)
-
-
-def rmtree(path, ignore_errors=False):
-    """A wrapped rm -rf.
-
-    If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to copy.
-
-    """
-    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
-    if exit_code != 0 and not ignore_errors:
-        raise OSError(f"Failed to rm {path}: {exit_code}.")
-
-
-def copytree(source: str, target: str):
-    """Copies content from source to target.
-
-    As part of the copying process it ignores patterns from the
-    top-level `.gitignore` in `source`.
-
-    If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to copy.
-
-    """
-    # With a trailing `/` rsync copies the content of the directory
-    # instead of the directory itself.
-    if not source.endswith("/"):
-        source += "/"
-
-    # Construct copy command.
-    # Using rsync with `-W` copies files as a whole which drastically
-    # improves its performance, making it almost as fast as the `cp`
-    # command. The other options (`-aHAX`) are to preserve all kinds
-    # of attributes, e.g. symlinks, `-a` also automatically copies
-    # recursively.
-    copy_cmd = ["rsync", "-aWHAX"]
-    if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
-        copy_cmd += [f"--exclude-from={source}.gitignore"]
-    copy_cmd += [f"{source} {target}"]
-
-    exit_code = subprocess.call(
-        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
-    )
-    if exit_code != 0:
-        raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
 
 
 def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
