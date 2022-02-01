@@ -2,7 +2,7 @@ import logging
 import time
 
 import docker
-from kubernetes import k8s_client, watch
+from kubernetes import watch
 
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
@@ -121,21 +121,12 @@ def build_docker_image(
             "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
         )
 
-        for _ in range(100):
-            try:
-                resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
-            except k8s_client.ApiException as e:
-                if e.status != 404:
-                    raise
-                time.sleep(1)
-            else:
-                status = resp.status.phase
-                if status in ["Running", "Succeeded", "Failed", "Unknown"]:
-                    break
-            time.sleep(1)
-        else:
-            # Still Pending, consider this an issue.
-            raise Exception()
+        utils.wait_for_pod_status(
+            pod_name,
+            "orchest",
+            expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
+            max_retries=100,
+        )
 
         flag = __DOCKERFILE_RESERVED_FLAG
         found_beginning_flag = False
