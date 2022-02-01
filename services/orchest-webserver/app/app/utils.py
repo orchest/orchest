@@ -1,3 +1,4 @@
+import collections
 import hashlib
 import json
 import os
@@ -9,7 +10,6 @@ from typing import Optional
 
 import requests
 from flask import current_app
-from flask.app import Flask
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import is_services_definition_valid
@@ -400,22 +400,18 @@ def get_api_entity_counts(endpoint, entity_key, project_uuid=None):
         f'http://{current_app.config["ORCHEST_API_ADDRESS"]}{endpoint}', params=params
     )
 
-    data = resp.json()
-    counts = {}
-
     if resp.status_code != 200:
         current_app.logger.error(
             "Failed to fetch entity count "
             "from orchest-api. Endpoint [%s] Entity key[%s]. Status code: %d"
             % (endpoint, entity_key, resp.status_code)
         )
-        return counts
+        return {}
 
+    data = resp.json()
+    counts = collections.defaultdict(int)
     for entity in data[entity_key]:
-        if entity["project_uuid"] in counts:
-            counts[entity["project_uuid"]] += 1
-        else:
-            counts[entity["project_uuid"]] = 1
+        counts[entity["project_uuid"]] += 1
 
     return counts
 
@@ -796,24 +792,6 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
     return new_path_abs.startswith(project_path)
 
 
-def fetch_orchest_examples_json_to_disk(app: Flask) -> None:
-    # Coarse but we need to make sure no error happens when intializing
-    # the app when depending on an external resource.
-    try:
-        url = app.config["ORCHEST_WEB_URLS"]["orchest_examples_json"]
-        resp = requests.get(url, timeout=5)
-
-        code = resp.status_code
-        if code == 200:
-            data = resp.json()
-            with open(app.config["ORCHEST_EXAMPLES_JSON_PATH"], "w") as f:
-                json.dump(data, f)
-        else:
-            app.logger.error(f"Could not fetch public examples json: {code}.")
-    except Exception as e:
-        app.logger.error(f"Error in public json fetch: {e}.")
-
-
 _DEFAULT_ORCHEST_EXAMPLES_JSON = {
     "creation_time": datetime.utcnow().isoformat(),
     "entries": [],
@@ -834,4 +812,30 @@ def get_orchest_examples_json() -> dict:
                 current_app.logger.error(f"Malformed public examples json : {data}.")
                 return _DEFAULT_ORCHEST_EXAMPLES_JSON
             data["entries"].sort(key=lambda x: -x.get("stargazers_count", -1))
+            return data
+
+
+_DEFAULT_ORCHEST_UPDATE_INFO_JSON = {"latest_version": None}
+
+
+def get_orchest_update_info_json() -> dict:
+    """Get orchest update info.
+
+    Returns:
+        A dictionary mapping latest_version to the latest Orchest
+        version.
+    """
+
+    path = current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]
+    if not os.path.exists(path):
+        current_app.logger.warning("Could not find orchest update info json.")
+        return _DEFAULT_ORCHEST_UPDATE_INFO_JSON
+    else:
+        with open(current_app.config["ORCHEST_UPDATE_INFO_JSON_PATH"]) as f:
+            data = json.load(f)
+            if not isinstance(data.get("latest_version"), str):
+                current_app.logger.error(
+                    f"Malformed orchest update info json : {data}."
+                )
+                return _DEFAULT_ORCHEST_EXAMPLES_JSON
             return data

@@ -1,0 +1,55 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: dockersock
+          hostPath:
+            path: /var/run
+            type: Directory
+        - name: userdir
+          hostPath:
+            path: /var/lib/orchest/userdir
+            type: DirectoryOrCreate
+        - name: config
+          hostPath:
+            path: /var/lib/orchest/config
+            type: DirectoryOrCreate
+        #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not    
+        - name: repo
+          hostPath:
+            path: /var/lib/orchest/repo
+            type: DirectoryOrCreate
+      containers:
+      - name: orchest-webserver
+        image: orchest/orchest-webserver:latest
+        ports:
+        - containerPort: 80        
+        env:
+        - name: "ORCHEST_PORT"
+          value: "8000"
+        - name: "HOST_USER_DIR"
+          value: "/var/lib/orchest/userdir"
+        - name: "HOST_CONFIG_DIR"
+          value: "/var/lib/orchest/config"
+        - name: "HOST_REPO_DIR"
+          value: "/var/lib/orchest/repo"
+        - name: "HOST_OS"
+          value: "linux"
+        - name: "ORCHEST_HOST_GID"
+          value: "1"
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"
+        - name: "ORCHEST_GPU_ENABLED_INSTANCE"
+          value: "FALSE"
+        volumeMounts:
+         - name: dockersock
+           mountPath: /var/run
+         - name: userdir
+           mountPath: /userdir
+         - name: config
+           mountPath: /config
+         - name: repo
+           mountPath: /orchest-host

@@ -15,13 +15,12 @@ type ISessionToggleButtonProps = {
   projectUuid: string;
   isSwitch?: boolean;
   className?: string;
-  style?: React.CSSProperties;
 };
 
 const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   const { state, dispatch, getSession } = useSessionsContext();
 
-  const { className, isSwitch, pipelineUuid, projectUuid, style } = props;
+  const { className, isSwitch, pipelineUuid, projectUuid } = props;
 
   const status =
     props.status ||
@@ -39,7 +38,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       RUNNING: "Stop session",
     }[status] || "Start session";
 
-  const handleEvent = (e) => {
+  const handleEvent = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     dispatch({
@@ -62,9 +61,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
               inputProps={{
                 "aria-label": `Switch ${isSessionAlive ? "off" : "on"} session`,
               }}
-              sx={{
-                marginRight: (theme) => theme.spacing(1),
-              }}
+              sx={{ margin: (theme) => theme.spacing(0, 1) }}
               className={className}
               checked={isSessionAlive}
             />

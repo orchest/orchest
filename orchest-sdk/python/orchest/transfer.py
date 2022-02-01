@@ -282,7 +282,7 @@ def _serialize(
         # Use the best protocol possible, for reference see:
         # https://docs.python.org/3/library/pickle.html#pickle-protocols
         try:
-            serialized = pickle.dumps(data, pickle.HIGHEST_PROTOCOL)
+            serialized = pickle.dumps(data, pickle.DEFAULT_PROTOCOL)
         except pickle.PicklingError:
             raise error.SerializationError(
                 f"Could not pickle data of type {type(data)}."

@@ -1,6 +1,9 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useImportUrl } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import * as React from "react";
+import { hasValue } from "@orchest/lib-utils";
+import React from "react";
 import useSWR from "swr";
 
 export const useOnboardingDialog = () => {
@@ -11,13 +14,14 @@ export const useOnboardingDialog = () => {
       initialData: { isOpen: false, shouldFetchQuickstart: false },
     }
   );
-
+  const { dispatch } = useAppContext();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",
     false
   );
 
   const projectsContext = useProjectsContext();
+  const [importUrl] = useImportUrl();
 
   const findQuickstart = projectsContext.state.projects?.find(
     (project) => project.path === "quickstart"
@@ -33,14 +37,17 @@ export const useOnboardingDialog = () => {
 
   const setIsOnboardingDialogOpen = (
     isOpen: boolean,
-    onOpen?: (boolean) => void
+    onOpen?: (value: boolean) => void
   ) => {
     if (isOpen) {
       setState({ isOpen: true, shouldFetchQuickstart: true });
     } else {
       setState((prevState) => ({ ...prevState, isOpen: false }));
 
+      // update localstorage
       setHasCompletedOnboarding(true);
+      // update app context
+      dispatch({ type: "SET_HAS_COMPLETED_ONBOARDING", payload: true });
       // Wait for Dialog transition to finish before resetting position.
       // This way we avoid showing the slides animating back to the start.
 
@@ -53,6 +60,10 @@ export const useOnboardingDialog = () => {
   };
 
   React.useEffect(() => {
+    dispatch({
+      type: "SET_HAS_COMPLETED_ONBOARDING",
+      payload: hasCompletedOnboarding,
+    });
     if (!hasCompletedOnboarding) setIsOnboardingDialogOpen(true);
   }, []);
 
@@ -60,6 +71,7 @@ export const useOnboardingDialog = () => {
     isOnboardingDialogOpen: state?.isOpen,
     setIsOnboardingDialogOpen,
     quickstart,
+    hasImportUrl: hasValue(importUrl),
     hasQuickstart,
   };
 };

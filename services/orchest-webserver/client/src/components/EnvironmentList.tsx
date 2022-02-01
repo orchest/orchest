@@ -7,7 +7,7 @@ import LensIcon from "@mui/icons-material/Lens";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import Typography from "@mui/material/Typography";
+import Stack from "@mui/material/Stack";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
@@ -54,26 +54,19 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
   {
     id: "gpu_support",
     label: "GPU Support",
+    sx: { margin: (theme) => theme.spacing(-0.5, 0) },
     render: function GpuSupport({ gpu_support }) {
       return (
-        <Typography
-          variant="body2"
-          sx={{
-            display: "flex",
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        <Stack direction="row" alignItems="center" justifyContent="center">
           <LensIcon
             color={gpu_support ? "success" : "disabled"}
             sx={{
-              width: (theme) => theme.spacing(2),
-              marginRight: (theme) => theme.spacing(1),
+              margin: (theme) => theme.spacing(1.25, 1, 1.25, 0), // so the row height will be 63
+              fontSize: 10,
             }}
           />
           {gpu_support ? "Enabled" : "Disabled"}
-        </Typography>
+        </Stack>
       );
     },
   },
@@ -82,6 +75,17 @@ const columns: DataTableColumn<EnvironmentRow>[] = [
 
 const BUILD_POLL_FREQUENCY = 3000;
 
+const doRemoveEnvironment = (
+  project_uuid: string,
+  environment_uuid: string,
+  callback?: (environmentUuid: string) => void
+) => {
+  // ultimately remove Image
+  return fetcher(`/store/environments/${project_uuid}/${environment_uuid}`, {
+    method: "DELETE",
+  }).then(() => callback && callback(environment_uuid));
+};
+
 const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   const { navigateTo } = useCustomRoute();
   const { setAlert, setConfirm } = useAppContext();
@@ -89,12 +93,20 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
 
   const {
     data: fetchedEnvironments = [],
-    revalidate: fetchEnvironments,
     error: fetchEnvironmentsError,
+    isValidating,
+    mutate: setFetchedEnvironments,
   } = useSWR<Environment[]>(
     projectUuid ? `/store/environments/${projectUuid}` : null,
     fetcher
   );
+
+  const removeFetchedEnvironment = (uuid: string) => {
+    setFetchedEnvironments(
+      (current) => current.filter((current) => current.uuid !== uuid),
+      false
+    );
+  };
 
   React.useEffect(() => {
     if (mounted && fetchEnvironmentsError) {
@@ -124,8 +136,6 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         "Failed to fetch the latests build of the environment."
       );
   }, [fetchBuildsError]);
-
-  const [isDeleting, setIsDeleting] = React.useState(false);
 
   const environmentRows = React.useMemo(() => {
     const statusObject = environmentBuilds.reduce((obj, build) => {
@@ -176,7 +186,11 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         );
         return false;
       }
-      return doRemoveEnvironment(projectUuid, environmentUuid, environmentName);
+      return doRemoveEnvironment(
+        projectUuid,
+        environmentUuid,
+        removeFetchedEnvironment
+      );
     }
 
     const imageData = await fetcher<{ in_use: boolean }>(
@@ -191,77 +205,60 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           <BoldText>environmentName</BoldText>
           {` ) is in use. Are you sure you want to delete it? This will abort all jobs that are using it.`}
         </>,
-        async () => {
-          return doRemoveEnvironment(
+        async (resolve) => {
+          doRemoveEnvironment(
             projectUuid,
             environmentUuid,
-            environmentName
-          );
+            removeFetchedEnvironment
+          )
+            .then(() => {
+              resolve(true);
+            })
+            .catch((error) => {
+              setAlert(
+                "Error",
+                `Deleting environment '${environmentName}' failed. ${error.message}`
+              );
+              resolve(false);
+            });
+          return true;
         }
       );
     }
-    return doRemoveEnvironment(projectUuid, environmentUuid, environmentName);
-  };
-
-  const doRemoveEnvironment = async (
-    project_uuid: string,
-    environment_uuid: string,
-    environmentName: string
-  ) => {
-    // ultimately remove Image
-    try {
-      await fetcher(`/store/environments/${project_uuid}/${environment_uuid}`, {
-        method: "DELETE",
-      });
-      return fetchEnvironments();
-    } catch (error) {
-      let errorMessage = "unknown";
-      try {
-        errorMessage = JSON.parse(error.body).message;
-      } catch (e) {
-        console.error(e);
-      }
-
-      setAlert(
-        "Error",
-        `Deleting environment '${environmentName}' failed. ${errorMessage}`
-      );
-      return false;
-    }
+    return doRemoveEnvironment(
+      projectUuid,
+      environmentUuid,
+      removeFetchedEnvironment
+    );
   };
 
   const onDeleteClick = async (environmentUuids: string[]) => {
-    if (!isDeleting) {
-      setIsDeleting(true);
+    return setConfirm(
+      "Warning",
+      "Are you certain that you want to delete the selected environments?",
+      async (resolve) => {
+        const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
+          return { ...all, [curr.uuid]: curr };
+        }, {});
 
-      return setConfirm(
-        "Warning",
-        "Are you certain that you want to delete the selected environments?",
-        async () => {
-          const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
-            return { ...all, [curr.uuid]: curr };
-          }, {});
+        Promise.all(
+          environmentUuids.map((environmentUuid) => {
+            const { project_uuid, uuid, name } = environmentsDict[
+              environmentUuid
+            ] as Environment;
+            return removeEnvironment(project_uuid, uuid, name);
+          })
+        )
+          .then(() => {
+            resolve(true);
+          })
+          .catch(() => {
+            resolve(false); // no need to setAlert here, will be handled by removeEnvironment
+          });
 
-          await Promise.all(
-            environmentUuids.map((environmentUuid) => {
-              const { project_uuid, uuid, name } = environmentsDict[
-                environmentUuid
-              ] as Environment;
-              return removeEnvironment(project_uuid, uuid, name);
-            })
-          );
-          setIsDeleting(false);
-          return true;
-        },
-        async () => {
-          setIsDeleting(false);
-          return false;
-        }
-      );
-    } else {
-      console.error("Delete UI in progress.");
-      return false;
-    }
+        return true;
+      }
+    );
   };
 
   return (
@@ -271,7 +268,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         <LinearProgress />
       ) : (
         <>
-          <Box sx={{ marginBottom: 3 }}>
+          <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
             <Button
               variant="contained"
               startIcon={<AddIcon />}
@@ -284,6 +281,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
           <DataTable<EnvironmentRow>
             selectable
             hideSearch
+            isLoading={isValidating}
             id="environment-list"
             columns={columns}
             rows={environmentRows}

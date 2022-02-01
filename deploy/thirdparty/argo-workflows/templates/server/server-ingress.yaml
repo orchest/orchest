@@ -1,0 +1,89 @@
+{{- if .Values.server.ingress.enabled -}}
+{{- $serviceName := include "argo-workflows.server.fullname" . -}}
+{{- $servicePort := .Values.server.servicePort -}}
+{{- $paths := .Values.server.ingress.paths -}}
+{{- $extraPaths := .Values.server.ingress.extraPaths -}}
+{{- $pathType := .Values.server.ingress.pathType -}}
+apiVersion: {{ include "argo-workflows.ingress.apiVersion" . }}
+kind: Ingress
+metadata:
+{{- if .Values.server.ingress.annotations }}
+  annotations:
+  {{- range $key, $value := .Values.server.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+  {{- end }}
+{{- end }}
+  name: {{ template "argo-workflows.server.fullname" . }}
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.server.name "name" .Values.server.name) | nindent 4 }}
+    {{- if .Values.server.ingress.labels }}
+    {{- toYaml .Values.server.ingress.labels | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if eq (include "argo-workflows.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+  {{- with .Values.server.ingress.ingressClassName }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- end }}
+  rules:
+  {{- if .Values.server.ingress.hosts }}
+    {{- range $host := .Values.server.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          {{- if $extraPaths }}
+          {{- toYaml $extraPaths | nindent 10 }}
+          {{- end }}
+          {{- range $p := $paths }}
+          - path: {{ $p }}
+            {{- if eq (include "argo-workflows.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+            pathType: {{ $pathType }}
+            {{- end }}
+            backend:
+              {{- if eq (include "argo-workflows.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+              service:
+                name: {{ $serviceName }}
+                port:
+                  {{- if kindIs "float64" $servicePort }}
+                  number: {{ $servicePort }}
+                  {{- else }}
+                  name: {{ $servicePort }}
+                  {{- end }}
+              {{- else }}
+              serviceName: {{ $serviceName }}
+              servicePort: {{ $servicePort }}
+              {{- end }}
+          {{- end -}}
+    {{- end -}}
+  {{- else }}
+    - http:
+        paths:
+          {{- if $extraPaths }}
+          {{- toYaml $extraPaths | nindent 10 }}
+          {{- end }}
+          {{- range $p := $paths }}
+          - path: {{ $p }}
+            {{- if eq (include "argo-workflows.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+            pathType: {{ $pathType }}
+            {{- end }}
+            backend:
+              {{- if eq (include "argo-workflows.ingress.apiVersion" $) "networking.k8s.io/v1" }}
+              service:
+                name: {{ $serviceName }}
+                port:
+                  {{- if kindIs "float64" $servicePort }}
+                  number: {{ $servicePort }}
+                  {{- else }}
+                  name: {{ $servicePort }}
+                  {{- end }}
+              {{- else }}
+              serviceName: {{ $serviceName }}
+              servicePort: {{ $servicePort }}
+              {{- end }}
+          {{- end -}}
+  {{- end -}}
+  {{- if .Values.server.ingress.tls }}
+  tls:
+    {{- toYaml .Values.server.ingress.tls | nindent 4 }}
+  {{- end -}}
+{{- end -}}

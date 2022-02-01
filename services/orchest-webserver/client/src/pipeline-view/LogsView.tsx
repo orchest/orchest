@@ -193,8 +193,7 @@ const LogsView: React.FC = () => {
       services = job.pipeline_definition.services;
     }
 
-    let scope = jobUuid ? "noninteractive" : "interactive";
-    return filterServices(services, scope);
+    return filterServices(services, jobUuid ? "noninteractive" : "interactive");
   };
 
   const generateServiceItems = () => {
