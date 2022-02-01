@@ -3,7 +3,7 @@ import copy
 import json
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import aiohttp
 from celery import Task
@@ -12,11 +12,11 @@ from celery.utils.log import get_task_logger
 
 from app import create_app
 from app.celery_app import make_celery
+from app.connections import k8s_custom_obj_api
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, PipelineDefinition, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
-from app.connections import k8s_custom_obj_api
 from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
@@ -64,26 +64,6 @@ class APITask(Task):
         if self._session is None:
             self._session = await self.get_clientsession()
         return self._session
-
-
-async def get_run_status(
-    task_id: str,
-    type: str,
-    run_endpoint: str,
-    uuid: Optional[str] = None,
-) -> Any:
-
-    base_url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_endpoint}/{task_id}"
-
-    if type == "step":
-        url = f"{base_url}/{uuid}"
-
-    elif type == "pipeline":
-        url = base_url
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.json()
 
 
 async def run_pipeline_async(run_config, pipeline, task_id):
