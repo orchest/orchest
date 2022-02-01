@@ -416,30 +416,44 @@ def get_environment_capabilities(environment_uuid, project_uuid):
     return capabilities
 
 
-def get_orchest_volumes(
+def get_step_volumes_and_volume_mounts(
     host_user_dir: str,
     host_project_dir: str,
     host_pipeline_file: str,
-) -> List[dict]:
+    container_project_dir: str,
+    container_pipeline_file: str,
+) -> Tuple[List[dict], List[dict]]:
+    """Gets volumes and volume mounts required to run steps.
 
-    return [
-        {"name": "project-dir", "hostPath": {"path": host_project_dir}},
-        {"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}},
-        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}},
-    ]
+    Args:
+        host_user_dir:
+        host_project_dir:
+        host_pipeline_file:
+        container_project_dir:
+        container_pipeline_file:
 
+    Returns:
+        A pair of lists, the first element is a list of volumes, the
+        second a list of volume_mounts, valid in k8s pod manifest. The
+        two lists are coupled, each volume mount is related to a volume.
+    """
+    volumes = []
+    volume_mounts = []
 
-def get_orchest_volume_mounts(
-    project_dir,
-    pipeline_file,
-) -> List[dict]:
-    """Prepare all volume mounts that are needed to run Orchest."""
+    volumes.append({"name": "project-dir", "hostPath": {"path": host_project_dir}})
+    volume_mounts.append({"name": "project-dir", "mountPath": container_project_dir})
 
-    return [
-        {"name": "project-dir", "mountPath": project_dir},
-        {"name": "pipeline-file", "mountPath": pipeline_file},
-        {"name": "data", "mountPath": "/data"},
-    ]
+    volumes.append({"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}})
+    volume_mounts.append(
+        {"name": "pipeline-file", "mountPath": container_pipeline_file}
+    )
+
+    volumes.append(
+        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}}
+    )
+    volume_mounts.append({"name": "data", "mountPath": "/data"})
+
+    return volumes, volume_mounts
 
 
 # K8S_TODO: remove this after jupyter* tasks are done.

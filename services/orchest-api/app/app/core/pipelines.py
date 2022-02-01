@@ -10,7 +10,7 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_orchest_volume_mounts, get_orchest_volumes
+from _orchest.internals.utils import get_step_volumes_and_volume_mounts
 from app.connections import k8s_custom_obj_api
 from config import CONFIG_CLASS
 
@@ -573,19 +573,23 @@ def step_to_workflow_manifest_task(
 def pipeline_to_workflow_manifest(
     workflow_name: str, pipeline: Pipeline, run_config: Dict[str, Any]
 ) -> dict:
+    volumes, volume_mounts = get_step_volumes_and_volume_mounts(
+        host_user_dir=run_config["host_user_dir"],
+        host_project_dir=run_config["project_dir"],
+        host_pipeline_file=os.path.join(
+            run_config["project_dir"],
+            run_config["pipeline_path"],
+        ),
+        container_project_dir=_config.PROJECT_DIR,
+        container_pipeline_file=_config.PIPELINE_FILE,
+    )
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
         "metadata": {"name": workflow_name},
         "spec": {
             "entrypoint": "pipeline",
-            "volumes": get_orchest_volumes(
-                host_user_dir=run_config["host_user_dir"],
-                host_project_dir=run_config["project_dir"],
-                host_pipeline_file=os.path.join(
-                    run_config["project_dir"], run_config["pipeline_path"]
-                ),
-            ),
+            "volumes": volumes,
             # The celery task actually takes care of deleting the
             # workflow, this is just a failsafe.
             "ttlStrategy": {
@@ -638,10 +642,7 @@ def pipeline_to_workflow_manifest(
                             "{{inputs.parameters.working_dir}}",
                             "{{inputs.parameters.project_relative_file_path}}",
                         ],
-                        "volumeMounts": get_orchest_volume_mounts(
-                            project_dir=_config.PROJECT_DIR,
-                            pipeline_file=_config.PIPELINE_FILE,
-                        ),
+                        "volumeMounts": volume_mounts,
                     },
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
