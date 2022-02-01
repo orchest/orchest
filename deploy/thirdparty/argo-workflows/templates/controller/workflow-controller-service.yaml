@@ -1,0 +1,38 @@
+{{- if or .Values.controller.metricsConfig.enabled .Values.controller.telemetryConfig.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "argo-workflows.controller.fullname" . }}
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.controller.name "name" .Values.controller.name) | nindent 4 }}
+    app.kubernetes.io/version: {{ default .Chart.AppVersion .Values.controller.image.tag | quote }}
+    {{- with .Values.controller.serviceLabels }}
+      {{ toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.controller.serviceAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4}}
+  {{- end }}
+spec:
+  ports:
+  {{- if .Values.controller.metricsConfig.enabled }}
+  - name: {{ .Values.controller.metricsConfig.servicePortName }}
+    port: {{ .Values.controller.metricsConfig.servicePort }}
+    protocol: TCP
+    targetPort: {{ .Values.controller.metricsConfig.port }}
+  {{- end }}
+  {{- if .Values.controller.telemetryConfig.enabled }}
+  - name: {{ .Values.controller.telemetryConfig.servicePortName }}
+    port: {{ .Values.controller.telemetryConfig.servicePort }}
+    protocol: TCP
+    targetPort: {{ .Values.controller.telemetryConfig.port }}
+  {{- end }}
+  selector:
+    {{- include "argo-workflows.selectorLabels" (dict "context" . "name" .Values.controller.name) | nindent 4 }}
+  sessionAffinity: None
+  type: {{ .Values.controller.serviceType }}
+  {{- if and (eq .Values.controller.serviceType "LoadBalancer") .Values.controller.loadBalancerSourceRanges }}
+  loadBalancerSourceRanges:
+    {{- toYaml .Values.controller.loadBalancerSourceRanges | nindent 4 }}
+  {{- end }}
+{{- end -}}

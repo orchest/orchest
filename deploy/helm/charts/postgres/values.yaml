@@ -1,0 +1,8 @@
+
+
+# Service and port configuration
+service:
+  #Default port for postgres
+  port: 5432
+
+name: orchest-database 

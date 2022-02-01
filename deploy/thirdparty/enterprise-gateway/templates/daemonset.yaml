@@ -1,0 +1,39 @@
+{{- if .Values.kip.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kernel-image-puller
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      name: kernel-image-puller
+  template:
+    metadata:
+      labels:
+        name: kernel-image-puller
+        app: enterprise-gateway
+        component: kernel-image-puller
+        chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        release: {{ .Release.Name }}
+        heritage: {{ .Release.Service }}
+    spec:
+      containers:
+      - name: kernel-image-puller
+        image: {{ .Values.kip.image }}
+        imagePullPolicy: {{ .Values.kip.imagePullPolicy }}
+        env:
+        - name: KIP_GATEWAY_HOST
+          value: "http://enterprise-gateway.{{ .Release.Namespace }}:{{ .Values.port }}"
+        - name: KIP_INTERVAL
+          value: !!str {{ .Values.kip.interval }}
+        - name: KIP_PULL_POLICY
+          value: {{ .Values.kip.pullPolicy }}
+        volumeMounts:
+        - name: dockersock
+          mountPath: "/var/run/docker.sock"
+      volumes:
+      - name: dockersock
+        hostPath:
+          path: /var/run/docker.sock
+{{- end }}
