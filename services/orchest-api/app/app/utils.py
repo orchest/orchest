@@ -9,7 +9,7 @@ from docker import errors
 from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
-from kubernetes import k8s_client
+from kubernetes import client as k8s_client
 from sqlalchemy.orm import undefer
 
 import app.models as models
