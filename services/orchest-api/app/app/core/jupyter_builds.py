@@ -142,6 +142,7 @@ def prepare_build_context(task_uuid):
 
     return {
         "snapshot_path": snapshot_path,
+        "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
     }
 
 
