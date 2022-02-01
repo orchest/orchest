@@ -8,8 +8,8 @@ import React from "react";
 const ImportSuccessDialog: React.FC<{
   open: boolean;
   projectName: string;
-  goToPipelines: () => void;
-  onClose: () => void;
+  goToPipelines: (e: React.MouseEvent) => void;
+  onClose: (e: React.MouseEvent) => void;
 }> = ({ open, projectName, goToPipelines, onClose }) => {
   return (
     <Dialog open={open} onClose={onClose}>
@@ -26,7 +26,11 @@ const ImportSuccessDialog: React.FC<{
         <Button color="secondary" onClick={onClose}>
           Continue browsing
         </Button>
-        <Button variant="contained" onClick={goToPipelines}>
+        <Button
+          variant="contained"
+          onClick={goToPipelines}
+          onAuxClick={goToPipelines}
+        >
           View pipelines
         </Button>
       </DialogActions>

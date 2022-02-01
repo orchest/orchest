@@ -52,7 +52,7 @@ explaining some of Orchest's core concepts.
 
 Want to skip the installation and jump right in? Then try out our managed service by clicking:
 
-[![Open in Orchest](docs/source/img/open_in_orchest_large.svg)](https://cloud.orchest.io/)
+[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
 ### Linux and macOS
 
@@ -92,18 +92,18 @@ Join our Slack to chat about Orchest, ask questions, and share tips.
 ## Contributing
 
 Contributions are more than welcome! Please see our
-[contributor guides](https://docs.orchest.io/en/stable/developer_guide/contributing.html)
+[contributor guides](https://docs.orchest.io/en/stable/development/contributing.html)
 for more details.
 
 You could also submit your pipeline to [the curated list of examples](https://github.com/orchest/orchest-examples). Help other users try out your pipeline with one click by adding the following script in the `README.md` of your repository (NOTE: you need to replace `your-repo-url` with your repo URL).
 
 ```markdown
-[![Open in Orchest](https://github.com/orchest/orchest/raw/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
+[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=your-repo-url)
 ```
 
 An example badge to import our [quickstart](https://github.com/orchest/quickstart) repo in Orchest:
 
-[![Open in Orchest](https://github.com/orchest/orchest/raw/master/docs/source/img/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
+[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart)
 
 ## Contributors
 

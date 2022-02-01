@@ -9,6 +9,7 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
@@ -17,7 +18,6 @@ import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
-  getPipelineJSONEndpoint,
   isValidEnvironmentVariableName,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
@@ -242,28 +242,14 @@ const EditJobView: React.FC = () => {
     fetcher
   );
 
-  const {
-    data: pipeline,
-    error: fetchPipelineError,
-    isValidating: isFetchingPipeline,
-  } = useSWR<PipelineJson>(
+  const { pipelineJson, isFetchingPipelineJson } = useFetchPipelineJson(
     projectUuid && job
-      ? getPipelineJSONEndpoint(job.pipeline_uuid, projectUuid, job.uuid)
-      : null,
-    (url) =>
-      fetcher<{
-        pipeline_json: string;
-        success: boolean;
-      }>(url).then((result) => {
-        if (result.success) {
-          const fetchedPipeline: PipelineJson = JSON.parse(
-            result.pipeline_json
-          );
-          return fetchedPipeline;
-        } else {
-          throw new Error("Could not load pipeline.json");
+      ? {
+          jobUuid: job.uuid,
+          pipelineUuid: job.pipeline_uuid,
+          projectUuid,
         }
-      })
+      : undefined
   );
 
   const { data: projectSnapshotSize = 0 } = useFetchProject({
@@ -271,7 +257,7 @@ const EditJobView: React.FC = () => {
     selector: (project) => project.project_snapshot_size,
   });
 
-  const isLoading = isFetchingJob || isFetchingPipeline;
+  const isLoading = isFetchingJob || isFetchingPipelineJson;
 
   const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(null);
 
@@ -290,19 +276,19 @@ const EditJobView: React.FC = () => {
   }, [job, setAsSaved]);
 
   React.useEffect(() => {
-    if (job && pipeline) {
+    if (job && pipelineJson) {
       // Do not generate another strategy_json if it has been defined
       // already.
       const reserveKey =
         appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY || "";
       const generatedStrategyJson =
         job.status === "DRAFT" && Object.keys(job.strategy_json).length === 0
-          ? generateStrategyJson(pipeline, reserveKey)
+          ? generateStrategyJson(pipelineJson, reserveKey)
           : job.strategy_json;
 
       const newPipelineRuns = generatePipelineRuns(generatedStrategyJson);
       const newPipelineRunRows = generatePipelineRunRows(
-        pipeline.name,
+        pipelineJson.name,
         newPipelineRuns
       );
 
@@ -321,7 +307,7 @@ const EditJobView: React.FC = () => {
     }
   }, [
     job,
-    pipeline,
+    pipelineJson,
     appContext.state.config?.PIPELINE_PARAMETERS_RESERVED_KEY,
   ]);
 
@@ -366,11 +352,11 @@ const EditJobView: React.FC = () => {
     return { pass: true };
   };
 
-  const attemptRunJob = () => {
+  const attemptRunJob = (e: React.MouseEvent) => {
     // validate job configuration
     let validation = validateJobConfig();
     if (validation.pass === true) {
-      runJob();
+      runJob(e);
     } else {
       setAlert("Error", validation.reason);
       if (validation.selectView !== undefined) {
@@ -397,7 +383,7 @@ const EditJobView: React.FC = () => {
     selectedRuns
   );
 
-  const runJob = async () => {
+  const runJob = async (e: React.MouseEvent) => {
     if (!job) return;
 
     setRunJobLoading(true);
@@ -455,14 +441,12 @@ const EditJobView: React.FC = () => {
       }).finally(() => {
         setAsSaved();
         if (projectUuid)
-          navigateTo(siteMap.jobs.path, {
-            query: { projectUuid },
-          });
+          navigateTo(siteMap.jobs.path, { query: { projectUuid } }, e);
       })
     );
   };
 
-  const putJobChanges = () => {
+  const putJobChanges = (e: React.MouseEvent) => {
     if (!job || !projectUuid) return;
     /* This function should only be called
      *  for jobs with a cron schedule. As those
@@ -500,12 +484,11 @@ const EditJobView: React.FC = () => {
               : undefined,
           }),
         }).then(() => {
-          navigateTo(siteMap.job.path, {
-            query: {
-              projectUuid,
-              jobUuid: job.uuid,
-            },
-          });
+          navigateTo(
+            siteMap.job.path,
+            { query: { projectUuid, jobUuid: job.uuid } },
+            e
+          );
         })
       );
     } else {
@@ -516,11 +499,9 @@ const EditJobView: React.FC = () => {
     }
   };
 
-  const cancel = () => {
+  const cancel = (e: React.MouseEvent) => {
     if (projectUuid)
-      navigateTo(siteMap.jobs.path, {
-        query: { projectUuid },
-      });
+      navigateTo(siteMap.jobs.path, { query: { projectUuid } }, e);
   };
 
   const setCronSchedule = (newCronString: string) => {
@@ -565,7 +546,7 @@ const EditJobView: React.FC = () => {
     <Layout fullHeight>
       <Stack direction="column" sx={{ height: "100%" }}>
         <Typography variant="h5">Edit job</Typography>
-        {job && pipeline ? (
+        {job && pipelineJson ? (
           <>
             <Stack
               direction="row"
@@ -596,7 +577,7 @@ const EditJobView: React.FC = () => {
                 }}
               >
                 <Typography variant="caption">Pipeline</Typography>
-                <Typography>{pipeline.name}</Typography>
+                <Typography>{pipelineJson.name}</Typography>
               </Stack>
             </Stack>
             <Tabs
@@ -695,11 +676,11 @@ const EditJobView: React.FC = () => {
             </CustomTabPanel>
             <CustomTabPanel value={tabIndex} index={1} name="parameters">
               <ParameterEditor
-                pipelineName={pipeline.name}
+                pipelineName={pipelineJson.name}
                 onParameterChange={(value: StrategyJson) => {
                   const newPipelineRuns = generatePipelineRuns(value);
                   const newPipelineRunRows = generatePipelineRunRows(
-                    pipeline.name,
+                    pipelineJson.name,
                     newPipelineRuns
                   );
 
@@ -815,6 +796,7 @@ const EditJobView: React.FC = () => {
                   variant="contained"
                   startIcon={<PlayArrowIcon />}
                   onClick={attemptRunJob}
+                  onAuxClick={attemptRunJob}
                   data-test-id="job-run"
                 >
                   Run job
@@ -824,6 +806,7 @@ const EditJobView: React.FC = () => {
                 <Button
                   variant="contained"
                   onClick={putJobChanges}
+                  onAuxClick={putJobChanges}
                   startIcon={<SaveIcon />}
                   data-test-id="job-update"
                 >
@@ -832,6 +815,7 @@ const EditJobView: React.FC = () => {
               )}
               <Button
                 onClick={cancel}
+                onAuxClick={cancel}
                 startIcon={<CloseIcon />}
                 color="secondary"
                 data-test-id="update-job"

@@ -17,6 +17,7 @@ describe("interactive runs", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     assertEnvIsBuilt();
     cy.goToMenu("pipelines");

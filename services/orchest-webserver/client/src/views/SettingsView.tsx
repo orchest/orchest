@@ -1,6 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -53,13 +54,14 @@ const SettingsView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const updateView = () => {
-    navigateTo(siteMap.update.path);
+  const updateView = (e: React.MouseEvent) => {
+    navigateTo(siteMap.update.path, undefined, e);
   };
 
   const getVersion = () => {
     makeRequest("GET", "/async/version").then((data) => {
-      setState((prevState) => ({ ...prevState, version: data }));
+      let parsed_data = JSON.parse(data);
+      setState((prevState) => ({ ...prevState, version: parsed_data.version }));
     });
   };
 
@@ -103,8 +105,8 @@ const SettingsView: React.FC = () => {
       .catch((error) => console.log(error));
   };
 
-  const onClickManageUsers = () => {
-    navigateTo(siteMap.manageUsers.path);
+  const onClickManageUsers = (e: React.MouseEvent) => {
+    navigateTo(siteMap.manageUsers.path, undefined, e);
   };
 
   const configToVisibleConfig = (configJSON) => {
@@ -218,7 +220,7 @@ const SettingsView: React.FC = () => {
     return setConfirm(
       "Warning",
       "Are you sure you want to restart Orchest? This will kill all running Orchest containers (including kernels/pipelines).",
-      async () => {
+      async (resolve) => {
         setState((prevState) => ({
           ...prevState,
           restarting: true,
@@ -227,6 +229,7 @@ const SettingsView: React.FC = () => {
         }));
         try {
           await makeRequest("POST", "/async/restart");
+          resolve(true);
 
           setTimeout(() => {
             checkHeartbeat("/heartbeat")
@@ -248,17 +251,20 @@ const SettingsView: React.FC = () => {
           }, 5000); // allow 5 seconds for orchest-ctl to stop orchest
           return true;
         } catch (error) {
-          console.log(error);
-          console.error("Could not trigger restart.");
+          console.error(error);
+          resolve(false);
+          setAlert("Error", "Could not trigger restart.");
           return false;
         }
       }
     );
   };
 
-  const loadConfigureJupyterLab = () => {
-    navigateTo(siteMap.configureJupyterLab.path);
+  const loadConfigureJupyterLab = (e: React.MouseEvent) => {
+    navigateTo(siteMap.configureJupyterLab.path, undefined, e);
   };
+
+  const checkUpdate = useCheckUpdate();
 
   React.useEffect(() => {
     checkOrchestStatus();
@@ -393,6 +399,7 @@ const SettingsView: React.FC = () => {
               color="secondary"
               startIcon={<TuneIcon />}
               onClick={loadConfigureJupyterLab}
+              onAuxClick={loadConfigureJupyterLab}
             >
               Configure JupyterLab
             </StyledButtonOutlined>
@@ -410,7 +417,8 @@ const SettingsView: React.FC = () => {
               variant="outlined"
               color="secondary"
               startIcon={<SystemUpdateAltIcon />}
-              onClick={updateView}
+              onClick={checkUpdate}
+              onAuxClick={checkUpdate}
             >
               Check for updates
             </StyledButtonOutlined>
@@ -467,6 +475,7 @@ const SettingsView: React.FC = () => {
               variant="outlined"
               color="secondary"
               onClick={onClickManageUsers}
+              onAuxClick={onClickManageUsers}
               startIcon={<PeopleIcon />}
               data-test-id="manage-users"
             >

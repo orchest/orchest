@@ -201,7 +201,7 @@ class OrchestApp:
             utils.echo("Update completed. To start Orchest again, run:")
             utils.echo("\torchest start")
 
-    def start(self, container_config: dict):
+    def start(self, container_config: dict, cloud: bool = False):
         """Starts Orchest.
 
         Raises:
@@ -257,8 +257,12 @@ class OrchestApp:
         ids, exited_containers = self.resource_manager.get_containers(state="exited")
         self.docker_client.remove_containers(ids)
 
-        utils.fix_userdir_permissions()
-        logger.info("Fixing permissions on the 'userdir/'.")
+        # When running Orchest in cloud mode it is not necessary to
+        # fix permissions of files on start because users can only
+        # manipulate and add files through Orchest directly.
+        if not cloud:
+            logger.info("Fixing permissions on the 'userdir/'.")
+            utils.fix_userdir_permissions()
 
         utils.echo("Starting Orchest...")
         logger.info("Starting containers:\n" + "\n".join(start_req_images))

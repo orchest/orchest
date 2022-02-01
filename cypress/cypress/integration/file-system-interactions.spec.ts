@@ -11,6 +11,7 @@ describe("file system interactions", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
   });
 
   it("creates a project through the FS", () => {
@@ -59,10 +60,13 @@ describe("file system interactions", () => {
       10
     );
 
+    cy.reload();
+
     // ! This can break if MUI implementation changes
-    cy.findAllByTestId("project-list-pagination", { timeout: 10000 })
-      .find(".MuiTablePagination-displayedRows")
-      .contains(` of ${projects.length}`); // 1–10 of 20
+    cy.get(
+      `[data-test-id=project-list-pagination] .MuiTablePagination-displayedRows`,
+      { timeout: 10000 }
+    ).contains(` of ${projects.length}`); // 1–10 of 20
   });
 
   it("deletes multiple projects through the FS", () => {

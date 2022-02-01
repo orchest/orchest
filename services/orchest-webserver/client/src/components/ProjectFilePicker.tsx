@@ -140,6 +140,9 @@ const ProjectFilePicker: React.FC<{
 
   // local states
   const [createFileModal, setCreateFileModal] = React.useState(false);
+  // we don't want to apply toValidFilename here
+  // because user needs to use relative path as part of file name change the final path
+  // ? allow user to change file path, so user is not forced to abuse "file name"?
   const [fileName, setFileName] = React.useState("");
   const [createFileDir, setCreateFileDir] = React.useState("");
   const [fileExtension, setFileExtension] = React.useState(
@@ -161,8 +164,6 @@ const ProjectFilePicker: React.FC<{
   const fullProjectPath = `${createFileDir}${fileName}${fileExtension}`;
 
   const onCloseCreateFileModal = () => setCreateFileModal(false);
-
-  const onChangeNewFilename = (value: string) => setFileName(value);
 
   const onChangeNewFilenameExtension = (value: string) =>
     setFileExtension(value);
@@ -265,7 +266,7 @@ const ProjectFilePicker: React.FC<{
                   value={fileName}
                   fullWidth
                   disabled={isCreating}
-                  onChange={(e) => onChangeNewFilename(e.target.value)}
+                  onChange={(e) => setFileName(e.target.value)}
                   data-test-id="project-file-picker-file-name-textfield"
                 />
                 <FormControl fullWidth>

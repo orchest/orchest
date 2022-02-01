@@ -19,6 +19,7 @@ describe("app", () => {
 
   it("restarts", () => {
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
     cy.visit("settings");
     cy.findAllByTestId(TEST_ID.RESTART).scrollIntoView().click();
     cy.findAllByTestId(TEST_ID.CONFIRM_DIALOG_OK).click();

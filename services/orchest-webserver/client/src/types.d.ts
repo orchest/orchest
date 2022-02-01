@@ -1,4 +1,3 @@
-import React from "react";
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
 
@@ -111,24 +110,6 @@ export interface IOrchestSession extends IOrchestSessionUuid {
   };
 }
 
-export interface IProjectsContextState
-  extends Pick<
-    Omit<IOrchestSession, "pipeline_uuid" | "project_uuid">,
-    "projectUuid" | "pipelineUuid"
-  > {
-  pipelineName?: string;
-  pipelineFetchHash?: string;
-  pipelineIsReadOnly: boolean;
-  pipelineSaveStatus: "saved" | "saving";
-  projects: Project[];
-  hasLoadedProjects: boolean;
-}
-
-export interface IProjectsContext {
-  state: IProjectsContextState;
-  dispatch: React.Dispatch<OrchestAction>;
-}
-
 export interface IQueryArgs
   extends Partial<
     Record<
@@ -154,10 +135,12 @@ export type Project = {
   path: string;
   uuid: string;
   pipeline_count: number;
-  session_count: number;
   job_count: number;
   environment_count: number;
   project_snapshot_size: number;
+  env_variables: Record<string, string>;
+  status: "READY" | string;
+  session_count?: number;
 };
 
 export type Environment = {
@@ -181,13 +164,21 @@ export type EnvironmentBuild = {
   uuid: string;
 };
 
+export type PipelineStepStatus =
+  | "STARTED"
+  | "SUCCESS"
+  | "FAILURE"
+  | "ABORTED"
+  | "PENDING"
+  | "IDLE";
+
 export type JobStatus =
-  | "DRAFT"
   | "PENDING"
   | "STARTED"
   | "PAUSED"
   | "SUCCESS"
-  | "ABORTED";
+  | "ABORTED"
+  | "DRAFT";
 
 export type PipelineRun = {
   uuid: string;
@@ -199,7 +190,7 @@ export type PipelineRun = {
   pipeline_steps: {
     run_uuid: string;
     step_uuid: string;
-    status: TStatus;
+    status: PipelineStepStatus;
     started_time: string;
     finished_time: string;
   }[];
@@ -268,6 +259,16 @@ export type Step = {
   parameters: Record<string, any>;
   title: string;
   uuid: string;
+};
+
+export type IPipelineStepState = Step & {
+  outgoing_connections?: string[];
+  meta_data: {
+    hidden: boolean;
+    position: [number, number];
+    _drag_count: number;
+    _dragged: boolean;
+  };
 };
 
 export type Service = {
@@ -352,4 +353,12 @@ export type Pagination = {
   items_in_this_page: number;
   total_items: number;
   total_pages: number;
+};
+
+export type UpdateInfo = {
+  latest_version: string | null;
+};
+
+export type OrchestVersion = {
+  version: string | null;
 };
