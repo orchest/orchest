@@ -513,7 +513,10 @@ def rmtree(path, ignore_errors=False):
 
 
 def copytree(source: str, target: str):
-    """A wrapped cp -r that ignores source/.gitignore patterns.
+    """Copies content from source to target.
+
+    As part of the copying process it ignores patterns from the
+    top-level `.gitignore` in `source`.
 
     If eventlet is being used and it's either patching all modules or
     patchng subprocess, this function is not going to block the thread.
