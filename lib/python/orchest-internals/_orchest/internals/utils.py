@@ -651,7 +651,7 @@ def get_k8s_namespace_name(uuid: str) -> str:
         Name of the namespace to use.
     """
     if len(uuid) != 36:
-        raise ValueError("Needs to be a uuid4 string")
+        raise ValueError("The given 'uuid' needs to be a uuid4 string.")
     return f"orchest-{uuid}"
 
 
@@ -663,7 +663,7 @@ def get_k8s_namespace_manifest(uuid: str, labels: Dict[str, str]) -> dict:
     Args:
         uuid of the namespace. Will be used for the name.
         labels: dictionary mapping string to string. Will be used for
-        the namespace labels.
+            the namespace labels.
 
     Returns:
         Dictionary representing a valid k8s namespace manifest.

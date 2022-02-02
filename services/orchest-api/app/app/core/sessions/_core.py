@@ -22,7 +22,7 @@ def _create_session_k8s_namespace(
     session_type: SessionType,
     session_config: Dict[str, Any],
     wait_ready=True,
-) -> dict:
+) -> None:
     """Creates a k8s namespace for the given session.
 
     Args:
@@ -134,7 +134,12 @@ def launch(
             the cleanup_resources method if desired.
     """
     if should_abort is None:
-        should_abort = bool  # Returns False.
+
+        def always_false(*args, **kwargs):
+            return False
+
+        should_abort = always_false
+
     logger = utils.get_logger()
     logger.info("Creating namespace.")
     _create_session_k8s_namespace(session_uuid, session_type, session_config)

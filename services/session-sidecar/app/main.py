@@ -77,6 +77,7 @@ def follow_service_logs(service):
                 log_file.flush()
                 return
             else:  # Pending
+                logging.info(f"{service} is pending.")
                 msg = pod.get("message", "")
                 if "ImagePullBackOff" in msg or "ErrImagePull" in msg:
                     logging.info(f"{service} image pull failed.")

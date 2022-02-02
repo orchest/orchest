@@ -561,17 +561,17 @@ def _get_user_service_deployment_service_manifest(
     """Get deployment and service manifest for a user service.
 
     Args:
-            session_uuid:
-            session_config: See `Args` section in class :class:`Session`
-                    __init__ method.
-            service_config: See `Args` section in class :class:`Session`
-                    __init__ method.
-            session_type: Type of session: interactive, or
-                    noninteractive.
+        session_uuid:
+        session_config: See `Args` section in class :class:`Session`
+            __init__ method.
+        service_config: See `Args` section in class :class:`Session`
+            __init__ method.
+        session_type: Type of session: interactive, or
+            noninteractive.
 
     Returns:
-            Tuple of k8s deployment and service manifests to deploy this
-            user service in the session.
+        Tuple of k8s deployment and service manifests to deploy this
+        user service in the session.
 
     """
     project_uuid = session_config["project_uuid"]
