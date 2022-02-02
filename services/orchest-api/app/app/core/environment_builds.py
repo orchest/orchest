@@ -222,7 +222,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     snapshot_path = f"{env_builds_dir}/{dockerfile_name}"
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
-    copytree(userdir_project_path, snapshot_path)
+    copytree(userdir_project_path, snapshot_path, use_gitignore=True)
     # take the environment from the snapshot
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"

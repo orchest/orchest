@@ -619,7 +619,7 @@ def docker_has_gpu_capabilities(
     return True
 
 
-def rmtree(path, ignore_errors=False):
+def rmtree(path, ignore_errors=False) -> None:
     """A wrapped rm -rf.
 
     If eventlet is being used and it's either patching all modules or
@@ -634,34 +634,41 @@ def rmtree(path, ignore_errors=False):
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
 
-def copytree(source: str, target: str):
+def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
     """Copies content from source to target.
 
-    As part of the copying process it ignores patterns from the
-    top-level `.gitignore` in `source`.
-
     If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
+    patching subprocess, this function is not going to block the thread.
+
+    Args:
+        source:
+        target:
+        use_gitignore: If True, the copying process will ignore patterns
+        from the top-level `.gitignore` in `source`.
 
     Raises:
         OSError if it failed to copy.
 
     """
-    # With a trailing `/` rsync copies the content of the directory
-    # instead of the directory itself.
-    if not source.endswith("/"):
-        source += "/"
 
-    # Construct copy command.
-    # Using rsync with `-W` copies files as a whole which drastically
-    # improves its performance, making it almost as fast as the `cp`
-    # command. The other options (`-aHAX`) are to preserve all kinds
-    # of attributes, e.g. symlinks, `-a` also automatically copies
-    # recursively.
-    copy_cmd = ["rsync", "-aWHAX"]
-    if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
-        copy_cmd += [f"--exclude-from={source}.gitignore"]
-    copy_cmd += [f"{source} {target}"]
+    if use_gitignore:
+
+        # With a trailing `/` rsync copies the content of the directory
+        # instead of the directory itself.
+        if not source.endswith("/"):
+            source += "/"
+
+        # Using rsync with `-W` copies files as a whole which
+        # drastically improves its performance, making it almost as fast
+        # as the `cp` command. The other options (`-aHAX`) are to
+        # preserve all kinds of attributes, e.g. symlinks, `-a` also
+        # automatically copies recursively.
+        copy_cmd = ["rsync", "-aWHAX"]
+        if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
+            copy_cmd += [f"--exclude-from={source}.gitignore"]
+        copy_cmd += [f"{source} {target}"]
+    else:
+        copy_cmd = ["cp", "-r", source, target]
 
     exit_code = subprocess.call(
         " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True

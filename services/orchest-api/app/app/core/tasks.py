@@ -231,8 +231,9 @@ def start_non_interactive_pipeline_run(
     run_dir = os.path.join(job_dir, self.request.id)
 
     # Copy the contents of `snapshot_dir` to the new (not yet existing
-    # folder) `run_dir`.
-    copytree(snapshot_dir, run_dir)
+    # folder) `run_dir`. No need to use_gitignore since the snapshot
+    # was copied with use_gitignore=True.
+    copytree(snapshot_dir, run_dir, use_gitignore=False)
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its

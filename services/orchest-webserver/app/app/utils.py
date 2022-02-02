@@ -493,7 +493,7 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
         current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
     )
 
-    copytree(project_dir, snapshot_path)
+    copytree(project_dir, snapshot_path, use_gitignore=True)
 
 
 def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
