@@ -8,120 +8,106 @@ from app import utils
 from config import CONFIG_CLASS
 
 
-def _get_volumes(
-    project_uuid: str,
+def _get_common_volumes_and_volume_mounts(
+    host_userdir: str,
     host_project_dir: str,
     project_relative_pipeline_path: str,
-    host_userdir: str,
-) -> Dict[str, Dict]:
-    # Make sure the same set of keys is available for all cases.
-    volumes = {
-        "kernelspec": None,
-        "jupyterlab-lab": None,
-        "jupyterlab-user-settings": None,
-        "jupyterlab-data": None,
-    }
-
-    # K8S_TODO: we are not mounting the docker sock anymore since aren't
-    # spawning containers from other containers. Is there something else
-    # we should pass?
+    container_project_dir: str = _config.PROJECT_DIR,
+    container_pipeline_path: str = _config.PIPELINE_FILE,
+    container_data_dir: str = _config.DATA_DIR,
+) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
+    volumes = {}
+    volume_mounts = {}
 
     volumes["project-dir"] = {
         "name": "project-dir",
         "hostPath": {"path": host_project_dir},
     }
+    volume_mounts["project-dir"] = {
+        "name": "project-dir",
+        "mountPath": container_project_dir,
+    }
+
     volumes["pipeline-file"] = {
         "name": "pipeline-file",
         "hostPath": {
             "path": os.path.join(host_project_dir, project_relative_pipeline_path)
         },
     }
-
-    # The `host_userdir` is only passed for interactive runs.
-    if host_userdir is not None:
-        source_kernelspecs = os.path.join(
-            host_userdir, _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
-        )
-        volumes["kernelspec"] = {
-            "name": "kernelspec",
-            "hostPath": {"path": source_kernelspecs},
-        }
-
-        # User configurations of the JupyterLab IDE.
-        volumes["jupyterlab-lab"] = {
-            "name": "jupyterlab-lab",
-            "hostPath": {
-                "path": os.path.join(
-                    host_userdir, ".orchest/user-configurations/jupyterlab/lab"
-                ),
-            },
-        }
-        volumes["jupyterlab-user-settings"] = {
-            "name": "jupyterlab-user-settings",
-            "hostPath": {
-                "path": os.path.join(
-                    host_userdir,
-                    ".orchest/user-configurations/jupyterlab/user-settings",
-                ),
-            },
-        }
-        volumes["jupyterlab-data"] = {
-            "name": "jupyterlab-data",
-            "hostPath": {
-                "path": os.path.join(host_userdir, "data"),
-            },
-        }
-
-    return volumes
-
-
-def _get_volume_mounts(
-    container_project_dir: str, container_pipeline_path: str, session_type: str
-) -> Dict[str, Dict]:
-    # Make sure the same set of keys is available for all cases.
-    volumes_mounts = {
-        "kernelspec": None,
-        "jupyterlab-lab": None,
-        "jupyterlab-user-settings": None,
-        "jupyterlab-data": None,
-    }
-
-    # K8S_TODO: we are not mounting the docker sock anymore since aren't
-    # spawning containers from other containers. Is there something else
-    # we should pass?
-
-    volumes_mounts["project-dir"] = {
-        "name": "project-dir",
-        "mountPath": container_project_dir,
-    }
-    volumes_mounts["pipeline-file"] = {
+    volume_mounts["pipeline-file"] = {
         "name": "pipeline-file",
         "mountPath": container_pipeline_path,
     }
 
-    # The `host_userdir` is only passed for interactive runs.
-    if session_type == "interactive":
-        volumes_mounts["kernelspec"] = {
-            "name": "kernelspec",
-            "mountPath": "/usr/local/share/jupyter/kernels",
-        }
+    volumes["data"] = {
+        "name": "data",
+        "hostPath": {"path": os.path.join(host_userdir, "data")},
+    }
+    volume_mounts["data"] = {
+        "name": "data",
+        "mountPath": container_data_dir,
+    }
+    return volumes, volume_mounts
 
-        volumes_mounts["jupyterlab-lab"] = {
-            "name": "jupyterlab-lab",
-            "mountPath": "/usr/local/share/jupyter/lab",
-        }
 
-        volumes_mounts["jupyterlab-user-settings"] = {
-            "name": "jupyterlab-user-settings",
-            "mountPath": "/root/.jupyter/lab/user-settings",
-        }
+def _get_jupyter_volumes_and_volume_mounts(
+    project_uuid: str,
+    host_userdir: str,
+    host_project_dir: str,
+    project_relative_pipeline_path: str,
+    container_project_dir: str = _config.PROJECT_DIR,
+    container_pipeline_path: str = _config.PIPELINE_FILE,
+    container_data_dir: str = _config.DATA_DIR,
+) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
+    volumes, volume_mounts = _get_common_volumes_and_volume_mounts(
+        host_userdir,
+        host_project_dir,
+        project_relative_pipeline_path,
+        container_project_dir,
+        container_pipeline_path,
+        container_data_dir,
+    )
 
-        volumes_mounts["jupyterlab-data"] = {
-            "name": "jupyterlab-data",
-            "mountPath": "/data",
-        }
+    source_kernelspecs = os.path.join(
+        host_userdir, _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
+    )
+    volumes["kernelspec"] = {
+        "name": "kernelspec",
+        "hostPath": {"path": source_kernelspecs},
+    }
+    volume_mounts["kernelspec"] = {
+        "name": "kernelspec",
+        "mountPath": "/usr/local/share/jupyter/kernels",
+    }
 
-    return volumes_mounts
+    # User configurations of the JupyterLab IDE.
+    volumes["jupyterlab-lab"] = {
+        "name": "jupyterlab-lab",
+        "hostPath": {
+            "path": os.path.join(
+                host_userdir, ".orchest/user-configurations/jupyterlab/lab"
+            ),
+        },
+    }
+    volume_mounts["jupyterlab-lab"] = {
+        "name": "jupyterlab-lab",
+        "mountPath": "/usr/local/share/jupyter/lab",
+    }
+
+    volumes["jupyterlab-user-settings"] = {
+        "name": "jupyterlab-user-settings",
+        "hostPath": {
+            "path": os.path.join(
+                host_userdir,
+                ".orchest/user-configurations/jupyterlab/user-settings",
+            ),
+        },
+    }
+    volume_mounts["jupyterlab-user-settings"] = {
+        "name": "jupyterlab-user-settings",
+        "mountPath": "/root/.jupyter/lab/user-settings",
+    }
+    return volumes, volume_mounts
 
 
 def _get_memory_server_deployment_manifest(
@@ -143,12 +129,13 @@ def _get_memory_server_deployment_manifest(
             "session_uuid": session_uuid,
         },
     }
-    volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
+
+    volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
+        host_userdir,
+        host_project_dir,
+        project_relative_pipeline_path,
     )
-    volume_mounts_dict = _get_volume_mounts(
-        _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
-    )
+
     return {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -236,12 +223,13 @@ def _get_session_sidecar_deployment_manifest(
             "session_uuid": session_uuid,
         },
     }
-    volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
+
+    volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
+        host_userdir,
+        host_project_dir,
+        project_relative_pipeline_path,
     )
-    volume_mounts_dict = _get_volume_mounts(
-        _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
-    )
+
     return {
         "apiVersion": "apps/v1",
         "kind": "Deployment",
@@ -336,11 +324,8 @@ def _get_jupyter_server_deployment_service_manifest(
     else:
         image = "orchest/jupyter-server:latest"
 
-    volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
-    )
-    volume_mounts_dict = _get_volume_mounts(
-        _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
+    volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
+        project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
     )
     deployment_manifest = {
         "apiVersion": "apps/v1",
@@ -363,9 +348,9 @@ def _get_jupyter_server_deployment_service_manifest(
                     "volumes": [
                         volumes_dict["project-dir"],
                         volumes_dict["pipeline-file"],
+                        volumes_dict["data"],
                         volumes_dict["jupyterlab-lab"],
                         volumes_dict["jupyterlab-user-settings"],
-                        volumes_dict["jupyterlab-data"],
                     ],
                     "containers": [
                         {
@@ -376,9 +361,9 @@ def _get_jupyter_server_deployment_service_manifest(
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
                                 volume_mounts_dict["pipeline-file"],
+                                volume_mounts_dict["data"],
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
-                                volume_mounts_dict["jupyterlab-data"],
                             ],
                             # K8S_TODO: will require changes based on
                             # how ingress is implemented.
@@ -493,11 +478,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     ]
     environment.extend(user_defined_env_vars)
 
-    volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
-    )
-    volume_mounts_dict = _get_volume_mounts(
-        _config.PROJECT_DIR, _config.PIPELINE_FILE, session_type
+    volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
+        project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
     )
     deployment_manifest = {
         "apiVersion": "apps/v1",
@@ -620,8 +602,10 @@ def _get_user_service_deployment_service_manifest(
     volumes = []
     volume_mounts = []
     sbinds = service_config.get("binds", {})
-    volumes_dict = _get_volumes(
-        project_uuid, host_project_dir, project_relative_pipeline_path, host_userdir
+    volumes_dict, _ = _get_common_volumes_and_volume_mounts(
+        host_userdir,
+        host_project_dir,
+        project_relative_pipeline_path,
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.

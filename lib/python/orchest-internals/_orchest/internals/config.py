@@ -2,6 +2,7 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
+DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
