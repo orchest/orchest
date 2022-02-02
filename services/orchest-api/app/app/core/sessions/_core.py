@@ -153,11 +153,12 @@ def launch(
                 session_uuid, session_config, session_type.value
             )
         )
-        orchest_session_service_k8s_deployment_manifests.append(
-            _manifests._get_session_sidecar_deployment_manifest(
-                session_uuid, session_config, session_type.value
+        if session_config.get("services", {}):
+            orchest_session_service_k8s_deployment_manifests.append(
+                _manifests._get_session_sidecar_deployment_manifest(
+                    session_uuid, session_config, session_type.value
+                )
             )
-        )
     else:
         raise ValueError(f"Invalid session type: {session_type}.")
 
