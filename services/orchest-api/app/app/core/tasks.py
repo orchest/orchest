@@ -16,7 +16,12 @@ from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
-from app.core.pipelines import Pipeline, PipelineDefinition, run_pipeline_workflow
+from app.core.pipelines import (
+    Pipeline,
+    PipelineDefinition,
+    RunConfig,
+    run_pipeline_workflow,
+)
 from app.core.sessions import launch_noninteractive_session
 from config import CONFIG_CLASS
 
@@ -87,11 +92,16 @@ async def get_run_status(
             return await response.json()
 
 
-async def run_pipeline_async(session_uuid, run_config, pipeline, task_id):
+async def run_pipeline_async(
+    session_uuid: str, run_config: RunConfig, pipeline: Pipeline, task_id: str
+):
     try:
         await run_pipeline_workflow(
             session_uuid, task_id, pipeline, run_config=run_config
         )
+    except Exception as e:
+        logger.error(e)
+        raise
     finally:
         # We get here either because the task was successful or was
         # aborted, in any case, delete the workflow.
@@ -112,8 +122,7 @@ async def run_pipeline_async(session_uuid, run_config, pipeline, task_id):
 def run_pipeline(
     self,
     pipeline_definition: PipelineDefinition,
-    project_uuid: str,
-    run_config: Dict[str, Union[str, Dict[str, str]]],
+    run_config: RunConfig,
     session_uuid: str,
     task_id: Optional[str] = None,
 ) -> str:
@@ -126,24 +135,11 @@ def run_pipeline(
     Args:
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
-            Example: {
-                'session_uuid' : 'uuid',
-                'session_type' : 'interactive',
-                'run_endpoint': 'runs',
-                'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_docker_id_mappings': {
-                    'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
-                        'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
-                }
-            }
 
     Returns:
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    run_config["pipeline_uuid"] = pipeline_definition["uuid"]
-    run_config["project_uuid"] = project_uuid
-
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_definition)
 
@@ -250,7 +246,6 @@ def start_non_interactive_pipeline_run(
     ):
         status = run_pipeline(
             pipeline_definition,
-            project_uuid,
             run_config,
             session_uuid,
             task_id=self.request.id,

@@ -72,6 +72,19 @@ class PipelineDefinition(TypedDict):
     version: str
 
 
+class RunConfig(TypedDict):
+    env_uuid_docker_id_mappings: Dict[str, str]
+    host_user_dir: str
+    pipeline_path: str
+    pipeline_uuid: str
+    project_dir: str
+    project_uuid: str
+    run_endpoint: Optional[str]
+    session_type: str  # interactive, noninteractive
+    session_uuid: str
+    user_env_variables: Dict[str, str]
+
+
 def construct_pipeline(
     uuids: Iterable[str],
     run_type: str,
@@ -616,11 +629,7 @@ def _pipeline_to_workflow_manifest(
 
 
 async def run_pipeline_workflow(
-    session_uuid: str,
-    task_id: str,
-    pipeline: Pipeline,
-    *,
-    run_config: Dict[str, Any],
+    session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
 ):
     async with aiohttp.ClientSession() as session:
 

@@ -310,7 +310,6 @@ class CreateInteractiveRun(TwoPhaseFunction):
         run_config["session_type"] = "interactive"
         celery_job_kwargs = {
             "pipeline_definition": pipeline.to_dict(),
-            "project_uuid": project_uuid,
             "run_config": run_config,
             "session_uuid": run_config["session_uuid"],
         }
