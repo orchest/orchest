@@ -21,19 +21,25 @@ the job will run the same code throughout its lifetime and therefore produce the
 
 .. note::
    💡 Write data and large artifacts to the special ``/data`` directory as they would otherwise be
-   included in the snapshot, taking up unnessecary space.
+   included in the snapshot, taking up unnessecary space. Alternatively, you can include the
+   artifacts in your ``.gitignore`` as the ignored patterns are not copied to the snapshot.
 
 .. _parametrize pipeline section:
 
 Parametrizing pipelines and steps
 ---------------------------------
 Before we get into jobs, it is good to first cover the notion of parametrizing your pipeline and
-your pipeline steps. A job runs a specific pipeline for a set of parameters, these parameters have
-to be defined first before you can set their value for a job. We allow you to define parameters for:
+your pipeline steps. A job runs a specific pipeline for a given set of parameters. If you define
+multiple values for the same parameter, then the job will run the pipeline once for every
+combination of parameter values. First you need to define the possible parameters that your pipeline
+can take for inputs. We allow you to define parameters for:
 
 * Pipelines. The parameters and corresponding values will be available in every step of the
   pipeline.
 * Pipeline steps. The parameters will only be accessible by the step they are defined for.
+
+Different pipeline runs that are part of the same job are completely isolated from a scheduling
+perspective and do not affect each others state.
 
 .. note::
    💡 Unlike :ref:`environment variables <environment variables>`, name collisions between pipeline
