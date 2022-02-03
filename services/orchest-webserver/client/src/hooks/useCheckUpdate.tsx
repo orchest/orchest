@@ -61,10 +61,19 @@ export const useCheckUpdate = () => {
   const promptUpdate = (currentVersion: string, latestVersion: string) => {
     setConfirm(
       "Update available",
-      <Typography variant="body2">
-        Orchest can be updated from <Code>{currentVersion}</Code> to{" "}
-        <Code>{latestVersion}</Code>. Would you like to update now?
-      </Typography>,
+      <>
+        <Typography variant="body2">
+          Orchest can be updated from <Code>{currentVersion}</Code> to{" "}
+          <Code>{latestVersion}</Code> . Would you like to update now?
+        </Typography>
+        <Typography variant="body2" sx={{ marginTop: 4 }}>
+          Check out the{" "}
+          <a href="https://github.com/orchest/orchest/releases/latest">
+            release notes
+          </a>
+          .
+        </Typography>
+      </>,
       {
         onConfirm: async (resolve) => {
           updateView();
