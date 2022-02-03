@@ -1,7 +1,7 @@
 import time
 from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, TypedDict, Union
 
 import requests
 from kubernetes import client
@@ -19,10 +19,29 @@ class SessionType(Enum):
     NONINTERACTIVE = "noninteractive"
 
 
+class _SessionConfig(TypedDict):
+    env_uuid_docker_id_mappings: Dict[str, str]
+    host_userdir: str
+    pipeline_path: str
+    pipeline_uuid: str
+    project_dir: str
+    project_uuid: str
+    services: Optional[Dict[str, Any]]
+
+
+class InteractiveSessionConfig(_SessionConfig):
+    pass
+
+
+class NonInteractiveSessionConfig(_SessionConfig):
+    # Env variables defined for the job.
+    user_env_variables: Dict[str, str]
+
+
 def _create_session_k8s_namespace(
     session_uuid: str,
     session_type: SessionType,
-    session_config: Dict[str, Any],
+    session_config: _SessionConfig,
     wait_ready=True,
 ) -> None:
     """Creates a k8s namespace for the given session.
@@ -64,7 +83,7 @@ def _create_session_k8s_namespace(
 def launch(
     session_uuid: str,
     session_type: SessionType,
-    session_config: Dict[str, Any],
+    session_config: Union[InteractiveSessionConfig, NonInteractiveSessionConfig],
     should_abort: Optional[Callable] = None,
 ) -> None:
     """Starts all resources needed by the session.
@@ -79,56 +98,7 @@ def launch(
             services, along with any user defined service, can be
             interacted with using the functions in this module through
             their name.
-        session_config: A dictionary containing the session
-            configuration. Required entries: project_uuid,
-            pipeline_uuid , project_dir, host_userdir,
-            env_uuid_docker_id_mappings, session_type.
-            user_env_variables is a required entry for noninteractive
-            session type, while it's unused for interactive session
-            type.  User services can be defined by passing the optional
-            entry services, a dictionary mapping service names to
-            service configurations. Each service is considered a "user
-            service" and will be launched along with the minimum
-            resources that are required by a session to run. The
-            project_uuid and pipeline_uuid determine the name of the
-            resources that are launched, i.e. the container names are
-            based on those. The image of a service can be an "external"
-            image to be pulled from a repo or an orchest environment
-            image uuid prefixed by environment@, in the latter case, the
-            used image depends on the env_uuid_docker_id_mappings, which
-            must have an entry for said environment uuid.  Example of a
-            configuration:
-            {
-                "project_uuid": myuuid,
-                "pipeline_uuid": myuuid,
-                "project_dir": mystring,
-                "host_userdir": mystring,
-                "user_env_variables": {
-                    "A": "1",
-                    "B": "hello"
-                }
-                "env_uuid_docker_id_mappings" : {
-                    "env uuid" : "docker id"
-                }
-                "services": {
-                    "my-little-service": {
-                        "name": "my-little-service",
-                        "binds": {
-                            "/data": "/data",
-                            "/project-dir": "/project-dir"
-                        },
-                        "image": "myimage",
-                        "command": "mycommand",
-                        "entrypoint": "myentrypoint",
-                        "scope": ["interactive", "noninteractive"],
-                        "ports": [80, 8080], // ports are TCP only,
-                        "env_variables": {
-                            "key1": "value1",
-                            "key2": "value2"
-                        },
-                        "env_variables_inherit": ["key1", "key2"],
-                    }}
-            }
+        session_config: See the SessionConfig TypedDict.
         should_abort: A callable that can be used to abort the
             launch logic. When the callable returns True the launch
             is interrupted. Note that no resource cleanup takes
@@ -328,7 +298,7 @@ def restart_session_service(
 @contextmanager
 def launch_noninteractive_session(
     session_uuid: str,
-    session_config: Dict[str, Any],
+    session_config: NonInteractiveSessionConfig,
     should_abort: Optional[Callable] = None,
 ) -> None:
     """Launches a non-interactive session for a particular pipeline.

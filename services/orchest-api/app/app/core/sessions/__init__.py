@@ -12,6 +12,8 @@ the retrieval of such information should be quite straightforward.
 
 """
 from app.core.sessions._core import (
+    InteractiveSessionConfig,
+    NonInteractiveSessionConfig,
     SessionType,
     cleanup_resources,
     has_busy_kernels,

@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 from docker import errors
 from flask import request
 from flask.globals import current_app
@@ -139,7 +137,7 @@ class Session(Resource):
 
 
 class CreateInteractiveSession(TwoPhaseFunction):
-    def _transaction(self, session_config: Dict[str, Any]):
+    def _transaction(self, session_config: sessions.InteractiveSessionConfig):
 
         # Gate check to see if there is a Jupyter lab build active
         latest_jupyter_build = models.JupyterBuild.query.order_by(
@@ -208,7 +206,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
     @classmethod
     def _background_session_start(
-        cls, app, session_uuid: str, session_config: Dict[str, Any]
+        cls, app, session_uuid: str, session_config: sessions.InteractiveSessionConfig
     ):
 
         with app.app_context():
