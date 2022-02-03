@@ -1,6 +1,8 @@
 NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest}
 KUBECONFIG := ${if ${KUBECONFIG},--kubeconfig ${KUBECONFIG},}
 
+ROOK_NAMESPACE := ${if ${ROOK_NAMESPACE},${ROOK_NAMESPACE},rook-ceph}
+
 DEFAULT_TAG := ${if ${DEFAULT_TAG},${DEFAULT_TAG},latest}
 
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
@@ -18,7 +20,7 @@ REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
 ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
-	 --create-namespace --wait --atomic
+	 --create-namespace --atomic
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
@@ -40,6 +42,7 @@ CLUSTER_RSC_REG_NAME_CONFIG := --set cluster-resources.registry.name=${REGISTRY_
 CLUSTER_RSC_REG_ISSUER_CONFIG := --set cluster-resources.registry.issuer.name=${ISSUER_NAME}
 CLUSTER_RSC_REG_ENABLE_CONFIG := --set cluster-resources.registry.enabled=true
 CLUSTER_RSC_REG_DEPLOY_CONFIG := registry-resources \
+								--namespace ${NAMESPACE} \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
 								${CLUSTER_RSC_REG_ENABLE_CONFIG} \
@@ -54,12 +57,19 @@ CEPH_RSC_ENABLE_CONFIG := --set cluster-resources.ceph.enabled=true
 CEPH_MULTI_MON_PER_NODE_CONFIG := --set cluster-resources.ceph.cephClusterSpec.mon.allowMultiplePerNode=${CEPH_MULTI_MON_PER_NODE}
 CEPH_USE_ALL_DEVICES_CONFIG := --set cluster-resources.ceph.cephClusterSpec.storage.useAllDevices=${CEPH_USE_ALL_DEVICES}
 CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
+								--namespace ${ROOK_NAMESPACE} \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
 								${CEPH_RSC_ENABLE_CONFIG} \
 								${CEPH_USE_ALL_DEVICES_CONFIG} \
 								${CEPH_MULTI_MON_PER_NODE_CONFIG} \
 								${CEPH_ENABLE_CONFIG} helm
+
+# rook deplyment configs
+ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
+ROOK_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_IMAGE_TAGE}
+ROOK_DEPLOY_CONFIG := rook \
+	${SHARED_DEPLOY_CONFIG} ${ROOK_IMAGE_TAG_CONFIG} --namespace ${ROOK_NAMESPACE} thirdparty/rook/rook-ceph
 
 # rook deplyment configs
 ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
@@ -116,10 +126,10 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	helm
 
 JUPYTER_EG_DEPLOY_CONFIG := jupyter-eg \
-	${SHARED_DEPLOY_CONFIG} thirdparty/enterprise-gateway
+	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/enterprise-gateway
 
 ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
-	${SHARED_DEPLOY_CONFIG} thirdparty/argo-workflows
+	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/argo-workflows
 
 # Docker-registry deployment configs
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
