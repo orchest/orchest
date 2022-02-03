@@ -2033,6 +2033,10 @@ const PipelineView: React.FC = () => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
+    dispatch({
+      type: "SET_PIPELINE_IS_READONLY",
+      payload: isReadOnly,
+    });
     const hasActiveRun = runUuid && jobUuidFromRoute;
     const isNonPipelineRun = !hasActiveRun && isReadOnly;
     if (isNonPipelineRun) {
