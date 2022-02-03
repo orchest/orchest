@@ -21,10 +21,12 @@ SHARED_DEPLOY_CONFIG := --kubeconfig ${KUBECONFIG} \
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
 REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
+REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
 
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
 DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
+DOCKER_REGISTRY_PORT_CONFIG := --set service.port=${REGISTRY_PORT}
 
 
 # Orchest cluster resource deployment configs
@@ -85,7 +87,8 @@ ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 
 # Docker-registry deployment configs
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
-	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} thirdparty/docker-registry	
+	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} \
+	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry	
 
 .PHONY: orchest
 orchest: initialize
