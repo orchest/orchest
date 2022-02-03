@@ -33,6 +33,8 @@ def _get_common_volumes_and_volume_mounts(
     }
 
     volumes["pipeline-file"] = {
+        # This way the binding is persisted even if the pipeline file
+        # is moved, since the binding happens through inodes.
         "name": "pipeline-file",
         "hostPath": {
             "path": os.path.join(host_project_dir, project_relative_pipeline_path)
