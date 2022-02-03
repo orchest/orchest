@@ -1,0 +1,7 @@
+apiVersion: v2
+description: The helm chart for docker-registry resources, like certificates, secrets and etc ...
+name: registry
+version: 0.0.1
+icon: https://github.com/orchest/orchest/blob/master/docs/source/img/logo.png
+sources:
+  - https://github.com/orchest/orchest/tree/master/services/auth-server
