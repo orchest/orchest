@@ -11,6 +11,8 @@ from app import errors, utils
 from app.connections import k8s_apps_api, k8s_core_api
 from app.core.sessions import _manifests
 
+logger = utils.get_logger()
+
 
 class SessionType(Enum):
     INTERACTIVE = "interactive"
@@ -140,7 +142,6 @@ def launch(
 
         should_abort = always_false
 
-    logger = utils.get_logger()
     logger.info("Creating namespace.")
     _create_session_k8s_namespace(session_uuid, session_type, session_config)
 

@@ -8,6 +8,8 @@ from app import utils
 from app.core import environments
 from config import CONFIG_CLASS
 
+logger = utils.get_logger()
+
 
 def _get_common_volumes_and_volume_mounts(
     host_userdir: str,
@@ -578,9 +580,7 @@ def _get_user_service_deployment_service_manifest(
             )
     except Exception as e:
 
-        utils.get_logger().error(
-            "Failed to fetch user_env_variables: %s [%s]" % (e, type(e))
-        )
+        logger.error("Failed to fetch user_env_variables: %s [%s]" % (e, type(e)))
 
         traceback.print_exc()
 
