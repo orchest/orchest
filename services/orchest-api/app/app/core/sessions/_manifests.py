@@ -5,6 +5,7 @@ from typing import Any, Dict, Tuple
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_k8s_namespace_name
 from app import utils
+from app.core import environments
 from config import CONFIG_CLASS
 
 
@@ -319,7 +320,10 @@ def _get_jupyter_server_deployment_service_manifest(
     }
 
     # Check if user tweaked JupyterLab image exists.
-    if utils.get_environment_image_docker_id(_config.JUPYTER_IMAGE_NAME) is not None:
+    if (
+        environments.get_environment_image_docker_id(_config.JUPYTER_IMAGE_NAME)
+        is not None
+    ):
         image = _config.JUPYTER_IMAGE_NAME
     else:
         image = "orchest/jupyter-server:latest"

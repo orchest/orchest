@@ -1,11 +1,14 @@
 import logging
 import time
+from typing import Optional
 
 import docker
+from flask import current_app
 from kubernetes import client, watch
 
-from _orchest.internals.utils import docker_images_list_safe
-from app import utils
+from _orchest.internals import config as _config
+from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
+from app import errors, models
 from app.connections import docker_client, k8s_core_api, k8s_custom_obj_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
@@ -265,7 +268,7 @@ def delete_project_environment_dangling_images(project_uuid, environment_uuid):
     project_env_images = docker_images_list_safe(docker_client, filters=filters)
 
     for docker_img in project_env_images:
-        utils.remove_if_dangling(docker_img)
+        remove_if_dangling(docker_img)
 
 
 def delete_project_dangling_images(project_uuid):
@@ -289,4 +292,193 @@ def delete_project_dangling_images(project_uuid):
     project_images = docker_images_list_safe(docker_client, filters=filters)
 
     for docker_img in project_images:
-        utils.remove_if_dangling(docker_img)
+        remove_if_dangling(docker_img)
+
+
+def is_docker_image_in_use(img_id: str) -> bool:
+    """True if the image is or will be in use by a run/job
+
+    Args:
+        img_id:
+
+    Returns:
+        bool:
+    """
+
+    int_runs = models.PipelineRun.query.filter(
+        models.PipelineRun.image_mappings.any(docker_img_id=img_id),
+        models.PipelineRun.status.in_(["PENDING", "STARTED"]),
+    ).all()
+
+    int_sessions = models.InteractiveSession.query.filter(
+        models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
+        models.InteractiveSession.status.in_(["LAUNCHING", "RUNNING"]),
+    ).all()
+
+    jobs = models.Job.query.filter(
+        models.Job.image_mappings.any(docker_img_id=img_id),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
+    ).all()
+
+    return bool(int_runs) or bool(int_sessions) or bool(jobs)
+
+
+def remove_if_dangling(img) -> bool:
+    """Remove an image if its dangling.
+
+    A dangling image is an image that is nameless and tag-less,
+    and for which no runs exist that are PENDING or STARTED and that
+    are going to use this image in one of their steps.
+
+    Args:
+        img:
+
+    Returns:
+        True if the image was successfully removed.
+        False if not, e.g. if it is not nameless or if it is being used
+        or will be used by a run.
+
+    """
+    # nameless image
+    if len(img.attrs["RepoTags"]) == 0 and not is_docker_image_in_use(img.id):
+        # need to check multiple times because of a race condition
+        # given by the fact that cleaning up a project will
+        # stop runs and jobs, then cleanup images and dangling
+        # images, it might be that the celery worker running the task
+        # still has to shut down the containers
+        tries = 10
+        while tries > 0:
+            try:
+                docker_client.images.remove(img.id)
+                return True
+            except errors.ImageNotFound:
+                return False
+            except Exception as e:
+                current_app.logger.warning(
+                    f"exception during removal of image {img.id}:\n{e}"
+                )
+                pass
+            time.sleep(1)
+            tries -= 1
+    return False
+
+
+def process_stale_environment_images(
+    project_uuid: Optional[str] = None, only_marked_for_removal: bool = True
+) -> None:
+    """Makes stale environments unavailable to the user.
+
+    Args:
+        project_uuid: If specified, only this project environment images
+            will be processed.
+        only_marked_for_removal: Only consider images that have been
+            marked for removal. Setting this to False allows the caller
+            to, essentially, cleanup environments that are no longer in
+            use.
+
+    After an update, all environment images are invalidated to avoid the
+    user having an environment with an SDK not compatible with the
+    latest version of Orchest. At the same time, we need to maintain
+    environment images that are in use by jobs. Environment images that
+    are stale and are not in use by any job get deleted.  Orchest-ctl
+    marks all environment images as "stale" on update, by adding a new
+    name/tag to them. This function goes through all environments
+    images, looking for images that have been marked as stale. Stale
+    images have their "real" name, orchest-env-<proj_uuid>-<env_uuid>
+    removed, so that the environment will have to be rebuilt to be
+    available to the user for new runs.  The invalidation semantics are
+    tied with the semantics of the validation module, which considers an
+    environment as existing based on the existence of the orchest-env-*
+    name.
+
+    """
+    filters = {"label": ["_orchest_env_build_is_intermediate=0"]}
+    if project_uuid is not None:
+        filters["label"].append(f"_orchest_project_uuid={project_uuid}")
+
+    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    for img in env_imgs:
+        _process_stale_environment_image(img, only_marked_for_removal)
+
+
+def _process_stale_environment_image(img, only_marked_for_removal) -> None:
+    pr_uuid = img.labels.get("_orchest_project_uuid")
+    env_uuid = img.labels.get("_orchest_environment_uuid")
+    build_uuid = img.labels.get("_orchest_env_build_task_uuid")
+
+    env_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+        project_uuid=pr_uuid, environment_uuid=env_uuid
+    )
+
+    removal_name = _config.ENVIRONMENT_IMAGE_REMOVAL_NAME.format(
+        project_uuid=pr_uuid, environment_uuid=env_uuid, build_uuid=build_uuid
+    )
+
+    if (
+        pr_uuid is None
+        or env_uuid is None
+        or build_uuid is None
+        or
+        # The image has not been marked for removal. This will happen
+        # everytime Orchest is started except for a start which is
+        # following an update.
+        (f"{removal_name}:latest" not in img.tags and only_marked_for_removal)
+        # Note that we can't check for env_name:latest not being in
+        # img.tags because it might not be there if the image has
+        # "survived" two updates in a row because a job is still using
+        # that.
+    ):
+        return
+
+    has_env_name = f"{env_name}:latest" in img.tags
+    if has_env_name:
+        if only_marked_for_removal:
+            # This will just remove the orchest-env-* name/tag from the
+            # image, the image will still be available for jobs that are
+            # making use of that because the image still has the
+            # <removal_name>.
+            docker_images_rm_safe(docker_client, env_name)
+        else:
+            # The image is not dangling, e.g. it has not been
+            # substituted by a more up to date version of the same
+            # environment.
+            return
+
+    if not is_docker_image_in_use(img.id):
+        # Delete through id, hence deleting the image regardless of the
+        # fact that it has other tags. force=True is used to delete
+        # regardless of the existence of stopped containers, this is
+        # required because pipeline runs PUT to the orchest-api their
+        # finished state before deleting their stopped containers.
+        docker_images_rm_safe(docker_client, img.id, attempt_count=20, force=True)
+
+
+def delete_dangling_orchest_images() -> None:
+    """Deletes dangling Orchest images.
+
+    After an update there could be old Orchest images dangling, for two
+    reasons:
+    - running containers during update, e.g. when running in "web" mode.
+    - existing environmens making use of those images.
+
+    After an update, all services are restarted, and at the start of
+    this service, all user environment images coming from a previous
+    Orchest version are deleted, which means those dangling images can
+    now be deleted.
+
+    """
+    filters = {
+        "label": ["maintainer=Orchest B.V. https://www.orchest.io"],
+        # Note: a dangling image has no tags and no dependent child
+        # images. A base image with no tags which is being used by an
+        # environment, even a dangling one, will not be removed.
+        "dangling": True,
+    }
+    env_imgs = docker_images_list_safe(docker_client, filters=filters)
+    for img in env_imgs:
+        # Since environment images might be built using Orchest base
+        # images, make sure to not delete environment images by mistake
+        # because of the filtering.
+        env_uuid = img.labels.get("_orchest_environment_uuid")
+        if env_uuid is None:
+            docker_images_rm_safe(docker_client, img.id)

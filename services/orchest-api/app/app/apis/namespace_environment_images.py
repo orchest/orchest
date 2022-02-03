@@ -12,14 +12,8 @@ from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db, docker_client
-from app.core import image_utils
-from app.utils import (
-    interactive_runs_using_environment,
-    interactive_sessions_using_environment,
-    is_environment_in_use,
-    jobs_using_environment,
-    register_schema,
-)
+from app.core import environments, image_utils
+from app.utils import register_schema
 
 api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
@@ -55,7 +49,7 @@ class EnvironmentImage(Resource):
 class EnvironmentImageInUse(Resource):
     @api.doc("is-environment-in-use")
     def get(self, project_uuid, environment_uuid):
-        in_use = is_environment_in_use(project_uuid, environment_uuid)
+        in_use = environments.is_environment_in_use(project_uuid, environment_uuid)
         return {"message": in_use, "in_use": in_use}, 200
 
 
@@ -118,7 +112,7 @@ class DeleteImage(TwoPhaseFunction):
     def _transaction(self, project_uuid: str, environment_uuid: str):
         # Stop all interactive sessions making use of the env by using
         # it as a service.
-        int_sess = interactive_sessions_using_environment(
+        int_sess = environments.interactive_sessions_using_environment(
             project_uuid, environment_uuid
         )
         for sess in int_sess:
@@ -127,12 +121,14 @@ class DeleteImage(TwoPhaseFunction):
             )
 
         # Stop all interactive runs making use of the env.
-        int_runs = interactive_runs_using_environment(project_uuid, environment_uuid)
+        int_runs = environments.interactive_runs_using_environment(
+            project_uuid, environment_uuid
+        )
         for run in int_runs:
             AbortPipelineRun(self.tpe).transaction(run.uuid)
 
         # Stop all jobs making use of the environment.
-        jobs = jobs_using_environment(project_uuid, environment_uuid)
+        jobs = environments.jobs_using_environment(project_uuid, environment_uuid)
         for job in jobs:
             AbortJob(self.tpe).transaction(job.uuid)
 

@@ -13,13 +13,9 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunc
 from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
-from app.core import sessions
+from app.core import environments, sessions
 from app.errors import JupyterBuildInProgressException
-from app.utils import (
-    get_env_uuids_to_docker_id_mappings,
-    lock_environment_images_for_session,
-    register_schema,
-)
+from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
 api = register_schema(api)
@@ -167,7 +163,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
             if img.startswith(prefix):
                 env_as_services.add(img.replace(prefix, ""))
         try:
-            get_env_uuids_to_docker_id_mappings(
+            environments.get_env_uuids_to_docker_id_mappings(
                 session_config["project_uuid"], env_as_services
             )
         except errors.ImageNotFound as e:
@@ -229,8 +225,10 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
                 # Lock the orchest environment images that are used
                 # as services.
-                env_uuid_docker_id_mappings = lock_environment_images_for_session(
-                    project_uuid, pipeline_uuid, env_as_services
+                env_uuid_docker_id_mappings = (
+                    environments.lock_environment_images_for_session(
+                        project_uuid, pipeline_uuid, env_as_services
+                    )
                 )
                 session_config[
                     "env_uuid_docker_id_mappings"

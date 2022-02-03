@@ -17,13 +17,9 @@ from app import errors as self_errors
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import environments
 from app.core.pipelines import Pipeline, construct_pipeline
-from app.utils import (
-    get_proj_pip_env_variables,
-    lock_environment_images_for_run,
-    register_schema,
-    update_status_db,
-)
+from app.utils import get_proj_pip_env_variables, register_schema, update_status_db
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
 api = register_schema(api)
@@ -281,7 +277,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         # will not be deleted in case they become outdated by an
         # environment rebuild.
         try:
-            env_uuid_docker_id_mappings = lock_environment_images_for_run(
+            env_uuid_docker_id_mappings = environments.lock_environment_images_for_run(
                 task_id,
                 project_uuid,
                 pipeline.get_environments(),

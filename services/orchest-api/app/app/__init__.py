@@ -20,13 +20,13 @@ from sqlalchemy_utils import create_database, database_exists
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import is_werkzeug_parent
-from app import utils
 from app.apis import blueprint as api
 from app.apis.namespace_environment_builds import AbortEnvironmentBuild
 from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_jupyter_builds import AbortJupyterBuild, CreateJupyterBuild
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
+from app.core import environments, image_utils
 from app.core.scheduler import Scheduler
 from app.models import (
     EnvironmentBuild,
@@ -165,11 +165,11 @@ def create_app(config_class=None, use_db=True, be_scheduler=False):
 
                 # Make environments unavailable to a user after an
                 # update.
-                utils.process_stale_environment_images()
+                image_utils.process_stale_environment_images()
 
                 # Remove dangling Orchest images, mostly useful after an
                 # update.
-                utils.delete_dangling_orchest_images()
+                image_utils.delete_dangling_orchest_images()
 
             except FileExistsError:
                 app.logger.info("/tmp/cleanup_done exists. Skipping cleanup.")
@@ -299,7 +299,10 @@ def trigger_conditional_jupyter_build(app):
         return
 
     user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
-    if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
+    if (
+        environments.get_environment_image_docker_id(user_jupyer_server_image)
+        is not None
+    ):
         return
 
     try:

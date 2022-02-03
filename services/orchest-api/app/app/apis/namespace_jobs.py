@@ -20,13 +20,11 @@ from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import environments
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
-    get_env_uuids_missing_image,
     get_proj_pip_env_variables,
-    lock_environment_images_for_job,
     page_to_pagination_data,
-    process_stale_environment_images,
     register_schema,
     update_status_db,
 )
@@ -898,7 +896,7 @@ class AbortJob(TwoPhaseFunction):
             res.abort()
 
         if project_uuid is not None:
-            process_stale_environment_images(
+            environments.process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
 
@@ -983,7 +981,9 @@ class CreateJob(TwoPhaseFunction):
         # This way all runs of a job will use the same environments. The
         # images to use will be retrieved through the JobImageMapping
         # model.
-        lock_environment_images_for_job(job_uuid, project_uuid, environment_uuids)
+        environments.lock_environment_images_for_job(
+            job_uuid, project_uuid, environment_uuids
+        )
 
     def _revert(self):
         models.Job.query.filter_by(
@@ -1127,7 +1127,9 @@ class UpdateJob(TwoPhaseFunction):
             # K8S_TODO: fix
             # pipeline_def = job.pipeline_definition
             # environment_uuids = set(
-            #     [step["environment"] for step in pipeline_def["steps"].values()]
+            #    [
+            # step["environment"] for
+            # step in pipeline_def["steps"].values()]
             # )
             # env_uuids_missing_image = get_env_uuids_missing_image(
             #     job.project_uuid, environment_uuids
@@ -1191,7 +1193,7 @@ class DeleteJob(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str):
         if project_uuid is not None:
-            process_stale_environment_images(
+            environments.process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
 
@@ -1338,7 +1340,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str, completed: bool):
         if completed and project_uuid is not None:
-            process_stale_environment_images(
+            environments.process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
 
