@@ -43,18 +43,24 @@ export const useFetchPipelineMetadata = ({
 
   // Environment variables are fetched either from 1) pipeline 2) pipeline run
   const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
-  React.useEffect(() => {
+
+  const fetchedEnvVariables = React.useMemo(() => {
     if (pipeline || pipelineRun) {
-      const envVarArray = envVariablesDictToArray(
-        pipeline
-          ? pipeline.env_variables
-          : pipelineRun
-          ? pipelineRun.env_variables
-          : {}
-      );
+      return pipeline
+        ? pipeline.env_variables
+        : pipelineRun
+        ? pipelineRun.env_variables
+        : {};
+    }
+    return null;
+  }, [pipeline, pipelineRun]);
+
+  React.useEffect(() => {
+    if (fetchedEnvVariables) {
+      const envVarArray = envVariablesDictToArray(fetchedEnvVariables);
       _setEnvVariables(envVarArray);
     }
-  }, [pipeline, pipelineRun]);
+  }, [fetchedEnvVariables]);
 
   const setEnvVariables = React.useCallback(
     (data: React.SetStateAction<EnvVarPair[]>) => {
