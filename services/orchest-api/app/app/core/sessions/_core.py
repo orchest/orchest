@@ -191,9 +191,6 @@ def launch(
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
 
-    if should_abort():
-        return
-
     logger.info("Creating Orchest session services deployments.")
     ns = get_k8s_namespace_name(session_uuid)
     for manifest in orchest_session_service_k8s_deployment_manifests:
@@ -203,9 +200,6 @@ def launch(
             manifest,
         )
 
-    if should_abort():
-        return
-
     logger.info("Creating Orchest session services k8s services.")
     for manifest in orchest_session_service_k8s_service_manifests:
         logger.info(f'Creating service {manifest["metadata"]["name"]}')
@@ -213,20 +207,6 @@ def launch(
             ns,
             manifest,
         )
-
-    logger.info("Waiting for Orchest session service deployments to be ready.")
-    for manifest in orchest_session_service_k8s_deployment_manifests:
-        name = manifest["metadata"]["name"]
-        deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
-        while deployment.status.updated_replicas != deployment.spec.replicas:
-            if should_abort():
-                return
-            logger.info(f"Waiting for {name}.")
-            time.sleep(1)
-            deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
-
-    if should_abort():
-        return
 
     logger.info("Creating user session services deployments.")
     for manifest in user_session_service_k8s_deployment_manifests:
@@ -236,9 +216,6 @@ def launch(
             manifest,
         )
 
-    if should_abort():
-        return
-
     logger.info("Creating user session services k8s services.")
     for manifest in user_session_service_k8s_service_manifests:
         logger.info(f'Creating service {manifest["metadata"]["name"]}')
@@ -247,8 +224,11 @@ def launch(
             manifest,
         )
 
-    logger.info("Waiting for user session service deployments to be ready.")
-    for manifest in user_session_service_k8s_deployment_manifests:
+    logger.info("Waiting for user and orchest session service deployments to be ready.")
+    for manifest in (
+        user_session_service_k8s_deployment_manifests
+        + orchest_session_service_k8s_deployment_manifests
+    ):
         name = manifest["metadata"]["name"]
         deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
         while deployment.status.updated_replicas != deployment.spec.replicas:
