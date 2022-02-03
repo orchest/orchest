@@ -11,5 +11,5 @@ changelog:
         - new feature request
     - title: Improvements 👷
       labels:
-        - bug
+        - fix
         - improvement
