@@ -1,3 +1,8 @@
+"""Collection of function to generate k8s manifests.
+
+Note that pod labels are coupled with how we restart services, which
+is done by deleting all pods with the given labels.
+"""
 import os
 import traceback
 from typing import Any, Dict, Tuple

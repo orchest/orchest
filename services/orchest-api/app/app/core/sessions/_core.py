@@ -253,14 +253,8 @@ def restart_session_service(
 
     """
     ns = get_k8s_namespace_name(session_uuid)
-    old_replicas = k8s_apps_api.read_namespaced_deployment_status(
-        service_name, ns
-    ).spec.replicas
-    k8s_apps_api.patch_namespaced_deployment_scale(
-        service_name, ns, {"spec": {"replicas": 0}}
-    )
-    k8s_apps_api.patch_namespaced_deployment_scale(
-        service_name, ns, {"spec": {"replicas": old_replicas}}
+    k8s_core_api.delete_collection_namespaced_pod(
+        namespace=ns, label_selector=f"app={service_name}"
     )
 
     if wait_for_readiness:
