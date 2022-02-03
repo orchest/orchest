@@ -13,6 +13,7 @@ from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
 from app.core import environments, sessions
 from app.errors import JupyterBuildInProgressException
+from app.types import InteractiveSessionConfig, SessionType
 from app.utils import register_schema
 
 api = Namespace("sessions", description="Manage interactive sessions")
@@ -137,7 +138,7 @@ class Session(Resource):
 
 
 class CreateInteractiveSession(TwoPhaseFunction):
-    def _transaction(self, session_config: sessions.InteractiveSessionConfig):
+    def _transaction(self, session_config: InteractiveSessionConfig):
 
         # Gate check to see if there is a Jupyter lab build active
         latest_jupyter_build = models.JupyterBuild.query.order_by(
@@ -206,7 +207,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
     @classmethod
     def _background_session_start(
-        cls, app, session_uuid: str, session_config: sessions.InteractiveSessionConfig
+        cls, app, session_uuid: str, session_config: InteractiveSessionConfig
     ):
 
         with app.app_context():
@@ -234,7 +235,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
                 sessions.launch(
                     session_uuid,
-                    sessions.SessionType.INTERACTIVE,
+                    SessionType.INTERACTIVE,
                     session_config,
                     should_abort=lambda: cls._should_abort_session_start(
                         project_uuid, pipeline_uuid

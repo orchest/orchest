@@ -16,13 +16,9 @@ from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
-from app.core.pipelines import (
-    Pipeline,
-    PipelineDefinition,
-    RunConfig,
-    run_pipeline_workflow,
-)
+from app.core.pipelines import Pipeline, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
+from app.types import PipelineDefinition, RunConfig
 from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)

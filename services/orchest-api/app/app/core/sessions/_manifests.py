@@ -6,6 +6,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.utils import get_k8s_namespace_name
 from app import utils
 from app.core import environments
+from app.types import SessionConfig, SessionType
 from config import CONFIG_CLASS
 
 logger = utils.get_logger()
@@ -115,14 +116,15 @@ def _get_jupyter_volumes_and_volume_mounts(
 
 def _get_memory_server_deployment_manifest(
     session_uuid: str,
-    session_config: str,
-    session_type: str,
+    session_config: SessionConfig,
+    session_type: SessionType,
 ) -> dict:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
+    session_type = session_type.value
 
     metadata = {
         "name": "memory-server",
@@ -209,14 +211,15 @@ def _get_memory_server_deployment_manifest(
 
 def _get_session_sidecar_deployment_manifest(
     session_uuid: str,
-    session_config: str,
-    session_type: str,
+    session_config: SessionConfig,
+    session_type: SessionType,
 ) -> dict:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
+    session_type = session_type.value
 
     metadata = {
         "name": "session-sidecar",
@@ -304,13 +307,14 @@ def _get_session_sidecar_deployment_manifest(
 
 def _get_jupyter_server_deployment_service_manifest(
     session_uuid: str,
-    session_config: str,
-    session_type: str,
+    session_config: SessionConfig,
+    session_type: SessionType,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
+    session_type = session_type.value
 
     metadata = {
         "name": "jupyter-server",
@@ -416,14 +420,15 @@ def _get_jupyter_server_deployment_service_manifest(
 
 def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     session_uuid: str,
-    session_config: str,
-    session_type: str,
+    session_config: SessionConfig,
+    session_type: SessionType,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
+    session_type = session_type.value
 
     metadata = {
         "name": "jupyter-eg",
@@ -542,9 +547,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
 
 def _get_user_service_deployment_service_manifest(
     session_uuid: str,
-    session_config: str,
+    session_config: SessionConfig,
     service_config: Dict[str, Any],
-    session_type: str,
+    session_type: SessionType,
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Get deployment and service manifest for a user service.
 
@@ -568,6 +573,7 @@ def _get_user_service_deployment_service_manifest(
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
     img_mappings = session_config["env_uuid_docker_id_mappings"]
+    session_type = session_type.value
 
     # Get user configured environment variables
     try:

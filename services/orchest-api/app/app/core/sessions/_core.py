@@ -1,7 +1,6 @@
 import time
 from contextlib import contextmanager
-from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, TypedDict, Union
+from typing import Callable, List, Optional
 
 import requests
 from kubernetes import client
@@ -10,38 +9,15 @@ from _orchest.internals.utils import get_k8s_namespace_manifest, get_k8s_namespa
 from app import errors, utils
 from app.connections import k8s_apps_api, k8s_core_api
 from app.core.sessions import _manifests
+from app.types import NonInteractiveSessionConfig, SessionConfig, SessionType
 
 logger = utils.get_logger()
-
-
-class SessionType(Enum):
-    INTERACTIVE = "interactive"
-    NONINTERACTIVE = "noninteractive"
-
-
-class _SessionConfig(TypedDict):
-    env_uuid_docker_id_mappings: Dict[str, str]
-    host_userdir: str
-    pipeline_path: str
-    pipeline_uuid: str
-    project_dir: str
-    project_uuid: str
-    services: Optional[Dict[str, Any]]
-
-
-class InteractiveSessionConfig(_SessionConfig):
-    pass
-
-
-class NonInteractiveSessionConfig(_SessionConfig):
-    # Env variables defined for the job.
-    user_env_variables: Dict[str, str]
 
 
 def _create_session_k8s_namespace(
     session_uuid: str,
     session_type: SessionType,
-    session_config: _SessionConfig,
+    session_config: SessionConfig,
     wait_ready=True,
 ) -> None:
     """Creates a k8s namespace for the given session.
@@ -83,7 +59,7 @@ def _create_session_k8s_namespace(
 def launch(
     session_uuid: str,
     session_type: SessionType,
-    session_config: Union[InteractiveSessionConfig, NonInteractiveSessionConfig],
+    session_config: SessionConfig,
     should_abort: Optional[Callable] = None,
 ) -> None:
     """Starts all resources needed by the session.
@@ -98,7 +74,8 @@ def launch(
             services, along with any user defined service, can be
             interacted with using the functions in this module through
             their name.
-        session_config: See the SessionConfig TypedDict.
+        session_config: See the `SessionConfig` TypedDict in the types
+            module.
         should_abort: A callable that can be used to abort the
             launch logic. When the callable returns True the launch
             is interrupted. Note that no resource cleanup takes
@@ -121,13 +98,13 @@ def launch(
     if session_type in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
         orchest_session_service_k8s_deployment_manifests.append(
             _manifests._get_memory_server_deployment_manifest(
-                session_uuid, session_config, session_type.value
+                session_uuid, session_config, session_type
             )
         )
         if session_config.get("services", {}):
             orchest_session_service_k8s_deployment_manifests.append(
                 _manifests._get_session_sidecar_deployment_manifest(
-                    session_uuid, session_config, session_type.value
+                    session_uuid, session_config, session_type
                 )
             )
     else:
@@ -138,12 +115,12 @@ def launch(
             depl,
             serv,
         ) = _manifests._get_jupyter_enterprise_gateway_deployment_service_manifest(
-            session_uuid, session_config, session_type.value
+            session_uuid, session_config, session_type
         )
         orchest_session_service_k8s_deployment_manifests.append(depl)
         orchest_session_service_k8s_service_manifests.append(serv)
         depl, serv = _manifests._get_jupyter_server_deployment_service_manifest(
-            session_uuid, session_config, session_type.value
+            session_uuid, session_config, session_type
         )
         orchest_session_service_k8s_deployment_manifests.append(depl)
         orchest_session_service_k8s_service_manifests.append(serv)
@@ -157,7 +134,7 @@ def launch(
             session_uuid,
             session_config,
             service_config,
-            session_type.value,
+            session_type,
         )
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
