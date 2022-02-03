@@ -1,5 +1,7 @@
-import { Layout, useLayout } from "@/components/Layout";
+import { Layout } from "@/components/Layout";
+import { useOnboardingDialog } from "@/components/Layout/OnboardingDialog";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -51,7 +53,9 @@ const HelpView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.help.path });
-  const { setIsOnboardingDialogOpen } = useLayout();
+  const { setIsOnboardingDialogOpen } = useOnboardingDialog();
+
+  useCheckUpdate();
 
   return (
     <Layout>

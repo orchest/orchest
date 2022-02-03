@@ -1,3 +1,4 @@
+import { PipelineStepStatus } from "@/types";
 import { RefManager } from "@orchest/lib-utils";
 import * as React from "react";
 
@@ -7,10 +8,10 @@ export const STEP_HEIGHT = 105;
 export type TPipelineStepRef = any;
 
 export type ExecutionState = {
-  finished_time?: number;
-  server_time?: number;
-  started_time?: number;
-  status: "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED" | "PENDING" | "IDLE";
+  finished_time?: Date;
+  server_time?: Date;
+  started_time?: Date;
+  status: PipelineStepStatus;
 };
 export interface IPipelineStepProps {
   selected?: boolean;

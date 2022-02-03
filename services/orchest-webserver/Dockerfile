@@ -2,7 +2,9 @@ FROM tiangolo/meinheld-gunicorn-flask:python3.8
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Install required system packages and refresh certs
-RUN apt-get update && apt-get install -y ca-certificates git && update-ca-certificates --fresh
+RUN apt-get update \
+    && apt-get install -y ca-certificates git rsync \
+    && update-ca-certificates --fresh
 
 # Install nodejs
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs

@@ -10,6 +10,7 @@ from celery import Task
 from celery.contrib.abortable import AbortableTask
 from celery.utils.log import get_task_logger
 
+from _orchest.internals.utils import copytree
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
@@ -176,9 +177,9 @@ def start_non_interactive_pipeline_run(
     run_dir = os.path.join(job_dir, self.request.id)
 
     # Copy the contents of `snapshot_dir` to the new (not yet existing
-    # folder) `run_dir` (that will then be created by `copytree`).
-    # copytree(snapshot_dir, run_dir)
-    os.system('cp -R "%s" "%s"' % (snapshot_dir, run_dir))
+    # folder) `run_dir`. No need to use_gitignore since the snapshot
+    # was copied with use_gitignore=True.
+    copytree(snapshot_dir, run_dir, use_gitignore=False)
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its

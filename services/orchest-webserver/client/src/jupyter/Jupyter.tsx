@@ -202,13 +202,15 @@ class Jupyter {
             if (!this.isKernelChangePending(notebook, kernel)) {
               this.setKernelChangePending(notebook, kernel, true);
               // @ts-ignore
-              this.setConfirm("Warning", warningMessage, async () => {
+              this.setConfirm("Warning", warningMessage, async (resolve) => {
                 try {
                   await sessionContext.changeKernel({ name: kernel });
                   this.setKernelChangePending(notebook, kernel, false);
+                  resolve(true);
                   return true;
                 } catch (error) {
                   this.setKernelChangePending(notebook, kernel, false);
+                  resolve(false);
                   console.error(error);
                   return false;
                 }
@@ -225,20 +227,26 @@ class Jupyter {
                 if (!this.isKernelChangePending(notebook, kernel)) {
                   this.setKernelChangePending(notebook, kernel, true);
                   // @ts-ignore
-                  this.setConfirm("Warning", warningMessage, async () => {
-                    try {
-                      await docManager.services.sessions.shutdown(
-                        notebookSession.id
-                      );
+                  this.setConfirm(
+                    "Warning",
+                    warningMessage,
+                    async (resolve) => {
+                      try {
+                        await docManager.services.sessions.shutdown(
+                          notebookSession.id
+                        );
 
-                      this.setKernelChangePending(notebook, kernel, false);
-                      return true;
-                    } catch (error) {
-                      this.setKernelChangePending(notebook, kernel, false);
-                      console.error(error);
-                      return false;
+                        this.setKernelChangePending(notebook, kernel, false);
+                        resolve(true);
+                        return true;
+                      } catch (error) {
+                        this.setKernelChangePending(notebook, kernel, false);
+                        resolve(false);
+                        console.error(error);
+                        return false;
+                      }
                     }
-                  });
+                  );
                 }
               }
             }

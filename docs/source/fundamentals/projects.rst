@@ -65,14 +65,33 @@ Using ``git`` inside Orchest
    <https://www.tella.tv/video/cknr9z9x0000709kz7vzh0wdx/view>`_.
 
 Using ``git`` inside Orchest works using the `jupyterlab-git
-<https://github.com/jupyterlab/jupyterlab-git>`_ extension which we ship pre-installed. All that you
-to do is :ref:`configure JupyterLab <configuration jupyterlab>` (go to *settings* > *configure
-JupyterLab*) and set your ``user.name`` and ``user.email``, for example:
+<https://github.com/jupyterlab/jupyterlab-git>`_ extension which we ship pre-installed. The only
+thing that you need to do is :ref:`configure JupyterLab <configuration jupyterlab>` (go to
+*settings* > *configure JupyterLab*) and set your ``user.name`` and ``user.email``, for example:
 
 .. code-block:: sh
 
    git config --global user.name "John Doe"
    git config --global user.email "john@example.org"
+
+If you'd like to add a private SSH key to your terminal session in JupyterLab you can do so
+through the following commands:
+
+.. code-block:: sh
+
+   echo "chmod 400 /data/id_rsa" >> ~/.bashrc
+   echo "ssh-add /data/id_rsa 2>/dev/null" >> ~/.bashrc
+   echo "if [ -z \$SSH_AGENT_PID ]; then exec ssh-agent bash; fi" >> ~/.bashrc
+   mkdir -p ~/.ssh
+   printf "%s\n" "Host github.com" " IdentityFile /data/id_rsa" >> ~/.ssh/config
+   ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+
+Make sure the ``id_rsa`` private key file is uploaded through the file manager (go to *File
+manager*) in the root ``data/`` folder.
+
+.. warning::
+   🚨 Putting your private key in the ``/data`` folder exposes the private key file to everyone
+   using your Orchest instance.
 
 Now you can version using ``git`` through a JupyterLab terminal or use the extension through the
 JupyterLab UI.
@@ -80,4 +99,4 @@ JupyterLab UI.
 Importing private ``git`` repositories
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To import private ``git`` repositories upload them directly through the *File manager* into the
-``userdir/projects/`` directory. Orchest will then pick up the project automatically.
+root ``projects/`` directory. Orchest will then pick up the project automatically.

@@ -1,7 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { isSession, useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import { siteMap } from "@/Routes";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -20,7 +20,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { useRouteMatch } from "react-router-dom";
+import { useLocation, useRouteMatch } from "react-router-dom";
 import { IconButton } from "./common/IconButton";
 import ProjectSelector from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
@@ -33,12 +33,35 @@ export const HeaderBar = ({
   isDrawerOpen: boolean;
 }) => {
   const { navigateTo } = useCustomRoute();
-  const { state } = useProjectsContext();
-  const appContext = useAppContext();
+  const location = useLocation();
+
   const {
-    state: { sessions },
-  } = useSessionsContext();
-  const currentSession = sessions.find((session) => isSession(session, state));
+    state: {
+      projectUuid,
+      pipelineUuid,
+      pipelineName,
+      pipelineSaveStatus,
+      pipelineIsReadOnly,
+    },
+    dispatch,
+  } = useProjectsContext();
+  const appContext = useAppContext();
+  useSessionsPoller();
+
+  React.useEffect(() => {
+    /*
+      Always unset the pipeline for the header bar on navigation. 
+      It's up to pages to request the headerbar pipeline if they 
+      need it.
+    */
+    dispatch({
+      type: "pipelineSet",
+      payload: {
+        pipelineUuid: undefined,
+        pipelineName: undefined,
+      },
+    });
+  }, [location]);
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
@@ -49,30 +72,28 @@ export const HeaderBar = ({
     exact: true,
   });
 
-  const goToHome = () => {
-    navigateTo(siteMap.projects.path);
+  const goToHome = (e: React.MouseEvent) => {
+    navigateTo(siteMap.projects.path, undefined, e);
   };
 
-  const showHelp = () => {
-    navigateTo(siteMap.help.path);
+  const showHelp = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    navigateTo(siteMap.help.path, undefined, e);
   };
 
-  const showPipeline = () => {
-    navigateTo(siteMap.pipeline.path, {
-      query: {
-        projectUuid: state.projectUuid,
-        pipelineUuid: state.pipelineUuid,
-      },
-    });
+  const showPipeline = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.pipeline.path,
+      { query: { projectUuid, pipelineUuid } },
+      e
+    );
   };
 
-  const showJupyter = () => {
-    navigateTo(siteMap.jupyterLab.path, {
-      query: {
-        projectUuid: state.projectUuid,
-        pipelineUuid: state.pipelineUuid,
-      },
-    });
+  const showJupyter = (e: React.MouseEvent) => {
+    navigateTo(
+      siteMap.jupyterLab.path,
+      { query: { projectUuid, pipelineUuid } },
+      e
+    );
   };
 
   const logoutHandler = () => {
@@ -104,6 +125,7 @@ export const HeaderBar = ({
         <Box
           component="img"
           onClick={goToHome}
+          onAuxClick={goToHome}
           src="/image/logo.svg"
           data-test-id="orchest-logo"
           sx={{
@@ -115,14 +137,14 @@ export const HeaderBar = ({
         <ProjectSelector />
         <LinearProgress />
         <Box sx={{ flex: 1 }}>
-          {state.pipelineName && (
+          {pipelineName && (
             <Stack
               direction="row"
               alignItems="center"
               justifyContent="center"
               spacing={2}
             >
-              {state.pipelineSaveStatus === "saved" ? (
+              {pipelineSaveStatus === "saved" ? (
                 <Tooltip title="Pipeline saved">
                   <CheckCircleIcon />
                 </Tooltip>
@@ -137,35 +159,38 @@ export const HeaderBar = ({
                   overflow: "hidden",
                   whiteSpace: "nowrap",
                 }}
-                title={state.pipelineName}
+                title={pipelineName}
+                data-test-id="pipeline-name"
               >
-                {state.pipelineName}
+                {pipelineName}
               </Typography>
             </Stack>
           )}
         </Box>
         <Stack spacing={2} direction="row">
-          {state.pipelineName && !state.pipelineIsReadOnly && (
+          {pipelineName && !pipelineIsReadOnly && (
             <SessionToggleButton
-              pipelineUuid={state.pipelineUuid}
-              projectUuid={state.projectUuid}
+              pipelineUuid={pipelineUuid}
+              projectUuid={projectUuid}
             />
           )}
-          {state.pipelineName && matchJupyter && (
+          {pipelineName && matchJupyter && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               onClick={showPipeline}
+              onAuxClick={showPipeline}
               startIcon={<DeviceHubIcon />}
             >
               Switch to Pipeline
             </StyledButtonOutlined>
           )}
-          {state.pipelineName && !state.pipelineIsReadOnly && matchPipeline && (
+          {pipelineName && !pipelineIsReadOnly && matchPipeline && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
               onClick={showJupyter}
+              onAuxClick={showJupyter}
               startIcon={<ScienceIcon />}
               data-test-id="switch-to-jupyterlab"
             >
@@ -186,7 +211,12 @@ export const HeaderBar = ({
                 <LogoutIcon />
               </IconButton>
             )}
-            <IconButton title="Help" onClick={showHelp} color="secondary">
+            <IconButton
+              title="Help"
+              onClick={showHelp}
+              onAuxClick={showHelp}
+              color="secondary"
+            >
               <HelpIcon />
             </IconButton>
           </Stack>

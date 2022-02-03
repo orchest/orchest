@@ -15,13 +15,12 @@ type ISessionToggleButtonProps = {
   projectUuid: string;
   isSwitch?: boolean;
   className?: string;
-  style?: React.CSSProperties;
 };
 
 const SessionToggleButton = (props: ISessionToggleButtonProps) => {
-  const { state, dispatch, getSession } = useSessionsContext();
+  const { state, getSession, toggleSession } = useSessionsContext();
 
-  const { className, isSwitch, pipelineUuid, projectUuid, style } = props;
+  const { className, isSwitch, pipelineUuid, projectUuid } = props;
 
   const status =
     props.status ||
@@ -39,13 +38,10 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       RUNNING: "Stop session",
     }[status] || "Start session";
 
-  const handleEvent = (e) => {
+  const handleEvent = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dispatch({
-      type: "sessionToggle",
-      payload: { pipelineUuid, projectUuid },
-    });
+    toggleSession({ pipelineUuid, projectUuid });
   };
   const isSessionAlive = status === "RUNNING";
 
@@ -54,6 +50,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
       {isSwitch ? (
         <FormControlLabel
           onClick={handleEvent}
+          onAuxClick={(e) => {
+            // middle click on this button shouldn't open new tab
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           disableTypography
           control={
             <Switch
@@ -62,9 +63,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
               inputProps={{
                 "aria-label": `Switch ${isSessionAlive ? "off" : "on"} session`,
               }}
-              sx={{
-                marginRight: (theme) => theme.spacing(1),
-              }}
+              sx={{ margin: (theme) => theme.spacing(0, 1) }}
               className={className}
               checked={isSessionAlive}
             />
@@ -77,6 +76,11 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
           color="secondary"
           disabled={disabled}
           onClick={handleEvent}
+          onAuxClick={(e) => {
+            // middle click on this button shouldn't open new tab
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           className={classNames(
             className,
             ["LAUNCHING", "STOPPING"].includes(status) ? "working" : "active"

@@ -7,6 +7,7 @@ import {
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useImportUrl } from "@/hooks/useImportUrl";
 import { useMounted } from "@/hooks/useMounted";
@@ -15,24 +16,18 @@ import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
 import { BackgroundTask } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
-import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import InputIcon from "@mui/icons-material/Input";
 import LightbulbIcon from "@mui/icons-material/Lightbulb";
-import SaveIcon from "@mui/icons-material/Save";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import TextField from "@mui/material/TextField";
-import { fetcher, makeRequest } from "@orchest/lib-utils";
+import { makeRequest } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
+import { CreateProjectDialog } from "./CreateProjectDialog";
+import { EditProjectPathDialog } from "./EditProjectPathDialog";
+import { useFetchProjects } from "./hooks/useFetchProjects";
 import { ImportDialog } from "./ImportDialog";
 
 type ProjectRow = Pick<
@@ -47,7 +42,7 @@ type ProjectRow = Pick<
 };
 
 const ProjectsView: React.FC = () => {
-  const { setAlert, setConfirm } = useAppContext();
+  const { state, setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projects.path });
 
   const {
@@ -57,41 +52,42 @@ const ProjectsView: React.FC = () => {
   const { navigateTo } = useCustomRoute();
 
   const [projectName, setProjectName] = React.useState<string>();
+  const [projectPath, setProjectPath] = React.useState<string | undefined>();
+  const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
+    string | undefined
+  >();
+
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
   const [isImporting, setIsImporting] = React.useState(false);
 
-  const [state, setState] = React.useState({
-    isDeleting: false,
-    projects: null,
-    importResult: undefined,
-    fetchListAndSetProject: "",
-    editProjectPathModal: false,
-    editProjectPathModalBusy: false,
-    editProjectPathUUID: undefined,
-    editProjectPath: undefined,
-  });
-
-  const openSettings = (projectUuid: string) => {
-    navigateTo(siteMap.projectSettings.path, {
-      query: { projectUuid },
-    });
-  };
+  useCheckUpdate();
 
   const columns: DataTableColumn<ProjectRow>[] = React.useMemo(() => {
-    const onEditProjectName = (projectUUID: string, projectPath: string) => {
-      setState((prevState) => ({
-        ...prevState,
-        editProjectPathUUID: projectUUID,
-        editProjectPath: projectPath,
-        editProjectPathModal: true,
-      }));
+    const openSettings = (projectUuid: string) => (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      navigateTo(
+        siteMap.projectSettings.path,
+        {
+          query: { projectUuid },
+        },
+        e
+      );
+    };
+    const onEditProjectName = (
+      projectUUID: string,
+      projectPathToBeEdited: string
+    ) => {
+      setProjectUuidOnEdit(projectUUID);
+      setProjectPath(projectPathToBeEdited);
     };
     return [
       {
         id: "path",
         label: "Project",
-        render: function ProjectPath(row) {
+        sx: { margin: (theme) => theme.spacing(-0.5, 0) },
+        render: function ProjectPath(row, disabled) {
           return (
             <Stack
               direction="row"
@@ -110,12 +106,18 @@ const ProjectsView: React.FC = () => {
                 title="Edit job name"
                 size="small"
                 sx={{ marginLeft: (theme) => theme.spacing(2) }}
+                disabled={disabled}
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onEditProjectName(row.uuid, row.path);
                 }}
+                onAuxClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
               >
-                <EditIcon />
+                <EditIcon fontSize="small" />
               </IconButton>
             </Stack>
           );
@@ -128,101 +130,52 @@ const ProjectsView: React.FC = () => {
       {
         id: "settings",
         label: "Settings",
-        render: function ProjectSettingsButton(row) {
+        sx: { margin: (theme) => theme.spacing(-0.5, 0) },
+        render: function ProjectSettingsButton(row, disabled) {
           return (
             <IconButton
               title="settings"
+              disabled={disabled}
+              size="small"
               data-test-id={`settings-button-${row.path}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                openSettings(row.uuid);
-              }}
+              onClick={openSettings(row.uuid)}
+              onAuxClick={openSettings(row.uuid)}
             >
-              <SettingsIcon />
+              <SettingsIcon fontSize="small" />
             </IconButton>
           );
         },
       },
     ];
-  }, [setState]);
+  }, [setProjectPath, navigateTo]);
 
   const onCloseEditProjectPathModal = () => {
-    setState((prevState) => ({
-      ...prevState,
-      editProjectPathModal: false,
-      editProjectPathModalBusy: false,
-    }));
-  };
-
-  const onSubmitEditProjectPathModal = () => {
-    if (!validateProjectNameAndAlert(state.editProjectPath)) {
-      return;
-    }
-
-    setState((prevState) => ({
-      ...prevState,
-      editProjectPathModalBusy: true,
-    }));
-
-    makeRequest("PUT", `/async/projects/${state.editProjectPathUUID}`, {
-      type: "json",
-      content: {
-        name: state.editProjectPath,
-      },
-    })
-      .then((_) => {
-        fetchProjects();
-      })
-      .catch((e) => {
-        try {
-          let resp = JSON.parse(e.body);
-
-          if (resp.code == 0) {
-            setAlert(
-              "Error",
-              "Cannot rename project when an interactive session is running."
-            );
-          } else if (resp.code == 1) {
-            setAlert(
-              "Error",
-              `Cannot rename project, a project with the name "${state.editProjectPath}" already exists.`
-            );
-          }
-        } catch (error) {
-          console.error(e);
-          console.error(error);
-        }
-      })
-      .finally(() => {
-        onCloseEditProjectPathModal();
-      });
+    setProjectUuidOnEdit(undefined);
   };
 
   const {
-    data: projects = [],
-    revalidate: fetchProjects,
-    error: fetchProjectsError,
-    isValidating,
-  } = useSWR<Project[]>(
-    "/async/projects?session_counts=true&job_counts=true",
-    fetcher
-  );
+    projects,
+    fetchProjects,
+    setProjects,
+    fetchProjectsError,
+    isFetchingProjects,
+  } = useFetchProjects({ sessionCounts: true, jobCounts: true });
 
   const mounted = useMounted();
 
   React.useEffect(() => {
     if (mounted && fetchProjectsError)
       setAlert("Error", "Error fetching projects");
-  }, [fetchProjectsError]);
+  }, [fetchProjectsError, setAlert, mounted]);
 
   React.useEffect(() => {
-    if (mounted && !isValidating && !fetchProjectsError && projects) {
+    if (mounted && !isFetchingProjects && !fetchProjectsError && projects) {
       dispatch({
         type: "projectsSet",
         payload: projects,
       });
     }
-  }, [projects]);
+  }, [projects, mounted, isFetchingProjects, fetchProjectsError, dispatch]);
 
   const projectRows: DataTableRow<ProjectRow>[] = React.useMemo(() => {
     return projects.map((project) => {
@@ -233,65 +186,38 @@ const ProjectsView: React.FC = () => {
     });
   }, [projects]);
 
-  const onRowClick = (projectUuid: string) => {
-    navigateTo(siteMap.pipelines.path, {
-      query: { projectUuid },
-    });
+  const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
+    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
   };
 
   const deleteSelectedRows = async (projectUuids: string[]) => {
-    if (!state.isDeleting) {
-      setState((prevState) => ({
-        ...prevState,
-        isDeleting: true,
-      }));
+    if (projectUuids.length === 0) {
+      setAlert("Error", "You haven't selected a project.");
 
-      if (projectUuids.length === 0) {
-        setAlert("Error", "You haven't selected a project.");
-
-        setState((prevState) => ({
-          ...prevState,
-          isDeleting: false,
-        }));
-
-        return false;
-      }
-
-      return setConfirm(
-        "Warning",
-        "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
-        async () => {
-          // Start actual delete
-
-          try {
-            await Promise.all(
-              projectUuids.map((projectUuid) =>
-                deleteProjectRequest(projectUuid)
-              )
-            );
-            fetchProjects();
-            // Clear isDeleting
-            setState((prevState) => ({
-              ...prevState,
-              isDeleting: false,
-            }));
-            return true;
-          } catch (error) {
-            return false;
-          }
-        },
-        async () => {
-          setState((prevState) => ({
-            ...prevState,
-            isDeleting: false,
-          }));
-          return false;
-        }
-      );
-    } else {
-      console.error("Delete UI in progress.");
       return false;
     }
+
+    // setConfirm returns a Promise, which is then passed to DataTable deleteSelectedRows function
+    // DataTable then is able to act upon the outcome of the deletion operation
+    return setConfirm(
+      "Warning",
+      "Are you certain that you want to delete these projects? This will kill all associated resources and also delete all corresponding jobs. (This cannot be undone.)",
+      async (resolve) => {
+        // we don't await this Promise on purpose
+        // because we want the dialog close first, and resolve setConfirm later
+        Promise.all(
+          projectUuids.map((projectUuid) => deleteProjectRequest(projectUuid))
+        )
+          .then(() => {
+            fetchProjects();
+            resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
+          })
+          .catch(() => {
+            resolve(false);
+          });
+        return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
+      }
+    );
   };
 
   const deleteProjectRequest = (toBeDeletedId: string) => {
@@ -326,73 +252,12 @@ const ProjectsView: React.FC = () => {
     setIsShowingCreateModal(true);
   };
 
-  const goToExamples = () => {
-    navigateTo(siteMap.examples.path);
-  };
-
-  const onClickCreateProject = () => {
-    if (!validateProjectNameAndAlert(projectName)) {
-      return;
-    }
-
-    makeRequest("POST", "/async/projects", {
-      type: "json",
-      content: { name: projectName },
-    })
-      .then((_) => {
-        // reload list once creation succeeds
-        // fetchList(projectName);
-        fetchProjects();
-      })
-      .catch((response) => {
-        try {
-          let data = JSON.parse(response.body);
-
-          setAlert("Error", `Could not create project. ${data.message}`);
-        } catch {
-          setAlert("Error", "Could not create project. Reason unknown.");
-        }
-      })
-      .finally(() => {
-        setProjectName("");
-      });
-
-    setIsShowingCreateModal(false);
-  };
-
-  const validProjectName = (projectName) => {
-    if (projectName === undefined || projectName.length == 0) {
-      return {
-        valid: false,
-        reason: "Project name cannot be empty.",
-      };
-    } else if (projectName.match("[^A-Za-z0-9_.-]")) {
-      return {
-        valid: false,
-        reason:
-          "A project name has to be a valid git repository name and" +
-          " thus can only contain alphabetic characters, numbers and" +
-          " the special characters: '_.-'. The regex would be" +
-          " [A-Za-z0-9_.-].",
-      };
-    }
-    return { valid: true };
-  };
-
-  const validateProjectNameAndAlert = (projectName: string) => {
-    let projectNameValidation = validProjectName(projectName);
-    if (!projectNameValidation.valid) {
-      setAlert(
-        "Error",
-        `Please make sure you enter a valid project name. ${projectNameValidation.reason}`
-      );
-    }
-    return projectNameValidation.valid;
+  const goToExamples = (e: React.MouseEvent) => {
+    navigateTo(siteMap.examples.path, undefined, e);
   };
 
   const onCloseCreateProjectModal = () => {
     setIsShowingCreateModal(false);
-    setProjectName("");
   };
 
   const onImport = () => {
@@ -401,34 +266,20 @@ const ProjectsView: React.FC = () => {
 
   const onImportComplete = (result: BackgroundTask) => {
     if (result.status === "SUCCESS") {
-      fetchProjects();
+      navigateTo(siteMap.pipelines.path, {
+        query: { projectUuid: result.result },
+      });
     }
   };
-
-  React.useEffect(() => {
-    if (state.fetchListAndSetProject && state.fetchListAndSetProject !== "") {
-      const createdProject = state.projects.filter((proj) => {
-        return proj.path == state.fetchListAndSetProject;
-      })[0];
-
-      // Needed to avoid a race condition where the project does not
-      // exist anymore because it has been removed between a POST and a
-      // get request.
-      if (createdProject !== undefined) {
-        dispatch({
-          type: "projectSet",
-          payload: createdProject.uuid,
-        });
-      }
-    }
-  }, [state?.fetchListAndSetProject]);
 
   const [importUrl, setImportUrl] = useImportUrl();
   // if user loads the app with a pre-filled import_url in their query string
   // we prompt them directly with the import modal
   React.useEffect(() => {
-    if (importUrl !== "") setIsImporting(true);
-  }, []);
+    if (state.hasCompletedOnboarding && importUrl !== "") {
+      setIsImporting(true);
+    }
+  }, [importUrl, state.hasCompletedOnboarding]);
 
   return (
     <Layout>
@@ -442,105 +293,19 @@ const ProjectsView: React.FC = () => {
           open={isImporting}
           onClose={() => setIsImporting(false)}
         />
-        <Dialog
-          fullWidth
-          maxWidth="xs"
-          open={state.editProjectPathModal}
+        <EditProjectPathDialog
+          projects={projects}
+          projectUuid={projectUuidOnEdit}
           onClose={onCloseEditProjectPathModal}
-        >
-          <form
-            id="edit-name"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onSubmitEditProjectPathModal();
-            }}
-          >
-            <DialogTitle>Edit project name</DialogTitle>
-            <DialogContent>
-              <TextField
-                fullWidth
-                autoFocus
-                sx={{ marginTop: (theme) => theme.spacing(2) }}
-                value={state.editProjectPath}
-                label="Project name"
-                onChange={(e) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    editProjectPath: e.target.value,
-                  }));
-                }}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                color="secondary"
-                startIcon={<CloseIcon />}
-                onClick={onCloseEditProjectPathModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                startIcon={<SaveIcon />}
-                variant="contained"
-                disabled={state.editProjectPathModalBusy}
-                type="submit"
-                form="edit-name"
-              >
-                Save
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-        <Dialog
-          open={isShowingCreateModal}
+          setProjects={setProjects}
+        />
+        <CreateProjectDialog
+          projects={projects}
+          isOpen={isShowingCreateModal}
           onClose={onCloseCreateProjectModal}
-          fullWidth
-          maxWidth="xs"
-        >
-          <form
-            id="create-project"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onClickCreateProject();
-            }}
-          >
-            <DialogTitle>Create a new project</DialogTitle>
-            <DialogContent>
-              <TextField
-                fullWidth
-                autoFocus
-                sx={{ marginTop: (theme) => theme.spacing(2) }}
-                label="Project name"
-                value={projectName}
-                onChange={(e) =>
-                  setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
-                }
-                data-test-id="project-name-textfield"
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button
-                startIcon={<CloseIcon />}
-                color="secondary"
-                onClick={onCloseCreateProjectModal}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<FormatListBulletedIcon />}
-                type="submit"
-                form="create-project"
-                data-test-id="create-project"
-              >
-                Create project
-              </Button>
-            </DialogActions>
-          </form>
-        </Dialog>
-
+        />
         <h2>Projects</h2>
-        {projectRows.length === 0 && isValidating ? (
+        {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
           <>
@@ -571,6 +336,7 @@ const ProjectsView: React.FC = () => {
                 color="secondary"
                 startIcon={<LightbulbIcon />}
                 onClick={goToExamples}
+                onAuxClick={goToExamples}
                 data-test-id="explore-examples"
               >
                 Explore Examples
@@ -578,6 +344,7 @@ const ProjectsView: React.FC = () => {
             </Stack>
             <DataTable<ProjectRow>
               id="project-list"
+              isLoading={isFetchingProjects}
               selectable
               hideSearch
               onRowClick={onRowClick}

@@ -1,0 +1,17 @@
+{{/*
+ClusterRole
+*/}}
+---
+{{ include "library.cluster.roles" . }}
+---
+{{/*
+ClusterRoleBinding
+*/}}
+---
+{{ include "library.cluster.rolebindings" . }}
+---
+{{/*
+ServiceAccounts
+*/}}
+---
+{{ include "library.cluster.serviceaccounts" . }}

@@ -1,3 +1,4 @@
+import { Job } from "@/types";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseOutlinedIcon from "@mui/icons-material/CloseOutlined";
@@ -18,66 +19,102 @@ export type TStatus =
   | "ABORTED"
   | "FAILURE";
 
-const statusMapping: Partial<Record<
+type IconSize = "small" | "inherit" | "large" | "medium";
+
+// Keep this pattern and the one used in fuzzy DB search in sync, see
+// fuzzy_filter_non_interactive_pipeline_runs.
+
+export const statusMapping: Partial<Record<
   TStatus,
-  { icon: React.ReactNode; text: string }
+  { icon: (size?: IconSize) => React.ReactNode; text: string }
 >> = {
   ABORTED: {
-    icon: <CloseOutlinedIcon sx={{ color: "error.light" }} />,
+    icon: function AbortedIcon(size) {
+      return (
+        <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
+      );
+    },
     text: "Cancelled",
   },
   DRAFT: {
-    icon: (
-      <NoteAltOutlinedIcon sx={{ color: (theme) => theme.palette.grey[500] }} />
-    ),
+    icon: function DraftIcon(size) {
+      return (
+        <NoteAltOutlinedIcon
+          sx={{ color: (theme) => theme.palette.grey[500] }}
+          fontSize={size}
+        />
+      );
+    },
     text: "Draft",
   },
   FAILURE: {
-    icon: <CloseOutlinedIcon sx={{ color: "error.light" }} />,
+    icon: function FailureIcon(size) {
+      return (
+        <CloseOutlinedIcon sx={{ color: "error.light" }} fontSize={size} />
+      );
+    },
     text: "Failed",
   },
   PAUSED: {
-    icon: <AccessTimeIcon sx={{ color: (theme) => theme.palette.grey[500] }} />,
+    icon: function PausedIcon(size) {
+      return (
+        <AccessTimeIcon
+          sx={{ color: (theme) => theme.palette.grey[500] }}
+          fontSize={size}
+        />
+      );
+    },
     text: "Paused",
   },
   PENDING: {
-    icon: <AccessTimeIcon sx={{ color: "warning.light" }} />,
+    icon: function PendingIcon(size) {
+      return <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />;
+    },
     text: "Pending…",
   },
   STARTED: {
-    icon: <AccessTimeIcon sx={{ color: "warning.light" }} />,
+    icon: function StartedIcon(size) {
+      return <AccessTimeIcon sx={{ color: "warning.light" }} fontSize={size} />;
+    },
     text: "Running…",
   },
   SUCCESS: {
-    icon: <CheckIcon sx={{ color: "success.light" }} />,
+    icon: function SuccessIcon(size) {
+      return <CheckIcon sx={{ color: "success.light" }} fontSize={size} />;
+    },
     text: "Success",
   },
 };
 
 export const StatusInline: React.FC<{
   status: TStatus;
-}> = ({ status }) => {
+  size?: IconSize;
+}> = ({ status, size = "medium" }) => {
   return (
-    <Stack
-      component="span"
-      direction="row"
-      alignItems="center"
-      justifyContent="center"
-    >
-      <Tooltip title={statusMapping[status].text}>
-        <Box>
-          {statusMapping[status].icon}
-          <Typography component="span" sx={visuallyHidden}>
-            {statusMapping[status].text}
-          </Typography>
-        </Box>
-      </Tooltip>
-    </Stack>
+    <Tooltip title={statusMapping[status].text}>
+      <Stack
+        component="span"
+        direction="row"
+        alignItems="center"
+        justifyContent="center"
+      >
+        {statusMapping[status].icon(size)}
+        <Typography component="span" sx={visuallyHidden}>
+          {statusMapping[status].text}
+        </Typography>
+      </Stack>
+    </Tooltip>
   );
 };
 
+export type RenderedJobStatus =
+  | Job["status"]
+  | "FAILURE"
+  | "MIXED_FAILURE"
+  | "MIXED_PENDING";
+
 export type IStatusGroupProps = {
-  status: TStatus;
+  status: TStatus | RenderedJobStatus;
   icon?: React.ReactNode;
   title?: string;
   description?: string;
@@ -113,7 +150,7 @@ export const StatusGroup: React.FC<IStatusGroupProps> = ({
           height: (theme) => theme.spacing(3),
         }}
       >
-        {icon || statusMapping[status].icon}
+        {icon}
       </Box>
       <Typography
         component="span"

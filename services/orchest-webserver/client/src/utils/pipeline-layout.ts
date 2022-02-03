@@ -1,5 +1,4 @@
-import { IPipelineStepState } from "@/pipeline-view/PipelineView";
-import { PipelineJson } from "@/types";
+import { IPipelineStepState, PipelineJson } from "@/types";
 import {
   coordCenter,
   dagStratify,
@@ -8,7 +7,7 @@ import {
   NodeSizeAccessor,
   sugiyama,
 } from "d3-dag";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
 import {
   addOutgoingConnections,
   clearOutgoingConnections,
@@ -243,7 +242,7 @@ export const layoutPipeline = (
   verticalGraphMargin: number,
   stepHeight: number
 ) => {
-  const _pipelineJson = _.cloneDeep(pipelineJson);
+  const _pipelineJson = cloneDeep(pipelineJson);
 
   const components = collectComponents(_pipelineJson);
 

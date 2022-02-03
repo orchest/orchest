@@ -502,10 +502,6 @@ job = Model(
             description="Total number of scheduled pipeline runs.",
         ),
         "pipeline_definition": fields.Raw(description="Pipeline definition"),
-        "pipeline_runs": fields.List(
-            fields.Nested(non_interactive_run),
-            description="Collection of pipeline runs part of the job",
-        ),
         "next_scheduled_time": fields.String(
             required=True,
             description="Next time at which the job is scheduled to start.",
@@ -551,6 +547,9 @@ job = Model(
                 "Max number of pipeline runs to retain. The oldest pipeline runs that "
                 "are in an end state that are over this number will be deleted."
             ),
+        ),
+        "pipeline_run_status_counts": fields.Raw(
+            required=False, description="Aggregate of the job pipeline run statuses."
         ),
     },
 )

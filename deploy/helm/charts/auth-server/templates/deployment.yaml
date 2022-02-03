@@ -1,0 +1,34 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: userdir
+          hostPath:
+            path: /var/lib/orchest/userdir
+            type: DirectoryOrCreate
+        - name: config
+          hostPath:
+            path: /var/lib/orchest/config
+            type: DirectoryOrCreate
+      containers:
+      - name: auth-server
+        image: orchest/auth-server:latest
+        {{ if .Values.service.port}}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        {{ end }}
+        env:
+        - name: "HOST_OS"
+          value: "linux"
+        - name: "ORCHEST_LOG_LEVEL"
+          value: DEBUG  
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"       
+        volumeMounts:
+         - name: userdir
+           mountPath: /userdir
+         - name: config
+           mountPath: /config

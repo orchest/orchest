@@ -1,6 +1,7 @@
 from docker.client import DockerClient
 from flask_sqlalchemy import SQLAlchemy
-from kubernetes import client, config
+from kubernetes import client as k8s_client
+from kubernetes import config
 from sqlalchemy import MetaData
 
 from _orchest.internals import config as _config
@@ -19,8 +20,8 @@ db = SQLAlchemy(metadata=metadata)
 
 
 config.load_incluster_config()
-k8s_api = client.CoreV1Api()
-k8s_custom_obj_api = client.CustomObjectsApi()
+k8s_api = k8s_client.CoreV1Api()
+k8s_custom_obj_api = k8s_client.CustomObjectsApi()
 
 docker_client = DockerClient.from_env()
 # Need to retrieve the ip this way because currently referencing the

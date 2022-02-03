@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
 
@@ -25,7 +25,7 @@ const useSendAnalyticEvent = (
       if (shouldSend) {
         fetcher("/analytics", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: HEADER.JSON,
           body: JSON.stringify(
             innerProps
               ? {
