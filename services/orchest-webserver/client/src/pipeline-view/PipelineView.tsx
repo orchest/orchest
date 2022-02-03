@@ -120,6 +120,7 @@ export interface IPipelineViewState {
 }
 
 const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
+const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
 
 const PipelineView: React.FC = () => {
   const { $ } = window;
@@ -250,7 +251,7 @@ const PipelineView: React.FC = () => {
 
   const [runUuid, setRunUuid] = React.useState(runUuidFromRoute);
   const runStatusEndpoint = jobUuidFromRoute
-    ? `${PIPELINE_RUN_STATUS_ENDPOINT}${jobUuidFromRoute}/`
+    ? `${PIPELINE_JOBS_STATUS_ENDPOINT}${jobUuidFromRoute}/`
     : PIPELINE_RUN_STATUS_ENDPOINT;
 
   const { stepExecutionState, setStepExecutionState } = useStepExecutionState(
@@ -2069,7 +2070,6 @@ const PipelineView: React.FC = () => {
       $(document).off("keyup.initializePipeline");
       $(document).off("keydown.initializePipeline");
 
-      clearInterval(timersRef.current.pipelineStepStatusPollingInterval);
       clearTimeout(timersRef.current.doubleClickTimeout);
       clearTimeout(timersRef.current.saveIndicatorTimeout);
 
