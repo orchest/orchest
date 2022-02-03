@@ -1,0 +1,29 @@
+{{- if and (or .Values.controller.metricsConfig.enabled .Values.controller.telemetryConfig.enabled) .Values.controller.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ template "argo-workflows.controller.fullname" . }}
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.controller.name "name" .Values.controller.name) | nindent 4 }}
+    {{- with .Values.controller.serviceMonitor.additionalLabels }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  endpoints:
+  {{- if .Values.controller.metricsConfig.enabled }}
+    - port: metrics
+      path: {{ .Values.controller.metricsConfig.path }}
+      interval: 30s
+  {{- end }}
+  {{- if .Values.controller.telemetryConfig.enabled }}
+    - port: telemetry
+      path: {{ .Values.controller.telemetryConfig.path }}
+      interval: 30s
+  {{- end }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "argo-workflows.selectorLabels" (dict "context" . "name" .Values.controller.name) | nindent 6 }}
+{{- end }}

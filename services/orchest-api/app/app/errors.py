@@ -20,3 +20,7 @@ class NoSuchSessionServiceError(Exception):
 
 class SessionCleanupFailedError(Exception):
     pass
+
+
+class PodNeverReachedExpectedStatusError(Exception):
+    pass

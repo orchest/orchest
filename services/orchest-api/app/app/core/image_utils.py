@@ -4,19 +4,33 @@ from typing import Optional
 
 import docker
 from flask import current_app
-from kubernetes import client, watch
+from kubernetes import watch
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
-from app import errors, models
+from app import errors, models, utils
 from app.connections import docker_client, k8s_core_api, k8s_custom_obj_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 
 
 def _generate_image_build_workflow_manifest(
-    workflow_name, image_name, build_context, dockerfile_path
+    workflow_name, image_name, build_context_host_path, dockerfile_path
 ) -> dict:
+    """Returns a workflow manifest given the arguments.
+
+    Args:
+        workflow_name: Name with which the workflow will be run.
+        image_name: Name of the resulting image, can include repository
+            and tags.
+        build_context_host_path: Path on the host where the build
+            context is to be found.
+        dockerfile_path: Path to the dockerfile, relative to the
+            context.
+
+    Returns:
+        Valid k8s workflow manifest.
+    """
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -32,7 +46,7 @@ def _generate_image_build_workflow_manifest(
                         "command": ["/kaniko/executor"],
                         "args": [
                             f"--dockerfile={dockerfile_path}",
-                            f"--context=dir://{build_context}",
+                            "--context=dir:///build-context",
                             f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
                             "--cleanup",
                             "--log-format=json",
@@ -42,7 +56,9 @@ def _generate_image_build_workflow_manifest(
                             "--cache-repo=registry.kube-system.svc.cluster.local",
                             "--registry-mirror=registry.kube-system.svc.cluster.local",
                         ],
-                        "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
+                        "volumeMounts": [
+                            {"name": "build-context", "mountPath": "/build-context"}
+                        ],
                     },
                 }
             ],
@@ -57,9 +73,9 @@ def _generate_image_build_workflow_manifest(
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "userdir",
+                    "name": "build-context",
                     "hostPath": {
-                        "path": "/var/lib/orchest/userdir",
+                        "path": build_context_host_path,
                         "type": "DirectoryOrCreate",
                     },
                 }
@@ -118,29 +134,18 @@ def build_docker_image(
 
         pod_name = f"image-build-task-{task_uuid}"
         manifest = _generate_image_build_workflow_manifest(
-            pod_name, image_name, build_context["snapshot_path"], dockerfile_path
+            pod_name, image_name, build_context["snapshot_host_path"], dockerfile_path
         )
         k8s_custom_obj_api.create_namespaced_custom_object(
             "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
         )
 
-        for _ in range(100):
-            try:
-                resp = k8s_core_api.read_namespaced_pod(
-                    name=pod_name, namespace="orchest"
-                )
-            except client.ApiException as e:
-                if e.status != 404:
-                    raise
-                time.sleep(1)
-            else:
-                status = resp.status.phase
-                if status in ["Running", "Succeeded", "Failed", "Unknown"]:
-                    break
-            time.sleep(1)
-        else:
-            # Still Pending, consider this an issue.
-            raise Exception()
+        utils.wait_for_pod_status(
+            pod_name,
+            "orchest",
+            expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
+            max_retries=100,
+        )
 
         flag = __DOCKERFILE_RESERVED_FLAG
         found_beginning_flag = False
@@ -153,7 +158,7 @@ def build_docker_image(
             namespace="orchest",
             follow=True,
         ):
-            complete_logs_file_object.write(f"{event}\n")
+            complete_logs_file_object.writelines([event, "\n"])
             complete_logs_file_object.flush()
             if not found_ending_flag:
                 # Beginning flag not found --> do not log.
@@ -164,11 +169,11 @@ def build_docker_image(
                     if found_beginning_flag:
                         event = event.replace(flag, "")
                         if len(event) > 0:
-                            user_logs_file_object.write(event + "\n")
+                            user_logs_file_object.writelines([event, "\n"])
                 else:
                     found_ending_flag = event.endswith(flag)
                     if not found_ending_flag:
-                        user_logs_file_object.write(event + "\n")
+                        user_logs_file_object.writelines([event, "\n"])
                     else:
                         user_logs_file_object.write("Storing image...\n")
 

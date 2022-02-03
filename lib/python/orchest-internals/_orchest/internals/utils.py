@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import time
 import uuid
 from collections import ChainMap
@@ -13,6 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import docker
 import requests
 from docker.types import DeviceRequest
+from werkzeug.serving import is_running_from_reloader as _irfr
 
 from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
@@ -416,30 +418,44 @@ def get_environment_capabilities(environment_uuid, project_uuid):
     return capabilities
 
 
-def get_orchest_volumes(
+def get_step_volumes_and_volume_mounts(
     host_user_dir: str,
     host_project_dir: str,
     host_pipeline_file: str,
-) -> List[dict]:
+    container_project_dir: str,
+    container_pipeline_file: str,
+) -> Tuple[List[dict], List[dict]]:
+    """Gets volumes and volume mounts required to run steps.
 
-    return [
-        {"name": "project-dir", "hostPath": {"path": host_project_dir}},
-        {"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}},
-        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}},
-    ]
+    Args:
+        host_user_dir:
+        host_project_dir:
+        host_pipeline_file:
+        container_project_dir:
+        container_pipeline_file:
 
+    Returns:
+        A pair of lists, the first element is a list of volumes, the
+        second a list of volume_mounts, valid in k8s pod manifest. The
+        two lists are coupled, each volume mount is related to a volume.
+    """
+    volumes = []
+    volume_mounts = []
 
-def get_orchest_volume_mounts(
-    project_dir,
-    pipeline_file,
-) -> List[dict]:
-    """Prepare all volume mounts that are needed to run Orchest."""
+    volumes.append({"name": "project-dir", "hostPath": {"path": host_project_dir}})
+    volume_mounts.append({"name": "project-dir", "mountPath": container_project_dir})
 
-    return [
-        {"name": "project-dir", "mountPath": project_dir},
-        {"name": "pipeline-file", "mountPath": pipeline_file},
-        {"name": "data", "mountPath": "/data"},
-    ]
+    volumes.append({"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}})
+    volume_mounts.append(
+        {"name": "pipeline-file", "mountPath": container_pipeline_file}
+    )
+
+    volumes.append(
+        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}}
+    )
+    volume_mounts.append({"name": "data", "mountPath": "/data"})
+
+    return volumes, volume_mounts
 
 
 # K8S_TODO: remove this after jupyter* tasks are done.
@@ -508,21 +524,25 @@ def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
                 "Internal race condition triggered in docker_client.images.list(): %s"
                 % e
             )
+            return []
         except Exception as e:
             logging.debug("Failed to call docker_client.images.list(): %s" % e)
-            return None
+            return []
 
 
-def is_werkzeug_parent():
-    # When Flask is running in dev mode, Werkzeug
-    # starts a parent and child process to support hot reloading.
+def is_running_from_reloader():
+    """Is this thread running from a werkzeug reloader.
 
-    # For code that needs to run non-concurrently we use this gate
-    # to avoid concurrent exection.
-    if os.environ.get("FLASK_ENV") != "development":
-        return False
-    elif os.environ.get("WERKZEUG_RUN_MAIN") != "true":
-        return True
+    When Flask is running in development mode, the application is
+    first initialized and then restarted again in a child process. This
+    means that code will run (concurrently) again inside the reloader,
+    which can case issues with code that should only run once.
+
+    By using this gate, we can prevent from rerunning certain code in
+    the child process.
+
+    """
+    return _irfr()
 
 
 def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
@@ -674,3 +694,61 @@ def get_k8s_namespace_manifest(uuid: str, labels: Dict[str, str]) -> dict:
         "kind": "Namespace",
         "metadata": {"name": get_k8s_namespace_name(uuid), "labels": labels},
     }
+
+
+def rmtree(path, ignore_errors=False) -> None:
+    """A wrapped rm -rf.
+
+    If eventlet is being used and it's either patching all modules or
+    patchng subprocess, this function is not going to block the thread.
+
+    Raises:
+        OSError if it failed to copy.
+
+    """
+    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
+    if exit_code != 0 and not ignore_errors:
+        raise OSError(f"Failed to rm {path}: {exit_code}.")
+
+
+def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
+    """Copies content from source to target.
+
+    If eventlet is being used and it's either patching all modules or
+    patching subprocess, this function is not going to block the thread.
+
+    Args:
+        source:
+        target:
+        use_gitignore: If True, the copying process will ignore patterns
+        from the top-level `.gitignore` in `source`.
+
+    Raises:
+        OSError if it failed to copy.
+
+    """
+
+    if use_gitignore:
+
+        # With a trailing `/` rsync copies the content of the directory
+        # instead of the directory itself.
+        if not source.endswith("/"):
+            source += "/"
+
+        # Using rsync with `-W` copies files as a whole which
+        # drastically improves its performance, making it almost as fast
+        # as the `cp` command. The other options (`-aHAX`) are to
+        # preserve all kinds of attributes, e.g. symlinks, `-a` also
+        # automatically copies recursively.
+        copy_cmd = ["rsync", "-aWHAX"]
+        if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
+            copy_cmd += [f"--exclude-from={source}.gitignore"]
+        copy_cmd += [f"{source} {target}"]
+    else:
+        copy_cmd = ["cp", "-r", source, target]
+
+    exit_code = subprocess.call(
+        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
+    )
+    if exit_code != 0:
+        raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")

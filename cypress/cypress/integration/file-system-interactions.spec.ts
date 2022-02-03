@@ -11,6 +11,7 @@ describe("file system interactions", () => {
   beforeEach(() => {
     reset();
     cy.setOnboardingCompleted("true");
+    cy.disableCheckUpdate();
   });
 
   it("creates a project through the FS", () => {
@@ -18,7 +19,8 @@ describe("file system interactions", () => {
     // Need to force a reload to discover.
 
     reloadUntilElementsLoaded("project-list-row", () => {
-      return cy.findByTestId("project-list").should("exist");
+      cy.findByTestId("project-list").should("exist");
+      return cy.findByTestId("loading-table-row").should("not.exist");
     });
   });
 
@@ -30,7 +32,8 @@ describe("file system interactions", () => {
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
-        return cy.findByTestId("project-list").should("exist");
+        cy.findByTestId("project-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       0
     );
@@ -51,17 +54,19 @@ describe("file system interactions", () => {
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
-        return cy
-          .findByTestId("project-list", { timeout: 10000 })
-          .should("exist");
+        cy.findByTestId("project-list", { timeout: 10000 }).should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       10
     );
 
+    cy.reload();
+
     // ! This can break if MUI implementation changes
-    cy.findAllByTestId("project-list-pagination", { timeout: 10000 })
-      .find(".MuiTablePagination-displayedRows")
-      .contains(` of ${projects.length}`); // 1–10 of 20
+    cy.get(
+      `[data-test-id=project-list-pagination] .MuiTablePagination-displayedRows`,
+      { timeout: 10000 }
+    ).contains(` of ${projects.length}`); // 1–10 of 20
   });
 
   it("deletes multiple projects through the FS", () => {
@@ -75,7 +80,8 @@ describe("file system interactions", () => {
     reloadUntilElementsLoaded(
       "project-list-row",
       () => {
-        return cy.findByTestId("project-list").should("exist");
+        cy.findByTestId("project-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       },
       0
     );
@@ -102,7 +108,8 @@ describe("file system interactions", () => {
       reloadUntilElementsLoaded(
         TEST_ID.PIPELINES_TABLE_ROW,
         () => {
-          return cy.findByTestId("pipeline-list").should("exist");
+          cy.findByTestId("pipeline-list").should("exist");
+          return cy.findByTestId("loading-table-row").should("not.exist");
         },
         0
       );
@@ -114,7 +121,8 @@ describe("file system interactions", () => {
       );
 
       reloadUntilElementsLoaded("project-list-row", () => {
-        return cy.findByTestId("project-list").should("exist");
+        cy.findByTestId("project-list").should("exist");
+        return cy.findByTestId("loading-table-row").should("not.exist");
       });
 
       cy.findByTestId(TEST_ID.PROJECTS_TABLE_ROW).should(

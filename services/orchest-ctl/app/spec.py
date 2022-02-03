@@ -394,7 +394,6 @@ def update_container_config_with_dev(
 
     dev_inject = {
         "orchest-webserver": {
-            "Cmd": ["./debug.sh"],
             "Env": [
                 "FLASK_ENV=development",
             ],
@@ -414,7 +413,6 @@ def update_container_config_with_dev(
             },
         },
         "auth-server": {
-            "Cmd": ["sh", "-c", "umask 002 && flask run --host=0.0.0.0 --port=80"],
             "Env": ["FLASK_APP=main.py", "FLASK_DEBUG=1", "FLASK_ENV=development"],
             "HostConfig": {
                 "Binds": [
@@ -440,7 +438,6 @@ def update_container_config_with_dev(
             },
         },
         "orchest-api": {
-            "Cmd": ["flask", "run", "--host=0.0.0.0", "--port=80"],
             "Env": [
                 "FLASK_APP=main.py",
                 "FLASK_ENV=development",

@@ -1,4 +1,5 @@
 import { toQueryString } from "@/routingConfig";
+import { openInNewTab } from "@/utils/openInNewTab";
 import React from "react";
 import { useHistory, useLocation } from "react-router-dom";
 
@@ -89,6 +90,7 @@ const useCustomRoute = () => {
     "pipeline_uuid",
     "environment_uuid",
     "step_uuid",
+    "file_path",
   ]);
 
   const [
@@ -99,6 +101,7 @@ const useCustomRoute = () => {
     pipelineUuid,
     environmentUuid,
     stepUuid,
+    filePath,
   ] = valueArray as (string | undefined | null)[]; // asserting all values are string
 
   type NavigateParams = {
@@ -106,17 +109,33 @@ const useCustomRoute = () => {
     state?: Record<string, string | number | boolean | undefined | null>;
   };
 
-  const navigateTo = (path: string, params?: NavigateParams) => {
-    const [pathname, existingQueryString] = path.split("?");
-    const { query = null, state = {} } = params || {};
-    history.push({
-      pathname,
-      search: existingQueryString
+  const navigateTo = React.useCallback(
+    (
+      path: string,
+      params?: NavigateParams | undefined,
+      e?: React.MouseEvent
+    ) => {
+      const [pathname, existingQueryString] = path.split("?");
+      const { query = null, state = {} } = params || {};
+
+      const isMouseMiddleClick = e?.nativeEvent && e.nativeEvent.button === 1;
+      const shouldOpenNewTab = e?.ctrlKey || e?.metaKey || isMouseMiddleClick;
+      const queryString = existingQueryString
         ? `${existingQueryString}&${toQueryString(query)}`
-        : toQueryString(query),
-      state,
-    });
-  };
+        : toQueryString(query);
+
+      if (shouldOpenNewTab) {
+        openInNewTab(`${window.location.origin}${pathname}${queryString}`);
+      } else {
+        history.push({
+          pathname,
+          search: queryString,
+          state,
+        });
+      }
+    },
+    [history]
+  );
 
   /*
     queryArguments (from useLocationQuery) returned below are assumed
@@ -137,6 +156,7 @@ const useCustomRoute = () => {
     stepUuid,
     jobUuid,
     runUuid,
+    filePath,
     initialTab,
   };
 };

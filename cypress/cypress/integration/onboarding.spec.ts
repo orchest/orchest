@@ -10,6 +10,7 @@ describe("onboarding", () => {
     beforeEach(() => {
       reset();
       cy.clearLocalStorageSnapshot();
+      cy.disableCheckUpdate();
     });
 
     afterEach(() => {
@@ -132,6 +133,9 @@ describe("onboarding", () => {
           visitNextSlideIfPossible();
         });
       };
+
+      reset();
+      cy.clearLocalStorageSnapshot();
 
       visitNextSlideIfPossible();
     });

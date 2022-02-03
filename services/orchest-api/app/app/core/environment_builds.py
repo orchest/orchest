@@ -11,6 +11,7 @@ import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
+from _orchest.internals.utils import copytree, rmtree
 from app.connections import k8s_custom_obj_api
 from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
@@ -219,8 +220,9 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     Path(env_builds_dir).mkdir(parents=True, exist_ok=True)
     # Make a snapshot of the project state, used for the context.
     snapshot_path = f"{env_builds_dir}/{dockerfile_name}"
-    os.system('rm -rf "%s"' % snapshot_path)
-    os.system('cp -R "%s" "%s"' % (userdir_project_path, snapshot_path))
+    if os.path.isdir(snapshot_path):
+        rmtree(snapshot_path)
+    copytree(userdir_project_path, snapshot_path, use_gitignore=True)
     # take the environment from the snapshot
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"
@@ -261,6 +263,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     return {
         "snapshot_path": snapshot_path,
+        "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
         "base_image": environment_properties["base_image"],
     }
 
@@ -326,7 +329,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             )
 
             # Cleanup.
-            os.system('rm -rf "%s"' % build_context["snapshot_path"])
+            rmtree(build_context["snapshot_path"])
 
             update_environment_build_status(status, session, task_uuid)
 

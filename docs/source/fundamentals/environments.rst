@@ -109,8 +109,16 @@ how to setup an environment to use Python 3.8 using conda:
    conda install -y -n py38 ipykernel jupyter_client ipython_genutils pycryptodomex future
    conda run -n py38 pip install orchest
 
-Lastly, you need to set project (or pipeline) :ref:`environment variables <environment variables>`
-so that the new Python environment is used:
+   # Set environment variables so that the new Python version is
+   # used when executing the pipeline and inside kernels. The variables
+   # are set here so that they are isolated within the environment.
+   # NOTE: We are first overwriting the `.bashrc` file to make sure the
+   # environment variables are unaffected by existing code in the file.
+   echo "export JUPYTER_PATH=/opt/conda/envs/py38/share/jupyter" > /home/jovyan/.bashrc
+   echo "export CONDA_ENV=py38" >> /home/jovyan/.bashrc
+
+Lastly, you need to set a project (or pipeline) :ref:`environment variable <environment variables>`
+to make sure that the ``.bashrc`` is actually sourced.
 
 .. list-table::
    :widths: 25 25
@@ -120,8 +128,5 @@ so that the new Python environment is used:
    * - Name
      - Value
 
-   * - ``JUPYTER_PATH``
-     - ``/opt/conda/envs/py38/share/jupyter``
-
-   * - ``CONDA_ENV``
-     - ``py38``
+   * - ``BASH_ENV``
+     - ``/home/jovyan/.bashrc``

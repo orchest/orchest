@@ -1,0 +1,4 @@
+#orchest-api:
+global:
+  ingress:
+    host: www.localorchest.io

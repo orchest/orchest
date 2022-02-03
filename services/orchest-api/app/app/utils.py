@@ -1,15 +1,20 @@
 import logging
+import time
 from datetime import datetime
-from typing import Dict
+from typing import Container, Dict, Iterable, Optional, Union
 
 from celery.utils.log import get_task_logger
 from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
-from sqlalchemy.orm import undefer
+from kubernetes import client as k8s_client
+from sqlalchemy import or_, text
+from sqlalchemy.orm import query, undefer
 
 import app.models as models
+from app import errors as self_errors
 from app import schema
+from app.connections import k8s_core_api
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -130,3 +135,73 @@ def page_to_pagination_data(pagination: Pagination) -> dict:
         "total_items": pagination.total,
         "total_pages": pagination.pages,
     }
+
+
+def wait_for_pod_status(
+    name: str,
+    namespace: str,
+    expected_statuses: Union[Container[str], Iterable[str]],
+    max_retries: Optional[int] = 100,
+) -> None:
+    """Waits for a pod to get to one of the expected statuses.
+
+    Safe to use when the pod doesn't exist yet, e.g. because it's being
+    created.
+
+    Args:
+        name: name of the pod
+        namespace: namespace of the pod
+        expected_statuses: One of the statuses that the pod is expected
+            to reach. Upon reaching one of these statuses the function
+            will return. Possiblie entries are: Pending, Running,
+            Succeeded, Failed, Unknown, which are the possible values
+            of pod.status.phase.
+        max_retries: Max number of times to poll, 1 second per retry. If
+            None, the function will poll indefinitely.
+
+    Raises:
+        PodNeverReachedExpectedStatusError:
+
+    """
+
+    while max_retries is None or max_retries > 0:
+        max_retries = max_retries - 1
+        try:
+            resp = k8s_core_api.read_namespaced_pod(name=name, namespace=namespace)
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
+            time.sleep(1)
+        else:
+            status = resp.status.phase
+            if status in expected_statuses:
+                break
+        time.sleep(1)
+    else:
+        raise self_errors.PodNeverReachedExpectedStatusError()
+
+
+def fuzzy_filter_non_interactive_pipeline_runs(
+    query: query,
+    fuzzy_filter: str,
+) -> query:
+
+    fuzzy_filter = fuzzy_filter.lower().strip().split()
+    # Quote terms to avoid operators like ! leading to syntax errors and
+    # to avoid funny injections.
+    fuzzy_filter = [f"''{token}'':*" for token in fuzzy_filter]
+    fuzzy_filter = " & ".join(fuzzy_filter)
+    # sqlalchemy is erroneously considering the query created through
+    # func.to_tsquery invalid.
+    fuzzy_filter = f"to_tsquery('simple', '{fuzzy_filter}')"
+
+    filters = [
+        models.NonInteractivePipelineRun._NonInteractivePipelineRun__text_search_vector.op(  # noqa
+            "@@"
+        )(
+            text(fuzzy_filter)
+        ),
+    ]
+    query = query.filter(or_(*filters))
+
+    return query

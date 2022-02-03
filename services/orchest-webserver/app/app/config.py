@@ -28,6 +28,10 @@ class Config:
     ORCHEST_EXAMPLES_JSON_PATH = "orchest_examples_data.json"
     ORCHEST_EXAMPLES_JSON_POLL_INTERVAL = 60
 
+    POLL_ORCHEST_UPDATE_INFO_JSON = True
+    ORCHEST_UPDATE_INFO_JSON_PATH = "orchest_update_info.json"
+    ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL = 60
+
     # TODO: point readthedocs to stable instead of latest once stable
     #  is up
     ORCHEST_WEB_URLS = {
@@ -43,6 +47,10 @@ class Config:
             "https://raw.githubusercontent.com/orchest/orchest-examples/main/"
             "orchest_examples_data.json"
         ),
+        "orchest_update_info_json": (
+            "https://update-info.orchest.io/api/orchest/update-info/v1"
+            f'?version={os.getenv("ORCHEST_VERSION")}'
+        ),
     }
 
     ENVIRONMENT_DEFAULTS = {
@@ -53,7 +61,18 @@ class Config:
         "setup_script": _config.DEFAULT_SETUP_SCRIPT,
     }
 
-    PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
+    # Content for `.orchest/.gitignore` in project dir.
+    # `pipelines/*/logs/` excludes `logs/` directories that are two
+    # levels below the `.pipelines/` directory.
+    GIT_IGNORE_PROJECT_HIDDEN_ORCHEST = ["pipelines/*/logs/", "pipelines/*/data/"]
+    # On project creation through Orchest, we want the patterns from the
+    # `.orchest/.gitignore` to be present in the root-level `.gitignore`
+    # so that when creating a new job the files are not copied to the
+    # snapshot.
+    GIT_IGNORE_PROJECT_ROOT = [
+        *[".orchest/" + pattern for pattern in GIT_IGNORE_PROJECT_HIDDEN_ORCHEST],
+        ".ipynb_checkpoints/",
+    ]
 
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 
@@ -143,6 +162,11 @@ class Config:
                 "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
                 "propagate": False,
             },
+            "job-scheduler": {
+                "handlers": ["console"],
+                "propagate": False,
+                "level": os.getenv("ORCHEST_LOG_LEVEL", "INFO"),
+            },
             "orchest-lib": {
                 "handlers": ["console"],
                 "propagate": False,
@@ -161,6 +185,7 @@ class TestingConfig(Config):
     TESTING = True
     TELEMETRY_DISABLED = True
     POLL_ORCHEST_EXAMPLES_JSON = False
+    POLL_ORCHEST_UPDATE_INFO_JSON = False
 
     # No file logging.
     LOGGING_CONFIG = {

@@ -45,6 +45,7 @@ declare global {
       deleteAllPipelines(): Chainable<undefined>;
       deleteAllUsers(): Chainable<undefined>;
       deleteUser(name: string): Chainable<undefined>;
+      disableCheckUpdate(): Chainable<undefined>;
       getEnvironmentUUID(
         projectUUID: string,
         environment: string
@@ -73,6 +74,14 @@ Cypress.Commands.add("setOnboardingCompleted", (value: TBooleanString) => {
   cy.reload(true);
 });
 
+Cypress.Commands.add("disableCheckUpdate", () => {
+  // If the latest version can't be fetched, then we will never
+  // prompt asking users to update.
+  cy.intercept("GET", "/async/orchest-update-info", {
+    latest_version: null,
+  });
+});
+
 Cypress.Commands.add("getOnboardingCompleted", () =>
   cy.getLocalStorage(LOCAL_STORAGE_KEY)
 );
@@ -97,9 +106,10 @@ Cypress.Commands.add("createProject", (name) => {
     .click();
   cy.findByTestId(TEST_ID.PROJECT_NAME_TEXTFIELD).type(name);
   cy.findByTestId(TEST_ID.CREATE_PROJECT).click();
-  return cy
-    .findAllByTestId(TEST_ID.PROJECTS_TABLE_ROW)
-    .should("have.length.at.least", 1);
+  cy.url().should("include", "/pipelines");
+  cy.findByTestId("project-selector").contains(name);
+  cy.goToMenu("projects");
+  return cy.reload();
 });
 
 Cypress.Commands.add("importProject", (url, name) => {
@@ -283,7 +293,16 @@ Cypress.Commands.add("createPipeline", (name: string, path?: string) => {
       .type(path);
   }
   cy.findByTestId(TEST_ID.PIPELINE_CREATE_OK).click();
-  cy.findAllByTestId(TEST_ID.PIPELINES_TABLE_ROW).should("have.length", 1);
+  cy.url().should("include", "/pipeline?");
+  cy.findByTestId("pipeline-name").contains(name);
+  // Expect a session just started. Stop it when it's done starting.
+  cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON)
+    .contains("Stop session", { timeout: 60000 })
+    .click();
+  cy.findAllByTestId(TEST_ID.SESSION_TOGGLE_BUTTON).contains("Start session", {
+    timeout: 60000,
+  });
+  cy.goToMenu("pipelines");
   cy.log("======== Done creating pipeline");
 });
 
@@ -345,6 +364,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
     "environment-list-row",
     () => {
       cy.findByTestId("environment-list").should("exist");
+      cy.findByTestId("loading-table-row").should("not.exist");
       return cy.wait(1000);
     },
     count
@@ -360,6 +380,7 @@ Cypress.Commands.add("deleteAllEnvironments", (count?: number) => {
     "environment-list-row",
     () => {
       cy.findByTestId("environment-list").should("exist");
+      cy.findByTestId("loading-table-row").should("not.exist");
       return cy.wait(1000);
     },
     0
@@ -415,15 +436,7 @@ Cypress.Commands.add(
       ])
       .should("include", entry);
 
-    if (entry == "jobs") {
-      // Wait for the pipelines list to be retrieved, or some commands
-      // might fail because JobList will say that the project has no
-      // pipelines.
-      cy.intercept("GET", "/async/pipelines/*").as("pipelinesList");
-      cy.findByTestId(`menu-${entry}`).click().wait("@pipelinesList");
-    } else {
-      cy.findByTestId(`menu-${entry}`).click();
-    }
+    cy.findByTestId(`menu-${entry}`).click();
 
     if (predicate) {
       cy.location().should("satisfy", predicate);

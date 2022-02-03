@@ -1,12 +1,13 @@
 {
   "extends": "../../../tsconfig.json",
-  "exclude": ["node_modules"],
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.mock.ts"],
   "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.tsx"],
   "compilerOptions": {
     "types": ["jest", "node", "@emotion/react/types/css-prop"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "downlevelIteration": true
   }
 }

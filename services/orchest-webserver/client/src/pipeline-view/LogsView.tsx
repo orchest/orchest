@@ -4,7 +4,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useSessionsPoller } from "@/hooks/useSessionsPoller";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type {
@@ -42,9 +41,8 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 const LogsView: React.FC = () => {
   // global states
   const { dispatch } = useProjectsContext();
-  const { getSession } = useSessionsContext();
+
   useSendAnalyticEvent("view load", { name: siteMap.logs.path });
-  useSessionsPoller();
 
   // data from route
   const {
@@ -55,6 +53,8 @@ const LogsView: React.FC = () => {
     isReadOnly,
     navigateTo,
   } = useCustomRoute();
+
+  const { getSession } = useSessionsContext();
 
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -193,8 +193,7 @@ const LogsView: React.FC = () => {
       services = job.pipeline_definition.services;
     }
 
-    let scope = jobUuid ? "noninteractive" : "interactive";
-    return filterServices(services, scope);
+    return filterServices(services, jobUuid ? "noninteractive" : "interactive");
   };
 
   const generateServiceItems = () => {

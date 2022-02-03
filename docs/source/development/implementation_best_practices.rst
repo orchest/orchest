@@ -26,3 +26,8 @@ Only write to the ``flask.config`` object on app initialization (Flask's `applic
 inside the config object require a restart of the flask application for them to take effect,
 therefore the actual state can get out of sync with the state inside the config object when writing
 to it.
+
+``userdir``
+-----------
+The ``orchest-api`` is not allowed to read content from the ``userdir``. It essentially just passes
+pointers to the ``celery-worker`` which then does operations on the ``userdir``.
