@@ -17,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: Create Release Notes
+      - name: Create new release with auto-generated release notes
         uses: actions/github-script@v5.1.0
         with:
           github-token: ${{ secrets.WORKFLOW_TOKEN }}
