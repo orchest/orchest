@@ -30,16 +30,22 @@ DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
 DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
 DOCKER_REGISTRY_PORT_CONFIG := --set service.port=${REGISTRY_PORT}
 
+# Cluste resources enable config
+CLUSTER_RSC_ENABLE_CONFIG := --set cluster-resources.enabled=true
 
-# Orchest cluster resource deployment configs
+# docker-registry resources deployment configs
 ISSUER_NAME := ${if ${ISSUER_NAME},${ISSUER_NAME},certificate-issuer}
 CLUSTER_RSC_REG_SECRET_CONFIG := --set cluster-resources.registry.secret=${REGISTRY_SECRET}
 CLUSTER_RSC_REG_NAME_CONFIG := --set cluster-resources.registry.name=${REGISTRY_NAME}
-CLUSTER_RSC_ISSUER_CONFIG := --set cluster-resources.issuer.name=${ISSUER_NAME}
-CLUSTER_RSC_ENABLE_CONFIG := --set cluster-resources.enabled=true
-CLUSTER_RSC_DEPLOY_CONFIG := cluster-resources \
-	${SHARED_DEPLOY_CONFIG}	${CLUSTER_RSC_REG_SECRET_CONFIG} ${CLUSTER_RSC_REG_NAME_CONFIG} \
-	${CLUSTER_RSC_ISSUER_CONFIG} ${CLUSTER_RSC_ENABLE_CONFIG} helm
+CLUSTER_RSC_REG_ISSUER_CONFIG := --set cluster-resources.registry.issuer.name=${ISSUER_NAME}
+CLUSTER_RSC_REG_ENABLE_CONFIG := --set cluster-resources.registry.enabled=true
+CLUSTER_RSC_REG_DEPLOY_CONFIG := registry-configs \
+								${SHARED_DEPLOY_CONFIG}	\
+								${CLUSTER_RSC_ENABLE_CONFIG} \
+								${CLUSTER_RSC_REG_ENABLE_CONFIG} \
+								${CLUSTER_RSC_REG_SECRET_CONFIG} \
+								${CLUSTER_RSC_REG_NAME_CONFIG} \
+								${CLUSTER_RSC_REG_ISSUER_CONFIG} helm
 
 # rook deplyment configs
 ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
@@ -126,7 +132,7 @@ argo-workflow: ./bin/argo-workflow
 docker-registry : ./bin/docker-registry
 
 .SECONDARY: ./bin/docker-registry
-./bin/docker-registry: | create-bin cluster-resources
+./bin/docker-registry: | create-bin registry-resources
 	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
 	touch $@
 
@@ -148,12 +154,12 @@ rook: ./bin/rook
 	helm install ${ROOK_DEPLOY_CONFIG}
 	touch $@
 
-.PHONY: cluster-resources
-cluster-resources: ./bin/cluster-resources
+.PHONY: registry-resources
+registry-resources: ./bin/registry-resources
 	
-.SECONDARY: ./bin/cluster-resources
-./bin/cluster-resources: | create-bin cert-manager
-	helm install ${CLUSTER_RSC_DEPLOY_CONFIG}
+.SECONDARY: ./bin/registry-resources
+./bin/registry-resources: | create-bin cert-manager
+	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
 
 .PHONY: create-bin

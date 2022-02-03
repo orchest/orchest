@@ -48,5 +48,5 @@ Ingress host
     {{ .Values.global.ingress.host }}
   {{- else -}}
     {{ "www.localorchest.io" }}
-  {{- end }}
+  {{- end -}}
 {{- end -}}

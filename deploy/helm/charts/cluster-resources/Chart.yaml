@@ -5,3 +5,8 @@ version: 0.0.1
 icon: https://github.com/orchest/orchest/blob/master/docs/source/img/logo.png
 sources:
   - https://github.com/orchest/orchest/tree/master/services/auth-server
+dependencies:
+- name: docker-registry
+  version: "0.0.1"
+  repository: "file://charts/registry"
+  condition: registry.enabled  
