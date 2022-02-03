@@ -20,7 +20,7 @@ from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import environments
+from app.core import environments, image_utils
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
     get_proj_pip_env_variables,
@@ -896,7 +896,7 @@ class AbortJob(TwoPhaseFunction):
             res.abort()
 
         if project_uuid is not None:
-            environments.process_stale_environment_images(
+            image_utils.process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
 
@@ -1193,7 +1193,7 @@ class DeleteJob(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str):
         if project_uuid is not None:
-            environments.process_stale_environment_images(
+            image_utils.process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
 
@@ -1340,7 +1340,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str, completed: bool):
         if completed and project_uuid is not None:
-            environments.process_stale_environment_images(
+            image_utils.process_stale_environment_images(
                 project_uuid, only_marked_for_removal=False
             )
 
