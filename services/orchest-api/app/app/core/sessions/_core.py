@@ -231,7 +231,7 @@ def launch(
     ):
         name = manifest["metadata"]["name"]
         deployment = k8s_apps_api.read_namespaced_deployment_status(name, ns)
-        while deployment.status.updated_replicas != deployment.spec.replicas:
+        while deployment.status.available_replicas != deployment.spec.replicas:
             if should_abort():
                 return
             logger.info(f"Waiting for {name}.")
@@ -317,7 +317,7 @@ def restart_session_service(
 
     if wait_for_readiness:
         deployment = k8s_apps_api.read_namespaced_deployment_status(service_name, ns)
-        while deployment.status.updated_replicas != deployment.spec.replicas:
+        while deployment.status.available_replicas != deployment.spec.replicas:
             time.sleep(1)
             deployment = k8s_apps_api.read_namespaced_deployment_status(
                 service_name, ns
