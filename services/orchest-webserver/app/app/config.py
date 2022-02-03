@@ -61,7 +61,18 @@ class Config:
         "setup_script": _config.DEFAULT_SETUP_SCRIPT,
     }
 
-    PROJECT_ORCHEST_GIT_IGNORE_CONTENT = "\n".join(["logs/", "data/"])
+    # Content for `.orchest/.gitignore` in project dir.
+    # `pipelines/*/logs/` excludes `logs/` directories that are two
+    # levels below the `.pipelines/` directory.
+    GIT_IGNORE_PROJECT_HIDDEN_ORCHEST = ["pipelines/*/logs/", "pipelines/*/data/"]
+    # On project creation through Orchest, we want the patterns from the
+    # `.orchest/.gitignore` to be present in the root-level `.gitignore`
+    # so that when creating a new job the files are not copied to the
+    # snapshot.
+    GIT_IGNORE_PROJECT_ROOT = [
+        *[".orchest/" + pattern for pattern in GIT_IGNORE_PROJECT_HIDDEN_ORCHEST],
+        ".ipynb_checkpoints/",
+    ]
 
     FLASK_ENV = os.environ.get("FLASK_ENV", "production")
 

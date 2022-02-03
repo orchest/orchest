@@ -1,0 +1,15 @@
+changelog:
+  exclude:
+    authors:
+      - dependabot
+  categories:
+    - title: Breaking changes 🚨
+      labels:
+        - breaking change
+    - title: Exciting new features 🎉
+      labels:
+        - new feature request
+    - title: Improvements 👷
+      labels:
+        - fix
+        - improvement
