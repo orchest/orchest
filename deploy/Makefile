@@ -41,6 +41,12 @@ CLUSTER_RSC_DEPLOY_CONFIG := cluster-resources \
 	${SHARED_DEPLOY_CONFIG}	${CLUSTER_RSC_REG_SECRET_CONFIG} ${CLUSTER_RSC_REG_NAME_CONFIG} \
 	${CLUSTER_RSC_ISSUER_CONFIG} ${CLUSTER_RSC_ENABLE_CONFIG} helm
 
+# rook deplyment configs
+ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
+ROOK_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_IMAGE_TAGE}
+ROOK_DEPLOY_CONFIG := rook \
+	${SHARED_DEPLOY_CONFIG} ${ROOK_IMAGE_TAG_CONFIG} thirdparty/rook/rook-ceph
+
 # orchest Api deployment configs
 ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
 
@@ -88,9 +94,6 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	--set-string orchest-api.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	helm
-
-ROOK_DEPLOY_CONFIG := rook \
-	${SHARED_DEPLOY_CONFIG} thirdparty/rook/rook-ceph -f values-override.yaml .
 
 JUPYTER_EG_DEPLOY_CONFIG := jupyter-eg \
 	${SHARED_DEPLOY_CONFIG} thirdparty/enterprise-gateway
@@ -150,6 +153,14 @@ cert-manager : ./bin/cert-manager
 	sleep 30
 	touch $@
 
+.PHONY: rook
+rook: ./bin/rook
+
+.SECONDARY: ./bin/rook
+./bin/rook: | create-bin
+	helm install ${ROOK_DEPLOY_CONFIG}
+	touch $@
+
 .PHONY: cluster-resources
 cluster-resources: ./bin/cluster-resources
 
@@ -169,9 +180,6 @@ initialize: ./bin/initialize
 ./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET}
 	touch $@
 
-.PHONY: rook
-rook:
-	helm install ${ROOK_DEPLOY_CONFIG}
 
 .PHONY: orchest-upgrade
 orchest-upgrade:
