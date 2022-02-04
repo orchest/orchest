@@ -17,6 +17,8 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # information, see
 # https://docs.docker.com/config/containers/resource_constraints/.
 USER_CONTAINERS_CPU_SHARES = "500m"
+REGISTRY = "docker-registry"
+REGISTRY_FQDN = "docker-registry.orchest.svc.cluster.local"
 
 # Databases
 database_naming_convention = {

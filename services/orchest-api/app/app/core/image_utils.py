@@ -47,17 +47,20 @@ def _generate_image_build_workflow_manifest(
                         "args": [
                             f"--dockerfile={dockerfile_path}",
                             "--context=dir:///build-context",
-                            f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
+                            f"--destination={_config.REGISTRY_FQDN}/{image_name}:latest",  # noqa
                             "--cleanup",
                             "--log-format=json",
                             "--reproducible",
-                            "--insecure",
                             "--cache=true",
-                            "--cache-repo=registry.kube-system.svc.cluster.local",
-                            "--registry-mirror=registry.kube-system.svc.cluster.local",
                         ],
                         "volumeMounts": [
-                            {"name": "build-context", "mountPath": "/build-context"}
+                            {"name": "build-context", "mountPath": "/build-context"},
+                            {
+                                "name": "tls-secret",
+                                "mountPath": "/kaniko/ssl/certs/additional-ca-cert-bundle.crt",  # noqa
+                                "subPath": "additional-ca-cert-bundle.crt",
+                                "readOnly": True,
+                            },
                         ],
                     },
                 }
@@ -78,7 +81,16 @@ def _generate_image_build_workflow_manifest(
                         "path": build_context_host_path,
                         "type": "DirectoryOrCreate",
                     },
-                }
+                },
+                {
+                    "name": "tls-secret",
+                    "secret": {
+                        "secretName": "registry-tls-secret",
+                        "items": [
+                            {"key": "ca.crt", "path": "additional-ca-cert-bundle.crt"}
+                        ],
+                    },
+                },
             ],
         },
     }

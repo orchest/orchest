@@ -28,9 +28,12 @@ from _orchest.internals.utils import (
     get_k8s_namespace_name,
     get_step_volumes_and_volume_mounts,
 )
-from app.connections import k8s_custom_obj_api
+from app.connections import k8s_core_api, k8s_custom_obj_api
 from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
+from app.utils import get_logger
 from config import CONFIG_CLASS
+
+logger = get_logger()
 
 
 def construct_pipeline(
@@ -451,6 +454,13 @@ def _step_to_workflow_manifest_task(
         },
     )
 
+    # Need to reference the ip because the local docker engine will run
+    # the container, and if the image is missing it will prompt a pull
+    # which will fail because the FQDN can't be resolved by the local
+    # engine on the node. K8S_TODO: fix this.
+    registry_ip = k8s_core_api.read_namespaced_service(
+        _config.REGISTRY, "orchest"
+    ).spec.cluster_ip
     task = {
         # "Name cannot begin with a digit when using either 'depends' or
         # 'dependencies'".
@@ -468,9 +478,8 @@ def _step_to_workflow_manifest_task(
                 },
                 {
                     "name": "image",
-                    "value":
-                    # K8S_TODO: fix.
-                    "10.111.164.4/"
+                    "value": registry_ip
+                    + "/"
                     + run_config["env_uuid_docker_id_mappings"][
                         step.properties["environment"]
                     ],
@@ -505,6 +514,7 @@ def _pipeline_to_workflow_manifest(
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
     )
+
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -713,7 +723,8 @@ async def run_pipeline_workflow(
                 run_endpoint=run_config["run_endpoint"],
             )
 
-        except Exception:
+        except Exception as e:
+            logger.error(e)
             await update_status(
                 "FAILURE",
                 task_id,

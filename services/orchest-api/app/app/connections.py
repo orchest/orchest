@@ -25,11 +25,3 @@ k8s_apps_api = k8s_client.AppsV1Api()
 k8s_custom_obj_api = k8s_client.CustomObjectsApi()
 
 docker_client = DockerClient.from_env()
-# Need to retrieve the ip this way because currently referencing the
-# registry as a service (even with a complete path) is not working. Also
-# retrieving the ip this way does not work because of permission issues.
-# K8S_TODO: fix.
-# registry = k8s_api.read_namespaced_service("registry", "kube-system")
-# .spec.cluster_ip
-registry = "10.111.164.4"
-docker_client.login(username="", registry=registry)
