@@ -14,7 +14,10 @@ from _orchest.internals.utils import rmtree
 from app.connections import k8s_custom_obj_api
 from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
+from app.utils import get_logger
 from config import CONFIG_CLASS
+
+logger = get_logger()
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 __DOCKERFILE_RESERVED_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
@@ -72,14 +75,13 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, path):
     flag = __DOCKERFILE_RESERVED_FLAG
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
-        f'&& echo "{flag}" '
         f"&& bash {bash_script} "
-        f'&& echo "{flag}" '
-        "&& build_path_ext=/jupyterlab-orchest-build/extensions"
-        "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions"
+        "&& build_path_ext=/jupyterlab-orchest-build/extensions "
+        "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
-        "cp -rfT $userdir_path_ext $build_path_ext; fi"
-        f"&& rm {bash_script}"
+        "cp -rfT $userdir_path_ext $build_path_ext &> /dev/null ; fi "
+        f'&& echo "{flag}" '
+        f"&& rm {bash_script} "
         # The || <error flag> allows to avoid kaniko errors logs making
         # into it the user logs and tell us that there has been an
         # error.
@@ -128,7 +130,6 @@ def prepare_build_context(task_uuid):
         task_uuid,
         "tmp/jupyter",
         bash_script_name,
-        __DOCKERFILE_RESERVED_FLAG,
         os.path.join(snapshot_path, dockerfile_name),
     )
 
@@ -214,6 +215,7 @@ def build_jupyter_task(task_uuid):
         # build state to failed.
         except Exception as e:
             update_jupyter_build_status("FAILURE", session, task_uuid)
+            logger.error(e)
             raise e
         finally:
             # We get here either because the task was successful or was
