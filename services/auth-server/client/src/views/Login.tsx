@@ -47,7 +47,7 @@ const Login: React.FC<{
         throw { error: "Failed to redirect" };
       }
     } catch (error) {
-      setLoginFailure(error.body.error);
+      setLoginFailure(error.error);
     }
   };
 

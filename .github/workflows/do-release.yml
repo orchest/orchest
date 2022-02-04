@@ -1,0 +1,28 @@
+name: Release Orchest
+
+# Only trigger when a PR to master is closed (this can also mean closed
+# but not merged).
+on:
+  pull_request:
+    branches:
+      - master
+    types: [closed]
+
+jobs:
+  trigger_release:
+    # On a successful merge of a release branch into the master branch.
+    # NOTE: In github action expressions you need to use single quotes.
+    if: ${{ github.event.pull_request.merged == true && startsWith(github.head_ref, 'release/') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Create new release with auto-generated release notes
+        uses: actions/github-script@v5.1.0
+        with:
+          github-token: ${{ secrets.WORKFLOW_TOKEN }}
+          script: |
+            await github.request(`POST /repos/${{ github.repository }}/releases`, {
+              tag_name: "${{ github.head_ref }}".replace("release/", ""),
+              generate_release_notes: true
+            });

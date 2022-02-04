@@ -1,4 +1,5 @@
 import { TStatus } from "@/components/Status";
+import { useAppContext } from "@/contexts/AppContext";
 import type { PipelineRun } from "@/types";
 import { serverTimeToDate } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
@@ -29,7 +30,7 @@ export const useStepExecutionState = (
   url: string | null,
   callback: (status: TStatus) => void
 ) => {
-  const { data = {}, mutate } = useSWR<StepExecutionStateObj>(
+  const { data = {}, error, mutate } = useSWR<StepExecutionStateObj>(
     url,
     (url) =>
       fetcher<PipelineRun>(url).then((result) => {
@@ -38,6 +39,15 @@ export const useStepExecutionState = (
       }),
     { refreshInterval: STATUS_POLL_FREQUENCY }
   );
+
+  const { setAlert } = useAppContext();
+
+  React.useEffect(() => {
+    if (error) {
+      console.error(error);
+      setAlert("Error", "Unable to fetch step status.");
+    }
+  }, [error, setAlert]);
 
   const setStepExecutionState = React.useCallback(
     (
