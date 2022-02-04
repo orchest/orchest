@@ -104,7 +104,7 @@ def _get_image_build_workflow_manifest(
                             "--cache=true",
                             "--cache-dir=/cache",
                             "--use-new-run",
-                            "--verbosity=debug",
+                            "--verbosity=info",
                             "--snapshotMode=redo",
                             # From the docs: "This flag takes a single
                             # snapshot of the filesystem at the end of
