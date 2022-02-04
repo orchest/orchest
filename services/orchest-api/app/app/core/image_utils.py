@@ -118,7 +118,12 @@ def _get_image_build_workflow_manifest(
                             "--cache=true",
                             "--cache-dir=/cache",
                             "--use-new-run",
-                            "--verbosity=info",
+                            # This allows us to simplify the logging
+                            # logic by knowing that kaniko will not
+                            # produce logs. If you need to restore the
+                            # previous logic look for commit
+                            # "Simplify image build logs logic".
+                            "--verbosity=panic",
                             "--snapshotMode=redo",
                             # From the docs: "This flag takes a single
                             # snapshot of the filesystem at the end of
@@ -222,14 +227,13 @@ def _cache_image(
         follow=True,
     ):
 
-        if not pulled_image:
-            if "No file found for cache key" in event:
-                pulled_image = True
-                msg = f"Pulling {base_image}..."
-                user_logs_file_object.write(msg)
-                complete_logs_file_object.write(msg)
-                complete_logs_file_object.flush()
-                break
+        if "No file found for cache key" in event:
+            pulled_image = True
+            msg = f"Pulling {base_image}..."
+            user_logs_file_object.write(msg)
+            complete_logs_file_object.write(msg)
+            complete_logs_file_object.flush()
+            break
 
     # Keep writing logs while the image is being pulled for UX.
     if pulled_image:
@@ -292,8 +296,6 @@ def _build_image(
         max_retries=100,
     )
 
-    flag = __DOCKERFILE_RESERVED_FLAG
-    found_beginning_flag = False
     found_ending_flag = False
     found_error_flag = False
     w = watch.Watch()
@@ -304,30 +306,25 @@ def _build_image(
         namespace="orchest",
         follow=True,
     ):
+        found_ending_flag = event.endswith(__DOCKERFILE_RESERVED_FLAG)
+        found_error_flag = event.endswith(__DOCKERFILE_RESERVED_ERROR_FLAG)
+        # Break here because kaniko is storing the image or the build
+        # has failed.
+        if found_ending_flag or found_error_flag:
+            break
+
         complete_logs_file_object.writelines([event, "\n"])
+        user_logs_file_object.writelines([event, "\n"])
         complete_logs_file_object.flush()
-        # Beginning flag not found --> do not log.
-        # Beginning flag found --> log until you find
-        # the ending flag.
-        if not found_beginning_flag:
-            found_beginning_flag = event.startswith(flag)
-            if found_beginning_flag:
-                event = event.replace(flag, "")
-                if len(event) > 0:
-                    user_logs_file_object.writelines([event, "\n"])
-        else:
-            found_ending_flag = event.endswith(flag)
-            found_error_flag = event.endswith(__DOCKERFILE_RESERVED_ERROR_FLAG)
-            if found_ending_flag:
-                user_logs_file_object.write("Storing image...")
-                break
-            elif found_error_flag:
-                break
-            else:
-                user_logs_file_object.writelines([event, "\n"])
+    # The loops exits for 3 reasons: found_ending_flag, found_error_flag
+    # or the pod has stopped running.
 
     # Keep writing logs while the image is being stored for UX.
     if found_ending_flag:
+        msg = "Storing image..."
+        user_logs_file_object.write(msg)
+        complete_logs_file_object.write(msg)
+        complete_logs_file_object.flush()
         done = False
         while not done:
             try:

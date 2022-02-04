@@ -112,7 +112,6 @@ def write_environment_dockerfile(
     flag = __DOCKERFILE_RESERVED_FLAG
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
-        f'&& echo "{flag}" '
         # The ! in front of echo is there so that the script will fail
         # since the statements in the "if" have failed, the echo is a
         # way of injecting the help message.
