@@ -11,6 +11,7 @@ from app import errors, models, utils
 from app.connections import docker_client, k8s_core_api, k8s_custom_obj_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
+__DOCKERFILE_RESERVED_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 
 
 def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> dict:
@@ -269,6 +270,7 @@ def _build_image(
     flag = __DOCKERFILE_RESERVED_FLAG
     found_beginning_flag = False
     found_ending_flag = False
+    found_error_flag = False
     w = watch.Watch()
     for event in w.stream(
         k8s_core_api.read_namespaced_pod_log,
@@ -279,23 +281,25 @@ def _build_image(
     ):
         complete_logs_file_object.writelines([event, "\n"])
         complete_logs_file_object.flush()
-        if not found_ending_flag:
-            # Beginning flag not found --> do not log.
-            # Beginning flag found --> log until you find
-            # the ending flag.
-            if not found_beginning_flag:
-                found_beginning_flag = event.startswith(flag)
-                if found_beginning_flag:
-                    event = event.replace(flag, "")
-                    if len(event) > 0:
-                        user_logs_file_object.writelines([event, "\n"])
-            else:
-                found_ending_flag = event.endswith(flag)
-                if not found_ending_flag:
+        # Beginning flag not found --> do not log.
+        # Beginning flag found --> log until you find
+        # the ending flag.
+        if not found_beginning_flag:
+            found_beginning_flag = event.startswith(flag)
+            if found_beginning_flag:
+                event = event.replace(flag, "")
+                if len(event) > 0:
                     user_logs_file_object.writelines([event, "\n"])
-                else:
-                    user_logs_file_object.write("Storing image...")
-                    break
+        else:
+            found_ending_flag = event.endswith(flag)
+            found_error_flag = event.endswith(__DOCKERFILE_RESERVED_ERROR_FLAG)
+            if found_ending_flag:
+                user_logs_file_object.write("Storing image...")
+                break
+            elif found_error_flag:
+                break
+            else:
+                user_logs_file_object.writelines([event, "\n"])
 
     # Keep writing logs while the image is being stored for UX.
     if found_ending_flag:
@@ -316,7 +320,7 @@ def _build_image(
 
     resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace="orchest")
 
-    if resp.status.phase == "Failed":
+    if found_error_flag or resp.status.phase == "Failed":
         msg = (
             "There was a problem building the image. The building script had a non 0 "
             "exit code, build failed.\n"
