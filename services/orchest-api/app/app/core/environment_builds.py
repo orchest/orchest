@@ -18,6 +18,7 @@ from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
+__DOCKERFILE_RESERVED_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
 
 
@@ -43,7 +44,7 @@ def update_environment_build_status(
 
 
 def write_environment_dockerfile(
-    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, flag, path
+    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, path
 ):
     """Write a custom dockerfile with the given specifications.
 
@@ -58,8 +59,6 @@ def write_environment_dockerfile(
         env_uuid:
         work_dir: Working directory.
         bash_script: Script to run in a RUN command.
-        flag: Flag to use to be able to differentiate between logs of
-            the bash_script and logs to be ignored.
         path: Where to save the file.
 
     Returns:
@@ -110,6 +109,7 @@ def write_environment_dockerfile(
         f"sudo rm {bash_script}; fi)"
     )
 
+    flag = __DOCKERFILE_RESERVED_FLAG
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
         f'&& echo "{flag}" '
@@ -120,7 +120,11 @@ def write_environment_dockerfile(
         f"&& bash {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.
-        f'&& echo "{flag}" {rm_statement}'
+        f'&& echo "{flag}" {rm_statement} '
+        # The || <error flag> allows to avoid kaniko errors logs making
+        # into it the user logs and tell us that there has been an
+        # error.
+        f"|| (echo {__DOCKERFILE_RESERVED_ERROR_FLAG} && PRODUCE_AN_ERROR)"
     )
     statements.append("LABEL _orchest_env_build_is_intermediate=0")
 
@@ -242,7 +246,6 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
             environment_uuid,
             _config.PROJECT_DIR,
             bash_script_name,
-            __DOCKERFILE_RESERVED_FLAG,
             os.path.join(snapshot_path, docker_file_name),
         )
 
