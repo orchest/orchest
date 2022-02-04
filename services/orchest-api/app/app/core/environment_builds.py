@@ -340,7 +340,14 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             raise e
         finally:
             # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflow.
+            # aborted, in any case, delete the workflows.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-cache-task-{task_uuid}",
+            )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",

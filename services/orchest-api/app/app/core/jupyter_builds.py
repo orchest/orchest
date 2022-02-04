@@ -144,6 +144,7 @@ def prepare_build_context(task_uuid):
     return {
         "snapshot_path": snapshot_path,
         "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
+        "base_image": "orchest/jupyter-server:latest",
     }
 
 
@@ -212,7 +213,14 @@ def build_jupyter_task(task_uuid):
             raise e
         finally:
             # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflow.
+            # aborted, in any case, delete the workflows.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-cache-task-{task_uuid}",
+            )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",
