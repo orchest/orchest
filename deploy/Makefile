@@ -48,11 +48,17 @@ CLUSTER_RSC_REG_DEPLOY_CONFIG := registry-resources \
 								${CLUSTER_RSC_REG_ISSUER_CONFIG} helm
 
 # ceph resources deployment configs
-CLUSTER_RSC_CEPH_ENABLE_CONFIG := --set cluster-resources.ceph.enabled=true
+CEPH_MULTI_MON_PER_NODE := ${if ${MULTI_MON_PER_NODE},${MULTI_MON_PER_NODE},true}
+CEPH_USE_ALL_DEVICES := ${if ${CEPH_USE_ALL_DEVICES},${CEPH_USE_ALL_DEVICES},false}
+CEPH_RSC_ENABLE_CONFIG := --set cluster-resources.ceph.enabled=true
+CEPH_MULTI_MON_PER_NODE_CONFIG := --set cluster-resources.ceph.cephClusterSpec.mon.allowMultiplePerNode=${CEPH_MULTI_MON_PER_NODE}
+CEPH_USE_ALL_DEVICES_CONFIG := --set cluster-resources.ceph.cephClusterSpec.storage.useAllDevices=${CEPH_USE_ALL_DEVICES} 
 CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
-								${CLUSTER_RSC_CEPH_ENABLE_CONFIG} helm
+								${CEPH_USE_ALL_DEVICES_CONFIG} \
+								${CEPH_MULTI_MON_PER_NODE_CONFIG} \
+								${CEPH_ENABLE_CONFIG} helm
 
 # rook deplyment configs
 ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
