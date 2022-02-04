@@ -39,6 +39,9 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                             },
                         ],
                     },
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
                 },
             ],
             # The celery task actually takes care of deleting the
@@ -129,6 +132,9 @@ def _get_image_build_workflow_manifest(
                                 "readOnly": True,
                             },
                         ],
+                    },
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                 },
             ],
