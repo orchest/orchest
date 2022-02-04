@@ -1166,13 +1166,15 @@ class UpdateJob(TwoPhaseFunction):
 
             # Make sure all environments still exist, that is, the
             # pipeline is not referring non-existing environments.
-            pipeline_def = job.pipeline_definition
-            environment_uuids = set(
-                [step["environment"] for step in pipeline_def["steps"].values()]
-            )
-            env_uuids_missing_image = get_env_uuids_missing_image(
-                job.project_uuid, environment_uuids
-            )
+            # K8S_TODO: fix
+            # pipeline_def = job.pipeline_definition
+            # environment_uuids = set(
+            #     [step["environment"] for step in pipeline_def["steps"].values()]
+            # )
+            # env_uuids_missing_image = get_env_uuids_missing_image(
+            #     job.project_uuid, environment_uuids
+            # )
+            env_uuids_missing_image = []
             if env_uuids_missing_image:
                 env_uuids_missing_image = ", ".join(env_uuids_missing_image)
                 msg = (

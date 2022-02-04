@@ -177,11 +177,16 @@ def get_env_uuids_to_docker_id_mappings(
         if env_uuid == "":
             raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
 
-        env_uuid_docker_id_mappings[env_uuid] = get_environment_image_docker_id(
-            _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=env_uuid
-            )
+        # K8S_TODO: fix.
+        #
+        env_uuid_docker_id_mappings[env_uuid] = _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=project_uuid, environment_uuid=env_uuid
         )
+        # env_uuid_docker_id_mappings[env_uuid] = get_environment_image_docker_id(
+        #     _config.ENVIRONMENT_IMAGE_NAME.format(
+        #         project_uuid=project_uuid, environment_uuid=env_uuid
+        #     )
+        # )
 
     envs_missing_image = [
         env_uuid

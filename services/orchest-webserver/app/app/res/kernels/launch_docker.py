@@ -16,14 +16,6 @@ remove_container = bool(os.getenv("EG_REMOVE_CONTAINER", "True").lower() == "tru
 swarm_mode = bool(os.getenv("EG_DOCKER_MODE", "swarm").lower() == "swarm")
 
 
-def get_volume_mount(pipeline_uuid, project_uuid):
-    target = _config.TEMP_DIRECTORY_PATH
-    source = _config.TEMP_VOLUME_NAME.format(
-        uuid=pipeline_uuid, project_uuid=project_uuid
-    )
-    return source, {"bind": target, "mode": "rw"}
-
-
 def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
     # Launches a containerized kernel.
 
@@ -94,11 +86,6 @@ def launch_docker_kernel(kernel_id, response_addr, spark_context_init_mode):
         host_project_dir=param_env.get("ORCHEST_HOST_PROJECT_DIR"),
         host_pipeline_file=param_env.get("ORCHEST_HOST_PIPELINE_FILE"),
     )
-    volume_source, volume_spec = get_volume_mount(
-        param_env.get("ORCHEST_PIPELINE_UUID"),
-        param_env.get("ORCHEST_PROJECT_UUID"),
-    )
-    orchest_mounts[volume_source] = volume_spec
 
     # Extract environment_uuid from the image name (last 36 characters)
     extracted_environment_uuid = image_name[-36:]

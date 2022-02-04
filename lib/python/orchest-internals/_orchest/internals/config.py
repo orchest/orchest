@@ -2,9 +2,6 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
-# General.
-TEMP_DIRECTORY_PATH = "/tmp/orchest"
-TEMP_VOLUME_NAME = "tmp-orchest-{uuid}-{project_uuid}"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
@@ -18,7 +15,7 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # load. This is only enforced when CPU cycles are constrained. For more
 # information, see
 # https://docs.docker.com/config/containers/resource_constraints/.
-USER_CONTAINERS_CPU_SHARES = 500
+USER_CONTAINERS_CPU_SHARES = "500m"
 
 # Databases
 database_naming_convention = {
@@ -109,7 +106,7 @@ DEFAULT_ENVIRONMENTS = [
 DOCKER_NETWORK = "orchest"
 
 # memory-server
-MEMORY_SERVER_SOCK_PATH = TEMP_DIRECTORY_PATH
+MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
 
 SIDECAR_PORT = 1111
 

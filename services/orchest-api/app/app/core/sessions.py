@@ -357,27 +357,6 @@ class Session:
                     "Failed to kill/remove session container %s [%s]" % (e, type(e))
                 )
 
-        # The reasons such removal needs to be done in sessions.py
-        # instead of pipelines.py are: 1) in a job run, the memory
-        # server is the last container that is removed, that happens
-        # when the session is shutting down, before that happens the TMP
-        # volume(s) cannot be removed 2) this way we also cleanup the
-        # volumes of an interactive session when the session shuts down.
-        if session_identity_uuid is not None and project_uuid is not None:
-            volume = self.client.volumes.get(
-                _config.TEMP_VOLUME_NAME.format(
-                    uuid=session_identity_uuid, project_uuid=project_uuid
-                )
-            )
-            # Catch to take care of the race condition where a session
-            # is already shutting down on its own but a shutdown command
-            # is issued by a project/pipeline/exp deletion at the same
-            # time.
-            try:
-                volume.remove()
-            except (requests.exceptions.HTTPError, NotFound, APIError):
-                pass
-
         image_utils.delete_project_dangling_images(project_uuid)
         return
 
@@ -684,7 +663,6 @@ def _get_mounts(
                 'kernelspec': Mount,
                 'docker_sock': Mount,
                 'project_dir': Mount,
-                'temp_volume': Mount,
 
                 # Used for persisting user configurations.
                 'jupyterlab': {
@@ -750,12 +728,6 @@ def _get_mounts(
     pipeline_file_target = _config.PIPELINE_FILE
     mounts["pipeline_file"] = Mount(
         target=pipeline_file_target, source=pipeline_file_source, type="bind"
-    )
-
-    mounts["temp_volume"] = Mount(
-        target=_config.TEMP_DIRECTORY_PATH,
-        source=_config.TEMP_VOLUME_NAME.format(uuid=uuid, project_uuid=project_uuid),
-        type="volume",
     )
 
     return mounts
@@ -992,7 +964,6 @@ def _get_orchest_services_specs(
         "mounts": [
             mounts["project_dir"],
             mounts["pipeline_file"],
-            mounts["temp_volume"],
         ],
         "name": f"memory-server-{project_uuid}-{uuid}",
         "network": network,
