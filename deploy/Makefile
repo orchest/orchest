@@ -39,13 +39,20 @@ CLUSTER_RSC_REG_SECRET_CONFIG := --set cluster-resources.registry.secret=${REGIS
 CLUSTER_RSC_REG_NAME_CONFIG := --set cluster-resources.registry.name=${REGISTRY_NAME}
 CLUSTER_RSC_REG_ISSUER_CONFIG := --set cluster-resources.registry.issuer.name=${ISSUER_NAME}
 CLUSTER_RSC_REG_ENABLE_CONFIG := --set cluster-resources.registry.enabled=true
-CLUSTER_RSC_REG_DEPLOY_CONFIG := registry-configs \
+CLUSTER_RSC_REG_DEPLOY_CONFIG := registry-resources \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
 								${CLUSTER_RSC_REG_ENABLE_CONFIG} \
 								${CLUSTER_RSC_REG_SECRET_CONFIG} \
 								${CLUSTER_RSC_REG_NAME_CONFIG} \
 								${CLUSTER_RSC_REG_ISSUER_CONFIG} helm
+
+# ceph resources deployment configs
+CLUSTER_RSC_CEPH_ENABLE_CONFIG := --set cluster-resources.ceph.enabled=true
+CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
+								${SHARED_DEPLOY_CONFIG}	\
+								${CLUSTER_RSC_ENABLE_CONFIG} \
+								${CLUSTER_RSC_CEPH_ENABLE_CONFIG} helm
 
 # rook deplyment configs
 ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
@@ -161,6 +168,14 @@ registry-resources: ./bin/registry-resources
 ./bin/registry-resources: | create-bin cert-manager
 	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
+
+.PHONY: ceph-resources
+ceph-resources: ./bin/ceph-resources
+	
+.SECONDARY: ./bin/ceph-resources
+./bin/ceph-resources: create-bin
+	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
+	touch $@	
 
 .PHONY: create-bin
 create-bin:
