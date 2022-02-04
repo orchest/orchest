@@ -106,6 +106,14 @@ def _get_image_build_workflow_manifest(
                             "--use-new-run",
                             "--verbosity=debug",
                             "--snapshotMode=redo",
+                            # From the docs: "This flag takes a single
+                            # snapshot of the filesystem at the end of
+                            # the build, so only one layer will be
+                            # appended to the base image."  We use this
+                            # flag since we can't cache layers due to
+                            # now knoting how aggressive in caching we
+                            # can be.
+                            "--single-snapshot",
                         ],
                         "volumeMounts": [
                             {"name": "build-context", "mountPath": "/build-context"},
