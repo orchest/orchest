@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 from typing import Optional
 
@@ -25,11 +24,6 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
             "templates": [
                 {
                     "name": "cache-image",
-                    "securityContext": {
-                        "runAsUser": 0,
-                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                    },
                     "container": {
                         "name": "kaniko",
                         "image": "gcr.io/kaniko-project/warmer:latest",
@@ -99,11 +93,6 @@ def _get_image_build_workflow_manifest(
             "templates": [
                 {
                     "name": "build-env",
-                    "securityContext": {
-                        "runAsUser": 0,
-                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
-                    },
                     "container": {
                         "name": "kaniko",
                         "image": "gcr.io/kaniko-project/executor:latest",
