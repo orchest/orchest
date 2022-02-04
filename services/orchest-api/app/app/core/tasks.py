@@ -7,17 +7,18 @@ from typing import Dict, List, Optional, Union
 
 import aiohttp
 from celery import Task
-from celery.contrib.abortable import AbortableTask
+from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
-from _orchest.internals.utils import copytree
+from _orchest.internals.utils import copytree, get_k8s_namespace_name
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
 from app.core.environment_builds import build_environment_task
 from app.core.jupyter_builds import build_jupyter_task
-from app.core.pipelines import Pipeline, PipelineDefinition, run_pipeline_workflow
+from app.core.pipelines import Pipeline, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
+from app.types import PipelineDefinition, RunConfig
 from config import CONFIG_CLASS
 
 logger = get_task_logger(__name__)
@@ -67,16 +68,23 @@ class APITask(Task):
         return self._session
 
 
-async def run_pipeline_async(run_config, pipeline, task_id):
+async def run_pipeline_async(
+    session_uuid: str, run_config: RunConfig, pipeline: Pipeline, task_id: str
+):
     try:
-        await run_pipeline_workflow(task_id, pipeline, run_config=run_config)
+        await run_pipeline_workflow(
+            session_uuid, task_id, pipeline, run_config=run_config
+        )
+    except Exception as e:
+        logger.error(e)
+        raise
     finally:
         # We get here either because the task was successful or was
         # aborted, in any case, delete the workflow.
         k8s_custom_obj_api.delete_namespaced_custom_object(
             "argoproj.io",
             "v1alpha1",
-            "orchest",
+            get_k8s_namespace_name(session_uuid),
             "workflows",
             f"pipeline-run-task-{task_id}",
         )
@@ -90,8 +98,8 @@ async def run_pipeline_async(run_config, pipeline, task_id):
 def run_pipeline(
     self,
     pipeline_definition: PipelineDefinition,
-    project_uuid: str,
-    run_config: Dict[str, Union[str, Dict[str, str]]],
+    run_config: RunConfig,
+    session_uuid: str,
     task_id: Optional[str] = None,
 ) -> str:
     """Runs a pipeline partially.
@@ -103,24 +111,11 @@ def run_pipeline(
     Args:
         pipeline_definition: a json description of the pipeline.
         run_config: configuration of the run for the compute backend.
-            Example: {
-                'session_uuid' : 'uuid',
-                'session_type' : 'interactive',
-                'run_endpoint': 'runs',
-                'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_docker_id_mappings': {
-                    'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
-                        'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
-                }
-            }
 
     Returns:
         Status of the pipeline run. "FAILURE" or "SUCCESS".
 
     """
-    run_config["pipeline_uuid"] = pipeline_definition["uuid"]
-    run_config["project_uuid"] = project_uuid
-
     # Get the pipeline to run.
     pipeline = Pipeline.from_json(pipeline_definition)
 
@@ -137,7 +132,7 @@ def run_pipeline(
     # failed. Although the run did complete successfully from a task
     # scheduler perspective.
     # https://stackoverflow.com/questions/7672327/how-to-make-a-celery-task-fail-from-within-the-task
-    return asyncio.run(run_pipeline_async(run_config, pipeline, task_id))
+    return asyncio.run(run_pipeline_async(session_uuid, run_config, pipeline, task_id))
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -191,7 +186,7 @@ def start_non_interactive_pipeline_run(
     host_base_user_dir = os.path.split(host_userdir)[0]
 
     # For non interactive runs the session uuid is equal to the task
-    # uuid.
+    # uuid, which is actually the pipeline run uuid.
     session_uuid = self.request.id
     run_config["session_uuid"] = session_uuid
     run_config["session_type"] = "noninteractive"
@@ -220,15 +215,17 @@ def start_non_interactive_pipeline_run(
         "env_uuid_docker_id_mappings"
     ]
 
-    # K8S_TODO: fix.
-    # with launch_noninteractive_session(
-    #     docker_client,
-    #     session_uuid,
-    #     session_config,
-    # ):
-    status = run_pipeline(
-        pipeline_definition, project_uuid, run_config, task_id=self.request.id
-    )
+    with launch_noninteractive_session(
+        session_uuid,
+        session_config,
+        lambda: AbortableAsyncResult(session_uuid).is_aborted(),
+    ):
+        status = run_pipeline(
+            pipeline_definition,
+            run_config,
+            session_uuid,
+            task_id=self.request.id,
+        )
 
     return status
 

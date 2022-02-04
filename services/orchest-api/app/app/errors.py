@@ -14,5 +14,13 @@ class PipelineDefinitionNotValid(Exception):
     pass
 
 
+class NoSuchSessionServiceError(Exception):
+    pass
+
+
+class SessionCleanupFailedError(Exception):
+    pass
+
+
 class PodNeverReachedExpectedStatusError(Exception):
     pass

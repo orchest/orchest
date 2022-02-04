@@ -1,38 +1,36 @@
+"""Module about pipeline definition/de-serialization and pipeline runs.
+
+Essentially, it covers:
+- transforming a pipeline definition, e.g. obtained by the pipeline
+    json, into an instance of the Pipeline class, which adds some nice
+    to have logic.
+- transforming said Pipeline instance to a valid k8s workflow
+    definition, where the pipeline is run as an argo workflow.
+- the required function to actually perform a pipeline run.
+
+As a client of this module you are most likely interested in how to get
+a pipeline json to a Pipeline instance (point 1) and how to use that to
+perform a pipeline run (point 3), with "run_pipeline_workflow".
+
+"""
 import asyncio
 import copy
 import json
-import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Set, TypedDict
+from typing import Any, Dict, Iterable, List, Optional, Set
 
 import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_step_volumes_and_volume_mounts
+from _orchest.internals.utils import (
+    get_k8s_namespace_name,
+    get_step_volumes_and_volume_mounts,
+)
 from app.connections import k8s_custom_obj_api
+from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
 from config import CONFIG_CLASS
-
-
-# TODO: this class is not extensive yet. The Other Dicts can be typed
-#       with a TypedDict also.
-class PipelineStepProperties(TypedDict):
-    name: str
-    uuid: str
-    incoming_connections: List[str]  # list of UUIDs
-    file_path: str
-    environment: str
-    parameters: dict
-    meta_data: Dict[str, List[int]]
-
-
-class PipelineDefinition(TypedDict):
-    name: str
-    uuid: str
-    steps: Dict[str, PipelineStepProperties]
-    parameters: Dict[str, Any]
-    settings: Dict[str, Any]
 
 
 def construct_pipeline(
@@ -394,87 +392,11 @@ class Pipeline:
         properties = copy.deepcopy(self.properties)
         return Pipeline(steps=list(steps_to_be_included), properties=properties)
 
-    def kill_all_running_steps(self, task_id, compute_backend, run_config):
-        run_func = getattr(self, f"kill_all_running_steps_on_{compute_backend}")
-        return run_func(task_id, run_config)
-
-    def kill_all_running_steps_on_docker(self, task_id, run_config):
-
-        logging.info("Aborted: kill_all_running_steps")
-
-        # list containers
-        docker_client = run_config["docker_client"]
-        containers = docker_client.containers.list(ignore_removed=True)
-
-        container_names_to_kill = set(
-            [
-                _config.PIPELINE_STEP_CONTAINER_NAME.format(
-                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
-                )
-                for pipeline_step in self.steps
-            ]
-        )
-
-        for container in containers:
-            if container.name in container_names_to_kill:
-                try:
-                    container.kill()
-                except Exception as e:
-                    logging.error(
-                        "Failed to kill container %s. Error: %s (%s)"
-                        % (container.get("name"), e, type(e))
-                    )
-
-    def remove_containerization_resources(self, task_id, compute_backend, run_config):
-        run_func = getattr(
-            self, f"remove_containerization_resources_on_{compute_backend}"
-        )
-        return run_func(task_id, run_config)
-
-    def remove_containerization_resources_on_docker(self, task_id, run_config):
-
-        logging.info("Cleaning up containerization resources on docker")
-
-        # list containers
-        docker_client = run_config["docker_client"]
-        # use all=True to get stopped containers
-        containers = docker_client.containers.list(all=True, ignore_removed=True)
-
-        container_names_to_remove = set(
-            [
-                _config.PIPELINE_STEP_CONTAINER_NAME.format(
-                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
-                )
-                for pipeline_step in self.steps
-            ]
-        )
-        logging.info(container_names_to_remove)
-
-        for container in containers:
-            if container.name in container_names_to_remove:
-                try:
-                    logging.info("removing container %s" % container.name)
-                    # force=False so we log if a container happened to
-                    # be still running while we expected it to not be
-                    # v=True does not actually do anything because,
-                    # given the docker docs:
-                    # https://docs.docker.com/engine/reference/commandline/rm/
-                    # "This command removes the container and any
-                    # volumes associated with it. Note that if a volume
-                    # was specified with a name, it will not be removed.
-                    # "
-                    container.remove(force=False, v=True)
-                except Exception as e:
-                    logging.error(
-                        "Failed to remove container %s. Error: %s (%s)"
-                        % (container.get("name"), e, type(e))
-                    )
-
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"
 
 
-def step_to_workflow_manifest_task(
+def _step_to_workflow_manifest_task(
     step: PipelineStep, run_config: Dict[str, Any]
 ) -> dict:
     # The working directory is the location of the file being
@@ -548,7 +470,7 @@ def step_to_workflow_manifest_task(
                     "name": "image",
                     "value":
                     # K8S_TODO: fix.
-                    "10.111.248.253/"
+                    "10.111.164.4/"
                     + run_config["env_uuid_docker_id_mappings"][
                         step.properties["environment"]
                     ],
@@ -570,7 +492,7 @@ def step_to_workflow_manifest_task(
     return task
 
 
-def pipeline_to_workflow_manifest(
+def _pipeline_to_workflow_manifest(
     workflow_name: str, pipeline: Pipeline, run_config: Dict[str, Any]
 ) -> dict:
     volumes, volume_mounts = get_step_volumes_and_volume_mounts(
@@ -608,7 +530,7 @@ def pipeline_to_workflow_manifest(
                     "dag": {
                         "failFast": True,
                         "tasks": [
-                            step_to_workflow_manifest_task(step, run_config)
+                            _step_to_workflow_manifest_task(step, run_config)
                             for step in pipeline.steps
                         ],
                     },
@@ -656,10 +578,7 @@ def pipeline_to_workflow_manifest(
 
 
 async def run_pipeline_workflow(
-    task_id: str,
-    pipeline: Pipeline,
-    *,
-    run_config: Dict[str, Any],
+    session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
 ):
     async with aiohttp.ClientSession() as session:
 
@@ -671,12 +590,14 @@ async def run_pipeline_workflow(
             run_endpoint=run_config["run_endpoint"],
         )
 
+        namespace = get_k8s_namespace_name(session_uuid)
+
         try:
-            manifest = pipeline_to_workflow_manifest(
+            manifest = _pipeline_to_workflow_manifest(
                 f"pipeline-run-task-{task_id}", pipeline, run_config
             )
             k8s_custom_obj_api.create_namespaced_custom_object(
-                "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
+                "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
             )
 
             steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
@@ -687,7 +608,7 @@ async def run_pipeline_workflow(
                 resp = k8s_custom_obj_api.get_namespaced_custom_object(
                     "argoproj.io",
                     "v1alpha1",
-                    "orchest",
+                    namespace,
                     "workflows",
                     f"pipeline-run-task-{task_id}",
                 )

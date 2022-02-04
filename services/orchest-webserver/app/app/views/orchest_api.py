@@ -449,6 +449,8 @@ def register_orchest_api_views(app, db):
                 "pipeline_path": pipeline_uuid_to_path(
                     json_obj["pipeline_definition"]["uuid"], json_obj["project_uuid"]
                 ),
+                "pipeline_uuid": json_obj["pipeline_definition"]["uuid"],
+                "project_uuid": json_obj["project_uuid"],
             }
 
             resp = requests.post(

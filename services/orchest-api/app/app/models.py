@@ -187,28 +187,10 @@ class InteractiveSession(BaseModel):
         index=True,
     )
     pipeline_uuid = db.Column(db.String(36), primary_key=True, index=True)
+
     status = db.Column(
         db.String(10),
         primary_key=False,
-    )
-    # Used to connect to Jupyter notebook server.
-    jupyter_server_ip = db.Column(
-        db.String(15),
-        unique=True,
-        nullable=True,
-    )  # IPv4
-    # Used to connect to Jupyter notebook server.
-    notebook_server_info = db.Column(
-        JSONB,
-        unique=True,
-        nullable=True,
-    )
-    # Docker container IDs. Used internally to identify the resources of
-    # a specific session.
-    container_ids = db.Column(
-        JSONB,
-        unique=False,
-        nullable=True,
     )
 
     # Services defined by the user.
