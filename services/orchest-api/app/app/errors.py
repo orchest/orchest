@@ -12,3 +12,7 @@ class SessionContainerError(Exception):
 
 class PipelineDefinitionNotValid(Exception):
     pass
+
+
+class PodNeverReachedExpectedStatusError(Exception):
+    pass

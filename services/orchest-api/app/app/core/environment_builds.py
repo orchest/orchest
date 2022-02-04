@@ -4,13 +4,16 @@ import os
 import signal
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from app.core.docker_utils import build_docker_image, cleanup_docker_artifacts
+from _orchest.internals.utils import copytree, rmtree
+from app.connections import k8s_custom_obj_api
+from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
@@ -212,10 +215,14 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # sanity checks, if not respected exception will be raised
     check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
-    # make a snapshot of the project state
-    snapshot_path = f"/tmp/{dockerfile_name}"
-    os.system('rm -rf "%s"' % snapshot_path)
-    os.system('cp -R "%s" "%s"' % (userdir_project_path, snapshot_path))
+    env_builds_dir = "/userdir/.orchest/env-builds"
+    # K8S_TODO: remove this?
+    Path(env_builds_dir).mkdir(parents=True, exist_ok=True)
+    # Make a snapshot of the project state, used for the context.
+    snapshot_path = f"{env_builds_dir}/{dockerfile_name}"
+    if os.path.isdir(snapshot_path):
+        rmtree(snapshot_path)
+    copytree(userdir_project_path, snapshot_path, use_gitignore=True)
     # take the environment from the snapshot
     environment_path = os.path.join(
         snapshot_path, f".orchest/environments/{environment_uuid}"
@@ -256,6 +263,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     return {
         "snapshot_path": snapshot_path,
+        "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
         "base_image": environment_properties["base_image"],
     }
 
@@ -302,6 +310,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
                 task_lambda=lambda user_logs_fo: build_docker_image(
+                    task_uuid,
                     docker_image_name,
                     build_context,
                     task_uuid,
@@ -319,8 +328,8 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 abort_lambda=lambda: AbortableAsyncResult(task_uuid).is_aborted(),
             )
 
-            # cleanup
-            os.system('rm -rf "%s"' % build_context["snapshot_path"])
+            # Cleanup.
+            rmtree(build_context["snapshot_path"])
 
             update_environment_build_status(status, session, task_uuid)
 
@@ -330,15 +339,25 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             update_environment_build_status("FAILURE", session, task_uuid)
             raise e
         finally:
+            # We get here either because the task was successful or was
+            # aborted, in any case, delete the workflow.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-build-task-{task_uuid}",
+            )
+
             filters = {
                 "label": [
                     "_orchest_env_build_is_intermediate=1",
                     f"_orchest_env_build_task_uuid={task_uuid}",
                 ]
             }
-            # Necessary to avoid the case where the abortion of a task
-            # comes too late, leaving a dangling image.
             if AbortableAsyncResult(task_uuid).is_aborted():
+                # Necessary to avoid the case where the abortion of a
+                # task comes too late, leaving a dangling image.
                 filters["label"].pop(0)
 
             # Artifacts of this build (intermediate containers, images,

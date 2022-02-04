@@ -1,18 +1,89 @@
-import json
 import logging
 import time
 
 import docker
+from kubernetes import watch
 
-from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe
 from app import utils
-from app.connections import docker_client
+from app.connections import docker_client, k8s_api, k8s_custom_obj_api
 
 __DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 
 
+def _generate_image_build_workflow_manifest(
+    workflow_name, image_name, build_context_host_path, dockerfile_path
+) -> dict:
+    """Returns a workflow manifest given the arguments.
+
+    Args:
+        workflow_name: Name with which the workflow will be run.
+        image_name: Name of the resulting image, can include repository
+            and tags.
+        build_context_host_path: Path on the host where the build
+            context is to be found.
+        dockerfile_path: Path to the dockerfile, relative to the
+            context.
+
+    Returns:
+        Valid k8s workflow manifest.
+    """
+    manifest = {
+        "apiVersion": "argoproj.io/v1alpha1",
+        "kind": "Workflow",
+        "metadata": {"name": workflow_name},
+        "spec": {
+            "entrypoint": "build-env",
+            "templates": [
+                {
+                    "name": "build-env",
+                    "container": {
+                        "name": "kaniko",
+                        "image": "gcr.io/kaniko-project/executor:latest",
+                        "command": ["/kaniko/executor"],
+                        "args": [
+                            f"--dockerfile={dockerfile_path}",
+                            "--context=dir:///build-context",
+                            f"--destination=registry.kube-system.svc.cluster.local/{image_name}",  # noqa
+                            "--cleanup",
+                            "--log-format=json",
+                            "--reproducible",
+                            "--insecure",
+                            "--cache=true",
+                            "--cache-repo=registry.kube-system.svc.cluster.local",
+                            "--registry-mirror=registry.kube-system.svc.cluster.local",
+                        ],
+                        "volumeMounts": [
+                            {"name": "build-context", "mountPath": "/build-context"}
+                        ],
+                    },
+                }
+            ],
+            # The celery task actually takes care of deleting the
+            # workflow, this is just a failsafe.
+            "ttlStrategy": {
+                "secondsAfterCompletion": 1000,
+                "secondsAfterSuccess": 1000,
+                "secondsAfterFailure": 1000,
+            },
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "volumes": [
+                {
+                    "name": "build-context",
+                    "hostPath": {
+                        "path": build_context_host_path,
+                        "type": "DirectoryOrCreate",
+                    },
+                }
+            ],
+        },
+    }
+    return manifest
+
+
 def build_docker_image(
+    task_uuid,
     image_name,
     build_context,
     dockerfile_path,
@@ -23,6 +94,7 @@ def build_docker_image(
         file.
 
     Args:
+        task_uuid:
         image_name:
         build_context:
         dockerfile_path:
@@ -57,76 +129,63 @@ def build_docker_image(
                 "docker_client.images.get() call to Docker API failed."
             )
 
-        # connect to docker and issue the build
-        generator = docker_client.api.build(
-            path=build_context["snapshot_path"],
-            dockerfile=dockerfile_path,
-            tag=image_name,
-            rm=True,
-            nocache=True,
-            container_limits={"cpushares": _config.USER_CONTAINERS_CPU_SHARES},
+        pod_name = f"image-build-task-{task_uuid}"
+        manifest = _generate_image_build_workflow_manifest(
+            pod_name, image_name, build_context["snapshot_host_path"], dockerfile_path
+        )
+        k8s_custom_obj_api.create_namespaced_custom_object(
+            "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
         )
 
-        flag = __DOCKERFILE_RESERVED_FLAG + "\n"
+        utils.wait_for_pod_status(
+            pod_name,
+            "orchest",
+            expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
+            max_retries=100,
+        )
+
+        flag = __DOCKERFILE_RESERVED_FLAG
         found_beginning_flag = False
         found_ending_flag = False
-        had_errors = False
-        while True:
-            try:
-                output = next(generator)
-                json_output = json.loads(output)
-                # Checking for logs. Even if we consider to be done with
-                # the logs (found_ending_flag == True) we do not break
-                # out of the while loop because the build needs to keep
-                # going, both for error reporting and for actually
-                # allowing the build to keep going, which would not
-                # happen if the process exits.
-                if "stream" in json_output:
-                    stream = json_output["stream"]
-
-                    complete_logs_file_object.write(stream)
-                    complete_logs_file_object.flush()
-
+        w = watch.Watch()
+        for event in w.stream(
+            k8s_api.read_namespaced_pod_log,
+            name=pod_name,
+            container="main",
+            namespace="orchest",
+            follow=True,
+        ):
+            complete_logs_file_object.writelines([event, "\n"])
+            complete_logs_file_object.flush()
+            if not found_ending_flag:
+                # Beginning flag not found --> do not log.
+                # Beginning flag found --> log until you find
+                # the ending flag.
+                if not found_beginning_flag:
+                    found_beginning_flag = event.startswith(flag)
+                    if found_beginning_flag:
+                        event = event.replace(flag, "")
+                        if len(event) > 0:
+                            user_logs_file_object.writelines([event, "\n"])
+                else:
+                    found_ending_flag = event.endswith(flag)
                     if not found_ending_flag:
-                        # Beginning flag not found --> do not log.
-                        # Beginning flag found --> log until you find
-                        # the ending flag.
-                        if not found_beginning_flag:
-                            found_beginning_flag = stream.startswith(flag)
-                            if found_beginning_flag:
-                                stream = stream.replace(flag, "")
-                                if len(stream) > 1:
-                                    user_logs_file_object.write(stream)
-                        else:
-                            found_ending_flag = stream.endswith(flag)
-                            if not found_ending_flag:
-                                user_logs_file_object.write(stream)
+                        user_logs_file_object.writelines([event, "\n"])
+                    else:
+                        user_logs_file_object.write("Storing image...\n")
 
-                had_errors = (
-                    had_errors
-                    or ("error" in json_output)
-                    or ("errorDetail" in json_output)
-                )
+        # The w.stream loop exits once the pod has finished running.
+        resp = k8s_api.read_namespaced_pod(name=pod_name, namespace="orchest")
 
-            # Build is done.
-            except StopIteration:
-                break
-            except ValueError:
-                pass
-            # Any other exception will lead to a fail of the build.
-            except Exception:
-                had_errors = True
-
-        if had_errors:
+        if resp.status.phase == "Failed":
             msg = (
                 "There was a problem building the image. "
                 "Either the base image does not exist or the "
-                "building script had a non 0 exit code, build failed\n"
+                "building script had a non 0 exit code, build failed.\n"
             )
             user_logs_file_object.write(msg)
             complete_logs_file_object.write(msg)
             complete_logs_file_object.flush()
-
             return "FAILURE"
 
         return "SUCCESS"

@@ -9,6 +9,7 @@ import requests
 from flask.globals import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from _orchest.internals.utils import rmtree
 from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
@@ -22,7 +23,6 @@ from app.utils import (
     populate_default_environments,
     project_uuid_to_path,
     remove_project_jobs_directories,
-    rmtree,
 )
 from app.views.orchest_api import api_proxy_environment_builds
 

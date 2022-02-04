@@ -78,7 +78,7 @@ def test_jupyter_build(abort, monkeypatch):
 
     # To mock getting an image and building an image.
     MockedDockerClient = mocked_docker_client(_NOT_TO_BE_LOGGED, [])
-    monkeypatch.setattr(app.core.docker_utils, "docker_client", MockedDockerClient())
+    monkeypatch.setattr(app.core.image_utils, "docker_client", MockedDockerClient())
 
     socketio_data = {
         "output_logs": [],
