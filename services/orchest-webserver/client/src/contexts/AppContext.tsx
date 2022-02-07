@@ -33,25 +33,25 @@ function parseLineBreak(lines: string) {
   return lineElements;
 }
 
-const contentParser = (content: string | JSX.Element | JSX.Element[]) =>
+const contentParser = (content: string | React.ReactElement | JSX.Element[]) =>
   typeof content === "string" ? parseLineBreak(content) : content;
 
 export type PromptMessageType = "alert" | "confirm";
 
 export type Alert = {
   type: "alert";
-  title: string | JSX.Element;
-  content: string | JSX.Element | JSX.Element[];
+  title: string;
+  content: string | React.ReactElement | JSX.Element[];
   onConfirm?: () => Promise<boolean | void> | boolean | void;
   confirmLabel?: string;
 };
 
 export type Confirm = {
   type: "confirm";
-  title: string | JSX.Element;
-  content: string | JSX.Element | JSX.Element[];
+  title: string;
+  content: string | React.ReactElement | JSX.Element[];
   onConfirm: () => Promise<boolean> | boolean; // if it's confirm type, something needs to happen. Otherwise, it could have been an alert.
-  onCancel?: () => Promise<false | void> | void | false;
+  onCancel?: () => Promise<boolean | void> | void | boolean;
   confirmLabel?: string;
   cancelLabel?: string;
 };
@@ -60,16 +60,16 @@ export type PromptMessage = Alert | Confirm;
 
 type AlertConverter = (props: {
   title: string;
-  content: string | JSX.Element | JSX.Element[];
+  content: string | React.ReactElement | JSX.Element[];
   confirmHandler?: () => Promise<boolean> | boolean;
   confirmLabel?: string;
 }) => Alert;
 
 type ConfirmConverter = (props: {
   title: string;
-  content: string | JSX.Element | JSX.Element[];
+  content: string | React.ReactElement | JSX.Element[];
   confirmHandler: () => Promise<boolean> | boolean;
-  cancelHandler?: () => Promise<false | void> | void | false;
+  cancelHandler?: () => Promise<boolean | void> | void | boolean;
   confirmLabel?: string;
   cancelLabel?: string;
 }) => Confirm;
@@ -130,7 +130,7 @@ type AppContextAction = Action | ActionCallback;
 
 export type AlertDispatcher = (
   title: string,
-  content: string | JSX.Element | JSX.Element[],
+  content: string | React.ReactElement,
   callbackOrParams?:
     | ConfirmHandler
     | {
@@ -141,7 +141,7 @@ export type AlertDispatcher = (
 
 export type ConfirmDispatcher = (
   title: string,
-  content: string | JSX.Element | JSX.Element[],
+  content: string | React.ReactElement,
   callbackOrParams?:
     | ConfirmHandler
     | {
@@ -243,10 +243,10 @@ type ConfirmHandler = (
 
 type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
-) => Promise<false | void> | void | false;
+) => Promise<boolean | void> | void | boolean;
 
 const defaultOnConfirm: ConfirmHandler = () => true;
-const defaultOnCancel: CancelHandler = () => false as const;
+const defaultOnCancel: CancelHandler = () => false;
 
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,
@@ -258,7 +258,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   // see ProjectsView, deleteSelectedRows for example
   const dispatcher = (
     title: string,
-    content: string | JSX.Element | JSX.Element[],
+    content: string | React.ReactElement | JSX.Element[],
     callbackOrParams?:
       | ConfirmHandler
       | {
