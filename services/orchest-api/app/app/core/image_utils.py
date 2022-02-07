@@ -9,9 +9,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app import errors, models, utils
 from app.connections import docker_client, k8s_core_api, k8s_custom_obj_api
-
-__DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
-__DOCKERFILE_RESERVED_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
+from config import CONFIG_CLASS
 
 
 def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> dict:
@@ -295,8 +293,10 @@ def _build_image(
         namespace="orchest",
         follow=True,
     ):
-        found_ending_flag = event.endswith(__DOCKERFILE_RESERVED_FLAG)
-        found_error_flag = event.endswith(__DOCKERFILE_RESERVED_ERROR_FLAG)
+        found_ending_flag = event.endswith(
+            CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+        )
+        found_error_flag = event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG)
         # Break here because kaniko is storing the image or the build
         # has failed.
         if found_ending_flag or found_error_flag:

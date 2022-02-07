@@ -17,8 +17,6 @@ from app.core.image_utils import build_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
-__DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
-__DOCKERFILE_RESERVED_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
 
 
@@ -109,7 +107,8 @@ def write_environment_dockerfile(
         f"sudo rm {bash_script}; fi)"
     )
 
-    flag = __DOCKERFILE_RESERVED_FLAG
+    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+    error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
         # The ! in front of echo is there so that the script will fail
@@ -123,7 +122,7 @@ def write_environment_dockerfile(
         # The || <error flag> allows to avoid kaniko errors logs making
         # into it the user logs and tell us that there has been an
         # error.
-        f"|| (echo {__DOCKERFILE_RESERVED_ERROR_FLAG} && PRODUCE_AN_ERROR)"
+        f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
     statements.append("LABEL _orchest_env_build_is_intermediate=0")
 

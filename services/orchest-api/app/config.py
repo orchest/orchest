@@ -27,6 +27,10 @@ class Config:
     # activity.
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
+    # Image building.
+    BUILD_IMAGE_LOG_TERMINATION_FLAG = "_ORCHEST_RESERVED_LOG_TERMINATION_FLAG_"
+    BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
+
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
     # NOTE: Flask will not configure lowercase variables. Therefore the
