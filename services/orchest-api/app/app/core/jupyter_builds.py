@@ -19,8 +19,6 @@ from config import CONFIG_CLASS
 
 logger = get_logger()
 
-__DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
-__DOCKERFILE_RESERVED_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 __JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_builds_logs"
 
 
@@ -72,7 +70,8 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, path):
     # exit_code != 0 will bubble up and cause the docker build to fail,
     # as it should. The bash script is removed so that the user won't
     # be able to see it after the build is done.
-    flag = __DOCKERFILE_RESERVED_FLAG
+    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+    error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
         f'RUN cd "{os.path.join("/", work_dir)}" '
         f"&& bash {bash_script} "
@@ -85,7 +84,7 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, path):
         # The || <error flag> allows to avoid kaniko errors logs making
         # into it the user logs and tell us that there has been an
         # error.
-        f"|| (echo {__DOCKERFILE_RESERVED_ERROR_FLAG} && PRODUCE_AN_ERROR)"
+        f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
     statements.append("LABEL _orchest_jupyter_build_is_intermediate=0")
 
