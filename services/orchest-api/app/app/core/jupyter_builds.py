@@ -40,7 +40,7 @@ def update_jupyter_build_status(
         return response.json()
 
 
-def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, path):
+def write_jupyter_dockerfile(work_dir, bash_script, path):
     """Write a custom dockerfile with the given specifications.
 
     This dockerfile is built in an ad-hoc way to later be able to only
@@ -48,12 +48,12 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, path):
     dockerfile will make it so that the entire context is copied.
 
     Args:
-        task_uuid:
         work_dir: Working directory.
         bash_script: Script to run in a RUN command.
         path: Where to save the file.
 
     Returns:
+        Dictionary containing build context details.
 
     """
     statements = []
@@ -107,7 +107,6 @@ def prepare_build_context(task_uuid):
         Path to the prepared context.
 
     """
-    dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
 
@@ -117,16 +116,16 @@ def prepare_build_context(task_uuid):
     Path("/userdir/.orchest/user-configurations/jupyterlab").mkdir(
         parents=True, exist_ok=True
     )
-    snapshot_path = f"{jupyter_builds_dir}/{dockerfile_name}"
+    snapshot_path = f"{jupyter_builds_dir}/{task_uuid}"
 
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
 
     os.system('mkdir "%s"' % (snapshot_path))
 
-    bash_script_name = f".{dockerfile_name}.sh"
+    dockerfile_name = ".orchest-reserved-jupyter-dockerfile"
+    bash_script_name = ".orchest-reserved-jupyter-setup.sh"
     write_jupyter_dockerfile(
-        task_uuid,
         "tmp/jupyter",
         bash_script_name,
         os.path.join(snapshot_path, dockerfile_name),
@@ -149,6 +148,7 @@ def prepare_build_context(task_uuid):
         "snapshot_path": snapshot_path,
         "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
         "base_image": "orchest/jupyter-server:latest",
+        "dockerfile_path": dockerfile_name,
     }
 
 
@@ -190,7 +190,6 @@ def build_jupyter_task(task_uuid):
                     task_uuid,
                     docker_image_name,
                     build_context,
-                    task_uuid,
                     user_logs_fo,
                     complete_logs_path,
                 ),

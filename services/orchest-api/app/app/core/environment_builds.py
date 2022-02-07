@@ -42,7 +42,7 @@ def update_environment_build_status(
 
 
 def write_environment_dockerfile(
-    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, path
+    base_image, project_uuid, env_uuid, work_dir, bash_script, path
 ):
     """Write a custom dockerfile with the given specifications.
 
@@ -52,7 +52,6 @@ def write_environment_dockerfile(
 
     Args:
         base_image: Base image of the docker file.
-        task_uuid:
         project_uuid:
         env_uuid:
         work_dir: Working directory.
@@ -205,12 +204,11 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         project_path:
 
     Returns:
-        Path to the prepared context.
+        Dictionary containing build context details.
 
     Raises:
         See the check_environment_correctness_function
     """
-    dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     userdir_project_path = os.path.join("/userdir/projects", project_path)
 
@@ -221,7 +219,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # K8S_TODO: remove this?
     Path(env_builds_dir).mkdir(parents=True, exist_ok=True)
     # Make a snapshot of the project state, used for the context.
-    snapshot_path = f"{env_builds_dir}/{dockerfile_name}"
+    snapshot_path = f"{env_builds_dir}/{task_uuid}"
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
     copytree(userdir_project_path, snapshot_path, use_gitignore=True)
@@ -235,19 +233,22 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         environment_properties = json.load(json_file)
 
         # use the task_uuid to avoid clashing with user stuff
-        docker_file_name = dockerfile_name
-        bash_script_name = f".{dockerfile_name}.sh"
+        dockerfile_name = (
+            f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
+        )
+        bash_script_name = (
+            f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
+        )
         write_environment_dockerfile(
             environment_properties["base_image"],
-            task_uuid,
             project_uuid,
             environment_uuid,
             _config.PROJECT_DIR,
             bash_script_name,
-            os.path.join(snapshot_path, docker_file_name),
+            os.path.join(snapshot_path, dockerfile_name),
         )
 
-        # move the startup script to the context
+        # Move the startup script to the context.
         os.system(
             'cp "%s" "%s"'
             % (
@@ -260,12 +261,13 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
         docker_ignore.write(".dockerignore\n")
         docker_ignore.write(".orchest\n")
-        docker_ignore.write("%s\n" % docker_file_name)
+        docker_ignore.write("%s\n" % dockerfile_name)
 
     return {
         "snapshot_path": snapshot_path,
         "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
         "base_image": environment_properties["base_image"],
+        "dockerfile_path": dockerfile_name,
     }
 
 
@@ -314,7 +316,6 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                     task_uuid,
                     docker_image_name,
                     build_context,
-                    task_uuid,
                     user_logs_fo,
                     complete_logs_path,
                 ),
