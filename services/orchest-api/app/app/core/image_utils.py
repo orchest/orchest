@@ -120,7 +120,7 @@ def _get_image_build_workflow_manifest(
                             # the build, so only one layer will be
                             # appended to the base image."  We use this
                             # flag since we can't cache layers due to
-                            # now knoting how aggressive in caching we
+                            # now knowing how aggressive in caching we
                             # can be.
                             "--single-snapshot",
                         ],
