@@ -58,11 +58,6 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
     """
     statements = []
     statements.append("FROM orchest/jupyter-server:latest")
-    # The task uuid is applied first so that if a build is aborted early
-    # any produced artifact will at least have this label and will thus
-    # "searchable" through this label, e.g for cleanups.
-    statements.append(f"LABEL _orchest_jupyter_build_task_uuid={task_uuid}")
-    statements.append("LABEL _orchest_jupyter_build_is_intermediate=1")
 
     statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
 
@@ -86,7 +81,6 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
         # error.
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
-    statements.append("LABEL _orchest_jupyter_build_is_intermediate=0")
 
     statements = "\n".join(statements)
 
