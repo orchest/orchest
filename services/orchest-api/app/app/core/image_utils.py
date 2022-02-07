@@ -8,6 +8,7 @@ from kubernetes import watch
 from _orchest.internals import config as _config
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app import errors, models, utils
+from app.celery_app import make_celery
 from app.connections import docker_client, k8s_core_api, k8s_custom_obj_api
 from config import CONFIG_CLASS
 
@@ -57,7 +58,7 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                 {
                     "name": "kaniko-cache",
                     "hostPath": {
-                        "path": "/tmp/kaniko/cache",
+                        "path": CONFIG_CLASS.BASE_IMAGES_CACHE,
                         "type": "DirectoryOrCreate",
                     },
                 },
@@ -165,7 +166,7 @@ def _get_image_build_workflow_manifest(
                 {
                     "name": "kaniko-cache",
                     "hostPath": {
-                        "path": "/tmp/kaniko/cache",
+                        "path": CONFIG_CLASS.BASE_IMAGES_CACHE,
                         "type": "DirectoryOrCreate",
                     },
                 },
@@ -691,3 +692,16 @@ def delete_dangling_orchest_images() -> None:
         env_uuid = img.labels.get("_orchest_environment_uuid")
         if env_uuid is None:
             docker_images_rm_safe(docker_client, img.id)
+
+
+def delete_base_images_cache() -> None:
+    """Deletes the base images cache through an async celery task.
+
+    The reason for this to be done through a celery-task is that the
+    orchest-api doesn't touch the filesystem as a constraint, moreover,
+    it provides race condition guarantees w.r.t. env/jupyter builds by
+    the fact that the task is put in the "builds" queue, and that the
+    concurrency level for builds is 1.
+    """
+    celery = make_celery(current_app)
+    celery.send_task("app.core.tasks.delete_base_images_cache")

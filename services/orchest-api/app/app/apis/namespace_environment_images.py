@@ -4,11 +4,14 @@ from flask_restx import Namespace, Resource
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
+from app import models
 from app.apis.namespace_environment_builds import (
+    AbortEnvironmentBuild,
     DeleteProjectBuilds,
     DeleteProjectEnvironmentBuilds,
 )
 from app.apis.namespace_jobs import AbortJob
+from app.apis.namespace_jupyter_builds import AbortJupyterBuild
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db, docker_client
@@ -39,6 +42,25 @@ class EnvironmentImage(Resource):
             return {"message": str(e)}, 500
 
         return {"message": "Environment image was successfully deleted."}, 200
+
+
+@api.route(
+    "/base-images-cache",
+)
+class BaseImagesCache(Resource):
+    @api.doc("delete-base-images-cache")
+    def delete(self):
+        """Deletes the base images cache.
+
+        All ongoing environment and/or jupyter builds are cancelled.
+        """
+        try:
+            with TwoPhaseExecutor(db.session) as tpe:
+                DeleteBaseImagesCache(tpe).transaction()
+        except Exception as e:
+            return {"message": str(e)}, 500
+
+        return {"message": "Base images cache deletion successful."}, 200
 
 
 @api.route(
@@ -164,3 +186,20 @@ class DeleteImage(TwoPhaseFunction):
             DeleteImage._background_collateral,
             args=[current_app._get_current_object(), project_uuid, environment_uuid],
         )
+
+
+class DeleteBaseImagesCache(TwoPhaseFunction):
+    def _transaction(self):
+        env_builds = models.EnvironmentBuild.query.filter(
+            models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+        )
+        for eb in env_builds:
+            AbortEnvironmentBuild(self.tpe).transaction(eb.uuid)
+        jupyter_builds = models.JupyterBuild.query.filter(
+            models.JupyterBuild.status.in_(["PENDING", "STARTED"])
+        )
+        for jb in jupyter_builds:
+            AbortJupyterBuild(self.tpe)._transaction(jb.uuid)
+
+    def _collateral(self):
+        image_utils.delete_base_images_cache()

@@ -30,6 +30,7 @@ class Config:
     # Image building.
     BUILD_IMAGE_LOG_TERMINATION_FLAG = "_ORCHEST_RESERVED_LOG_TERMINATION_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
+    BASE_IMAGES_CACHE = "/tmp/kaniko/cache"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
@@ -65,6 +66,7 @@ class Config:
         "app.core.tasks.run_pipeline": {"queue": "celery"},
         "app.core.tasks.build_environment": {"queue": "builds"},
         "app.core.tasks.build_jupyter": {"queue": "builds"},
+        "app.core.tasks.delete_base_images_cache": {"queue": "builds"},
     }
 
 
