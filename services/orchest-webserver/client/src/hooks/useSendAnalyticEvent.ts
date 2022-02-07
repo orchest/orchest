@@ -1,5 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useMounted } from "./useMounted";
 
@@ -10,9 +10,61 @@ import { useMounted } from "./useMounted";
 // const sendEvent = useSendAnalyticEvent();
 // sendEvent("alert show", { title: 'Error', content: 'Could not find any pipelines for this project.' });
 
+type StringifyReactElement =
+  | string
+  | number
+  | boolean
+  | React.ReactElement
+  | Record<
+      string,
+      React.ReactNode | React.ReactElement | string | number | boolean
+    >;
+
+const stringifyReactElement = (target: StringifyReactElement) => {
+  if (typeof target === "string") return target;
+  if (typeof target === "number" || typeof target === "boolean")
+    return JSON.stringify(target);
+  // Object literal
+  if (
+    typeof target === "object" &&
+    target !== null &&
+    !hasValue(target.props?.children)
+  ) {
+    return Object.entries(target).reduce((all, [key, value]) => {
+      const child = !value.props?.children
+        ? value
+        : stringifyReactElement(value);
+      console.log(child);
+      return `${all}, ${JSON.stringify({
+        [key]: stringifyReactElement(child),
+      })}`;
+    }, "");
+  }
+  // ReactElement[]
+  if (React.isValidElement(target) && target.props.children?.length) {
+    if (typeof target.props.children === "string") return target.props.children;
+    return target.props.children.reduce(
+      (all: string, current: React.ReactElement) => {
+        return `${all} ${stringifyReactElement(current)}`;
+      },
+      ""
+    );
+  }
+  // ReactElement
+  return stringifyReactElement(target);
+};
+
+const stringifyObjectWithReactElements = (
+  obj: StringifyReactElement | Record<string, StringifyReactElement>
+) =>
+  JSON.stringify(obj, (key, value) => {
+    if (React.isValidElement(value)) return stringifyReactElement(value);
+    return value;
+  });
+
 const useSendAnalyticEvent = (
   event?: string,
-  props?: Record<string, unknown>
+  props?: StringifyReactElement
 ) => {
   const {
     state: { config },
@@ -21,12 +73,12 @@ const useSendAnalyticEvent = (
   const shouldSend = config?.TELEMETRY_DISABLED === false && isMounted;
 
   const send = React.useCallback(
-    (innerEvent: string, innerProps?: Record<string, unknown>) => {
+    (innerEvent: string, innerProps?: StringifyReactElement) => {
       if (shouldSend) {
         fetcher("/analytics", {
           method: "POST",
           headers: HEADER.JSON,
-          body: JSON.stringify(
+          body: stringifyObjectWithReactElements(
             innerProps
               ? {
                   event: innerEvent,
