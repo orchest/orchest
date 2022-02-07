@@ -13,7 +13,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
 from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
+from app.core.image_utils import build_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
@@ -311,7 +311,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_docker_image(
+                task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
                     docker_image_name,
                     build_context,
