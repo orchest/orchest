@@ -8,9 +8,18 @@ metadata:
   labels:
     {{- include "library.labels.selector" . | nindent 4 }}
 rules:
-  - apiGroups: ["argoproj.io"]
+  - apiGroups: ["argoproj.io", "", "apps"]
     resources:
       - workflows
+      - deployments
+      - deployments/scale
+      - deployments/status
+      - services
+      - services/status
+      - namespaces
+      - namespaces/status
+      - pods
+      - pods/log
     verbs:
       - create
       - get
