@@ -102,9 +102,9 @@ const loadProject = () => {
 
 describe("jobs", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
   });
 
   context("requires the dump-env-params pipeline ", () => {

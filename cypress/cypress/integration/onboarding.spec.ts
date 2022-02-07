@@ -6,11 +6,13 @@ const QUICKSTART_PROJECT_UUID = projectsWithQuickstart.find(
 ).uuid;
 
 describe("onboarding", () => {
+  beforeEach(() => {
+    cy.disableCheckUpdate();
+  });
   context("should be visible", () => {
     beforeEach(() => {
       reset();
       cy.clearLocalStorageSnapshot();
-      cy.disableCheckUpdate();
     });
 
     afterEach(() => {
