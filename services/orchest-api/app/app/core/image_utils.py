@@ -342,7 +342,7 @@ def _build_image(
         raise errors.ImageBuildFailedError()
 
 
-def build_docker_image(
+def build_image(
     task_uuid,
     image_name,
     build_context,
@@ -350,8 +350,11 @@ def build_docker_image(
     user_logs_file_object,
     complete_logs_path,
 ):
-    """Build a docker image with the given tag, context_path and docker
-        file.
+    """Builds an image with the given tag, context_path and docker file.
+
+    The image build is done through the creation of k8s argo workflows,
+    which needs to be deleted by the caller, the workflows are named as
+    "image-cache-task-{task_uuid}" and "image-build-task-{task_uuid}".
 
     Args:
         task_uuid:
