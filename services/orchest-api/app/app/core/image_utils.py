@@ -263,14 +263,16 @@ def _build_image(
     task_uuid,
     image_name,
     build_context,
-    dockerfile_path,
     user_logs_file_object,
     complete_logs_file_object,
 ):
     """Triggers an argo workflow to build an image and follows it."""
     pod_name = f"image-build-task-{task_uuid}"
     manifest = _get_image_build_workflow_manifest(
-        pod_name, image_name, build_context["snapshot_host_path"], dockerfile_path
+        pod_name,
+        image_name,
+        build_context["snapshot_host_path"],
+        build_context["dockerfile_path"],
     )
 
     msg = "Building image...\n"
@@ -351,7 +353,6 @@ def build_image(
     task_uuid,
     image_name,
     build_context,
-    dockerfile_path,
     user_logs_file_object,
     complete_logs_path,
 ):
@@ -365,7 +366,6 @@ def build_image(
         task_uuid:
         image_name:
         build_context:
-        dockerfile_path:
         user_logs_file_object: file object to which logs from the user
             script are written.
         complete_logs_path: path to where to store the full logs are
@@ -387,7 +387,6 @@ def build_image(
                 task_uuid,
                 image_name,
                 build_context,
-                dockerfile_path,
                 user_logs_file_object,
                 complete_logs_file_object,
             )
