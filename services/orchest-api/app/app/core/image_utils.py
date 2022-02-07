@@ -37,6 +37,8 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                             },
                         ],
                     },
+                    # K8S_TODO: set to builder node once it exists.
+                    "nodeSelector": {"node-role.kubernetes.io/master": ""},
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -136,6 +138,8 @@ def _get_image_build_workflow_manifest(
                             },
                         ],
                     },
+                    # K8S_TODO: set to builder node once it exists.
+                    "nodeSelector": {"node-role.kubernetes.io/master": ""},
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
