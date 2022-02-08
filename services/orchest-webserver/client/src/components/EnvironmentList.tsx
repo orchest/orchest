@@ -162,7 +162,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     // TODO: check how current implementation of create environment
     navigateTo(
       siteMap.environment.path,
-      { query: { projectUuid, environmentUuid: "create" } },
+      { query: { projectUuid, environmentUuid: "new" } },
       e
     );
   };

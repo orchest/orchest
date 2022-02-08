@@ -3,27 +3,19 @@ import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
-import Dialog from "@mui/material/Dialog";
-import DialogActions from "@mui/material/DialogActions";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import FormGroup from "@mui/material/FormGroup";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
@@ -33,6 +25,8 @@ import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import {
   DEFAULT_BASE_IMAGES,
+  fetcher,
+  HEADER,
   LANGUAGE_MAP,
   makeCancelable,
   makeRequest,
@@ -42,6 +36,7 @@ import {
 import "codemirror/mode/shell/shell";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { CustomImageDialog } from "./CustomImageDialog";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -58,6 +53,11 @@ const tabs = [
   },
 ];
 
+/**
+ * We apply auto-save to environment edit view
+ * so setAsSaved does not apply in this view
+ */
+
 const EnvironmentEditView: React.FC = () => {
   // global states
   const {
@@ -72,24 +72,17 @@ const EnvironmentEditView: React.FC = () => {
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
   // local states
-  const [isNewEnvironment, setIsNewEnvironment] = React.useState(
-    environmentUuid === "create"
-  );
-  const [environment, setEnvironment] = React.useState<Environment>({
-    uuid: "new",
-    project_uuid: projectUuid,
-    ...config.ENVIRONMENT_DEFAULTS,
-  });
+
+  const isNewEnvironment = environmentUuid === "new";
 
   const [
-    isShowingAddCustomImageDialog,
-    setIsShowingAddCustomImageDialog,
+    isShowingCustomImageDialog,
+    setIsShowingCustomImageDialog,
   ] = React.useState(false);
 
   const [tabIndex, setTabIndex] = React.useState(0);
 
   const [state, setState] = React.useState({
-    baseImages: [...DEFAULT_BASE_IMAGES],
     ignoreIncomingLogs: false,
     building: false,
     buildRequestInProgress: false,
@@ -102,35 +95,63 @@ const EnvironmentEditView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const fetchEnvironment = () => {
-    // only fetch existing environment
-    if (isNewEnvironment) return;
+  const { environment, setEnvironment } = useFetchEnvironment({
+    // if environment is new, don't pass the uuid, so this hook won't fire the request
+    uuid: !isNewEnvironment ? environmentUuid : "",
+    project_uuid: projectUuid,
+    ...config.ENVIRONMENT_DEFAULTS,
+  });
 
-    let endpoint = `/store/environments/${projectUuid}/${environmentUuid}`;
+  const [baseImages, setBaseImages] = React.useState(DEFAULT_BASE_IMAGES);
 
-    let cancelableRequest = makeCancelable(
-      makeRequest("GET", endpoint),
-      promiseManager
-    );
-
-    // @ts-ignore
-    cancelableRequest.promise
-      .then((response: string) => {
-        let fetchedEnvironment: Environment = JSON.parse(response);
-
-        setEnvironment(fetchedEnvironment);
-        setState((prevState) => ({
-          ...prevState,
-          baseImages:
-            DEFAULT_BASE_IMAGES.indexOf(fetchedEnvironment.base_image) == -1
-              ? DEFAULT_BASE_IMAGES.concat(fetchedEnvironment.base_image)
-              : [...DEFAULT_BASE_IMAGES],
-        }));
-      })
-      // @ts-ignore
-      .catch((error) => {
-        console.error(error);
+  React.useEffect(() => {
+    if (environment) {
+      setBaseImages((current) => {
+        return current.includes(environment.base_image)
+          ? current
+          : [...current, environment.base_image];
       });
+    }
+  }, [environment]);
+
+  const saveCustomImage = async ({
+    imageName,
+    language,
+    gpuSupport,
+  }: {
+    imageName: string;
+    language: string;
+    gpuSupport: boolean;
+  }) => {
+    window.orchest.jupyter.unload();
+
+    try {
+      const environmentUuidForFetch = environment.uuid || "new";
+      const response = await fetcher<Environment>(
+        `/store/environments/${projectUuid}/${environmentUuidForFetch}`,
+        {
+          method: isNewEnvironment ? "POST" : "PUT",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            environment: {
+              ...environment,
+              uuid: environmentUuidForFetch,
+              base_image: imageName,
+              language,
+              gpu_support: gpuSupport,
+            },
+          }),
+        }
+      );
+
+      // update the query arg environmentUuid
+      navigateTo(siteMap.environment.path, {
+        query: { projectUuid, environmentUuid: response.uuid },
+      });
+    } catch (error) {
+      setAlert("Error", `Unable to save the custom image. ${error.message}`);
+    }
+    setIsShowingCustomImageDialog(false);
   };
 
   const save = () => {
@@ -159,7 +180,6 @@ const EnvironmentEditView: React.FC = () => {
             environment.uuid = result.uuid;
 
             setEnvironment((prev) => ({ ...prev, uuid: result.uuid }));
-            setIsNewEnvironment(false);
 
             setAsSaved();
 
@@ -235,40 +255,12 @@ const EnvironmentEditView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const onGPUChange = (isChecked: boolean) => {
-    setEnvironment((prev) => ({ ...prev, gpu_support: isChecked }));
-
-    setAsSaved(false);
+  const onCloseCustomBaseImageDialog = () => {
+    setIsShowingCustomImageDialog(false);
   };
 
-  const onCloseAddCustomBaseImageDialog = () => {
-    setIsShowingAddCustomImageDialog(false);
-  };
-
-  const submitAddCustomBaseImage = () => {
-    setState((prevState) => {
-      setEnvironment((prev) => ({
-        ...prev,
-        base_image: prevState.customBaseImageName,
-      }));
-
-      setIsShowingAddCustomImageDialog(false);
-
-      return {
-        ...prevState,
-        customBaseImageName: "",
-        baseImages:
-          prevState.baseImages.indexOf(prevState.customBaseImageName) == -1
-            ? prevState.baseImages.concat(prevState.customBaseImageName)
-            : prevState.baseImages,
-      };
-    });
-
-    setAsSaved(false);
-  };
-
-  const onAddCustomBaseImage = () => {
-    setIsShowingAddCustomImageDialog(true);
+  const onOpenCustomBaseImageDialog = () => {
+    setIsShowingCustomImageDialog(true);
   };
 
   const onSelectSubview = (e, index: number) => {
@@ -385,14 +377,6 @@ const EnvironmentEditView: React.FC = () => {
     }));
   };
 
-  React.useEffect(() => {
-    setAsSaved(!isNewEnvironment);
-
-    if (!isNewEnvironment) fetchEnvironment();
-
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
-
   return (
     <Layout>
       <div className={"view-page edit-environment"}>
@@ -400,52 +384,11 @@ const EnvironmentEditView: React.FC = () => {
           <LinearProgress />
         ) : (
           <>
-            <Dialog
-              open={isShowingAddCustomImageDialog}
-              onClose={onCloseAddCustomBaseImageDialog}
-            >
-              <form
-                id="add-custom-base-image-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  submitAddCustomBaseImage();
-                }}
-              >
-                <DialogTitle>Add custom base image</DialogTitle>
-                <DialogContent>
-                  <Box sx={{ marginTop: (theme) => theme.spacing(2) }}>
-                    <TextField
-                      label="Base image name"
-                      autoFocus
-                      value={state.customBaseImageName}
-                      onChange={(e) =>
-                        setState((nestedPrevState) => ({
-                          ...nestedPrevState,
-                          customBaseImageName: e.target.value,
-                        }))
-                      }
-                    />
-                  </Box>
-                </DialogContent>
-                <DialogActions>
-                  <Button
-                    color="secondary"
-                    onClick={onCloseAddCustomBaseImageDialog}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    startIcon={<CheckIcon />}
-                    type="submit"
-                    variant="contained"
-                    form="add-custom-base-image-form"
-                  >
-                    Add
-                  </Button>
-                </DialogActions>
-              </form>
-            </Dialog>
-
+            <CustomImageDialog
+              isOpen={isShowingCustomImageDialog}
+              onClose={onCloseCustomBaseImageDialog}
+              saveEnvironment={saveCustomImage}
+            />
             <div className="push-down">
               <Button
                 startIcon={<ArrowBackIcon />}
@@ -507,10 +450,10 @@ const EnvironmentEditView: React.FC = () => {
                       label="Base image"
                       onChange={(e) => onChangeBaseImage(e.target.value)}
                     >
-                      {state.baseImages.map((element) => {
+                      {baseImages.map((image) => {
                         return (
-                          <MenuItem key={element} value={element}>
-                            {element}
+                          <MenuItem key={image} value={image}>
+                            {image}
                           </MenuItem>
                         );
                       })}
@@ -519,7 +462,7 @@ const EnvironmentEditView: React.FC = () => {
                   <Button
                     startIcon={<AddIcon />}
                     color="secondary"
-                    onClick={onAddCustomBaseImage}
+                    onClick={onOpenCustomBaseImageDialog}
                     sx={{ minWidth: (theme) => theme.spacing(20) }}
                   >
                     Custom image
@@ -561,7 +504,7 @@ const EnvironmentEditView: React.FC = () => {
                   </div>
                 )}
 
-                <FormGroup>
+                {/* <FormGroup>
                   <FormControlLabel
                     label="GPU support"
                     data-test-id="pipeline-settings-configuration-memory-eviction"
@@ -574,7 +517,7 @@ const EnvironmentEditView: React.FC = () => {
                       />
                     }
                   />
-                </FormGroup>
+                </FormGroup> */}
 
                 {(() => {
                   if (environment.gpu_support === true) {

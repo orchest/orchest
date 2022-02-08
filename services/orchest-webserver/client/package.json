@@ -29,6 +29,7 @@
     "d3-dag": "~0.8.2",
     "dashify": "^2.0.0",
     "date-fns": "2.20.1",
+    "formik": "^2.2.9",
     "framer-motion": "4.1.17",
     "hotkeys-js": "^3.8.7",
     "isomorphic-unfetch": "3.1.0",

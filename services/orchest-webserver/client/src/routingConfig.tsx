@@ -1,5 +1,6 @@
 import React from "react";
 import EditJobView from "./edit-job-view/EditJobView";
+import EnvironmentEditView from "./environment-edit-view/EnvironmentEditView";
 import JobView from "./job-view/JobView";
 import JobsView from "./jobs-view/JobsView";
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
@@ -9,7 +10,6 @@ import PipelinesView from "./pipelines-view/PipelinesView";
 import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
-import EnvironmentEditView from "./views/EnvironmentEditView";
 import EnvironmentsView from "./views/EnvironmentsView";
 import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
