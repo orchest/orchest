@@ -185,7 +185,7 @@ const CommandPalette: React.FC = () => {
     );
   }, [commands, query]);
 
-  const fetcher = fetcherCreator();
+  const localFetcher = fetcherCreator();
 
   const showCommandPalette = () => {
     dispatch({
@@ -247,15 +247,15 @@ const CommandPalette: React.FC = () => {
   };
 
   const fetchPipelines = () => {
-    return fetcher<Pipeline>("/async/pipelines", "result");
+    return localFetcher<Pipeline>("/async/pipelines", "result");
   };
 
   const fetchProjects = () => {
-    return fetcher<Project>("/async/projects");
+    return localFetcher<Project>("/async/projects");
   };
 
   const fetchJobs = () => {
-    return fetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
+    return localFetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
   };
 
   const onQueryChange = (
