@@ -254,7 +254,7 @@ def restart(
 
     dev = dev or (mode == "dev")
     container_config = get_container_config(port, cloud=cloud, dev=dev)
-    app.restart(container_config)
+    app.restart(container_config, cloud=cloud)
 
 
 @typer_app.command(hidden=True)

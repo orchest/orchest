@@ -358,7 +358,7 @@ class OrchestApp:
 
         utils.echo("Shutdown successful.")
 
-    def restart(self, container_config: dict):
+    def restart(self, container_config: dict, cloud: bool = False):
         """Starts Orchest.
 
         Raises:
@@ -368,7 +368,7 @@ class OrchestApp:
 
         """
         self.stop()
-        self.start(container_config)
+        self.start(container_config, cloud=cloud)
 
     def _updateserver(self, port: int = 8000, cloud: bool = False, dev: bool = False):
         """Starts the update-server service."""
