@@ -25,9 +25,9 @@ let pathTestCases = [
 
 describe("pipelines", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     cy.goToMenu("pipelines");
   });

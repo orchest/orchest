@@ -26,9 +26,9 @@ function verifyExternalConnectivity(externalConnData: { string: [string] }) {
 
 describe("services", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
   });
 
   context("requires the services-connectivity project ", () => {

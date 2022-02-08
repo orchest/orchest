@@ -66,11 +66,6 @@ To edit the parameters of the steps of a pipeline:
 3. Towards the bottom you will find the *Parameters* section.
 4. Input some JSON like :code:`{"my-param": <param-value>}`.
 
-.. note::
-   WIP -- Add something about how to do this using code.
-   It is unlikely you will want to update parameters from inside your script as that makes them
-   dynamic.
-
 .. _jobs parameters:
 
 Interacting with parameters through code

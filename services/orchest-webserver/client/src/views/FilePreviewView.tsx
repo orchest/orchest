@@ -48,6 +48,8 @@ const FilePreviewView: React.FC = () => {
     runUuid,
   } = useCustomRoute();
 
+  const isJobRun = jobUuid && runUuid;
+
   // local states
   const [state, setState] = React.useState({
     notebookHtml: undefined,
@@ -87,7 +89,7 @@ const FilePreviewView: React.FC = () => {
         loadingFile: true,
       }));
 
-      let pipelineURL = jobUuid
+      let pipelineURL = isJobRun
         ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
         : getPipelineJSONEndpoint(pipelineUuid, projectUuid);
 
@@ -146,7 +148,7 @@ const FilePreviewView: React.FC = () => {
   const fetchFile = () =>
     new Promise((resolve, reject) => {
       let fileURL = `/async/file-viewer/${projectUuid}/${pipelineUuid}/${stepUuid}`;
-      if (runUuid) {
+      if (isJobRun) {
         fileURL += "?pipeline_run_uuid=" + runUuid;
         fileURL += "&job_uuid=" + jobUuid;
       }
