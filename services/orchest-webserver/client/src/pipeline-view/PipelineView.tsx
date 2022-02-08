@@ -46,7 +46,7 @@ import io from "socket.io-client";
 import { siteMap } from "../Routes";
 import { extractStepsFromPipelineJson, updatePipelineJson } from "./common";
 import PipelineConnection from "./PipelineConnection";
-import PipelineDetails from "./PipelineDetails";
+import { PipelineDetails } from "./PipelineDetails";
 import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
@@ -1390,6 +1390,11 @@ const PipelineView: React.FC = () => {
   };
 
   const onOpenFilePreviewView = (e: React.MouseEvent, stepUuid: string) => {
+    const isJobRun = jobUuidFromRoute && runUuid;
+    const jobRunQueryArgs = {
+      jobUuid: jobUuidFromRoute,
+      runUuid,
+    };
     navigateTo(
       siteMap.filePreview.path,
       {
@@ -1397,8 +1402,7 @@ const PipelineView: React.FC = () => {
           projectUuid,
           pipelineUuid,
           stepUuid,
-          jobUuid: jobUuidFromRoute,
-          runUuid,
+          ...(isJobRun ? jobRunQueryArgs : undefined),
         },
         state: { isReadOnly },
       },
