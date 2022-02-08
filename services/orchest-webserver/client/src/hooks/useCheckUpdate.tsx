@@ -15,19 +15,9 @@ const shouldPromptOrchestUpdate = (
   skipVersion: string | null = null
 ) => {
   // The latest version information has not yet been fetched by Orchest.
-  if (latestVersion === null) {
-    return false;
-  }
-
-  if (latestVersion > currentVersion) {
-    if (skipVersion === latestVersion) {
-      return false;
-    } else {
-      return true;
-    }
-  } else {
-    return false;
-  }
+  if (latestVersion === null) return false;
+  if (latestVersion <= currentVersion) return false;
+  return skipVersion !== latestVersion;
 };
 
 // To limit the number of api calls and make sure only one prompt is shown,
@@ -54,78 +44,82 @@ export const useCheckUpdate = () => {
   const { setConfirm } = useAppContext();
   const { navigateTo } = useCustomRoute();
 
-  const updateView = () => {
-    navigateTo(siteMap.update.path);
-  };
-
-  const promptUpdate = (currentVersion: string, latestVersion: string) => {
-    setConfirm(
-      "Update available",
-      <>
-        <Typography variant="body2">
-          Orchest can be updated from <Code>{currentVersion}</Code> to{" "}
-          <Code>{latestVersion}</Code> . Would you like to update now?
-        </Typography>
-        <Typography variant="body2" sx={{ marginTop: 4 }}>
-          Check out the{" "}
-          <a href="https://github.com/orchest/orchest/releases/latest">
-            release notes
-          </a>
-          .
-        </Typography>
-      </>,
-      {
-        onConfirm: async (resolve) => {
-          updateView();
-          resolve(true);
-          return true;
-        },
-        onCancel: async (resolve) => {
-          setSkipVersion(updateInfo.latest_version);
-          resolve(false);
-          return false;
-        },
-        confirmLabel: "Update",
-        cancelLabel: "Skip this version",
-      }
-    );
-  };
-
-  const handlePrompt = (
-    orchestVersion: OrchestVersion,
-    updateInfo: UpdateInfo,
-    skipVersion: string | null,
-    shouldPromptNoUpdate: boolean
-  ) => {
-    const currentVersion = orchestVersion.version;
-    const latestVersion = updateInfo.latest_version;
-
-    const shouldPromptUpdate = shouldPromptOrchestUpdate(
-      currentVersion,
-      latestVersion,
-      skipVersion
-    );
-    if (shouldPromptUpdate) {
-      promptUpdate(currentVersion, latestVersion);
-    } else if (shouldPromptNoUpdate) {
+  const promptUpdate = React.useCallback(
+    (currentVersion: string, latestVersion: string) => {
       setConfirm(
-        "No update available",
-        "There doesn't seem to be a new update available."
+        "Update available",
+        <>
+          <Typography variant="body2">
+            Orchest can be updated from <Code>{currentVersion}</Code> to{" "}
+            <Code>{latestVersion}</Code> . Would you like to update now?
+          </Typography>
+          <Typography variant="body2" sx={{ marginTop: 4 }}>
+            Check out the{" "}
+            <a href="https://github.com/orchest/orchest/releases/latest">
+              release notes
+            </a>
+            .
+          </Typography>
+        </>,
+        {
+          onConfirm: async (resolve) => {
+            navigateTo(siteMap.update.path);
+            resolve(true);
+            return true;
+          },
+          onCancel: async (resolve) => {
+            setSkipVersion(updateInfo.latest_version);
+            resolve(false);
+            return false;
+          },
+          confirmLabel: "Update",
+          cancelLabel: "Skip this version",
+        }
       );
-    }
-  };
+    },
+    [setConfirm, setSkipVersion, updateInfo?.latest_version, navigateTo]
+  );
+
+  const handlePrompt = React.useCallback(
+    (
+      orchestVersion: OrchestVersion,
+      updateInfo: UpdateInfo,
+      skipVersion: string | null,
+      shouldPromptNoUpdate: boolean
+    ) => {
+      const currentVersion = orchestVersion.version;
+      const latestVersion = updateInfo.latest_version;
+
+      const shouldPromptUpdate = shouldPromptOrchestUpdate(
+        currentVersion,
+        latestVersion,
+        skipVersion
+      );
+      if (shouldPromptUpdate) {
+        promptUpdate(currentVersion, latestVersion);
+      } else if (shouldPromptNoUpdate) {
+        setConfirm(
+          "No update available",
+          "There doesn't seem to be a new update available."
+        );
+      }
+    },
+    [setConfirm, promptUpdate]
+  );
+
   const checkUpdateNow = async () => {
     // Use fetcher directly instead of mutate function from the SWR
     // calls to prevent updating the values which would trigger the
     // useEffect and thereby prompting the user twice. In addition,
     // we want to be able to tell the user that no update is available
     // if this function is invoked.
-    const [orchestVersion, updateInfo] = await Promise.all([
+    const [fetchedOrchestVersion, fetchedUpdateInfo] = await Promise.all([
       fetcher<OrchestVersion>("/async/version"),
       fetcher<UpdateInfo>("/async/orchest-update-info"),
     ]);
-    if (orchestVersion && updateInfo) {
-      handlePrompt(orchestVersion, updateInfo, null, true);
+
+    if (fetchedOrchestVersion && fetchedUpdateInfo) {
+      handlePrompt(fetchedOrchestVersion, fetchedUpdateInfo, null, true);
     }
   };
 
@@ -133,7 +127,7 @@ export const useCheckUpdate = () => {
     if (orchestVersion && updateInfo) {
       handlePrompt(orchestVersion, updateInfo, skipVersion, false);
     }
-  }, [orchestVersion, updateInfo, skipVersion]);
+  }, [orchestVersion, updateInfo, skipVersion, handlePrompt]);
 
   return checkUpdateNow;
 };

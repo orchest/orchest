@@ -13,6 +13,7 @@ import {
 type TBooleanString = "true" | "false";
 
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Cypress {
     interface Chainable {
       addPipelineEnvVars(
@@ -33,7 +34,7 @@ declare global {
         waitBuild?: boolean
       ): Chainable<undefined>;
       createPipeline(name: string, path?: string): Chainable<undefined>;
-      createProject(name: string): Chainable<undefined>;
+      createProject(name: string): Chainable<AUTWindow>;
       createStep(
         title: string,
         createNewFile?: boolean,
@@ -64,6 +65,7 @@ declare global {
         project?: string,
         environment?: string
       ): Chainable<number>;
+      getLocalStorage(key: string): void;
     }
   }
 }
@@ -78,7 +80,11 @@ Cypress.Commands.add("disableCheckUpdate", () => {
   // If the latest version can't be fetched, then we will never
   // prompt asking users to update.
   cy.intercept("GET", "/async/orchest-update-info", {
-    latest_version: null,
+    latest_version: "v2022.01.1",
+  });
+
+  cy.intercept("GET", "/async/version", {
+    version: "v2022.01.1",
   });
 });
 
@@ -417,8 +423,9 @@ Cypress.Commands.add("getProjectUUID", (project: string) => {
   return cy
     .request("async/projects")
     .its("body")
-    .then((body: Array<any>) =>
-      cy.wrap(body.filter((obj) => obj.path == project)[0].uuid)
+    .then(
+      (body: Array<{ uuid: string; path: string }>) =>
+        body.filter((obj) => obj.path == project)[0].uuid
     );
 });
 
@@ -454,8 +461,9 @@ Cypress.Commands.add(
     return cy
       .request(`store/environments/${projectUUID}`)
       .its("body")
-      .then((body: Array<any>) =>
-        cy.wrap(body.filter((obj) => obj.name == environment)[0].uuid)
+      .then(
+        (body: Array<{ name: string; uuid: string }>) =>
+          body.filter((obj) => obj.name == environment)[0].uuid
       );
   }
 );

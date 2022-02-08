@@ -7,9 +7,9 @@ import {
 
 describe("projects", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
     cy.goToMenu("projects");
   });
 
