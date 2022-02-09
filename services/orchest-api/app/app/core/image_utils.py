@@ -113,6 +113,12 @@ def _get_image_build_workflow_manifest(
                             "--cache=true",
                             "--cache-dir=/cache",
                             "--use-new-run",
+                            # Note: make sure this runs at least with
+                            # kaniko 1.7, see
+                            # https://github.com/GoogleContainerTools/kaniko/pull/1735.
+                            # Essentially pre 1.7 there are some false
+                            # positive cache hits.
+                            "--cache-copy-layers",
                             # This allows us to simplify the logging
                             # logic by knowing that kaniko will not
                             # produce logs. If you need to restore the
