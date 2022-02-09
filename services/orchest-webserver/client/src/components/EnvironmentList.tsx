@@ -12,6 +12,7 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { BoldText } from "./common/BoldText";
+import { PageTitle } from "./common/PageTitle";
 import { DataTable, DataTableColumn } from "./DataTable";
 import { TStatus } from "./Status";
 
@@ -268,7 +269,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
 
   return (
     <div className={"environments-page"}>
-      <h2>Environments</h2>
+      <PageTitle>Environments</PageTitle>
       {!fetchedEnvironments ? (
         <LinearProgress />
       ) : (

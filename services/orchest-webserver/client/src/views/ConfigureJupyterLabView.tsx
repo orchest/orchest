@@ -1,4 +1,5 @@
 import { Code } from "@/components/common/Code";
+import { PageTitle } from "@/components/common/PageTitle";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -214,7 +215,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       <div className={"view-page jupyterlab-config-page"}>
         {state.jupyterSetupScript !== undefined ? (
           <>
-            <h2>Configure JupyterLab</h2>
+            <PageTitle>Configure JupyterLab</PageTitle>
             <p className="push-down">
               You can install JupyterLab extensions using the bash script below.
             </p>

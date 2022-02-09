@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -278,7 +279,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   return (
     <div className={"jobs-page"}>
-      <h2>Jobs</h2>
+      <PageTitle>Jobs</PageTitle>
       <CreateJobDialog
         isOpen={isCreateDialogOpen}
         onClose={closeCreateDialog}

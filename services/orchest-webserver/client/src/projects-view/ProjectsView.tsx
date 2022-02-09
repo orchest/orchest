@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import {
   DataTable,
   DataTableColumn,
@@ -304,7 +305,7 @@ const ProjectsView: React.FC = () => {
           isOpen={isShowingCreateModal}
           onClose={onCloseCreateProjectModal}
         />
-        <h2>Projects</h2>
+        <PageTitle>Projects</PageTitle>
         {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (

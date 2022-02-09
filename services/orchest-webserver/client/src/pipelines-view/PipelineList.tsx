@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import SessionToggleButton from "@/components/SessionToggleButton";
 import { useAppContext } from "@/contexts/AppContext";
@@ -443,7 +444,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
 
   return (
     <div className={"pipelines-view"}>
-      <h2>Pipelines</h2>
+      <PageTitle>Pipelines</PageTitle>
       {!isLoaded ? (
         <LinearProgress />
       ) : (
