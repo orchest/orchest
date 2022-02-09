@@ -2,9 +2,9 @@ import { reset, TEST_ID } from "../support/common";
 
 describe("auth system", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
   });
 
   it("can create and delete a user", () => {

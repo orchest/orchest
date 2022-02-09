@@ -9,9 +9,9 @@ import {
 
 describe("file system interactions", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
   });
 
   it("creates a project through the FS", () => {

@@ -46,7 +46,7 @@ import io from "socket.io-client";
 import { siteMap } from "../Routes";
 import { extractStepsFromPipelineJson, updatePipelineJson } from "./common";
 import PipelineConnection from "./PipelineConnection";
-import PipelineDetails from "./PipelineDetails";
+import { PipelineDetails } from "./PipelineDetails";
 import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
@@ -391,6 +391,12 @@ const PipelineView: React.FC = () => {
     setState({ eventVars: state.eventVars });
   };
 
+  const isJobRun = jobUuidFromRoute && runUuid;
+  const jobRunQueryArgs = {
+    jobUuid: jobUuidFromRoute,
+    runUuid,
+  };
+
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
       siteMap.pipelineSettings.path,
@@ -398,8 +404,7 @@ const PipelineView: React.FC = () => {
         query: {
           projectUuid,
           pipelineUuid,
-          jobUuid: jobUuidFromRoute,
-          runUuid,
+          ...(isJobRun ? jobRunQueryArgs : undefined),
         },
         state: { isReadOnly },
       },
@@ -414,13 +419,62 @@ const PipelineView: React.FC = () => {
         query: {
           projectUuid,
           pipelineUuid,
-          jobUuid: jobUuidFromRoute,
-          runUuid,
+          ...(isJobRun ? jobRunQueryArgs : undefined),
         },
         state: { isReadOnly },
       },
       e
     );
+  };
+
+  const onOpenFilePreviewView = (e: React.MouseEvent, stepUuid: string) => {
+    navigateTo(
+      siteMap.filePreview.path,
+      {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          stepUuid,
+          ...(isJobRun ? jobRunQueryArgs : undefined),
+        },
+        state: { isReadOnly },
+      },
+      e
+    );
+  };
+
+  const openNotebook = (e: React.MouseEvent, stepUUID: string) => {
+    if (session === undefined) {
+      setAlert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter."
+      );
+    } else if (session.status === "RUNNING") {
+      const filePath = collapseDoubleDots(
+        pipelineCwd + state.eventVars.steps[stepUUID].file_path
+      ).slice(1);
+      navigateTo(
+        siteMap.jupyterLab.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            filePath,
+          },
+        },
+        e
+      );
+    } else if (session.status === "LAUNCHING") {
+      setAlert(
+        "Error",
+        "Please wait for the session to start before opening the Notebook in Jupyter."
+      );
+    } else {
+      setAlert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter."
+      );
+    }
   };
 
   const [isShowingServices, setIsShowingServices] = React.useState(false);
@@ -1353,57 +1407,6 @@ const PipelineView: React.FC = () => {
     setState((state) => {
       return { eventVars: state.eventVars };
     });
-  };
-
-  const openNotebook = (e: React.MouseEvent, stepUUID: string) => {
-    if (session === undefined) {
-      setAlert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
-    } else if (session.status === "RUNNING") {
-      const filePath = collapseDoubleDots(
-        pipelineCwd + state.eventVars.steps[stepUUID].file_path
-      ).slice(1);
-      navigateTo(
-        siteMap.jupyterLab.path,
-        {
-          query: {
-            projectUuid,
-            pipelineUuid,
-            filePath,
-          },
-        },
-        e
-      );
-    } else if (session.status === "LAUNCHING") {
-      setAlert(
-        "Error",
-        "Please wait for the session to start before opening the Notebook in Jupyter."
-      );
-    } else {
-      setAlert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
-    }
-  };
-
-  const onOpenFilePreviewView = (e: React.MouseEvent, stepUuid: string) => {
-    navigateTo(
-      siteMap.filePreview.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          stepUuid,
-          jobUuid: jobUuidFromRoute,
-          runUuid,
-        },
-        state: { isReadOnly },
-      },
-      e
-    );
   };
 
   const onOpenNotebook = (e: React.MouseEvent) => {
