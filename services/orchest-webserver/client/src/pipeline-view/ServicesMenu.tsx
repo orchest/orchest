@@ -89,54 +89,59 @@ export const ServicesMenu = ({
         horizontal: "center",
       }}
     >
-      <ListItem>
-        <Typography
-          variant="subtitle1"
-          component="h3"
-          sx={{ paddingBottom: 0 }}
-        >
-          Running services
-        </Typography>
-      </ListItem>
-      {serviceLinks && serviceLinks.length > 0 ? (
-        serviceLinks.map((serviceLink) => {
-          return (
-            <List
-              key={serviceLink.name}
-              subheader={<ListSubheader>{serviceLink.name}</ListSubheader>}
+      {serviceLinks && (
+        <>
+          <ListItem>
+            <Typography
+              variant="subtitle1"
+              component="h3"
+              sx={{ paddingBottom: 0 }}
             >
-              {serviceLink.urls.length === 0 && (
-                <ListItem>
-                  <Typography variant="caption">
-                    <i>This service has no endpoints.</i>
-                  </Typography>
-                </ListItem>
-              )}
-              {serviceLink.urls.map((url) => {
-                return (
-                  <ListItemButton
-                    key={url}
-                    component="a"
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <ListItemIcon>
-                      <OpenInNewIcon />
-                    </ListItemIcon>
-                    <ListItemText primary={formatUrl(url)} />
-                  </ListItemButton>
-                );
-              })}
-            </List>
-          );
-        })
-      ) : (
-        <ListItem>
-          <ListItemText secondary={<i>No services are running.</i>} />
-        </ListItem>
+              Running services
+            </Typography>
+          </ListItem>
+          {serviceLinks.length > 0 ? (
+            serviceLinks.map((serviceLink) => {
+              return (
+                <List
+                  key={serviceLink.name}
+                  subheader={<ListSubheader>{serviceLink.name}</ListSubheader>}
+                >
+                  {serviceLink.urls.length === 0 && (
+                    <ListItem>
+                      <Typography variant="caption">
+                        <i>This service has no endpoints.</i>
+                      </Typography>
+                    </ListItem>
+                  )}
+                  {serviceLink.urls.map((url) => {
+                    return (
+                      <ListItemButton
+                        key={url}
+                        component="a"
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <ListItemIcon>
+                          <OpenInNewIcon />
+                        </ListItemIcon>
+                        <ListItemText primary={formatUrl(url)} />
+                      </ListItemButton>
+                    );
+                  })}
+                </List>
+              );
+            })
+          ) : (
+            <ListItem>
+              <ListItemText secondary={<i>No services are running.</i>} />
+            </ListItem>
+          )}
+          <Divider />
+        </>
       )}
-      <Divider />
+
       <List>
         <ListItemButton onClick={openSettings} onAuxClick={openSettings}>
           <ListItemIcon>

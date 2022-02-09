@@ -1919,15 +1919,16 @@ const PipelineView: React.FC = () => {
   };
 
   const services = React.useMemo(() => {
+    if (jobUuidFromRoute && pipelineJson && !pipelineRunning) return null;
     const allServices = jobUuidFromRoute
-      ? pipelineJson?.services || null
+      ? pipelineJson?.services || {}
       : session && session.user_services
       ? session.user_services
-      : null;
+      : {};
     // Filter services based on scope
     let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(allServices, scope);
-  }, [pipelineJson, session, jobUuidFromRoute]);
+  }, [pipelineJson, session, jobUuidFromRoute, pipelineRunning]);
 
   const returnToJob = (e?: React.MouseEvent) => {
     navigateTo(
