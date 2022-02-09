@@ -58,8 +58,9 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
     """
     statements = []
     statements.append("FROM orchest/jupyter-server:latest")
+    statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
-    statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
+    statements.append("COPY . .")
 
     # Note: commands are concatenated with && because this way an
     # exit_code != 0 will bubble up and cause the docker build to fail,
@@ -68,8 +69,7 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f'RUN cd "{os.path.join("/", work_dir)}" '
-        f"&& bash {bash_script} "
+        f"RUN bash {bash_script} "
         "&& build_path_ext=/jupyterlab-orchest-build/extensions "
         "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "

@@ -65,13 +65,14 @@ def write_environment_dockerfile(
     statements.append(f"FROM {base_image}")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
+    statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     # Copy the entire context, that is, given the current use case, that
     # we are copying the project directory (from the snapshot) into the
     # docker image that is to be built, this allows the user defined
     # script defined through orchest to make use of files that are part
     # of its project, e.g. a requirements.txt or other scripts.
-    statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
+    statements.append("COPY . .")
 
     # Permission statements.
     ps = [
@@ -101,11 +102,10 @@ def write_environment_dockerfile(
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f'RUN cd "{os.path.join("/", work_dir)}" '
         # The ! in front of echo is there so that the script will fail
         # since the statements in the "if" have failed, the echo is a
         # way of injecting the help message.
-        f'&& ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
+        f'RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
         f"&& bash {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.
