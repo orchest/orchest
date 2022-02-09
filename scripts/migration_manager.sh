@@ -20,6 +20,7 @@ usage () {
   echo "To downgrade the db by 1 revision"
   echo "    migration_manager.sh orchest-api downgrade"
   echo "You are likely to use only migrate, for more info visit https://flask-migrate.readthedocs.io/en/latest/"
+  echo "If migrate is used, the service revisions are copied locally in the repo."
 }
 
 if [ $# -eq 0 ]; then
@@ -54,7 +55,7 @@ pod_name=$(kubectl get pods -n orchest -l app.kubernetes.io/name=${SERVICE} \
 COMMANDS="${@}"
 kubectl exec -n orchest ${pod_name} -- python migration_manager.py db ${COMMANDS}
 code=$?
-if [ $code -eq 0 ]; then
+if [ $code -eq 0 ] && [ ${COMMANDS} = "migrate" ]; then
   # Copy the revision files to the filesystem, this way the script works
   # both with or without --dev.
   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
