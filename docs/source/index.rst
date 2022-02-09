@@ -26,6 +26,7 @@ Orchest
 
    getting_started/installation
    getting_started/quickstart
+   getting_started/when_to_use_orchest
    getting_started/how_to
 
 
