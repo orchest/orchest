@@ -23,10 +23,17 @@ import { hasValue, LANGUAGE_MAP } from "@orchest/lib-utils";
 import { useFormik } from "formik";
 import React from "react";
 
+export type CustomImage = {
+  imagePath: string;
+  language: string;
+  gpuSupport: boolean;
+};
+
 export const CustomImageDialog = ({
   isOpen,
   onClose,
   saveEnvironment,
+  setCustomImage,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -39,6 +46,7 @@ export const CustomImageDialog = ({
     language: string;
     gpuSupport: boolean;
   }) => Promise<void>;
+  setCustomImage: (value: CustomImage) => void;
 }) => {
   const {
     state: { config },
@@ -71,6 +79,7 @@ export const CustomImageDialog = ({
     ) => {
       setSubmitting(true);
       await saveEnvironment({ imagePath, language, gpuSupport });
+      setCustomImage({ imagePath, language, gpuSupport });
       setSubmitting(false);
     },
     enableReinitialize: true,

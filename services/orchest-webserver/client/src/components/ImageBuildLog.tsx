@@ -137,7 +137,7 @@ const ImageBuild: React.FC<any> = (props) => {
   }, [props.buildFetchHash]);
 
   return (
-    <React.Fragment>
+    <>
       {props.build && (
         <div className="build-notice push-down">
           <div data-test-id="environments-build-status">
@@ -166,7 +166,7 @@ const ImageBuild: React.FC<any> = (props) => {
       <div className={"xterm-holder push-down"}>
         <XTerm addons={[fitAddon]} ref={refManager.nrefs.term} />
       </div>
-    </React.Fragment>
+    </>
   );
 };
 

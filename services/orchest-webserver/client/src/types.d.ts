@@ -261,6 +261,8 @@ export type Step = {
   uuid: string;
 };
 
+export type LogType = "step" | "service";
+
 export type IPipelineStepState = Step & {
   outgoing_connections?: string[];
   meta_data: {

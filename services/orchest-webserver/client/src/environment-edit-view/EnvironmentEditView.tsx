@@ -1,3 +1,5 @@
+import { BackButton } from "@/components/common/BackButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
@@ -8,21 +10,24 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Environment, EnvironmentBuild } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
+import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
+import Paper from "@mui/material/Paper";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import {
   DEFAULT_BASE_IMAGES,
   fetcher,
@@ -34,9 +39,10 @@ import {
   uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
+import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import { CustomImageDialog } from "./CustomImageDialog";
+import { CustomImage, CustomImageDialog } from "./CustomImageDialog";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -53,6 +59,25 @@ const tabs = [
   },
 ];
 
+const validEnvironmentName = (name: string) => {
+  if (!name) {
+    return false;
+  }
+  // Negative lookbehind. Check that every " is escaped with \
+  for (let x = 0; x < name.length; x++) {
+    if (name[x] == '"') {
+      if (x == 0) {
+        return false;
+      } else {
+        if (name[x - 1] != "\\") {
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+};
+
 /**
  * We apply auto-save to environment edit view
  * so setAsSaved does not apply in this view
@@ -62,7 +87,6 @@ const EnvironmentEditView: React.FC = () => {
   // global states
   const {
     setAlert,
-    setAsSaved,
     state: { config, hasUnsavedChanges },
   } = useAppContext();
 
@@ -102,18 +126,7 @@ const EnvironmentEditView: React.FC = () => {
     ...config.ENVIRONMENT_DEFAULTS,
   });
 
-  const [baseImages, setBaseImages] = React.useState(DEFAULT_BASE_IMAGES);
-
-  React.useEffect(() => {
-    if (environment) {
-      setBaseImages((current) => {
-        return current.includes(environment.base_image)
-          ? current
-          : [...current, environment.base_image];
-      });
-    }
-  }, [environment]);
-
+  const [customImage, setCustomImage] = React.useState<CustomImage>(null);
   const saveCustomImage = async ({
     imagePath,
     language,
@@ -181,8 +194,6 @@ const EnvironmentEditView: React.FC = () => {
 
             setEnvironment((prev) => ({ ...prev, uuid: result.uuid }));
 
-            setAsSaved();
-
             resolve(result);
           })
           .catch((error) => {
@@ -203,25 +214,6 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   const onSave = (e: React.MouseEvent) => {
-    const validEnvironmentName = (name: string) => {
-      if (!name) {
-        return false;
-      }
-      // Negative lookbehind. Check that every " is escaped with \
-      for (let x = 0; x < name.length; x++) {
-        if (name[x] == '"') {
-          if (x == 0) {
-            return false;
-          } else {
-            if (name[x - 1] != "\\") {
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    };
-
     if (!validEnvironmentName(environment.name)) {
       setAlert(
         "Error",
@@ -238,21 +230,17 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   const onChangeName = (value: string) => {
-    setEnvironment((prev) => ({ ...prev, name: value }));
-
-    setAsSaved(false);
+    setEnvironment((prev) => {
+      return { ...prev, name: value };
+    });
   };
 
   const onChangeBaseImage = (value: string) => {
     setEnvironment((prev) => ({ ...prev, base_image: value }));
-
-    setAsSaved(false);
   };
 
   const onChangeLanguage = (value: string) => {
     setEnvironment((prev) => ({ ...prev, language: value }));
-
-    setAsSaved(false);
   };
 
   const onCloseCustomBaseImageDialog = () => {
@@ -378,133 +366,222 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   return (
-    <Layout>
-      <div className={"view-page edit-environment"}>
-        {!environment ? (
-          <LinearProgress />
-        ) : (
-          <>
-            <CustomImageDialog
-              isOpen={isShowingCustomImageDialog}
-              onClose={onCloseCustomBaseImageDialog}
-              saveEnvironment={saveCustomImage}
-            />
-            <div className="push-down">
-              <Button
-                startIcon={<ArrowBackIcon />}
-                color="secondary"
-                onClick={returnToEnvironments}
-                onAuxClick={returnToEnvironments}
-              >
-                Back to environments
-              </Button>
-            </div>
+    <Layout
+      toolbarElements={
+        <BackButton onClick={returnToEnvironments}>
+          Back to environments
+        </BackButton>
+      }
+    >
+      {!environment ? (
+        <LinearProgress />
+      ) : (
+        <>
+          <CustomImageDialog
+            isOpen={isShowingCustomImageDialog}
+            onClose={onCloseCustomBaseImageDialog}
+            saveEnvironment={saveCustomImage}
+            setCustomImage={setCustomImage}
+          />
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={2}
+            sx={{ marginBottom: (theme) => theme.spacing(3) }}
+          >
+            <TuneIcon />
+            <PageTitle sx={{ textTransform: "uppercase" }}>
+              Environment properties
+            </PageTitle>
+          </Stack>
 
-            <div className="push-down-7">
-              <Tabs
-                value={tabIndex}
-                onChange={onSelectSubview}
-                label="environment-tabs"
-                data-test-id="environments"
+          <Grid container spacing={4}>
+            <Grid item sm={12} md="auto">
+              <Paper
+                elevation={3}
+                sx={{
+                  padding: (theme) => theme.spacing(3),
+                  maxWidth: (theme) => theme.spacing(48),
+                }}
               >
-                {tabs.map((tab) => (
-                  <Tab
-                    key={tab.id}
-                    id={tab.id}
-                    label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
-                    aria-controls={tab.id}
-                    data-test-id={`${tab.id}-tab`}
+                <Stack direction="column" spacing={3}>
+                  <TextField
+                    fullWidth
+                    autoFocus
+                    required
+                    label="Environment name"
+                    onChange={(e) => onChangeName(e.target.value)}
+                    value={environment.name}
+                    data-test-id="environments-env-name"
                   />
-                ))}
-              </Tabs>
-            </div>
-            <TabPanel value={tabIndex} index={0} name="properties">
-              <Stack
-                direction="column"
-                spacing={2}
-                alignItems="flex-start"
-                maxWidth={(theme) => theme.spacing(80)}
-                marginBottom={(theme) => theme.spacing(4)}
+                  <Box>
+                    <Typography component="h2" variant="h6">
+                      Choose a container image
+                    </Typography>
+                    <Typography variant="body2">
+                      The container image will be the starting point from which
+                      the environment will be built.
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Paper>
+            </Grid>
+            <Grid item sm={12} md>
+              <Paper
+                elevation={3}
+                sx={{ padding: (theme) => theme.spacing(3) }}
               >
-                <TextField
+                <Stack direction="column" spacing={3}>
+                  <Box>
+                    <Typography component="h2" variant="h6">
+                      Environment set-up script
+                    </Typography>
+                    <Typography variant="body2">
+                      This will execute when you build the environment. Use it
+                      to include your dependencies.
+                    </Typography>
+                  </Box>
+                  <CodeMirror
+                    value={environment.setup_script}
+                    options={{
+                      mode: "application/x-sh",
+                      theme: "dracula",
+                      lineNumbers: true,
+                      viewportMargin: Infinity,
+                    }}
+                    onBeforeChange={(editor, data, value) => {
+                      setEnvironment((prev) => ({
+                        ...prev,
+                        setup_script: value,
+                      }));
+                    }}
+                  />
+                  {environment && !isNewEnvironment && (
+                    <ImageBuildLog
+                      buildFetchHash={state.buildFetchHash}
+                      buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
+                      buildsKey="environment_builds"
+                      socketIONamespace={
+                        config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
+                      }
+                      streamIdentity={projectUuid + "-" + environment.uuid}
+                      onUpdateBuild={onUpdateBuild}
+                      onBuildStart={onBuildStart}
+                      ignoreIncomingLogs={state.ignoreIncomingLogs}
+                      build={state.environmentBuild}
+                      building={state.building}
+                    />
+                  )}
+                </Stack>
+              </Paper>
+            </Grid>
+          </Grid>
+
+          <div className="push-down-7" style={{ marginTop: "200px" }}>
+            <Tabs
+              value={tabIndex}
+              onChange={onSelectSubview}
+              label="environment-tabs"
+              data-test-id="environments"
+            >
+              {tabs.map((tab) => (
+                <Tab
+                  key={tab.id}
+                  id={tab.id}
+                  label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
+                  aria-controls={tab.id}
+                  data-test-id={`${tab.id}-tab`}
+                />
+              ))}
+            </Tabs>
+          </div>
+          <TabPanel value={tabIndex} index={0} name="properties">
+            <Stack
+              direction="column"
+              spacing={2}
+              alignItems="flex-start"
+              maxWidth={(theme) => theme.spacing(80)}
+              marginBottom={(theme) => theme.spacing(4)}
+            >
+              {/* <TextField
                   fullWidth
                   label="Environment name"
                   onChange={(e) => onChangeName(e.target.value)}
                   value={environment.name}
                   data-test-id="environments-env-name"
-                />
-                <Stack
-                  direction="row"
-                  sx={{ width: "100%" }}
-                  alignItems="center"
-                  spacing={2}
-                >
-                  <FormControl fullWidth>
-                    <InputLabel id="select-base-image-label">
-                      Base image
-                    </InputLabel>
-                    <Select
-                      labelId="select-base-image-label"
-                      id="select-base-image"
-                      value={environment.base_image}
-                      label="Base image"
-                      onChange={(e) => onChangeBaseImage(e.target.value)}
-                    >
-                      {baseImages.map((image) => {
-                        return (
-                          <MenuItem key={image} value={image}>
-                            {image}
-                          </MenuItem>
-                        );
-                      })}
-                    </Select>
-                  </FormControl>
-                  <Button
-                    startIcon={<AddIcon />}
-                    color="secondary"
-                    onClick={onOpenCustomBaseImageDialog}
-                    sx={{ minWidth: (theme) => theme.spacing(20) }}
-                  >
-                    Custom image
-                  </Button>
-                </Stack>
-                <div className="form-helper-text push-down-7">
-                  The base image will be the starting point from which the
-                  environment will be built.
-                </div>
-
+                /> */}
+              <Stack
+                direction="row"
+                sx={{ width: "100%" }}
+                alignItems="center"
+                spacing={2}
+              >
                 <FormControl fullWidth>
-                  <InputLabel id="select-language-label">Language</InputLabel>
+                  <InputLabel id="select-base-image-label">
+                    Base image
+                  </InputLabel>
                   <Select
-                    labelId="select-language-label"
-                    id="select-language"
-                    value={environment.language}
+                    labelId="select-base-image-label"
+                    id="select-base-image"
+                    value={environment.base_image}
                     label="Base image"
-                    onChange={(e) => onChangeLanguage(e.target.value)}
+                    onChange={(e) => onChangeBaseImage(e.target.value)}
                   >
-                    {Object.entries(LANGUAGE_MAP).map(([value, label]) => {
+                    {DEFAULT_BASE_IMAGES.map((image) => {
                       return (
-                        <MenuItem key={value} value={value}>
-                          {label}
+                        <MenuItem key={image} value={image}>
+                          {image}
                         </MenuItem>
                       );
                     })}
                   </Select>
                 </FormControl>
+                <Button
+                  startIcon={<AddIcon />}
+                  color="secondary"
+                  onClick={onOpenCustomBaseImageDialog}
+                  sx={{ minWidth: (theme) => theme.spacing(20) }}
+                >
+                  Custom image
+                </Button>
+              </Stack>
+              <div className="form-helper-text push-down-7">
+                The base image will be the starting point from which the
+                environment will be built.
+              </div>
 
-                <div className="form-helper-text push-down-7">
-                  The language determines for which kernel language this
-                  environment can be used. This only affects pipeline steps that
-                  point to a Notebook.
+              <FormControl fullWidth>
+                <InputLabel id="select-language-label">Language</InputLabel>
+                <Select
+                  labelId="select-language-label"
+                  id="select-language"
+                  value={environment.language}
+                  label="Base image"
+                  onChange={(e) => onChangeLanguage(e.target.value)}
+                >
+                  {Object.entries(LANGUAGE_MAP).map(([value, label]) => {
+                    return (
+                      <MenuItem key={value} value={value}>
+                        {label}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+
+              <div className="form-helper-text push-down-7">
+                The language determines for which kernel language this
+                environment can be used. This only affects pipeline steps that
+                point to a Notebook.
+              </div>
+
+              {state.languageDocsNotice === true && (
+                <div className="docs-notice push-down-7">
+                  Language explanation
                 </div>
+              )}
 
-                {state.languageDocsNotice === true && (
-                  <div className="docs-notice push-down-7">
-                    Language explanation
-                  </div>
-                )}
-
-                {/* <FormGroup>
+              {/* <FormGroup>
                   <FormControlLabel
                     label="GPU support"
                     data-test-id="pipeline-settings-configuration-memory-eviction"
@@ -519,7 +596,7 @@ const EnvironmentEditView: React.FC = () => {
                   />
                 </FormGroup> */}
 
-                {/* {(() => {
+              {/* {(() => {
                   if (environment.gpu_support === true) {
                     let enabledBlock = (
                       <p className="push-down-7">
@@ -575,92 +652,89 @@ const EnvironmentEditView: React.FC = () => {
                     }
                   }
                 })()} */}
-              </Stack>
-            </TabPanel>
-            <TabPanel value={tabIndex} index={1} name="build">
-              <h3>Environment set-up script</h3>
-              <div className="form-helper-text push-down-7">
-                This will execute when you build the environment. Use it to
-                include your dependencies.
-              </div>
-              <div className="push-down-7">
-                <CodeMirror
-                  value={environment.setup_script}
-                  options={{
-                    mode: "application/x-sh",
-                    theme: "jupyter",
-                    lineNumbers: true,
-                    viewportMargin: Infinity,
-                  }}
-                  onBeforeChange={(editor, data, value) => {
-                    setEnvironment((prev) => ({
-                      ...prev,
-                      setup_script: value,
-                    }));
-
-                    setAsSaved(false);
-                  }}
-                />
-              </div>
-              {environment && !isNewEnvironment && (
-                <ImageBuildLog
-                  buildFetchHash={state.buildFetchHash}
-                  buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
-                  buildsKey="environment_builds"
-                  socketIONamespace={
-                    config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
-                  }
-                  streamIdentity={projectUuid + "-" + environment.uuid}
-                  onUpdateBuild={onUpdateBuild}
-                  onBuildStart={onBuildStart}
-                  ignoreIncomingLogs={state.ignoreIncomingLogs}
-                  build={state.environmentBuild}
-                  building={state.building}
-                />
-              )}
-            </TabPanel>
-            <Stack
-              spacing={2}
-              direction="row"
-              sx={{ padding: (theme) => theme.spacing(1) }}
-            >
-              <Button
-                variant="contained"
-                onClick={onSave}
-                startIcon={<SaveIcon />}
-                data-test-id="environments-save"
-              >
-                {hasUnsavedChanges ? "Save*" : "Save"}
-              </Button>
-              {tabIndex === 1 &&
-                !isNewEnvironment &&
-                (!state.building ? (
-                  <Button
-                    disabled={state.buildRequestInProgress}
-                    variant="contained"
-                    color="secondary"
-                    onClick={build}
-                    startIcon={<MemoryIcon />}
-                    data-test-id="environment-start-build"
-                  >
-                    Build
-                  </Button>
-                ) : (
-                  <Button
-                    disabled={state.cancelBuildRequestInProgress}
-                    variant="contained"
-                    color="secondary"
-                    onClick={cancelBuild}
-                    startIcon={<CloseIcon />}
-                    data-test-id="environments-cancel-build"
-                  >
-                    Cancel build
-                  </Button>
-                ))}
             </Stack>
-          </>
-        )}
-      </div>
+          </TabPanel>
+          <TabPanel value={tabIndex} index={1} name="build">
+            <h3>Environment set-up script</h3>
+            <div className="form-helper-text push-down-7">
+              This will execute when you build the environment. Use it to
+              include your dependencies.
+            </div>
+            <div className="push-down-7">
+              <CodeMirror
+                value={environment.setup_script}
+                options={{
+                  mode: "application/x-sh",
+                  theme: "jupyter",
+                  lineNumbers: true,
+                  viewportMargin: Infinity,
+                }}
+                onBeforeChange={(editor, data, value) => {
+                  setEnvironment((prev) => ({
+                    ...prev,
+                    setup_script: value,
+                  }));
+                }}
+              />
+            </div>
+            {environment && !isNewEnvironment && (
+              <ImageBuildLog
+                buildFetchHash={state.buildFetchHash}
+                buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
+                buildsKey="environment_builds"
+                socketIONamespace={
+                  config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
+                }
+                streamIdentity={projectUuid + "-" + environment.uuid}
+                onUpdateBuild={onUpdateBuild}
+                onBuildStart={onBuildStart}
+                ignoreIncomingLogs={state.ignoreIncomingLogs}
+                build={state.environmentBuild}
+                building={state.building}
+              />
+            )}
+          </TabPanel>
+          <Stack
+            spacing={2}
+            direction="row"
+            sx={{ padding: (theme) => theme.spacing(1) }}
+          >
+            <Button
+              variant="contained"
+              onClick={onSave}
+              startIcon={<SaveIcon />}
+              data-test-id="environments-save"
+            >
+              {hasUnsavedChanges ? "Save*" : "Save"}
+            </Button>
+            {tabIndex === 1 &&
+              !isNewEnvironment &&
+              (!state.building ? (
+                <Button
+                  disabled={state.buildRequestInProgress}
+                  variant="contained"
+                  color="secondary"
+                  onClick={build}
+                  startIcon={<MemoryIcon />}
+                  data-test-id="environment-start-build"
+                >
+                  Build
+                </Button>
+              ) : (
+                <Button
+                  disabled={state.cancelBuildRequestInProgress}
+                  variant="contained"
+                  color="secondary"
+                  onClick={cancelBuild}
+                  startIcon={<CloseIcon />}
+                  data-test-id="environments-cancel-build"
+                >
+                  Cancel build
+                </Button>
+              ))}
+          </Stack>
+        </>
+      )}
     </Layout>
   );
 };

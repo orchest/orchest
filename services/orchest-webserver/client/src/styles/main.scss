@@ -3,9 +3,13 @@
 @import "fonts";
 @import "codemirror/lib/codemirror";
 
+@import "codemirror/theme/dracula";
+@import "codemirror/theme/midnight";
+// TODO: remove jupyter
+@import "themes/jupyter";
+
 @import "scrollbar";
 @import "ansi";
-@import "themes/jupyter";
 
 @import "./utils.scss";
 
@@ -267,16 +271,6 @@ a.button {
         width: 100%;
         height: 0;
       }
-
-      .logs-xterm-holder {
-        flex: 1;
-        div {
-          height: 100%;
-          > .xterm {
-            height: 100%;
-          }
-        }
-      }
     }
   }
 
@@ -375,12 +369,14 @@ p > i.material-icons.float-left {
 
 .CodeMirror {
   font-size: $codeSize;
+  border-radius: 4px;
 }
 
 .xterm-holder {
   background: #000;
-  padding: 0.5rem;
+  padding: 0.5rem 0 0.5rem 0.5rem;
   overflow: hidden;
+  border-radius: 4px;
 }
 
 .build-notice {
@@ -402,10 +398,6 @@ p > i.material-icons.float-left {
       position: absolute;
       opacity: 0.01;
     }
-  }
-
-  .CodeMirror {
-    height: auto;
   }
 }
 
