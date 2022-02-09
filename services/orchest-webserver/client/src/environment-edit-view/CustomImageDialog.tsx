@@ -1,4 +1,7 @@
+import { Code } from "@/components/common/Code";
+import { useAppContext } from "@/contexts/AppContext";
 import CheckIcon from "@mui/icons-material/Check";
+import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import Dialog from "@mui/material/Dialog";
@@ -9,12 +12,13 @@ import FormControl from "@mui/material/FormControl";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import FormGroup from "@mui/material/FormGroup";
 import FormHelperText from "@mui/material/FormHelperText";
-import InputAdornment from "@mui/material/InputAdornment";
 import InputLabel from "@mui/material/InputLabel";
+import Link from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
 import { hasValue, LANGUAGE_MAP } from "@orchest/lib-utils";
 import { useFormik } from "formik";
 import React from "react";
@@ -27,15 +31,18 @@ export const CustomImageDialog = ({
   isOpen: boolean;
   onClose: () => void;
   saveEnvironment: ({
-    imageName,
+    imagePath,
     language,
     gpuSupport,
   }: {
-    imageName: string;
+    imagePath: string;
     language: string;
     gpuSupport: boolean;
   }) => Promise<void>;
 }) => {
+  const {
+    state: { config },
+  } = useAppContext();
   const {
     handleSubmit,
     handleChange,
@@ -47,23 +54,23 @@ export const CustomImageDialog = ({
     isValid,
   } = useFormik({
     initialValues: {
-      imageName: "",
+      imagePath: "",
       language: "",
       gpuSupport: false,
     },
     isInitialValid: false,
-    validate: ({ imageName, language }) => {
+    validate: ({ imagePath, language }) => {
       const errors: Record<string, string> = {};
-      if (!imageName) errors.imageName = "Container image name cannot be empty";
+      if (!imagePath) errors.imagePath = "Image path cannot be empty";
       if (!language) errors.language = "Please select a language";
       return errors;
     },
     onSubmit: async (
-      { imageName, language, gpuSupport },
+      { imagePath, language, gpuSupport },
       { setSubmitting }
     ) => {
       setSubmitting(true);
-      await saveEnvironment({ imageName, language, gpuSupport });
+      await saveEnvironment({ imagePath, language, gpuSupport });
       setSubmitting(false);
     },
     enableReinitialize: true,
@@ -74,27 +81,27 @@ export const CustomImageDialog = ({
       <form id="add-custom-base-image-form" onSubmit={handleSubmit}>
         <DialogTitle>Add custom base image</DialogTitle>
         <DialogContent>
-          <Stack
-            spacing={3}
-            direction="column"
-            sx={{ paddingTop: (theme) => theme.spacing(3) }}
-          >
+          <Stack spacing={3} direction="column">
+            <Stack direction="row">
+              <Typography>
+                Use the path for the external image. For example,
+                <Code sx={{ marginTop: (theme) => theme.spacing(1) }}>
+                  docker.io/python:latest
+                </Code>
+              </Typography>
+            </Stack>
             <TextField
-              label="Container image name from a registry"
+              label="Image path"
               autoFocus
               required
-              name="imageName"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">docker pull</InputAdornment>
-                ),
-              }}
-              error={touched.imageName && hasValue(errors.imageName)}
-              helperText={touched.imageName && errors.imageName}
-              value={values.imageName}
+              name="imagePath"
+              error={touched.imagePath && hasValue(errors.imagePath)}
+              helperText={touched.imagePath && errors.imagePath}
+              value={values.imagePath}
               onChange={handleChange}
               onBlur={handleBlur}
             />
+
             <FormControl fullWidth>
               <InputLabel id="select-language-label">Language</InputLabel>
               <Select
@@ -120,23 +127,61 @@ export const CustomImageDialog = ({
                 {touched.language && errors.language}
               </FormHelperText>
             </FormControl>
-            <FormGroup>
-              <FormControlLabel
-                label="GPU support"
-                data-test-id="pipeline-settings-configuration-memory-eviction"
-                name="gpuSupport"
-                control={
-                  <Checkbox
-                    checked={values.gpuSupport}
-                    onChange={handleChange}
-                  />
-                }
-              />
-            </FormGroup>
+            <Stack direction="column">
+              <FormGroup>
+                <FormControlLabel
+                  label="GPU support"
+                  data-test-id="pipeline-settings-configuration-memory-eviction"
+                  name="gpuSupport"
+                  control={
+                    <Checkbox
+                      checked={values.gpuSupport}
+                      onChange={handleChange}
+                    />
+                  }
+                />
+              </FormGroup>
+              {values.gpuSupport && (
+                <Alert severity="info" tabIndex={-1}>
+                  {config.GPU_ENABLED_INSTANCE && (
+                    <>
+                      If enabled, the environment will request GPU capabilities
+                      when in use.
+                    </>
+                  )}
+                  {!config.GPU_ENABLED_INSTANCE &&
+                    (config.CLOUD ? (
+                      <>
+                        This instance is not configured with a GPU. Change the
+                        instance type to a GPU enabled one if you need GPU
+                        pass-through. Steps using this environment will work
+                        regardless, but no GPU pass-through will take place.
+                      </>
+                    ) : (
+                      <>
+                        {`Could not detect a GPU. Check out `}
+                        <Link
+                          target="_blank"
+                          href={`${config.ORCHEST_WEB_URLS.readthedocs}/getting_started/installation.html#gpu-support`}
+                          rel="noopener noreferrer"
+                          tabIndex={-1}
+                        >
+                          the documentation
+                        </Link>
+                        {` to make sure Orchest is properly configured for
+                        environments with GPU support. In particular, make sure
+                        the selected base image supports GPU pass through. Steps
+                        using this environment will work regardless, but no GPU
+                        pass-through will take place.`}
+                      </>
+                    ))}
+                </Alert>
+              )}
+            </Stack>
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button color="secondary" onClick={onClose}>
+          <Button color="secondary" onClick={onClose} tabIndex={-1}>
             Cancel
           </Button>
           <Button

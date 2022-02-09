@@ -115,28 +115,28 @@ const EnvironmentEditView: React.FC = () => {
   }, [environment]);
 
   const saveCustomImage = async ({
-    imageName,
+    imagePath,
     language,
     gpuSupport,
   }: {
-    imageName: string;
+    imagePath: string;
     language: string;
     gpuSupport: boolean;
   }) => {
     window.orchest.jupyter.unload();
 
     try {
-      const environmentUuidForFetch = environment.uuid || "new";
+      const environmentUuidWithCustomImage = environment.uuid || "new";
       const response = await fetcher<Environment>(
-        `/store/environments/${projectUuid}/${environmentUuidForFetch}`,
+        `/store/environments/${projectUuid}/${environmentUuidWithCustomImage}`,
         {
           method: isNewEnvironment ? "POST" : "PUT",
           headers: HEADER.JSON,
           body: JSON.stringify({
             environment: {
               ...environment,
-              uuid: environmentUuidForFetch,
-              base_image: imageName,
+              uuid: environmentUuidWithCustomImage,
+              base_image: imagePath,
               language,
               gpu_support: gpuSupport,
             },
@@ -519,7 +519,7 @@ const EnvironmentEditView: React.FC = () => {
                   />
                 </FormGroup> */}
 
-                {(() => {
+                {/* {(() => {
                   if (environment.gpu_support === true) {
                     let enabledBlock = (
                       <p className="push-down-7">
@@ -574,7 +574,7 @@ const EnvironmentEditView: React.FC = () => {
                       );
                     }
                   }
-                })()}
+                })()} */}
               </Stack>
             </TabPanel>
             <TabPanel value={tabIndex} index={1} name="build">
