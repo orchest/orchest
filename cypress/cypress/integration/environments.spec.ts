@@ -7,9 +7,9 @@ import {
 
 describe("environments", () => {
   beforeEach(() => {
+    cy.disableCheckUpdate();
     reset();
     cy.setOnboardingCompleted("true");
-    cy.disableCheckUpdate();
     cy.createProject(SAMPLE_PROJECT_NAMES.P1);
     // Delete the environment that has been created with the project.
     cy.deleteAllEnvironments();

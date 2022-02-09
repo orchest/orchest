@@ -1,0 +1,7 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "library.cluster.issuer.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}

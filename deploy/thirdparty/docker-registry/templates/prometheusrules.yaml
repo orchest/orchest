@@ -1,0 +1,17 @@
+{{- if and .Values.metrics.enabled .Values.metrics.prometheusRule.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ template "docker-registry.fullname" . }}
+  labels:
+    app.kubernetes.io/component: controller
+  {{- if .Values.metrics.prometheusRule.labels }}
+    {{- toYaml .Values.metrics.prometheusRule.labels | nindent 4 }}
+  {{- end }}
+spec:
+{{- if .Values.metrics.prometheusRule.rules }}
+  groups:
+  - name: {{ template "docker-registry.fullname" . }}
+    rules: {{- toYaml .Values.metrics.prometheusRule.rules | nindent 4 }}
+{{- end }}
+{{- end }}

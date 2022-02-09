@@ -26,17 +26,20 @@ export const useLocalStorage = <T>(key: string, defaultValue: T) => {
     }
   });
 
-  const setValue = (value: T | ((value: T) => T)) => {
-    try {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      cachedItemString.current = JSON.stringify(valueToStore);
-      window.localStorage.setItem(privateKey, cachedItemString.current);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const setValue = React.useCallback(
+    (value: T | ((value: T) => T)) => {
+      try {
+        const valueToStore =
+          value instanceof Function ? value(storedValue) : value;
+        setStoredValue(valueToStore);
+        cachedItemString.current = JSON.stringify(valueToStore);
+        window.localStorage.setItem(privateKey, cachedItemString.current);
+      } catch (error) {
+        console.log(error);
+      }
+    },
+    [privateKey, storedValue]
+  );
 
   // stay sync when the value is updated by other tabs
   React.useEffect(() => {

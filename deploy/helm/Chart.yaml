@@ -9,24 +9,36 @@ dependencies:
 - name: auth-server
   version: "0.0.1"
   repository: "file://charts/auth-server"
+  condition: auth-server.enabled
 - name: celery-worker
   version: "0.0.1"
   repository: "file://charts/celery-worker"
+  condition: celery-worker.enabled
 - name: file-manager
   version: "0.0.1"
   repository: "file://charts/file-manager"
+  condition: file-manager.enabled
 - name: orchest-api
   version: "0.0.1"
   repository: "file://charts/orchest-api"
+  condition: orchest-api.enabled
 - name: orchest-webserver
   version: "0.0.1"
   repository: "file://charts/orchest-webserver"
+  condition: orchest-webserver.enabled
 - name: postgres
   version: "0.0.1"
   repository: "file://charts/postgres"
+  condition: postgres.enabled
 - name: rabbitmq
   version: "0.0.1"
   repository: "file://charts/rabbitmq"
+  condition: rabbitmq.enabled
 - name: update-server
   version: "0.0.1"
   repository: "file://charts/update-server"
+  condition: update-server.enabled
+- name: cluster-resources
+  version: "0.0.1"
+  repository: "file://charts/cluster-resources"
+  condition: cluster-resources.enabled

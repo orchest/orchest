@@ -13,6 +13,7 @@ deployment
           hostPath:
             path: /var/lib/orchest/userdir
             type: DirectoryOrCreate
+      serviceAccountName: {{ template "library.metadata.name" . }}      
       containers:
       - name: orchest-api
         image: orchest/orchest-api:latest
