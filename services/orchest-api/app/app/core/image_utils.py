@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from typing import Optional
 
@@ -85,6 +86,10 @@ def _get_image_build_workflow_manifest(
     Returns:
         Valid k8s workflow manifest.
     """
+    verbosity = "panic"
+    # K8S_TODO: pass this env variable to the celery_worker.
+    if os.getenv("FLASK_ENV") == "development":
+        verbosity = "info"
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -113,7 +118,7 @@ def _get_image_build_workflow_manifest(
                             # produce logs. If you need to restore the
                             # previous logic look for commit
                             # "Simplify image build logs logic".
-                            "--verbosity=panic",
+                            f"--verbosity={verbosity}",
                             "--snapshotMode=redo",
                             # From the docs: "This flag takes a single
                             # snapshot of the filesystem at the end of
@@ -274,6 +279,12 @@ def _build_image(
         build_context["snapshot_host_path"],
         build_context["dockerfile_path"],
     )
+
+    if os.getenv("FLASK_ENV") == "development":
+        msg = "Running in DEV mode, kaniko logs won't be filtered."
+        user_logs_file_object.write(msg)
+        complete_logs_file_object.write(msg)
+        complete_logs_file_object.flush()
 
     msg = "Building image...\n"
     user_logs_file_object.write(msg)
