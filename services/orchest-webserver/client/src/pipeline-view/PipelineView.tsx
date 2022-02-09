@@ -1919,8 +1919,12 @@ const PipelineView: React.FC = () => {
   };
 
   const services = React.useMemo(() => {
-    if (jobUuidFromRoute && pipelineJson && !pipelineRunning) return null;
-    const allServices = jobUuidFromRoute
+    // not a job run, so it is an interactive run, services are only available if session is RUNNING
+    if (!isJobRun && session?.status !== "RUNNING") return null;
+    // it is a job run (non-interactive run), we are unable to check its actual session
+    // but we can check its job run status,
+    if (isJobRun && pipelineJson && !pipelineRunning) return null;
+    const allServices = isJobRun
       ? pipelineJson?.services || {}
       : session && session.user_services
       ? session.user_services
@@ -1928,7 +1932,7 @@ const PipelineView: React.FC = () => {
     // Filter services based on scope
     let scope = jobUuidFromRoute ? "noninteractive" : "interactive";
     return filterServices(allServices, scope);
-  }, [pipelineJson, session, jobUuidFromRoute, pipelineRunning]);
+  }, [pipelineJson, session, jobUuidFromRoute, isJobRun, pipelineRunning]);
 
   const returnToJob = (e?: React.MouseEvent) => {
     navigateTo(
