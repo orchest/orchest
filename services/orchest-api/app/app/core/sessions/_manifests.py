@@ -570,6 +570,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         # node.  See kernel-image-puller (KIP) for such an example.
         "EG_KERNEL_LAUNCH_TIMEOUT": "600",
         "EG_ENV_PROCESS_WHITELIST": process_env_whitelist,
+        # Note: the docs say to use a string, but the script in charge
+        # of launching the kernel will expect an integer and fail!.
+        "EG_LOG_LEVEL": "10",
         # "All kernels reside in the EG namespace if true, otherwise
         # KERNEL_NAMESPACE must be provided or one will be created for
         # each kernel."
