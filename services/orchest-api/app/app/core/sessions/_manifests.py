@@ -488,6 +488,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "EG_UID_BLACKLIST": '["-1"]',
         "EG_ALLOW_ORIGIN": "*",
         "EG_BASE_URL": "/jupyter-server",
+        # This is because images might need to be pulled on the node and
+        # we aren't using a dameon or similar to pull images on the
+        # node.  See kernel-image-puller (KIP) for such an example.
+        "EG_KERNEL_LAUNCH_TIMEOUT": "600",
         "EG_ENV_PROCESS_WHITELIST": process_env_whitelist,
         # "All kernels reside in the EG namespace if true, otherwise
         # KERNEL_NAMESPACE must be provided or one will be created for
