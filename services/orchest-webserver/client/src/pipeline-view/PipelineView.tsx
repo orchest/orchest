@@ -1580,6 +1580,31 @@ const PipelineView: React.FC = () => {
   };
 
   const cancelRun = async () => {
+    if (isJobRun) {
+      setConfirm(
+        "Warning",
+        "Are you sure that you want to cancel this job run?",
+        async (resolve) => {
+          setIsCancellingRun(true);
+          try {
+            await fetcher(
+              `/catch/api-proxy/api/jobs/${jobUuidFromRoute}/${runUuid}`,
+              {
+                method: "DELETE",
+              }
+            );
+            resolve(true);
+          } catch (error) {
+            setAlert("Error", `Failed to cancel this job run.`);
+            resolve(false);
+          }
+          setIsCancellingRun(false);
+          return true;
+        }
+      );
+      return;
+    }
+
     if (!pipelineRunning) {
       setAlert("Error", "There is no pipeline running.");
       return;
@@ -1987,7 +2012,11 @@ const PipelineView: React.FC = () => {
         step={step}
         selected={selected}
         ref={state.refManager.nrefs[step.uuid]}
-        executionState={stepExecutionState[step.uuid] || { status: "IDLE" }}
+        executionState={
+          stepExecutionState
+            ? stepExecutionState[step.uuid] || { status: "IDLE" }
+            : { status: "IDLE" }
+        }
         onConnect={makeConnection}
         onClick={onClickStepHandler}
         onDoubleClick={onDoubleClickStepHandler}
@@ -2174,7 +2203,7 @@ const PipelineView: React.FC = () => {
                   )}
                 </div>
               )}
-            {!isReadOnly && pipelineRunning && (
+            {pipelineRunning && (
               <div className="selection-buttons">
                 <Button
                   variant="contained"

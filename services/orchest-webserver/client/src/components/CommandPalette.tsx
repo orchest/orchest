@@ -374,7 +374,7 @@ const CommandPalette: React.FC = () => {
     [selectedCommandIndex, filteredCommands]
   );
 
-  const selectCommand = (index) => {
+  const selectCommand = (index: number) => {
     if (filteredCommands[index]) {
       handleCommand(filteredCommands[index]);
     }
@@ -432,8 +432,8 @@ const CommandPalette: React.FC = () => {
               return (
                 <ListItem
                   selected={selectedCommandIndex === i}
-                  key={command.title}
-                  onClick={selectCommand}
+                  key={i} // command.title is not unique if there are jobs with same name
+                  onClick={() => selectCommand(i)}
                 >
                   {command.title}
                 </ListItem>

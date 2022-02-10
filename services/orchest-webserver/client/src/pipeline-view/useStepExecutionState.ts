@@ -4,7 +4,7 @@ import type { PipelineRun } from "@/types";
 import { serverTimeToDate } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { MutatorCallback } from "swr";
+import useSWR, { MutatorCallback, useSWRConfig } from "swr";
 import { ExecutionState } from "./PipelineStep";
 
 const STATUS_POLL_FREQUENCY = 1000;
@@ -30,6 +30,7 @@ export const useStepExecutionState = (
   url: string | null,
   callback: (status: TStatus) => void
 ) => {
+  const { cache } = useSWRConfig();
   const { data = {}, error, mutate } = useSWR<StepExecutionStateObj>(
     url,
     (url) =>
@@ -60,7 +61,7 @@ export const useStepExecutionState = (
   );
 
   return {
-    stepExecutionState: data,
+    stepExecutionState: data || cache.get(url),
     setStepExecutionState,
   };
 };
