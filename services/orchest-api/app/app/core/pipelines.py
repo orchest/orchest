@@ -26,7 +26,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import (
     get_k8s_namespace_name,
-    get_step_volumes_and_volume_mounts,
+    get_step_and_kernel_volumes_and_volume_mounts,
 )
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
@@ -504,7 +504,7 @@ def _step_to_workflow_manifest_task(
 def _pipeline_to_workflow_manifest(
     workflow_name: str, pipeline: Pipeline, run_config: Dict[str, Any]
 ) -> dict:
-    volumes, volume_mounts = get_step_volumes_and_volume_mounts(
+    volumes, volume_mounts = get_step_and_kernel_volumes_and_volume_mounts(
         host_user_dir=run_config["host_user_dir"],
         host_project_dir=run_config["project_dir"],
         host_pipeline_file=os.path.join(

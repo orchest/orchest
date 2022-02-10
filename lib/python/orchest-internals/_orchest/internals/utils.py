@@ -418,14 +418,14 @@ def get_environment_capabilities(environment_uuid, project_uuid):
     return capabilities
 
 
-def get_step_volumes_and_volume_mounts(
+def get_step_and_kernel_volumes_and_volume_mounts(
     host_user_dir: str,
     host_project_dir: str,
     host_pipeline_file: str,
     container_project_dir: str,
     container_pipeline_file: str,
 ) -> Tuple[List[dict], List[dict]]:
-    """Gets volumes and volume mounts required to run steps.
+    """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
         host_user_dir:
@@ -456,62 +456,6 @@ def get_step_volumes_and_volume_mounts(
     volume_mounts.append({"name": "data", "mountPath": "/data"})
 
     return volumes, volume_mounts
-
-
-# K8S_TODO: remove this after jupyter* tasks are done.
-def get_orchest_mounts(
-    project_dir,
-    pipeline_file,
-    host_user_dir,
-    host_project_dir,
-    host_pipeline_file,
-    mount_form="docker-sdk",
-):
-    """
-    Prepare all mounts that are needed to run Orchest.
-
-    Args:
-        mount_form: One of "docker-sdk" or "docker-engine". The former
-            is used for the "docker-py" package and the latter for
-            "aiodocker".
-
-    """
-
-    project_dir_mount = get_mount(
-        source=host_project_dir, target=project_dir, form=mount_form
-    )
-
-    if mount_form == "docker-sdk":
-        mounts = project_dir_mount
-    else:
-        mounts = [project_dir_mount]
-
-    # Mount the pipeline file to a specific path.
-    pipeline_file_mount = get_mount(
-        source=host_pipeline_file, target=pipeline_file, form=mount_form
-    )
-
-    if mount_form == "docker-sdk":
-        mounts[host_pipeline_file] = pipeline_file_mount[host_pipeline_file]
-    else:
-        mounts.append(pipeline_file_mount)
-
-    # Mount the /userdir/data directory.
-    target_path = "/data"
-    source = os.path.join(host_user_dir, "data")
-
-    mount = get_mount(
-        source=source,
-        target=target_path,
-        form=mount_form,
-    )
-
-    if mount_form == "docker-sdk":
-        mounts[source] = mount[source]
-    else:
-        mounts.append(mount)
-
-    return mounts
 
 
 def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):

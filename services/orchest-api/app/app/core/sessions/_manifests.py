@@ -460,16 +460,25 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID",
         "ORCHEST_PIPELINE_PATH",
         "ORCHEST_PROJECT_UUID",
+        "ORCHEST_HOST_USER_DIR",
         "ORCHEST_HOST_PROJECT_DIR",
         "ORCHEST_HOST_PIPELINE_FILE",
         "ORCHEST_HOST_GID",
         "ORCHEST_SESSION_UUID",
         "ORCHEST_SESSION_TYPE",
         "ORCHEST_GPU_ENABLED_INSTANCE",
+        "ORCHEST_REGISTRY",
     ]
     process_env_whitelist.extend(list(user_defined_env_vars.keys()))
     process_env_whitelist = ",".join(process_env_whitelist)
 
+    # Need to reference the ip because the local docker engine will
+    # run the container, and if the image is missing it will prompt
+    # a pull which will fail because the FQDN can't be resolved by
+    # the local engine on the node. K8S_TODO: fix this.
+    registry_ip = k8s_core_api.read_namespaced_service(
+        _config.REGISTRY, "orchest"
+    ).spec.cluster_ip
     environment = {
         "EG_MIRROR_WORKING_DIRS": "True",
         "EG_LIST_KERNELS": "True",
@@ -483,6 +492,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
         "ORCHEST_PROJECT_UUID": project_uuid,
+        "ORCHEST_HOST_USER_DIR": host_userdir,
         "ORCHEST_HOST_PROJECT_DIR": host_project_dir,
         "ORCHEST_HOST_PIPELINE_FILE": os.path.join(
             host_project_dir, project_relative_pipeline_path
@@ -491,6 +501,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_SESSION_UUID": session_uuid,
         "ORCHEST_SESSION_TYPE": session_type,
         "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
+        "ORCHEST_REGISTRY": registry_ip,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
     user_defined_env_vars = [
