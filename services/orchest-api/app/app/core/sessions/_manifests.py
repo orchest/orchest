@@ -404,6 +404,7 @@ def _get_jupyter_server_deployment_service_manifest(
                                 "periodSeconds": 1,
                                 "failureThreshold": 120,
                             },
+                            "ports": [{"containerPort": 8888}],
                         }
                     ],
                 },
@@ -420,7 +421,7 @@ def _get_jupyter_server_deployment_service_manifest(
         "spec": {
             "type": "ClusterIP",
             "selector": {"app": metadata["name"]},
-            "ports": [{"port": 8888}],
+            "ports": [{"port": 80, "targetPort": 8888}],
         },
     }
     return deployment_manifest, service_manifest
@@ -531,6 +532,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                             "volumeMounts": [
                                 volume_mounts_dict["kernelspec"],
                             ],
+                            "ports": [{"containerPort": 8888}],
                         }
                     ],
                 },
