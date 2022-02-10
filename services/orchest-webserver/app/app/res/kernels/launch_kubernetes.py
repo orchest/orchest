@@ -1,3 +1,18 @@
+"""Launch a kernel as a k8s pod.
+
+This script is meant to be used by jupyter-enterprise-gateway (EG), so
+it's not something we call directly, instead, we place it in
+userdir/.orchest/kernels/<project uuid> and mount this file to the EG
+pod. It will launch a pod with the required env variables and specs.
+Pod deletion is handled by EG.
+
+Calls:
+    browser client -> jupyter server -> jupyter EG -> this script -> k8s
+
+Related docs:
+    https://jupyter-enterprise-gateway.readthedocs.io/en/latest/kernel-kubernetes.html#kubernetes
+
+"""
 import argparse
 import os
 import sys
