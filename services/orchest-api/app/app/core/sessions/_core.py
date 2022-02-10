@@ -258,7 +258,8 @@ def has_busy_kernels(session_uuid: str) -> bool:
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
     ns = get_k8s_namespace_name(session_uuid)
     service_dns_name = f"jupyter-server.{ns}.svc.cluster.local"
-    url = f"http://{service_dns_name}:8888/jupyter-server/api/kernels"
+    # Coupled with the juputer-server service port.
+    url = f"http://{service_dns_name}/jupyter-server/api/kernels"
     response = requests.get(url, timeout=2.0)
 
     # Expected format: a list of dictionaries.

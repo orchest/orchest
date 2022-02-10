@@ -421,6 +421,7 @@ def _get_jupyter_server_deployment_service_manifest(
         "spec": {
             "type": "ClusterIP",
             "selector": {"app": metadata["name"]},
+            # Coupled with the idle check.
             "ports": [{"port": 80, "targetPort": 8888}],
         },
     }
