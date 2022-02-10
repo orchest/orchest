@@ -105,7 +105,7 @@ export const CustomImageDialog = ({
               required
               name="imagePath"
               error={touched.imagePath && hasValue(errors.imagePath)}
-              helperText={touched.imagePath && errors.imagePath}
+              helperText={(touched.imagePath && errors.imagePath) || " "}
               value={values.imagePath}
               onChange={handleChange}
               onBlur={handleBlur}

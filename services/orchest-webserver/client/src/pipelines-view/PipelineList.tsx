@@ -174,7 +174,7 @@ const PipelinePathTextField: React.FC<{
       value={value}
       label="Pipeline path"
       error={!isValid}
-      helperText={!isValid ? "path should end in the .orchest extension" : ""}
+      helperText={!isValid ? "path should end in the .orchest extension" : " "}
       inputRef={pathInputRef}
       onChange={(e) => {
         const value = e.target.value;

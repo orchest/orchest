@@ -97,7 +97,7 @@ export const CreateProjectDialog = ({
             sx={{ marginTop: (theme) => theme.spacing(2) }}
             label="Project name"
             error={validation.length > 0}
-            helperText={validation}
+            helperText={validation || " "}
             value={projectName}
             onChange={(e) =>
               setProjectName(e.target.value.replace(/[^\w\.]/g, "-"))
