@@ -15,18 +15,23 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
+import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
+import Radio from "@mui/material/Radio";
+import { useRadioGroup } from "@mui/material/RadioGroup";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
+import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   DEFAULT_BASE_IMAGES,
@@ -42,7 +47,9 @@ import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import { CustomImage, CustomImageDialog } from "./CustomImageDialog";
+import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
+import { ContainerImageTile } from "./ContainerImageTile";
+import { CustomImageDialog } from "./CustomImageDialog";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -76,6 +83,40 @@ const validEnvironmentName = (name: string) => {
     }
   }
   return true;
+};
+
+const ImageOption: React.FC<{
+  fullWidth?: boolean;
+  value: string;
+  title?: string;
+  sx?: SxProps<Theme>;
+}> = ({ fullWidth, title, value, sx, children }) => {
+  const radioGroup = useRadioGroup();
+  const checked = radioGroup && radioGroup.value === value;
+
+  const content = (
+    <FormControlLabel
+      value={value}
+      label=""
+      sx={{ margin: 0, width: fullWidth ? "100%" : "auto" }}
+      control={
+        <Radio
+          disableRipple
+          sx={{ width: fullWidth ? "100%" : "auto" }}
+          icon={
+            <ContainerImageTile sx={sx}>{children || value}</ContainerImageTile>
+          }
+          checkedIcon={
+            <ContainerImageTile sx={sx} checked={checked}>
+              {children || value}
+            </ContainerImageTile>
+          }
+        />
+      }
+    />
+  );
+
+  return title ? <Tooltip title={title}>{content}</Tooltip> : content;
 };
 
 /**
@@ -119,14 +160,19 @@ const EnvironmentEditView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const { environment, setEnvironment } = useFetchEnvironment({
+  const {
+    environment,
+    setEnvironment,
+    isFetchingEnvironment,
+    customImage,
+    setCustomImage,
+  } = useFetchEnvironment({
     // if environment is new, don't pass the uuid, so this hook won't fire the request
     uuid: !isNewEnvironment ? environmentUuid : "",
     project_uuid: projectUuid,
     ...config.ENVIRONMENT_DEFAULTS,
   });
 
-  const [customImage, setCustomImage] = React.useState<CustomImage>(null);
   const saveCustomImage = async ({
     imagePath,
     language,
@@ -380,6 +426,7 @@ const EnvironmentEditView: React.FC = () => {
           <CustomImageDialog
             isOpen={isShowingCustomImageDialog}
             onClose={onCloseCustomBaseImageDialog}
+            initialValue={customImage}
             saveEnvironment={saveCustomImage}
             setCustomImage={setCustomImage}
           />
@@ -418,15 +465,12 @@ const EnvironmentEditView: React.FC = () => {
                     value={environment.name}
                     data-test-id="environments-env-name"
                   />
-                  <Box>
-                    <Typography component="h2" variant="h6">
-                      Choose a container image
-                    </Typography>
-                    <Typography variant="body2">
-                      The container image will be the starting point from which
-                      the environment will be built.
-                    </Typography>
-                  </Box>
+                  <ContainerImagesRadioGroup
+                    value={!isFetchingEnvironment && environment.base_image}
+                    onChange={onChangeBaseImage}
+                    customImage={customImage}
+                    onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
+                  />
                 </Stack>
               </Paper>
             </Stack>

@@ -1,11 +1,11 @@
+import { SxProps, Theme } from "@mui/material";
 import Paper from "@mui/material/Paper";
-import "codemirror/mode/shell/shell";
-import "codemirror/theme/dracula.css";
 import React from "react";
 
 export const ContainerImageTile: React.FC<{
   checked?: boolean;
-}> = ({ children, checked = false }) => {
+  sx?: SxProps<Theme>;
+}> = ({ children, checked = false, sx }) => {
   return (
     <Paper
       elevation={0}
@@ -13,12 +13,14 @@ export const ContainerImageTile: React.FC<{
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        height: "100px",
+        minHeight: "100px",
+        width: "100%",
         borderRadius: (theme) => theme.spacing(1),
         border: (theme) =>
-          `1px solid ${
+          `2px solid ${
             checked ? theme.palette.primary.main : theme.borderColor
           }`,
+        ...sx,
       }}
     >
       {children}

@@ -1,5 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { CustomImage } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -19,22 +20,22 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { hasValue, LANGUAGE_MAP } from "@orchest/lib-utils";
+import {
+  DEFAULT_BASE_IMAGES,
+  hasValue,
+  LANGUAGE_MAP,
+} from "@orchest/lib-utils";
 import { useFormik } from "formik";
 import React from "react";
-
-export type CustomImage = {
-  imagePath: string;
-  language: string;
-  gpuSupport: boolean;
-};
 
 export const CustomImageDialog = ({
   isOpen,
   onClose,
   saveEnvironment,
+  initialValue,
   setCustomImage,
 }: {
+  initialValue: CustomImage | null;
   isOpen: boolean;
   onClose: () => void;
   saveEnvironment: ({
@@ -61,7 +62,7 @@ export const CustomImageDialog = ({
     touched,
     isValid,
   } = useFormik({
-    initialValues: {
+    initialValues: initialValue || {
       imagePath: "",
       language: "",
       gpuSupport: false,
@@ -70,6 +71,11 @@ export const CustomImageDialog = ({
     validate: ({ imagePath, language }) => {
       const errors: Record<string, string> = {};
       if (!imagePath) errors.imagePath = "Image path cannot be empty";
+      // prevent user enter the same path as the default images
+      // otherwise, the custom tile would be gone after refreshing the page (because default image paths are not considered as a custom one)
+      if (DEFAULT_BASE_IMAGES.includes(imagePath.toLowerCase().trim()))
+        errors.imagePath =
+          "Given path is part of the default images. No need to specify a custom one.";
       if (!language) errors.language = "Please select a language";
       return errors;
     },
