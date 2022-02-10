@@ -7,7 +7,7 @@ from kubernetes import client
 
 from _orchest.internals.utils import get_k8s_namespace_manifest, get_k8s_namespace_name
 from app import errors, utils
-from app.connections import k8s_apps_api, k8s_core_api
+from app.connections import k8s_apps_api, k8s_core_api, k8s_rbac_api
 from app.core.sessions import _manifests
 from app.types import NonInteractiveSessionConfig, SessionConfig, SessionType
 
@@ -95,6 +95,9 @@ def launch(
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
     orchest_session_service_k8s_service_manifests = []
+    session_rbac_roles = []
+    session_rbac_service_accounts = []
+    session_rbac_rolebindings = []
     if session_type in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
         orchest_session_service_k8s_deployment_manifests.append(
             _manifests._get_memory_server_deployment_manifest(
@@ -111,6 +114,17 @@ def launch(
         raise ValueError(f"Invalid session type: {session_type}.")
 
     if session_type == SessionType.INTERACTIVE:
+        (
+            role,
+            service_account,
+            rolebinding,
+        ) = _manifests._get_jupyter_enterprise_gateway_rbac_manifests(
+            session_uuid, session_config
+        )
+        session_rbac_roles.append(role)
+        session_rbac_service_accounts.append(service_account)
+        session_rbac_rolebindings.append(rolebinding)
+
         (
             depl,
             serv,
@@ -139,8 +153,24 @@ def launch(
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
 
-    logger.info("Creating Orchest session services deployments.")
     ns = get_k8s_namespace_name(session_uuid)
+
+    logger.info("Creating session RBAC roles.")
+    for manifest in session_rbac_roles:
+        logger.info(f'Creating role {manifest["metadata"]["name"]}')
+        k8s_rbac_api.create_namespaced_role(ns, manifest)
+
+    logger.info("Creating session RBAC service accounts.")
+    for manifest in session_rbac_service_accounts:
+        logger.info(f'Creating service account {manifest["metadata"]["name"]}')
+        k8s_core_api.create_namespaced_service_account(ns, manifest)
+
+    logger.info("Creating session RBAC role bindings.")
+    for manifest in session_rbac_rolebindings:
+        logger.info(f'Creating role binding {manifest["metadata"]["name"]}')
+        k8s_rbac_api.create_namespaced_role_binding(ns, manifest)
+
+    logger.info("Creating Orchest session services deployments.")
     for manifest in orchest_session_service_k8s_deployment_manifests:
         logger.info(f'Creating deployment {manifest["metadata"]["name"]}')
         k8s_apps_api.create_namespaced_deployment(

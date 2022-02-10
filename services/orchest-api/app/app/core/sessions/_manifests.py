@@ -427,6 +427,83 @@ def _get_jupyter_server_deployment_service_manifest(
     return deployment_manifest, service_manifest
 
 
+def _get_jupyter_enterprise_gateway_rbac_manifests(
+    session_uuid: str,
+    session_config: SessionConfig,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+
+    project_uuid = session_config["project_uuid"]
+    ns = get_k8s_namespace_name(session_uuid)
+
+    role_manifest = {
+        "kind": "Role",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "jupyter-eg-role",
+            "labels": {
+                "app": "jupyter-eg",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "rules": [
+            {
+                "apiGroups": [
+                    "",
+                ],
+                "resources": [
+                    "pods",
+                ],
+                "verbs": [
+                    "create",
+                    "get",
+                    "list",
+                    "watch",
+                    "update",
+                    "delete",
+                    "patch",
+                ],
+            }
+        ],
+    }
+
+    account_manifest = {
+        "apiVersion": "v1",
+        "kind": "ServiceAccount",
+        "metadata": {
+            "name": "jupyter-eg-sa",
+            "labels": {
+                "app": "jupyter-eg",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+    }
+
+    rolebinding_manifest = {
+        "kind": "RoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "jupyter-eg-rolebinding",
+            "labels": {
+                "app": "jupyter-eg",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "subjects": [
+            {"kind": "ServiceAccount", "name": "jupyter-eg-sa", "namespace": ns}
+        ],
+        "roleRef": {
+            "kind": "Role",
+            "name": "jupyter-eg-role",
+            "apiGroup": "rbac.authorization.k8s.io",
+        },
+    }
+
+    return role_manifest, account_manifest, rolebinding_manifest
+
+
 def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     session_uuid: str,
     session_config: SessionConfig,
@@ -496,6 +573,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         # "All kernels reside in the EG namespace if true, otherwise
         # KERNEL_NAMESPACE must be provided or one will be created for
         # each kernel."
+        "EG_NAMESPACE": get_k8s_namespace_name(session_uuid),
         "EG_SHARED_NAMESPACE": "True",
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
@@ -535,6 +613,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
+                    "serviceAccount": "jupyter-eg-sa",
+                    "serviceAccountName": "jupyter-eg-sa",
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
