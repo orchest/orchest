@@ -153,11 +153,10 @@ export type Environment = {
   uuid: string;
 };
 
-export type CustomImage = {
-  imagePath: string;
-  language: string;
-  gpuSupport: boolean;
-};
+export type CustomImage = Pick<
+  Environment,
+  "base_image" | "language" | "gpu_support"
+>;
 
 export type EnvironmentBuild = {
   environment_uuid: string;

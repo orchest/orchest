@@ -39,13 +39,13 @@ export const CustomImageDialog = ({
   isOpen: boolean;
   onClose: () => void;
   saveEnvironment: ({
-    imagePath,
+    base_image,
     language,
-    gpuSupport,
+    gpu_support,
   }: {
-    imagePath: string;
+    base_image: string;
     language: string;
-    gpuSupport: boolean;
+    gpu_support: boolean;
   }) => Promise<void>;
   setCustomImage: (value: CustomImage) => void;
 }) => {
@@ -63,29 +63,29 @@ export const CustomImageDialog = ({
     isValid,
   } = useFormik({
     initialValues: initialValue || {
-      imagePath: "",
+      base_image: "",
       language: "",
-      gpuSupport: false,
+      gpu_support: false,
     },
     isInitialValid: false,
-    validate: ({ imagePath, language }) => {
+    validate: ({ base_image, language }) => {
       const errors: Record<string, string> = {};
-      if (!imagePath) errors.imagePath = "Image path cannot be empty";
+      if (!base_image) errors.base_image = "Image path cannot be empty";
       // prevent user enter the same path as the default images
       // otherwise, the custom tile would be gone after refreshing the page (because default image paths are not considered as a custom one)
-      if (DEFAULT_BASE_IMAGES.includes(imagePath.toLowerCase().trim()))
-        errors.imagePath =
+      if (DEFAULT_BASE_IMAGES.includes(base_image.toLowerCase().trim()))
+        errors.base_image =
           "Given path is part of the default images. No need to specify a custom one.";
       if (!language) errors.language = "Please select a language";
       return errors;
     },
     onSubmit: async (
-      { imagePath, language, gpuSupport },
+      { base_image, language, gpu_support },
       { setSubmitting }
     ) => {
       setSubmitting(true);
-      await saveEnvironment({ imagePath, language, gpuSupport });
-      setCustomImage({ imagePath, language, gpuSupport });
+      await saveEnvironment({ base_image, language, gpu_support });
+      setCustomImage({ base_image, language, gpu_support });
       setSubmitting(false);
     },
     enableReinitialize: true,
@@ -109,10 +109,10 @@ export const CustomImageDialog = ({
               label="Image path"
               autoFocus
               required
-              name="imagePath"
-              error={touched.imagePath && hasValue(errors.imagePath)}
-              helperText={(touched.imagePath && errors.imagePath) || " "}
-              value={values.imagePath}
+              name="base_image"
+              error={touched.base_image && hasValue(errors.base_image)}
+              helperText={(touched.base_image && errors.base_image) || " "}
+              value={values.base_image}
               onChange={handleChange}
               onBlur={handleBlur}
             />
@@ -147,16 +147,16 @@ export const CustomImageDialog = ({
                 <FormControlLabel
                   label="GPU support"
                   data-test-id="pipeline-settings-configuration-memory-eviction"
-                  name="gpuSupport"
+                  name="gpu_support"
                   control={
                     <Checkbox
-                      checked={values.gpuSupport}
+                      checked={values.gpu_support}
                       onChange={handleChange}
                     />
                   }
                 />
               </FormGroup>
-              {values.gpuSupport && (
+              {values.gpu_support && (
                 <Alert severity="info" tabIndex={-1}>
                   {config.GPU_ENABLED_INSTANCE && (
                     <>

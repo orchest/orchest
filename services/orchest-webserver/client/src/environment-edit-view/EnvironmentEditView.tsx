@@ -15,23 +15,18 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
-import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControl from "@mui/material/FormControl";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
 import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
-import Radio from "@mui/material/Radio";
-import { useRadioGroup } from "@mui/material/RadioGroup";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   DEFAULT_BASE_IMAGES,
@@ -48,8 +43,8 @@ import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
-import { ContainerImageTile } from "./ContainerImageTile";
 import { CustomImageDialog } from "./CustomImageDialog";
+import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -85,40 +80,6 @@ const validEnvironmentName = (name: string) => {
   return true;
 };
 
-const ImageOption: React.FC<{
-  fullWidth?: boolean;
-  value: string;
-  title?: string;
-  sx?: SxProps<Theme>;
-}> = ({ fullWidth, title, value, sx, children }) => {
-  const radioGroup = useRadioGroup();
-  const checked = radioGroup && radioGroup.value === value;
-
-  const content = (
-    <FormControlLabel
-      value={value}
-      label=""
-      sx={{ margin: 0, width: fullWidth ? "100%" : "auto" }}
-      control={
-        <Radio
-          disableRipple
-          sx={{ width: fullWidth ? "100%" : "auto" }}
-          icon={
-            <ContainerImageTile sx={sx}>{children || value}</ContainerImageTile>
-          }
-          checkedIcon={
-            <ContainerImageTile sx={sx} checked={checked}>
-              {children || value}
-            </ContainerImageTile>
-          }
-        />
-      }
-    />
-  );
-
-  return title ? <Tooltip title={title}>{content}</Tooltip> : content;
-};
-
 /**
  * We apply auto-save to environment edit view
  * so setAsSaved does not apply in this view
@@ -139,6 +100,18 @@ const EnvironmentEditView: React.FC = () => {
   // local states
 
   const isNewEnvironment = environmentUuid === "new";
+  const {
+    environment,
+    setEnvironment,
+    isFetchingEnvironment,
+    customImage,
+    setCustomImage,
+  } = useFetchEnvironment({
+    // if environment is new, don't pass the uuid, so this hook won't fire the request
+    uuid: !isNewEnvironment ? environmentUuid : "",
+    project_uuid: projectUuid,
+    ...config.ENVIRONMENT_DEFAULTS,
+  });
 
   const [
     isShowingCustomImageDialog,
@@ -160,58 +133,57 @@ const EnvironmentEditView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const {
-    environment,
-    setEnvironment,
-    isFetchingEnvironment,
-    customImage,
-    setCustomImage,
-  } = useFetchEnvironment({
-    // if environment is new, don't pass the uuid, so this hook won't fire the request
-    uuid: !isNewEnvironment ? environmentUuid : "",
-    project_uuid: projectUuid,
-    ...config.ENVIRONMENT_DEFAULTS,
-  });
+  const saveEnvironment = React.useCallback(
+    async (payload?: Partial<Environment>) => {
+      // Saving an environment will invalidate the Jupyter <iframe>
+      // TODO: perhaps this can be fixed with coordination between JLab +
+      // Enterprise Gateway team.
+      window.orchest.jupyter.unload();
 
-  const saveCustomImage = async ({
-    imagePath,
-    language,
-    gpuSupport,
-  }: {
-    imagePath: string;
-    language: string;
-    gpuSupport: boolean;
-  }) => {
-    window.orchest.jupyter.unload();
+      try {
+        const environmentUuidForUpdateOrCreate = environment.uuid || "new";
+        const response = await fetcher<Environment>(
+          `/store/environments/${projectUuid}/${environmentUuidForUpdateOrCreate}`,
+          {
+            method: isNewEnvironment ? "POST" : "PUT",
+            headers: HEADER.JSON,
+            body: JSON.stringify({
+              environment: {
+                ...environment,
+                ...payload,
+                uuid: environmentUuidForUpdateOrCreate,
+              },
+            }),
+          }
+        );
 
-    try {
-      const environmentUuidWithCustomImage = environment.uuid || "new";
-      const response = await fetcher<Environment>(
-        `/store/environments/${projectUuid}/${environmentUuidWithCustomImage}`,
-        {
-          method: isNewEnvironment ? "POST" : "PUT",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            environment: {
-              ...environment,
-              uuid: environmentUuidWithCustomImage,
-              base_image: imagePath,
-              language,
-              gpu_support: gpuSupport,
-            },
-          }),
+        if (isNewEnvironment) {
+          // update the query arg environmentUuid
+          navigateTo(siteMap.environment.path, {
+            query: { projectUuid, environmentUuid: response.uuid },
+          });
+          return;
         }
-      );
+        setEnvironment(response);
+      } catch (error) {
+        setAlert("Error", `Unable to save the custom image. ${error.message}`);
+      }
+      setIsShowingCustomImageDialog(false);
+    },
+    [
+      environment,
+      isNewEnvironment,
+      navigateTo,
+      projectUuid,
+      setAlert,
+      setEnvironment,
+    ]
+  );
 
-      // update the query arg environmentUuid
-      navigateTo(siteMap.environment.path, {
-        query: { projectUuid, environmentUuid: response.uuid },
-      });
-    } catch (error) {
-      setAlert("Error", `Unable to save the custom image. ${error.message}`);
-    }
-    setIsShowingCustomImageDialog(false);
-  };
+  useAutoSaveEnvironment(
+    !isFetchingEnvironment ? environment : null,
+    saveEnvironment
+  );
 
   const save = () => {
     // Saving an environment will invalidate the Jupyter <iframe>
@@ -427,7 +399,7 @@ const EnvironmentEditView: React.FC = () => {
             isOpen={isShowingCustomImageDialog}
             onClose={onCloseCustomBaseImageDialog}
             initialValue={customImage}
-            saveEnvironment={saveCustomImage}
+            saveEnvironment={saveEnvironment}
             setCustomImage={setCustomImage}
           />
           <Box
