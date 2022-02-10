@@ -489,6 +489,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "EG_ALLOW_ORIGIN": "*",
         "EG_BASE_URL": "/jupyter-server",
         "EG_ENV_PROCESS_WHITELIST": process_env_whitelist,
+        # "All kernels reside in the EG namespace if true, otherwise
+        # KERNEL_NAMESPACE must be provided or one will be created for
+        # each kernel."
+        "EG_SHARED_NAMESPACE": "True",
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
         "ORCHEST_PROJECT_UUID": project_uuid,
