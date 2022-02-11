@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import type { IOrchestSession, IOrchestSessionUuid } from "@/types";
 import { fetcher } from "@/utils/fetcher";
+import { checkGate } from "@/utils/webserver-utils";
 import { hasValue, HEADER } from "@orchest/lib-utils";
 import pascalcase from "pascalcase";
 import React from "react";
@@ -150,7 +151,7 @@ const initialState: SessionsContextState = {
   =========================================== */
 
 export const SessionsContextProvider: React.FC = ({ children }) => {
-  const { setAlert } = useAppContext();
+  const { setAlert, requestBuild } = useAppContext();
 
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
@@ -196,6 +197,32 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
     [dispatch]
   );
 
+  const startSession = React.useCallback(
+    (payload: IOrchestSessionUuid) => {
+      setSession({ ...payload, status: "LAUNCHING" });
+      fetcher(ENDPOINT, {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({
+          pipeline_uuid: payload.pipelineUuid,
+          project_uuid: payload.projectUuid,
+        }),
+      })
+        .then((sessionDetails) => setSession(sessionDetails))
+        .catch((err) => {
+          if (err?.message) {
+            setAlert(
+              "Error",
+              `Error while starting the session: ${err.message}`
+            );
+          }
+
+          console.error(err);
+        });
+    },
+    [setSession, setAlert]
+  );
+
   // NOTE: launch/delete session is an async operation from BE
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
   const toggleSession = React.useCallback(
@@ -227,28 +254,20 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
       }
 
       // session is undefined, launching a new session
-      setSession({ ...payload, status: "LAUNCHING" });
-      await fetcher(ENDPOINT, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          pipeline_uuid: payload.pipelineUuid,
-          project_uuid: payload.projectUuid,
-        }),
-      })
-        .then((sessionDetails) => setSession(sessionDetails))
-        .catch((err) => {
-          if (err?.message) {
-            setAlert(
-              "Error",
-              `Error while starting the session: ${err.message}`
-            );
+      let checkGatePromise = checkGate(payload.projectUuid);
+      checkGatePromise
+        .then(() => {
+          startSession(payload);
+        })
+        .catch((result) => {
+          if (result.reason === "gate-failed") {
+            requestBuild(payload.projectUuid, result.data, "Pipelines", () => {
+              startSession(payload);
+            });
           }
-
-          console.error(err);
         });
     },
-    [setAlert, setSession, state]
+    [setAlert, setSession, state, startSession]
   );
 
   const deleteAllSessions = React.useCallback(async () => {
