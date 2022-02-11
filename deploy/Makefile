@@ -56,6 +56,7 @@ CEPH_USE_ALL_DEVICES_CONFIG := --set cluster-resources.ceph.cephClusterSpec.stor
 CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
+								${CEPH_RSC_ENABLE_CONFIG} \
 								${CEPH_USE_ALL_DEVICES_CONFIG} \
 								${CEPH_MULTI_MON_PER_NODE_CONFIG} \
 								${CEPH_ENABLE_CONFIG} helm
@@ -156,14 +157,14 @@ cert-manager : ./bin/cert-manager
 ./bin/cert-manager: | create-bin
 	kubectl apply -f thirdparty/cert-manager
 	# TODO, This is a hack, evaluate using wait
-	sleep 30
+	# sleep 30
 	touch $@
 
 .PHONY: rook
 rook: ./bin/rook
 
 .SECONDARY: ./bin/rook
-./bin/rook: | create-bin
+./bin/rook: | create-bin ceph-resources
 	helm install ${ROOK_DEPLOY_CONFIG}
 	touch $@
 
@@ -171,7 +172,7 @@ rook: ./bin/rook
 registry-resources: ./bin/registry-resources
 	
 .SECONDARY: ./bin/registry-resources
-./bin/registry-resources: | create-bin cert-manager
+./bin/registry-resources: | create-bin cert-manager ceph-resources
 	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
 
@@ -179,9 +180,9 @@ registry-resources: ./bin/registry-resources
 ceph-resources: ./bin/ceph-resources
 	
 .SECONDARY: ./bin/ceph-resources
-./bin/ceph-resources: create-bin
+./bin/ceph-resources: | create-bin rook
 	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
-	touch $@	
+	touch $@
 
 .PHONY: create-bin
 create-bin:
@@ -191,7 +192,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET} 
+./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ceph-resources 
 	touch $@
 
 
