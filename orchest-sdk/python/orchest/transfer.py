@@ -201,7 +201,7 @@ class _PlasmaConnector:
         """Connects to the plasma store if not already connected.
 
         Returns:
-            A plasma slient.
+            A plasma client.
 
         Raises:
             MemoryOutputNotFoundError: If output from `step_uuid` cannot
@@ -611,6 +611,10 @@ def output_to_memory(
 ) -> None:
     """Outputs data to memory.
 
+    Warning:
+        This is not implemented in the k8s deployment of Orchest, will
+        raise a NotImplementedError().
+
     Note:
         Calling :meth:`output_to_memory` multiple times within the same
         script will overwrite the output, even when using a different
@@ -631,6 +635,7 @@ def output_to_memory(
             :exc:`MemoryError` is thrown.
 
     Raises:
+        NotImplementedError:
         DataInvalidNameError: The name of the output data is invalid,
             e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
@@ -650,6 +655,7 @@ def output_to_memory(
         >>> data = "Data I would like to use in my next step"
         >>> output_to_memory(data, name="my_data")
     """
+    raise NotImplementedError()
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
@@ -920,7 +926,7 @@ def _resolve(
     # NOTE: All "resolve_{method}" functions have to be included in this
     # list. It is used to resolve what what "get_output_..." method to
     # invoke.
-    resolve_methods: List[Callable] = [_resolve_memory, _resolve_disk]
+    resolve_methods: List[Callable] = [_resolve_disk]
 
     method_infos = []
     method_infos_exceptions = []
@@ -1166,10 +1172,9 @@ def output(
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
 
-    return output_to_memory(
+    return output_to_disk(
         data,
         name,
-        disk_fallback=True,
     )
 
 

@@ -96,11 +96,6 @@ def launch(
     orchest_session_service_k8s_deployment_manifests = []
     orchest_session_service_k8s_service_manifests = []
     if session_type in [SessionType.INTERACTIVE, SessionType.NONINTERACTIVE]:
-        orchest_session_service_k8s_deployment_manifests.append(
-            _manifests._get_memory_server_deployment_manifest(
-                session_uuid, session_config, session_type
-            )
-        )
         if session_config.get("services", {}):
             orchest_session_service_k8s_deployment_manifests.append(
                 _manifests._get_session_sidecar_deployment_manifest(
