@@ -71,23 +71,6 @@ export function makeCancelable<T = string>(
 }
 
 // used in orchest-webserver only
-export const LANGUAGE_MAP = {
-  python: "Python",
-  r: "R",
-  julia: "Julia",
-};
-
-// used in orchest-webserver only
-// Related to the analytics.py module, "environment_build_start" event,
-// which checks for the base image to start with "orchest/".
-export const DEFAULT_BASE_IMAGES = [
-  "orchest/base-kernel-py",
-  "orchest/base-kernel-py-gpu",
-  "orchest/base-kernel-r",
-  "orchest/base-kernel-julia",
-];
-
-// used in orchest-webserver only
 export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];
 
 // used in orchest-webserver only

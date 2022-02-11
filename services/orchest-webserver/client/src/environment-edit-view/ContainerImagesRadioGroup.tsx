@@ -13,8 +13,8 @@ import RadioGroup, { useRadioGroup } from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
-import { DEFAULT_BASE_IMAGES } from "@orchest/lib-utils";
 import React from "react";
+import { DEFAULT_BASE_IMAGES } from "./common";
 import { ContainerImageTile } from "./ContainerImageTile";
 import { LabeledText } from "./LabeledText";
 
@@ -79,10 +79,10 @@ export const ContainerImagesRadioGroup = ({
         spacing={1}
         sx={{ margin: (theme) => theme.spacing(2, -1, 0, -1) }}
       >
-        {DEFAULT_BASE_IMAGES.map((image) => {
+        {DEFAULT_BASE_IMAGES.map(({ base_image }) => {
           return (
-            <Grid item sm={6} key={image}>
-              <ImageOption title={image} value={image} />
+            <Grid item sm={6} key={base_image}>
+              <ImageOption title={base_image} value={base_image} />
             </Grid>
           );
         })}
@@ -100,7 +100,7 @@ export const ContainerImagesRadioGroup = ({
           <Grid item sm={12}>
             <ImageOption
               fullWidth
-              value={customImage.imagePath}
+              value={customImage.base_image}
               sx={{ padding: (theme) => theme.spacing(2, 0) }}
             >
               <Stack
@@ -119,7 +119,7 @@ export const ContainerImagesRadioGroup = ({
                 >
                   <LabeledText caption="Image path">
                     <Typography sx={ellipsis((theme) => theme.spacing(30))}>
-                      {customImage.imagePath}
+                      {customImage.base_image}
                     </Typography>
                   </LabeledText>
                   <LabeledText caption="Language">

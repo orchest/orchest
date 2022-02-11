@@ -8,7 +8,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Environment, EnvironmentBuild } from "@/types";
+import type { Environment, EnvironmentBuild, Language } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -29,10 +29,8 @@ import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
-  DEFAULT_BASE_IMAGES,
   fetcher,
   HEADER,
-  LANGUAGE_MAP,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -42,6 +40,7 @@ import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
+import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
@@ -258,7 +257,7 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   const onChangeLanguage = (value: string) => {
-    setEnvironment((prev) => ({ ...prev, language: value }));
+    setEnvironment((prev) => ({ ...prev, language: value as Language }));
   };
 
   const onCloseCustomBaseImageDialog = () => {
@@ -573,7 +572,7 @@ const EnvironmentEditView: React.FC = () => {
                         label="Base image"
                         onChange={(e) => onChangeBaseImage(e.target.value)}
                       >
-                        {DEFAULT_BASE_IMAGES.map((image) => {
+                        {DEFAULT_BASE_IMAGES.map(({ base_image: image }) => {
                           return (
                             <MenuItem key={image} value={image}>
                               {image}

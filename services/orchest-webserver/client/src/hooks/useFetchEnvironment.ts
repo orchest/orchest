@@ -1,5 +1,6 @@
+import { DEFAULT_BASE_IMAGES } from "@/environment-edit-view/common";
 import { CustomImage, Environment } from "@/types";
-import { DEFAULT_BASE_IMAGES, fetcher } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { MutatorCallback } from "swr/dist/types";
@@ -36,12 +37,10 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
   React.useEffect(() => {
     if (data && uuid && !customImage) {
       setCustomImage(
-        !DEFAULT_BASE_IMAGES.some((image) => data.base_image === image)
-          ? {
-              imagePath: data.base_image,
-              language: data.language,
-              gpuSupport: data.gpu_support,
-            }
+        !DEFAULT_BASE_IMAGES.some(
+          (image) => data.base_image === image.base_image
+        )
+          ? data
           : null
       );
     }

@@ -54,7 +54,7 @@ export type OrchestConfig = {
   ENVIRONMENT_DEFAULTS: {
     base_image: string;
     gpu_support: boolean;
-    language: string;
+    language: Language;
     name: string;
     setup_script: string;
   };
@@ -143,10 +143,12 @@ export type Project = {
   session_count?: number;
 };
 
+export type Language = "python" | "r" | "julia";
+
 export type Environment = {
   base_image: string;
   gpu_support: boolean;
-  language: string;
+  language: Language;
   name: string;
   project_uuid: string;
   setup_script: string;

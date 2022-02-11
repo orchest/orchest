@@ -1,6 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
-import { CustomImage } from "@/types";
+import { CustomImage, Language } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -20,13 +20,10 @@ import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  DEFAULT_BASE_IMAGES,
-  hasValue,
-  LANGUAGE_MAP,
-} from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import { useFormik } from "formik";
 import React from "react";
+import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
 
 export const CustomImageDialog = ({
   isOpen,
@@ -44,7 +41,7 @@ export const CustomImageDialog = ({
     gpu_support,
   }: {
     base_image: string;
-    language: string;
+    language: Language;
     gpu_support: boolean;
   }) => Promise<void>;
   setCustomImage: (value: CustomImage) => void;
@@ -64,7 +61,7 @@ export const CustomImageDialog = ({
   } = useFormik({
     initialValues: initialValue || {
       base_image: "",
-      language: "",
+      language: "" as Language,
       gpu_support: false,
     },
     isInitialValid: false,
@@ -73,7 +70,11 @@ export const CustomImageDialog = ({
       if (!base_image) errors.base_image = "Image path cannot be empty";
       // prevent user enter the same path as the default images
       // otherwise, the custom tile would be gone after refreshing the page (because default image paths are not considered as a custom one)
-      if (DEFAULT_BASE_IMAGES.includes(base_image.toLowerCase().trim()))
+      if (
+        DEFAULT_BASE_IMAGES.some(
+          (image) => image.base_image === base_image.toLowerCase().trim()
+        )
+      )
         errors.base_image =
           "Given path is part of the default images. No need to specify a custom one.";
       if (!language) errors.language = "Please select a language";
