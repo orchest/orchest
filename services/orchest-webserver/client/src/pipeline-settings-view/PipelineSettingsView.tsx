@@ -61,6 +61,7 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
+  uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
@@ -214,39 +215,29 @@ const PipelineSettingsView: React.FC = () => {
   const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
     let clonedService = cloneDeep(service);
 
-    // Take care of service name collisions
-    let x = 1;
-    let baseServiceName = clonedService.name;
-    while (x < 100) {
-      if (pipelineJson.services[clonedService.name] == undefined) {
-        break;
-      }
-      clonedService.name = baseServiceName + x;
-      x++;
-    }
+    const newCount = Object.values(pipelineJson?.services || {}).reduce(
+      (count, service) => {
+        const newName = `${clonedService.name}${count === 0 ? "" : count}`;
+        return service.name === newName ? count + 1 : count;
+      },
+      0
+    );
 
-    onChangeService(clonedService);
+    clonedService.name = `${clonedService.name}${
+      newCount === 0 ? "" : newCount
+    }`;
+
+    onChangeService(uuidv4(), clonedService);
   };
 
-  const onChangeService = (service: Service) => {
+  const onChangeService = (uuid: string, service: Service) => {
     setPipelineJson((current) => {
       // Maintain client side order key
       if (service.order === undefined) service.order = getOrderValue();
-      current.services[service.name] = service;
+      current.services[uuid] = service;
       return current;
     });
 
-    setServicesChanged(true);
-    setAsSaved(false);
-  };
-
-  const nameChangeService = (oldName: string, newName: string) => {
-    setPipelineJson((current) => {
-      current.services[newName] = { ...current.services[oldName] };
-      current.services[newName].name = newName;
-      delete current.services[oldName];
-      return current;
-    });
     setServicesChanged(true);
     setAsSaved(false);
   };
@@ -325,8 +316,13 @@ const PipelineSettingsView: React.FC = () => {
     pipelineJson: PipelineJson
   ): Omit<PipelineJson, "order"> => {
     let pipelineCopy = cloneDeep(pipelineJson);
-    for (let serviceName in pipelineCopy.services) {
-      delete pipelineCopy.services[serviceName].order;
+    for (let uuid in pipelineCopy.services) {
+      const serviceName = pipelineCopy.services[uuid].name;
+      delete pipelineCopy.services[uuid].order;
+      pipelineCopy.services[serviceName] = {
+        ...pipelineCopy.services[uuid],
+      };
+      delete pipelineCopy.services[uuid];
     }
     return pipelineCopy;
   };
@@ -515,8 +511,6 @@ const PipelineSettingsView: React.FC = () => {
     },
   ];
 
-  console.log("HM", pipelineJson?.services);
-
   const serviceRows: DataTableRow<ServiceRow>[] = !pipelineJson
     ? []
     : Object.entries(pipelineJson.services)
@@ -524,18 +518,19 @@ const PipelineSettingsView: React.FC = () => {
         .map(([key, service]) => {
           return {
             uuid: key,
-            name: key,
+            name: service.name,
             scope: service.scope
               .map((scopeAsString) => scopeMap[scopeAsString])
               .join(", "),
             remove: key,
             details: (
               <ServiceForm
-                key={`ServiceForm-${key}`}
+                key={key}
+                serviceUuid={key}
                 service={service}
+                services={pipelineJson.services}
                 disabled={isReadOnly}
-                updateService={onChangeService}
-                nameChangeService={nameChangeService}
+                updateService={(updated) => onChangeService(key, updated)}
                 pipeline_uuid={pipelineUuid}
                 project_uuid={projectUuid}
                 run_uuid={runUuid}
