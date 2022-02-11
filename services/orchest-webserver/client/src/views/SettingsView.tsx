@@ -269,6 +269,7 @@ const SettingsView: React.FC = () => {
   const checkUpdate = useCheckUpdate();
 
   const deleteBaseImagesCache = () => {
+    // K8S_TODO: decide if the wording "base images cache" is desirable.
     return setConfirm(
       "Warning",
       "Are you sure you want to clear the base images cache? This will abort all ongoing environment and jupyter builds.",

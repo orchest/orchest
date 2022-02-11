@@ -199,7 +199,7 @@ class DeleteBaseImagesCache(TwoPhaseFunction):
             models.JupyterBuild.status.in_(["PENDING", "STARTED"])
         )
         for jb in jupyter_builds:
-            AbortJupyterBuild(self.tpe)._transaction(jb.uuid)
+            AbortJupyterBuild(self.tpe).transaction(jb.uuid)
 
     def _collateral(self):
         image_utils.delete_base_images_cache()
