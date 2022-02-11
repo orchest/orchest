@@ -224,8 +224,6 @@ const LogsView: React.FC = () => {
     setSelectedLog({ type, logId: uuid });
   };
 
-  let rootView = undefined;
-
   const hasLoaded =
     pipelineJson && sortedSteps !== undefined && sio && (!jobUuid || job);
 

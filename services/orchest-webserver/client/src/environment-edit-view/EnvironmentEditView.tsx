@@ -298,9 +298,8 @@ const EnvironmentEditView: React.FC = () => {
         promiseManager
       );
 
-      // @ts-ignore
       buildPromise.promise
-        .then((response: string) => {
+        .then((response) => {
           try {
             let environmentBuild: EnvironmentBuild = JSON.parse(response)[
               "environment_builds"
@@ -311,7 +310,6 @@ const EnvironmentEditView: React.FC = () => {
             console.error(error);
           }
         })
-        // @ts-ignore
         .catch((e) => {
           if (!e.isCanceled) {
             setState((prevState) => ({

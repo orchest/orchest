@@ -1,5 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson } from "@/types";
+import { PipelineJson, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -140,11 +140,7 @@ export function clearOutgoingConnections(steps: {
 }
 
 export function getServiceURLs(
-  service: {
-    ports: number[];
-    preserve_base_path: string;
-    name: string;
-  },
+  service: Pick<Service, "ports" | "preserve_base_path" | "name">,
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
@@ -178,7 +174,7 @@ export function getServiceURLs(
 }
 
 export function checkGate(project_uuid: string) {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
     makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
       type: "json",
@@ -188,7 +184,7 @@ export function checkGate(project_uuid: string) {
         try {
           let json = JSON.parse(response);
           if (json.validation === "pass") {
-            resolve(undefined);
+            resolve();
           } else {
             reject({ reason: "gate-failed", data: json });
           }

@@ -198,7 +198,7 @@ const PipelineSettingsView: React.FC = () => {
     setEnvVarsChanged(false);
   }
 
-  const promiseManagerRef = React.useRef(new PromiseManager<string>());
+  const promiseManagerRef = React.useRef(new PromiseManager());
 
   const hasLoaded =
     pipelineJson && envVariables && (isReadOnly || projectEnvVariables);

@@ -55,10 +55,6 @@ const SettingsView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const updateView = (e: React.MouseEvent) => {
-    navigateTo(siteMap.update.path, undefined, e);
-  };
-
   const getVersion = () => {
     makeRequest("GET", "/async/version").then((data) => {
       let parsed_data = JSON.parse(data);
