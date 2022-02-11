@@ -217,6 +217,80 @@ def _get_memory_server_deployment_manifest(
     }
 
 
+def _get_session_sidecar_rbac_manifests(
+    session_uuid: str,
+    session_config: SessionConfig,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+
+    project_uuid = session_config["project_uuid"]
+    ns = get_k8s_namespace_name(session_uuid)
+
+    role_manifest = {
+        "kind": "Role",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "session-sidecar-role",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "rules": [
+            {
+                "apiGroups": [
+                    "",
+                ],
+                "resources": [
+                    "pods",
+                    "pods/log",
+                ],
+                "verbs": [
+                    "get",
+                    "list",
+                    "watch",
+                ],
+            }
+        ],
+    }
+
+    account_manifest = {
+        "apiVersion": "v1",
+        "kind": "ServiceAccount",
+        "metadata": {
+            "name": "session-sidecar-sa",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+    }
+
+    rolebinding_manifest = {
+        "kind": "RoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "session-sidecar-rolebinding",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "subjects": [
+            {"kind": "ServiceAccount", "name": "session-sidecar-sa", "namespace": ns}
+        ],
+        "roleRef": {
+            "kind": "Role",
+            "name": "session-sidecar-role",
+            "apiGroup": "rbac.authorization.k8s.io",
+        },
+    }
+
+    return role_manifest, account_manifest, rolebinding_manifest
+
+
 def _get_session_sidecar_deployment_manifest(
     session_uuid: str,
     session_config: SessionConfig,
@@ -259,6 +333,8 @@ def _get_session_sidecar_deployment_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
+                    "serviceAccount": "session-sidecar-sa",
+                    "serviceAccountName": "session-sidecar-sa",
                     # This account is needed to get pods and their
                     # logs, K8S_TODO: make an ad hoc role for the
                     # session sidecar?

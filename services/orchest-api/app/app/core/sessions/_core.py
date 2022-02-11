@@ -105,6 +105,17 @@ def launch(
             )
         )
         if session_config.get("services", {}):
+            logger.info("Adding session sidecar to log user services.")
+            (
+                role,
+                service_account,
+                rolebinding,
+            ) = _manifests._get_session_sidecar_rbac_manifests(
+                session_uuid, session_config
+            )
+            session_rbac_roles.append(role)
+            session_rbac_service_accounts.append(service_account)
+            session_rbac_rolebindings.append(rolebinding)
             orchest_session_service_k8s_deployment_manifests.append(
                 _manifests._get_session_sidecar_deployment_manifest(
                     session_uuid, session_config, session_type
