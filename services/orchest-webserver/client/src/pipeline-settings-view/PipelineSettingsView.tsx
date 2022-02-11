@@ -242,7 +242,8 @@ const PipelineSettingsView: React.FC = () => {
 
   const nameChangeService = (oldName: string, newName: string) => {
     setPipelineJson((current) => {
-      current[newName] = current[oldName];
+      current.services[newName] = { ...current.services[oldName] };
+      current.services[newName].name = newName;
       delete current.services[oldName];
       return current;
     });
@@ -513,6 +514,8 @@ const PipelineSettingsView: React.FC = () => {
       },
     },
   ];
+
+  console.log("HM", pipelineJson?.services);
 
   const serviceRows: DataTableRow<ServiceRow>[] = !pipelineJson
     ? []
