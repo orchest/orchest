@@ -177,7 +177,7 @@ cert-manager : ./bin/cert-manager
 rook: ./bin/rook
 
 .SECONDARY: ./bin/rook
-./bin/rook: | create-bin ceph-resources
+./bin/rook: | create-bin
 	helm install ${ROOK_DEPLOY_CONFIG}
 	touch $@
 
