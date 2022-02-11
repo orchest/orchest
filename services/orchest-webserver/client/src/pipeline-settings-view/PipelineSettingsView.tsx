@@ -215,17 +215,20 @@ const PipelineSettingsView: React.FC = () => {
   const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
     let clonedService = cloneDeep(service);
 
-    const newCount = Object.values(pipelineJson?.services || {}).reduce(
-      (count, service) => {
-        const newName = `${clonedService.name}${count === 0 ? "" : count}`;
-        return service.name === newName ? count + 1 : count;
-      },
-      0
-    );
+    const services = pipelineJson?.services || {};
 
-    clonedService.name = `${clonedService.name}${
-      newCount === 0 ? "" : newCount
-    }`;
+    const allNames = new Set(Object.values(services).map((s) => s.name));
+
+    let count = 0;
+    // assuming that user won't have more than 100 instances of the same service
+    while (count < 100) {
+      const newName = `${clonedService.name}${count === 0 ? "" : count}`;
+      if (!allNames.has(newName)) {
+        clonedService.name = newName;
+        break;
+      }
+      count += 1;
+    }
 
     onChangeService(uuidv4(), clonedService);
   };
