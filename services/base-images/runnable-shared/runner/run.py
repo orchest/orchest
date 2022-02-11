@@ -63,9 +63,12 @@ def main():
         extension_script_mapping = {
             "py": f"{python_env}/bin/python",
             "r": "Rscript",
-            "sh": "sh",
+            # Invoke using bash as it is already present in the image
+            # and users are likely to use bash functionality instead of
+            # strict sh.
+            "sh": "bash",
             "jl": "julia",
-            "": "sh",
+            "": "bash",
         }
 
         pr = ProcessRunner(pipeline_uuid, step_uuid, working_dir)
