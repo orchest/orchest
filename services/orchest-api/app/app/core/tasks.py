@@ -10,7 +10,7 @@ from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
-from _orchest.internals.utils import copytree, get_k8s_namespace_name
+from _orchest.internals.utils import copytree, get_k8s_namespace_name, rmtree
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
@@ -306,10 +306,7 @@ def delete_base_images_cache(self) -> str:
     try:
         with os.scandir(CONFIG_CLASS.BASE_IMAGES_CACHE) as entries:
             for entry in entries:
-                if entry.is_dir() and not entry.is_symlink():
-                    shutil.rmtree(entry.path)
-                else:
-                    os.remove(entry.path)
+                rmtree(entry)
     except FileNotFoundError:
         ...
     return "SUCCESS"

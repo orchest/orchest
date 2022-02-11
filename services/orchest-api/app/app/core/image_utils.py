@@ -266,6 +266,8 @@ def _cache_image(
         msg = "There was a problem pulling the base image."
         user_logs_file_object.write(msg)
         complete_logs_file_object.write(msg)
+        # User logs are not flushed for performance reasons, considering
+        # they are sent through socketio as well.
         complete_logs_file_object.flush()
         raise errors.ImageCachingFailedError()
 
