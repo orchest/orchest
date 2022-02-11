@@ -71,12 +71,6 @@ ROOK_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_IMAGE_TAGE}
 ROOK_DEPLOY_CONFIG := rook \
 	${SHARED_DEPLOY_CONFIG} ${ROOK_IMAGE_TAG_CONFIG} --namespace ${ROOK_NAMESPACE} thirdparty/rook/rook-ceph
 
-# rook deplyment configs
-ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
-ROOK_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_IMAGE_TAGE}
-ROOK_DEPLOY_CONFIG := rook \
-	${SHARED_DEPLOY_CONFIG} ${ROOK_IMAGE_TAG_CONFIG} thirdparty/rook/rook-ceph
-
 # orchest Api deployment configs
 ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
 
@@ -116,7 +110,9 @@ ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${UPDATE_SIDECAR_ENABLE_CONFIG}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
-	${SHARED_DEPLOY_CONFIG} ${ORCHEST_ENABLE_CONFIG}  \
+	${SHARED_DEPLOY_CONFIG} \
+	${ORCHEST_ENABLE_CONFIG} \
+	--namespace ${NAMESPACE} \
 	--set-string auth-server.CLOUD="${CLOUD}" \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
 	--set-string auth-server.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
