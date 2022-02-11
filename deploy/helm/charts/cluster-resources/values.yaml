@@ -1,3 +1,6 @@
 
 registry:
   enabled: false
+
+ceph:
+  enabled: false
