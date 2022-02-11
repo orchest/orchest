@@ -23,6 +23,33 @@ cephBlockPools:
     # in hyperconverged settings where the volume is mounted on the same node as the osds.
     fstype: ext4
 
+cephFileSystems:
+  name: ceph-filesystem
+  # see https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem-crd.md#filesystem-settings for available configuration
+  spec:
+    metadataPool:
+      replicated:
+        size: 3
+    dataPools:
+      - failureDomain: osd
+        replicated:
+          size: 3
+    metadataServer:
+      activeCount: 1
+      activeStandby: true
+  storageClass:
+    enabled: true
+    isDefault: false
+    name: ceph-filesystem
+    reclaimPolicy: Delete
+    allowVolumeExpansion: true
+    mountOptions: []
+    # see https://github.com/rook/rook/blob/master/Documentation/ceph-filesystem.md#provision-storage for available configuration
+    # Specify the filesystem type of the volume. If not specified, csi-provisioner
+    # will set default as `ext4`. Note that `xfs` is not recommended due to potential deadlock
+    # in hyperconverged settings where the volume is mounted on the same node as the osds.
+    fstype: ext4
+
 # All values below are taken from the CephCluster CRD
 # More information can be found at [Ceph Cluster CRD](https://github.com/rook/rook/blob/master/Documentation/ceph-cluster-crd.md)
 cephClusterSpec:
