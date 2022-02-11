@@ -265,7 +265,6 @@ def has_busy_kernels(session_uuid: str) -> bool:
         "pipeline_uuid".
 
     """
-    # K8S_TODO: tweak this once the jupyter k8s integration is done.
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
     ns = get_k8s_namespace_name(session_uuid)
     service_dns_name = f"jupyter-server.{ns}.svc.cluster.local"

@@ -335,9 +335,6 @@ def _get_session_sidecar_deployment_manifest(
                     },
                     "serviceAccount": "session-sidecar-sa",
                     "serviceAccountName": "session-sidecar-sa",
-                    # This account is needed to get pods and their
-                    # logs, K8S_TODO: make an ad hoc role for the
-                    # session sidecar?
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
