@@ -12,11 +12,11 @@ metadata:
   name: {{ include "library.cluster.ceph.blockpool.storageclass" . }}
   annotations:
     storageclass.kubernetes.io/is-default-class: "{{ if default false .Values.cephBlockPools.storageClass.isDefault }}true{{ else }}false{{ end }}"
-provisioner: {{ .Values.operatorNamespace }}.rbd.csi.ceph.com
+provisioner: {{ .Release.Namespace }}.rbd.csi.ceph.com
 parameters:
   pool: {{ include "library.cluster.ceph.blockpool.name" . }}
   clusterID: {{ .Release.Namespace }}
-  imageFormat: {{ .Values.cephBlockPools.storageClass.imageFormat }}
+  imageFormat: {{ .Values.cephBlockPools.storageClass.imageFormat | quote }}
   imageFeatures: {{ .Values.cephBlockPools.storageClass.imageFeatures }}
   # The secrets contain Ceph admin credentials. These are generated automatically by the operator
   # in the same namespace as the cluster.
