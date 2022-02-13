@@ -1,5 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson } from "@/types";
+import { PipelineJson, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -140,11 +140,7 @@ export function clearOutgoingConnections(steps: {
 }
 
 export function getServiceURLs(
-  service: {
-    ports: number[];
-    preserve_base_path: string;
-    name: string;
-  },
+  service: Pick<Service, "ports" | "preserve_base_path" | "name">,
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
