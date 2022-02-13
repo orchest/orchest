@@ -3,7 +3,6 @@ import { CustomImage } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import EditIcon from "@mui/icons-material/Edit";
-import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -11,39 +10,55 @@ import Grid from "@mui/material/Grid";
 import Radio from "@mui/material/Radio";
 import RadioGroup, { useRadioGroup } from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
+import { styled, SxProps, Theme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { DEFAULT_BASE_IMAGES } from "./common";
+import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
 import { ContainerImageTile } from "./ContainerImageTile";
 import { LabeledText } from "./LabeledText";
 
 const ImageOption: React.FC<{
-  fullWidth?: boolean;
+  supportGpu: boolean;
   value: string;
   title?: string;
   sx?: SxProps<Theme>;
-}> = ({ fullWidth, title, value, sx, children }) => {
+}> = ({ title, value, supportGpu, sx, children }) => {
   const radioGroup = useRadioGroup();
   const checked = radioGroup && radioGroup.value === value;
+
+  const icon = (
+    <>
+      <ContainerImageTile sx={sx} checked={checked}>
+        {children || value}
+        {supportGpu && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: (theme) => theme.spacing(2),
+              right: (theme) => theme.spacing(2.5),
+              fontSize: (theme) => theme.typography.caption.fontSize,
+              color: (theme) => theme.palette.primary.dark,
+            }}
+          >
+            GPU
+          </Box>
+        )}
+      </ContainerImageTile>
+    </>
+  );
 
   const content = (
     <FormControlLabel
       value={value}
       label=""
-      sx={{ margin: 0, width: fullWidth ? "100%" : "auto" }}
+      sx={{ margin: 0, width: "100%" }}
       control={
         <Radio
           disableRipple
-          sx={{ width: fullWidth ? "100%" : "auto" }}
-          icon={
-            <ContainerImageTile sx={sx}>{children || value}</ContainerImageTile>
-          }
-          checkedIcon={
-            <ContainerImageTile sx={sx} checked={checked}>
-              {children || value}
-            </ContainerImageTile>
-          }
+          sx={{ width: "100%" }}
+          icon={icon}
+          checkedIcon={icon}
         />
       }
     />
@@ -51,6 +66,8 @@ const ImageOption: React.FC<{
 
   return title ? <Tooltip title={title}>{content}</Tooltip> : content;
 };
+
+const Image = styled("img")({ maxHeight: "70px" });
 
 export const ContainerImagesRadioGroup = ({
   value,
@@ -79,10 +96,16 @@ export const ContainerImagesRadioGroup = ({
         spacing={1}
         sx={{ margin: (theme) => theme.spacing(2, -1, 0, -1) }}
       >
-        {DEFAULT_BASE_IMAGES.map(({ base_image }) => {
+        {DEFAULT_BASE_IMAGES.map(({ base_image, img_src, gpu_support }) => {
           return (
             <Grid item sm={6} key={base_image}>
-              <ImageOption title={base_image} value={base_image} />
+              <ImageOption
+                title={base_image}
+                value={base_image}
+                supportGpu={gpu_support}
+              >
+                <Image src={`${img_src}`} alt={base_image} loading="lazy" />
+              </ImageOption>
             </Grid>
           );
         })}
@@ -99,9 +122,9 @@ export const ContainerImagesRadioGroup = ({
         {customImage && (
           <Grid item sm={12}>
             <ImageOption
-              fullWidth
               value={customImage.base_image}
               sx={{ padding: (theme) => theme.spacing(2, 0) }}
+              supportGpu={customImage.gpu_support}
             >
               <Stack
                 direction="row"
@@ -123,7 +146,7 @@ export const ContainerImagesRadioGroup = ({
                     </Typography>
                   </LabeledText>
                   <LabeledText caption="Language">
-                    {customImage.language}
+                    {LANGUAGE_MAP[customImage.language]}
                   </LabeledText>
                 </Stack>
                 <IconButton
