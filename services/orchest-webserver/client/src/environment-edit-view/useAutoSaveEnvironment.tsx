@@ -7,7 +7,7 @@ import { shallowEqualByKey } from "./shallowEqualByKey";
 
 export const useAutoSaveEnvironment = (
   value: Environment | null,
-  save: (newValue: Environment) => Promise<void>
+  save: (newValue: Environment) => Promise<boolean>
 ) => {
   const { setAsSaved } = useAppContext();
   const valuesForSaving = useDebounce(value, 500);
@@ -24,8 +24,8 @@ export const useAutoSaveEnvironment = (
 
   const doSave = React.useCallback(
     async (newValue: Environment) => {
-      await save(newValue);
-      setAsSaved();
+      const success = await save(newValue);
+      setAsSaved(success);
     },
     [setAsSaved, save]
   );

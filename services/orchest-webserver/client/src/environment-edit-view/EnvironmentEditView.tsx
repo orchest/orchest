@@ -1,6 +1,5 @@
 import { BackButton } from "@/components/common/BackButton";
 import { PageTitle } from "@/components/common/PageTitle";
-import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -8,33 +7,20 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type {
-  CustomImage,
-  Environment,
-  EnvironmentBuild,
-  Language,
-} from "@/types";
-import AddIcon from "@mui/icons-material/Add";
+import type { CustomImage, Environment, EnvironmentBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
-import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
-import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import FormControl from "@mui/material/FormControl";
-import Grid from "@mui/material/Grid";
-import InputLabel from "@mui/material/InputLabel";
 import LinearProgress from "@mui/material/LinearProgress";
-import MenuItem from "@mui/material/MenuItem";
 import Paper from "@mui/material/Paper";
-import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
-import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import {
   fetcher,
+  hasValue,
   HEADER,
   makeCancelable,
   makeRequest,
@@ -45,25 +31,11 @@ import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
-
-const tabs = [
-  {
-    id: "environment-properties",
-    label: "Properties",
-    icon: <TuneIcon />,
-  },
-  {
-    id: "environment-build",
-    label: "Build",
-    icon: <ViewHeadlineIcon />,
-  },
-];
 
 const validEnvironmentName = (name: string) => {
   if (!name) {
@@ -94,7 +66,7 @@ const EnvironmentEditView: React.FC = () => {
   const {
     setAlert,
     setAsSaved,
-    state: { config, hasUnsavedChanges },
+    state: { config },
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.environment.path });
@@ -123,8 +95,6 @@ const EnvironmentEditView: React.FC = () => {
     setIsShowingCustomImageDialog,
   ] = React.useState(false);
 
-  const [tabIndex, setTabIndex] = React.useState(0);
-
   const [state, setState] = React.useState({
     ignoreIncomingLogs: false,
     building: false,
@@ -138,8 +108,15 @@ const EnvironmentEditView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
+  const environmentNameError = !validEnvironmentName(environment.name)
+    ? 'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
+    : undefined;
+
   const saveEnvironment = React.useCallback(
     async (payload?: Partial<Environment>) => {
+      if (environmentNameError) {
+        return false;
+      }
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
       // Enterprise Gateway team.
@@ -163,25 +140,31 @@ const EnvironmentEditView: React.FC = () => {
         );
 
         if (isNewEnvironment) {
+          setAsSaved();
           // update the query arg environmentUuid
           navigateTo(siteMap.environment.path, {
             query: { projectUuid, environmentUuid: response.uuid },
           });
-          return;
+          return true;
         }
         setEnvironment(response);
+        setAsSaved();
+        return true;
       } catch (error) {
         setAlert("Error", `Unable to save the custom image. ${error.message}`);
+        setAsSaved(false);
+        return false;
       }
-      setIsShowingCustomImageDialog(false);
     },
     [
       environment,
       isNewEnvironment,
       navigateTo,
+      setAsSaved,
       projectUuid,
       setAlert,
       setEnvironment,
+      environmentNameError,
     ]
   );
 
@@ -189,64 +172,6 @@ const EnvironmentEditView: React.FC = () => {
     !isFetchingEnvironment ? environment : null,
     saveEnvironment
   );
-
-  const save = () => {
-    // Saving an environment will invalidate the Jupyter <iframe>
-    // TODO: perhaps this can be fixed with coordination between JLab +
-    // Enterprise Gateway team.
-    window.orchest.jupyter.unload();
-
-    return makeCancelable<Environment>(
-      new Promise((resolve, reject) => {
-        if (!environment) {
-          reject();
-          return;
-        }
-
-        let method = isNewEnvironment ? "POST" : "PUT";
-        let endpoint = `/store/environments/${projectUuid}/${environment.uuid}`;
-
-        makeRequest(method, endpoint, {
-          type: "json",
-          content: { environment },
-        })
-          .then((response: string) => {
-            let result: Environment = JSON.parse(response);
-
-            environment.uuid = result.uuid;
-
-            setEnvironment((prev) => ({ ...prev, uuid: result.uuid }));
-
-            resolve(result);
-          })
-          .catch((error) => {
-            console.log(error);
-
-            try {
-              console.error(JSON.parse(error.body)["message"]);
-            } catch (error) {
-              console.log(error);
-              console.log("Couldn't get error message from response.");
-            }
-
-            reject();
-          });
-      }),
-      promiseManager
-    ).promise;
-  };
-
-  const onSave = (e: React.MouseEvent) => {
-    if (!validEnvironmentName(environment.name)) {
-      setAlert(
-        "Error",
-        'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
-      );
-    } else {
-      e.preventDefault();
-      save();
-    }
-  };
 
   const returnToEnvironments = (e: React.MouseEvent) => {
     navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
@@ -264,10 +189,6 @@ const EnvironmentEditView: React.FC = () => {
     setEnvironment((prev) => ({ ...prev, ...newImage }));
   };
 
-  const onChangeLanguage = (value: string) => {
-    setEnvironment((prev) => ({ ...prev, language: value as Language }));
-  };
-
   const onCloseCustomBaseImageDialog = () => {
     setIsShowingCustomImageDialog(false);
   };
@@ -276,11 +197,7 @@ const EnvironmentEditView: React.FC = () => {
     setIsShowingCustomImageDialog(true);
   };
 
-  const onSelectSubview = (e, index: number) => {
-    setTabIndex(index);
-  };
-
-  const build = (e: React.MouseEvent) => {
+  const build = async (e: React.MouseEvent) => {
     e.nativeEvent.preventDefault();
 
     setState((prevState) => ({
@@ -289,50 +206,52 @@ const EnvironmentEditView: React.FC = () => {
       ignoreIncomingLogs: true,
     }));
 
-    save().then(() => {
-      let buildPromise = makeCancelable(
-        makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-          type: "json",
-          content: {
-            environment_build_requests: [
-              {
-                environment_uuid: environment.uuid,
-                project_uuid: projectUuid,
-              },
-            ],
-          },
-        }),
-        promiseManager
-      );
+    const success = await saveEnvironment();
 
-      buildPromise.promise
-        .then((response) => {
-          try {
-            let environmentBuild: EnvironmentBuild = JSON.parse(response)[
-              "environment_builds"
-            ][0];
+    if (!success) return;
 
-            onUpdateBuild(environmentBuild);
-          } catch (error) {
-            console.error(error);
-          }
-        })
-        .catch((e) => {
-          if (!e.isCanceled) {
-            setState((prevState) => ({
-              ...prevState,
-              ignoreIncomingLogs: false,
-            }));
-            console.log(e);
-          }
-        })
-        .finally(() => {
+    let buildPromise = makeCancelable(
+      makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
+        type: "json",
+        content: {
+          environment_build_requests: [
+            {
+              environment_uuid: environment.uuid,
+              project_uuid: projectUuid,
+            },
+          ],
+        },
+      }),
+      promiseManager
+    );
+
+    buildPromise.promise
+      .then((response) => {
+        try {
+          let environmentBuild: EnvironmentBuild = JSON.parse(response)[
+            "environment_builds"
+          ][0];
+
+          onUpdateBuild(environmentBuild);
+        } catch (error) {
+          console.error(error);
+        }
+      })
+      .catch((e) => {
+        if (!e.isCanceled) {
           setState((prevState) => ({
             ...prevState,
-            buildRequestInProgress: false,
+            ignoreIncomingLogs: false,
           }));
-        });
-    });
+          console.log(e);
+        }
+      })
+      .finally(() => {
+        setState((prevState) => ({
+          ...prevState,
+          buildRequestInProgress: false,
+        }));
+      });
   };
 
   const cancelBuild = () => {
@@ -438,6 +357,8 @@ const EnvironmentEditView: React.FC = () => {
                     autoFocus
                     required
                     label="Environment name"
+                    error={hasValue(environmentNameError)}
+                    helperText={environmentNameError}
                     onChange={(e) => onChangeName(e.target.value)}
                     value={environment.name}
                     data-test-id="environments-env-name"
@@ -545,277 +466,6 @@ const EnvironmentEditView: React.FC = () => {
               </Stack>
             </Box>
           </Box>
-          {false && (
-            <>
-              <Grid container spacing={4}>
-                <Grid item sm={12} md="auto"></Grid>
-                <Grid item sm={12} md>
-                  <Paper
-                    elevation={3}
-                    sx={{ padding: (theme) => theme.spacing(3) }}
-                  ></Paper>
-                </Grid>
-              </Grid>
-
-              <div className="push-down-7" style={{ marginTop: "200px" }}>
-                <Tabs
-                  value={tabIndex}
-                  onChange={onSelectSubview}
-                  label="environment-tabs"
-                  data-test-id="environments"
-                >
-                  {tabs.map((tab) => (
-                    <Tab
-                      key={tab.id}
-                      id={tab.id}
-                      label={<TabLabel icon={tab.icon}>{tab.label}</TabLabel>}
-                      aria-controls={tab.id}
-                      data-test-id={`${tab.id}-tab`}
-                    />
-                  ))}
-                </Tabs>
-              </div>
-              <TabPanel value={tabIndex} index={0} name="properties">
-                <Stack
-                  direction="column"
-                  spacing={2}
-                  alignItems="flex-start"
-                  maxWidth={(theme) => theme.spacing(80)}
-                  marginBottom={(theme) => theme.spacing(4)}
-                >
-                  {/* <TextField
-                  fullWidth
-                  label="Environment name"
-                  onChange={(e) => onChangeName(e.target.value)}
-                  value={environment.name}
-                  data-test-id="environments-env-name"
-                /> */}
-                  <Stack
-                    direction="row"
-                    sx={{ width: "100%" }}
-                    alignItems="center"
-                    spacing={2}
-                  >
-                    <FormControl fullWidth>
-                      <InputLabel id="select-base-image-label">
-                        Base image
-                      </InputLabel>
-                      <Select
-                        labelId="select-base-image-label"
-                        id="select-base-image"
-                        value={environment.base_image}
-                        label="Base image"
-                        // onChange={(e) => onChangeBaseImage(e.target.value)}
-                        onChange={(e) => console.log(e.target.value)}
-                      >
-                        {DEFAULT_BASE_IMAGES.map(({ base_image: image }) => {
-                          return (
-                            <MenuItem key={image} value={image}>
-                              {image}
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
-                    <Button
-                      startIcon={<AddIcon />}
-                      color="secondary"
-                      onClick={onOpenCustomBaseImageDialog}
-                      sx={{ minWidth: (theme) => theme.spacing(20) }}
-                    >
-                      Custom image
-                    </Button>
-                  </Stack>
-                  <div className="form-helper-text push-down-7">
-                    The base image will be the starting point from which the
-                    environment will be built.
-                  </div>
-
-                  <FormControl fullWidth>
-                    <InputLabel id="select-language-label">Language</InputLabel>
-                    <Select
-                      labelId="select-language-label"
-                      id="select-language"
-                      value={environment.language}
-                      label="Base image"
-                      onChange={(e) => onChangeLanguage(e.target.value)}
-                    >
-                      {Object.entries(LANGUAGE_MAP).map(([value, label]) => {
-                        return (
-                          <MenuItem key={value} value={value}>
-                            {label}
-                          </MenuItem>
-                        );
-                      })}
-                    </Select>
-                  </FormControl>
-
-                  <div className="form-helper-text push-down-7">
-                    The language determines for which kernel language this
-                    environment can be used. This only affects pipeline steps
-                    that point to a Notebook.
-                  </div>
-
-                  {state.languageDocsNotice === true && (
-                    <div className="docs-notice push-down-7">
-                      Language explanation
-                    </div>
-                  )}
-
-                  {/* <FormGroup>
-                  <FormControlLabel
-                    label="GPU support"
-                    data-test-id="pipeline-settings-configuration-memory-eviction"
-                    control={
-                      <Checkbox
-                        checked={environment.gpu_support}
-                        onChange={(e) => {
-                          onGPUChange(e.target.checked);
-                        }}
-                      />
-                    }
-                  />
-                </FormGroup> */}
-
-                  {/* {(() => {
-                  if (environment.gpu_support === true) {
-                    let enabledBlock = (
-                      <p className="push-down-7">
-                        If enabled, the environment will request GPU
-                        capabilities when in use.
-                      </p>
-                    );
-                    if (config.GPU_ENABLED_INSTANCE !== true) {
-                      if (config.CLOUD === true) {
-                        return (
-                          <div className="docs-notice push-down-7">
-                            <p>
-                              This instance is not configured with a GPU. Change
-                              the instance type to a GPU enabled one if you need
-                              GPU pass-through. Steps using this environment
-                              will work regardless, but no GPU pass-through will
-                              take place.
-                            </p>
-                          </div>
-                        );
-                      } else {
-                        return (
-                          <div className="docs-notice push-down-7">
-                            {enabledBlock}
-                            <p>
-                              Could not detect a GPU. Check out{" "}
-                              <a
-                                target="_blank"
-                                href={
-                                  config.ORCHEST_WEB_URLS.readthedocs +
-                                  "/getting_started/installation.html#gpu-support"
-                                }
-                                rel="noreferrer"
-                              >
-                                the documentation
-                              </a>{" "}
-                              to make sure Orchest is properly configured for
-                              environments with GPU support. In particular, make
-                              sure the selected base image supports GPU pass
-                              through. Steps using this environment will work
-                              regardless, but no GPU pass-through will take
-                              place.
-                            </p>
-                          </div>
-                        );
-                      }
-                    } else {
-                      return (
-                        <div className="docs-notice push-down-7">
-                          {enabledBlock}
-                        </div>
-                      );
-                    }
-                  }
-                })()} */}
-                </Stack>
-              </TabPanel>
-              <TabPanel value={tabIndex} index={1} name="build">
-                <h3>Environment set-up script</h3>
-                <div className="form-helper-text push-down-7">
-                  This will execute when you build the environment. Use it to
-                  include your dependencies.
-                </div>
-                <div className="push-down-7">
-                  <CodeMirror
-                    value={environment.setup_script}
-                    options={{
-                      mode: "application/x-sh",
-                      theme: "jupyter",
-                      lineNumbers: true,
-                      viewportMargin: Infinity,
-                    }}
-                    onBeforeChange={(editor, data, value) => {
-                      setEnvironment((prev) => ({
-                        ...prev,
-                        setup_script: value,
-                      }));
-                    }}
-                  />
-                </div>
-                {environment && !isNewEnvironment && (
-                  <ImageBuildLog
-                    buildFetchHash={state.buildFetchHash}
-                    buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
-                    buildsKey="environment_builds"
-                    socketIONamespace={
-                      config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
-                    }
-                    streamIdentity={projectUuid + "-" + environment.uuid}
-                    onUpdateBuild={onUpdateBuild}
-                    onBuildStart={onBuildStart}
-                    ignoreIncomingLogs={state.ignoreIncomingLogs}
-                    build={state.environmentBuild}
-                    building={state.building}
-                  />
-                )}
-              </TabPanel>
-              <Stack
-                spacing={2}
-                direction="row"
-                sx={{ padding: (theme) => theme.spacing(1) }}
-              >
-                <Button
-                  variant="contained"
-                  onClick={onSave}
-                  startIcon={<SaveIcon />}
-                  data-test-id="environments-save"
-                >
-                  {hasUnsavedChanges ? "Save*" : "Save"}
-                </Button>
-                {tabIndex === 1 &&
-                  !isNewEnvironment &&
-                  (!state.building ? (
-                    <Button
-                      disabled={state.buildRequestInProgress}
-                      variant="contained"
-                      color="secondary"
-                      onClick={build}
-                      startIcon={<MemoryIcon />}
-                      data-test-id="environment-start-build"
-                    >
-                      Build
-                    </Button>
-                  ) : (
-                    <Button
-                      disabled={state.cancelBuildRequestInProgress}
-                      variant="contained"
-                      color="secondary"
-                      onClick={cancelBuild}
-                      startIcon={<CloseIcon />}
-                      data-test-id="environments-cancel-build"
-                    >
-                      Cancel build
-                    </Button>
-                  ))}
-              </Stack>
-            </>
-          )}
         </>
       )}
     </Layout>

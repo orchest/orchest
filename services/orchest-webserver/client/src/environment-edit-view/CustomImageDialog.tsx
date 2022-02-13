@@ -43,7 +43,7 @@ export const CustomImageDialog = ({
     base_image: string;
     language: Language;
     gpu_support: boolean;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   setCustomImage: (value: CustomImage) => void;
 }) => {
   const {
@@ -85,8 +85,15 @@ export const CustomImageDialog = ({
       { setSubmitting }
     ) => {
       setSubmitting(true);
-      await saveEnvironment({ base_image, language, gpu_support });
-      setCustomImage({ base_image, language, gpu_support });
+      const success = await saveEnvironment({
+        base_image,
+        language,
+        gpu_support,
+      });
+      if (success) {
+        setCustomImage({ base_image, language, gpu_support });
+        onClose();
+      }
       setSubmitting(false);
     },
     enableReinitialize: true,
