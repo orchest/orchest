@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import type { Environment } from "@/types";
@@ -8,6 +9,7 @@ export const useAutoSaveEnvironment = (
   value: Environment | null,
   save: (newValue: Environment) => Promise<void>
 ) => {
+  const { setAsSaved } = useAppContext();
   const valuesForSaving = useDebounce(value, 500);
   const shouldSave = useHasChanged(valuesForSaving, (prev, curr) => {
     if (!prev || !curr) return false;
@@ -20,9 +22,17 @@ export const useAutoSaveEnvironment = (
     ]);
   });
 
+  const doSave = React.useCallback(
+    async (newValue: Environment) => {
+      await save(newValue);
+      setAsSaved();
+    },
+    [setAsSaved, save]
+  );
+
   React.useEffect(() => {
     if (shouldSave) {
-      save(valuesForSaving);
+      doSave(valuesForSaving);
     }
-  }, [valuesForSaving, shouldSave, save]);
+  }, [valuesForSaving, shouldSave, doSave]);
 };

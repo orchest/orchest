@@ -76,12 +76,21 @@ export const ContainerImagesRadioGroup = ({
   customImage,
 }: {
   value: string;
-  onChange: (newValue: string) => void;
+  onChange: (newImage: CustomImage) => void;
   onOpenCustomBaseImageDialog: () => void;
   customImage: CustomImage;
 }) => {
+  const onChangeSelection = (baseImage: string) => {
+    if (customImage && baseImage === customImage.base_image) {
+      onChange(customImage);
+      return;
+    }
+    onChange(
+      DEFAULT_BASE_IMAGES.find((image) => image.base_image === baseImage)
+    );
+  };
   return (
-    <RadioGroup value={value} onChange={(e, value) => onChange(value)}>
+    <RadioGroup value={value} onChange={(e, value) => onChangeSelection(value)}>
       <Box>
         <Typography component="h2" variant="h6">
           Choose a container image

@@ -8,7 +8,12 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Environment, EnvironmentBuild, Language } from "@/types";
+import type {
+  CustomImage,
+  Environment,
+  EnvironmentBuild,
+  Language,
+} from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
@@ -80,14 +85,15 @@ const validEnvironmentName = (name: string) => {
 };
 
 /**
- * We apply auto-save to environment edit view
- * so setAsSaved does not apply in this view
+ * in this view we use auto-save with a debounced time
+ * so we still need setAsSaved to ensure that user's change is saved
  */
 
 const EnvironmentEditView: React.FC = () => {
   // global states
   const {
     setAlert,
+    setAsSaved,
     state: { config, hasUnsavedChanges },
   } = useAppContext();
 
@@ -247,13 +253,15 @@ const EnvironmentEditView: React.FC = () => {
   };
 
   const onChangeName = (value: string) => {
+    setAsSaved(false);
     setEnvironment((prev) => {
       return { ...prev, name: value };
     });
   };
 
-  const onChangeBaseImage = (value: string) => {
-    setEnvironment((prev) => ({ ...prev, base_image: value }));
+  const onChangeBaseImage = (newImage: CustomImage) => {
+    setAsSaved(false);
+    setEnvironment((prev) => ({ ...prev, ...newImage }));
   };
 
   const onChangeLanguage = (value: string) => {
@@ -491,6 +499,33 @@ const EnvironmentEditView: React.FC = () => {
                     }));
                   }}
                 />
+                <Stack direction="row">
+                  {!isNewEnvironment &&
+                    (!state.building ? (
+                      <Button
+                        disabled={state.buildRequestInProgress}
+                        variant="contained"
+                        color="primary"
+                        onClick={build}
+                        startIcon={<MemoryIcon />}
+                        data-test-id="environment-start-build"
+                      >
+                        Build
+                      </Button>
+                    ) : (
+                      <Button
+                        disabled={state.cancelBuildRequestInProgress}
+                        variant="contained"
+                        color="primary"
+                        onClick={cancelBuild}
+                        startIcon={<CloseIcon />}
+                        data-test-id="environments-cancel-build"
+                      >
+                        Cancel build
+                      </Button>
+                    ))}
+                  {state.building && <LinearProgress />}
+                </Stack>
                 {environment && !isNewEnvironment && (
                   <ImageBuildLog
                     buildFetchHash={state.buildFetchHash}
@@ -570,7 +605,8 @@ const EnvironmentEditView: React.FC = () => {
                         id="select-base-image"
                         value={environment.base_image}
                         label="Base image"
-                        onChange={(e) => onChangeBaseImage(e.target.value)}
+                        // onChange={(e) => onChangeBaseImage(e.target.value)}
+                        onChange={(e) => console.log(e.target.value)}
                       >
                         {DEFAULT_BASE_IMAGES.map(({ base_image: image }) => {
                           return (
