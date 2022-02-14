@@ -5,10 +5,6 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate
         - name: config
           hostPath:
             path: /var/lib/orchest/config
