@@ -394,19 +394,14 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
           )
         )
           .then(() => {
-            setPipelines((current) =>
-              current.filter(
-                (currentPipeline) =>
-                  !pipelineUuids.includes(currentPipeline.uuid)
-              )
-            );
-
             resolve(true);
           })
           .catch((e) => {
             setAlert("Error", `Failed to delete pipeline: ${e}`);
-            fetchPipelines();
             resolve(false);
+          })
+          .finally(() => {
+            fetchPipelines();
           });
 
         return true;
