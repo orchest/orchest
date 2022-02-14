@@ -940,8 +940,9 @@ class AbortJob(TwoPhaseFunction):
             res.abort()
 
         if project_uuid is not None:
-            process_stale_environment_images(
-                project_uuid, only_marked_for_removal=False
+            current_app.config["SCHEDULER"].add_job(
+                process_stale_environment_images,
+                args=[project_uuid, False],
             )
 
 
@@ -1231,8 +1232,9 @@ class DeleteJob(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str):
         if project_uuid is not None:
-            process_stale_environment_images(
-                project_uuid, only_marked_for_removal=False
+            current_app.config["SCHEDULER"].add_job(
+                process_stale_environment_images,
+                args=[project_uuid, False],
             )
 
 
@@ -1378,8 +1380,9 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
     def _collateral(self, project_uuid: str, completed: bool):
         if completed and project_uuid is not None:
-            process_stale_environment_images(
-                project_uuid, only_marked_for_removal=False
+            current_app.config["SCHEDULER"].add_job(
+                process_stale_environment_images,
+                args=[project_uuid, False],
             )
 
 
