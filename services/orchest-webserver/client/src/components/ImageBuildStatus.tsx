@@ -66,7 +66,10 @@ export const ImageBuildStatus = ({
       <LinearProgress
         value={!inProgress ? 100 : undefined}
         variant={!inProgress ? "determinate" : "indeterminate"}
-        sx={{ minHeight: (theme) => theme.spacing(0.5) }}
+        sx={{
+          minHeight: (theme) => theme.spacing(0.5),
+          borderRadius: (theme) => theme.spacing(0.5),
+        }}
       />
     </Stack>
   ) : null;

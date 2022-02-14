@@ -13,6 +13,7 @@ import Stack from "@mui/material/Stack";
 import { styled, SxProps, Theme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { visuallyHidden } from "@mui/utils";
 import React from "react";
 import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
 import { ContainerImageTile } from "./ContainerImageTile";
@@ -20,10 +21,11 @@ import { LabeledText } from "./LabeledText";
 
 const ImageOption: React.FC<{
   supportGpu: boolean;
+  disabled: boolean;
   value: string;
   title?: string;
   sx?: SxProps<Theme>;
-}> = ({ title, value, supportGpu, sx, children }) => {
+}> = ({ title, value, supportGpu, sx, children, disabled }) => {
   const radioGroup = useRadioGroup();
   const checked = radioGroup && radioGroup.value === value;
 
@@ -51,7 +53,8 @@ const ImageOption: React.FC<{
   const content = (
     <FormControlLabel
       value={value}
-      label=""
+      disabled={disabled}
+      label={<Typography sx={visuallyHidden}>{value}</Typography>}
       sx={{ margin: 0, width: "100%" }}
       control={
         <Radio
@@ -74,13 +77,16 @@ export const ContainerImagesRadioGroup = ({
   onChange,
   onOpenCustomBaseImageDialog,
   customImage,
+  disabled,
 }: {
   value: string;
   onChange: (newImage: CustomImage) => void;
   onOpenCustomBaseImageDialog: () => void;
   customImage: CustomImage;
+  disabled: boolean;
 }) => {
   const onChangeSelection = (baseImage: string) => {
+    if (disabled) return;
     if (customImage && baseImage === customImage.base_image) {
       onChange(customImage);
       return;
@@ -111,6 +117,7 @@ export const ContainerImagesRadioGroup = ({
               <ImageOption
                 title={base_image}
                 value={base_image}
+                disabled={disabled}
                 supportGpu={gpu_support}
               >
                 <Image src={`${img_src}`} alt={base_image} loading="lazy" />
@@ -137,6 +144,7 @@ export const ContainerImagesRadioGroup = ({
               value={customImage.base_image}
               sx={{ padding: (theme) => theme.spacing(2, 0) }}
               supportGpu={customImage.gpu_support}
+              disabled={disabled}
             >
               <Stack
                 direction="row"

@@ -2,12 +2,13 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import type { Environment } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { shallowEqualByKey } from "./shallowEqualByKey";
 
 export const useAutoSaveEnvironment = (
   value: Environment | null,
-  save: (newValue: Environment) => Promise<boolean>
+  save: (newValue: Environment) => Promise<Environment | null>
 ) => {
   const { setAsSaved } = useAppContext();
   const valuesForSaving = useDebounce(value, 500);
@@ -24,8 +25,8 @@ export const useAutoSaveEnvironment = (
 
   const doSave = React.useCallback(
     async (newValue: Environment) => {
-      const success = await save(newValue);
-      setAsSaved(success);
+      const outcome = await save(newValue);
+      setAsSaved(hasValue(outcome));
     },
     [setAsSaved, save]
   );
@@ -35,4 +36,6 @@ export const useAutoSaveEnvironment = (
       doSave(valuesForSaving);
     }
   }, [valuesForSaving, shouldSave, doSave]);
+
+  return valuesForSaving;
 };

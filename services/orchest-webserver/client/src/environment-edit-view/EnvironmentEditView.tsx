@@ -9,7 +9,7 @@ import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { CustomImage, Environment, EnvironmentBuild } from "@/types";
+import type { Environment, EnvironmentBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -106,10 +106,11 @@ const EnvironmentEditView: React.FC = () => {
     EnvironmentBuild
   >(null);
   const building = React.useMemo(() => {
-    return environmentBuild
-      ? CANCELABLE_STATUSES.includes(environmentBuild.status)
-      : false;
-  }, [environmentBuild]);
+    return (
+      ignoreIncomingLogs ||
+      CANCELABLE_STATUSES.includes(environmentBuild?.status)
+    );
+  }, [environmentBuild, ignoreIncomingLogs]);
 
   const [isCancellingBuild, setIsCancellingBuild] = React.useState(false);
 
@@ -122,7 +123,7 @@ const EnvironmentEditView: React.FC = () => {
   const saveEnvironment = React.useCallback(
     async (payload?: Partial<Environment>) => {
       if (environmentNameError) {
-        return false;
+        return null;
       }
       // Saving an environment will invalidate the Jupyter <iframe>
       // TODO: perhaps this can be fixed with coordination between JLab +
@@ -152,15 +153,14 @@ const EnvironmentEditView: React.FC = () => {
           navigateTo(siteMap.environment.path, {
             query: { projectUuid, environmentUuid: response.uuid },
           });
-          return true;
+          return response;
         }
-        setEnvironment(response);
         setAsSaved();
-        return true;
+        return response;
       } catch (error) {
         setAlert("Error", `Unable to save the custom image. ${error.message}`);
         setAsSaved(false);
-        return false;
+        return null;
       }
     },
     [
@@ -170,12 +170,10 @@ const EnvironmentEditView: React.FC = () => {
       setAsSaved,
       projectUuid,
       setAlert,
-      setEnvironment,
       environmentNameError,
     ]
   );
 
-  // TODO: reduce the number of re-rendering here
   useAutoSaveEnvironment(
     !isFetchingEnvironment ? environment : null,
     saveEnvironment
@@ -185,17 +183,13 @@ const EnvironmentEditView: React.FC = () => {
     navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
   };
 
-  const onChangeName = (value: string) => {
-    setAsSaved(false);
-    setEnvironment((prev) => {
-      return { ...prev, name: value };
-    });
-  };
-
-  const onChangeBaseImage = (newImage: CustomImage) => {
-    setAsSaved(false);
-    setEnvironment((prev) => ({ ...prev, ...newImage }));
-  };
+  const onChangeEnvironment = React.useCallback(
+    (payload: Partial<Environment>) => {
+      setAsSaved(false);
+      setEnvironment((prev) => ({ ...prev, ...payload }));
+    },
+    [setAsSaved, setEnvironment]
+  );
 
   const onCloseCustomBaseImageDialog = () => {
     setIsShowingCustomImageDialog(false);
@@ -228,11 +222,12 @@ const EnvironmentEditView: React.FC = () => {
 
     setIgnoreIncomingLogs(true);
 
-    const success = await saveEnvironment();
+    const outcome = await saveEnvironment();
 
-    if (!success) return;
+    if (!hasValue(outcome)) return;
 
-    requestToBuild(projectUuid, environment.uuid);
+    await requestToBuild(projectUuid, environment.uuid);
+    setIgnoreIncomingLogs(false);
   };
 
   const mounted = useMounted();
@@ -320,13 +315,17 @@ const EnvironmentEditView: React.FC = () => {
                     label="Environment name"
                     error={hasValue(environmentNameError)}
                     helperText={environmentNameError}
-                    onChange={(e) => onChangeName(e.target.value)}
+                    disabled={building}
+                    onChange={(e) =>
+                      onChangeEnvironment({ name: e.target.value })
+                    }
                     value={environment.name}
                     data-test-id="environments-env-name"
                   />
                   <ContainerImagesRadioGroup
+                    disabled={building}
                     value={!isFetchingEnvironment && environment.base_image}
-                    onChange={onChangeBaseImage}
+                    onChange={onChangeEnvironment}
                     customImage={customImage}
                     onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
                   />
@@ -373,6 +372,7 @@ const EnvironmentEditView: React.FC = () => {
                     theme: "dracula",
                     lineNumbers: true,
                     viewportMargin: Infinity,
+                    readOnly: building,
                   }}
                   onBeforeChange={(editor, data, value) => {
                     setEnvironment((prev) => ({

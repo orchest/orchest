@@ -1,6 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
-import { CustomImage, Language } from "@/types";
+import { CustomImage, Environment, Language } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -43,7 +43,7 @@ export const CustomImageDialog = ({
     base_image: string;
     language: Language;
     gpu_support: boolean;
-  }) => Promise<boolean>;
+  }) => Promise<Environment | null>;
   setCustomImage: (value: CustomImage) => void;
 }) => {
   const {
