@@ -1,3 +1,4 @@
 userdir:
-  name: userdir
+  name: userdir-pvc
   storage: 4Gi
+  storageClass: standard

@@ -9,4 +9,4 @@ spec:
   resources:
     requests:
       storage: {{ .Values.userdir.storage }}
-  storageClassName: {{ include "library.cluster.ceph.filesystem.name" . }}
+  storageClassName: {{ include "library.cluster.orchest.userdir.storageClass" . }}
