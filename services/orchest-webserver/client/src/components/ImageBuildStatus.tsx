@@ -1,9 +1,47 @@
 import { EnvironmentBuild } from "@/types";
-import { formatServerDateTime } from "@/utils/webserver-utils";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import HighlightOffIcon from "@mui/icons-material/HighlightOff";
+import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
+import HourglassTopOutlinedIcon from "@mui/icons-material/HourglassTopOutlined";
 import { SxProps, Theme } from "@mui/material";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import React from "react";
+
+const statusIconMapping: Partial<Record<
+  EnvironmentBuild["status"],
+  { message: string; icon?: React.ReactNode }
+>> = {
+  STARTED: {
+    message: "Building...",
+    icon: (
+      <HourglassTopOutlinedIcon
+        sx={{ color: (theme) => theme.palette.grey[500] }}
+      />
+    ),
+  },
+  SUCCESS: {
+    message: "Build successfully completed!",
+    icon: <CheckCircleIcon color="primary" />,
+  },
+  FAILURE: {
+    message: "Failed to build image",
+    icon: <HighlightOffIcon sx={{ color: "error.light" }} />,
+  },
+  ABORTED: {
+    message: "Build was cancelled",
+    icon: <HighlightOffIcon sx={{ color: "error.light" }} />,
+  },
+  PENDING: {
+    message: "Getting ready to build...",
+    icon: (
+      <HourglassEmptyOutlinedIcon
+        sx={{ color: (theme) => theme.palette.grey[500] }}
+      />
+    ),
+  },
+};
 
 export const ImageBuildStatus = ({
   build,
@@ -12,34 +50,22 @@ export const ImageBuildStatus = ({
   build: EnvironmentBuild | undefined;
   sx?: SxProps<Theme>;
 }) => {
-  const complete = build?.status === "SUCCESS";
+  const inProgress = ["PENDING", "STARTED"].includes(build?.status);
   return build ? (
-    <Stack sx={sx} direction="column">
-      <div className="build-notice push-down">
-        <div data-test-id="environments-build-status">
-          <span className="build-label">Build status:</span>
-          {build.status}
-        </div>
-        <div>
-          <span className="build-label">Build requested:</span>
-          {build.requested_time ? (
-            formatServerDateTime(build.requested_time)
-          ) : (
-            <i>not yet requested</i>
-          )}
-        </div>
-        <div>
-          <span className="build-label">Build finished:</span>
-          {build.finished_time ? (
-            formatServerDateTime(build.finished_time)
-          ) : (
-            <i>not yet finished</i>
-          )}
-        </div>
-      </div>
+    <Stack
+      direction="column"
+      spacing={1}
+      sx={{ paddingBottom: (theme) => theme.spacing(0.5), ...sx }}
+    >
+      <Stack direction="row" spacing={1} alignItems="center">
+        {statusIconMapping[build.status].icon}
+        <Typography variant="body2" color="InfoText">
+          {statusIconMapping[build.status].message}
+        </Typography>
+      </Stack>
       <LinearProgress
-        value={complete ? 100 : undefined}
-        variant={complete ? "determinate" : "indeterminate"}
+        value={!inProgress ? 100 : undefined}
+        variant={!inProgress ? "determinate" : "indeterminate"}
         sx={{ minHeight: (theme) => theme.spacing(0.5) }}
       />
     </Stack>

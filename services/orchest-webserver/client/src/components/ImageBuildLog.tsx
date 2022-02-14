@@ -128,7 +128,12 @@ const ImageBuild = ({
 
   return (
     <>
-      {!hideDefaultStatus && <ImageBuildStatus build={build} />}
+      {!hideDefaultStatus && (
+        <ImageBuildStatus
+          build={build}
+          sx={{ margin: (theme) => theme.spacing(3, 0) }}
+        />
+      )}
       <div className={"xterm-holder push-down"}>
         <XTerm addons={[fitAddon]} ref={refManager.nrefs.term} />
       </div>

@@ -374,30 +374,26 @@ const EnvironmentEditView: React.FC = () => {
                   }}
                 />
                 <Stack direction="row" spacing={3} alignItems="center">
-                  {!isNewEnvironment &&
-                    (!building ? (
-                      <Button
-                        disabled={isRequestingToBuild}
-                        variant="contained"
-                        color="primary"
-                        onClick={build}
-                        startIcon={<MemoryIcon />}
-                        data-test-id="environment-start-build"
-                      >
-                        Build
-                      </Button>
-                    ) : (
-                      <Button
-                        disabled={isCancellingBuild}
-                        variant="contained"
-                        color="primary"
-                        onClick={cancelBuild}
-                        startIcon={<CloseIcon />}
-                        data-test-id="environments-cancel-build"
-                      >
-                        Cancel build
-                      </Button>
-                    ))}
+                  {!isNewEnvironment && (
+                    <Button
+                      disabled={isRequestingToBuild || isCancellingBuild}
+                      variant="contained"
+                      color={!building ? "primary" : "secondary"}
+                      onClick={!building ? build : cancelBuild}
+                      startIcon={!building ? <MemoryIcon /> : <CloseIcon />}
+                      data-test-id={
+                        !building
+                          ? "environment-start-build"
+                          : "environments-cancel-build"
+                      }
+                      sx={{
+                        width: (theme) => theme.spacing(28),
+                        padding: (theme) => theme.spacing(1, 4),
+                      }}
+                    >
+                      {!building ? "Build" : "Cancel build"}
+                    </Button>
+                  )}
                   <ImageBuildStatus build={environmentBuild} sx={{ flex: 1 }} />
                 </Stack>
                 {environment && !isNewEnvironment && (
