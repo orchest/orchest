@@ -1,10 +1,12 @@
 import { BackButton } from "@/components/common/BackButton";
 import { PageTitle } from "@/components/common/PageTitle";
 import ImageBuildLog from "@/components/ImageBuildLog";
+import { ImageBuildStatus } from "@/components/ImageBuildStatus";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
+import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { CustomImage, Environment, EnvironmentBuild } from "@/types";
@@ -18,15 +20,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import {
-  fetcher,
-  hasValue,
-  HEADER,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  uuidv4,
-} from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
 import React from "react";
@@ -34,6 +28,7 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
+import { useRequestEnvironmentBuild } from "./useRequestEnvironmentBuild";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -60,6 +55,9 @@ const validEnvironmentName = (name: string) => {
  * in this view we use auto-save with a debounced time
  * so we still need setAsSaved to ensure that user's change is saved
  */
+
+const ENVIRONMENT_BUILDS_BASE_ENDPOINT =
+  "/catch/api-proxy/api/environment-builds";
 
 const EnvironmentEditView: React.FC = () => {
   // global states
@@ -95,18 +93,20 @@ const EnvironmentEditView: React.FC = () => {
     setIsShowingCustomImageDialog,
   ] = React.useState(false);
 
-  const [state, setState] = React.useState({
-    ignoreIncomingLogs: false,
-    building: false,
-    buildRequestInProgress: false,
-    cancelBuildRequestInProgress: false,
-    environmentBuild: undefined,
-    buildFetchHash: uuidv4(),
-    customBaseImageName: "",
-    languageDocsNotice: false,
-  });
+  const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
 
-  const [promiseManager] = React.useState(new PromiseManager());
+  const [environmentBuild, setEnvironmentBuild] = React.useState<
+    EnvironmentBuild
+  >(null);
+  const building = React.useMemo(() => {
+    return environmentBuild
+      ? CANCELABLE_STATUSES.includes(environmentBuild.status)
+      : false;
+  }, [environmentBuild]);
+
+  const [isCancellingBuild, setIsCancellingBuild] = React.useState(false);
+
+  const [buildFetchHash, setBuildFetchHash] = React.useState(uuidv4());
 
   const environmentNameError = !validEnvironmentName(environment.name)
     ? 'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
@@ -197,92 +197,60 @@ const EnvironmentEditView: React.FC = () => {
     setIsShowingCustomImageDialog(true);
   };
 
+  const {
+    isRequestingToBuild,
+    newEnvironmentBuild,
+    requestBuildError,
+    requestToBuild,
+  } = useRequestEnvironmentBuild(ENVIRONMENT_BUILDS_BASE_ENDPOINT);
+
+  React.useEffect(() => {
+    if (newEnvironmentBuild) {
+      setEnvironmentBuild(newEnvironmentBuild);
+    }
+  }, [newEnvironmentBuild]);
+  React.useEffect(() => {
+    if (requestBuildError) {
+      setIgnoreIncomingLogs(false);
+    }
+  }, [requestBuildError]);
+
   const build = async (e: React.MouseEvent) => {
     e.nativeEvent.preventDefault();
 
-    setState((prevState) => ({
-      ...prevState,
-      buildRequestInProgress: true,
-      ignoreIncomingLogs: true,
-    }));
+    setIgnoreIncomingLogs(true);
 
     const success = await saveEnvironment();
 
     if (!success) return;
 
-    let buildPromise = makeCancelable(
-      makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-        type: "json",
-        content: {
-          environment_build_requests: [
-            {
-              environment_uuid: environment.uuid,
-              project_uuid: projectUuid,
-            },
-          ],
-        },
-      }),
-      promiseManager
-    );
-
-    buildPromise.promise
-      .then((response) => {
-        try {
-          let environmentBuild: EnvironmentBuild = JSON.parse(response)[
-            "environment_builds"
-          ][0];
-
-          onUpdateBuild(environmentBuild);
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .catch((e) => {
-        if (!e.isCanceled) {
-          setState((prevState) => ({
-            ...prevState,
-            ignoreIncomingLogs: false,
-          }));
-          console.log(e);
-        }
-      })
-      .finally(() => {
-        setState((prevState) => ({
-          ...prevState,
-          buildRequestInProgress: false,
-        }));
-      });
+    requestToBuild(projectUuid, environment.uuid);
   };
+
+  const mounted = useMounted();
 
   const cancelBuild = () => {
     // send DELETE to cancel ongoing build
     if (
-      state.environmentBuild &&
-      CANCELABLE_STATUSES.indexOf(state.environmentBuild.status) !== -1
+      environmentBuild &&
+      CANCELABLE_STATUSES.includes(environmentBuild.status)
     ) {
-      setState((prevState) => ({
-        ...prevState,
-        cancelBuildRequestInProgress: true,
-      }));
+      setIsCancellingBuild(true);
 
-      makeRequest(
-        "DELETE",
-        `/catch/api-proxy/api/environment-builds/${state.environmentBuild.uuid}`
-      )
+      fetcher(`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/${environmentBuild.uuid}`, {
+        method: "DELETE",
+      })
         .then(() => {
           // immediately fetch latest status
           // NOTE: this DELETE call doesn't actually destroy the resource, that's
           // why we're querying it again.
-          setState((prevState) => ({ ...prevState, buildFetchHash: uuidv4() }));
+          setBuildFetchHash(uuidv4());
         })
         .catch((error) => {
           console.error(error);
         })
         .finally(() => {
-          setState((prevState) => ({
-            ...prevState,
-            cancelBuildRequestInProgress: false,
-          }));
+          if (mounted) setIsCancellingBuild(false);
         });
     } else {
       setAlert(
@@ -290,21 +258,6 @@ const EnvironmentEditView: React.FC = () => {
         "Could not cancel build, please try again in a few seconds."
       );
     }
-  };
-
-  const onBuildStart = () => {
-    setState((prevState) => ({
-      ...prevState,
-      ignoreIncomingLogs: false,
-    }));
-  };
-
-  const onUpdateBuild = (environmentBuild) => {
-    setState((prevState) => ({
-      ...prevState,
-      building: CANCELABLE_STATUSES.indexOf(environmentBuild.status) !== -1,
-      environmentBuild,
-    }));
   };
 
   return (
@@ -420,11 +373,11 @@ const EnvironmentEditView: React.FC = () => {
                     }));
                   }}
                 />
-                <Stack direction="row">
+                <Stack direction="row" spacing={3} alignItems="center">
                   {!isNewEnvironment &&
-                    (!state.building ? (
+                    (!building ? (
                       <Button
-                        disabled={state.buildRequestInProgress}
+                        disabled={isRequestingToBuild}
                         variant="contained"
                         color="primary"
                         onClick={build}
@@ -435,7 +388,7 @@ const EnvironmentEditView: React.FC = () => {
                       </Button>
                     ) : (
                       <Button
-                        disabled={state.cancelBuildRequestInProgress}
+                        disabled={isCancellingBuild}
                         variant="contained"
                         color="primary"
                         onClick={cancelBuild}
@@ -445,22 +398,21 @@ const EnvironmentEditView: React.FC = () => {
                         Cancel build
                       </Button>
                     ))}
-                  {state.building && <LinearProgress />}
+                  <ImageBuildStatus build={environmentBuild} sx={{ flex: 1 }} />
                 </Stack>
                 {environment && !isNewEnvironment && (
                   <ImageBuildLog
-                    buildFetchHash={state.buildFetchHash}
-                    buildRequestEndpoint={`/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environment.uuid}`}
+                    hideDefaultStatus
+                    buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment.uuid}`}
                     buildsKey="environment_builds"
                     socketIONamespace={
                       config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
                     }
-                    streamIdentity={projectUuid + "-" + environment.uuid}
-                    onUpdateBuild={onUpdateBuild}
-                    onBuildStart={onBuildStart}
-                    ignoreIncomingLogs={state.ignoreIncomingLogs}
-                    build={state.environmentBuild}
-                    building={state.building}
+                    streamIdentity={`${projectUuid}-${environment.uuid}`}
+                    onUpdateBuild={setEnvironmentBuild}
+                    ignoreIncomingLogs={ignoreIncomingLogs}
+                    build={environmentBuild}
+                    buildFetchHash={buildFetchHash}
                   />
                 )}
               </Stack>

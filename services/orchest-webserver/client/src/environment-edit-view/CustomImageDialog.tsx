@@ -124,7 +124,6 @@ export const CustomImageDialog = ({
               onChange={handleChange}
               onBlur={handleBlur}
             />
-
             <FormControl fullWidth>
               <InputLabel id="select-language-label">Language</InputLabel>
               <Select
@@ -150,6 +149,11 @@ export const CustomImageDialog = ({
                 {touched.language && errors.language}
               </FormHelperText>
             </FormControl>
+            <Alert severity="info" tabIndex={-1}>
+              The language determines for which kernel language this environment
+              can be used. This only affects pipeline steps that point to a
+              Notebook.
+            </Alert>
             <Stack direction="column">
               <FormGroup>
                 <FormControlLabel
@@ -214,7 +218,7 @@ export const CustomImageDialog = ({
             disabled={!isValid || isSubmitting}
             form="add-custom-base-image-form"
           >
-            Add
+            Confirm
           </Button>
         </DialogActions>
       </form>

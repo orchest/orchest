@@ -122,7 +122,10 @@ export const ContainerImagesRadioGroup = ({
           <Button
             startIcon={<AddCircleIcon />}
             fullWidth
-            sx={{ marginTop: (theme) => theme.spacing(2) }}
+            sx={{
+              marginTop: (theme) => theme.spacing(4),
+              padding: (theme) => theme.spacing(2, 0),
+            }}
             onClick={onOpenCustomBaseImageDialog}
           >
             Create custom container image
