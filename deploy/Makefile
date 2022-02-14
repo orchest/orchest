@@ -27,6 +27,10 @@ REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secr
 REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
 
+# Name of default file-system and block storage classes
+FILESYSTEM_STORAGE_CLASS := ${if ${FILESYSTEM_STORAGE_CLASS}, ${FILESYSTEM_STORAGE_CLASS},ceph-filesystem}
+BLOCK_STORAGE_CLASS := ${if ${BLOCK_STORAGE_CLASS}, ${BLOCK_STORAGE_CLASS},ceph-block}
+
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
 DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
@@ -56,14 +60,25 @@ CEPH_USE_ALL_DEVICES := ${if ${CEPH_USE_ALL_DEVICES},${CEPH_USE_ALL_DEVICES},fal
 CEPH_RSC_ENABLE_CONFIG := --set cluster-resources.ceph.enabled=true
 CEPH_MULTI_MON_PER_NODE_CONFIG := --set cluster-resources.ceph.cephClusterSpec.mon.allowMultiplePerNode=${CEPH_MULTI_MON_PER_NODE}
 CEPH_USE_ALL_DEVICES_CONFIG := --set cluster-resources.ceph.cephClusterSpec.storage.useAllDevices=${CEPH_USE_ALL_DEVICES}
+CEPH_FILESYSTEM_CLASS_NAME := --set cluster-resources.ceph.cephFileSystems.storageClass.name=${FILESYSTEM_STORAGE_CLASS}
+CEPH_BLOCK_CLASS_NAME := --set cluster-resources.ceph.cephBlockPools.storageClass.name=${BLOCK_STORAGE_CLASS}
 CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
 								--namespace ${ROOK_NAMESPACE} \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
 								${CEPH_RSC_ENABLE_CONFIG} \
 								${CEPH_USE_ALL_DEVICES_CONFIG} \
-								${CEPH_MULTI_MON_PER_NODE_CONFIG} \
-								${CEPH_ENABLE_CONFIG} helm
+								${CEPH_MULTI_MON_PER_NODE_CONFIG} helm
+
+# orchest resources deployment configs
+ORCHEST_RSC_ENABLE_CONFIG := --set cluster-resources.orchest.enabled=true
+ORCHEST_RSC_USERDIR_STORAGE := --set cluster-resources.orchest.userdir.storageClass=${FILESYSTEM_STORAGE_CLASS}
+ORCHEST_RSC_DEPLOY_CONFIG := orchest-resources \
+							--namespace ${NAMESPACE} \
+							${SHARED_DEPLOY_CONFIG}	\
+							${CLUSTER_RSC_ENABLE_CONFIG} \
+							${ORCHEST_RSC_USERDIR_STORAGE} \
+							${ORCHEST_RSC_ENABLE_CONFIG} helm
 
 # rook deplyment configs
 ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
@@ -129,11 +144,12 @@ ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 
 # Docker-registry deployment configs
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
+	--namespace ${NAMESPACE} \
 	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} \
 	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry
 
 .PHONY: orchest
-orchest: initialize
+orchest: initialize | orchest-resources
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
 # usefull for debugging, not recommended to use without DEBUG=true enabled
@@ -208,7 +224,7 @@ orchest-resources: ./bin/orchest-resources
 
 .SECONDARY: ./bin/orchest-resources
 ./bin/orchest-resources: | create-bin
-	helm install ${CLUSTER_RSC_ORCHEST_DEPLOY_CONFIG}
+	helm install ${ORCHEST_RSC_DEPLOY_CONFIG}
 	touch $@
 
 .PHONY: create-bin
