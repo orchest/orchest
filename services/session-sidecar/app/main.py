@@ -91,11 +91,12 @@ def follow_service_logs(service):
         for event in w.stream(
             k8s_core_api.read_namespaced_pod_log,
             name=pod.metadata.name,
-            container="main",
-            namespace="orchest",
+            container=service,
+            namespace=Config.K8S_NAMESPACE,
             follow=True,
         ):
             log_file.write(event)
+            log_file.write("\n")
             log_file.flush()
         logging.info(f"No more logs for {service}.")
 

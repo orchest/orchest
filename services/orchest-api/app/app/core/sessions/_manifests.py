@@ -217,6 +217,80 @@ def _get_memory_server_deployment_manifest(
     }
 
 
+def _get_session_sidecar_rbac_manifests(
+    session_uuid: str,
+    session_config: SessionConfig,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+
+    project_uuid = session_config["project_uuid"]
+    ns = get_k8s_namespace_name(session_uuid)
+
+    role_manifest = {
+        "kind": "Role",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "session-sidecar-role",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "rules": [
+            {
+                "apiGroups": [
+                    "",
+                ],
+                "resources": [
+                    "pods",
+                    "pods/log",
+                ],
+                "verbs": [
+                    "get",
+                    "list",
+                    "watch",
+                ],
+            }
+        ],
+    }
+
+    account_manifest = {
+        "apiVersion": "v1",
+        "kind": "ServiceAccount",
+        "metadata": {
+            "name": "session-sidecar-sa",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+    }
+
+    rolebinding_manifest = {
+        "kind": "RoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "session-sidecar-rolebinding",
+            "labels": {
+                "app": "session-sidecar",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "subjects": [
+            {"kind": "ServiceAccount", "name": "session-sidecar-sa", "namespace": ns}
+        ],
+        "roleRef": {
+            "kind": "Role",
+            "name": "session-sidecar-role",
+            "apiGroup": "rbac.authorization.k8s.io",
+        },
+    }
+
+    return role_manifest, account_manifest, rolebinding_manifest
+
+
 def _get_session_sidecar_deployment_manifest(
     session_uuid: str,
     session_config: SessionConfig,
@@ -259,9 +333,8 @@ def _get_session_sidecar_deployment_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    # This account is needed to get pods and their
-                    # logs, K8S_TODO: make an ad hoc role for the
-                    # session sidecar?
+                    "serviceAccount": "session-sidecar-sa",
+                    "serviceAccountName": "session-sidecar-sa",
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -404,6 +477,7 @@ def _get_jupyter_server_deployment_service_manifest(
                                 "periodSeconds": 1,
                                 "failureThreshold": 120,
                             },
+                            "ports": [{"containerPort": 8888}],
                         }
                     ],
                 },
@@ -420,10 +494,88 @@ def _get_jupyter_server_deployment_service_manifest(
         "spec": {
             "type": "ClusterIP",
             "selector": {"app": metadata["name"]},
-            "ports": [{"port": 8888}],
+            # Coupled with the idle check.
+            "ports": [{"port": 80, "targetPort": 8888}],
         },
     }
     return deployment_manifest, service_manifest
+
+
+def _get_jupyter_enterprise_gateway_rbac_manifests(
+    session_uuid: str,
+    session_config: SessionConfig,
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+
+    project_uuid = session_config["project_uuid"]
+    ns = get_k8s_namespace_name(session_uuid)
+
+    role_manifest = {
+        "kind": "Role",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "jupyter-eg-role",
+            "labels": {
+                "app": "jupyter-eg",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "rules": [
+            {
+                "apiGroups": [
+                    "",
+                ],
+                "resources": [
+                    "pods",
+                ],
+                "verbs": [
+                    "create",
+                    "get",
+                    "list",
+                    "watch",
+                    "update",
+                    "delete",
+                    "patch",
+                ],
+            }
+        ],
+    }
+
+    account_manifest = {
+        "apiVersion": "v1",
+        "kind": "ServiceAccount",
+        "metadata": {
+            "name": "jupyter-eg-sa",
+            "labels": {
+                "app": "jupyter-eg",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+    }
+
+    rolebinding_manifest = {
+        "kind": "RoleBinding",
+        "apiVersion": "rbac.authorization.k8s.io/v1",
+        "metadata": {
+            "name": "jupyter-eg-rolebinding",
+            "labels": {
+                "app": "jupyter-eg",
+                "project_uuid": project_uuid,
+                "session_uuid": session_uuid,
+            },
+        },
+        "subjects": [
+            {"kind": "ServiceAccount", "name": "jupyter-eg-sa", "namespace": ns}
+        ],
+        "roleRef": {
+            "kind": "Role",
+            "name": "jupyter-eg-role",
+            "apiGroup": "rbac.authorization.k8s.io",
+        },
+    }
+
+    return role_manifest, account_manifest, rolebinding_manifest
 
 
 def _get_jupyter_enterprise_gateway_deployment_service_manifest(
@@ -459,16 +611,25 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID",
         "ORCHEST_PIPELINE_PATH",
         "ORCHEST_PROJECT_UUID",
+        "ORCHEST_HOST_USER_DIR",
         "ORCHEST_HOST_PROJECT_DIR",
         "ORCHEST_HOST_PIPELINE_FILE",
         "ORCHEST_HOST_GID",
         "ORCHEST_SESSION_UUID",
         "ORCHEST_SESSION_TYPE",
         "ORCHEST_GPU_ENABLED_INSTANCE",
+        "ORCHEST_REGISTRY",
     ]
     process_env_whitelist.extend(list(user_defined_env_vars.keys()))
     process_env_whitelist = ",".join(process_env_whitelist)
 
+    # Need to reference the ip because the local docker engine will
+    # run the container, and if the image is missing it will prompt
+    # a pull which will fail because the FQDN can't be resolved by
+    # the local engine on the node. K8S_TODO: fix this.
+    registry_ip = k8s_core_api.read_namespaced_service(
+        _config.REGISTRY, "orchest"
+    ).spec.cluster_ip
     environment = {
         "EG_MIRROR_WORKING_DIRS": "True",
         "EG_LIST_KERNELS": "True",
@@ -478,10 +639,23 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "EG_UID_BLACKLIST": '["-1"]',
         "EG_ALLOW_ORIGIN": "*",
         "EG_BASE_URL": "/jupyter-server",
+        # This is because images might need to be pulled on the node and
+        # we aren't using a dameon or similar to pull images on the
+        # node.  See kernel-image-puller (KIP) for such an example.
+        "EG_KERNEL_LAUNCH_TIMEOUT": "600",
         "EG_ENV_PROCESS_WHITELIST": process_env_whitelist,
+        # Note: the docs say to use a string, but the script in charge
+        # of launching the kernel will expect an integer and fail!.
+        "EG_LOG_LEVEL": "10",
+        # "All kernels reside in the EG namespace if true, otherwise
+        # KERNEL_NAMESPACE must be provided or one will be created for
+        # each kernel."
+        "EG_NAMESPACE": get_k8s_namespace_name(session_uuid),
+        "EG_SHARED_NAMESPACE": "True",
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
         "ORCHEST_PROJECT_UUID": project_uuid,
+        "ORCHEST_HOST_USER_DIR": host_userdir,
         "ORCHEST_HOST_PROJECT_DIR": host_project_dir,
         "ORCHEST_HOST_PIPELINE_FILE": os.path.join(
             host_project_dir, project_relative_pipeline_path
@@ -490,6 +664,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_SESSION_UUID": session_uuid,
         "ORCHEST_SESSION_TYPE": session_type,
         "ORCHEST_GPU_ENABLED_INSTANCE": str(CONFIG_CLASS.GPU_ENABLED_INSTANCE),
+        "ORCHEST_REGISTRY": registry_ip,
     }
     environment = [{"name": k, "value": v} for k, v in environment.items()]
     user_defined_env_vars = [
@@ -515,6 +690,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
+                    "serviceAccount": "jupyter-eg-sa",
+                    "serviceAccountName": "jupyter-eg-sa",
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -531,6 +708,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                             "volumeMounts": [
                                 volume_mounts_dict["kernelspec"],
                             ],
+                            "ports": [{"containerPort": 8888}],
                         }
                     ],
                 },

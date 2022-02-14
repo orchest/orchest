@@ -128,7 +128,7 @@ Overview of the different paths inside the ``userdir/``.
    │   │       └── <postgres data store>
    │   └── kernels
    │       └── <project-uuid>
-   │           ├── launch_docker.py
+   │           ├── launch_kubernetes.py
    │           └── orchest-env-<project-uuid>-<env-uuid>
    │               └── kernel.json
    └── projects
