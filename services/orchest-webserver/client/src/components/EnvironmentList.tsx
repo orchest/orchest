@@ -302,23 +302,25 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
         const environmentsDict = fetchedEnvironments.reduce((all, curr) => {
           return { ...all, [curr.uuid]: curr };
         }, {});
-
-        Promise.all(
-          environmentUuids.map((environmentUuid) => {
-            const { project_uuid, uuid, name } = environmentsDict[
-              environmentUuid
-            ] as Environment;
-            return removeEnvironment(project_uuid, uuid, name);
-          })
-        )
-          .then(() => {
-            resolve(true);
-          })
-          .catch(() => {
-            resolve(false); // no need to setAlert here, will be handled by removeEnvironment
-          });
-
-        return true;
+        try {
+          Promise.all(
+            environmentUuids.map((environmentUuid) => {
+              const { project_uuid, uuid, name } = environmentsDict[
+                environmentUuid
+              ] as Environment;
+              return removeEnvironment(project_uuid, uuid, name);
+            })
+          )
+            .then(() => {
+              resolve(true);
+            })
+            .catch(() => {
+              resolve(false); // no need to setAlert here, will be handled by removeEnvironment
+            });
+          return true;
+        } catch (error) {
+          return false;
+        }
       }
     );
   };

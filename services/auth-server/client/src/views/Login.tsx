@@ -44,7 +44,7 @@ const Login: React.FC<{
       if (response.redirect) {
         window.location.href = response.redirect;
       } else {
-        throw { error: "Failed to redirect" };
+        throw { error: "Failed to redirect." };
       }
     } catch (error) {
       setLoginFailure(error.error);

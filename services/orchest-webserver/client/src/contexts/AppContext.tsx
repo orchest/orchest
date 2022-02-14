@@ -245,8 +245,14 @@ type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
 ) => Promise<boolean | void> | void | boolean;
 
-const defaultOnConfirm: ConfirmHandler = () => true;
-const defaultOnCancel: CancelHandler = () => false;
+const defaultOnConfirm: ConfirmHandler = (resolve) => {
+  resolve(true);
+  return true;
+};
+const defaultOnCancel: CancelHandler = (resolve) => {
+  resolve(false);
+  return false;
+};
 
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,
