@@ -72,8 +72,15 @@ const EnvironmentEditView: React.FC = () => {
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
-  // local states
+  // !Note: new environment should have been created in EnvironmentList
+  // if user tweak the query args by changing it to "new", we send user back to EnvironmentList
+  React.useEffect(() => {
+    if (environmentUuid === "new") {
+      navigateTo(siteMap.environments.path, { query: { projectUuid } });
+    }
+  }, [environmentUuid, navigateTo, projectUuid]);
 
+  // local states
   const isNewEnvironment = environmentUuid === "new";
   const {
     environment,
