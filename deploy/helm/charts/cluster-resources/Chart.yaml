@@ -14,3 +14,7 @@ dependencies:
   version: "0.0.1"
   repository: "file://charts/ceph"
   condition:  ceph.enabled
+- name: orchest
+  version: "0.0.1"
+  repository: "file://charts/ceph"
+  condition:  orchest.enabled  

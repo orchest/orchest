@@ -4,3 +4,6 @@ registry:
 
 ceph:
   enabled: false
+
+orchest:
+  enabled: false  

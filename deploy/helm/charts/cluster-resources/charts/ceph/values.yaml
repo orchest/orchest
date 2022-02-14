@@ -1,5 +1,3 @@
-operatorNamespace: rook-ceph
-
 cephBlockPools:
   name: ceph-blockpool
   # see https://github.com/rook/rook/blob/master/Documentation/ceph-pool-crd.md#spec for available configuration
