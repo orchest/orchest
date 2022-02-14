@@ -240,7 +240,7 @@ export type Job = {
     run_config: {
       project_dir: string;
       pipeline_path: string;
-      host_user_dir: string;
+      user_dir_pvc: string;
     };
     scheduled_start: string;
   };

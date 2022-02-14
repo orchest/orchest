@@ -62,7 +62,7 @@ def _get_common_volumes_and_volume_mounts(
 
 def _get_jupyter_volumes_and_volume_mounts(
     project_uuid: str,
-    host_userdir: str,
+    userdir_pvc: str,
     host_project_dir: str,
     project_relative_pipeline_path: str,
     container_project_dir: str = _config.PROJECT_DIR,
@@ -610,7 +610,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     pipeline_uuid = session_config["pipeline_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
-    host_userdir = session_config["host_userdir"]
+    userdir_pvc = session_config["userdir_pvc"]
     session_type = session_type.value
 
     metadata = {
@@ -634,7 +634,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID",
         "ORCHEST_PIPELINE_PATH",
         "ORCHEST_PROJECT_UUID",
-        "ORCHEST_HOST_USER_DIR",
+        "ORCHEST_USER_DIR_PVC",
         "ORCHEST_HOST_PROJECT_DIR",
         "ORCHEST_HOST_PIPELINE_FILE",
         "ORCHEST_HOST_GID",
@@ -678,7 +678,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
         "ORCHEST_PROJECT_UUID": project_uuid,
-        "ORCHEST_HOST_USER_DIR": host_userdir,
+        "ORCHEST_USER_DIR_PVC": userdir_pvc,
         "ORCHEST_HOST_PROJECT_DIR": host_project_dir,
         "ORCHEST_HOST_PIPELINE_FILE": os.path.join(
             host_project_dir, project_relative_pipeline_path
@@ -696,7 +696,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     environment.extend(user_defined_env_vars)
 
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
-        project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
+        project_uuid, userdir_pvc, host_project_dir, project_relative_pipeline_path
     )
 
     deployment_manifest = {

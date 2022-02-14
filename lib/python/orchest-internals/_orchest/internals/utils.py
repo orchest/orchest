@@ -350,7 +350,7 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 
 
 def get_step_and_kernel_volumes_and_volume_mounts(
-    host_user_dir: str,
+    user_dir_pvc: str,
     host_project_dir: str,
     host_pipeline_file: str,
     container_project_dir: str,
@@ -359,7 +359,7 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
-        host_user_dir:
+        user_dir_pvc:
         host_project_dir:
         host_pipeline_file:
         container_project_dir:
@@ -382,9 +382,22 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     )
 
     volumes.append(
-        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}}
+        {
+            "name": "data",
+            "persistentVolumeClaim":
+            {
+                "claimName" : user_dir_pvc,
+                "readOnly": False
+            }
+        }
     )
-    volume_mounts.append({"name": "data", "mountPath": "/data"})
+    volume_mounts.append(
+        {
+            "name": "data",
+            "mountPath": "/data",
+            "subPath": "data"
+        }
+    )
 
     return volumes, volume_mounts
 

@@ -55,7 +55,7 @@ class PipelineDefinition(TypedDict):
 
 class RunConfig(TypedDict):
     env_uuid_to_image: Dict[str, str]
-    host_user_dir: str
+    user_dir_pvc: str
     pipeline_path: str
     pipeline_uuid: str
     project_dir: str

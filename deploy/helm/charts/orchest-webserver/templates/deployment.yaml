@@ -6,9 +6,9 @@ deployment
     spec:
       volumes:
         - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
         - name: config
           hostPath:
             path: /var/lib/orchest/config
@@ -30,8 +30,8 @@ deployment
           value: "{{ .Values.CLOUD }}"
         - name: "ORCHEST_PORT"
           value: "8000"
-        - name: "HOST_USER_DIR"
-          value: "/var/lib/orchest/userdir"
+        - name: "USER_DIR_PVC"
+          value: "userdir-pvc"
         - name: "HOST_CONFIG_DIR"
           value: "/var/lib/orchest/config"
         - name: "HOST_REPO_DIR"

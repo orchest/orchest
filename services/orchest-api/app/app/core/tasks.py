@@ -154,7 +154,7 @@ def start_non_interactive_pipeline_run(
         pipeline_definition: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
             Example: {
-                'host_user_dir': '/home/../userdir',
+                'user_dir_pvc': 'userdir-pvc',
                 'project_dir': '/home/../pipelines/uuid',
                 'env_uuid_to_image': {
                     'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
@@ -179,8 +179,11 @@ def start_non_interactive_pipeline_run(
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its
-    # `project_dir.
-    host_userdir = run_config["host_user_dir"]
+    # `project_dir`. Note that the `project_dir` inside the
+    # `run_config` has to be the abs path w.r.t. the host because it is
+    # used by the `docker.sock` when mounting the dir to the container
+    # of a step.
+    user_dir_pvc = run_config["user_dir_pvc"]
     host_base_user_dir = os.path.split(host_userdir)[0]
 
     # For non interactive runs the session uuid is equal to the task

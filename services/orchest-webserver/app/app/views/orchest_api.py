@@ -375,7 +375,7 @@ def register_orchest_api_views(app, db):
             "pipeline_uuid": pipeline_uuid,
             "pipeline_path": pipeline_path,
             "project_dir": project_dir,
-            "host_userdir": app.config["HOST_USER_DIR"],
+            "userdir_pvc": app.config["USER_DIR_PVC"],
             "services": services,
         }
 
@@ -473,7 +473,7 @@ def register_orchest_api_views(app, db):
             # add image mapping
             # TODO: replace with dynamic mapping instead of hardcoded
             json_obj["run_config"] = {
-                "host_user_dir": app.config["HOST_USER_DIR"],
+                "user_dir_pvc": app.config["USER_DIR_PVC"],
                 "project_dir": get_project_directory(
                     json_obj["project_uuid"], host_path=True
                 ),
