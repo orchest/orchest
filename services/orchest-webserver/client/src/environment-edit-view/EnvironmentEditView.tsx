@@ -175,6 +175,7 @@ const EnvironmentEditView: React.FC = () => {
     ]
   );
 
+  // TODO: reduce the number of re-rendering here
   useAutoSaveEnvironment(
     !isFetchingEnvironment ? environment : null,
     saveEnvironment
