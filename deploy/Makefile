@@ -203,6 +203,14 @@ ceph-resources: ./bin/ceph-resources
 	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: orchest-resources
+orchest-resources: ./bin/orchest-resources
+
+.SECONDARY: ./bin/orchest-resources
+./bin/orchest-resources: | create-bin
+	helm install ${CLUSTER_RSC_ORCHEST_DEPLOY_CONFIG}
+	touch $@
+
 .PHONY: create-bin
 create-bin:
 	@mkdir -p ./bin
@@ -211,7 +219,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ceph-resources
+./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ceph-resources orchest-resources
 	touch $@
 
 
