@@ -205,6 +205,10 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
     env_builds_dir = _config.USERDIR_ENV_IMG_BUILDS
+    # K8S_TODO: remove this?
+    Path(f"/userdir/{env_builds_dir}").mkdir(parents=True, exist_ok=True)
+    # We need snapshot subpath to be used in userdir pvc
+    snapshot_subpath = os.path.join(env_builds_dir, dockerfile_name)
     # Make a snapshot of the project state, used for the context.
     snapshot_path = f"{env_builds_dir}/{task_uuid}"
     if os.path.isdir(snapshot_path):
@@ -252,7 +256,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     return {
         "snapshot_path": snapshot_path,
-        "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
+        "snapshot_sub_path": snapshot_subpath,
         "base_image": environment_properties["base_image"],
         "dockerfile_path": dockerfile_name,
     }
