@@ -10,10 +10,6 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
 
   const isExistingEnvironment = Boolean(project_uuid) && Boolean(uuid);
 
-  const [newEnvironment, setNewEnvironment] = React.useState<Environment>(
-    initialEnvironment
-  );
-
   const { data, error, isValidating, mutate } = useSWR<Environment>(
     isExistingEnvironment
       ? `/store/environments/${project_uuid}/${uuid}`
@@ -47,11 +43,11 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
   }, [data, uuid, customImage]);
 
   return {
-    environment: data || newEnvironment,
+    environment: data,
     error,
     isFetchingEnvironment: isValidating,
     fetchEnvironment: mutate,
-    setEnvironment: isExistingEnvironment ? setEnvironment : setNewEnvironment,
+    setEnvironment,
     customImage,
     setCustomImage,
   };

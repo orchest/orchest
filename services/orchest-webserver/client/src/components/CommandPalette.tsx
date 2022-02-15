@@ -196,44 +196,49 @@ const CommandPalette: React.FC = () => {
   }, [localFetcher]);
 
   const refreshCache = React.useCallback(async () => {
-    setIsRefreshingCache(true);
+    try {
+      setIsRefreshingCache(true);
 
-    const projectCommands = await fetchProjects().then((projects) => {
-      return projects.reduce(
-        (all, project) => {
-          return {
-            list: [...all.list, commandsFromProject(project)],
-            paths: { ...all.paths, [project.uuid]: project.path },
-          };
-        },
-        { list: [], paths: {} } as ProjectObject
-      );
-    });
-
-    const pipelineCommandsPromise = fetchPipelines().then((pipelines) => {
-      return pipelines.map((pipeline) => {
-        return commandsFromPipeline(projectCommands.paths, pipeline);
+      const projectCommands = await fetchProjects().then((projects) => {
+        return projects.reduce(
+          (all, project) => {
+            return {
+              list: [...all.list, commandsFromProject(project)],
+              paths: { ...all.paths, [project.uuid]: project.path },
+            };
+          },
+          { list: [], paths: {} } as ProjectObject
+        );
       });
-    });
 
-    const jobCommandsPromise = fetchJobs().then((jobs) => {
-      return jobs.map((job) => {
-        return commandsFromJob(projectCommands.paths, job);
+      const pipelineCommandsPromise = fetchPipelines().then((pipelines) => {
+        return pipelines.map((pipeline) => {
+          return commandsFromPipeline(projectCommands.paths, pipeline);
+        });
       });
-    });
 
-    const [pipelineCommands, jobCommands] = await Promise.all([
-      pipelineCommandsPromise,
-      jobCommandsPromise,
-    ]);
+      const jobCommandsPromise = fetchJobs().then((jobs) => {
+        return jobs.map((job) => {
+          return commandsFromJob(projectCommands.paths, job);
+        });
+      });
 
-    setCommands([
-      ...pageCommands,
-      ...projectCommands.list,
-      ...pipelineCommands,
-      ...jobCommands,
-    ]);
-    setIsRefreshingCache(false);
+      const [pipelineCommands, jobCommands] = await Promise.all([
+        pipelineCommandsPromise,
+        jobCommandsPromise,
+      ]);
+
+      setCommands([
+        ...pageCommands,
+        ...projectCommands.list,
+        ...pipelineCommands,
+        ...jobCommands,
+      ]);
+      setIsRefreshingCache(false);
+    } catch (error) {
+      // handle failure silently because this is done in the background
+      console.error(`Failed to fetch for command palette: ${error}`);
+    }
   }, [fetchJobs, fetchPipelines, fetchProjects]);
 
   const onQueryChange = (

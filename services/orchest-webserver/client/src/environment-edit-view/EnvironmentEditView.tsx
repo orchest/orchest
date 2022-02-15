@@ -82,7 +82,6 @@ const EnvironmentEditView: React.FC = () => {
   );
 
   // local states
-  const isNewEnvironment = environmentUuid === "new";
   const {
     environment,
     setEnvironment,
@@ -92,7 +91,7 @@ const EnvironmentEditView: React.FC = () => {
     error: fetchEnvironmentError,
   } = useFetchEnvironment({
     // if environment is new, don't pass the uuid, so this hook won't fire the request
-    uuid: !isNewEnvironment ? environmentUuid : "",
+    uuid: environmentUuid,
     project_uuid: projectUuid,
     ...config.ENVIRONMENT_DEFAULTS,
   });
@@ -144,9 +143,10 @@ const EnvironmentEditView: React.FC = () => {
 
   const [buildFetchHash, setBuildFetchHash] = React.useState(uuidv4());
 
-  const environmentNameError = !validEnvironmentName(environment.name)
-    ? 'Double quotation marks in the "Environment name" have to be escaped using a backslash.'
-    : undefined;
+  const environmentNameError =
+    !environment || validEnvironmentName(environment?.name)
+      ? undefined
+      : 'Double quotation marks in the "Environment name" have to be escaped using a backslash.';
 
   const saveEnvironment = React.useCallback(
     async (payload?: Partial<Environment>) => {
@@ -159,11 +159,11 @@ const EnvironmentEditView: React.FC = () => {
       window.orchest.jupyter.unload();
 
       try {
-        const environmentUuidForUpdateOrCreate = environment.uuid || "new";
+        const environmentUuidForUpdateOrCreate = environment?.uuid || "new";
         const response = await fetcher<Environment>(
           `/store/environments/${projectUuid}/${environmentUuidForUpdateOrCreate}`,
           {
-            method: isNewEnvironment ? "POST" : "PUT",
+            method: "PUT",
             headers: HEADER.JSON,
             body: JSON.stringify({
               environment: {
@@ -175,14 +175,6 @@ const EnvironmentEditView: React.FC = () => {
           }
         );
 
-        if (isNewEnvironment) {
-          setAsSaved();
-          // update the query arg environmentUuid
-          navigateTo(siteMap.environment.path, {
-            query: { projectUuid, environmentUuid: response.uuid },
-          });
-          return response;
-        }
         setAsSaved();
         return response;
       } catch (error) {
@@ -191,21 +183,10 @@ const EnvironmentEditView: React.FC = () => {
         return null;
       }
     },
-    [
-      environment,
-      isNewEnvironment,
-      navigateTo,
-      setAsSaved,
-      projectUuid,
-      setAlert,
-      environmentNameError,
-    ]
+    [environment, setAsSaved, projectUuid, setAlert, environmentNameError]
   );
 
-  useAutoSaveEnvironment(
-    !isFetchingEnvironment ? environment : null,
-    saveEnvironment
-  );
+  useAutoSaveEnvironment(environment, saveEnvironment);
 
   const onChangeEnvironment = React.useCallback(
     (payload: Partial<Environment>) => {
@@ -247,12 +228,12 @@ const EnvironmentEditView: React.FC = () => {
 
       const outcome = await saveEnvironment();
 
-      if (!hasValue(outcome)) return;
+      if (!hasValue(outcome) || !environment) return;
 
-      await requestToBuild(projectUuid, environment.uuid);
+      await requestToBuild(projectUuid, environment?.uuid);
       setIgnoreIncomingLogs(false);
     },
-    [building, environment.uuid, projectUuid, requestToBuild, saveEnvironment]
+    [building, environment, projectUuid, requestToBuild, saveEnvironment]
   );
 
   useHotKeys({
@@ -366,12 +347,12 @@ const EnvironmentEditView: React.FC = () => {
                     onChange={(e) =>
                       onChangeEnvironment({ name: e.target.value })
                     }
-                    value={environment.name}
+                    value={environment?.name || ""}
                     data-test-id="environments-env-name"
                   />
                   <ContainerImagesRadioGroup
                     disabled={building}
-                    value={!isFetchingEnvironment && environment.base_image}
+                    value={!isFetchingEnvironment && environment?.base_image}
                     onChange={onChangeEnvironment}
                     customImage={customImage}
                     onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
@@ -413,7 +394,7 @@ const EnvironmentEditView: React.FC = () => {
                   </Typography>
                 </Box>
                 <CodeMirror
-                  value={environment.setup_script}
+                  value={environment?.setup_script || ""}
                   options={{
                     mode: "application/x-sh",
                     theme: "dracula",
@@ -429,39 +410,37 @@ const EnvironmentEditView: React.FC = () => {
                   }}
                 />
                 <Stack direction="row" spacing={3} alignItems="center">
-                  {!isNewEnvironment && (
-                    <HotKeyHint hint="enter" disabled={building}>
-                      <Button
-                        disabled={isRequestingToBuild || isCancellingBuild}
-                        variant="contained"
-                        color={!building ? "primary" : "secondary"}
-                        onClick={!building ? build : cancelBuild}
-                        startIcon={!building ? <MemoryIcon /> : <CloseIcon />}
-                        data-test-id={
-                          !building
-                            ? "environment-start-build"
-                            : "environments-cancel-build"
-                        }
-                        sx={{
-                          width: (theme) => theme.spacing(28),
-                          padding: (theme) => theme.spacing(1, 4),
-                        }}
-                      >
-                        {!building ? "Build" : "Cancel build"}
-                      </Button>
-                    </HotKeyHint>
-                  )}
+                  <HotKeyHint hint="enter" disabled={building}>
+                    <Button
+                      disabled={isRequestingToBuild || isCancellingBuild}
+                      variant="contained"
+                      color={!building ? "primary" : "secondary"}
+                      onClick={!building ? build : cancelBuild}
+                      startIcon={!building ? <MemoryIcon /> : <CloseIcon />}
+                      data-test-id={
+                        !building
+                          ? "environment-start-build"
+                          : "environments-cancel-build"
+                      }
+                      sx={{
+                        width: (theme) => theme.spacing(28),
+                        padding: (theme) => theme.spacing(1, 4),
+                      }}
+                    >
+                      {!building ? "Build" : "Cancel build"}
+                    </Button>
+                  </HotKeyHint>
                   <ImageBuildStatus build={environmentBuild} sx={{ flex: 1 }} />
                 </Stack>
-                {environment && !isNewEnvironment && (
+                {environment && (
                   <ImageBuildLog
                     hideDefaultStatus
-                    buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment.uuid}`}
+                    buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment?.uuid}`}
                     buildsKey="environment_builds"
                     socketIONamespace={
                       config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
                     }
-                    streamIdentity={`${projectUuid}-${environment.uuid}`}
+                    streamIdentity={`${projectUuid}-${environment?.uuid}`}
                     onUpdateBuild={setEnvironmentBuild}
                     ignoreIncomingLogs={ignoreIncomingLogs}
                     build={environmentBuild}
