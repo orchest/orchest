@@ -8,6 +8,8 @@ metadata:
   {{- include "library.metadata" . | nindent 4 }}
 spec:
   replicas: {{ template "library.spec.replicas" . }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "library.labels.selector" . | nindent 8 }}
