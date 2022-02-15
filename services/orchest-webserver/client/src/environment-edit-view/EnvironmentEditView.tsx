@@ -10,7 +10,7 @@ import { useHotKeys } from "@/hooks/useHotKeys";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Environment, EnvironmentBuild } from "@/types";
+import type { CustomImage, Environment, EnvironmentBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -192,6 +192,11 @@ const EnvironmentEditView: React.FC = () => {
     [setAsSaved, setEnvironment]
   );
 
+  const setCustomImageInEnvironment = (updatedCustomImage: CustomImage) => {
+    setCustomImage(updatedCustomImage);
+    onChangeEnvironment(updatedCustomImage);
+  };
+
   const onCloseCustomBaseImageDialog = () => {
     setIsShowingCustomImageDialog(false);
   };
@@ -298,7 +303,7 @@ const EnvironmentEditView: React.FC = () => {
             onClose={onCloseCustomBaseImageDialog}
             initialValue={customImage}
             saveEnvironment={saveEnvironment}
-            setCustomImage={setCustomImage}
+            setCustomImage={setCustomImageInEnvironment}
           />
           <Box
             sx={{
