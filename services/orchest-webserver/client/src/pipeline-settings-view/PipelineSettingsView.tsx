@@ -493,7 +493,7 @@ const PipelineSettingsView: React.FC = () => {
                 "Warning",
                 `Are you sure you want to delete the service: ${row.name}?`,
                 async (resolve) => {
-                  deleteService(row.name)
+                  deleteService(row.uuid)
                     .then(() => {
                       resolve(true);
                     })
