@@ -6,6 +6,7 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironment } from "@/hooks/useFetchEnvironment";
+import { useHotKeys } from "@/hooks/useHotKeys";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -206,19 +207,11 @@ const EnvironmentEditView: React.FC = () => {
     requestToBuild,
   } = useRequestEnvironmentBuild(ENVIRONMENT_BUILDS_BASE_ENDPOINT);
 
-  React.useEffect(() => {
-    if (newEnvironmentBuild) {
-      setEnvironmentBuild(newEnvironmentBuild);
+  const build = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.nativeEvent.preventDefault();
     }
-  }, [newEnvironmentBuild]);
-  React.useEffect(() => {
-    if (requestBuildError) {
-      setIgnoreIncomingLogs(false);
-    }
-  }, [requestBuildError]);
-
-  const build = async (e: React.MouseEvent) => {
-    e.nativeEvent.preventDefault();
 
     setIgnoreIncomingLogs(true);
 
@@ -229,6 +222,31 @@ const EnvironmentEditView: React.FC = () => {
     await requestToBuild(projectUuid, environment.uuid);
     setIgnoreIncomingLogs(false);
   };
+
+  useHotKeys(
+    {
+      all: {
+        "ctrl+enter, command+enter": (e, hotKeyEvent) => {
+          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key)) {
+            e.preventDefault();
+            build();
+          }
+        },
+      },
+    },
+    []
+  );
+
+  React.useEffect(() => {
+    if (newEnvironmentBuild) {
+      setEnvironmentBuild(newEnvironmentBuild);
+    }
+  }, [newEnvironmentBuild]);
+  React.useEffect(() => {
+    if (requestBuildError) {
+      setIgnoreIncomingLogs(false);
+    }
+  }, [requestBuildError]);
 
   const mounted = useMounted();
 

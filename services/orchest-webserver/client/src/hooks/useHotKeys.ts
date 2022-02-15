@@ -7,7 +7,9 @@ hotkeys.filter = function (event) {
 };
 
 type KeyActionPairs = { [key: string]: KeyHandler };
-type HotKeyConfig<Scope extends string> = Record<Scope, KeyActionPairs>;
+type HotKeyConfig<Scope extends string> = Partial<
+  Record<Scope, KeyActionPairs>
+>;
 
 export function useHotKeys<Scope extends string>(
   config: HotKeyConfig<Scope | "all">,
