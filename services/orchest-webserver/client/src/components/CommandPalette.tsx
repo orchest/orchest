@@ -1,7 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/Routes";
-import { getOrderedRoutes } from "@/routingConfig";
+import { pageCommands } from "@/routingConfig";
 import { Job, Project } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -171,7 +171,6 @@ const CommandPalette: React.FC = () => {
   const [isRefreshingCache, setIsRefreshingCache] = React.useState(false);
   const [query, setQuery] = React.useState("");
   const [selectedCommandIndex, setSelectedCommandIndex] = React.useState(0);
-  const commandCache = React.useRef<Command[]>([]);
   const [commands, setCommands] = React.useState<Command[]>([]);
 
   const commandListRef = React.useRef<HTMLDivElement>();
@@ -183,10 +182,6 @@ const CommandPalette: React.FC = () => {
   }, [commands, query]);
 
   const localFetcher = React.useMemo(() => fetcherCreator(), []);
-
-  const setRootCommands = () => {
-    setCommands(commandCache.current);
-  };
 
   const fetchPipelines = React.useCallback(() => {
     return localFetcher<Pipeline>("/async/pipelines", "result");
@@ -227,49 +222,24 @@ const CommandPalette: React.FC = () => {
       });
     });
 
-    Promise.all([pipelineCommandsPromise, jobCommandsPromise]).then(
-      ([pipelineCommands, jobCommands]) => {
-        commandCache.current = [
-          ...generatePageCommands(),
-          ...projectCommands.list,
-          ...pipelineCommands,
-          ...jobCommands,
-        ];
-        setCommands(commandCache.current);
-        setIsRefreshingCache(false);
-      }
-    );
+    const [pipelineCommands, jobCommands] = await Promise.all([
+      pipelineCommandsPromise,
+      jobCommandsPromise,
+    ]);
+
+    setCommands([
+      ...pageCommands,
+      ...projectCommands.list,
+      ...pipelineCommands,
+      ...jobCommands,
+    ]);
+    setIsRefreshingCache(false);
   }, [fetchJobs, fetchPipelines, fetchProjects]);
 
   const onQueryChange = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
   ) => {
     setQuery(e.target.value);
-  };
-
-  const generatePageCommands = () => {
-    // Exclude detail views
-    const excludedPaths = [
-      siteMap.pipeline.path,
-      siteMap.environment.path,
-      siteMap.pipelineSettings.path,
-      siteMap.projectSettings.path,
-      siteMap.jupyterLab.path,
-      siteMap.filePreview.path,
-      siteMap.logs.path,
-      siteMap.job.path,
-      siteMap.editJob.path,
-    ];
-
-    return getOrderedRoutes((title: string) => title)
-      .filter((route) => excludedPaths.indexOf(route.path) == -1)
-      .map((route) => {
-        return {
-          title: "Page: " + route.title,
-          action: "openPage",
-          data: { path: route.path, query: {} },
-        };
-      });
   };
 
   const handleCommand = (command: Command) => {
@@ -323,7 +293,6 @@ const CommandPalette: React.FC = () => {
         "ctrl+k, command+k": (event) => {
           event.preventDefault();
           showCommandPalette();
-          setRootCommands();
         },
       },
       command: {

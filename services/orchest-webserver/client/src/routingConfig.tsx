@@ -262,3 +262,27 @@ export const generatePathFromRoute = <T extends string>(
     return str.replace(`:${key}`, isValueValid ? value.toString() : "");
   }, route);
 };
+
+// Exclude detail views
+const excludedPaths = [
+  siteMap.pipeline.path,
+  siteMap.environment.path,
+  siteMap.pipelineSettings.path,
+  siteMap.projectSettings.path,
+  siteMap.jupyterLab.path,
+  siteMap.filePreview.path,
+  siteMap.logs.path,
+  siteMap.job.path,
+  siteMap.editJob.path,
+];
+
+// used in CommandPalette
+export const pageCommands = getOrderedRoutes((title: string) => title)
+  .filter((route) => !excludedPaths.includes(route.path))
+  .map((route) => {
+    return {
+      title: "Page: " + route.title,
+      action: "openPage",
+      data: { path: route.path, query: {} },
+    };
+  });
