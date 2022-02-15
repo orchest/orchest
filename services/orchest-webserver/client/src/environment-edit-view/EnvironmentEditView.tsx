@@ -1,4 +1,5 @@
 import { BackButton } from "@/components/common/BackButton";
+import { HotKeyHint } from "@/components/common/HotKeyHint";
 import { PageTitle } from "@/components/common/PageTitle";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { ImageBuildStatus } from "@/components/ImageBuildStatus";
@@ -234,7 +235,6 @@ const EnvironmentEditView: React.FC = () => {
 
   useHotKeys({
     all: {
-      // "ctrl, command": (e, hotKeyEvent) => {},
       "ctrl+enter, command+enter": (e, hotKeyEvent) => {
         if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key)) {
           e.preventDefault();
@@ -408,24 +408,26 @@ const EnvironmentEditView: React.FC = () => {
                 />
                 <Stack direction="row" spacing={3} alignItems="center">
                   {!isNewEnvironment && (
-                    <Button
-                      disabled={isRequestingToBuild || isCancellingBuild}
-                      variant="contained"
-                      color={!building ? "primary" : "secondary"}
-                      onClick={!building ? build : cancelBuild}
-                      startIcon={!building ? <MemoryIcon /> : <CloseIcon />}
-                      data-test-id={
-                        !building
-                          ? "environment-start-build"
-                          : "environments-cancel-build"
-                      }
-                      sx={{
-                        width: (theme) => theme.spacing(28),
-                        padding: (theme) => theme.spacing(1, 4),
-                      }}
-                    >
-                      {!building ? "Build" : "Cancel build"}
-                    </Button>
+                    <HotKeyHint hint="enter" disabled={building}>
+                      <Button
+                        disabled={isRequestingToBuild || isCancellingBuild}
+                        variant="contained"
+                        color={!building ? "primary" : "secondary"}
+                        onClick={!building ? build : cancelBuild}
+                        startIcon={!building ? <MemoryIcon /> : <CloseIcon />}
+                        data-test-id={
+                          !building
+                            ? "environment-start-build"
+                            : "environments-cancel-build"
+                        }
+                        sx={{
+                          width: (theme) => theme.spacing(28),
+                          padding: (theme) => theme.spacing(1, 4),
+                        }}
+                      >
+                        {!building ? "Build" : "Cancel build"}
+                      </Button>
+                    </HotKeyHint>
                   )}
                   <ImageBuildStatus build={environmentBuild} sx={{ flex: 1 }} />
                 </Stack>

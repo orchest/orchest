@@ -17,6 +17,19 @@ export function useHotKeys<Scope extends string>(
   deps: React.DependencyList = [config],
   shouldBind?: boolean
 ) {
+  // // determine if user is pressing Ctrl / Cmd, if so, UI should show hot key hints
+  // const [isShowingHints, setIsShowingHints] = React.useState(false);
+  // React.useEffect(() => {
+  //   const handler = (event: KeyboardEvent) => {
+  //     setIsShowingHints(event.metaKey || event.ctrlKey);
+  //   };
+  //   window.addEventListener("keydown", handler);
+  //   window.addEventListener("keyup", handler);
+  //   return () => {
+  //     window.removeEventListener("keydown", handler);
+  //     window.removeEventListener("keyup", handler);
+  //   };
+  // }, []);
   // when hotkeys registers the config, it creates an closure, so config is memoized
   // to re-bind the config, we apply useMemo to explicitly create a new config according to the deps
   const memoizedConfig = React.useMemo(() => {
@@ -72,5 +85,6 @@ export function useHotKeys<Scope extends string>(
     bindConfig,
     unbindAll,
     unbind: hotkeys.unbind,
+    // isShowingHints,
   };
 }
