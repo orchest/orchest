@@ -107,9 +107,10 @@ export const CustomImageDialog = ({
           <Stack spacing={3} direction="column">
             <Stack direction="row">
               <Typography>
-                Use the path for the external image. For example,
+                Use the path for the external image (default registry: Docker
+                Hub). For example,
                 <Code sx={{ marginTop: (theme) => theme.spacing(1) }}>
-                  docker.io/python:latest
+                  python:latest
                 </Code>
               </Typography>
             </Stack>
