@@ -20,7 +20,7 @@ deployment
         env:
         - name: "ORCHEST_PORT"
           value: "8000"
-        - name: "USER_DIR_PVC"
+        - name: "USERDIR_PVC"
           value: "userdir-pvc"
         - name: "HOST_CONFIG_DIR"
           value: "/var/lib/orchest/config"
