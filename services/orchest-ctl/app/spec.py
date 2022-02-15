@@ -112,7 +112,7 @@ def get_container_config(
     Note:
         Each of the following keys (with a corresponding value) have to
         be present in the `env` (if it is not ``None``):
-            * ``"USER_DIR_PVC"``
+            * ``"USERDIR_PVC"``
             * ``"HOST_CONFIG_DIR"``
             * ``"HOST_REPO_DIR"``
             * ``"HOST_OS"``

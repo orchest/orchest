@@ -9,6 +9,7 @@ from app.utils import (
     get_environments,
     get_pipeline_json,
     get_project_directory,
+    get_pipeline_directory,
     get_project_snapshot_size,
     pipeline_uuid_to_path,
     project_uuid_to_path,
@@ -364,7 +365,7 @@ def register_orchest_api_views(app, db):
             json_obj["project_uuid"],
         )
 
-        project_dir = get_project_directory(json_obj["project_uuid"], host_path=True)
+        project_dir = get_project_directory(json_obj["project_uuid"])
 
         services = get_pipeline_json(
             json_obj["pipeline_uuid"], json_obj["project_uuid"]
@@ -375,7 +376,7 @@ def register_orchest_api_views(app, db):
             "pipeline_uuid": pipeline_uuid,
             "pipeline_path": pipeline_path,
             "project_dir": project_dir,
-            "userdir_pvc": app.config["USER_DIR_PVC"],
+            "userdir_pvc": app.config["USERDIR_PVC"],
             "services": services,
         }
 
@@ -472,12 +473,11 @@ def register_orchest_api_views(app, db):
 
             # add image mapping
             # TODO: replace with dynamic mapping instead of hardcoded
+            # All the paths are container path
             json_obj["run_config"] = {
-                "user_dir_pvc": app.config["USER_DIR_PVC"],
-                "project_dir": get_project_directory(
-                    json_obj["project_uuid"], host_path=True
-                ),
-                "pipeline_path": pipeline_uuid_to_path(
+                "userdir_pvc": app.config["USERDIR_PVC"],
+                "project_dir": get_project_directory(json_obj["project_uuid"]),
+                "pipeline_path": get_pipeline_directory(
                     json_obj["pipeline_definition"]["uuid"], json_obj["project_uuid"]
                 ),
                 "pipeline_uuid": json_obj["pipeline_definition"]["uuid"],

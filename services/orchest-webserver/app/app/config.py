@@ -14,7 +14,7 @@ class Config:
 
     USER_DIR = os.path.join("/userdir")
     PROJECTS_DIR = os.path.join(USER_DIR, "projects")
-    USER_DIR_PVC = os.environ.get("USER_DIR_PVC")
+    USERDIR_PVC = os.environ.get("USERDIR_PVC")
     WEBSERVER_LOGS = _config.WEBSERVER_LOGS
     STATIC_DIR = os.path.join(dir_path, "..", "..", "client", "dist")
 

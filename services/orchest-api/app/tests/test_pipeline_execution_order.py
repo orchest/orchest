@@ -133,7 +133,7 @@ def test_pipeline_run_call_order(testio, monkeypatch):
         "project_uuid": "",
         "run_endpoint": None,
         "env_uuid_docker_id_mappings": MockEnvUUIDDockerIDMapping(),
-        "user_dir_pvc": "",
+        "userdir_pvc": "",
         "user_env_variables": {},
     }
     asyncio.run(testio.pipeline.run(filler_for_task_id, run_config=run_config))

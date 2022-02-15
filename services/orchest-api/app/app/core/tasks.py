@@ -154,8 +154,8 @@ def start_non_interactive_pipeline_run(
         pipeline_definition: A json description of the pipeline.
         run_config: Configuration of the run for the compute backend.
             Example: {
-                'user_dir_pvc': 'userdir-pvc',
-                'project_dir': '/home/../pipelines/uuid',
+                'userdir_pvc': 'userdir-pvc',
+                'project_dir': 'pipelines/uuid',
                 'env_uuid_to_image': {
                     'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
                         'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
@@ -180,11 +180,9 @@ def start_non_interactive_pipeline_run(
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its
     # `project_dir`. Note that the `project_dir` inside the
-    # `run_config` has to be the abs path w.r.t. the host because it is
-    # used by the `docker.sock` when mounting the dir to the container
-    # of a step.
-    user_dir_pvc = run_config["user_dir_pvc"]
-    host_base_user_dir = os.path.split(host_userdir)[0]
+    # `run_config` has to be relative to userdir_pvc as it is used
+    # by k8s as a subpath of userdir_pvc
+    userdir_pvc = run_config["userdir_pvc"]
 
     # For non interactive runs the session uuid is equal to the task
     # uuid, which is actually the pipeline run uuid.
@@ -193,9 +191,7 @@ def start_non_interactive_pipeline_run(
     run_config["session_type"] = "noninteractive"
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
-    # To join the paths, the `run_dir` cannot start with `/userdir/...`
-    # but should start as `userdir/...`
-    run_config["project_dir"] = os.path.join(host_base_user_dir, run_dir[1:])
+    run_config["project_dir"] = run_dir[1:]
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
@@ -210,7 +206,7 @@ def start_non_interactive_pipeline_run(
     session_config = copy.deepcopy(run_config)
     session_config.pop("env_uuid_to_image")
     session_config.pop("run_endpoint")
-    session_config["host_userdir"] = host_userdir
+    session_config["userdir_pvc"] = userdir_pvc
     session_config["services"] = pipeline_definition.get("services", {})
     session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]
 

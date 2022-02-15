@@ -216,10 +216,10 @@ session_config = Model(
             required=True, description="Path to pipeline file"
         ),
         "project_dir": fields.String(
-            required=True, description="Path to pipeline files"
+            required=True, description="Path to project files"
         ),
-        "host_userdir": fields.String(
-            required=True, description="Host path to userdir"
+        "userdir_pvc": fields.String(
+            required=True, description="Name of the userdir pvc"
         ),
         "services": fields.Nested(services),
     },
@@ -387,8 +387,8 @@ non_interactive_run_config = pipeline_run_config.inherit(
     {
         # Needed for the celery-worker to set the new project-dir for
         # jobs. Note that the `orchest-webserver` has this value
-        # stored in the ENV variable `USER_DIR_PVC`.
-        "user_dir_pvc": fields.String(
+        # stored in the ENV variable `USERDIR_PVC`.
+        "userdir_pvc": fields.String(
             required=True, description="Name of the userdir pvc"
         ),
     },
