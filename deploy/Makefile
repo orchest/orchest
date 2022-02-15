@@ -153,4 +153,4 @@ rook:
 
 .PHONY: orchest_upgrade
 orchest_upgrade:
-	helm upgrade --install ${ORCHEST_DEPLOY_CONFIG}
+	helm upgrade ${ORCHEST_DEPLOY_CONFIG}
