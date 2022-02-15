@@ -541,7 +541,7 @@ export const DataTable = <T extends Record<string, any>>({
       const dispatcher = setSelectedRows || setLocalSelected;
       dispatcher((current) => {
         const value = action instanceof Function ? action(current) : action;
-        if (onChangeSelection && mounted) onChangeSelection(value);
+        if (onChangeSelection && mounted.current) onChangeSelection(value);
         return value;
       });
     },
@@ -604,7 +604,7 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   React.useEffect(() => {
-    if (mounted) {
+    if (mounted.current) {
       setSelected((currentSelected) => {
         return currentSelected.filter((selectedRowUuid) =>
           rows.some((row) => row.uuid === selectedRowUuid)
@@ -612,7 +612,7 @@ export const DataTable = <T extends Record<string, any>>({
       });
     }
     // we only want to filter selected when row is updated
-  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mounted, rows, setSelected]);
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,

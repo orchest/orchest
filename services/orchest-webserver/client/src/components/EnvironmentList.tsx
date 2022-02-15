@@ -134,11 +134,11 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   };
 
   React.useEffect(() => {
-    if (mounted && fetchEnvironmentsError) {
+    if (mounted.current && fetchEnvironmentsError) {
       setAlert("Error", "Error fetching Environments");
       navigateTo(siteMap.projects.path);
     }
-  }, [fetchEnvironmentsError]);
+  }, [mounted, fetchEnvironmentsError, navigateTo, setAlert]);
 
   const {
     data: environmentBuilds = [],
@@ -155,12 +155,12 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
   );
 
   React.useEffect(() => {
-    if (mounted && fetchBuildsError)
+    if (mounted.current && fetchBuildsError)
       setAlert(
         "Error",
         "Failed to fetch the latests build of the environment."
       );
-  }, [fetchBuildsError]);
+  }, [mounted, fetchBuildsError, setAlert]);
 
   const environmentRows = React.useMemo(() => {
     const statusObject = environmentBuilds.reduce((obj, build) => {

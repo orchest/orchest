@@ -1,4 +1,3 @@
-import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { siteMap } from "@/Routes";
@@ -164,11 +163,9 @@ const commandsFromJob = (projectPaths: Record<string, string>, job: Job) => {
 
 const CommandPalette: React.FC = () => {
   // global states
-  const {
-    state: { isCommandPaletteOpen },
-    dispatch,
-  } = useAppContext();
   const { navigateTo } = useCustomRoute();
+
+  const [isOpen, setIsOpen] = React.useState(false);
 
   // local states
   const [isRefreshingCache, setIsRefreshingCache] = React.useState(false);
@@ -185,27 +182,25 @@ const CommandPalette: React.FC = () => {
     );
   }, [commands, query]);
 
-  const localFetcher = fetcherCreator();
-
-  const showCommandPalette = () => {
-    dispatch({
-      type: "SET_IS_COMMAND_PALETTE_OPEN",
-      payload: true,
-    });
-  };
-
-  const hideCommandPalette = () => {
-    dispatch({
-      type: "SET_IS_COMMAND_PALETTE_OPEN",
-      payload: false,
-    });
-  };
+  const localFetcher = React.useMemo(() => fetcherCreator(), []);
 
   const setRootCommands = () => {
     setCommands(commandCache.current);
   };
 
-  const refreshCache = async () => {
+  const fetchPipelines = React.useCallback(() => {
+    return localFetcher<Pipeline>("/async/pipelines", "result");
+  }, [localFetcher]);
+
+  const fetchProjects = React.useCallback(() => {
+    return localFetcher<Project>("/async/projects");
+  }, [localFetcher]);
+
+  const fetchJobs = React.useCallback(() => {
+    return localFetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
+  }, [localFetcher]);
+
+  const refreshCache = React.useCallback(async () => {
     setIsRefreshingCache(true);
 
     const projectCommands = await fetchProjects().then((projects) => {
@@ -244,19 +239,7 @@ const CommandPalette: React.FC = () => {
         setIsRefreshingCache(false);
       }
     );
-  };
-
-  const fetchPipelines = () => {
-    return localFetcher<Pipeline>("/async/pipelines", "result");
-  };
-
-  const fetchProjects = () => {
-    return localFetcher<Project>("/async/projects");
-  };
-
-  const fetchJobs = () => {
-    return localFetcher<Job>("/catch/api-proxy/api/jobs/", "jobs");
-  };
+  }, [fetchJobs, fetchPipelines, fetchProjects]);
 
   const onQueryChange = (
     e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement>
@@ -351,7 +334,7 @@ const CommandPalette: React.FC = () => {
               handleCommand(filteredCommands[selectedCommandIndex]);
             }
           }
-          if (["down", "up", "pageup", "pagedown"].includes(hotKeyEvent.key))
+          if (["down", "up", "pageup", "pagedown"].includes(hotKeyEvent.key)) {
             setSelectedCommandIndex((current) => {
               if (hotKeyEvent.key == "down") {
                 if (current < filteredCommands.length - 1) {
@@ -368,6 +351,7 @@ const CommandPalette: React.FC = () => {
               }
               return current;
             });
+          }
         },
       },
     },
@@ -380,32 +364,35 @@ const CommandPalette: React.FC = () => {
     }
   };
 
-  const enableCommandMode = () => {
+  const enableCommandMode = React.useCallback(() => {
     setScope("command");
-  };
+  }, [setScope]);
 
-  const disableCommandMode = () => {
+  const disableCommandMode = React.useCallback(() => {
     setScope("all");
+  }, [setScope]);
+
+  React.useEffect(() => {
+    refreshCache();
+    return () => disableCommandMode();
+  }, [refreshCache, disableCommandMode]);
+
+  const showCommandPalette = () => {
+    setIsOpen(true);
+    enableCommandMode();
   };
 
-  React.useEffect(() => {
-    return () => disableCommandMode();
-  }, []);
-
-  React.useEffect(() => {
-    if (isCommandPaletteOpen) {
-      enableCommandMode();
-    } else {
-      disableCommandMode();
-      refreshCache();
-    }
-  }, [isCommandPaletteOpen]);
+  const hideCommandPalette = () => {
+    setIsOpen(false);
+    disableCommandMode();
+    refreshCache();
+  };
 
   React.useEffect(() => {
     setSelectedCommandIndex(0);
   }, [commands, query]);
 
-  if (!isCommandPaletteOpen) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="command-palette-holder">

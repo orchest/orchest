@@ -212,35 +212,37 @@ const EnvironmentEditView: React.FC = () => {
     requestToBuild,
   } = useRequestEnvironmentBuild(ENVIRONMENT_BUILDS_BASE_ENDPOINT);
 
-  const build = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.nativeEvent.preventDefault();
-    }
+  const build = React.useCallback(
+    async (e?: React.MouseEvent) => {
+      if (building) return;
+      if (e) {
+        e.preventDefault();
+        e.nativeEvent.preventDefault();
+      }
 
-    setIgnoreIncomingLogs(true);
+      setIgnoreIncomingLogs(true);
 
-    const outcome = await saveEnvironment();
+      const outcome = await saveEnvironment();
 
-    if (!hasValue(outcome)) return;
+      if (!hasValue(outcome)) return;
 
-    await requestToBuild(projectUuid, environment.uuid);
-    setIgnoreIncomingLogs(false);
-  };
+      await requestToBuild(projectUuid, environment.uuid);
+      setIgnoreIncomingLogs(false);
+    },
+    [building, environment.uuid, projectUuid, requestToBuild, saveEnvironment]
+  );
 
-  useHotKeys(
-    {
-      all: {
-        "ctrl+enter, command+enter": (e, hotKeyEvent) => {
-          if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key)) {
-            e.preventDefault();
-            build();
-          }
-        },
+  useHotKeys({
+    all: {
+      // "ctrl, command": (e, hotKeyEvent) => {},
+      "ctrl+enter, command+enter": (e, hotKeyEvent) => {
+        if (["ctrl+enter", "command+enter"].includes(hotKeyEvent.key)) {
+          e.preventDefault();
+          build();
+        }
       },
     },
-    []
-  );
+  });
 
   React.useEffect(() => {
     if (newEnvironmentBuild) {
@@ -276,7 +278,7 @@ const EnvironmentEditView: React.FC = () => {
           console.error(error);
         })
         .finally(() => {
-          if (mounted) setIsCancellingBuild(false);
+          if (mounted.current) setIsCancellingBuild(false);
         });
     } else {
       setAlert(

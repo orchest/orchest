@@ -80,8 +80,8 @@ const useSendAnalyticEvent = (
   const {
     state: { config },
   } = useAppContext();
-  const isMounted = useMounted();
-  const shouldSend = config?.TELEMETRY_DISABLED === false && isMounted;
+  const mounted = useMounted();
+  const shouldSend = config?.TELEMETRY_DISABLED === false && mounted.current;
 
   const send = React.useCallback(
     (innerEvent: string, innerProps?: StringifyReactElement) => {
@@ -109,7 +109,8 @@ const useSendAnalyticEvent = (
       hasSent.current = true;
       send(event, props);
     }
-  }, [shouldSend]);
+    // it should take whatever in the given render
+  }, [shouldSend]); // eslint-disable-line react-hooks/exhaustive-deps
   return event ? undefined : send;
 };
 
