@@ -59,7 +59,11 @@ export const ImageBuildStatus = ({
     >
       <Stack direction="row" spacing={1} alignItems="center">
         {statusIconMapping[build.status].icon}
-        <Typography variant="body2" color="InfoText">
+        <Typography
+          variant="body2"
+          color="InfoText"
+          data-test-id="environments-build-status"
+        >
           {statusIconMapping[build.status].message}
         </Typography>
       </Stack>

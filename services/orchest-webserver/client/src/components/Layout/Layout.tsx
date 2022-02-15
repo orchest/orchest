@@ -5,9 +5,8 @@ import React from "react";
 
 export const Layout: React.FC<{
   disablePadding?: boolean;
-  fullHeight?: boolean;
   toolbarElements?: React.ReactNode;
-}> = ({ children, disablePadding, fullHeight, toolbarElements }) => {
+}> = ({ children, disablePadding, toolbarElements }) => {
   return (
     <Stack direction="column" sx={{ position: "relative", height: "100%" }}>
       <Toolbar />

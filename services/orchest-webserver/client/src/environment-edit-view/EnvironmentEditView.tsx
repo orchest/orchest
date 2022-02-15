@@ -74,13 +74,12 @@ const EnvironmentEditView: React.FC = () => {
   // data from route
   const { projectUuid, environmentUuid, navigateTo } = useCustomRoute();
 
-  // !Note: new environment should have been created in EnvironmentList
-  // if user tweak the query args by changing it to "new", we send user back to EnvironmentList
-  React.useEffect(() => {
-    if (environmentUuid === "new") {
-      navigateTo(siteMap.environments.path, { query: { projectUuid } });
-    }
-  }, [environmentUuid, navigateTo, projectUuid]);
+  const returnToEnvironments = React.useCallback(
+    (e?: React.MouseEvent) => {
+      navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
+    },
+    [navigateTo, projectUuid]
+  );
 
   // local states
   const isNewEnvironment = environmentUuid === "new";
@@ -90,12 +89,39 @@ const EnvironmentEditView: React.FC = () => {
     isFetchingEnvironment,
     customImage,
     setCustomImage,
+    error: fetchEnvironmentError,
   } = useFetchEnvironment({
     // if environment is new, don't pass the uuid, so this hook won't fire the request
     uuid: !isNewEnvironment ? environmentUuid : "",
     project_uuid: projectUuid,
     ...config.ENVIRONMENT_DEFAULTS,
   });
+
+  // !Note: new environment should have been created in EnvironmentList
+  // if user tweak the query args by changing it to "new", we send user back to EnvironmentList
+  // if failed to fetch environment, environment is probably removed
+  React.useEffect(() => {
+    if (
+      !isFetchingEnvironment &&
+      (environmentUuid === "new" || fetchEnvironmentError)
+    ) {
+      setAlert(
+        "Error",
+        "Environment does not exist. It could have been removed.",
+        (resolve) => {
+          resolve(true);
+          returnToEnvironments();
+          return true;
+        }
+      );
+    }
+  }, [
+    isFetchingEnvironment,
+    returnToEnvironments,
+    environmentUuid,
+    fetchEnvironmentError,
+    setAlert,
+  ]);
 
   const [
     isShowingCustomImageDialog,
@@ -180,10 +206,6 @@ const EnvironmentEditView: React.FC = () => {
     !isFetchingEnvironment ? environment : null,
     saveEnvironment
   );
-
-  const returnToEnvironments = (e: React.MouseEvent) => {
-    navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
-  };
 
   const onChangeEnvironment = React.useCallback(
     (payload: Partial<Environment>) => {
@@ -296,7 +318,7 @@ const EnvironmentEditView: React.FC = () => {
         </BackButton>
       }
     >
-      {!environment ? (
+      {isFetchingEnvironment ? (
         <LinearProgress />
       ) : (
         <>
