@@ -229,13 +229,17 @@ def shutdown(session_uuid: str, wait_for_completion: bool = False):
 
 
 def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
-    """Deletes all related resources."""
+    """Deletes all related resources, idempotent."""
     # Note: we rely on the fact that deleting the namespace leads to a
     # SIGTERM to the container, which will be used to delete the
     # existing jupyterlab user config lock for interactive sessions.
     # See PR #254.
     ns = get_k8s_namespace_name(session_uuid)
-    k8s_core_api.delete_namespace(ns)
+    try:
+        k8s_core_api.delete_namespace(ns)
+    except client.ApiException as e:
+        if e.status != 404:
+            raise e
 
     if not wait_for_completion:
         return
