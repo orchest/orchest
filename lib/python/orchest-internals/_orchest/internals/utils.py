@@ -350,18 +350,18 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 
 
 def get_step_and_kernel_volumes_and_volume_mounts(
-    user_dir_pvc: str,
-    host_project_dir: str,
-    host_pipeline_file: str,
+    userdir_pvc: str,
+    project_dir: str,
+    pipeline_file: str,
     container_project_dir: str,
     container_pipeline_file: str,
 ) -> Tuple[List[dict], List[dict]]:
     """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
-        user_dir_pvc:
-        host_project_dir:
-        host_pipeline_file:
+        userdir_pvc:
+        project_dir:
+        pipeline_file:
         container_project_dir:
         container_pipeline_file:
 
@@ -373,31 +373,40 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     volumes = []
     volume_mounts = []
 
-    volumes.append({"name": "project-dir", "hostPath": {"path": host_project_dir}})
-    volume_mounts.append({"name": "project-dir", "mountPath": container_project_dir})
-
-    volumes.append({"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}})
-    volume_mounts.append(
-        {"name": "pipeline-file", "mountPath": container_pipeline_file}
-    )
-
     volumes.append(
         {
-            "name": "data",
+            "name": "userdir",
             "persistentVolumeClaim":
             {
-                "claimName" : user_dir_pvc,
+                "claimName" : userdir_pvc,
                 "readOnly": False
             }
         }
     )
+
     volume_mounts.append(
         {
-            "name": "data",
+            "name": "userdir",
             "mountPath": "/data",
             "subPath": "data"
         }
     )
+    volume_mounts.append(
+        {
+            "name": "userdir",
+            "mountPath": container_project_dir,
+            "subPath": project_dir
+        }
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir",
+            "mountPath": container_pipeline_file,
+            "subPath": pipeline_file
+        }
+    )
+
+
 
     return volumes, volume_mounts
 
