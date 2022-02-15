@@ -1,7 +1,6 @@
 import { DEFAULT_BASE_IMAGES } from "@/environment-edit-view/common";
 import { CustomImage, Environment } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
-import { isEmptyObject } from "jquery";
 import React from "react";
 import useSWR from "swr";
 import { MutatorCallback } from "swr/dist/types";
@@ -15,8 +14,6 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
     initialEnvironment
   );
 
-  // TODO: if environment is not available, BE should return 404
-  // currently it returns an empty object `{}`
   const { data, error, isValidating, mutate } = useSWR<Environment>(
     isExistingEnvironment
       ? `/store/environments/${project_uuid}/${uuid}`
@@ -50,8 +47,8 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
   }, [data, uuid, customImage]);
 
   return {
-    environment: isEmptyObject(data) ? newEnvironment : data,
-    error: isEmptyObject(data) ? "Failed to fetch environment" : error,
+    environment: data || newEnvironment,
+    error,
     isFetchingEnvironment: isValidating,
     fetchEnvironment: mutate,
     setEnvironment: isExistingEnvironment ? setEnvironment : setNewEnvironment,
