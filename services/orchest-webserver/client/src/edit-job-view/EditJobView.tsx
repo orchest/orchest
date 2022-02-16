@@ -562,6 +562,7 @@ const EditJobView: React.FC = () => {
               >
                 <TextField
                   required
+                  autoFocus
                   label="Job name"
                   value={job.name}
                   sx={{ width: "50%" }}
