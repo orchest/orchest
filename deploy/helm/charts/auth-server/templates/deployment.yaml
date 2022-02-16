@@ -32,3 +32,21 @@ deployment
            mountPath: /userdir
          - name: config
            mountPath: /config
+        startupProbe:
+          httpGet:
+            path: /login/server-config
+            port: 80
+            scheme: HTTP
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 20
+        livenessProbe:
+          httpGet:
+            path: /login/server-config
+            port: 80
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 2

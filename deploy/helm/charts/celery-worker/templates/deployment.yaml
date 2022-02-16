@@ -33,3 +33,27 @@ deployment
            mountPath: /var/run
          - name: userdir
            mountPath: /userdir
+        startupProbe:
+          exec:
+            command:
+              - celery
+              - -A
+              - app.core.tasks
+              - inspect
+              - ping
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 10
+        livenessProbe:
+          exec:
+            command:
+              - celery
+              - -A
+              - app.core.tasks
+              - inspect
+              - ping
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10

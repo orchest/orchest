@@ -19,3 +19,13 @@ deployment
         volumeMounts:
          - name: userdir
            mountPath: /userdir
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 1
+          periodSeconds: 4
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 5

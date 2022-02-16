@@ -19,3 +19,14 @@ deployment
         volumeMounts:
          - name: mnesia
            mountPath: /var/lib/rabbitmq/mnesia
+        livenessProbe:
+          exec:
+            command:
+              - /opt/rabbitmq/sbin/rabbitmq-diagnostics
+              - -q
+              - check_port_connectivity
+          initialDelaySeconds: 1
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 10

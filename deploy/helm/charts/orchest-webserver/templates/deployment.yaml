@@ -53,3 +53,21 @@ deployment
            mountPath: /config
          - name: repo
            mountPath: /orchest-host
+        startupProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 20
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+          failureThreshold: 2
