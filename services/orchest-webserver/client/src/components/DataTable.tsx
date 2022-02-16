@@ -226,10 +226,11 @@ const CellContainer: React.FC<{
 };
 
 export function renderCell<T>(
-  column: DataTableColumn<T>,
+  column: DataTableColumn<T> | undefined,
   row: DataTableRow<T>,
   disabled: boolean
 ) {
+  if (!column) return null;
   return column.render ? column.render(row, disabled) : row[column.id];
 }
 
@@ -318,7 +319,7 @@ function Row<T>({
         <TableCell component="th" align="left" id={labelId} scope="row">
           <CellContainer
             isLoading={isLoading}
-            sx={columns[0].sx}
+            sx={columns[0]?.sx}
             onAuxClick={handleClickRow}
           >
             {renderCell(columns[0], data, disabled)}
@@ -536,17 +537,16 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   const selected = selectedRows || localSelected;
-  const setSelected = React.useCallback(
-    (action: string[] | ((current: string[]) => string[])) => {
-      const dispatcher = setSelectedRows || setLocalSelected;
-      dispatcher((current) => {
-        const value = action instanceof Function ? action(current) : action;
-        if (onChangeSelection && mounted.current) onChangeSelection(value);
-        return value;
-      });
-    },
-    [mounted, setSelectedRows, onChangeSelection]
-  );
+  const setSelected = (
+    action: string[] | ((current: string[]) => string[])
+  ) => {
+    const dispatcher = setSelectedRows || setLocalSelected;
+    dispatcher((current) => {
+      const value = action instanceof Function ? action(current) : action;
+      if (onChangeSelection && mounted.current) onChangeSelection(value);
+      return value;
+    });
+  };
 
   const sortedRows = React.useMemo(() => {
     const originalRows = originalRowsFromProp || data?.rows || [];
@@ -612,7 +612,7 @@ export const DataTable = <T extends Record<string, any>>({
       });
     }
     // we only want to filter selected when row is updated
-  }, [mounted, rows, setSelected]);
+  }, [mounted, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,

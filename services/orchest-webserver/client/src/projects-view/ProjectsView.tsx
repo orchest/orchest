@@ -324,6 +324,7 @@ const ProjectsView: React.FC = () => {
             >
               <Button
                 variant="contained"
+                autoFocus
                 startIcon={<AddIcon />}
                 onClick={onCreateClick}
                 data-test-id="add-project"

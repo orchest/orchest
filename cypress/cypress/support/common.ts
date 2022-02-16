@@ -47,7 +47,6 @@ export enum TEST_ID {
   ENVIRONMENTS_ROW_CHECKBOX = "environments-row-checkbox",
   ENVIRONMENTS_SAVE = "environments-save",
   ENVIRONMENT_START_BUILD = "environment-start-build",
-  ENVIRONMENT_TAB_BUILD = "environment-build-tab",
   ENVIRONMENT_TAB_PROPERTIES = "environment-properties-tab",
   ENVIRONMENTS_TOGGLE_ALL_ROWS = "environment-list-toggle-all-rows",
   FILE_PICKER_FILE_PATH_TEXTFIELD = "file-picker-file-path-textfield",
@@ -492,11 +491,10 @@ export function assertEnvIsBuilt() {
   // Make sure the environment is built.
   cy.goToMenu("environments");
   cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW).click();
-  cy.findAllByTestId(TEST_ID.ENVIRONMENT_TAB_BUILD).click();
   cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
     .scrollIntoView()
     .should("be.visible")
-    .contains("SUCCESS", { timeout: 20000 });
+    .contains("Build successfully completed!", { timeout: 20000 });
 
   cy.goToMenu("pipelines");
 }

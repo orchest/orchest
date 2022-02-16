@@ -109,6 +109,7 @@ export const CreateProjectDialog = ({
           <Button
             startIcon={<CloseIcon />}
             color="secondary"
+            tabIndex={-1}
             onClick={closeDialog}
           >
             Cancel
