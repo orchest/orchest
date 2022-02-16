@@ -54,14 +54,15 @@ deployment
          - name: repo
            mountPath: /orchest-host
         startupProbe:
-          httpGet:
-            path: /
-            port: 80
-            scheme: HTTP
-          periodSeconds: 1
-          successThreshold: 1
-          timeoutSeconds: 5
-          failureThreshold: 20
+          exec:
+        # K8S_TODO: enable auth check once the auth-server is enabled.
+        # wget auth-server/login/server-config -T 2 -t 1 --spider &&
+            command:
+              - sh
+              - -c
+              - "wget orchest-api/api -T 2 -t 1 --spider &&
+                wget file-manager -T 2 -t 1 &&
+                wget -T 1 -t 1 localhost --spider"
         livenessProbe:
           httpGet:
             path: /

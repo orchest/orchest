@@ -2,7 +2,10 @@ FROM tiangolo/meinheld-gunicorn-flask:python3.8
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Refresh SSL certificates
-RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates --fresh
+RUN apt-get update \
+  && apt-get install -y ca-certificates netcat \
+  && update-ca-certificates --fresh
+
 
 # Install nodejs for frontend client build
 RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt-get install -y nodejs

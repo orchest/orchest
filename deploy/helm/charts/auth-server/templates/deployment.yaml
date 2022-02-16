@@ -33,10 +33,12 @@ deployment
          - name: config
            mountPath: /config
         startupProbe:
-          httpGet:
-            path: /login/server-config
-            port: 80
-            scheme: HTTP
+          exec:
+            command:
+              - sh
+              - -c
+              - "nc -zvw1 orchest-database 5432 &&
+                wget -T 1 -t 1 localhost/login/server-config --spider"
           periodSeconds: 1
           successThreshold: 1
           timeoutSeconds: 5

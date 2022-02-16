@@ -32,12 +32,13 @@ deployment
          - name: userdir
            mountPath: /userdir
         startupProbe:
-          httpGet:
-            path: /api
-            port: 80
-            scheme: HTTP
-          periodSeconds: 5
-          successThreshold: 1
+          exec:
+            command:
+              - sh
+              - -c
+              - "nc -zvw1 rabbitmq-server 5672 &&
+                nc -zvw1 orchest-database 5432 &&
+                wget -T 1 -t 1 localhost/api --spider"
           # Be generous with time because the container could be doing a
           # cleanup and not be able to respond.
           timeoutSeconds: 5
