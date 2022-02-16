@@ -17,7 +17,6 @@ import MemoryIcon from "@mui/icons-material/Memory";
 import TuneIcon from "@mui/icons-material/Tune";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
@@ -25,6 +24,7 @@ import Typography from "@mui/material/Typography";
 import { fetcher, hasValue, HEADER, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/shell/shell";
 import "codemirror/theme/dracula.css";
+import { useFormik } from "formik";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
@@ -101,8 +101,10 @@ const EnvironmentEditView: React.FC = () => {
   // if failed to fetch environment, environment is probably removed
   React.useEffect(() => {
     if (
-      !isFetchingEnvironment &&
-      (environmentUuid === "new" || fetchEnvironmentError)
+      !projectUuid ||
+      !environmentUuid ||
+      environmentUuid === "new" ||
+      (!isFetchingEnvironment && fetchEnvironmentError)
     ) {
       setAlert(
         "Error",
@@ -117,6 +119,7 @@ const EnvironmentEditView: React.FC = () => {
   }, [
     isFetchingEnvironment,
     returnToEnvironments,
+    projectUuid,
     environmentUuid,
     fetchEnvironmentError,
     setAlert,
@@ -186,14 +189,44 @@ const EnvironmentEditView: React.FC = () => {
     [environment, setAsSaved, projectUuid, setAlert, environmentNameError]
   );
 
-  useAutoSaveEnvironment(environment, saveEnvironment);
+  const {
+    handleSubmit,
+    handleBlur,
+    values,
+    errors,
+    touched,
+    setFieldValue,
+    submitForm,
+  } = useFormik({
+    initialValues: environment || { name: "" },
+    isInitialValid: false,
+    validate: ({ name }) => {
+      const errors: Record<string, string> = {};
+      if (!validEnvironmentName(name))
+        errors.name =
+          'Double quotation marks in the "Environment name" have to be escaped using a backslash.';
+      return errors;
+    },
+    onSubmit: async (payload, { setSubmitting }) => {
+      setSubmitting(true);
+      const outcome = await saveEnvironment(payload);
+      setAsSaved(hasValue(outcome));
+      setSubmitting(false);
+    },
+    enableReinitialize: true,
+  });
+
+  useAutoSaveEnvironment(environment, submitForm);
 
   const onChangeEnvironment = React.useCallback(
     (payload: Partial<Environment>) => {
+      Object.entries(payload).forEach(([key, value]) => {
+        setFieldValue(key, value);
+      });
       setAsSaved(false);
       setEnvironment((prev) => ({ ...prev, ...payload }));
     },
-    [setAsSaved, setEnvironment]
+    [setAsSaved, setEnvironment, setFieldValue]
   );
 
   const setCustomImageInEnvironment = (updatedCustomImage: CustomImage) => {
@@ -298,10 +331,9 @@ const EnvironmentEditView: React.FC = () => {
           Back to environments
         </BackButton>
       }
+      loading={isFetchingEnvironment}
     >
-      {isFetchingEnvironment ? (
-        <LinearProgress />
-      ) : (
+      {!isFetchingEnvironment && (
         <>
           <CustomImageDialog
             isOpen={isShowingCustomImageDialog}
@@ -320,46 +352,53 @@ const EnvironmentEditView: React.FC = () => {
               flexDirection: { xs: "column", md: "row" },
             }}
           >
-            <Stack direction="column" spacing={3} sx={{ height: "100%" }}>
-              <Stack direction="row" alignItems="center" spacing={2}>
-                <TuneIcon />
-                <PageTitle sx={{ textTransform: "uppercase" }}>
-                  Environment properties
-                </PageTitle>
-              </Stack>
-              <Paper
-                elevation={3}
-                sx={{
-                  padding: (theme) => theme.spacing(3),
-                  minWidth: (theme) => theme.spacing(48),
-                  width: (theme) => ({ xs: "100%", md: theme.spacing(48) }),
-                }}
-              >
-                <Stack direction="column" spacing={3}>
-                  <TextField
-                    fullWidth
-                    autoFocus
-                    required
-                    label="Environment name"
-                    error={hasValue(environmentNameError)}
-                    helperText={environmentNameError}
-                    disabled={building}
-                    onChange={(e) =>
-                      onChangeEnvironment({ name: e.target.value })
-                    }
-                    value={environment?.name || ""}
-                    data-test-id="environments-env-name"
-                  />
-                  <ContainerImagesRadioGroup
-                    disabled={building}
-                    value={!isFetchingEnvironment && environment?.base_image}
-                    onChange={onChangeEnvironment}
-                    customImage={customImage}
-                    onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
-                  />
+            <form
+              id="environment-edit-form"
+              onSubmit={handleSubmit}
+              style={{ height: "100%" }}
+            >
+              <Stack direction="column" spacing={3}>
+                <Stack direction="row" alignItems="center" spacing={2}>
+                  <TuneIcon />
+                  <PageTitle sx={{ textTransform: "uppercase" }}>
+                    Environment properties
+                  </PageTitle>
                 </Stack>
-              </Paper>
-            </Stack>
+                <Paper
+                  elevation={3}
+                  sx={{
+                    padding: (theme) => theme.spacing(3),
+                    minWidth: (theme) => theme.spacing(48),
+                    width: (theme) => ({ xs: "100%", md: theme.spacing(48) }),
+                  }}
+                >
+                  <Stack direction="column" spacing={3}>
+                    <TextField
+                      fullWidth
+                      autoFocus
+                      required
+                      label="Environment name"
+                      error={touched.name && hasValue(errors.name)}
+                      helperText={errors.name}
+                      disabled={building}
+                      onChange={(e) =>
+                        onChangeEnvironment({ name: e.target.value })
+                      }
+                      onBlur={handleBlur}
+                      value={values.name || ""}
+                      data-test-id="environments-env-name"
+                    />
+                    <ContainerImagesRadioGroup
+                      disabled={building}
+                      value={!isFetchingEnvironment && environment?.base_image}
+                      onChange={onChangeEnvironment}
+                      customImage={customImage}
+                      onOpenCustomBaseImageDialog={onOpenCustomBaseImageDialog}
+                    />
+                  </Stack>
+                </Paper>
+              </Stack>
+            </form>
             <Box
               sx={{
                 width: "100%",
@@ -403,10 +442,7 @@ const EnvironmentEditView: React.FC = () => {
                     readOnly: building,
                   }}
                   onBeforeChange={(editor, data, value) => {
-                    setEnvironment((prev) => ({
-                      ...prev,
-                      setup_script: value,
-                    }));
+                    onChangeEnvironment({ setup_script: value });
                   }}
                 />
                 <Stack direction="row" spacing={3} alignItems="center">

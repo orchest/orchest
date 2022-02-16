@@ -1,41 +1,34 @@
-import { useAppContext } from "@/contexts/AppContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import type { Environment } from "@/types";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { shallowEqualByKey } from "./shallowEqualByKey";
 
+const isEnvironmentChanged = (prev: Environment, curr: Environment) =>
+  !shallowEqualByKey(prev, curr, [
+    "base_image",
+    "gpu_support",
+    "language",
+    "name",
+    "setup_script",
+  ]);
+
+const useHasEnvironmentChanged = (environment: Environment) => {
+  const hasChanged = useHasChanged(environment, (prev, curr) => {
+    if (!prev || !curr) return false;
+    return isEnvironmentChanged(prev, curr);
+  });
+  return hasChanged;
+};
+
 export const useAutoSaveEnvironment = (
   value: Environment | null,
-  save: (newValue: Environment) => Promise<Environment | null>
+  save: (newValue?: Environment) => Promise<Environment | null>
 ) => {
-  const { setAsSaved } = useAppContext();
   const valuesForSaving = useDebounce(value, 500);
-  const shouldSave = useHasChanged(valuesForSaving, (prev, curr) => {
-    if (!prev || !curr) return false;
-    return !shallowEqualByKey(prev, curr, [
-      "base_image",
-      "gpu_support",
-      "language",
-      "name",
-      "setup_script",
-    ]);
-  });
-
-  const doSave = React.useCallback(
-    async (newValue: Environment) => {
-      const outcome = await save(newValue);
-      setAsSaved(hasValue(outcome));
-    },
-    [setAsSaved, save]
-  );
+  const shouldSave = useHasEnvironmentChanged(valuesForSaving);
 
   React.useEffect(() => {
-    if (shouldSave) {
-      doSave(valuesForSaving);
-    }
-  }, [valuesForSaving, shouldSave, doSave]);
-
-  return valuesForSaving;
+    if (shouldSave) save();
+  }, [shouldSave, save]);
 };
