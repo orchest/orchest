@@ -118,11 +118,6 @@ const App = () => {
           id="main-content"
           data-test-id="app"
         >
-          {/* <Toolbar /> */}
-          {/* <Box sx={{ overflowY: "auto", flex: 1 }}>
-            <Routes />
-            <div ref={jupyterRef} className="persistent-view jupyter hidden" />
-          </Box> */}
           <Routes />
           <div ref={jupyterRef} className="persistent-view jupyter hidden" />
         </Box>
