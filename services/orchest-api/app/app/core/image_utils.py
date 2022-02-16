@@ -287,7 +287,7 @@ def _build_image(
         pod_name,
         image_name,
         image_tag,
-        build_context["snapshot_host_path"],
+        build_context["snapshot_path"],
         build_context["dockerfile_path"],
     )
 
