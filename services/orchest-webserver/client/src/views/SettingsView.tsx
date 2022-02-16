@@ -278,7 +278,6 @@ const SettingsView: React.FC = () => {
           ...prevState,
           deletingBaseImagesCache: true,
         }));
-        resolve(true);
         try {
           let checkOrchestPromise = makeCancelable(
             makeRequest(
@@ -294,6 +293,7 @@ const SettingsView: React.FC = () => {
                 ...prevState,
                 deletingBaseImagesCache: false,
               }));
+              resolve(true);
             })
             .catch((error) => {
               setState((prevState) => ({
