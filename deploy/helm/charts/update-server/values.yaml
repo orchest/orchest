@@ -1,8 +1,7 @@
+
 # Service and port configuration
 service:
   port: 80
 
-ORCHEST_LOG_LEVEL: INFO
-
 images:
-  pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresent     

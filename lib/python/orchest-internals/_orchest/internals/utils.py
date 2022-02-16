@@ -552,3 +552,6 @@ def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
     )
     if exit_code != 0:
         raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
+
+def get_userdir_relpath(path):
+    return os.path.relpath(path, "/userdir")

@@ -12,6 +12,7 @@ deployment
       containers:
       - name: orchest-database
         image: postgres:13.1
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         {{ if .Values.service.port}}
         ports:
         - containerPort: {{ .Values.service.port }}

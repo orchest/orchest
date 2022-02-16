@@ -12,6 +12,7 @@ deployment
       containers:
       - name: update-server
         image: orchest/update-server:latest
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         securityContext:
           privileged: true
           runAsUser: 0

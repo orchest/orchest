@@ -3,4 +3,6 @@
 service:
   port: 80
 
+images:
+  pullPolicy: IfNotPresent
 ORCHEST_LOG_LEVEL: INFO

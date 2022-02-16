@@ -5,15 +5,15 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
+        - name: userdir-pvc
           persistentVolumeClaim:
             claimName: userdir-pvc
             readOnly: false
-        - name: config
+        - name: config-pvc
           persistentVolumeClaim:
             claimName: config-pvc
             readOnly: false
-        #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not    
+        #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not
         - name: repo
           hostPath:
             path: /var/lib/orchest/repo
@@ -21,8 +21,9 @@ deployment
       containers:
       - name: orchest-webserver
         image: orchest/orchest-webserver:latest
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         ports:
-        - containerPort: 80        
+        - containerPort: 80
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
@@ -45,9 +46,9 @@ deployment
         - name: "ORCHEST_GPU_ENABLED_INSTANCE"
           value: "FALSE"
         volumeMounts:
-         - name: userdir
+         - name: userdir-pvc
            mountPath: /userdir
-         - name: config
+         - name: config-pvc
            mountPath: /config
          - name: repo
            mountPath: /orchest-host

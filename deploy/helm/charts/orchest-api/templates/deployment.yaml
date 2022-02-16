@@ -5,14 +5,15 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
+        - name: userdir-pvc
           persistentVolumeClaim:
             claimName: userdir-pvc
             readOnly: false
-      serviceAccountName: {{ template "library.metadata.name" . }}      
+      serviceAccountName: {{ template "library.metadata.name" . }}
       containers:
       - name: orchest-api
         image: orchest/orchest-api:latest
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         ports:
         - containerPort: 80
         env:
@@ -25,7 +26,7 @@ deployment
         - name: "ORCHEST_GPU_ENABLED_INSTANCE"
           value: "FALSE"
         volumeMounts:
-         - name: userdir
+         - name: userdir-pvc
            mountPath: /userdir
         startupProbe:
           exec:

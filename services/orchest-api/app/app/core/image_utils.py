@@ -4,6 +4,7 @@ from flask import current_app
 from kubernetes import watch
 
 from _orchest.internals import config as _config
+from _orchest.internals.utils import get_userdir_relpath
 from app import errors, utils
 from app.celery_app import make_celery
 from app.connections import k8s_core_api, k8s_custom_obj_api
@@ -74,8 +75,8 @@ def _get_image_build_workflow_manifest(
         workflow_name: Name with which the workflow will be run.
         image_name: Name of the resulting image, can include repository
             and tags.
-        build_context_path: Path on the host where the build
-            context is to be found.
+        build_context_path: Path on the container where the build
+            context is to be found, ther userdir should be removed
         dockerfile_path: Path to the dockerfile, relative to the
             context.
 
@@ -136,15 +137,10 @@ def _get_image_build_workflow_manifest(
                         ],
                         "volumeMounts": [
                             {
-                                "name": "build-context",
+                                "name": "userdir-pvc",
                                 "mountPath": "/build-context",
-                                "subPath": build_context_path
+                                "subPath": get_userdir_relpath(build_context_path)
 
-                            },
-                            {
-                                "name": "kaniko-cache",
-                                "mountPath": "/cache",
-                                "readOnly": True,
                             },
                             {
                                 "name": "tls-secret",
@@ -172,7 +168,7 @@ def _get_image_build_workflow_manifest(
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "build-context",
+                    "name": "userdir-pvc",
                     "persistentVolumeClaim": {
                         "claimName": "userdir-pvc",
                         "readOnly": "true",

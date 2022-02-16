@@ -5,14 +5,15 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
+        - name: userdir-pvc
           persistentVolumeClaim:
             claimName: userdir-pvc
             readOnly: false
-      serviceAccountName: {{ template "library.metadata.name" . }}      
+      serviceAccountName: {{ template "library.metadata.name" . }}
       containers:
       - name: celery-worker
         image: orchest/celery-worker:latest
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"

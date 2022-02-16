@@ -12,6 +12,7 @@ deployment
       containers:
       - name: rabbitmq-server
         image: rabbitmq:3
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         {{ if .Values.service.port}}
         ports:
         - containerPort: {{ .Values.service.port }}

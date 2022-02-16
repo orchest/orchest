@@ -41,3 +41,14 @@ Get the replicas of the manifest.
 {{- define "library.spec.replicas" -}}
 {{ .Values.replicas | default 1 }}
 {{- end -}}
+
+{{/*
+Get the image pull policy.
+*/}}
+{{- define "library.spec.images.pullPolicy" -}}
+  {{- if .Values.images.pullPolicy -}}
+    {{ .Values.images.pullPolicy }}
+  {{- else -}}
+    {{ "IfNotPresent" }}
+  {{- end }}
+{{- end -}}

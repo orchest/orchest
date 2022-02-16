@@ -6,3 +6,6 @@ service:
   port: 5432
 
 name: orchest-database 
+
+images:
+  pullPolicy: IfNotPresent   

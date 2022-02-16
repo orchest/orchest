@@ -4,3 +4,6 @@ service:
 
 ORCHEST_LOG_LEVEL: INFO
 CLOUD: "False"
+
+images:
+  pullPolicy: IfNotPresent
