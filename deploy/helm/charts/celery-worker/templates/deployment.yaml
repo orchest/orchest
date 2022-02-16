@@ -36,23 +36,26 @@ deployment
         startupProbe:
           exec:
             command:
-              - celery
-              - -A
-              - app.core.tasks
-              - inspect
-              - ping
+              - sh
+              - -c
+              - "nc -zvw1 rabbitmq-server 5672 &&
+                nc -zvw1 orchest-database 5432 &&
+                [ -f worker-builds.pid ] &&
+                [ -f worker-interactive.pid ] &&
+                [ -f worker-jobs.pid ]"
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 5
           failureThreshold: 40
         livenessProbe:
           exec:
+          # A pid file gets deleted if the worker dies.
             command:
-              - celery
-              - -A
-              - app.core.tasks
-              - inspect
-              - ping
+              - sh
+              - -c
+              - "[ -f worker-builds.pid ] &&
+                [ -f worker-interactive.pid ] &&
+                [ -f worker-jobs.pid ]"
           periodSeconds: 5
           timeoutSeconds: 5
           successThreshold: 1
