@@ -24,3 +24,11 @@ class SessionCleanupFailedError(Exception):
 
 class PodNeverReachedExpectedStatusError(Exception):
     pass
+
+
+class ImageCachingFailedError(Exception):
+    pass
+
+
+class ImageBuildFailedError(Exception):
+    pass

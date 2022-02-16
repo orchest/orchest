@@ -12,11 +12,13 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import rmtree
 from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
+from app.core.image_utils import build_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
+from app.utils import get_logger
 from config import CONFIG_CLASS
 
-__DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
+logger = get_logger()
+
 __JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_builds_logs"
 
 
@@ -38,7 +40,7 @@ def update_jupyter_build_status(
         return response.json()
 
 
-def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, flag, path):
+def write_jupyter_dockerfile(work_dir, bash_script, path):
     """Write a custom dockerfile with the given specifications.
 
     This dockerfile is built in an ad-hoc way to later be able to only
@@ -46,42 +48,39 @@ def write_jupyter_dockerfile(task_uuid, work_dir, bash_script, flag, path):
     dockerfile will make it so that the entire context is copied.
 
     Args:
-        task_uuid:
         work_dir: Working directory.
         bash_script: Script to run in a RUN command.
-        flag: Flag to use to be able to differentiate between logs of
-            the bash_script and logs to be ignored.
         path: Where to save the file.
 
     Returns:
+        Dictionary containing build context details.
 
     """
     statements = []
     statements.append("FROM orchest/jupyter-server:latest")
-    # The task uuid is applied first so that if a build is aborted early
-    # any produced artifact will at least have this label and will thus
-    # "searchable" through this label, e.g for cleanups.
-    statements.append(f"LABEL _orchest_jupyter_build_task_uuid={task_uuid}")
-    statements.append("LABEL _orchest_jupyter_build_is_intermediate=1")
+    statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
-    statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
+    statements.append("COPY . .")
 
     # Note: commands are concatenated with && because this way an
     # exit_code != 0 will bubble up and cause the docker build to fail,
     # as it should. The bash script is removed so that the user won't
     # be able to see it after the build is done.
+    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+    error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f'RUN cd "{os.path.join("/", work_dir)}" '
-        f'&& echo "{flag}" '
-        f"&& bash {bash_script} "
-        f'&& echo "{flag}" '
-        "&& build_path_ext=/jupyterlab-orchest-build/extensions"
-        "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions"
+        f"RUN bash {bash_script} "
+        "&& build_path_ext=/jupyterlab-orchest-build/extensions "
+        "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
-        "cp -rfT $userdir_path_ext $build_path_ext; fi"
-        f"&& rm {bash_script}"
+        "cp -rfT $userdir_path_ext $build_path_ext &> /dev/null ; fi "
+        f'&& echo "{flag}" '
+        f"&& rm {bash_script} "
+        # The || <error flag> allows to avoid kaniko errors logs making
+        # into it the user logs and tell us that there has been an
+        # error.
+        f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
-    statements.append("LABEL _orchest_jupyter_build_is_intermediate=0")
 
     statements = "\n".join(statements)
 
@@ -102,7 +101,6 @@ def prepare_build_context(task_uuid):
         Path to the prepared context.
 
     """
-    dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
 
@@ -112,19 +110,18 @@ def prepare_build_context(task_uuid):
     Path("/userdir/.orchest/user-configurations/jupyterlab").mkdir(
         parents=True, exist_ok=True
     )
-    snapshot_path = f"{jupyter_builds_dir}/{dockerfile_name}"
+    snapshot_path = f"{jupyter_builds_dir}/{task_uuid}"
 
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
 
     os.system('mkdir "%s"' % (snapshot_path))
 
-    bash_script_name = f".{dockerfile_name}.sh"
+    dockerfile_name = ".orchest-reserved-jupyter-dockerfile"
+    bash_script_name = ".orchest-reserved-jupyter-setup.sh"
     write_jupyter_dockerfile(
-        task_uuid,
         "tmp/jupyter",
         bash_script_name,
-        __DOCKERFILE_RESERVED_FLAG,
         os.path.join(snapshot_path, dockerfile_name),
     )
 
@@ -144,6 +141,8 @@ def prepare_build_context(task_uuid):
     return {
         "snapshot_path": snapshot_path,
         "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
+        "base_image": "orchest/jupyter-server:latest",
+        "dockerfile_path": dockerfile_name,
     }
 
 
@@ -181,11 +180,10 @@ def build_jupyter_task(task_uuid):
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_docker_image(
+                task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
                     docker_image_name,
                     build_context,
-                    task_uuid,
                     user_logs_fo,
                     complete_logs_path,
                 ),
@@ -209,10 +207,18 @@ def build_jupyter_task(task_uuid):
         # build state to failed.
         except Exception as e:
             update_jupyter_build_status("FAILURE", session, task_uuid)
+            logger.error(e)
             raise e
         finally:
             # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflow.
+            # aborted, in any case, delete the workflows.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-cache-task-{task_uuid}",
+            )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",

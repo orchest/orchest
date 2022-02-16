@@ -13,11 +13,10 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
 from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_docker_image, cleanup_docker_artifacts
+from app.core.image_utils import build_image, cleanup_docker_artifacts
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
-__DOCKERFILE_RESERVED_FLAG = "_ORCHEST_RESERVED_FLAG_"
 __ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
 
 
@@ -43,7 +42,7 @@ def update_environment_build_status(
 
 
 def write_environment_dockerfile(
-    base_image, task_uuid, project_uuid, env_uuid, work_dir, bash_script, flag, path
+    base_image, project_uuid, env_uuid, work_dir, bash_script, path
 ):
     """Write a custom dockerfile with the given specifications.
 
@@ -53,13 +52,10 @@ def write_environment_dockerfile(
 
     Args:
         base_image: Base image of the docker file.
-        task_uuid:
         project_uuid:
         env_uuid:
         work_dir: Working directory.
         bash_script: Script to run in a RUN command.
-        flag: Flag to use to be able to differentiate between logs of
-            the bash_script and logs to be ignored.
         path: Where to save the file.
 
     Returns:
@@ -67,23 +63,16 @@ def write_environment_dockerfile(
     """
     statements = []
     statements.append(f"FROM {base_image}")
-    # These labels are coupled with the logic that marks environment
-    # images for removal on update and the deletion of said stale
-    # images.
-    # The task uuid is applied first so that if a build is aborted early
-    # any produced artifact will at least have this label and will thus
-    # "searchable" through this label, e.g for cleanups.
-    statements.append(f"LABEL _orchest_env_build_task_uuid={task_uuid}")
-    statements.append("LABEL _orchest_env_build_is_intermediate=1")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
+    statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     # Copy the entire context, that is, given the current use case, that
     # we are copying the project directory (from the snapshot) into the
     # docker image that is to be built, this allows the user defined
     # script defined through orchest to make use of files that are part
     # of its project, e.g. a requirements.txt or other scripts.
-    statements.append(f"COPY . \"{os.path.join('/', work_dir)}\"")
+    statements.append("COPY . .")
 
     # Permission statements.
     ps = [
@@ -110,19 +99,22 @@ def write_environment_dockerfile(
         f"sudo rm {bash_script}; fi)"
     )
 
+    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+    error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f'RUN cd "{os.path.join("/", work_dir)}" '
-        f'&& echo "{flag}" '
         # The ! in front of echo is there so that the script will fail
         # since the statements in the "if" have failed, the echo is a
         # way of injecting the help message.
-        f'&& ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
+        f'RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
         f"&& bash {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.
-        f'&& echo "{flag}" {rm_statement}'
+        f'&& echo "{flag}" {rm_statement} '
+        # The || <error flag> allows to avoid kaniko errors logs making
+        # into it the user logs and tell us that there has been an
+        # error.
+        f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
     )
-    statements.append("LABEL _orchest_env_build_is_intermediate=0")
 
     statements = "\n".join(statements)
 
@@ -203,12 +195,11 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         project_path:
 
     Returns:
-        Path to the prepared context.
+        Dictionary containing build context details.
 
     Raises:
         See the check_environment_correctness_function
     """
-    dockerfile_name = task_uuid
     # the project path we receive is relative to the projects directory
     userdir_project_path = os.path.join("/userdir/projects", project_path)
 
@@ -219,7 +210,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     # K8S_TODO: remove this?
     Path(env_builds_dir).mkdir(parents=True, exist_ok=True)
     # Make a snapshot of the project state, used for the context.
-    snapshot_path = f"{env_builds_dir}/{dockerfile_name}"
+    snapshot_path = f"{env_builds_dir}/{task_uuid}"
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
     copytree(userdir_project_path, snapshot_path, use_gitignore=True)
@@ -233,20 +224,22 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         environment_properties = json.load(json_file)
 
         # use the task_uuid to avoid clashing with user stuff
-        docker_file_name = dockerfile_name
-        bash_script_name = f".{dockerfile_name}.sh"
+        dockerfile_name = (
+            f".orchest-reserved-env-dockerfile-{project_uuid}-{environment_uuid}"
+        )
+        bash_script_name = (
+            f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
+        )
         write_environment_dockerfile(
             environment_properties["base_image"],
-            task_uuid,
             project_uuid,
             environment_uuid,
             _config.PROJECT_DIR,
             bash_script_name,
-            __DOCKERFILE_RESERVED_FLAG,
-            os.path.join(snapshot_path, docker_file_name),
+            os.path.join(snapshot_path, dockerfile_name),
         )
 
-        # move the startup script to the context
+        # Move the startup script to the context.
         os.system(
             'cp "%s" "%s"'
             % (
@@ -259,12 +252,13 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     with open(os.path.join(snapshot_path, ".dockerignore"), "w") as docker_ignore:
         docker_ignore.write(".dockerignore\n")
         docker_ignore.write(".orchest\n")
-        docker_ignore.write("%s\n" % docker_file_name)
+        docker_ignore.write("%s\n" % dockerfile_name)
 
     return {
         "snapshot_path": snapshot_path,
         "snapshot_host_path": f"/var/lib/orchest{snapshot_path}",
         "base_image": environment_properties["base_image"],
+        "dockerfile_path": dockerfile_name,
     }
 
 
@@ -309,11 +303,10 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
-                task_lambda=lambda user_logs_fo: build_docker_image(
+                task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
                     docker_image_name,
                     build_context,
-                    task_uuid,
                     user_logs_fo,
                     complete_logs_path,
                 ),
@@ -340,7 +333,14 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             raise e
         finally:
             # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflow.
+            # aborted, in any case, delete the workflows.
+            k8s_custom_obj_api.delete_namespaced_custom_object(
+                "argoproj.io",
+                "v1alpha1",
+                "orchest",
+                "workflows",
+                f"image-cache-task-{task_uuid}",
+            )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",
