@@ -6,9 +6,9 @@ deployment
     spec:
       volumes:
         - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
       serviceAccountName: {{ template "library.metadata.name" . }}      
       containers:
       - name: celery-worker

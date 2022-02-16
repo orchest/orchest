@@ -13,11 +13,14 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 
 # Orchest will install docker-registry by default, if it is not desired,
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
-REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
+REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
 # Orchest will install rook for managing ceph by default, if it is not desired,
 # define DISABLE_ROOK env variable and set it to something (preferably FALSE)
-ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
+ROOK_TARGET := ${if ${DISABLE_ROOK},,rook}
+
+# if rook is disabled, we also diable ceph-resources target
+CEPH_TARGET := ${if ${DISABLE_ROOK},,ceph-resources}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
 	 --create-namespace --atomic
@@ -28,8 +31,8 @@ REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
 
 # Name of default file-system and block storage classes
-FILESYSTEM_STORAGE_CLASS := ${if ${FILESYSTEM_STORAGE_CLASS}, ${FILESYSTEM_STORAGE_CLASS},ceph-filesystem}
-BLOCK_STORAGE_CLASS := ${if ${BLOCK_STORAGE_CLASS}, ${BLOCK_STORAGE_CLASS},ceph-block}
+FILESYSTEM_STORAGE_CLASS := ${if ${CEPH_TARGET},ceph-filesystem,standard}
+BLOCK_STORAGE_CLASS := ${if ${CEPH_TARGET},ceph-block,standard}
 
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
@@ -207,7 +210,7 @@ rook: ./bin/rook
 registry-resources: ./bin/registry-resources
 
 .SECONDARY: ./bin/registry-resources
-./bin/registry-resources: | create-bin cert-manager ceph-resources
+./bin/registry-resources: | create-bin cert-manager ${CEPH_TARGET}
 	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
 
@@ -215,7 +218,7 @@ registry-resources: ./bin/registry-resources
 ceph-resources: ./bin/ceph-resources
 
 .SECONDARY: ./bin/ceph-resources
-./bin/ceph-resources: | create-bin rook
+./bin/ceph-resources: | create-bin ${ROOK_TARGET}
 	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
 	touch $@
 
@@ -235,7 +238,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ceph-resources orchest-resources
+./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ${CEPH_TARGET} orchest-resources
 	touch $@
 
 

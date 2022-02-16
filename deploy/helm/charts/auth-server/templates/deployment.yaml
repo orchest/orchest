@@ -6,9 +6,9 @@ deployment
     spec:
       volumes:
         - name: config
-          hostPath:
-            path: /var/lib/orchest/config
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: config-pvc
+            readOnly: false
       containers:
       - name: auth-server
         image: orchest/auth-server:latest
@@ -26,8 +26,6 @@ deployment
         - name: "PYTHONUNBUFFERED"
           value: "TRUE"       
         volumeMounts:
-         - name: userdir
-           mountPath: /userdir
          - name: config
            mountPath: /config
         startupProbe:

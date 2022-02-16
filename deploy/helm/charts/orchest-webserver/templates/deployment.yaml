@@ -10,9 +10,9 @@ deployment
             claimName: userdir-pvc
             readOnly: false
         - name: config
-          hostPath:
-            path: /var/lib/orchest/config
-            type: DirectoryOrCreate
+          persistentVolumeClaim:
+            claimName: config-pvc
+            readOnly: false
         #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not    
         - name: repo
           hostPath:

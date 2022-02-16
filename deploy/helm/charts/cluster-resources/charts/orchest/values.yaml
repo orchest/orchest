@@ -1,4 +1,10 @@
+filesystem:
+  storageClass: standard
+
 userdir:
   name: userdir-pvc
   storage: 4Gi
-  storageClass: standard
+
+config:
+  name: config-pvc
+  storage: 10Mi

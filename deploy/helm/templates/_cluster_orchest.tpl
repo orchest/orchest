@@ -5,16 +5,27 @@ Get the name of the userdir pvc.
   {{- if .Values.userdir.name -}}
     {{ .Values.userdir.name | trunc 63 | trimSuffix "-" }}
   {{- else -}}
-    {{ "user-dir" }}
+    {{ "userdir-pvc" }}
   {{- end }}
 {{- end -}}
 
 {{/*
-Get the name of the storage class for userdir.
+Get the name of the userdir pvc.
 */}}
-{{- define "library.cluster.orchest.userdir.storageClass" -}}
-  {{- if .Values.userdir.storageClass -}}
-    {{ .Values.userdir.storageClass | trunc 63 | trimSuffix "-" }}
+{{- define "library.cluster.orchest.config.name" -}}
+  {{- if .Values.config.name -}}
+    {{ .Values.config.name | trunc 63 | trimSuffix "-" }}
+  {{- else -}}
+    {{ "config-pvc" }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Get the name of the filesystem storage class.
+*/}}
+{{- define "library.cluster.orchest.filesystem.storageClass" -}}
+  {{- if .Values.filesystem.storageClass -}}
+    {{ .Values.filesystem.storageClass | trunc 63 | trimSuffix "-" }}
   {{- else -}}
     {{ "standard" }}
   {{- end }}

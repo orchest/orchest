@@ -23,7 +23,7 @@ deployment
         - name: "USERDIR_PVC"
           value: "userdir-pvc"
         - name: "HOST_CONFIG_DIR"
-          value: "/var/lib/orchest/config"
+          value: "config_pvc"
         - name: "HOST_REPO_DIR"
           value: "/var/lib/orchest/repo"
         - name: "HOST_OS"

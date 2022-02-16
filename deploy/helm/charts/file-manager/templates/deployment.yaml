@@ -6,9 +6,9 @@ deployment
     spec:
       volumes:
         - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate                     
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
       containers:
       - name: file-manager
         image: orchest/file-manager:latest
