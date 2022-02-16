@@ -44,7 +44,7 @@ deployment
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 5
-          failureThreshold: 10
+          failureThreshold: 40
         livenessProbe:
           exec:
             command:
