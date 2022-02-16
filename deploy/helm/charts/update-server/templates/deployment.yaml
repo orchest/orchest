@@ -19,6 +19,10 @@ deployment
         ports:
         - containerPort: 80        
         env:
+        {{ if .Values.enableDebug}}  
+        - name: "ORCHEST_LOG_LEVEL"
+          value: DEBUG 
+        {{ end }}         
         - name: "ORCHEST_PORT"
           value: "8000"
         - name: "USERDIR_PVC"

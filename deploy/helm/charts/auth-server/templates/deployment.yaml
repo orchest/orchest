@@ -24,8 +24,10 @@ deployment
           value: "{{ .Values.CLOUD }}"
         - name: "HOST_OS"
           value: "linux"
+        {{ if .Values.enableDebug}}
         - name: "ORCHEST_LOG_LEVEL"
           value: DEBUG
+        {{ end }}
         - name: "PYTHONUNBUFFERED"
           value: "TRUE"
         volumeMounts:

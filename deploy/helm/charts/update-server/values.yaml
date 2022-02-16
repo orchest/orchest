@@ -4,4 +4,6 @@ service:
   port: 80
 
 images:
-  pullPolicy: IfNotPresent     
+  pullPolicy: IfNotPresent
+
+enableDebug: false  
