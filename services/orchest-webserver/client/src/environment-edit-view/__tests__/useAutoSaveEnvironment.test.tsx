@@ -55,13 +55,16 @@ describe("useAutoSaveEnvironment", () => {
       },
     });
 
-    // save doesn't fire immediately
+    // doesn't save in 400ms
+    act(() => {
+      jest.advanceTimersByTime(480);
+    });
     expect(save).toHaveBeenCalledTimes(0);
 
     act(() => {
-      jest.runAllTimers();
+      jest.advanceTimersByTime(100);
     });
-    // fired after timeout
+    // fired after timeout 500ms
     expect(save).toHaveBeenCalledTimes(1);
   });
 });
