@@ -16,6 +16,27 @@ describe("useAutoSaveEnvironment", () => {
   afterEach(() => {
     jest.useRealTimers();
   });
+  it("should not save when given environment is unchanged", () => {
+    jest.useFakeTimers();
+
+    const save = jest.fn(() => null);
+
+    const { rerender } = renderHook(
+      ({ environment }) => useAutoSaveEnvironment(environment, save),
+      { initialProps: { environment: mockEnvironment } }
+    );
+
+    rerender({ environment: { ...mockEnvironment } });
+    act(() => {
+      jest.runAllTimers();
+    });
+    rerender({ environment: { ...mockEnvironment } });
+    act(() => {
+      jest.runAllTimers();
+    });
+
+    expect(save).toBeCalledTimes(0);
+  });
   it("should fire save when given environment is changed", () => {
     jest.useFakeTimers();
 
@@ -33,10 +54,14 @@ describe("useAutoSaveEnvironment", () => {
         language: "r",
       },
     });
+
+    // save doesn't fire immediately
+    expect(save).toHaveBeenCalledTimes(0);
+
     act(() => {
       jest.runAllTimers();
     });
-
-    expect(save).toBeCalledTimes(1);
+    // fired after timeout
+    expect(save).toHaveBeenCalledTimes(1);
   });
 });
