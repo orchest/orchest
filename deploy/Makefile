@@ -92,7 +92,7 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 
 .PHONY: orchest
 orchest: initialize
-	helm install ${ORCHEST_DEPLOY_CONFIG}
+	helm install --atomic ${ORCHEST_DEPLOY_CONFIG}
 
 .PHONY: jupyter-eg
 jupyter-eg: ./bin/jupyter-eg
