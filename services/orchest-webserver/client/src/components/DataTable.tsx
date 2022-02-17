@@ -425,7 +425,10 @@ function generateLoadingRows<T>(
   rowCount: number,
   columns: DataTableColumn<T>[]
 ) {
-  return [...Array(rowCount).keys()].map((key) => {
+  // rendering large amount of table rows with skeleton is causing performance issue
+  // We limit it to 25, which should suffice for most users' viewport.
+  const renderedRowCount = Math.min(25, rowCount);
+  return [...Array(renderedRowCount).keys()].map((key) => {
     return columns.reduce((all, col) => {
       // add isLoading: true signifies this row is a loading row (i.e. will be filled by Skeleton).
       // thus, the data ([col.id]) doesn't matter, we just fill an empty string.
@@ -863,7 +866,7 @@ export const DataTable = <T extends Record<string, any>>({
           </Stack>
           <TablePagination
             sx={{ flex: 1 }}
-            rowsPerPageOptions={[5, 10, 25]}
+            rowsPerPageOptions={[5, 10, 25, 100]}
             component="div"
             count={totalCount}
             rowsPerPage={rowsPerPage}
