@@ -1,6 +1,6 @@
 # Quickstart
 
-[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/astrojuanlu/quickstart/)
+[![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest.svg)](https://cloud.orchest.io/?import_url=https://github.com/orchest/quickstart/)
 
 For supportive material, please refer to the [quickstart in our
 docs](https://orchest.readthedocs.io/en/stable/getting_started/quickstart.html) or to our [quickstart
