@@ -237,9 +237,10 @@ const ConfigureJupyterLabView: React.FC = () => {
                 value={state.jupyterSetupScript}
                 options={{
                   mode: "application/x-sh",
-                  theme: "jupyter",
+                  theme: "dracula",
                   lineNumbers: true,
                   viewportMargin: Infinity,
+                  readOnly: building,
                 }}
                 onBeforeChange={(editor, data, value) => {
                   setState((prevState) => ({
