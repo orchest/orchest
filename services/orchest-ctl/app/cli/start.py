@@ -4,7 +4,7 @@ from typing import Optional
 
 import typer
 
-from app.orchest import OrchestApp
+from app.orchest_old import OrchestApp
 
 logger = logging.getLogger(__name__)
 

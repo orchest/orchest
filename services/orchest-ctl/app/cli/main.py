@@ -6,7 +6,7 @@ from typing import Optional
 import typer
 
 from app.cli import start as cli_start
-from app.orchest import OrchestApp
+from app.orchest_old import OrchestApp
 from app.utils import echo, fix_userdir_permissions
 
 

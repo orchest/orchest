@@ -19,9 +19,7 @@ from typing import List, Optional, Set, Tuple
 
 import typer
 
-from app import config, spec, utils
-from app.debug import debug_dump, health_check
-from app.docker_wrapper import DockerWrapper, OrchestResourceManager
+from app import config, utils
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +28,9 @@ class OrchestApp:
     """..."""
 
     def __init__(self):
-        self.resource_manager = OrchestResourceManager()
-        self.docker_client = DockerWrapper()
+        # self.resource_manager = OrchestResourceManager()
+        # self.docker_client = DockerWrapper()
+        ...
 
     def install(self, language: str, gpu: bool = False):
         """Installs Orchest for the given language.
