@@ -53,6 +53,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.16.1",
+    "@testing-library/react-hooks": "^7.0.2",
     "@types/codemirror": "^5.60.5",
     "@types/jest": "^27.4.0",
     "@types/jquery": "^3.5.6",
