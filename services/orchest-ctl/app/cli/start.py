@@ -1,10 +1,10 @@
 import logging
+from enum import Enum
 from typing import Optional
 
 import typer
 
 from app.orchest import OrchestApp
-from app.spec import LogLevel, get_container_config
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,13 @@ __DEV_HELP_MESSAGE = (
     "makes it so that the git repository and the orchest-ctl image are"
     "not updated."
 )
+
+
+class LogLevel(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
 
 
 def _default(

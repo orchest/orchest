@@ -7,7 +7,6 @@ import typer
 
 from app.cli import start as cli_start
 from app.orchest import OrchestApp
-from app.spec import get_container_config
 from app.utils import echo, fix_userdir_permissions
 
 
