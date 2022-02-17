@@ -34,23 +34,19 @@ import { useRequestEnvironmentBuild } from "./useRequestEnvironmentBuild";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
-const validEnvironmentName = (name: string) => {
-  if (!name) {
-    return false;
+const DOUBLE_QUOTATION_MARK_ERROR =
+  'Please escape double quotation marks using a "\\".';
+const validateEnvironmentName = (name: string | undefined) => {
+  if (name === undefined) return { valid: false, reason: "" };
+  if (!name || !/\S/.test(name)) {
+    return { valid: false, reason: "Cannot be blank" };
   }
   // Negative lookbehind. Check that every " is escaped with \
   for (let x = 0; x < name.length; x++) {
-    if (name[x] == '"') {
-      if (x == 0) {
-        return false;
-      } else {
-        if (name[x - 1] != "\\") {
-          return false;
-        }
-      }
-    }
+    if (name[x] === '"' && (x == 0 || name[x - 1] != "\\"))
+      return { valid: false, reason: DOUBLE_QUOTATION_MARK_ERROR };
   }
-  return true;
+  return { valid: true };
 };
 
 /**
@@ -146,14 +142,11 @@ const EnvironmentEditView: React.FC = () => {
 
   const [buildFetchHash, setBuildFetchHash] = React.useState(uuidv4());
 
-  const environmentNameError =
-    !environment || validEnvironmentName(environment?.name)
-      ? undefined
-      : 'Double quotation marks in the "Environment name" have to be escaped using a backslash.';
+  const environmentNameValidation = validateEnvironmentName(environment?.name);
 
   const saveEnvironment = React.useCallback(
     async (payload?: Partial<Environment>) => {
-      if (environmentNameError) {
+      if (!environmentNameValidation.valid) {
         return null;
       }
       // Saving an environment will invalidate the Jupyter <iframe>
@@ -186,7 +179,7 @@ const EnvironmentEditView: React.FC = () => {
         return null;
       }
     },
-    [environment, setAsSaved, projectUuid, setAlert, environmentNameError]
+    [environment, setAsSaved, projectUuid, setAlert, environmentNameValidation]
   );
 
   const {
@@ -202,9 +195,9 @@ const EnvironmentEditView: React.FC = () => {
     isInitialValid: false,
     validate: ({ name }) => {
       const errors: Record<string, string> = {};
-      if (!validEnvironmentName(name))
-        errors.name =
-          'Double quotation marks in the "Environment name" have to be escaped using a backslash.';
+      const environmentNameValidation = validateEnvironmentName(name);
+      if (!environmentNameValidation.valid)
+        errors.name = environmentNameValidation.reason;
       return errors;
     },
     onSubmit: async (payload, { setSubmitting }) => {
@@ -378,8 +371,8 @@ const EnvironmentEditView: React.FC = () => {
                       autoFocus
                       required
                       label="Environment name"
-                      error={touched.name && hasValue(errors.name)}
-                      helperText={errors.name}
+                      error={!environmentNameValidation.valid}
+                      helperText={environmentNameValidation.reason || " "}
                       disabled={building}
                       onChange={(e) =>
                         onChangeEnvironment({ name: e.target.value })
@@ -428,8 +421,7 @@ const EnvironmentEditView: React.FC = () => {
                     Environment set-up script
                   </Typography>
                   <Typography variant="body2">
-                    This will execute when you build the environment. Use it to
-                    include your dependencies.
+                    Add dependencies to your environment.
                   </Typography>
                 </Box>
                 <CodeMirror

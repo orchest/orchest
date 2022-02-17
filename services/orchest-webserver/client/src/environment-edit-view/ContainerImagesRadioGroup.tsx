@@ -7,6 +7,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Grid from "@mui/material/Grid";
+import Link from "@mui/material/Link";
 import Radio from "@mui/material/Radio";
 import RadioGroup, { useRadioGroup } from "@mui/material/RadioGroup";
 import Stack from "@mui/material/Stack";
@@ -99,11 +100,18 @@ export const ContainerImagesRadioGroup = ({
     <RadioGroup value={value} onChange={(e, value) => onChangeSelection(value)}>
       <Box>
         <Typography component="h2" variant="h6">
-          Choose a container image
+          Choose a base image
         </Typography>
         <Typography variant="body2">
-          The container image will be the starting point from which the
-          environment will be built.
+          The base image can be extended using the environment set-up script (
+          <Link
+            target="_blank"
+            rel="noopener noreferrer"
+            href="https://docs.orchest.io/en/latest/fundamentals/environments.html"
+          >
+            learn more
+          </Link>
+          )
         </Typography>
       </Box>
       <Grid
@@ -135,7 +143,7 @@ export const ContainerImagesRadioGroup = ({
             }}
             onClick={onOpenCustomBaseImageDialog}
           >
-            Create custom container image
+            Add custom base image
           </Button>
         )}
         {customImage && (
