@@ -1,5 +1,6 @@
 import { EnvironmentBuild } from "@/types";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DoDisturbOnOutlinedIcon from "@mui/icons-material/DoDisturbOnOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
 import HourglassEmptyOutlinedIcon from "@mui/icons-material/HourglassEmptyOutlined";
 import HourglassTopOutlinedIcon from "@mui/icons-material/HourglassTopOutlined";
@@ -27,11 +28,11 @@ const statusIconMapping: Partial<Record<
   },
   FAILURE: {
     message: "Failed to build image",
-    icon: <HighlightOffIcon sx={{ color: "error.light" }} />,
+    icon: <HighlightOffIcon sx={{ color: "error.main" }} />,
   },
   ABORTED: {
     message: "Build was cancelled",
-    icon: <HighlightOffIcon sx={{ color: "error.light" }} />,
+    icon: <DoDisturbOnOutlinedIcon sx={{ color: "warning.main" }} />,
   },
   PENDING: {
     message: "Getting ready to build...",
@@ -41,6 +42,11 @@ const statusIconMapping: Partial<Record<
       />
     ),
   },
+};
+
+const FAILED_TO_BUILD_COLORS = {
+  ABORTED: "warning",
+  FAILURE: "error",
 };
 
 export const ImageBuildStatus = ({
@@ -68,6 +74,7 @@ export const ImageBuildStatus = ({
         </Typography>
       </Stack>
       <LinearProgress
+        color={FAILED_TO_BUILD_COLORS[build.status] || "primary"}
         value={!inProgress ? 100 : undefined}
         variant={!inProgress ? "determinate" : "indeterminate"}
         sx={{
