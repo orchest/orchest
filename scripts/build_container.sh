@@ -101,6 +101,11 @@ SDK_IMAGES=(
     "base-kernel-julia"
 )
 
+HELM_IMAGES=(
+    "orchest-ctl"
+    "update-server"
+)
+
 CLEANUP_BUILD_CTX=()
 CLEANUP_IMAGES=()
 
@@ -137,6 +142,9 @@ run_build () {
                 pnpm_file=${i}
                 cp $DIR/../$pnpm_file $build_ctx/pnpm_files 2>/dev/null
             done
+        fi
+        if containsElement "${image}" "${HELM_IMAGES[@]}" ; then
+            cp -r $DIR/../deploy $build_ctx/deploy 2>/dev/null
         fi
     fi
     # copy end
@@ -176,6 +184,9 @@ function cleanup() {
             fi
             if containsElement "${image}" "${PNPM_IMAGES[@]}" ; then
                 rm -rf $i/pnpm_files 2>/dev/null
+            fi
+            if containsElement "${image}" "${HELM_IMAGES[@]}" ; then
+                rm -rf $i/deploy 2>/dev/null
             fi
 
             rm $i/.dockerignore 2> /dev/null
