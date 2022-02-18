@@ -174,7 +174,7 @@ export function getServiceURLs(
 }
 
 export function checkGate(project_uuid: string) {
-  return new Promise((resolve, reject) => {
+  return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
     makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
       type: "json",
@@ -184,7 +184,7 @@ export function checkGate(project_uuid: string) {
         try {
           let json = JSON.parse(response);
           if (json.validation === "pass") {
-            resolve(undefined);
+            resolve();
           } else {
             reject({ reason: "gate-failed", data: json });
           }

@@ -1,5 +1,3 @@
-// @ts-nocheck
-
 // used in orchest-webserver and mdc-components only
 export function uuidv4() {
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -9,20 +7,21 @@ export function uuidv4() {
   });
 }
 
-type CancelablePromise = {
+type CancelablePromise<T = string> = {
   cancel: () => void;
-  promise: Promise<string>;
+  promise: Promise<T>;
 };
 
 // used in orchest-webserver only
-export class PromiseManager<T> {
-  cancelablePromises: CancelablePromise<T>[];
+export class PromiseManager {
+  cancelablePromises: CancelablePromise<any>[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 
   constructor() {
     this.cancelablePromises = [];
   }
 
-  appendCancelablePromise(cancelablePromise: CancelablePromise<T>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  appendCancelablePromise(cancelablePromise: CancelablePromise<any>) {
     this.cancelablePromises.push(cancelablePromise);
   }
 
@@ -32,16 +31,17 @@ export class PromiseManager<T> {
     }
   }
 
-  clearCancelablePromise(cancelablePromise: CancelablePromise<T>) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  clearCancelablePromise(cancelablePromise: CancelablePromise<any>) {
     let index = this.cancelablePromises.indexOf(cancelablePromise);
     this.cancelablePromises.splice(index, 1);
   }
 }
 
 // used in orchest-webserver only
-export function makeCancelable<T>(
+export function makeCancelable<T = string>(
   promise: Promise<T>,
-  promiseManager: PromiseManager<T>
+  promiseManager: PromiseManager
 ) {
   let hasCanceled_ = false;
 
@@ -69,23 +69,6 @@ export function makeCancelable<T>(
 
   return cancelablePromise;
 }
-
-// used in orchest-webserver only
-export const LANGUAGE_MAP = {
-  python: "Python",
-  r: "R",
-  julia: "Julia",
-};
-
-// used in orchest-webserver only
-// Related to the analytics.py module, "environment_build_start" event,
-// which checks for the base image to start with "orchest/".
-export const DEFAULT_BASE_IMAGES = [
-  "orchest/base-kernel-py",
-  "orchest/base-kernel-py-gpu",
-  "orchest/base-kernel-r",
-  "orchest/base-kernel-julia",
-];
 
 // used in orchest-webserver only
 export const ALLOWED_STEP_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"];

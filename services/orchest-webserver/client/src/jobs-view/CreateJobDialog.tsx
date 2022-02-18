@@ -82,7 +82,7 @@ export const CreateJobDialog = ({
                   helperText={
                     hasOnlySpaces
                       ? "Should contain at least one non-whitespace letter"
-                      : ""
+                      : " "
                   }
                   onChange={(e) => setJobName(e.target.value)}
                   label="Job name"

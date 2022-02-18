@@ -1,4 +1,6 @@
 import { useInterval } from "@/hooks/use-interval";
+import { LogType } from "@/types";
+import Box from "@mui/material/Box";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import * as React from "react";
 import { FitAddon } from "xterm-addon-fit";
@@ -8,12 +10,12 @@ const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
 export interface ILogViewerProps {
   sio: Record<"on" | "off" | "emit", any>;
-  stepUuid?: string;
   pipelineUuid: string;
   projectUuid: string;
   jobUuid: string;
   runUuid: string;
-  serviceName?: string;
+  type: LogType;
+  logId: string;
 }
 
 const LogViewer: React.FC<ILogViewerProps> = (props) => {
@@ -84,10 +86,10 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
     };
 
     // LogViewer supports either a step_uuid or a service_name, never both.
-    if (props.stepUuid) {
-      data["step_uuid"] = props.stepUuid;
-    } else if (props.serviceName) {
-      data["service_name"] = props.serviceName;
+    if (props.type === "step") {
+      data["step_uuid"] = props.logId;
+    } else if (props.type === "service") {
+      data["service_name"] = props.logId;
     }
 
     if (props.runUuid && props.jobUuid) {
@@ -111,7 +113,7 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
 
   React.useEffect(() => {
     generateSessionUuid();
-    // intialize socket.io listener
+    // initialize socket.io listener
     initializeSocketIOListener();
     startLogSession();
 
@@ -135,9 +137,20 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
   }, [props]);
 
   return (
-    <div className="log-content xterm-holder">
+    <Box
+      sx={{
+        height: "100%",
+        backgroundColor: (theme) => theme.palette.common.black,
+        padding: (theme) => theme.spacing(1, 0, 1, 1),
+        overflow: "hidden",
+        // root of XTerm is a div without any class name
+        "> div": {
+          height: "100%",
+        },
+      }}
+    >
       <XTerm addons={[fitAddon]} ref={refManager.nrefs.term} />
-    </div>
+    </Box>
   );
 };
 

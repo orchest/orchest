@@ -217,13 +217,7 @@ const JupyterLabView: React.FC = () => {
   };
 
   return (
-    <Layout
-      disablePadding
-      sx={{
-        overflowY: "auto",
-        height: "100%",
-      }}
-    >
+    <Layout disablePadding>
       <Stack
         justifyContent="center"
         alignItems="center"

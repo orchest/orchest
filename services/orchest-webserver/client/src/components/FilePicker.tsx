@@ -188,7 +188,7 @@ const FilePicker: React.FC<FilePickerProps> = (props) => {
         label="File path"
         fullWidth
         data-test-id="file-picker-file-path-textfield"
-        helperText={props.helperText}
+        helperText={props.helperText || " "}
         InputProps={{
           endAdornment: (
             <InputAdornment position="end">{props.icon}</InputAdornment>

@@ -7,6 +7,7 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type {
+  LogType,
   PipelineJson,
   Step,
   TViewPropsWithRequiredQueryArgs,
@@ -25,6 +26,7 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
+import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
@@ -58,8 +60,10 @@ const LogsView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const [selectedLog, setSelectedLog] = React.useState(undefined);
-  const [logType, setLogType] = React.useState<"step" | "service">(undefined);
+  const [selectedLog, setSelectedLog] = React.useState<{
+    type: LogType;
+    logId: string;
+  }>(null);
   const [sortedSteps, setSortedSteps] = React.useState<Step[]>([]);
   const [pipelineJson, setPipelineJson] = React.useState(undefined);
   const [sio, setSio] = React.useState(undefined);
@@ -83,26 +87,6 @@ const LogsView: React.FC = () => {
       disconnectSocketIO();
     };
   }, []);
-
-  React.useEffect(() => {
-    // Preselect first step, or service (if no step exists)
-    if (
-      pipelineJson !== undefined &&
-      pipelineJson !== undefined &&
-      !selectedLog
-    ) {
-      if (sortedSteps.length > 0) {
-        setSelectedLog(sortedSteps[0].uuid);
-        setLogType("step");
-      } else {
-        let services = getServices();
-        if (Object.keys(services).length > 0) {
-          setSelectedLog(services[Object.keys(services)[0]].name);
-          setLogType("service");
-        }
-      }
-    }
-  }, [sortedSteps, session]);
 
   const connectSocketIO = () => {
     // disable polling
@@ -179,46 +163,6 @@ const LogsView: React.FC = () => {
     });
   };
 
-  const getServices = (): Record<string, { name: string; image: string }> => {
-    let services = {};
-
-    // If there is no job_uuid use the session for
-    // fetch the services
-    if (jobUuid == undefined && session && session.user_services) {
-      services = session.user_services;
-    }
-    // if there is a job_uuid use the job pipeline to
-    // fetch the services.
-    else if (job?.pipeline_definition.services !== undefined) {
-      services = job.pipeline_definition.services;
-    }
-
-    return filterServices(services, jobUuid ? "noninteractive" : "interactive");
-  };
-
-  const generateServiceItems = () => {
-    let serviceItems = [];
-    let services = getServices();
-
-    for (let key of Object.keys(services)) {
-      let service = services[key];
-
-      serviceItems.push({
-        type: "service",
-        identifier: service.name,
-        label: (
-          <>
-            <span className="log-title">{service.name}</span>
-            <br />
-            <span>{service.image}</span>
-          </>
-        ),
-      });
-    }
-
-    return serviceItems;
-  };
-
   const fetchPipeline = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineUuid,
@@ -276,177 +220,191 @@ const LogsView: React.FC = () => {
     });
   };
 
-  const onClickLog = (uuid: string, type: "step" | "service") => {
-    setSelectedLog(uuid);
-    setLogType(type);
+  const onClickLog = (uuid: string, type: LogType) => {
+    setSelectedLog({ type, logId: uuid });
   };
-
-  let rootView = undefined;
 
   const hasLoaded =
     pipelineJson && sortedSteps !== undefined && sio && (!jobUuid || job);
-  if (hasLoaded) {
-    let steps = [];
 
-    for (let step of sortedSteps) {
-      steps.push({
-        identifier: step.uuid,
-        type: "step",
-        label: (
-          <>
-            <span className="log-title">{step.title}</span>
-            <br />
-            <span>{step.file_path}</span>
-          </>
-        ),
-      });
+  const services = React.useMemo(() => {
+    if (!hasLoaded) return {};
+    let services = {};
+
+    // If there is no job_uuid use the session for
+    // fetch the services
+    if (jobUuid == undefined && session && session.user_services) {
+      services = session.user_services;
+    }
+    // if there is a job_uuid use the job pipeline to
+    // fetch the services.
+    else if (job?.pipeline_definition?.services !== undefined) {
+      services = job.pipeline_definition.services;
     }
 
-    let dynamicLogViewerProps = {};
-    if (logType == "step") {
-      dynamicLogViewerProps["stepUuid"] = selectedLog;
-    } else if (logType == "service") {
-      dynamicLogViewerProps["serviceName"] = selectedLog;
+    return filterServices(services, jobUuid ? "noninteractive" : "interactive");
+  }, [hasLoaded, job?.pipeline_definition?.services, jobUuid, session]);
+
+  React.useEffect(() => {
+    // Preselect first step, or service (if no step exists)
+    if (
+      pipelineJson !== undefined &&
+      pipelineJson !== undefined &&
+      !selectedLog
+    ) {
+      if (sortedSteps.length > 0) {
+        setSelectedLog({
+          type: "step",
+          logId: sortedSteps[0].uuid,
+        });
+      } else {
+        if (Object.keys(services).length > 0) {
+          setSelectedLog({
+            type: "service",
+            logId: services[Object.keys(services)[0]].name,
+          });
+        }
+      }
     }
-
-    let services = generateServiceItems();
-
-    rootView = (
-      <div className="logs" style={{ position: "relative" }}>
-        <Box
-          sx={{
-            width: "20%",
-            minWidth: "250px",
-          }}
-        >
-          <List
-            dense
-            sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
-            subheader={<ListSubheader component="div">Step logs</ListSubheader>}
-          >
-            {sortedSteps.length == 0 && (
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography component="i">
-                      There are no steps defined.
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            )}
-            {sortedSteps.map((sortedStep) => {
-              return (
-                <ListItemButton
-                  key={sortedStep.uuid}
-                  selected={
-                    logType === "step" && selectedLog === sortedStep.uuid
-                  }
-                  onClick={() => onClickLog(sortedStep.uuid, "step")}
-                >
-                  <ListItemText
-                    primary={sortedStep.title}
-                    secondary={sortedStep.file_path}
-                  />
-                </ListItemButton>
-              );
-            })}
-            <Divider />
-          </List>
-          <List
-            dense
-            sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
-            subheader={
-              <ListSubheader component="div">Service logs</ListSubheader>
-            }
-          >
-            {!session && !job && (
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography component="i">
-                      There is no active session.
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            )}
-            {(session || job) && services.length == 0 && (
-              <ListItem>
-                <ListItemText
-                  primary={
-                    <Typography component="i" variant="subtitle2">
-                      There are no services defined.
-                    </Typography>
-                  }
-                />
-              </ListItem>
-            )}
-            {Object.entries(getServices()).map(([, service]) => {
-              return (
-                <ListItemButton
-                  key={service.name}
-                  selected={
-                    logType === "service" && selectedLog === service.name
-                  }
-                  onClick={() => onClickLog(service.name, "service")}
-                >
-                  <ListItemText
-                    primary={service.name}
-                    secondary={service.image}
-                  />
-                </ListItemButton>
-              );
-            })}
-          </List>
-        </Box>
-        <div className="logs-xterm-holder">
-          {selectedLog && logType && (
-            <LogViewer
-              key={selectedLog}
-              sio={sio}
-              pipelineUuid={pipelineUuid}
-              projectUuid={projectUuid}
-              jobUuid={jobUuid}
-              runUuid={runUuid}
-              {...dynamicLogViewerProps}
-            />
-          )}
-        </div>
-        <Box
-          sx={{
-            position: "absolute",
-            top: (theme) => theme.spacing(2),
-            right: (theme) => theme.spacing(2),
-            zIndex: 20,
-          }}
-        >
-          <IconButton
-            size="large"
-            sx={{
-              color: (theme) => theme.palette.common.white,
-              backgroundColor: (theme) => theme.palette.grey[900],
-              "&:hover": {
-                backgroundColor: (theme) => theme.palette.grey[800],
-              },
-            }}
-            title="Close"
-            onClick={close}
-          >
-            <CloseIcon />
-          </IconButton>
-        </Box>
-      </div>
-    );
-  } else {
-    rootView = <LinearProgress />;
-  }
+  }, [sortedSteps, session, services]);
 
   return (
-    <Layout disablePadding fullHeight>
-      <div className="view-page no-padding logs-view fullheight">
-        {rootView}
-      </div>
+    <Layout disablePadding>
+      {!hasLoaded ? (
+        <LinearProgress />
+      ) : (
+        <Stack direction="row" sx={{ position: "relative", height: "100%" }}>
+          <Box
+            sx={{
+              width: "20%",
+              minWidth: "250px",
+            }}
+          >
+            <List
+              dense
+              sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+              subheader={
+                <ListSubheader component="div">Step logs</ListSubheader>
+              }
+            >
+              {sortedSteps.length == 0 && (
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Typography component="i">
+                        There are no steps defined.
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              )}
+              {sortedSteps.map((sortedStep) => {
+                return (
+                  <ListItemButton
+                    key={sortedStep.uuid}
+                    selected={
+                      selectedLog &&
+                      selectedLog.type === "step" &&
+                      selectedLog.logId === sortedStep.uuid
+                    }
+                    onClick={() => onClickLog(sortedStep.uuid, "step")}
+                  >
+                    <ListItemText
+                      primary={sortedStep.title}
+                      secondary={sortedStep.file_path}
+                    />
+                  </ListItemButton>
+                );
+              })}
+              <Divider />
+            </List>
+            <List
+              dense
+              sx={{ width: "100%", maxWidth: 360, bgcolor: "background.paper" }}
+              subheader={
+                <ListSubheader component="div">Service logs</ListSubheader>
+              }
+            >
+              {!session && !job && (
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Typography component="i">
+                        There is no active session.
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              )}
+              {(session || job) && Object.keys(services).length === 0 && (
+                <ListItem>
+                  <ListItemText
+                    primary={
+                      <Typography component="i" variant="subtitle2">
+                        There are no services defined.
+                      </Typography>
+                    }
+                  />
+                </ListItem>
+              )}
+              {Object.entries(services).map(([, service]) => {
+                return (
+                  <ListItemButton
+                    key={service.name}
+                    selected={
+                      selectedLog &&
+                      selectedLog.type === "service" &&
+                      selectedLog.logId === service.name
+                    }
+                    onClick={() => onClickLog(service.name, "service")}
+                  >
+                    <ListItemText
+                      primary={service.name}
+                      secondary={service.image}
+                    />
+                  </ListItemButton>
+                );
+              })}
+            </List>
+          </Box>
+          <Box sx={{ flex: 1 }}>
+            {selectedLog && (
+              <LogViewer
+                key={selectedLog.logId}
+                sio={sio}
+                pipelineUuid={pipelineUuid}
+                projectUuid={projectUuid}
+                jobUuid={jobUuid}
+                runUuid={runUuid}
+                {...selectedLog}
+              />
+            )}
+          </Box>
+          <Box
+            sx={{
+              position: "absolute",
+              top: (theme) => theme.spacing(2),
+              right: (theme) => theme.spacing(2),
+              zIndex: 20,
+            }}
+          >
+            <IconButton
+              size="large"
+              sx={{
+                color: (theme) => theme.palette.common.white,
+                backgroundColor: (theme) => theme.palette.grey[900],
+                "&:hover": {
+                  backgroundColor: (theme) => theme.palette.grey[800],
+                },
+              }}
+              title="Close"
+              onClick={close}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        </Stack>
+      )}
     </Layout>
   );
 };

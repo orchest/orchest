@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import { DataTable, DataTableColumn } from "@/components/DataTable";
 import SessionToggleButton from "@/components/SessionToggleButton";
 import { useAppContext } from "@/contexts/AppContext";
@@ -173,7 +174,7 @@ const PipelinePathTextField: React.FC<{
       value={value}
       label="Pipeline path"
       error={!isValid}
-      helperText={!isValid ? "path should end in the .orchest extension" : ""}
+      helperText={!isValid ? "path should end in the .orchest extension" : " "}
       inputRef={pathInputRef}
       onChange={(e) => {
         const value = e.target.value;
@@ -438,7 +439,7 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
 
   return (
     <div className={"pipelines-view"}>
-      <h2>Pipelines</h2>
+      <PageTitle>Pipelines</PageTitle>
       {!isLoaded ? (
         <LinearProgress />
       ) : (
