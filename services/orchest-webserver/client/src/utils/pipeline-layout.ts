@@ -1,4 +1,4 @@
-import { IPipelineStepState, PipelineJson } from "@/types";
+import { PipelineJson, PipelineStepState } from "@/types";
 import {
   coordCenter,
   dagStratify,
@@ -175,10 +175,10 @@ const layoutComponent = (
 };
 
 const traverseGraph = (
-  step: IPipelineStepState,
-  allSteps: { [uuid: string]: IPipelineStepState },
+  step: PipelineStepState,
+  allSteps: { [uuid: string]: PipelineStepState },
   seenNodes: Set<string>,
-  component: IPipelineStepState[]
+  component: PipelineStepState[]
 ) => {
   step.outgoing_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
@@ -272,5 +272,7 @@ export const layoutPipeline = (
     });
   }
 
-  return _pipelineJson;
+  return _pipelineJson as PipelineJson & {
+    steps: Record<string, PipelineStepState>;
+  };
 };

@@ -52,12 +52,14 @@ export const PipelineDetails: React.FC<{
   step: Step;
   readOnly?: boolean;
   project_uuid: string;
+  onSave: (stepChanges: Partial<Step>, uuid: string, replace: boolean) => void;
   [key: string]: any;
 }> = ({
   defaultViewIndex = 0,
   onOpenNotebook,
   onOpenFilePreviewView,
   onChangeView,
+  onSave,
   step,
   readOnly,
   onClose,
@@ -161,7 +163,7 @@ export const PipelineDetails: React.FC<{
             pipelineCwd={props.pipelineCwd}
             readOnly={readOnly}
             onNameUpdate={props.onNameUpdate}
-            onSave={props.onSave}
+            onSave={onSave}
             connections={props.connections}
             step={step}
             onChange={props.onChange}

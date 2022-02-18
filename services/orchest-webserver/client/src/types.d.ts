@@ -258,19 +258,19 @@ export type Job = {
 };
 
 export type Step = {
+  uuid: string;
+  title: string;
+  incoming_connections: string[];
   environment: string;
   file_path: string;
-  incoming_connections: string[];
-  kernel: { display_name: string; name: string };
+  kernel: { display_name?: string; name?: string };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
-  title: string;
-  uuid: string;
 };
 
 export type LogType = "step" | "service";
 
-export type IPipelineStepState = Step & {
+export type PipelineStepState = Step & {
   outgoing_connections?: string[];
   meta_data: {
     hidden: boolean;

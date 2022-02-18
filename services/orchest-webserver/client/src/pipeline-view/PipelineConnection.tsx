@@ -3,21 +3,19 @@ import * as React from "react";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 
-export interface IPipelineConnectionProps {
+const PipelineConnection: React.FC<{
   startNode: any;
   endNode: any;
   pipelineViewEl: any;
   startNodeUUID: string;
-  endNodeUUID: string;
+  endNodeUUID?: string;
   onClick: any;
   xEnd: number;
   yEnd: number;
   selected: boolean;
   scaleFactor: number;
   scaleCorrectedPosition: any;
-}
-
-const PipelineConnection: React.FC<IPipelineConnectionProps> = (props) => {
+}> = (props) => {
   const { $ } = window;
 
   const connectionHolder = React.useRef(null);

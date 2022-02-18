@@ -1,3 +1,4 @@
+import { Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -46,6 +47,7 @@ const KERNEL_OPTIONS = [
 
 const PipelineDetailsProperties: React.FC<{
   [key: string]: any;
+  onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
 }> = (props) => {
   const { $ } = window;

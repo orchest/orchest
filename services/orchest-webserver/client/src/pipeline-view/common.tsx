@@ -1,9 +1,9 @@
-import type { IPipelineStepState, PipelineJson } from "@/types";
+import type { PipelineJson, PipelineStepState } from "@/types";
 import cloneDeep from "lodash.clonedeep";
 
 export const updatePipelineJson = (
   pipelineJson: PipelineJson,
-  steps: Record<string, IPipelineStepState>
+  steps: Record<string, PipelineStepState>
 ): PipelineJson => {
   if (!pipelineJson) return;
 
@@ -30,7 +30,7 @@ export const updatePipelineJson = (
 
 export const extractStepsFromPipelineJson = (
   pipelineJson: PipelineJson,
-  steps: Record<string, IPipelineStepState>
+  steps: Record<string, PipelineStepState>
 ) => {
   Object.entries(pipelineJson.steps).forEach(([key, step]) => {
     steps[key] = {
