@@ -299,7 +299,7 @@ def restart_session_service(
 
     if wait_for_readiness:
         deployment = k8s_apps_api.read_namespaced_deployment_status(service_name, ns)
-        while deployment.status.available_replicas != deployment.spec.replicas:
+        while deployment.status.ready_replicas != deployment.spec.replicas:
             time.sleep(1)
             deployment = k8s_apps_api.read_namespaced_deployment_status(
                 service_name, ns

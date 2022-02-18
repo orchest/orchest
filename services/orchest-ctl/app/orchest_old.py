@@ -32,50 +32,6 @@ class OrchestApp:
         # self.docker_client = DockerWrapper()
         ...
 
-    def install(self, language: str, gpu: bool = False):
-        """Installs Orchest for the given language.
-
-        Pulls all the Orchest containers necessary to run all the
-        features for the given `language`.
-
-        """
-        self.resource_manager.install_network()
-
-        # Check whether the install is complete.
-        pulled_images = self.resource_manager.get_images()
-        req_images = get_required_images(language, gpu)
-        missing_images = set(req_images) - set(pulled_images)
-
-        if not missing_images:
-            utils.echo("Installation is already complete. Did you mean to run:")
-            utils.echo("\torchest update")
-            return
-
-        utils.echo("Installing Orchest...")
-        logger.info("Pulling images:\n" + "\n".join(missing_images))
-        self.docker_client.pull_images(missing_images, prog_bar=True)
-
-        utils.echo(
-            "Checking whether all containers are running the same version of Orchest."
-        )
-        try:
-            self.version(ext=True)
-        except typer.Exit:
-            pass
-
-        pulled_images = self.resource_manager.get_images()
-        missing_images = set(req_images) - set(pulled_images)
-        if missing_images:
-            logger.info("Missing images:\n" + "\n".join(missing_images))
-            utils.echo("Installation was unsuccessful.")
-            utils.echo(
-                "Could not pull the specified set of images. Please"
-                " make sure you have enough available disk space."
-            )
-            raise typer.Exit(code=1)
-        else:
-            utils.echo("Installation was successful.")
-
     def update(self, mode=None, dev: bool = False):
         """Update Orchest.
 
