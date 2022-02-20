@@ -3,12 +3,12 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import type {
   Connection,
-  Environment,
   PipelineJson,
   PipelineRun,
   PipelineStepState,
@@ -38,6 +38,7 @@ import {
   activeElementIsInput,
   collapseDoubleDots,
   fetcher,
+  hasValue,
   HEADER,
   PromiseManager,
   RefManager,
@@ -54,13 +55,16 @@ import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { useAutoStartSession } from "./useAutoStartSession";
-import { scaleCorrectedPosition, useEventVars } from "./useEventVars";
+import {
+  nodeCenter,
+  scaleCorrectedPosition,
+  useEventVars,
+} from "./useEventVars";
 import {
   convertStepsToObject,
   useStepExecutionState,
 } from "./useStepExecutionState";
 
-const DRAG_CLICK_SENSITIVITY = 3;
 const CANVAS_VIEW_MULTIPLE = 3;
 const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
@@ -120,10 +124,19 @@ const PipelineView: React.FC = () => {
     _setIsReadOnly(readOnly);
   };
 
+  const [prevPosition, setPrevPosition] = React.useState<[number, number]>([
+    0,
+    0,
+  ]);
+  const [draggingCanvas, setDraggingCanvas] = React.useState(false);
   const isPipelineInitialized = React.useRef(false);
   const pipelineStepsOuterHolder = React.useRef<HTMLDivElement>();
   const pipelineStepsHolder = React.useRef<HTMLDivElement>();
 
+  const [mouseClient, setMouseClient] = React.useState<{
+    x: number;
+    y: number;
+  }>({ x: 0, y: 0 });
   const [eventVars, eventVarsDispatch, stepDomRefs] = useEventVars();
 
   const removeCreatingConnectionStyling = React.useCallback(() => {
@@ -516,16 +529,18 @@ const PipelineView: React.FC = () => {
     endNodeUUID: string
   ) => {
     eventVarsDispatch((state) => {
+      // if space is pressed, user probably wants to drag the canvas, but accidentally key down on a connection
+      // connection has transparent background, user might think they key down on the canvas, but they actually key down on a connection
       if (e.button === 0 && !state.keysDown[32]) {
         return {
-          type: "ON_CLICK_CONNECTION",
+          type: "SELECT_CONNECTION",
           payload: { startNodeUUID, endNodeUUID },
         };
       }
     });
   };
 
-  const createConnection = (
+  const createConnectionInstance = (
     startNodeUUID: string,
     endNodeUUID?: string | undefined
   ) => {
@@ -538,7 +553,7 @@ const PipelineView: React.FC = () => {
     };
 
     eventVarsDispatch({
-      type: "CREATE_NEW_CONNECTION",
+      type: "CREATE_CONNECTION_INSTANCE",
       payload: newConnection,
     });
   };
@@ -563,7 +578,7 @@ const PipelineView: React.FC = () => {
             .parents(".pipeline-step")
             .attr("data-uuid");
 
-          createConnection(startNodeUUID);
+          createConnectionInstance(startNodeUUID);
         }
       }
     );
@@ -590,83 +605,6 @@ const PipelineView: React.FC = () => {
         }
       }
     });
-
-    $(pipelineStepsOuterHolder.current).on("mousemove", (e) => {
-      if (eventVars.selectedItem !== undefined) {
-        let delta = [
-          scaleCorrectedPosition(e.clientX, eventVars.scaleFactor) -
-            eventVars.prevPosition[0],
-          scaleCorrectedPosition(e.clientY, eventVars.scaleFactor) -
-            eventVars.prevPosition[1],
-        ];
-
-        eventVars.prevPosition = [
-          scaleCorrectedPosition(e.clientX, eventVars.scaleFactor),
-          scaleCorrectedPosition(e.clientY, eventVars.scaleFactor),
-        ];
-
-        let step = eventVars.steps[eventVars.selectedItem];
-
-        step.meta_data._drag_count++;
-        if (step.meta_data._drag_count >= DRAG_CLICK_SENSITIVITY) {
-          step.meta_data._dragged = true;
-          step.meta_data._drag_count = 0;
-        }
-
-        // check for spacebar
-        if (!eventVars.draggingCanvas) {
-          if (
-            eventVars.selectedSteps.length > 1 &&
-            eventVars.selectedSteps.indexOf(eventVars.selectedItem) !== -1
-          ) {
-            for (let key in eventVars.selectedSteps) {
-              let uuid = eventVars.selectedSteps[key];
-
-              let singleStep = eventVars.steps[uuid];
-
-              singleStep.meta_data.position[0] += delta[0];
-              singleStep.meta_data.position[1] += delta[1];
-
-              refManager.refs[uuid].updatePosition(
-                singleStep.meta_data.position
-              );
-            }
-          } else if (eventVars.selectedItem !== undefined) {
-            step.meta_data.position[0] += delta[0];
-            step.meta_data.position[1] += delta[1];
-
-            refManager.refs[step.uuid].updatePosition(step.meta_data.position);
-          }
-
-          // Update connections state
-          updateEventVars();
-        }
-      } else if (eventVars.newConnection) {
-        let pipelineStepHolderOffset = $(pipelineStepsHolder.current).offset();
-
-        eventVars.newConnection.xEnd =
-          scaleCorrectedPosition(e.clientX, eventVars.scaleFactor) -
-          scaleCorrectedPosition(
-            pipelineStepHolderOffset.left,
-            eventVars.scaleFactor
-          );
-        eventVars.newConnection.yEnd =
-          scaleCorrectedPosition(e.clientY, eventVars.scaleFactor) -
-          scaleCorrectedPosition(
-            pipelineStepHolderOffset.top,
-            eventVars.scaleFactor
-          );
-
-        updateEventVars();
-
-        // check for hovering over incoming-connections div
-        if ($(e.target).hasClass("incoming-connections")) {
-          $(e.target).addClass("hover");
-        } else {
-          $(".incoming-connections").removeClass("hover");
-        }
-      }
-    });
   };
 
   /*
@@ -679,7 +617,7 @@ const PipelineView: React.FC = () => {
         if (e.button === 0) {
           if (!$(e.target).hasClass("outgoing-connections")) {
             let stepUUID = $(e.currentTarget).attr("data-uuid");
-            eventVars.selectedItem = stepUUID;
+            eventVars.selectedSingleStep = stepUUID;
             updateEventVars();
           }
         }
@@ -690,8 +628,8 @@ const PipelineView: React.FC = () => {
       let stepClicked = false;
       let stepDragged = false;
 
-      if (eventVars.selectedItem !== undefined) {
-        let step = eventVars.steps[eventVars.selectedItem];
+      if (eventVars.selectedSingleStep !== undefined) {
+        let step = eventVars.steps[eventVars.selectedSingleStep];
 
         if (!step.meta_data._dragged) {
           if (eventVars.selectedConnection) {
@@ -702,12 +640,12 @@ const PipelineView: React.FC = () => {
             stepClicked = true;
 
             if (eventVars.doubleClickFirstClick) {
-              refManager.refs[eventVars.selectedItem].props.onDoubleClick(
-                eventVars.selectedItem
+              refManager.refs[eventVars.selectedSingleStep].props.onDoubleClick(
+                eventVars.selectedSingleStep
               );
             } else {
-              refManager.refs[eventVars.selectedItem].props.onClick(
-                eventVars.selectedItem
+              refManager.refs[eventVars.selectedSingleStep].props.onClick(
+                eventVars.selectedSingleStep
               );
             }
 
@@ -719,17 +657,17 @@ const PipelineView: React.FC = () => {
           } else {
             // if clicked step is not selected, select it on Ctrl+Mouseup
             if (
-              eventVars.selectedSteps.indexOf(eventVars.selectedItem) === -1
+              eventVars.selectedSteps.indexOf(eventVars.selectedSingleStep) === -1
             ) {
               eventVars.selectedSteps = eventVars.selectedSteps.concat(
-                eventVars.selectedItem
+                eventVars.selectedSingleStep
               );
 
               updateEventVars();
             } else {
               // remove from selection
               eventVars.selectedSteps.splice(
-                eventVars.selectedSteps.indexOf(eventVars.selectedItem),
+                eventVars.selectedSteps.indexOf(eventVars.selectedSingleStep),
                 1
               );
               updateEventVars();
@@ -746,7 +684,7 @@ const PipelineView: React.FC = () => {
       // check if step needs to be selected based on selectedSteps
       if (
         eventVars.stepSelector.active ||
-        eventVars.selectedItem !== undefined
+        eventVars.selectedSingleStep !== undefined
       ) {
         if (eventVars.selectedConnection) {
           deselectConnection();
@@ -794,8 +732,8 @@ const PipelineView: React.FC = () => {
           deselectSteps();
         }
       }
-      if (eventVars.selectedItem !== undefined) {
-        eventVars.selectedItem = undefined;
+      if (eventVars.selectedSingleStep !== undefined) {
+        eventVars.selectedSingleStep = undefined;
         updateEventVars();
       }
 
@@ -870,7 +808,7 @@ const PipelineView: React.FC = () => {
       step.incoming_connections.forEach((startNodeUUID) => {
         let endNodeUUID = step.uuid;
 
-        createConnection(startNodeUUID, endNodeUUID);
+        createConnectionInstance(startNodeUUID, endNodeUUID);
 
         // ? Do we really need to cross-verify the UUID's???
 
@@ -890,7 +828,7 @@ const PipelineView: React.FC = () => {
         //     .parents(".pipeline-step")
         //     .attr("data-uuid");
 
-        //   createConnection(startNodeUUID, endNodeUUID);
+        //   createConnectionInstance(startNodeUUID, endNodeUUID);
         // }
       });
     });
@@ -991,101 +929,57 @@ const PipelineView: React.FC = () => {
       });
   };
 
-  /**
-   * Get position for new step so it doesn't spawn on top of other
-   * new steps.
-   * @param defaultPosition Default position of new steps.
-   * @param baseOffset The offset to use for X and Y.
-   */
-  const getNewStepPos = (
-    defaultPosition: [number, number],
-    baseOffset = 15
-  ) => {
-    // const pipelineJson = getPipelineJSON();
+  const { data: environments = [] } = useFetchEnvironments(
+    !isReadOnly ? projectUuid : undefined
+  );
 
-    const stepPositions = new Set();
-    for (const val of Object.values(eventVars.steps)) {
-      // Make position hashable.
-      stepPositions.add(String(val.meta_data.position));
+  const createNextStep = async () => {
+    if (!pipelineStepsOuterHolder.current) {
+      console.error(
+        "Unable to create next step. pipelineStepsOuterHolder is not yet instantiated!"
+      );
+      return;
     }
+    try {
+      // Assume the first environment as the default
+      // user can change it afterwards
+      const environment = environments.length > 0 ? environments[0] : null;
+      // When new steps are successively created then we don't want
+      // them to be spawned on top of each other. NOTE: we use the
+      // same offset for X and Y position.
+      const { clientWidth, clientHeight } = pipelineStepsOuterHolder.current;
+      const [pipelineOffsetX, pipelineOffsetY] = state.pipelineOffset;
 
-    let currPos = defaultPosition;
-    while (stepPositions.has(String(currPos))) {
-      currPos = [currPos[0] + baseOffset, currPos[1] + baseOffset];
-    }
-    return currPos;
-  };
+      const position = [
+        -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
+        -pipelineOffsetY + clientHeight / 2 - STEP_HEIGHT / 2,
+      ] as [number, number];
 
-  const newStep = () => {
-    deselectSteps();
-
-    fetcher<Environment[]>(`/store/environments/${projectUuid}`).then(
-      (result) => {
-        let environmentUUID = "";
-        let environmentName = "";
-
-        if (result.length > 0) {
-          environmentUUID = result[0].uuid;
-          environmentName = result[0].name;
-        }
-
-        let step = {
+      eventVarsDispatch({
+        type: "CREATE_STEP",
+        payload: {
           title: "",
           uuid: uuidv4(),
           incoming_connections: [],
           file_path: "",
           kernel: {
-            name: "python",
-            display_name: environmentName,
+            name: "python", // TODO: what is the default name? the default environment language might not be python
+            display_name: environment?.name,
           },
-          environment: environmentUUID,
+          environment: environment?.uuid,
           parameters: {},
           meta_data: {
-            position: [0, 0] as [number, number],
+            position,
             _dragged: false,
             _drag_count: 0,
-            hidden: true,
+            hidden: false,
           },
-        };
-
-        eventVarsDispatch((state) => ({
-          type: "SET_STEPS",
-          payload: { ...state.steps, [step.uuid]: step },
-        }));
-
-        selectStep(step.uuid);
-
-        // wait for single render call
-        setTimeout(() => {
-          if (!pipelineStepsOuterHolder.current) return;
-          // Assumes step.uuid doesn't change
-          let _step = eventVars.steps[step.uuid];
-
-          // When new steps are successively created then we don't want
-          // them to be spawned on top of each other. NOTE: we use the
-          // same offset for X and Y position.
-          const defaultPos = [
-            -state.pipelineOffset[0] +
-              pipelineStepsOuterHolder.current.clientWidth / 2 -
-              STEP_WIDTH / 2,
-            -state.pipelineOffset[1] +
-              pipelineStepsOuterHolder.current.clientHeight / 2 -
-              STEP_HEIGHT / 2,
-          ];
-          _step["meta_data"]["position"] = getNewStepPos(
-            defaultPos as [number, number]
-          );
-
-          // to avoid repositioning flash (creating a step can affect the size of the viewport)
-          _step["meta_data"]["hidden"] = false;
-          updateEventVars();
-          setSaveHash(uuidv4());
-          refManager.refs[step.uuid].updatePosition(
-            eventVars.steps[step.uuid].meta_data.position
-          );
-        }, 0);
-      }
-    );
+        },
+      });
+      setSaveHash(uuidv4());
+    } catch (error) {
+      setAlert("Error", `Unable to create a new step. ${error}`);
+    }
   };
 
   const selectStep = (stepUUID: string) => {
@@ -1157,8 +1051,10 @@ const PipelineView: React.FC = () => {
   };
 
   const centerView = () => {
-    eventVars.scaleFactor = DEFAULT_SCALE_FACTOR;
-    updateEventVars();
+    eventVarsDispatch({
+      type: "SET_SCALE_FACTOR",
+      payload: DEFAULT_SCALE_FACTOR,
+    });
 
     setState({
       pipelineOffset: [
@@ -1171,6 +1067,10 @@ const PipelineView: React.FC = () => {
   };
 
   const centerPipelineOrigin = () => {
+    if (!pipelineStepsOuterHolder.current) {
+      console.error("PipelineStepsOuterHolder is not yet instantiated!");
+      return;
+    }
     let pipelineStepsOuterHolderEl = $(pipelineStepsOuterHolder.current);
 
     let pipelineStepsOuterHolderOffset = pipelineStepsOuterHolderEl.offset();
@@ -1190,21 +1090,25 @@ const PipelineView: React.FC = () => {
           pipelineStepsOuterHolderEl.height() / 2,
         eventVars.scaleFactor
       ),
-    ];
+    ] as [number, number];
 
     pipelineSetHolderOrigin(centerOrigin);
   };
 
   const zoomOut = () => {
     centerPipelineOrigin();
-    eventVars.scaleFactor = Math.max(eventVars.scaleFactor - 0.25, 0.25);
-    updateEventVars();
+    eventVarsDispatch({
+      type: "SET_SCALE_FACTOR",
+      payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
+    });
   };
 
   const zoomIn = () => {
     centerPipelineOrigin();
-    eventVars.scaleFactor = Math.min(eventVars.scaleFactor + 0.25, 2);
-    updateEventVars();
+    eventVarsDispatch({
+      type: "SET_SCALE_FACTOR",
+      payload: Math.min(eventVars.scaleFactor + 0.25, 2),
+    });
   };
 
   const autoLayoutPipeline = () => {
@@ -1241,38 +1145,42 @@ const PipelineView: React.FC = () => {
   };
 
   const pipelineSetHolderOrigin = (newOrigin: [number, number]) => {
-    let pipelineStepsHolderOffset = $(pipelineStepsHolder.current).offset();
+    if (!pipelineStepsHolder.current || !pipelineStepsOuterHolder.current) {
+      console.error(
+        "Unable to set the origin of pipelineStepsHolder. PipelineStepsHolder or pipelineStepsOuterHolder is not yet instantiated!"
+      );
+      return;
+    }
 
-    let pipelineStepsOuterHolderOffset = $(
-      pipelineStepsOuterHolder.current
-    ).offset();
+    let holderOffset = $(pipelineStepsHolder.current).offset();
+    let outerHolderOffset = $(pipelineStepsOuterHolder.current).offset();
 
-    let initialX =
-      pipelineStepsHolderOffset.left - pipelineStepsOuterHolderOffset.left;
-    let initialY =
-      pipelineStepsHolderOffset.top - pipelineStepsOuterHolderOffset.top;
+    let initialX = holderOffset.left - outerHolderOffset.left;
+    let initialY = holderOffset.top - outerHolderOffset.top;
 
-    let translateXY = originTransformScaling(
+    let [translateX, translateY] = originTransformScaling(
       [...newOrigin],
       eventVars.scaleFactor
     );
 
-    setState({
-      pipelineOrigin: newOrigin,
-      pipelineStepsHolderOffsetLeft:
-        translateXY[0] + initialX - state.pipelineOffset[0],
-      pipelineStepsHolderOffsetTop:
-        translateXY[1] + initialY - state.pipelineOffset[1],
+    setState(({ pipelineOffset }) => {
+      const [pipelineOffsetX, pipelineOffsetY] = pipelineOffset;
+      return {
+        pipelineOrigin: newOrigin,
+        pipelineStepsHolderOffsetLeft: translateX + initialX - pipelineOffsetX,
+        pipelineStepsHolderOffsetTop: translateY + initialY - pipelineOffsetY,
+      };
     });
   };
 
-  const onPipelineStepsOuterHolderWheel = (e) => {
+  const onPipelineStepsOuterHolderWheel = (e: React.WheelEvent) => {
     let pipelineMousePosition = getMousePositionRelativeToPipelineStepHolder();
+    if (!pipelineMousePosition) return;
 
     // set origin at scroll wheel trigger
     if (
-      pipelineMousePosition[0] != state.pipelineOrigin[0] ||
-      pipelineMousePosition[1] != state.pipelineOrigin[1]
+      pipelineMousePosition[0] !== state.pipelineOrigin[0] ||
+      pipelineMousePosition[1] !== state.pipelineOrigin[1]
     ) {
       pipelineSetHolderOrigin(pipelineMousePosition);
     }
@@ -1284,16 +1192,20 @@ const PipelineView: React.FC = () => {
      * DOM_DELTA_PAGE = 0x02 (which we'll treat identically to DOM_DELTA_LINE)
      */
 
-    let deltaY = e.nativeEvent.deltaY;
-    if (e.nativeEvent.deltaMode == 0x01 || e.nativeEvent.deltaMode == 0x02) {
-      deltaY = getScrollLineHeight() * deltaY;
-    }
+    let deltaY =
+      e.nativeEvent.deltaMode == 0x01 || e.nativeEvent.deltaMode == 0x02
+        ? getScrollLineHeight() * e.nativeEvent.deltaY
+        : e.nativeEvent.deltaY;
 
-    eventVars.scaleFactor = Math.min(
-      Math.max(eventVars.scaleFactor - deltaY / 3000, 0.25),
-      2
-    );
-    updateEventVars();
+    eventVarsDispatch((current) => {
+      return {
+        type: "SET_SCALE_FACTOR",
+        payload: Math.min(
+          Math.max(current.scaleFactor - deltaY / 3000, 0.25),
+          2
+        ),
+      };
+    });
   };
 
   const runSelectedSteps = () => {
@@ -1436,24 +1348,24 @@ const PipelineView: React.FC = () => {
   };
 
   const getMousePositionRelativeToPipelineStepHolder = () => {
-    let pipelineStepsOlderOffset = $(pipelineStepsHolder.current).offset();
+    if (!pipelineStepsHolder.current) {
+      console.error(
+        "Unable to get mouse position relative to pipelineStepsHolder. PipelineStepsHolder is not yet instantiated!"
+      );
+      return;
+    }
+    let { left, top } = $(pipelineStepsHolder.current).offset();
 
     return [
-      scaleCorrectedPosition(
-        eventVars.mouseClientX - pipelineStepsOlderOffset.left,
-        eventVars.scaleFactor
-      ),
-      scaleCorrectedPosition(
-        eventVars.mouseClientY - pipelineStepsOlderOffset.top,
-        eventVars.scaleFactor
-      ),
+      scaleCorrectedPosition(mouseClient.x - left, eventVars.scaleFactor),
+      scaleCorrectedPosition(mouseClient.y - top, eventVars.scaleFactor),
     ] as [number, number];
   };
 
   React.useLayoutEffect(() => {
     fetchPipelineAndInitialize();
     const keyDownHandler = (event: KeyboardEvent) => {
-      if (event.key === " " && !eventVars.draggingCanvas) {
+      if (event.key === " ") {
         $(pipelineStepsOuterHolder.current)
           .removeClass("dragging")
           .addClass("ready-to-drag");
@@ -1466,6 +1378,7 @@ const PipelineView: React.FC = () => {
           "ready-to-drag",
           "dragging",
         ]);
+        eventVarsDispatch({ type: "SET_KEYS_DOWN", payload: { 32: false } });
       }
     };
 
@@ -1475,7 +1388,7 @@ const PipelineView: React.FC = () => {
       document.body.removeEventListener("keydown", keyDownHandler);
       document.body.removeEventListener("keyup", keyUpHandler);
     };
-  }, []);
+  }, [eventVarsDispatch]);
 
   const enableHotKeys = () => {
     setScope("pipeline-editor");
@@ -1486,7 +1399,7 @@ const PipelineView: React.FC = () => {
     setIsHoverEditor(false);
   };
 
-  const onPipelineStepsOuterHolderDown = (e: React.MouseEvent) => {
+  const onMouseDownStepsOuterHolder = (e: React.MouseEvent) => {
     const isLeftClick = e.button === 0;
 
     if (isLeftClick && eventVars.keysDown[32]) {
@@ -1494,10 +1407,12 @@ const PipelineView: React.FC = () => {
       $(pipelineStepsOuterHolder.current)
         .addClass("dragging")
         .removeClass("ready-to-drag");
+      setDraggingCanvas(true);
     }
 
     const mouseClientX = e.clientX;
     const mouseClientY = e.clientY;
+    setMouseClient({ x: e.clientX, y: e.clientY });
     const draggingCanvas = eventVars.keysDown[32]; // key down space
     // not dragging the canvas, so user must be creating a selection rectangle
     // we need to save the offset of cursor against pipeline steps holder
@@ -1506,7 +1421,7 @@ const PipelineView: React.FC = () => {
         ? $(pipelineStepsHolder.current).offset()
         : null;
 
-    if (isLeftClick) {
+    if (isLeftClick && !draggingCanvas) {
       eventVarsDispatch({
         type: "ON_MOUSE_DOWN_CANVAS",
         payload: {
@@ -1518,30 +1433,40 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const onPipelineStepsOuterHolderMove = (e) => {
-    if (eventVars.stepSelector.active) {
-      let pipelineStepHolderOffset = $(pipelineStepsHolder.current).offset();
+  // TODO: check if these are actually working, we might need to use onMouseEnter onMouseLeave to assign event listeners
+  const onMouseMoveStepsOuterHolder = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (eventVars.newConnection && pipelineStepsHolder.current) {
+      let offset = $(pipelineStepsHolder.current).offset();
 
-      eventVars.stepSelector.x2 =
-        scaleCorrectedPosition(e.clientX, eventVars.scaleFactor) -
-        scaleCorrectedPosition(
-          pipelineStepHolderOffset.left,
-          eventVars.scaleFactor
-        );
-      eventVars.stepSelector.y2 =
-        scaleCorrectedPosition(e.clientY, eventVars.scaleFactor) -
-        scaleCorrectedPosition(
-          pipelineStepHolderOffset.top,
-          eventVars.scaleFactor
-        );
-
-      eventVars.selectedSteps = getSelectedSteps();
-      updateEventVars();
+      eventVarsDispatch({
+        type: "UPDATE_NEW_CONNECTION_END_NODE",
+        payload: { mouseClientX: e.clientX, mouseClientY: e.clientY, offset },
+      });
     }
 
-    if (eventVars.draggingCanvas) {
-      let dx = e.clientX - eventVars.mouseClientX;
-      let dy = e.clientY - eventVars.mouseClientY;
+    if (eventVars.stepSelector.active) {
+      if (!pipelineStepsHolder.current) {
+        console.error(
+          "stepSelector is active, but pipelineStepsHolder is not yet instantiated!"
+        );
+        return;
+      }
+
+      let offset = $(pipelineStepsHolder.current).offset();
+
+      eventVarsDispatch({
+        type: "UPDATE_STEP_SELECTOR",
+        payload: {
+          offset,
+          mouseClientX: e.clientY,
+          mouseClientY: e.clientY,
+        },
+      });
+    }
+
+    if (eventVars.keysDown[32]) {
+      let dx = e.clientX - mouseClient.x;
+      let dy = e.clientY - mouseClient.y;
 
       setState((state) => {
         return {
@@ -1553,8 +1478,7 @@ const PipelineView: React.FC = () => {
       });
     }
 
-    eventVars.mouseClientX = e.clientX;
-    eventVars.mouseClientY = e.clientY;
+    setMouseClient({ x: e.clientX, y: e.clientY });
   };
 
   const services = React.useMemo(() => {
@@ -1634,6 +1558,9 @@ const PipelineView: React.FC = () => {
             ? stepExecutionState[step.uuid] || { status: "IDLE" }
             : { status: "IDLE" }
         }
+        isCreatingConnection={hasValue(eventVars.newConnection)}
+        isTrackingMouse={hasValue(eventVars.selectedSingleStep)}
+        dispatchMouseEvent={eventVarsDispatch}
         onMouseUp={onMouseUpPipelineStep}
         onClick={onClickStepHandler}
         onDoubleClick={onDoubleClickStepHandler}
@@ -1643,16 +1570,31 @@ const PipelineView: React.FC = () => {
 
   const connectionComponents = eventVars.connections.map(
     (connection, index) => {
-      // TODO: solve the element ref issue
+      const { startNodeUUID, endNodeUUID } = connection;
+      const startNode = stepDomRefs.current[startNodeUUID];
+      const endNode = endNodeUUID ? stepDomRefs.current[endNodeUUID] : null;
+
+      if (!pipelineStepsHolder.current || !startNode) return null;
+
+      let startNodePosition = nodeCenter(
+        startNode,
+        pipelineStepsHolder.current,
+        eventVars.scaleFactor
+      );
+      let endNodePosition = endNode
+        ? nodeCenter(
+            endNode,
+            pipelineStepsHolder.current,
+            eventVars.scaleFactor
+          )
+        : null;
+
       return (
         <PipelineConnection
           key={index}
-          scaleFactor={eventVars.scaleFactor}
-          scaleCorrectedPosition={scaleCorrectedPosition}
           onClick={onClickConnection}
-          pipelineViewEl={pipelineStepsHolder}
-          startNode={}
-          endNode={}
+          startNodePosition={startNodePosition}
+          endNodePosition={endNodePosition}
           {...connection}
         />
       );
@@ -1846,7 +1788,7 @@ const PipelineView: React.FC = () => {
                 <Button
                   variant="contained"
                   color="secondary"
-                  onClick={newStep}
+                  onClick={createNextStep}
                   startIcon={<AddIcon />}
                   data-test-id="step-create"
                 >
@@ -1906,8 +1848,8 @@ const PipelineView: React.FC = () => {
           <div
             className="pipeline-steps-outer-holder"
             ref={pipelineStepsOuterHolder}
-            onMouseMove={onPipelineStepsOuterHolderMove}
-            onMouseDown={onPipelineStepsOuterHolderDown}
+            onMouseMove={onMouseMoveStepsOuterHolder}
+            onMouseDown={onMouseDownStepsOuterHolder}
             onWheel={onPipelineStepsOuterHolderWheel}
           >
             <div

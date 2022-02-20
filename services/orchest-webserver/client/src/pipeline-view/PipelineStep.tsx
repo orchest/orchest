@@ -1,5 +1,7 @@
 import { PipelineStepState, PipelineStepStatus } from "@/types";
-import * as React from "react";
+import classNames from "classnames";
+import React from "react";
+import { EventVarsAction } from "./useEventVars";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
@@ -13,14 +15,27 @@ export type ExecutionState = {
 export interface IPipelineStepProps {
   selected?: boolean;
   step?: PipelineStepState;
-  onClick: any;
+  isCreatingConnection: boolean;
+  isTrackingMouse: boolean;
   onMouseUp: (endNodeUUID: string) => void;
-  onDoubleClick: any;
   executionState?: ExecutionState;
+  dispatchMouseEvent: (value: EventVarsAction) => void;
+  // TODO: clean up these
+  onClick: any;
+  onDoubleClick: any;
 }
 
 const PipelineStep = (
-  { step, executionState, selected, onMouseUp, ...props }: IPipelineStepProps,
+  {
+    step,
+    executionState,
+    selected,
+    onMouseUp,
+    isCreatingConnection,
+    isTrackingMouse,
+    dispatchMouseEvent,
+    ...props
+  }: IPipelineStepProps,
   ref: React.MutableRefObject<HTMLDivElement>
 ) => {
   const formatSeconds = (seconds: number) => {
@@ -87,6 +102,25 @@ const PipelineStep = (
   const [x, y] = step.meta_data.position;
   const style = { transform: `translateX(${x}px) translateY(${y}px)` };
 
+  const onMouseMoveStep = React.useCallback(
+    (e: MouseEvent) => {
+      dispatchMouseEvent({
+        type: "MOVE_STEPS",
+        payload: { mouseClientX: e.clientX, mouseClientY: e.clientY },
+      });
+    },
+    [dispatchMouseEvent]
+  );
+
+  const startTrackingMouse = () => {
+    if (isTrackingMouse)
+      ref.current.addEventListener("mousemove", onMouseMoveStep);
+  };
+
+  const stopTrackingMouse = () => {
+    ref.current.removeEventListener("mousemove", onMouseMoveStep);
+  };
+
   return (
     <div
       data-uuid={step.uuid}
@@ -102,9 +136,14 @@ const PipelineStep = (
         .filter(Boolean)
         .join(" ")}
       style={style}
+      onMouseOver={startTrackingMouse}
+      onMouseLeave={stopTrackingMouse}
     >
       <div
-        className={"incoming-connections connection-point"}
+        className={classNames(
+          "incoming-connections connection-point",
+          isCreatingConnection ? "hover" : ""
+        )}
         onMouseUp={() => onMouseUp(step.uuid)}
       >
         <div className="inner-dot"></div>

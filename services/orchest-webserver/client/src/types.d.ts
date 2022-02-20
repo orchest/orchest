@@ -292,6 +292,8 @@ export type PipelineStepState = Step & {
   };
 };
 
+export type Offset = { top: number; left: number };
+
 export type Service = {
   image: string;
   name: string;

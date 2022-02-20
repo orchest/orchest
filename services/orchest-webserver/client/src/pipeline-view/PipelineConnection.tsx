@@ -1,22 +1,33 @@
 import { globalMDCVars } from "@orchest/lib-utils";
-import $ from "jquery";
 import React from "react";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 
+type Position = { x: number; y: number };
+
+// set SVG properties
+const lineHeight = 2;
+const svgPadding = 5;
+const arrowWidth = 7;
+
 const PipelineConnection: React.FC<{
-  startNode: HTMLElement;
-  endNode?: HTMLElement;
-  pipelineViewEl: React.MutableRefObject<HTMLDivElement>;
+  startNodePosition: Position;
+  endNodePosition: Position | null;
   startNodeUUID: string;
   endNodeUUID?: string;
   onClick: (e: MouseEvent, startNodeUUID: string, endNodeUUID: string) => void;
   xEnd: number;
   yEnd: number;
   selected: boolean;
-  scaleFactor: number;
-  scaleCorrectedPosition: (position: number, scaleFactor: number) => number;
-}> = (props) => {
+}> = ({
+  startNodePosition,
+  endNodePosition,
+  onClick,
+  selected,
+  startNodeUUID,
+  endNodeUUID,
+  ...props
+}) => {
   const connectionHolder = React.useRef(null);
 
   const curvedHorizontal = function (x1, y1, x2, y2) {
@@ -29,28 +40,54 @@ const PipelineConnection: React.FC<{
     return line.join(" ");
   };
 
-  const localElementPosition = (el: HTMLElement, parentEl: HTMLElement) => {
-    let position = {} as any;
-    position.x = props.scaleCorrectedPosition(
-      $(el).offset().left - $(parentEl).offset().left,
-      props.scaleFactor
-    );
-    position.y = props.scaleCorrectedPosition(
-      $(el).offset().top - $(parentEl).offset().top,
-      props.scaleFactor
-    );
-    return position;
-  };
+  const renderProperties = React.useMemo(() => {
+    // 1. endNodePosition => a complete connection
+    // 2. props.xEnd => user is still making the connection, not yet decided the endNode
+    // 3. startNode => default, just started to create
+    let xEnd = endNodePosition
+      ? endNodePosition.x
+      : props.xEnd ?? startNodePosition.x; // props.xEnd could be 0, so we need to use ?? instead of ||
 
-  const nodeCenter = (el: HTMLElement, parentEl: HTMLElement) => {
-    let nodePosition = localElementPosition(el, parentEl) as any;
-    nodePosition.x += $(el).width() / 2;
-    nodePosition.y += $(el).height() / 2;
-    return nodePosition;
-  };
+    let yEnd = endNodePosition
+      ? endNodePosition.y
+      : props.yEnd ?? startNodePosition.y;
 
-  const renderSVG = () => {
-    if (connectionHolder.current) {
+    let targetX = xEnd - startNodePosition.x;
+    let targetY = yEnd - startNodePosition.y;
+
+    let xOffset = Math.min(targetX, 0);
+    let yOffset = Math.min(targetY, 0);
+
+    let styles = {
+      transform:
+        "translateX(" +
+        (startNodePosition.x - svgPadding + xOffset) +
+        "px) translateY(" +
+        (startNodePosition.y - svgPadding + yOffset - lineHeight / 2) +
+        "px)",
+    };
+
+    return { targetX, targetY, styles, xOffset, yOffset };
+  }, [
+    startNodePosition.x,
+    startNodePosition.y,
+    endNodePosition,
+    props.xEnd,
+    props.yEnd,
+  ]);
+
+  const onMouseDown = React.useCallback(
+    (e) => {
+      if (onClick) onClick(e, startNodeUUID, endNodeUUID);
+    },
+    [onClick, startNodeUUID, endNodeUUID]
+  );
+
+  // render SVG
+  React.useEffect(() => {
+    // startNode is required
+    if (connectionHolder.current && renderProperties) {
+      const { styles, targetX, targetY, xOffset, yOffset } = renderProperties;
       // initialize SVG
       let svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       let svgPath = document.createElementNS(
@@ -71,60 +108,9 @@ const PipelineConnection: React.FC<{
       svgPathClickable.setAttribute("fill", "none");
       svgPathClickable.setAttribute("id", "path-clickable");
 
-      svgPathClickable.onmousedown = (e) => {
-        if (props.onClick) {
-          props.onClick(e, props.startNodeUUID, props.endNodeUUID);
-        }
-      };
+      svgPathClickable.onmousedown = onMouseDown;
       svgEl.appendChild(svgPath);
       svgEl.appendChild(svgPathClickable);
-
-      // set SVG properties
-      const lineHeight = 2;
-      const svgPadding = 5;
-      const arrowWidth = 7;
-
-      let startNodePosition = nodeCenter(
-        props.startNode,
-        props.pipelineViewEl.current
-      ) as any;
-      let x = startNodePosition.x;
-      let y = startNodePosition.y;
-      let xEnd = props.xEnd !== undefined ? props.xEnd : x;
-      let yEnd = props.yEnd !== undefined ? props.yEnd : y;
-
-      // set xEnd and yEnd if endNode is defined
-      if (props.endNode) {
-        let endNodePosition = nodeCenter(
-          props.endNode,
-          props.pipelineViewEl.current
-        ) as any;
-        xEnd = endNodePosition.x;
-        yEnd = endNodePosition.y;
-      }
-
-      let targetX = xEnd - x;
-      let targetY = yEnd - y;
-
-      let xOffset = 0;
-      let yOffset = 0;
-
-      if (targetX < 0) {
-        xOffset = targetX;
-      }
-
-      if (targetY < 0) {
-        yOffset = targetY;
-      }
-
-      let styles = {
-        transform:
-          "translateX(" +
-          (x - svgPadding + xOffset) +
-          "px) translateY(" +
-          (y - svgPadding + yOffset - lineHeight / 2) +
-          "px)",
-      };
 
       // update svg poly line
       svgEl.setAttribute("width", Math.abs(targetX) + 2 * svgPadding + "px");
@@ -141,7 +127,7 @@ const PipelineConnection: React.FC<{
       );
       svgPathClickable.setAttribute("d", svgPath.getAttribute("d"));
 
-      if (props.selected) {
+      if (selected) {
         svgPath.setAttribute("stroke", THEME_SECONDARY);
         svgPath.setAttribute("stroke-width", "3");
       } else {
@@ -153,7 +139,7 @@ const PipelineConnection: React.FC<{
         "connection",
         targetX < arrowWidth * 10 && "flipped-horizontal",
         targetY < 0 && "flipped",
-        props.selected && "selected",
+        selected && "selected",
       ].filter(Boolean);
 
       connectionHolder.current.className = "";
@@ -161,16 +147,12 @@ const PipelineConnection: React.FC<{
       Object.assign(connectionHolder.current.style, styles);
       connectionHolder.current.replaceChildren(svgEl);
     }
-  };
-
-  React.useEffect(() => {
-    renderSVG();
-  });
+  }, [renderProperties, selected, onMouseDown]);
 
   return (
     <div
-      data-start-uuid={props.startNodeUUID}
-      data-end-uuid={props.endNodeUUID}
+      data-start-uuid={startNodeUUID}
+      data-end-uuid={endNodeUUID}
       ref={connectionHolder}
     ></div>
   );

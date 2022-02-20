@@ -1,6 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { shallowEqualByKey } from "@/environment-edit-view/shallowEqualByKey";
-import type { Connection, PipelineStepState, Step } from "@/types";
+import type { Connection, Offset, PipelineStepState, Step } from "@/types";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import { intersectRect } from "@orchest/lib-utils";
 import produce from "immer";
@@ -8,19 +8,53 @@ import merge from "lodash.merge";
 import React from "react";
 import { getStepSelectorRectangle } from "./Rectangle";
 
+export const scaleCorrectedPosition = (
+  position: number,
+  scaleFactor: number
+) => {
+  position /= scaleFactor;
+  return position;
+};
+
+const localElementPosition = (
+  offset: Offset,
+  parentOffset: Offset,
+  scaleFactor: number
+) => {
+  return {
+    x: scaleCorrectedPosition(offset.left - parentOffset.left, scaleFactor),
+    y: scaleCorrectedPosition(offset.top - parentOffset.top, scaleFactor),
+  };
+};
+
+export const nodeCenter = (
+  el: HTMLElement,
+  parentEl: HTMLElement,
+  scaleFactor: number
+) => {
+  let nodePosition = localElementPosition(
+    $(el).offset(),
+    $(parentEl).offset(),
+    scaleFactor
+  );
+  nodePosition.x += $(el).width() / 2;
+  nodePosition.y += $(el).height() / 2;
+  return nodePosition;
+};
+
 type EventVars = {
+  // mouseClientX: number;
+  // mouseClientY: number;
+  // draggingCanvas: boolean;
   keysDown: Record<string, boolean>;
   prevPosition: [number, number];
   doubleClickFirstClick: boolean;
-  mouseClientX: number;
-  mouseClientY: number;
   scaleFactor: number;
   steps: Record<string, PipelineStepState>;
+  selectedSingleStep?: string;
   selectedSteps: string[];
   connections: Connection[];
   selectedConnection?: Connection;
-  selectedItem?: string;
-  draggingCanvas: boolean;
   openedMultiStep: boolean;
   openedStep?: string;
   newConnection: Connection;
@@ -40,11 +74,23 @@ type Action =
       payload: Record<string, PipelineStepState>;
     }
   | {
+      type: "CREATE_STEP";
+      payload: PipelineStepState;
+    }
+  | {
       type: "SELECT_STEPS";
       payload: string[];
     }
   | {
-      type: "ON_CLICK_CONNECTION";
+      type: "SELECT_SINGLE_STEP";
+      payload: string;
+    }
+  | {
+      type: "MOVE_STEPS";
+      payload: { mouseClientX: number; mouseClientY: number };
+    }
+  | {
+      type: "SELECT_CONNECTION";
       payload: {
         startNodeUUID: string;
         endNodeUUID: string;
@@ -59,7 +105,7 @@ type Action =
       payload: string | undefined;
     }
   | {
-      type: "CREATE_NEW_CONNECTION";
+      type: "CREATE_CONNECTION_INSTANCE";
       payload: Connection;
     }
   | {
@@ -82,10 +128,27 @@ type Action =
       payload: {
         mouseClientX: number;
         mouseClientY: number;
-        pipelineStepHolderOffset: {
-          left: number;
-          top: number;
-        } | null;
+        pipelineStepHolderOffset: Offset | null;
+      };
+    }
+  | {
+      type: "SET_SCALE_FACTOR";
+      payload: number;
+    }
+  | {
+      type: "UPDATE_STEP_SELECTOR";
+      payload: {
+        offset: Offset;
+        mouseClientX: number;
+        mouseClientY: number;
+      };
+    }
+  | {
+      type: "UPDATE_NEW_CONNECTION_END_NODE";
+      payload: {
+        mouseClientX: number;
+        mouseClientY: number;
+        offset: { left: number; top: number };
       };
     }
   | {
@@ -95,9 +158,11 @@ type Action =
 
 type ActionCallback = (previousState: EventVars) => Action | void;
 
-type EventVarsAction = Action | ActionCallback | undefined;
+export type EventVarsAction = Action | ActionCallback | undefined;
 
 const DEFAULT_SCALE_FACTOR = 1;
+const DRAG_CLICK_SENSITIVITY = 3;
+
 const DEFAULT_STEP_SELECTOR = {
   x1: Number.MIN_VALUE,
   y1: Number.MIN_VALUE,
@@ -110,19 +175,9 @@ const DEFAULT_STEP_SELECTOR = {
 //   stepSelector: DEFAULT_STEP_SELECTOR,
 // };
 
-export const scaleCorrectedPosition = (
-  position: number,
-  scaleFactor: number
-) => {
-  position /= scaleFactor;
-  return position;
-};
-
-// const immutableReducer: Reducer<EventVars, EventVarsAction> = ;
-
 export const useEventVars = () => {
   const { setAlert } = useAppContext();
-  const stepDomRefs = React.useRef<HTMLDivElement[]>([]);
+  const stepDomRefs = React.useRef<Record<string, HTMLDivElement>>({});
   const [state, dispatch] = React.useReducer(
     produce((state: EventVars, _action: EventVarsAction) => {
       const action = _action instanceof Function ? _action(state) : _action;
@@ -336,13 +391,122 @@ export const useEventVars = () => {
         state.newConnection = undefined;
       };
 
+      const selectSteps = (steps: string[]) => {
+        state.selectedSteps = steps;
+        if (steps.length === 1) {
+          state.openedStep = steps[0];
+          state.openedMultiStep = false;
+        }
+        state.openedMultiStep = steps.length > 1;
+      };
+
+      const deselectSteps = () => {
+        state.selectedSteps = [];
+        state.stepSelector = DEFAULT_STEP_SELECTOR;
+        state.openedMultiStep = false;
+        // deselecting will close the detail view
+        state.openedStep = undefined;
+      };
+
+      /**
+       * Get position for new step so it doesn't spawn on top of other
+       * new steps.
+       * @param initialPosition Default position of new step.
+       * @param baseOffset The offset to use for X and Y.
+       */
+      const getNewStepPosition = (
+        initialPosition: [number, number],
+        baseOffset = 15
+      ) => {
+        const stepPositions = new Set();
+        Object.values(state.steps).forEach((step) => {
+          // Make position hashable.
+          stepPositions.add(String(step.meta_data.position));
+        });
+
+        let position = [...initialPosition];
+        while (stepPositions.has(String(position))) {
+          position = [position[0] + baseOffset, position[1] + baseOffset];
+        }
+        return position as [number, number];
+      };
+
       /**
        * action handlers
        */
       switch (action.type) {
+        case "SET_SCALE_FACTOR": {
+          state.scaleFactor = action.payload;
+          break;
+        }
         case "SET_STEPS": {
           // return { ...state, steps: action.payload };
           state.steps = addOutgoingConnections(action.payload);
+          break;
+        }
+        case "CREATE_STEP": {
+          const newStep = action.payload;
+
+          if (state.steps[newStep.uuid]) {
+            state.error = "Step already exists";
+            break;
+          }
+
+          // in case any existing step is on the exact same position
+          newStep.meta_data.position = getNewStepPosition(
+            newStep.meta_data.position
+          );
+
+          deselectSteps();
+          selectSteps([newStep.uuid]);
+
+          state.steps[newStep.uuid] = newStep;
+
+          break;
+        }
+        case "MOVE_STEPS": {
+          const { mouseClientX, mouseClientY } = action.payload;
+
+          // get the distance of the movement, and update prevPosition
+          let delta = [
+            scaleCorrectedPosition(mouseClientX, state.scaleFactor) -
+              state.prevPosition[0],
+            scaleCorrectedPosition(mouseClientY, state.scaleFactor) -
+              state.prevPosition[1],
+          ];
+
+          state.prevPosition = [
+            scaleCorrectedPosition(mouseClientX, state.scaleFactor),
+            scaleCorrectedPosition(mouseClientY, state.scaleFactor),
+          ];
+
+          // check if user starts dragging state.selectedSingleStep
+          let step = state.steps[state.selectedSingleStep];
+          step.meta_data._drag_count++;
+          if (step.meta_data._drag_count >= DRAG_CLICK_SENSITIVITY) {
+            step.meta_data._dragged = true;
+            step.meta_data._drag_count = 0;
+          }
+
+          // check for spacebar, i.e. not dragging canvas
+          if (!state.keysDown[32]) break;
+
+          // if user selected multiple steps, they will move together
+          if (
+            state.selectedSteps.length > 1 &&
+            state.selectedSteps.includes(state.selectedSingleStep)
+          ) {
+            state.selectedSteps.forEach((uuid) => {
+              let singleStep = state.steps[uuid];
+
+              singleStep.meta_data.position[0] += delta[0];
+              singleStep.meta_data.position[1] += delta[1];
+            });
+          } else if (state.selectedSingleStep) {
+            step.meta_data.position[0] += delta[0];
+            step.meta_data.position[1] += delta[1];
+          }
+
           break;
         }
         case "ON_MOUSE_DOWN_CANVAS": {
@@ -352,10 +516,10 @@ export const useEventVars = () => {
             pipelineStepHolderOffset,
           } = action.payload;
 
-          state.mouseClientX = mouseClientX;
-          state.mouseClientY = mouseClientY;
+          // state.mouseClientX = mouseClientX;
+          // state.mouseClientY = mouseClientY;
           // not dragging the canvas, so user must be creating a selection rectangle
-          if (!state.draggingCanvas && pipelineStepHolderOffset) {
+          if (pipelineStepHolderOffset) {
             const { left, top } = pipelineStepHolderOffset;
             state.stepSelector.active = true;
             state.stepSelector.x1 = state.stepSelector.x2 =
@@ -370,21 +534,21 @@ export const useEventVars = () => {
           break;
         }
         case "SELECT_STEPS": {
-          state.selectedSteps = action.payload;
-          if (action.payload.length === 1) {
-            state.openedStep = action.payload[0];
-            state.openedMultiStep = false;
-          }
-          state.openedMultiStep = action.payload.length > 1;
+          selectSteps(action.payload);
+          break;
+        }
+        case "SELECT_SINGLE_STEP": {
+          // this is the step that user's current mouse-down target.
+          // at the same time, user might already select multiple steps, there are 2 cases
+          // - this current mouse-down target is part of the selected steps:
+          //   then user can drag the current mouse-down target, and all the rest of selected steps would follow
+          // - this current mouse-down target is NOT part of the selected steps:
+          //   deselect the rest, as if user only select the current mouse-down target
+          state.selectedSingleStep = action.payload;
           break;
         }
         case "DESELECT_STEPS": {
-          state.selectedSteps = [];
-          state.stepSelector = DEFAULT_STEP_SELECTOR;
-          state.openedMultiStep = false;
-          // deselecting will close the detail view
-          state.openedStep = undefined;
-
+          deselectSteps();
           break;
         }
         case "DESELECT_CONNECTION": {
@@ -393,7 +557,7 @@ export const useEventVars = () => {
           break;
         }
 
-        case "ON_CLICK_CONNECTION": {
+        case "SELECT_CONNECTION": {
           const selectedConnection = getConnectionByUUIDs(
             action.payload.startNodeUUID,
             action.payload.endNodeUUID
@@ -417,7 +581,43 @@ export const useEventVars = () => {
           break;
         }
 
-        case "CREATE_NEW_CONNECTION": {
+        case "UPDATE_STEP_SELECTOR": {
+          const {
+            mouseClientX,
+            mouseClientY,
+            offset: { top, left },
+          } = action.payload;
+          state.stepSelector.x2 =
+            scaleCorrectedPosition(mouseClientX, state.scaleFactor) -
+            scaleCorrectedPosition(left, state.scaleFactor);
+          state.stepSelector.y2 =
+            scaleCorrectedPosition(mouseClientY, state.scaleFactor) -
+            scaleCorrectedPosition(top, state.scaleFactor);
+
+          state.selectedSteps = getSelectedSteps();
+
+          break;
+        }
+
+        case "UPDATE_NEW_CONNECTION_END_NODE": {
+          const {
+            mouseClientX,
+            mouseClientY,
+            offset: { top, left },
+          } = action.payload;
+          state.newConnection.xEnd =
+            scaleCorrectedPosition(mouseClientX, state.scaleFactor) -
+            scaleCorrectedPosition(left, state.scaleFactor);
+          state.newConnection.yEnd =
+            scaleCorrectedPosition(mouseClientY, state.scaleFactor) -
+            scaleCorrectedPosition(top, state.scaleFactor);
+
+          break;
+        }
+
+        // this means that the connection might not yet complete, as endNodeUUID is optional
+        // this action creates an instance
+        case "CREATE_CONNECTION_INSTANCE": {
           state.connections.push(action.payload);
           if (!action.payload.endNodeUUID) {
             state.newConnection = action.payload;
@@ -527,14 +727,14 @@ export const useEventVars = () => {
      */
     {
       keysDown: {},
-      mouseClientX: 0,
-      mouseClientY: 0,
+      // mouseClientX: 0,
+      // mouseClientY: 0,
+      // draggingCanvas: false,
       prevPosition: [null, null],
       doubleClickFirstClick: false,
       selectedConnection: undefined,
-      selectedItem: undefined,
+      selectedSingleStep: undefined,
       newConnection: undefined,
-      draggingCanvas: false,
       openedStep: undefined,
       openedMultiStep: undefined,
       selectedSteps: [],
