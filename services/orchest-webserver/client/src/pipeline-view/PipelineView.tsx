@@ -124,10 +124,7 @@ const PipelineView: React.FC = () => {
     _setIsReadOnly(readOnly);
   };
 
-  const [prevPosition, setPrevPosition] = React.useState<[number, number]>([
-    0,
-    0,
-  ]);
+  // TODO: use keyDown[32] or draggingCanvas to determine dragging?????
   const [draggingCanvas, setDraggingCanvas] = React.useState(false);
   const isPipelineInitialized = React.useRef(false);
   const pipelineStepsOuterHolder = React.useRef<HTMLDivElement>();
@@ -137,7 +134,12 @@ const PipelineView: React.FC = () => {
     x: number;
     y: number;
   }>({ x: 0, y: 0 });
-  const [eventVars, eventVarsDispatch, stepDomRefs] = useEventVars();
+  const {
+    eventVars,
+    eventVarsDispatch,
+    stepDomRefs,
+    trackMouseMovement,
+  } = useEventVars();
 
   const removeCreatingConnectionStyling = React.useCallback(() => {
     $(".incoming-connections").removeClass("hover");
@@ -1435,6 +1437,10 @@ const PipelineView: React.FC = () => {
 
   // TODO: check if these are actually working, we might need to use onMouseEnter onMouseLeave to assign event listeners
   const onMouseMoveStepsOuterHolder = (e: React.MouseEvent<HTMLDivElement>) => {
+    trackMouseMovement(e.clientX, e.clientY);
+
+    if (eventVars.selectedSingleStep) eventVarsDispatch({ type: "MOVE_STEPS" });
+
     if (eventVars.newConnection && pipelineStepsHolder.current) {
       let offset = $(pipelineStepsHolder.current).offset();
 
@@ -1559,11 +1565,10 @@ const PipelineView: React.FC = () => {
             : { status: "IDLE" }
         }
         isCreatingConnection={hasValue(eventVars.newConnection)}
-        isTrackingMouse={hasValue(eventVars.selectedSingleStep)}
-        dispatchMouseEvent={eventVarsDispatch}
+        eventVarsDispatch={eventVarsDispatch}
         onMouseUp={onMouseUpPipelineStep}
-        onClick={onClickStepHandler}
-        onDoubleClick={onDoubleClickStepHandler}
+        onClick={onClickStepHandler} // TODO: fix this
+        onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
       />
     );
   });

@@ -16,10 +16,9 @@ export interface IPipelineStepProps {
   selected?: boolean;
   step?: PipelineStepState;
   isCreatingConnection: boolean;
-  isTrackingMouse: boolean;
   onMouseUp: (endNodeUUID: string) => void;
   executionState?: ExecutionState;
-  dispatchMouseEvent: (value: EventVarsAction) => void;
+  eventVarsDispatch: (value: EventVarsAction) => void;
   // TODO: clean up these
   onClick: any;
   onDoubleClick: any;
@@ -32,8 +31,7 @@ const PipelineStep = (
     selected,
     onMouseUp,
     isCreatingConnection,
-    isTrackingMouse,
-    dispatchMouseEvent,
+    eventVarsDispatch,
     ...props
   }: IPipelineStepProps,
   ref: React.MutableRefObject<HTMLDivElement>
@@ -102,23 +100,8 @@ const PipelineStep = (
   const [x, y] = step.meta_data.position;
   const style = { transform: `translateX(${x}px) translateY(${y}px)` };
 
-  const onMouseMoveStep = React.useCallback(
-    (e: MouseEvent) => {
-      dispatchMouseEvent({
-        type: "MOVE_STEPS",
-        payload: { mouseClientX: e.clientX, mouseClientY: e.clientY },
-      });
-    },
-    [dispatchMouseEvent]
-  );
-
-  const startTrackingMouse = () => {
-    if (isTrackingMouse)
-      ref.current.addEventListener("mousemove", onMouseMoveStep);
-  };
-
-  const stopTrackingMouse = () => {
-    ref.current.removeEventListener("mousemove", onMouseMoveStep);
+  const onMouseDown = () => {
+    eventVarsDispatch({ type: "SELECT_SINGLE_STEP", payload: step.uuid });
   };
 
   return (
@@ -136,8 +119,7 @@ const PipelineStep = (
         .filter(Boolean)
         .join(" ")}
       style={style}
-      onMouseOver={startTrackingMouse}
-      onMouseLeave={stopTrackingMouse}
+      onMouseDown={onMouseDown}
     >
       <div
         className={classNames(

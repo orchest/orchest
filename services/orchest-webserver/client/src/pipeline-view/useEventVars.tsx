@@ -1,6 +1,12 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { shallowEqualByKey } from "@/environment-edit-view/shallowEqualByKey";
-import type { Connection, Offset, PipelineStepState, Step } from "@/types";
+import type {
+  Connection,
+  Offset,
+  PipelineStepState,
+  Position,
+  Step,
+} from "@/types";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import { intersectRect } from "@orchest/lib-utils";
 import produce from "immer";
@@ -87,7 +93,6 @@ type Action =
     }
   | {
       type: "MOVE_STEPS";
-      payload: { mouseClientX: number; mouseClientY: number };
     }
   | {
       type: "SELECT_CONNECTION";
@@ -178,7 +183,10 @@ const DEFAULT_STEP_SELECTOR = {
 export const useEventVars = () => {
   const { setAlert } = useAppContext();
   const stepDomRefs = React.useRef<Record<string, HTMLDivElement>>({});
-  const [state, dispatch] = React.useReducer(
+  const prevPosition = React.useRef<Position>({ x: 0, y: 0 });
+  const positionDelta = React.useRef<Position>({ x: 0, y: 0 });
+
+  const [eventVars, eventVarsDispatch] = React.useReducer(
     produce((state: EventVars, _action: EventVarsAction) => {
       const action = _action instanceof Function ? _action(state) : _action;
 
@@ -465,21 +473,6 @@ export const useEventVars = () => {
           break;
         }
         case "MOVE_STEPS": {
-          const { mouseClientX, mouseClientY } = action.payload;
-
-          // get the distance of the movement, and update prevPosition
-          let delta = [
-            scaleCorrectedPosition(mouseClientX, state.scaleFactor) -
-              state.prevPosition[0],
-            scaleCorrectedPosition(mouseClientY, state.scaleFactor) -
-              state.prevPosition[1],
-          ];
-
-          state.prevPosition = [
-            scaleCorrectedPosition(mouseClientX, state.scaleFactor),
-            scaleCorrectedPosition(mouseClientY, state.scaleFactor),
-          ];
-
           // check if user starts dragging state.selectedSingleStep
           let step = state.steps[state.selectedSingleStep];
           step.meta_data._drag_count++;
@@ -499,12 +492,12 @@ export const useEventVars = () => {
             state.selectedSteps.forEach((uuid) => {
               let singleStep = state.steps[uuid];
 
-              singleStep.meta_data.position[0] += delta[0];
-              singleStep.meta_data.position[1] += delta[1];
+              singleStep.meta_data.position[0] += positionDelta.current.x;
+              singleStep.meta_data.position[1] += positionDelta.current.y;
             });
           } else if (state.selectedSingleStep) {
-            step.meta_data.position[0] += delta[0];
-            step.meta_data.position[1] += delta[1];
+            step.meta_data.position[0] += positionDelta.current.x;
+            step.meta_data.position[1] += positionDelta.current.y;
           }
 
           break;
@@ -751,15 +744,35 @@ export const useEventVars = () => {
     }
   );
 
+  // this function doesn't trigger update, it simply persists clientX clientY for calculation
+  const trackMouseMovement = React.useCallback(
+    (clientX: number, clientY: number) => {
+      // get the distance of the movement, and update prevPosition
+      const previousX = prevPosition.current.x;
+      const previousY = prevPosition.current.y;
+
+      positionDelta.current = {
+        x: scaleCorrectedPosition(clientX, eventVars.scaleFactor) - previousX,
+        y: scaleCorrectedPosition(clientY, eventVars.scaleFactor) - previousY,
+      };
+
+      prevPosition.current = {
+        x: scaleCorrectedPosition(clientX, eventVars.scaleFactor),
+        y: scaleCorrectedPosition(clientY, eventVars.scaleFactor),
+      };
+    },
+    [eventVars.scaleFactor]
+  );
+
   React.useEffect(() => {
-    if (state.error) {
-      setAlert("Error", state.error, (resolve) => {
-        dispatch({ type: "SET_ERROR", payload: null });
+    if (eventVars.error) {
+      setAlert("Error", eventVars.error, (resolve) => {
+        eventVarsDispatch({ type: "SET_ERROR", payload: null });
         resolve(true);
         return true;
       });
     }
-  }, [state.error, setAlert]);
+  }, [eventVars.error, setAlert]);
 
-  return [state, dispatch, stepDomRefs] as const;
+  return { eventVars, eventVarsDispatch, stepDomRefs, trackMouseMovement };
 };

@@ -1,9 +1,8 @@
+import { Position } from "@/types";
 import { globalMDCVars } from "@orchest/lib-utils";
 import React from "react";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
-
-type Position = { x: number; y: number };
 
 // set SVG properties
 const lineHeight = 2;

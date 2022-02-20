@@ -280,6 +280,8 @@ export type Connection = {
   selected: boolean;
 };
 
+export type Position = { x: number; y: number };
+
 export type LogType = "step" | "service";
 
 export type PipelineStepState = Step & {
