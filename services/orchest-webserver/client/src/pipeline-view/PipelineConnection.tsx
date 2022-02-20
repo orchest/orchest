@@ -1,23 +1,22 @@
 import { globalMDCVars } from "@orchest/lib-utils";
-import * as React from "react";
+import $ from "jquery";
+import React from "react";
 
 const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 
 const PipelineConnection: React.FC<{
-  startNode: any;
-  endNode: any;
-  pipelineViewEl: any;
+  startNode: HTMLElement;
+  endNode?: HTMLElement;
+  pipelineViewEl: React.MutableRefObject<HTMLDivElement>;
   startNodeUUID: string;
   endNodeUUID?: string;
-  onClick: any;
+  onClick: (e: MouseEvent, startNodeUUID: string, endNodeUUID: string) => void;
   xEnd: number;
   yEnd: number;
   selected: boolean;
   scaleFactor: number;
-  scaleCorrectedPosition: any;
+  scaleCorrectedPosition: (position: number, scaleFactor: number) => number;
 }> = (props) => {
-  const { $ } = window;
-
   const connectionHolder = React.useRef(null);
 
   const curvedHorizontal = function (x1, y1, x2, y2) {
@@ -30,23 +29,23 @@ const PipelineConnection: React.FC<{
     return line.join(" ");
   };
 
-  const localElementPosition = (el, parentEl) => {
+  const localElementPosition = (el: HTMLElement, parentEl: HTMLElement) => {
     let position = {} as any;
     position.x = props.scaleCorrectedPosition(
-      el.offset().left - $(parentEl).offset().left,
+      $(el).offset().left - $(parentEl).offset().left,
       props.scaleFactor
     );
     position.y = props.scaleCorrectedPosition(
-      el.offset().top - $(parentEl).offset().top,
+      $(el).offset().top - $(parentEl).offset().top,
       props.scaleFactor
     );
     return position;
   };
 
-  const nodeCenter = (el, parentEl) => {
+  const nodeCenter = (el: HTMLElement, parentEl: HTMLElement) => {
     let nodePosition = localElementPosition(el, parentEl) as any;
-    nodePosition.x += el.width() / 2;
-    nodePosition.y += el.height() / 2;
+    nodePosition.x += $(el).width() / 2;
+    nodePosition.y += $(el).height() / 2;
     return nodePosition;
   };
 
@@ -87,7 +86,7 @@ const PipelineConnection: React.FC<{
 
       let startNodePosition = nodeCenter(
         props.startNode,
-        props.pipelineViewEl
+        props.pipelineViewEl.current
       ) as any;
       let x = startNodePosition.x;
       let y = startNodePosition.y;
@@ -98,7 +97,7 @@ const PipelineConnection: React.FC<{
       if (props.endNode) {
         let endNodePosition = nodeCenter(
           props.endNode,
-          props.pipelineViewEl
+          props.pipelineViewEl.current
         ) as any;
         xEnd = endNodePosition.x;
         yEnd = endNodePosition.y;

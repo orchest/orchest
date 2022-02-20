@@ -1,10 +1,11 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, Service } from "@/types";
+import { PipelineJson, PipelineStepState, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
+import produce from "immer";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 
@@ -101,27 +102,28 @@ export function filterServices(
   return servicesCopy;
 }
 
+/**
+ * Augment incoming_connections with outgoing_connections to be able
+ * to traverse from root nodes. Reset outgoing_connections state.
+ * Note: this function mutates the original steps object
+ * @param steps
+ * @returns stepsWithOutgoingConnections
+ */
 export function addOutgoingConnections(
-  steps: Record<
-    string,
-    { incoming_connections: string[]; outgoing_connections?: string[] }
-  >
+  steps: Record<string, PipelineStepState>
 ) {
-  /* Augment incoming_connections with outgoing_connections to be able
-  to traverse from root nodes. Reset outgoing_connections state.
-  Notes: modifies 'steps' object that's passed in
-  */
+  return produce(steps, (draft) => {
+    Object.keys(draft).forEach((stepUuid) => {
+      // Every step NEEDs to have an `.outgoing_connections` defined.
+      draft[stepUuid].outgoing_connections =
+        draft[stepUuid].outgoing_connections || [];
 
-  Object.keys(steps).forEach((stepUuid) => {
-    // Every step NEEDs to have an `.outgoing_connections` defined.
-    steps[stepUuid].outgoing_connections =
-      steps[stepUuid].outgoing_connections || [];
-
-    steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-      if (!steps[incomingConnectionUuid].outgoing_connections) {
-        steps[incomingConnectionUuid].outgoing_connections = [];
-      }
-      steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      draft[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
+        if (!draft[incomingConnectionUuid].outgoing_connections) {
+          draft[incomingConnectionUuid].outgoing_connections = [];
+        }
+        draft[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      });
     });
   });
 }

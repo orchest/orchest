@@ -1,11 +1,8 @@
-import { PipelineStepStatus } from "@/types";
-import { RefManager } from "@orchest/lib-utils";
+import { PipelineStepState, PipelineStepStatus } from "@/types";
 import * as React from "react";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
-
-export type TPipelineStepRef = any;
 
 export type ExecutionState = {
   finished_time?: Date;
@@ -15,23 +12,18 @@ export type ExecutionState = {
 };
 export interface IPipelineStepProps {
   selected?: boolean;
-  step?: any;
-  onConnect: (sourcePipelineStepUUID: any, targetPipelineStepUUID: any) => void;
+  step?: PipelineStepState;
   onClick: any;
+  onMouseUp: (endNodeUUID: string) => void;
   onDoubleClick: any;
   executionState?: ExecutionState;
 }
 
-const PipelineStep = (props: IPipelineStepProps, ref: TPipelineStepRef) => {
-  const [refManager] = React.useState(new RefManager());
-
-  const updatePosition = (position: [number, number]) => {
-    // note: DOM update outside of normal React loop for performance
-    refManager.refs.container.style.transform =
-      "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
-  };
-
-  const formatSeconds = (seconds) => {
+const PipelineStep = (
+  { step, executionState, selected, onMouseUp, ...props }: IPipelineStepProps,
+  ref: React.MutableRefObject<HTMLDivElement>
+) => {
+  const formatSeconds = (seconds: number) => {
     // Hours, minutes and seconds
     let hrs = ~~(seconds / 3600);
     let mins = ~~((seconds % 3600) / 60);
@@ -48,75 +40,73 @@ const PipelineStep = (props: IPipelineStepProps, ref: TPipelineStepRef) => {
     return ret;
   };
 
-  React.useEffect(() => updatePosition(props.step.meta_data.position), []);
-
-  React.useImperativeHandle(ref, () => ({
-    updatePosition,
-    props,
-    refManager,
-  }));
-
   let stateText = "Ready";
 
-  if (props.executionState.status === "SUCCESS") {
+  if (executionState.status === "SUCCESS") {
     let seconds = Math.round(
-      (props.executionState.finished_time - props.executionState.started_time) /
+      (executionState.finished_time.getTime() -
+        executionState.started_time.getTime()) /
         1000
     );
 
     stateText = "Completed (" + formatSeconds(seconds) + ")";
   }
-  if (props.executionState.status === "FAILURE") {
+  if (executionState.status === "FAILURE") {
     let seconds = 0;
 
-    if (props.executionState.started_time !== undefined) {
+    if (executionState.started_time !== undefined) {
       seconds = Math.round(
-        (props.executionState.finished_time -
-          props.executionState.started_time) /
+        (executionState.finished_time.getTime() -
+          executionState.started_time.getTime()) /
           1000
       );
     }
 
     stateText = "Failure (" + formatSeconds(seconds) + ")";
   }
-  if (props.executionState.status === "STARTED") {
+  if (executionState.status === "STARTED") {
     let seconds = 0;
 
-    if (props.executionState.started_time !== undefined) {
+    if (executionState.started_time !== undefined) {
       seconds = Math.round(
-        (props.executionState.server_time - props.executionState.started_time) /
+        (executionState.server_time.getTime() -
+          executionState.started_time.getTime()) /
           1000
       );
     }
 
     stateText = "Running (" + formatSeconds(seconds) + ")";
   }
-  if (props.executionState.status == "PENDING") {
+  if (executionState.status == "PENDING") {
     stateText = "Pending";
   }
-  if (props.executionState.status == "ABORTED") {
+  if (executionState.status == "ABORTED") {
     stateText = "Aborted";
   }
 
+  const [x, y] = step.meta_data.position;
+  const style = { transform: `translateX(${x}px) translateY(${y}px)` };
+
   return (
     <div
-      data-uuid={props.step.uuid}
-      data-test-title={props.step.title}
+      data-uuid={step.uuid}
+      data-test-title={step.title}
       data-test-id={"pipeline-step"}
-      ref={refManager.nrefs.container}
+      ref={ref}
       className={[
         "pipeline-step",
-        props.executionState.status,
-        props.selected && "selected",
-        props.step &&
-          props.step["meta_data"] &&
-          props.step["meta_data"]["hidden"] === true &&
-          "hidden",
+        executionState.status,
+        selected && "selected",
+        step.meta_data?.hidden && "hidden",
       ]
         .filter(Boolean)
         .join(" ")}
+      style={style}
     >
-      <div className={"incoming-connections connection-point"}>
+      <div
+        className={"incoming-connections connection-point"}
+        onMouseUp={() => onMouseUp(step.uuid)}
+      >
         <div className="inner-dot"></div>
       </div>
       <div className={"execution-indicator"}>
@@ -124,13 +114,13 @@ const PipelineStep = (props: IPipelineStepProps, ref: TPipelineStepRef) => {
           SUCCESS: <span className="success">✓ </span>,
           FAILURE: <span className="failure">✗ </span>,
           ABORTED: <span className="aborted">❗ </span>,
-        }[props.executionState.status] || null}
+        }[executionState.status] || null}
         {stateText}
       </div>
       <div className="step-label-holder">
         <div className={"step-label"}>
-          {props.step.title}
-          <span className="filename">{props.step.file_path}</span>
+          {step.title}
+          <span className="filename">{step.file_path}</span>
         </div>
       </div>
       <div className={"outgoing-connections connection-point"}>

@@ -268,11 +268,23 @@ export type Step = {
   parameters: Record<string, any>;
 };
 
+export type Connection = {
+  // ! Immer doesn't accept Elements
+  // startNode: JQuery<HTMLElement>;
+  // endNode?: JQuery<HTMLElement> | undefined;
+  // pipelineViewEl: HTMLElement;
+  xEnd: number | undefined;
+  yEnd: number | undefined;
+  startNodeUUID: string;
+  endNodeUUID: string | undefined;
+  selected: boolean;
+};
+
 export type LogType = "step" | "service";
 
 export type PipelineStepState = Step & {
   outgoing_connections?: string[];
-  meta_data: {
+  meta_data?: {
     hidden: boolean;
     position: [number, number];
     _drag_count: number;

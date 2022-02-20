@@ -8,10 +8,7 @@ import {
   sugiyama,
 } from "d3-dag";
 import cloneDeep from "lodash.clonedeep";
-import {
-  addOutgoingConnections,
-  clearOutgoingConnections,
-} from "./webserver-utils";
+import { addOutgoingConnections } from "./webserver-utils";
 
 type Component = {
   uuid: string;
@@ -203,21 +200,21 @@ const traverseGraph = (
  *
  * Sorted by the number of nodes in descending order.
  */
-const collectComponents = (pipelineJson) => {
-  // Augment pipelineJson
-  addOutgoingConnections(pipelineJson.steps);
+const collectComponents = (pipelineJson: PipelineJson) => {
+  // make a deep copy of steps from PipelineJson, and then add outgoing_connections to it
+  const steps = addOutgoingConnections(
+    pipelineJson.steps as Record<string, PipelineStepState>
+  );
 
   // Traverse graph
   let seenNodes: Set<string> = new Set();
   let components: { uuid: string; incoming_connections: string[] }[][] = [];
 
-  Object.keys(pipelineJson.steps).forEach((stepUuid) => {
-    let step = pipelineJson.steps[stepUuid];
-
+  Object.entries(steps).forEach(([stepUuid, step]) => {
     if (!seenNodes.has(stepUuid)) {
       let graphNodes = [step];
       seenNodes.add(stepUuid);
-      traverseGraph(step, pipelineJson.steps, seenNodes, graphNodes);
+      traverseGraph(step, steps, seenNodes, graphNodes);
 
       components.push(graphNodes);
     }
@@ -226,8 +223,9 @@ const collectComponents = (pipelineJson) => {
   // Sort components (big to small)
   components.sort((a, b) => b.length - a.length);
 
+  // ? why do we need to remove this?
   // Remove annotations after being done with them
-  clearOutgoingConnections(pipelineJson.steps);
+  // clearOutgoingConnections(pipelineJson.steps);
 
   return components;
 };
