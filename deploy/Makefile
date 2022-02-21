@@ -16,7 +16,7 @@ REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
 ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
-	 --create-namespace --wait
+	 --create-namespace --wait --atomic
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
@@ -92,7 +92,7 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 
 .PHONY: orchest
 orchest: initialize
-	helm install --atomic ${ORCHEST_DEPLOY_CONFIG}
+	helm install ${ORCHEST_DEPLOY_CONFIG}
 
 .PHONY: jupyter-eg
 jupyter-eg: ./bin/jupyter-eg
