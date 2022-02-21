@@ -215,14 +215,14 @@ def build_jupyter_task(task_uuid):
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",
-                "orchest",
+                _config.ORCHEST_NAMESPACE,
                 "workflows",
                 f"image-cache-task-{task_uuid}",
             )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",
-                "orchest",
+                _config.ORCHEST_NAMESPACE,
                 "workflows",
                 f"image-build-task-{task_uuid}",
             )

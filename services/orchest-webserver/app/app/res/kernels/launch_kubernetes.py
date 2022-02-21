@@ -21,10 +21,7 @@ from kubernetes import client as k8s_client
 from kubernetes import config
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import (
-    get_k8s_namespace_name,
-    get_step_and_kernel_volumes_and_volume_mounts,
-)
+from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
 
 
 def _get_kernel_pod_manifest(
@@ -118,7 +115,7 @@ def launch_kernel(kernel_id, response_addr, spark_context_init_mode):
 
     config.load_incluster_config()
     k8s_core_api = k8s_client.CoreV1Api()
-    ns = get_k8s_namespace_name(os.environ["ORCHEST_SESSION_UUID"])
+    ns = _config.ORCHEST_NAMESPACE
     k8s_core_api.create_namespaced_pod(ns, manifest)
 
 

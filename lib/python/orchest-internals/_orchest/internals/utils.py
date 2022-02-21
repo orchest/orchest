@@ -605,41 +605,6 @@ def docker_has_gpu_capabilities(
     return True
 
 
-def get_k8s_namespace_name(uuid: str) -> str:
-    """Get k8s namespace name given a uuid4 string.
-
-    Args:
-        uuid:
-
-    Returns:
-        Name of the namespace to use.
-    """
-    if len(uuid) != 36:
-        raise ValueError("The given 'uuid' needs to be a uuid4 string.")
-    return f"orchest-{uuid}"
-
-
-def get_k8s_namespace_manifest(uuid: str, labels: Dict[str, str]) -> dict:
-    """Returns a k8s namespace manifest given the arguments.
-
-    The namespace name will be set according to get_k8s_namespace_name.
-
-    Args:
-        uuid of the namespace. Will be used for the name.
-        labels: dictionary mapping string to string. Will be used for
-            the namespace labels.
-
-    Returns:
-        Dictionary representing a valid k8s namespace manifest.
-
-    """
-    return {
-        "apiVersion": "v1",
-        "kind": "Namespace",
-        "metadata": {"name": get_k8s_namespace_name(uuid), "labels": labels},
-    }
-
-
 def rmtree(path, ignore_errors=False) -> None:
     """A wrapped rm -rf.
 

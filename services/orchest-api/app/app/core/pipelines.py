@@ -24,10 +24,7 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import (
-    get_k8s_namespace_name,
-    get_step_and_kernel_volumes_and_volume_mounts,
-)
+from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
 from app.utils import get_logger
@@ -459,7 +456,7 @@ def _step_to_workflow_manifest_task(
     # which will fail because the FQDN can't be resolved by the local
     # engine on the node. K8S_TODO: fix this.
     registry_ip = k8s_core_api.read_namespaced_service(
-        _config.REGISTRY, "orchest"
+        _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
     task = {
         # "Name cannot begin with a digit when using either 'depends' or
@@ -502,7 +499,10 @@ def _step_to_workflow_manifest_task(
 
 
 def _pipeline_to_workflow_manifest(
-    workflow_name: str, pipeline: Pipeline, run_config: Dict[str, Any]
+    session_uuid: str,
+    workflow_name: str,
+    pipeline: Pipeline,
+    run_config: Dict[str, Any],
 ) -> dict:
     volumes, volume_mounts = get_step_and_kernel_volumes_and_volume_mounts(
         host_user_dir=run_config["host_user_dir"],
@@ -518,7 +518,13 @@ def _pipeline_to_workflow_manifest(
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
-        "metadata": {"name": workflow_name},
+        "metadata": {
+            "name": workflow_name,
+            "labels": {
+                "project_uuid": run_config["project_uuid"],
+                "session_uuid": session_uuid,
+            },
+        },
         "spec": {
             "entrypoint": "pipeline",
             "volumes": volumes,
@@ -600,11 +606,11 @@ async def run_pipeline_workflow(
             run_endpoint=run_config["run_endpoint"],
         )
 
-        namespace = get_k8s_namespace_name(session_uuid)
+        namespace = _config.ORCHEST_NAMESPACE
 
         try:
             manifest = _pipeline_to_workflow_manifest(
-                f"pipeline-run-task-{task_id}", pipeline, run_config
+                session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
             )
             k8s_custom_obj_api.create_namespaced_custom_object(
                 "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
