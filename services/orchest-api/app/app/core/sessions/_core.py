@@ -300,10 +300,9 @@ def has_busy_kernels(session_uuid: str) -> bool:
 
     """
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
-    ns = _config.ORCHEST_NAMESPACE
-    service_dns_name = f"jupyter-server-{session_uuid}.{ns}.svc.cluster.local"
-    # Coupled with the juputer-server service port.
-    url = f"http://{service_dns_name}/jupyter-server-{session_uuid}/api/kernels"
+    service_name = f"jupyter-server-{session_uuid}"
+    # Coupled with the jupyter-server service port.
+    url = f"http://{service_name}/{service_name}/api/kernels"
     response = requests.get(url, timeout=2.0)
 
     # Expected format: a list of dictionaries.
