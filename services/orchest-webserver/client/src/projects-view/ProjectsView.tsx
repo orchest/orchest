@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { PageTitle } from "@/components/common/PageTitle";
 import {
   DataTable,
   DataTableColumn,
@@ -164,12 +165,17 @@ const ProjectsView: React.FC = () => {
   const mounted = useMounted();
 
   React.useEffect(() => {
-    if (mounted && fetchProjectsError)
+    if (mounted.current && fetchProjectsError)
       setAlert("Error", "Error fetching projects");
   }, [fetchProjectsError, setAlert, mounted]);
 
   React.useEffect(() => {
-    if (mounted && !isFetchingProjects && !fetchProjectsError && projects) {
+    if (
+      mounted.current &&
+      !isFetchingProjects &&
+      !fetchProjectsError &&
+      projects
+    ) {
       dispatch({
         type: "projectsSet",
         payload: projects,
@@ -209,11 +215,13 @@ const ProjectsView: React.FC = () => {
           projectUuids.map((projectUuid) => deleteProjectRequest(projectUuid))
         )
           .then(() => {
-            fetchProjects();
             resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
           })
           .catch(() => {
             resolve(false);
+          })
+          .finally(() => {
+            fetchProjects();
           });
         return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
       }
@@ -304,7 +312,7 @@ const ProjectsView: React.FC = () => {
           isOpen={isShowingCreateModal}
           onClose={onCloseCreateProjectModal}
         />
-        <h2>Projects</h2>
+        <PageTitle>Projects</PageTitle>
         {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
@@ -316,6 +324,7 @@ const ProjectsView: React.FC = () => {
             >
               <Button
                 variant="contained"
+                autoFocus
                 startIcon={<AddIcon />}
                 onClick={onCreateClick}
                 data-test-id="add-project"

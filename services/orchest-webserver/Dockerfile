@@ -3,7 +3,7 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # Install required system packages and refresh certs
 RUN apt-get update \
-    && apt-get install -y ca-certificates git rsync \
+    && apt-get install -y ca-certificates git rsync netcat \
     && update-ca-certificates --fresh
 
 # Install nodejs

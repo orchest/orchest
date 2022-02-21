@@ -24,3 +24,14 @@ deployment
         volumeMounts:
          - name: pgdata
            mountPath: /userdir/.orchest/database/data           
+        readinessProbe:
+          exec:
+            command:
+              - pg_isready
+              - --username
+              - postgres
+          initialDelaySeconds: 1
+          periodSeconds: 4
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 20

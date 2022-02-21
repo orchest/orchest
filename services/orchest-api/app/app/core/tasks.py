@@ -10,7 +10,8 @@ from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
-from _orchest.internals.utils import copytree, get_k8s_namespace_name, rmtree
+from _orchest.internals import config as _config
+from _orchest.internals.utils import copytree, rmtree
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
@@ -84,7 +85,7 @@ async def run_pipeline_async(
         k8s_custom_obj_api.delete_namespaced_custom_object(
             "argoproj.io",
             "v1alpha1",
-            get_k8s_namespace_name(session_uuid),
+            _config.ORCHEST_NAMESPACE,
             "workflows",
             f"pipeline-run-task-{task_id}",
         )

@@ -1,16 +1,18 @@
 import { Code } from "@/components/common/Code";
+import { PageTitle } from "@/components/common/PageTitle";
 import ImageBuildLog from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap } from "@/routingConfig";
+import { siteMap } from "@/Routes";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import Typography from "@mui/material/Typography";
 import {
   makeCancelable,
   makeRequest,
@@ -35,33 +37,24 @@ const ConfigureJupyterLabView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
 
   // local states
+  const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
+  const [jupyterBuild, setJupyterBuild] = React.useState(null);
+
   const [state, setState] = React.useState({
-    building: false,
     sessionKillStatus: undefined,
     buildRequestInProgress: false,
     cancelBuildRequestInProgress: false,
-    ignoreIncomingLogs: false,
-    jupyterBuild: undefined,
     buildFetchHash: uuidv4(),
     jupyterSetupScript: undefined,
   });
 
+  const building = React.useMemo(() => {
+    return jupyterBuild
+      ? CANCELABLE_STATUSES.includes(jupyterBuild.status)
+      : false;
+  }, [jupyterBuild]);
+
   const [promiseManager] = React.useState(new PromiseManager());
-
-  const onBuildStart = () => {
-    setState((prevState) => ({
-      ...prevState,
-      ignoreIncomingLogs: false,
-    }));
-  };
-
-  const onUpdateBuild = (jupyterBuild) => {
-    setState((prevState) => ({
-      ...prevState,
-      building: CANCELABLE_STATUSES.indexOf(jupyterBuild.status) !== -1,
-      jupyterBuild,
-    }));
-  };
 
   const buildImage = async () => {
     window.orchest.jupyter.unload();
@@ -69,8 +62,8 @@ const ConfigureJupyterLabView: React.FC = () => {
     setState((prevState) => ({
       ...prevState,
       buildRequestInProgress: true,
-      ignoreIncomingLogs: true,
     }));
+    setIgnoreIncomingLogs(true);
 
     try {
       await save();
@@ -78,22 +71,27 @@ const ConfigureJupyterLabView: React.FC = () => {
         makeRequest("POST", "/catch/api-proxy/api/jupyter-builds"),
         promiseManager
       ).promise;
-      let jupyterBuild = JSON.parse(response)["jupyter_build"];
-      onUpdateBuild(jupyterBuild);
+
+      setJupyterBuild(JSON.parse(response)["jupyter_build"]);
     } catch (error) {
       if (!error.isCanceled) {
-        setState((prevState) => ({
-          ...prevState,
-          ignoreIncomingLogs: false,
-        }));
+        setIgnoreIncomingLogs(false);
 
         let resp = JSON.parse(error.body);
 
-        if (resp.message == "SessionInProgressException") {
+        if (resp.message === "SessionInProgressException") {
           setConfirm(
             "Warning",
-            "You must stop all active sessions in order to build a new JupyerLab image. \n\n" +
-              "Are you sure you want to stop all sessions? All running Jupyter kernels and interactive pipeline runs will be stopped.",
+            <>
+              <Typography>
+                You must stop all active sessions in order to build a new
+                JupyerLab image.
+              </Typography>
+              <Typography sx={{ marginTop: (theme) => theme.spacing(1) }}>
+                Are you sure you want to stop all sessions? All running Jupyter
+                kernels and interactive pipeline runs will be stopped.
+              </Typography>
+            </>,
             async (resolve) => {
               deleteAllSessions()
                 .then(() => {
@@ -123,8 +121,8 @@ const ConfigureJupyterLabView: React.FC = () => {
   const cancelImageBuild = () => {
     // send DELETE to cancel ongoing build
     if (
-      state.jupyterBuild &&
-      CANCELABLE_STATUSES.indexOf(state.jupyterBuild.status) !== -1
+      jupyterBuild &&
+      CANCELABLE_STATUSES.indexOf(jupyterBuild.status) !== -1
     ) {
       setState((prevState) => ({
         ...prevState,
@@ -133,7 +131,7 @@ const ConfigureJupyterLabView: React.FC = () => {
 
       makeRequest(
         "DELETE",
-        `/catch/api-proxy/api/jupyter-builds/${state.jupyterBuild.uuid}`
+        `/catch/api-proxy/api/jupyter-builds/${jupyterBuild.uuid}`
       )
         .then(() => {
           // immediately fetch latest status
@@ -214,7 +212,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       <div className={"view-page jupyterlab-config-page"}>
         {state.jupyterSetupScript !== undefined ? (
           <>
-            <h2>Configure JupyterLab</h2>
+            <PageTitle>Configure JupyterLab</PageTitle>
             <p className="push-down">
               You can install JupyterLab extensions using the bash script below.
             </p>
@@ -239,9 +237,10 @@ const ConfigureJupyterLabView: React.FC = () => {
                 value={state.jupyterSetupScript}
                 options={{
                   mode: "application/x-sh",
-                  theme: "jupyter",
+                  theme: "dracula",
                   lineNumbers: true,
                   viewportMargin: Infinity,
+                  readOnly: building,
                 }}
                 onBeforeChange={(editor, data, value) => {
                   setState((prevState) => ({
@@ -254,7 +253,6 @@ const ConfigureJupyterLabView: React.FC = () => {
             </div>
 
             <ImageBuildLog
-              buildFetchHash={state.buildFetchHash}
               buildRequestEndpoint={
                 "/catch/api-proxy/api/jupyter-builds/most-recent"
               }
@@ -264,11 +262,10 @@ const ConfigureJupyterLabView: React.FC = () => {
                   .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
-              onUpdateBuild={onUpdateBuild}
-              onBuildStart={onBuildStart}
-              ignoreIncomingLogs={state.ignoreIncomingLogs}
-              build={state.jupyterBuild}
-              building={state.building}
+              onUpdateBuild={setJupyterBuild}
+              ignoreIncomingLogs={ignoreIncomingLogs}
+              build={jupyterBuild}
+              buildFetchHash={state.buildFetchHash}
             />
 
             <Stack direction="row" spacing={2}>
@@ -279,8 +276,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               >
                 {appContext.state.hasUnsavedChanges ? "Save*" : "Save"}
               </Button>
-
-              {!state.building ? (
+              {!building ? (
                 <Button
                   disabled={
                     state.buildRequestInProgress ||

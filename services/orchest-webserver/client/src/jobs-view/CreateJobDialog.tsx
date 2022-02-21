@@ -82,7 +82,7 @@ export const CreateJobDialog = ({
                   helperText={
                     hasOnlySpaces
                       ? "Should contain at least one non-whitespace letter"
-                      : ""
+                      : " "
                   }
                   onChange={(e) => setJobName(e.target.value)}
                   label="Job name"
@@ -119,7 +119,7 @@ export const CreateJobDialog = ({
           )}
         </DialogContent>
         <DialogActions>
-          <Button color="secondary" onClick={closeDialog}>
+          <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
             Cancel
           </Button>
           <Button

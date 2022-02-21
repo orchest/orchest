@@ -3,57 +3,14 @@ from contextlib import contextmanager
 from typing import Callable, List, Optional
 
 import requests
-from kubernetes import client
 
-from _orchest.internals.utils import get_k8s_namespace_manifest, get_k8s_namespace_name
+from _orchest.internals import config as _config
 from app import errors, utils
 from app.connections import k8s_apps_api, k8s_core_api, k8s_rbac_api
 from app.core.sessions import _manifests
 from app.types import NonInteractiveSessionConfig, SessionConfig, SessionType
 
 logger = utils.get_logger()
-
-
-def _create_session_k8s_namespace(
-    session_uuid: str,
-    session_type: SessionType,
-    session_config: SessionConfig,
-    wait_ready=True,
-) -> None:
-    """Creates a k8s namespace for the given session.
-
-    Args:
-        session_uuid: Used for the name of the namespace.
-        session_config: Used for labeling the namespace with the project
-            and pipeline uuid.
-        session_type: Used for labeling the namespace.
-        wait_ready: Wait for the namespace to be "Active" before
-            returning.
-    """
-    manifest = get_k8s_namespace_manifest(
-        session_uuid,
-        {
-            "session_uuid": session_uuid,
-            "project_uuid": session_config["project_uuid"],
-            "pipeline_uuid": session_config["pipeline_uuid"],
-            "type": session_type.value,
-        },
-    )
-    k8s_core_api.create_namespace(manifest)
-    if not wait_ready:
-        return
-    namespace_name = manifest["metadata"]["name"]
-    for _ in range(120):
-        try:
-            phase = k8s_core_api.read_namespace_status(namespace_name).status.phase
-            if phase == "Active":
-                break
-        except client.ApiException as e:
-            if e.status != 404:
-                raise
-        time.sleep(0.5)
-    else:
-        raise Exception(f"Could not create namespace {namespace_name}.")
 
 
 def launch(
@@ -63,6 +20,9 @@ def launch(
     should_abort: Optional[Callable] = None,
 ) -> None:
     """Starts all resources needed by the session.
+
+    !!! Make sure to check that cleanup_resources is covering whatever
+    you decide to add.
 
     Args:
         session_uuid: UUID to identify the session k8s namespace with,
@@ -88,9 +48,6 @@ def launch(
             return False
 
         should_abort = always_false
-
-    logger.info("Creating namespace.")
-    _create_session_k8s_namespace(session_uuid, session_type, session_config)
 
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
@@ -159,7 +116,7 @@ def launch(
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
 
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
 
     logger.info("Creating session RBAC roles.")
     for manifest in session_rbac_roles:
@@ -230,29 +187,107 @@ def shutdown(session_uuid: str, wait_for_completion: bool = False):
 
 def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     """Deletes all related resources, idempotent."""
-    # Note: we rely on the fact that deleting the namespace leads to a
+    # Note: we rely on the fact that deleting the deployment leads to a
     # SIGTERM to the container, which will be used to delete the
     # existing jupyterlab user config lock for interactive sessions.
     # See PR #254.
-    ns = get_k8s_namespace_name(session_uuid)
-    try:
-        k8s_core_api.delete_namespace(ns)
-    except client.ApiException as e:
-        if e.status != 404:
-            raise e
+    ns = _config.ORCHEST_NAMESPACE
+    label_selector = f"session_uuid={session_uuid}"
+
+    # (name, list function, delete function)
+    resources_to_delete = [
+        (
+            "deployments",
+            k8s_apps_api.list_namespaced_deployment,
+            k8s_apps_api.delete_namespaced_deployment,
+        ),
+        (
+            "services",
+            k8s_core_api.list_namespaced_service,
+            k8s_core_api.delete_namespaced_service,
+        ),
+        # It's important that this stays after deployments and services
+        # to avoid dangling kernel pods started by Jupyter EG.
+        ("pods", k8s_core_api.list_namespaced_pod, k8s_core_api.delete_namespaced_pod),
+        (
+            "service_accounts",
+            k8s_core_api.list_namespaced_service_account,
+            k8s_core_api.delete_namespaced_service_account,
+        ),
+        (
+            "role_bindings",
+            k8s_rbac_api.list_namespaced_role_binding,
+            k8s_rbac_api.delete_namespaced_role_binding,
+        ),
+        (
+            "roles",
+            k8s_rbac_api.list_namespaced_role,
+            k8s_rbac_api.delete_namespaced_role,
+        ),
+    ]
+    resource_list_threads = []
+    for resource_name, list_f, _ in resources_to_delete:
+        logger.info(f"Getting {resource_name} for deletion.")
+        resource_list_threads.append(
+            list_f(ns, label_selector=label_selector, async_req=True)
+        )
+
+    # Delete all obtained entities.
+    resource_delete_threads = []
+    exceptions = []
+    for (resource_name, _, delete_f), thread in zip(
+        resources_to_delete, resource_list_threads
+    ):
+        # Don't let an error here hinder the deletion of other
+        # resources.
+        try:
+            logger.info(f"Deleting {resource_name}.")
+            entities = thread.get()
+            for entity in entities.items:
+                logger.info(f"Deleting {entity.metadata.name}")
+                resource_delete_threads.append(
+                    delete_f(entity.metadata.name, ns, async_req=True)
+                )
+        except Exception as e:
+            logger.error(str(e))
+            exceptions.append(e)
+
+    # Make sure all requests have terminated before returning, to not
+    # assume that the container or (worker) process will keep running
+    # once we return.
+    for thread in resource_delete_threads:
+        thread.get()
+
+    # TODO: move to exception groups
+    # https://www.python.org/dev/peps/pep-0654/.
+    if exceptions:
+        raise errors.SessionCleanupFailedError(str(exceptions))
 
     if not wait_for_completion:
         return
+    # Else keep listing resources until no resources are there.
+    tries = 1000
+    while resources_to_delete and tries > 0:
+        logger.info("Waiting for resources to be deleted.")
+        tmp_resources = []
 
-    for _ in range(1000):
-        try:
-            k8s_core_api.read_namespace_status(ns)
-        except client.ApiException as e:
-            if e.status == 404:
-                break
-            raise
+        resource_list_threads = []
+        for resource_name, list_f, _ in resources_to_delete:
+            resource_list_threads.append(
+                list_f(ns, label_selector=label_selector, async_req=True)
+            )
+        for (resource_name, list_f, delete_f), thread in zip(
+            resources_to_delete, resource_list_threads
+        ):
+            if thread.get().items:
+                logger.info(f"{resource_name} deletion not complete.")
+                tmp_resources.append((resource_name, list_f, delete_f))
+
+        resources_to_delete = tmp_resources
+        tries -= 1
         time.sleep(1)
-    else:
+
+    if resources_to_delete:
         raise errors.SessionCleanupFailedError()
 
 
@@ -265,10 +300,9 @@ def has_busy_kernels(session_uuid: str) -> bool:
 
     """
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
-    ns = get_k8s_namespace_name(session_uuid)
-    service_dns_name = f"jupyter-server.{ns}.svc.cluster.local"
-    # Coupled with the juputer-server service port.
-    url = f"http://{service_dns_name}/jupyter-server/api/kernels"
+    service_name = f"jupyter-server-{session_uuid}"
+    # Coupled with the jupyter-server service port.
+    url = f"http://{service_name}/{service_name}/api/kernels"
     response = requests.get(url, timeout=2.0)
 
     # Expected format: a list of dictionaries.
@@ -292,18 +326,17 @@ def restart_session_service(
     state, which is exactly what we want.
 
     """
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
     k8s_core_api.delete_collection_namespaced_pod(
-        namespace=ns, label_selector=f"app={service_name}"
+        namespace=ns, label_selector=f"session_uuid={session_uuid},app={service_name}"
     )
 
     if wait_for_readiness:
-        deployment = k8s_apps_api.read_namespaced_deployment_status(service_name, ns)
+        dname = f"{service_name}-{session_uuid}"
+        deployment = k8s_apps_api.read_namespaced_deployment_status(dname, ns)
         while deployment.status.ready_replicas != deployment.spec.replicas:
             time.sleep(1)
-            deployment = k8s_apps_api.read_namespaced_deployment_status(
-                service_name, ns
-            )
+            deployment = k8s_apps_api.read_namespaced_deployment_status(dname, ns)
 
 
 @contextmanager

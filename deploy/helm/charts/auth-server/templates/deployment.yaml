@@ -32,3 +32,23 @@ deployment
            mountPath: /userdir
          - name: config
            mountPath: /config
+        startupProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "nc -zvw1 orchest-database 5432 &&
+                wget -T 1 -t 1 localhost/login/server-config --spider"
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 20
+        livenessProbe:
+          httpGet:
+            path: /login/server-config
+            port: 80
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 2

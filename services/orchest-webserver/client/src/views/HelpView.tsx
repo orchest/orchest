@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useOnboardingDialog } from "@/components/Layout/OnboardingDialog";
 import { useAppContext } from "@/contexts/AppContext";
@@ -60,7 +61,7 @@ const HelpView: React.FC = () => {
   return (
     <Layout>
       <div className="view-page help-list">
-        <h2>Looking for help, or want to know more?</h2>
+        <PageTitle>Looking for help, or want to know more?</PageTitle>
         <p className="push-down">
           The documentation should get you up to speed, but feel free to get in
           touch through Slack or GitHub for any questions or suggestions.
@@ -107,8 +108,9 @@ const HelpView: React.FC = () => {
             Website
           </HelpItem>
         </Stack>
-
-        <h2 className="push-up">Introduction</h2>
+        <PageTitle sx={{ marginTop: (theme) => theme.spacing(3) }}>
+          Introduction
+        </PageTitle>
         <Button
           data-test-id="onboarding-open"
           onClick={() => setIsOnboardingDialogOpen(true)}

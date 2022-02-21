@@ -87,7 +87,6 @@ type AppContextState = {
   promptMessages: PromptMessage[];
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
-  isCommandPaletteOpen: boolean;
   // we already store hasCompletedOnboarding in localstorage, which is enough for most cases,
   // but when first-time user already wants to import a project, we want to
   // 1. show onboarding dialog (at the root level)
@@ -113,10 +112,6 @@ type Action =
     }
   | {
       type: "SET_HAS_UNSAVED_CHANGES";
-      payload: boolean;
-    }
-  | {
-      type: "SET_IS_COMMAND_PALETTE_OPEN";
       payload: boolean;
     }
   | {
@@ -208,13 +203,6 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
       };
     }
 
-    case "SET_IS_COMMAND_PALETTE_OPEN": {
-      return {
-        ...state,
-        isCommandPaletteOpen: action.payload,
-      };
-    }
-
     case "SET_HAS_COMPLETED_ONBOARDING": {
       return {
         ...state,
@@ -233,7 +221,6 @@ const initialState: AppContextState = {
   promptMessages: [],
   isLoaded: false,
   hasUnsavedChanges: false,
-  isCommandPaletteOpen: false,
   hasCompletedOnboarding: false,
 };
 
@@ -245,8 +232,14 @@ type CancelHandler = (
   resolve: (value: boolean | PromiseLike<boolean>) => void
 ) => Promise<boolean | void> | void | boolean;
 
-const defaultOnConfirm: ConfirmHandler = () => true;
-const defaultOnCancel: CancelHandler = () => false;
+const defaultOnConfirm: ConfirmHandler = (resolve) => {
+  resolve(true);
+  return true;
+};
+const defaultOnCancel: CancelHandler = (resolve) => {
+  resolve(false);
+  return false;
+};
 
 const withPromptMessageDispatcher = function <T extends PromptMessage>(
   dispatch: (value: AppContextAction) => void,

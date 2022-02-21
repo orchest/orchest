@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/common/PageTitle";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -172,15 +173,17 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             })
           )
             .then(() => {
-              fetchJobs();
               resolve(true);
             })
             .catch((e) => {
               setAlert("Error", `Failed to delete selected jobs: ${e}`);
               resolve(false);
+            })
+            .finally(() => {
+              fetchJobs();
             });
           return true;
-        } catch (e) {
+        } catch (error) {
           return false;
         }
       }
@@ -278,7 +281,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
 
   return (
     <div className={"jobs-page"}>
-      <h2>Jobs</h2>
+      <PageTitle>Jobs</PageTitle>
       <CreateJobDialog
         isOpen={isCreateDialogOpen}
         onClose={closeCreateDialog}

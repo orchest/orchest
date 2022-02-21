@@ -58,7 +58,8 @@ def follow_service_logs(service):
 
         while True:
             pods = k8s_core_api.list_namespaced_pod(
-                namespace=Config.K8S_NAMESPACE, label_selector=f"app={service}"
+                namespace=Config.NAMESPACE,
+                label_selector=f"session_uuid={Config.SESSION_UUID},app={service}",
             )
             if not pods.items:
                 logging.info(f"{service} is not up yet.")
@@ -91,8 +92,8 @@ def follow_service_logs(service):
         for event in w.stream(
             k8s_core_api.read_namespaced_pod_log,
             name=pod.metadata.name,
-            container=service,
-            namespace=Config.K8S_NAMESPACE,
+            container=f"{service}-{Config.SESSION_UUID}",
+            namespace=Config.NAMESPACE,
             follow=True,
         ):
             log_file.write(event)

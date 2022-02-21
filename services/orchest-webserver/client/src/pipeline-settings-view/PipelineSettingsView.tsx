@@ -61,6 +61,7 @@ import {
   makeCancelable,
   makeRequest,
   PromiseManager,
+  uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
@@ -198,7 +199,7 @@ const PipelineSettingsView: React.FC = () => {
     setEnvVarsChanged(false);
   }
 
-  const promiseManagerRef = React.useRef(new PromiseManager<string>());
+  const promiseManagerRef = React.useRef(new PromiseManager());
 
   const hasLoaded =
     pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
@@ -214,38 +215,32 @@ const PipelineSettingsView: React.FC = () => {
   const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
     let clonedService = cloneDeep(service);
 
-    // Take care of service name collisions
-    let x = 1;
-    let baseServiceName = clonedService.name;
-    while (x < 100) {
-      if (pipelineJson.services[clonedService.name] == undefined) {
+    const services = pipelineJson?.services || {};
+
+    const allNames = new Set(Object.values(services).map((s) => s.name));
+
+    let count = 0;
+    // assuming that user won't have more than 100 instances of the same service
+    while (count < 100) {
+      const newName = `${clonedService.name}${count === 0 ? "" : count}`;
+      if (!allNames.has(newName)) {
+        clonedService.name = newName;
         break;
       }
-      clonedService.name = baseServiceName + x;
-      x++;
+      count += 1;
     }
 
-    onChangeService(clonedService);
+    onChangeService(uuidv4(), clonedService);
   };
 
-  const onChangeService = (service: Service) => {
+  const onChangeService = (uuid: string, service: Service) => {
     setPipelineJson((current) => {
       // Maintain client side order key
       if (service.order === undefined) service.order = getOrderValue();
-      current.services[service.name] = service;
+      current.services[uuid] = service;
       return current;
     });
 
-    setServicesChanged(true);
-    setAsSaved(false);
-  };
-
-  const nameChangeService = (oldName: string, newName: string) => {
-    setPipelineJson((current) => {
-      current[newName] = current[oldName];
-      delete current.services[oldName];
-      return current;
-    });
     setServicesChanged(true);
     setAsSaved(false);
   };
@@ -324,8 +319,13 @@ const PipelineSettingsView: React.FC = () => {
     pipelineJson: PipelineJson
   ): Omit<PipelineJson, "order"> => {
     let pipelineCopy = cloneDeep(pipelineJson);
-    for (let serviceName in pipelineCopy.services) {
-      delete pipelineCopy.services[serviceName].order;
+    for (let uuid in pipelineCopy.services) {
+      const serviceName = pipelineCopy.services[uuid].name;
+      delete pipelineCopy.services[uuid].order;
+      pipelineCopy.services[serviceName] = {
+        ...pipelineCopy.services[uuid],
+      };
+      delete pipelineCopy.services[uuid];
     }
     return pipelineCopy;
   };
@@ -493,7 +493,7 @@ const PipelineSettingsView: React.FC = () => {
                 "Warning",
                 `Are you sure you want to delete the service: ${row.name}?`,
                 async (resolve) => {
-                  deleteService(row.name)
+                  deleteService(row.uuid)
                     .then(() => {
                       resolve(true);
                     })
@@ -521,18 +521,19 @@ const PipelineSettingsView: React.FC = () => {
         .map(([key, service]) => {
           return {
             uuid: key,
-            name: key,
+            name: service.name,
             scope: service.scope
               .map((scopeAsString) => scopeMap[scopeAsString])
               .join(", "),
             remove: key,
             details: (
               <ServiceForm
-                key={`ServiceForm-${key}`}
+                key={key}
+                serviceUuid={key}
                 service={service}
+                services={pipelineJson.services}
                 disabled={isReadOnly}
-                updateService={onChangeService}
-                nameChangeService={nameChangeService}
+                updateService={(updated) => onChangeService(key, updated)}
                 pipeline_uuid={pipelineUuid}
                 project_uuid={projectUuid}
                 run_uuid={runUuid}

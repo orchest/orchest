@@ -1,3 +1,4 @@
+import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -161,7 +162,7 @@ const ProjectSettingsView: React.FC = () => {
             </Button>
           </div>
 
-          <h2>Project settings</h2>
+          <PageTitle>Project settings</PageTitle>
 
           {envVariables ? (
             <>
