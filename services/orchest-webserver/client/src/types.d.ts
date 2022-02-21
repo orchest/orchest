@@ -54,7 +54,7 @@ export type OrchestConfig = {
   ENVIRONMENT_DEFAULTS: {
     base_image: string;
     gpu_support: boolean;
-    language: string;
+    language: Language;
     name: string;
     setup_script: string;
   };
@@ -143,15 +143,22 @@ export type Project = {
   session_count?: number;
 };
 
+export type Language = "python" | "r" | "julia";
+
 export type Environment = {
   base_image: string;
   gpu_support: boolean;
-  language: string;
+  language: Language;
   name: string;
   project_uuid: string;
   setup_script: string;
   uuid: string;
 };
+
+export type CustomImage = Pick<
+  Environment,
+  "base_image" | "language" | "gpu_support"
+>;
 
 export type EnvironmentBuild = {
   environment_uuid: string;
@@ -260,6 +267,8 @@ export type Step = {
   title: string;
   uuid: string;
 };
+
+export type LogType = "step" | "service";
 
 export type IPipelineStepState = Step & {
   outgoing_connections?: string[];

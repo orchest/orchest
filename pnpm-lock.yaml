@@ -138,6 +138,7 @@ importers:
       '@orchest/design-system': workspace:*
       '@orchest/lib-utils': workspace:*
       '@testing-library/jest-dom': ^5.16.1
+      '@testing-library/react-hooks': ^7.0.2
       '@types/codemirror': ^5.60.5
       '@types/jest': ^27.4.0
       '@types/jquery': ^3.5.6
@@ -160,6 +161,7 @@ importers:
       date-fns: 2.20.1
       esbuild: 0.13.4
       esbuild-jest: ^0.5.0
+      formik: ^2.2.9
       framer-motion: 4.1.17
       hotkeys-js: ^3.8.7
       isomorphic-unfetch: 3.1.0
@@ -201,6 +203,7 @@ importers:
       d3-dag: 0.8.2
       dashify: 2.0.0
       date-fns: 2.20.1
+      formik: 2.2.9_react@17.0.2
       framer-motion: 4.1.17_react-dom@17.0.2+react@17.0.2
       hotkeys-js: 3.8.7
       isomorphic-unfetch: 3.1.0
@@ -223,6 +226,7 @@ importers:
       xterm-for-react: 1.0.4_react-dom@17.0.2+react@17.0.2
     devDependencies:
       '@testing-library/jest-dom': 5.16.1
+      '@testing-library/react-hooks': 7.0.2_react-dom@17.0.2+react@17.0.2
       '@types/codemirror': 5.60.5
       '@types/jest': 27.4.0
       '@types/jquery': 3.5.9
@@ -770,6 +774,13 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       regenerator-runtime: 0.13.9
+
+  /@babel/runtime/7.17.2:
+    resolution: {integrity: sha512-hzeyJyMA1YGdJTuWU0e/j4wKXrU4OMFvY2MSlaI9B7VQb0r5cxTE3EAIS2Q7Tn2RIcDkRvTA/v2JsAEhxe99uw==}
+    engines: {node: '>=6.9.0'}
+    dependencies:
+      regenerator-runtime: 0.13.9
+    dev: true
 
   /@babel/template/7.16.0:
     resolution: {integrity: sha512-MnZdpFD/ZdYhXwiunMqqgyZyucaYsbL0IrjoGjaVhGilz+x8YB++kRfygSOIj1yOtWKPlx7NBp+9I1RQSgsd5A==}
@@ -1410,8 +1421,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
+      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
       '@mui/base': 5.0.0-alpha.59_ba191c0052acfa37659f3ba04a2d9405
       '@mui/system': 5.2.3_98944ee4dd5f6cfd31442cef9ca2b57e
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -1460,8 +1471,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
+      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -1483,8 +1494,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
+      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
       '@mui/private-theming': 5.2.3_@types+react@17.0.3+react@17.0.2
       '@mui/styled-engine': 5.2.0_3ca9f49da28f3590cbe49aab51aa421d
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -1806,6 +1817,28 @@ packages:
       redent: 3.0.0
     dev: true
 
+  /@testing-library/react-hooks/7.0.2_react-dom@17.0.2+react@17.0.2:
+    resolution: {integrity: sha512-dYxpz8u9m4q1TuzfcUApqi8iFfR6R0FaMbr2hjZJy1uC8z+bO/K4v8Gs9eogGKYQop7QsrBTFkv/BCF7MzD2Cg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+      react-test-renderer: '>=16.9.0'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-test-renderer:
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.17.2
+      '@types/react': 17.0.3
+      '@types/react-dom': 17.0.11
+      '@types/react-test-renderer': 17.0.1
+      react: 17.0.2
+      react-dom: 17.0.2_react@17.0.2
+      react-error-boundary: 3.1.4_react@17.0.2
+    dev: true
+
   /@tootallnate/once/1.1.2:
     resolution: {integrity: sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==}
     engines: {node: '>= 6'}
@@ -1978,6 +2011,12 @@ packages:
     dependencies:
       '@types/history': 4.7.10
       '@types/react': 17.0.38
+    dev: true
+
+  /@types/react-test-renderer/17.0.1:
+    resolution: {integrity: sha512-3Fi2O6Zzq/f3QR9dRnlnHso9bMl7weKCviFmfF6B4LS1Uat6Hkm15k0ZAQuDz+UBq6B3+g+NM6IT2nr5QgPzCw==}
+    dependencies:
+      '@types/react': 17.0.3
     dev: true
 
   /@types/react-transition-group/4.4.4:
@@ -3257,6 +3296,11 @@ packages:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
     dev: true
 
+  /deepmerge/2.2.1:
+    resolution: {integrity: sha512-R9hc1Xa/NOBi9WRVUWg19rl1UB7Tt4kuPd+thNJgFZoxXsTz7ncaPaeIm+40oSGuP33DfMb4sZt1QIGiJzC4EA==}
+    engines: {node: '>=0.10.0'}
+    dev: false
+
   /deepmerge/4.2.2:
     resolution: {integrity: sha512-FJ3UgI4gIl+PHZm53knsuSFpE+nESMr7M4v9QcgB7S63Kj/6WqMiFQJpBBYz1Pt+66bZpP3Q7Lye0Oo9MPKEdg==}
     engines: {node: '>=0.10.0'}
@@ -4147,6 +4191,21 @@ packages:
       combined-stream: 1.0.8
       mime-types: 2.1.34
     dev: true
+
+  /formik/2.2.9_react@17.0.2:
+    resolution: {integrity: sha512-LQLcISMmf1r5at4/gyJigGn0gOwFbeEAlji+N9InZF6LIMXnFNkO42sCI8Jt84YZggpD4cPWObAZaxpEFtSzNA==}
+    peerDependencies:
+      react: '>=16.8.0'
+    dependencies:
+      deepmerge: 2.2.1
+      hoist-non-react-statics: 3.3.2
+      lodash: 4.17.21
+      lodash-es: 4.17.21
+      react: 17.0.2
+      react-fast-compare: 2.0.4
+      tiny-warning: 1.0.3
+      tslib: 1.14.1
+    dev: false
 
   /fragment-cache/0.2.1:
     resolution: {integrity: sha1-QpD60n8T6Jvn8zeZxrxaCr//DRk=}
@@ -5737,6 +5796,10 @@ packages:
       p-locate: 4.1.0
     dev: true
 
+  /lodash-es/4.17.21:
+    resolution: {integrity: sha512-mKnC+QJ9pWVzv+C4/U3rRsHapFfHvQFoFB92e52xeyGMcX6/OlIl78je1u8vePzYZSkkogMPJ2yjxxsb89cxyw==}
+    dev: false
+
   /lodash.clonedeep/4.5.0:
     resolution: {integrity: sha1-4j8/nE+Pvd6HJSnBBxhXoIblzO8=}
 
@@ -5761,7 +5824,6 @@ packages:
 
   /lodash/4.17.21:
     resolution: {integrity: sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==}
-    dev: true
 
   /log-symbols/4.1.0:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
@@ -6436,6 +6498,20 @@ packages:
       object-assign: 4.1.1
       react: 17.0.2
       scheduler: 0.20.2
+
+  /react-error-boundary/3.1.4_react@17.0.2:
+    resolution: {integrity: sha512-uM9uPzZJTF6wRQORmSrvOIgt4lJ9MC1sNgEOj2XGsDTRE4kmpWxg7ENK9EWNKJRMAOY9z0MuF4yIfl6gp4sotA==}
+    engines: {node: '>=10', npm: '>=6'}
+    peerDependencies:
+      react: '>=16.13.1'
+    dependencies:
+      '@babel/runtime': 7.17.2
+      react: 17.0.2
+    dev: true
+
+  /react-fast-compare/2.0.4:
+    resolution: {integrity: sha512-suNP+J1VU1MWFKcyt7RtjiSWUjvidmQSlqu+eHslq+342xCbGTYmC0mEhPCOHxlW0CywylOC1u2DFAT+bv4dBw==}
+    dev: false
 
   /react-github-btn/1.2.1:
     resolution: {integrity: sha512-/gXD01mHAOhW0xYuNJFDn08OGjaMXOjcg6GCKVPdHvQcWzswH4aT85DLDAAJ6Zhw/71veSIH4Kx1BTBfy69SsA==}

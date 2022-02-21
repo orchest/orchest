@@ -1,7 +1,6 @@
 import { useInterval } from "@/hooks/use-interval";
 import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
 import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
 import React, { useRef } from "react";
@@ -119,11 +118,8 @@ const App = () => {
           id="main-content"
           data-test-id="app"
         >
-          <Toolbar />
-          <Box sx={{ overflowY: "auto", flex: 1 }}>
-            <Routes />
-            <div ref={jupyterRef} className="persistent-view jupyter hidden" />
-          </Box>
+          <Routes />
+          <div ref={jupyterRef} className="persistent-view jupyter hidden" />
         </Box>
       </Box>
       <Prompt when={hasUnsavedChanges} message="hasUnsavedChanges" />

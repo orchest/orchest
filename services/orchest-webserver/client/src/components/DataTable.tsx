@@ -226,10 +226,11 @@ const CellContainer: React.FC<{
 };
 
 export function renderCell<T>(
-  column: DataTableColumn<T>,
+  column: DataTableColumn<T> | undefined,
   row: DataTableRow<T>,
   disabled: boolean
 ) {
+  if (!column) return null;
   return column.render ? column.render(row, disabled) : row[column.id];
 }
 
@@ -318,7 +319,7 @@ function Row<T>({
         <TableCell component="th" align="left" id={labelId} scope="row">
           <CellContainer
             isLoading={isLoading}
-            sx={columns[0].sx}
+            sx={columns[0]?.sx}
             onAuxClick={handleClickRow}
           >
             {renderCell(columns[0], data, disabled)}
@@ -425,7 +426,10 @@ function generateLoadingRows<T>(
   rowCount: number,
   columns: DataTableColumn<T>[]
 ) {
-  return [...Array(rowCount).keys()].map((key) => {
+  // rendering large amount of table rows with skeleton is causing performance issue
+  // We limit it to 25, which should suffice for most users' viewport.
+  const renderedRowCount = Math.min(25, rowCount);
+  return [...Array(renderedRowCount).keys()].map((key) => {
     return columns.reduce((all, col) => {
       // add isLoading: true signifies this row is a loading row (i.e. will be filled by Skeleton).
       // thus, the data ([col.id]) doesn't matter, we just fill an empty string.
@@ -536,17 +540,16 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   const selected = selectedRows || localSelected;
-  const setSelected = React.useCallback(
-    (action: string[] | ((current: string[]) => string[])) => {
-      const dispatcher = setSelectedRows || setLocalSelected;
-      dispatcher((current) => {
-        const value = action instanceof Function ? action(current) : action;
-        if (onChangeSelection && mounted) onChangeSelection(value);
-        return value;
-      });
-    },
-    [mounted, setSelectedRows, onChangeSelection]
-  );
+  const setSelected = (
+    action: string[] | ((current: string[]) => string[])
+  ) => {
+    const dispatcher = setSelectedRows || setLocalSelected;
+    dispatcher((current) => {
+      const value = action instanceof Function ? action(current) : action;
+      if (onChangeSelection && mounted.current) onChangeSelection(value);
+      return value;
+    });
+  };
 
   const sortedRows = React.useMemo(() => {
     const originalRows = originalRowsFromProp || data?.rows || [];
@@ -604,7 +607,7 @@ export const DataTable = <T extends Record<string, any>>({
   );
 
   React.useEffect(() => {
-    if (mounted) {
+    if (mounted.current) {
       setSelected((currentSelected) => {
         return currentSelected.filter((selectedRowUuid) =>
           rows.some((row) => row.uuid === selectedRowUuid)
@@ -612,7 +615,7 @@ export const DataTable = <T extends Record<string, any>>({
       });
     }
     // we only want to filter selected when row is updated
-  }, [rows]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mounted, rows]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,
@@ -863,7 +866,7 @@ export const DataTable = <T extends Record<string, any>>({
           </Stack>
           <TablePagination
             sx={{ flex: 1 }}
-            rowsPerPageOptions={[5, 10, 25]}
+            rowsPerPageOptions={[5, 10, 25, 100]}
             component="div"
             count={totalCount}
             rowsPerPage={rowsPerPage}

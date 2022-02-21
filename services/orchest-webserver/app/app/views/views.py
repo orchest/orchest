@@ -88,9 +88,12 @@ def register_views(app, db):
                 return self.post(project_uuid, environment_uuid)
 
             def get(self, project_uuid, environment_uuid):
-                return environment_schema.dump(
-                    get_environment(environment_uuid, project_uuid)
-                )
+                environment = get_environment(environment_uuid, project_uuid)
+
+                if environment is None:
+                    return {"message": "Environment could not be found."}, 404
+                else:
+                    return environment_schema.dump(environment)
 
             def delete(self, project_uuid, environment_uuid):
 
