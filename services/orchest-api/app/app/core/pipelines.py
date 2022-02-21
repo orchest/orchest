@@ -24,10 +24,7 @@ import aiohttp
 from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import (
-    get_k8s_namespace_name,
-    get_step_and_kernel_volumes_and_volume_mounts,
-)
+from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
 from app.utils import get_logger
@@ -609,7 +606,7 @@ async def run_pipeline_workflow(
             run_endpoint=run_config["run_endpoint"],
         )
 
-        namespace = get_k8s_namespace_name(session_uuid)
+        namespace = _config.ORCHEST_NAMESPACE
 
         try:
             manifest = _pipeline_to_workflow_manifest(

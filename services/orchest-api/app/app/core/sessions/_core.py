@@ -5,55 +5,13 @@ from typing import Callable, List, Optional
 import requests
 from kubernetes import client
 
-from _orchest.internals.utils import get_k8s_namespace_manifest, get_k8s_namespace_name
+from _orchest.internals import config as _config
 from app import errors, utils
 from app.connections import k8s_apps_api, k8s_core_api, k8s_rbac_api
 from app.core.sessions import _manifests
 from app.types import NonInteractiveSessionConfig, SessionConfig, SessionType
 
 logger = utils.get_logger()
-
-
-def _create_session_k8s_namespace(
-    session_uuid: str,
-    session_type: SessionType,
-    session_config: SessionConfig,
-    wait_ready=True,
-) -> None:
-    """Creates a k8s namespace for the given session.
-
-    Args:
-        session_uuid: Used for the name of the namespace.
-        session_config: Used for labeling the namespace with the project
-            and pipeline uuid.
-        session_type: Used for labeling the namespace.
-        wait_ready: Wait for the namespace to be "Active" before
-            returning.
-    """
-    manifest = get_k8s_namespace_manifest(
-        session_uuid,
-        {
-            "session_uuid": session_uuid,
-            "project_uuid": session_config["project_uuid"],
-            "pipeline_uuid": session_config["pipeline_uuid"],
-            "type": session_type.value,
-        },
-    )
-    k8s_core_api.create_namespace(manifest)
-    if not wait_ready:
-        return
-    namespace_name = manifest["metadata"]["name"]
-    for _ in range(120):
-        try:
-            phase = k8s_core_api.read_namespace_status(namespace_name).status.phase
-            if phase == "Active":
-                break
-        except client.ApiException as e:
-            if e.status != 404:
-                raise
-        time.sleep(0.5)
-    else:
-        raise Exception(f"Could not create namespace {namespace_name}.")
 
 
 def launch(
@@ -88,9 +46,6 @@ def launch(
             return False
 
         should_abort = always_false
-
-    logger.info("Creating namespace.")
-    _create_session_k8s_namespace(session_uuid, session_type, session_config)
 
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
@@ -159,7 +114,7 @@ def launch(
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
 
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
 
     logger.info("Creating session RBAC roles.")
     for manifest in session_rbac_roles:
@@ -230,30 +185,13 @@ def shutdown(session_uuid: str, wait_for_completion: bool = False):
 
 def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     """Deletes all related resources, idempotent."""
-    # Note: we rely on the fact that deleting the namespace leads to a
+    # Note: we rely on the fact that deleting the deployment leads to a
     # SIGTERM to the container, which will be used to delete the
     # existing jupyterlab user config lock for interactive sessions.
     # See PR #254.
-    ns = get_k8s_namespace_name(session_uuid)
-    try:
-        k8s_core_api.delete_namespace(ns)
-    except client.ApiException as e:
-        if e.status != 404:
-            raise e
+    ns = _config.ORCHEST_NAMESPACE
 
-    if not wait_for_completion:
-        return
-
-    for _ in range(1000):
-        try:
-            k8s_core_api.read_namespace_status(ns)
-        except client.ApiException as e:
-            if e.status == 404:
-                break
-            raise
-        time.sleep(1)
-    else:
-        raise errors.SessionCleanupFailedError()
+    # Implemented in the next commit.
 
 
 def has_busy_kernels(session_uuid: str) -> bool:
@@ -265,7 +203,7 @@ def has_busy_kernels(session_uuid: str) -> bool:
 
     """
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
     service_dns_name = f"jupyter-server.{ns}.svc.cluster.local"
     # Coupled with the juputer-server service port.
     url = f"http://{service_dns_name}/jupyter-server/api/kernels"
@@ -292,7 +230,7 @@ def restart_session_service(
     state, which is exactly what we want.
 
     """
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
     k8s_core_api.delete_collection_namespaced_pod(
         namespace=ns, label_selector=f"app={service_name}"
     )

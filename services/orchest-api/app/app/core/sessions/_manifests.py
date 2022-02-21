@@ -8,7 +8,6 @@ import traceback
 from typing import Any, Dict, Tuple
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_k8s_namespace_name
 from app import utils
 from app.connections import k8s_core_api
 from app.core import environments
@@ -223,7 +222,7 @@ def _get_session_sidecar_rbac_manifests(
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
 
     project_uuid = session_config["project_uuid"]
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
 
     role_manifest = {
         "kind": "Role",
@@ -371,7 +370,7 @@ def _get_session_sidecar_deployment_manifest(
                                 },
                                 {
                                     "name": "K8S_NAMESPACE",
-                                    "value": get_k8s_namespace_name(session_uuid),
+                                    "value": _config.ORCHEST_NAMESPACE,
                                 },
                             ],
                             "volumeMounts": [
@@ -507,7 +506,7 @@ def _get_jupyter_enterprise_gateway_rbac_manifests(
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
 
     project_uuid = session_config["project_uuid"]
-    ns = get_k8s_namespace_name(session_uuid)
+    ns = _config.ORCHEST_NAMESPACE
 
     role_manifest = {
         "kind": "Role",
@@ -650,7 +649,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         # "All kernels reside in the EG namespace if true, otherwise
         # KERNEL_NAMESPACE must be provided or one will be created for
         # each kernel."
-        "EG_NAMESPACE": get_k8s_namespace_name(session_uuid),
+        "EG_NAMESPACE": _config.ORCHEST_NAMESPACE,
         "EG_SHARED_NAMESPACE": "True",
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
