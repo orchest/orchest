@@ -1,5 +1,4 @@
 import { useAppContext } from "@/contexts/AppContext";
-import { shallowEqualByKey } from "@/environment-edit-view/shallowEqualByKey";
 import type {
   Connection,
   Offset,
@@ -58,7 +57,7 @@ type EventVars = {
   scaleFactor: number;
   steps: Record<string, PipelineStepState>;
   selectedSingleStep?: string;
-  selectedSteps: string[];
+  selectedSteps: Set<string>;
   connections: Connection[];
   selectedConnection?: Connection;
   openedMultiStep: boolean;
@@ -262,13 +261,12 @@ export const useEventVars = () => {
         return cycles;
       };
 
-      const getSelectedSteps = () => {
+      const saveStepsSelectedByRect = () => {
         let rect = getStepSelectorRectangle(state.stepSelector);
-
-        let selectedSteps = [];
 
         // for each step perform intersect
         if (state.stepSelector.active) {
+          state.selectedSteps.clear();
           Object.values(state.steps).forEach((step) => {
             // guard against ref existing, in case step is being added
             if (stepDomRefs.current[step.uuid]) {
@@ -284,13 +282,11 @@ export const useEventVars = () => {
               };
 
               if (intersectRect(rect, stepRect)) {
-                selectedSteps.push(step.uuid);
+                state.selectedSteps.add(step.uuid);
               }
             }
           });
         }
-
-        return selectedSteps;
       };
 
       const makeConnection = (endNodeUUID: string) => {
@@ -366,41 +362,40 @@ export const useEventVars = () => {
         }
       };
 
-      const removeConnection = (connectionToDelete: Connection) => {
-        state.connections.splice(
-          state.connections.indexOf(connectionToDelete),
-          1
-        );
-
-        const subsequentStep =
-          state.steps[connectionToDelete.endNodeUUID || ""];
-        // remove it from the state.connections array
-        const foundIndex = state.connections.findIndex((connection) => {
-          return (
-            !subsequentStep ||
-            !shallowEqualByKey(connection, connectionToDelete, [
-              "endNodeUUID",
-              "startNodeUUID",
-            ])
-          );
-        });
-        state.connections.splice(foundIndex, 1);
-
-        // remove it from the incoming_connections of its subsequent nodes
-
-        state.steps[
-          subsequentStep.uuid
-        ].incoming_connections = subsequentStep.incoming_connections.filter(
-          (startNodeUuid) => startNodeUuid !== connectionToDelete.endNodeUUID
-        );
-
+      const removeConnection = ({
+        startNodeUUID,
+        endNodeUUID,
+      }: Pick<Connection, "startNodeUUID" | "endNodeUUID">) => {
         // when deleting connections, it's impossible that user is also creating a new connection
         // thus, we always clean it up.
         state.newConnection = undefined;
+
+        // remove it from the state.connections array
+        const foundIndex = state.connections.findIndex((connection) => {
+          const matchStart = connection.startNodeUUID === startNodeUUID;
+
+          const matchEnd =
+            !endNodeUUID || connection.endNodeUUID === endNodeUUID;
+
+          return matchStart && matchEnd;
+        });
+
+        if (foundIndex < 0) return;
+        state.connections.splice(foundIndex, 1);
+
+        if (!endNodeUUID) return;
+
+        // remove it from the incoming_connections of its subsequent nodes
+        const subsequentStep = state.steps[endNodeUUID];
+
+        subsequentStep.incoming_connections = subsequentStep.incoming_connections.filter(
+          (startNodeUuid) => startNodeUuid !== endNodeUUID
+        );
       };
 
       const selectSteps = (steps: string[]) => {
-        state.selectedSteps = steps;
+        state.selectedSteps.clear();
+        steps.forEach((stepUuid) => state.selectedSteps.add(stepUuid));
         if (steps.length === 1) {
           state.openedStep = steps[0];
           state.openedMultiStep = false;
@@ -409,7 +404,7 @@ export const useEventVars = () => {
       };
 
       const deselectSteps = () => {
-        state.selectedSteps = [];
+        state.selectedSteps.clear();
         state.stepSelector = DEFAULT_STEP_SELECTOR;
         state.openedMultiStep = false;
         // deselecting will close the detail view
@@ -486,8 +481,8 @@ export const useEventVars = () => {
 
           // if user selected multiple steps, they will move together
           if (
-            state.selectedSteps.length > 1 &&
-            state.selectedSteps.includes(state.selectedSingleStep)
+            state.selectedSteps.size > 1 &&
+            state.selectedSteps.has(state.selectedSingleStep)
           ) {
             state.selectedSteps.forEach((uuid) => {
               let singleStep = state.steps[uuid];
@@ -509,8 +504,6 @@ export const useEventVars = () => {
             pipelineStepHolderOffset,
           } = action.payload;
 
-          // state.mouseClientX = mouseClientX;
-          // state.mouseClientY = mouseClientY;
           // not dragging the canvas, so user must be creating a selection rectangle
           if (pipelineStepHolderOffset) {
             const { left, top } = pipelineStepHolderOffset;
@@ -521,8 +514,6 @@ export const useEventVars = () => {
             state.stepSelector.y1 = state.stepSelector.y2 =
               scaleCorrectedPosition(mouseClientY, state.scaleFactor) -
               scaleCorrectedPosition(top, state.scaleFactor);
-
-            state.selectedSteps = getSelectedSteps();
           }
           break;
         }
@@ -555,7 +546,7 @@ export const useEventVars = () => {
             action.payload.startNodeUUID,
             action.payload.endNodeUUID
           );
-          state.selectedSteps = [];
+          state.selectedSteps.clear();
           state.stepSelector = DEFAULT_STEP_SELECTOR;
 
           if (!selectedConnection) {
@@ -587,7 +578,7 @@ export const useEventVars = () => {
             scaleCorrectedPosition(mouseClientY, state.scaleFactor) -
             scaleCorrectedPosition(top, state.scaleFactor);
 
-          state.selectedSteps = getSelectedSteps();
+          saveStepsSelectedByRect();
 
           break;
         }
@@ -624,59 +615,42 @@ export const useEventVars = () => {
         }
 
         case "REMOVE_CONNECTION": {
-          // const connectionToDelete = action.payload;
           removeConnection(action.payload);
-
           break;
         }
 
         case "REMOVE_STEPS": {
           // also delete incoming connections that contain this uuid
-          const uuids = action.payload;
-          uuids.forEach((uuid) => {
-            // for (let key in state.steps) {
-            //   if (state.steps.hasOwnProperty(key)) {
+          const stepsToDelete = action.payload;
+          stepsToDelete.forEach((uuid) => {
+            // remove the connections between current step and its subsequent nodes
             Object.values(state.steps).forEach((step) => {
-              // let step = state.steps[key];
-
-              let connectionIndex = step.incoming_connections.indexOf(uuid);
-              if (connectionIndex !== -1) {
-                // also delete incoming connections from GUI
-                let connection = getConnectionByUUIDs(uuid, step.uuid);
-                removeConnection(connection);
+              const isSubsequentNode = step.incoming_connections.includes(uuid);
+              if (isSubsequentNode) {
+                removeConnection({
+                  startNodeUUID: uuid,
+                  endNodeUUID: step.uuid,
+                });
               }
             });
-            //   }
-            // }
 
-            // visually delete incoming connections from GUI
-            let step = state.steps[uuid];
-            let connectionsToRemove = [];
-
-            // removeConnection modifies incoming_connections, hence the double
-            // loop.
-            for (let x = 0; x < step.incoming_connections.length; x++) {
-              connectionsToRemove.push(
-                getConnectionByUUIDs(step.incoming_connections[x], uuid)
+            // remove the connections between current step and its preceding nodes
+            let currentStep = state.steps[uuid];
+            currentStep.incoming_connections.forEach((incomingConnection) => {
+              const connectionToPrecedingStep = getConnectionByUUIDs(
+                incomingConnection,
+                uuid
               );
-            }
-            for (let connection of connectionsToRemove) {
-              removeConnection(connection);
-            }
+              removeConnection(connectionToPrecedingStep);
+            });
 
             delete state.steps[uuid];
 
             state.openedStep = undefined;
-            state.selectedSteps = [];
-
-            // ? when removing a step, the selection of any step is also cancelled
+            // when removing a step, the selection of any step is also cancelled
             // we can simply clean up state.selectedSteps, instead of remove them one by one
-
-            // // if step is in selectedSteps remove it
-            // let deletedStepIndex = state.selectedSteps.indexOf(uuid);
-            // if (deletedStepIndex >= 0) {
-            //   state.selectedSteps.splice(deletedStepIndex, 1);
-            // }
+            // TODO: double-check if it's true
+            state.selectedSteps.clear();
           });
 
           break;
@@ -730,7 +704,7 @@ export const useEventVars = () => {
       newConnection: undefined,
       openedStep: undefined,
       openedMultiStep: undefined,
-      selectedSteps: [],
+      selectedSteps: new Set<string>(),
       stepSelector: {
         active: false,
         x1: 0,

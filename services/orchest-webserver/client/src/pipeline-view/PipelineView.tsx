@@ -14,6 +14,7 @@ import type {
   PipelineStepState,
 } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
+import { resolve } from "@/utils/resolve";
 import {
   checkGate,
   filterServices,
@@ -48,7 +49,11 @@ import $ from "jquery";
 import React from "react";
 import io from "socket.io-client";
 import { siteMap } from "../Routes";
-import { extractStepsFromPipelineJson, updatePipelineJson } from "./common";
+import {
+  createNewConnection,
+  extractStepsFromPipelineJson,
+  updatePipelineJson,
+} from "./common";
 import PipelineConnection from "./PipelineConnection";
 import { PipelineDetails } from "./PipelineDetails";
 import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
@@ -141,11 +146,6 @@ const PipelineView: React.FC = () => {
     trackMouseMovement,
   } = useEventVars();
 
-  const removeCreatingConnectionStyling = React.useCallback(() => {
-    $(".incoming-connections").removeClass("hover");
-    $(".pipeline-step").removeClass("creating-connection");
-  }, []);
-
   const pipelineSetHolderSize = React.useCallback(() => {
     // TODO: resize canvas based on pipeline size
     if (!pipelineStepsOuterHolder.current || !pipelineStepsHolder.current)
@@ -160,20 +160,6 @@ const PipelineView: React.FC = () => {
       });
     }
   }, []);
-
-  const finishCreatingConnection = React.useCallback(
-    (endNodeUUID: string) => {
-      eventVarsDispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
-      removeCreatingConnectionStyling();
-      setSaveHash(uuidv4());
-    },
-    [eventVarsDispatch, removeCreatingConnectionStyling]
-  );
-
-  const onMouseUpPipelineStep = React.useCallback(
-    (endNodeUUID: string) => finishCreatingConnection(endNodeUUID),
-    [finishCreatingConnection]
-  );
 
   // TODO: put document event listeners here
   React.useLayoutEffect(() => {
@@ -335,73 +321,142 @@ const PipelineView: React.FC = () => {
       });
   };
 
-  const savePipeline = (callback?: () => void) => {
-    if (!isReadOnly) {
-      let updatedPipelineJson = updatePipelineJson(
-        pipelineJson,
-        eventVars.steps
-      );
-
-      // validate pipelineJSON
-      let pipelineValidation = validatePipeline(updatedPipelineJson);
-
-      // if invalid
-      if (!pipelineValidation.valid) {
-        // Just show the first error
-        setAlert("Error", pipelineValidation.errors[0]);
-      } else {
-        // store pipeline.json
-        let formData = new FormData();
-        formData.append("pipeline_json", JSON.stringify(updatedPipelineJson));
-
-        setState((state) => {
-          return {
-            currentOngoingSaves: state.currentOngoingSaves + 1,
-          };
-        });
-
-        clearTimeout(timersRef.current.saveIndicatorTimeout);
-        timersRef.current.saveIndicatorTimeout = setTimeout(() => {
-          dispatch({
-            type: "pipelineSetSaveStatus",
-            payload: "saving",
-          });
-        }, 100);
-
-        // perform POST to save
-        fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
-          method: "POST",
-          body: formData,
-        })
-          .then(() => {
-            if (callback && typeof callback == "function") {
-              callback();
-            }
-            decrementSaveCounter();
-          })
-          .catch((reason) => {
-            if (!reason.isCanceled) {
-              decrementSaveCounter();
-            }
-          });
-      }
-    } else {
-      console.error("savePipeline should be uncallable in readOnly mode.");
-    }
-  };
-
-  const decrementSaveCounter = () => {
+  const decrementSaveCounter = React.useCallback(() => {
     setState((state) => {
       return {
         currentOngoingSaves: state.currentOngoingSaves - 1,
       };
     });
-  };
+  }, [setState]);
 
-  const getPipelineJSON = () => {
-    let steps = eventVars.steps;
-    return { ...pipelineJson, steps };
-  };
+  const executePipelineSteps = React.useCallback(
+    async (
+      uuids: string[],
+      type: RunStepsType,
+      updatedPipelineJson: PipelineJson
+    ) => {
+      try {
+        const result = await fetcher<PipelineRun>(
+          PIPELINE_RUN_STATUS_ENDPOINT,
+          {
+            method: "POST",
+            headers: HEADER.JSON,
+            body: JSON.stringify({
+              uuids: uuids,
+              project_uuid: projectUuid,
+              run_type: type,
+              pipeline_definition: updatedPipelineJson,
+            }),
+          }
+        );
+
+        setStepExecutionState((current) => ({
+          ...current,
+          ...convertStepsToObject(result),
+        }));
+        setRunUuid(result.uuid);
+        return true;
+      } catch (error) {
+        setAlert(
+          "Error",
+          `Failed to start interactive run. ${error.message || "Unknown error"}`
+        );
+        return false;
+      }
+    },
+    [projectUuid, setStepExecutionState, setAlert]
+  );
+
+  const savePipelineJson = React.useCallback(
+    async (pipelineJson: PipelineJson) => {
+      setState((state) => {
+        return {
+          currentOngoingSaves: state.currentOngoingSaves + 1,
+        };
+      });
+
+      clearTimeout(timersRef.current.saveIndicatorTimeout);
+      timersRef.current.saveIndicatorTimeout = setTimeout(() => {
+        dispatch({
+          type: "pipelineSetSaveStatus",
+          payload: "saving",
+        });
+      }, 100);
+
+      let formData = new FormData();
+      formData.append("pipeline_json", JSON.stringify(pipelineJson));
+      const response = await resolve(() =>
+        fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
+          method: "POST",
+          body: formData,
+        })
+      );
+      if (response.status === "rejected") {
+        setAlert("Error", `Failed to save pipeline. ${response.error.message}`);
+        return;
+      }
+      // TODO: check when to execute pending runs
+      if (pendingRuns) {
+        const { uuids, type } = pendingRuns;
+        setPipelineRunning(true);
+        const executionStarted = await executePipelineSteps(
+          uuids,
+          type,
+          pipelineJson
+        );
+        if (!executionStarted) setPipelineRunning(false);
+        setPendingRuns(undefined);
+      }
+
+      decrementSaveCounter();
+    },
+    [
+      setPipelineRunning,
+      setAlert,
+      projectUuid,
+      pipelineUuid,
+      setState,
+      dispatch,
+      decrementSaveCounter,
+      executePipelineSteps,
+      pendingRuns,
+    ]
+  );
+
+  const savePipeline = React.useCallback(
+    async (
+      pipelineJson: PipelineJson,
+      steps: Record<string, PipelineStepState>
+    ) => {
+      if (isReadOnly) {
+        console.error("savePipeline should be uncallable in readOnly mode.");
+        return;
+      }
+
+      let updatedPipelineJson = updatePipelineJson(pipelineJson, steps);
+
+      // validate pipelineJSON
+      let pipelineValidation = validatePipeline(updatedPipelineJson);
+
+      if (!pipelineValidation.valid) {
+        // Just show the first error
+        setAlert("Error", pipelineValidation.errors[0]);
+        return;
+      }
+
+      savePipelineJson(updatedPipelineJson);
+    },
+    [isReadOnly, savePipelineJson, setAlert]
+  );
+
+  const onMouseUpPipelineStep = React.useCallback(
+    (endNodeUUID: string) => {
+      // finish creating connection
+      eventVarsDispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
+      savePipeline(pipelineJson, eventVars.steps);
+    },
+    [eventVarsDispatch, savePipeline] // TODO:
+  );
 
   const setPipelineSteps = (steps: Record<string, PipelineStepState>) => {
     eventVarsDispatch({ type: "SET_STEPS", payload: steps });
@@ -459,39 +514,46 @@ const PipelineView: React.FC = () => {
     );
   };
 
-  const openNotebook = (e: React.MouseEvent, stepUUID: string) => {
-    if (session === undefined) {
-      setAlert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
-    } else if (session.status === "RUNNING") {
-      const filePath = collapseDoubleDots(
-        pipelineCwd + eventVars.steps[stepUUID].file_path
+  const notebookFilePath = React.useCallback(
+    (pipelineCwd: string, stepUUID: string) => {
+      return collapseDoubleDots(
+        `${pipelineCwd}${eventVars.steps[stepUUID].file_path}`
       ).slice(1);
-      navigateTo(
-        siteMap.jupyterLab.path,
-        {
-          query: {
-            projectUuid,
-            pipelineUuid,
-            filePath,
+    },
+    [eventVars.steps]
+  );
+
+  const openNotebook = React.useCallback(
+    (e: React.MouseEvent | undefined, filePath: string) => {
+      if (session?.status === "RUNNING") {
+        navigateTo(
+          siteMap.jupyterLab.path,
+          {
+            query: {
+              projectUuid,
+              pipelineUuid,
+              filePath,
+            },
           },
-        },
-        e
-      );
-    } else if (session.status === "LAUNCHING") {
-      setAlert(
-        "Error",
-        "Please wait for the session to start before opening the Notebook in Jupyter."
-      );
-    } else {
+          e
+        );
+        return;
+      }
+      if (session?.status === "LAUNCHING") {
+        setAlert(
+          "Error",
+          "Please wait for the session to start before opening the Notebook in Jupyter."
+        );
+        return;
+      }
+
       setAlert(
         "Error",
         "Please start the session before opening the Notebook in Jupyter."
       );
-    }
-  };
+    },
+    [setAlert, session?.status, navigateTo]
+  );
 
   const [isShowingServices, setIsShowingServices] = React.useState(false);
 
@@ -546,17 +608,9 @@ const PipelineView: React.FC = () => {
     startNodeUUID: string,
     endNodeUUID?: string | undefined
   ) => {
-    let newConnection: Connection = {
-      xEnd: undefined,
-      yEnd: undefined,
-      startNodeUUID,
-      endNodeUUID,
-      selected: false,
-    };
-
     eventVarsDispatch({
       type: "CREATE_CONNECTION_INSTANCE",
-      payload: newConnection,
+      payload: createNewConnection(startNodeUUID, endNodeUUID),
     });
   };
 
@@ -574,7 +628,7 @@ const PipelineView: React.FC = () => {
       ".pipeline-step .outgoing-connections",
       (e) => {
         if (e.button === 0) {
-          $(e.target).parents(".pipeline-step").addClass("creating-connection");
+          // $(e.target).parents(".pipeline-step").addClass("creating-connection");
           // create connection
           const startNodeUUID = $(e.target)
             .parents(".pipeline-step")
@@ -659,19 +713,16 @@ const PipelineView: React.FC = () => {
           } else {
             // if clicked step is not selected, select it on Ctrl+Mouseup
             if (
-              eventVars.selectedSteps.indexOf(eventVars.selectedSingleStep) === -1
+              eventVars.selectedSteps.has(eventVars.selectedSingleStep) 
             ) {
-              eventVars.selectedSteps = eventVars.selectedSteps.concat(
+              eventVars.selectedSteps.add(
                 eventVars.selectedSingleStep
               );
 
               updateEventVars();
             } else {
               // remove from selection
-              eventVars.selectedSteps.splice(
-                eventVars.selectedSteps.indexOf(eventVars.selectedSingleStep),
-                1
-              );
+              eventVars.selectedSteps.delete(eventVars.selectedSingleStep);
               updateEventVars();
             }
           }
@@ -693,12 +744,12 @@ const PipelineView: React.FC = () => {
         }
 
         if (
-          eventVars.selectedSteps.length == 1 &&
+          eventVars.selectedSteps.size == 1 &&
           !stepClicked &&
           !stepDragged
         ) {
           selectStep(eventVars.selectedSteps[0]);
-        } else if (eventVars.selectedSteps.length > 1 && !stepDragged) {
+        } else if (eventVars.selectedSteps.size > 1 && !stepDragged) {
           // make sure single step detail view is closed
           closeDetailsView();
 
@@ -718,7 +769,7 @@ const PipelineView: React.FC = () => {
 
       if (stepDragged) setSaveHash(uuidv4());
 
-      if (e.button === 0 && eventVars.selectedSteps.length == 0) {
+      if (e.button === 0 && eventVars.selectedSteps.size == 0) {
         // when space bar is held make sure deselection does not occur
         // on click (as it is a drag event)
 
@@ -989,9 +1040,7 @@ const PipelineView: React.FC = () => {
   };
 
   const onClickStepHandler = (stepUUID: string) => {
-    setTimeout(() => {
-      selectStep(stepUUID);
-    });
+    selectStep(stepUUID);
   };
 
   const onDoubleClickStepHandler = (stepUUID: string) => {
@@ -1002,10 +1051,14 @@ const PipelineView: React.FC = () => {
     }
   };
 
+  const removeSteps = (uuids: string[]) => {
+    eventVarsDispatch({ type: "REMOVE_STEPS", payload: uuids });
+  };
+
   const deleteSelectedSteps = () => {
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
-    if (eventVars.selectedSteps.length > 0) {
+    if (eventVars.selectedSteps.size > 0) {
       setIsDeletingSteps(true);
 
       setConfirm(
@@ -1014,7 +1067,7 @@ const PipelineView: React.FC = () => {
         {
           onConfirm: async (resolve) => {
             closeDetailsView();
-            removeSteps(eventVars.selectedSteps);
+            removeSteps([...eventVars.selectedSteps]);
             setIsDeletingSteps(false);
             setSaveHash(uuidv4());
             resolve(true);
@@ -1028,10 +1081,6 @@ const PipelineView: React.FC = () => {
         }
       );
     }
-  };
-
-  const removeSteps = (uuids: string[]) => {
-    eventVarsDispatch({ type: "REMOVE_STEPS", payload: uuids });
   };
 
   const onDetailsDelete = () => {
@@ -1119,7 +1168,7 @@ const PipelineView: React.FC = () => {
 
     const _pipelineJson = layoutPipeline(
       // Use the pipeline definition from the editor
-      getPipelineJSON(),
+      { ...pipelineJson, steps: eventVars.steps },
       STEP_HEIGHT,
       (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
         (STEP_WIDTH / STEP_HEIGHT),
@@ -1259,40 +1308,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const _runStepUUIDs = (uuids: string[], type: RunStepsType) => {
-    setPipelineRunning(true);
-
-    // store pipeline.json
-    fetcher<PipelineRun>(PIPELINE_RUN_STATUS_ENDPOINT, {
-      method: "POST",
-      headers: HEADER.JSON,
-      body: JSON.stringify({
-        uuids: uuids,
-        project_uuid: projectUuid,
-        run_type: type,
-        pipeline_definition: getPipelineJSON(),
-      }),
-    })
-      .then((result) => {
-        setStepExecutionState((current) => ({
-          ...current,
-          ...convertStepsToObject(result),
-        }));
-        setRunUuid(result.uuid);
-      })
-      .catch((response) => {
-        setPipelineRunning(false);
-
-        setAlert(
-          "Error",
-          `Failed to start interactive run. ${
-            response.message || "Unknown error"
-          }`
-        );
-      });
-  };
-
-  const runStepUUIDs = (uuids: string[], type: RunStepsType) => {
+  const runStepUUIDs = (uuids: Set<string>, type: RunStepsType) => {
     if (!session || session.status !== "RUNNING") {
       setAlert(
         "Error",
@@ -1310,14 +1326,14 @@ const PipelineView: React.FC = () => {
     }
 
     setSaveHash(uuidv4());
-    setPendingRuns({ uuids, type });
+    setPendingRuns({ uuids: [...uuids], type });
   };
 
   const closeDetailsView = () => {
     eventVarsDispatch({ type: "SET_OPENED_STEP", payload: undefined });
   };
 
-  const hasSelectedSteps = eventVars.selectedSteps?.length > 1;
+  const hasSelectedSteps = eventVars.selectedSteps.size > 1;
 
   const onDetailsChangeView = (newIndex: number) => {
     setState({
@@ -1534,11 +1550,11 @@ const PipelineView: React.FC = () => {
   // This is checked to conditionally render the
   // 'Run incoming steps' button.
   let selectedStepsHasIncoming = false;
-  for (let x = 0; x < eventVars.selectedSteps.length; x++) {
+  for (let x = 0; x < eventVars.selectedSteps.size; x++) {
     let selectedStep = eventVars.steps[eventVars.selectedSteps[x]];
     for (let i = 0; i < selectedStep.incoming_connections.length; i++) {
       let incomingStepUUID = selectedStep.incoming_connections[i];
-      if (eventVars.selectedSteps.indexOf(incomingStepUUID) < 0) {
+      if (!eventVars.selectedSteps.has(incomingStepUUID)) {
         selectedStepsHasIncoming = true;
         break;
       }
@@ -1550,7 +1566,7 @@ const PipelineView: React.FC = () => {
 
   const pipelineSteps = Object.entries(eventVars.steps).map((entry) => {
     const [uuid, step] = entry;
-    const selected = eventVars.selectedSteps.indexOf(uuid) !== -1;
+    const selected = eventVars.selectedSteps.has(uuid);
     // only add steps to the component that have been properly
     // initialized
     return (
@@ -1565,9 +1581,11 @@ const PipelineView: React.FC = () => {
             : { status: "IDLE" }
         }
         isCreatingConnection={hasValue(eventVars.newConnection)}
+        isStartNodeOfNewConnection={
+          eventVars.newConnection?.startNodeUUID === step.uuid
+        }
         eventVarsDispatch={eventVarsDispatch}
         onMouseUp={onMouseUpPipelineStep}
-        onClick={onClickStepHandler} // TODO: fix this
         onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
       />
     );
@@ -1605,21 +1623,6 @@ const PipelineView: React.FC = () => {
       );
     }
   );
-
-  React.useEffect(() => {
-    // TODO: running selected steps results in saving twice
-    if (saveHash !== undefined) {
-      if (pendingRuns) {
-        const { uuids, type } = pendingRuns;
-        setPendingRuns(undefined);
-        savePipeline(() => {
-          _runStepUUIDs(uuids, type);
-        });
-      } else {
-        savePipeline();
-      }
-    }
-  }, [saveHash, pendingRuns]);
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
@@ -1750,7 +1753,7 @@ const PipelineView: React.FC = () => {
 
             {!isReadOnly &&
               !pipelineRunning &&
-              eventVars.selectedSteps.length > 0 &&
+              eventVars.selectedSteps.size > 0 &&
               !eventVars.stepSelector.active && (
                 <div className="selection-buttons">
                   <Button

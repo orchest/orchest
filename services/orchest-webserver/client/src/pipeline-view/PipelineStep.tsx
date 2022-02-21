@@ -1,6 +1,7 @@
 import { PipelineStepState, PipelineStepStatus } from "@/types";
 import classNames from "classnames";
 import React from "react";
+import { createNewConnection } from "./common";
 import { EventVarsAction } from "./useEventVars";
 
 export const STEP_WIDTH = 190;
@@ -16,11 +17,11 @@ export interface IPipelineStepProps {
   selected?: boolean;
   step?: PipelineStepState;
   isCreatingConnection: boolean;
+  isStartNodeOfNewConnection: boolean;
   onMouseUp: (endNodeUUID: string) => void;
   executionState?: ExecutionState;
   eventVarsDispatch: (value: EventVarsAction) => void;
   // TODO: clean up these
-  onClick: any;
   onDoubleClick: any;
 }
 
@@ -31,6 +32,7 @@ const PipelineStep = (
     selected,
     onMouseUp,
     isCreatingConnection,
+    isStartNodeOfNewConnection,
     eventVarsDispatch,
     ...props
   }: IPipelineStepProps,
@@ -104,6 +106,21 @@ const PipelineStep = (
     eventVarsDispatch({ type: "SELECT_SINGLE_STEP", payload: step.uuid });
   };
 
+  const onClick = () => {
+    eventVarsDispatch({ type: "SELECT_STEPS", payload: [step.uuid] });
+  };
+
+  const onMouseDownOutgoingConnections = (e: React.MouseEvent) => {
+    if (e.button === 0) {
+      e.stopPropagation();
+
+      eventVarsDispatch({
+        type: "CREATE_CONNECTION_INSTANCE",
+        payload: createNewConnection(step.uuid),
+      });
+    }
+  };
+
   return (
     <div
       data-uuid={step.uuid}
@@ -115,11 +132,13 @@ const PipelineStep = (
         executionState.status,
         selected && "selected",
         step.meta_data?.hidden && "hidden",
+        isStartNodeOfNewConnection && "creating-connection",
       ]
         .filter(Boolean)
         .join(" ")}
       style={style}
       onMouseDown={onMouseDown}
+      onClick={onClick}
     >
       <div
         className={classNames(
@@ -144,7 +163,10 @@ const PipelineStep = (
           <span className="filename">{step.file_path}</span>
         </div>
       </div>
-      <div className={"outgoing-connections connection-point"}>
+      <div
+        className={"outgoing-connections connection-point"}
+        onMouseDown={onMouseDownOutgoingConnections}
+      >
         <div className="inner-dot"></div>
       </div>
     </div>

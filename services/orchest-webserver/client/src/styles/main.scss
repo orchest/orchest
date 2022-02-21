@@ -1258,7 +1258,7 @@ button.themed-secondary {
         height: 30px;
         border-radius: 30px;
 
-        &.hover {
+        &.hover:hover {
           .inner-dot {
             background: $secondary;
           }

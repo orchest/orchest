@@ -1,4 +1,4 @@
-import type { PipelineJson, PipelineStepState } from "@/types";
+import type { Connection, PipelineJson, PipelineStepState } from "@/types";
 import cloneDeep from "lodash.clonedeep";
 
 export const updatePipelineJson = (
@@ -41,4 +41,17 @@ export const extractStepsFromPipelineJson = (
   });
 
   return steps;
+};
+
+export const createNewConnection = (
+  startNodeUUID: string,
+  endNodeUUID?: string | undefined
+): Connection => {
+  return {
+    xEnd: undefined,
+    yEnd: undefined,
+    startNodeUUID,
+    endNodeUUID,
+    selected: false,
+  };
 };
