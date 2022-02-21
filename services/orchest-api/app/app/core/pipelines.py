@@ -459,7 +459,7 @@ def _step_to_workflow_manifest_task(
     # which will fail because the FQDN can't be resolved by the local
     # engine on the node. K8S_TODO: fix this.
     registry_ip = k8s_core_api.read_namespaced_service(
-        _config.REGISTRY, "orchest"
+        _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
     task = {
         # "Name cannot begin with a digit when using either 'depends' or

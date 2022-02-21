@@ -209,14 +209,15 @@ def _cache_image(
     complete_logs_file_object.write(msg)
     complete_logs_file_object.flush()
 
+    ns = _config.ORCHEST_NAMESPACE
     pod_name = f"image-cache-task-{task_uuid}"
     manifest = _get_base_image_cache_workflow_manifest(pod_name, base_image=base_image)
     k8s_custom_obj_api.create_namespaced_custom_object(
-        "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
+        "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
     )
     utils.wait_for_pod_status(
         pod_name,
-        "orchest",
+        ns,
         expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
         max_retries=100,
     )
@@ -226,7 +227,7 @@ def _cache_image(
         k8s_core_api.read_namespaced_pod_log,
         name=pod_name,
         container="main",
-        namespace="orchest",
+        namespace=ns,
         follow=True,
     ):
 
@@ -245,7 +246,7 @@ def _cache_image(
             try:
                 utils.wait_for_pod_status(
                     pod_name,
-                    "orchest",
+                    ns,
                     expected_statuses=["Succeeded", "Failed", "Unknown"],
                     max_retries=1,
                 )
@@ -261,7 +262,7 @@ def _cache_image(
         complete_logs_file_object.flush()
 
     # The w.stream loop exits once the pod has finished running.
-    resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace="orchest")
+    resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace=ns)
     if resp.status.phase == "Failed":
         msg = "There was a problem pulling the base image."
         user_logs_file_object.write(msg)
@@ -298,13 +299,14 @@ def _build_image(
     user_logs_file_object.write(msg)
     complete_logs_file_object.write(msg)
     complete_logs_file_object.flush()
+    ns = _config.ORCHEST_NAMESPACE
     k8s_custom_obj_api.create_namespaced_custom_object(
-        "argoproj.io", "v1alpha1", "orchest", "workflows", body=manifest
+        "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
     )
 
     utils.wait_for_pod_status(
         pod_name,
-        "orchest",
+        ns,
         expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
         max_retries=100,
     )
@@ -316,7 +318,7 @@ def _build_image(
         k8s_core_api.read_namespaced_pod_log,
         name=pod_name,
         container="main",
-        namespace="orchest",
+        namespace=ns,
         follow=True,
     ):
         found_ending_flag = event.endswith(
@@ -345,7 +347,7 @@ def _build_image(
             try:
                 utils.wait_for_pod_status(
                     pod_name,
-                    "orchest",
+                    ns,
                     expected_statuses=["Succeeded", "Failed", "Unknown"],
                     max_retries=1,
                 )
@@ -355,7 +357,7 @@ def _build_image(
                 user_logs_file_object.write("\n")
                 done = True
 
-    resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace="orchest")
+    resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace=ns)
 
     if found_error_flag or resp.status.phase == "Failed":
         msg = (

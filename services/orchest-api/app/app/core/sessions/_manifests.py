@@ -628,7 +628,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     # a pull which will fail because the FQDN can't be resolved by
     # the local engine on the node. K8S_TODO: fix this.
     registry_ip = k8s_core_api.read_namespaced_service(
-        _config.REGISTRY, "orchest"
+        _config.REGISTRY, _config.ORCHEST_NAMESPACE
     ).spec.cluster_ip
     environment = {
         "EG_MIRROR_WORKING_DIRS": "True",
@@ -823,7 +823,7 @@ def _get_user_service_deployment_service_manifest(
         # a pull which will fail because the FQDN can't be resolved by
         # the local engine on the node. K8S_TODO: fix this.
         registry_ip = k8s_core_api.read_namespaced_service(
-            _config.REGISTRY, "orchest"
+            _config.REGISTRY, _config.ORCHEST_NAMESPACE
         ).spec.cluster_ip
 
         image = image.replace(prefix, "")
