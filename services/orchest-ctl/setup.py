@@ -8,7 +8,7 @@ setuptools.setup(
         "kubernetes==21.7.0",
         "six>=1.13.0",
         "tqdm==4.53.0",
-        "typer",
+        "typer==0.4.0",
         "orchest-internals @ file://localhost/orchest/lib/python/orchest-internals",
     ],
     entry_points="""
