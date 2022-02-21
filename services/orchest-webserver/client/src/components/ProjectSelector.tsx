@@ -67,7 +67,7 @@ const ProjectSelector = () => {
     );
 
     fetchProjectsPromise.promise
-      .then((response: string) => {
+      .then((response) => {
         let fetchedProjects: Project[] = JSON.parse(response);
 
         dispatch({

@@ -175,7 +175,8 @@ export const PipelineDetails: React.FC<{
             projectUuid={project_uuid}
             jobUuid={props.job_uuid}
             runUuid={props.run_uuid}
-            stepUuid={step.uuid}
+            type="step"
+            logId={step.uuid}
             pipelineUuid={props.pipeline.uuid}
           />
         </CustomTabPanel>

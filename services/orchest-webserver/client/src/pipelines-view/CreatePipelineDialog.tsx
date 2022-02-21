@@ -112,7 +112,7 @@ export const CreatePipelineDialog = ({
               }}
               value={newPipeline.path}
               error={pathValidation.length > 0}
-              helperText={pathValidation}
+              helperText={pathValidation || " "}
               data-test-id="pipeline-path-textfield"
             />
           </DialogContent>

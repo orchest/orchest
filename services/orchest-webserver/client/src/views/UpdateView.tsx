@@ -26,7 +26,9 @@ const UpdateView: React.FC = () => {
     updating: false,
     updateOutput: "",
   }));
-  const [updatePollInterval, setUpdatePollInterval] = React.useState(null);
+  const [updatePollInterval, setUpdatePollInterval] = React.useState<
+    number | null
+  >(null);
 
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -91,10 +93,7 @@ const UpdateView: React.FC = () => {
   useInterval(() => {
     let updateStatusPromise = makeCancelable(
       makeRequest("GET", "/update-server/update-status"),
-      promiseManager,
-      // @ts-ignore
-      undefined,
-      2000
+      promiseManager
     );
 
     updateStatusPromise.promise

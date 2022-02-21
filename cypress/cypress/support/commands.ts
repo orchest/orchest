@@ -241,25 +241,24 @@ Cypress.Commands.add("deleteAllUsers", () => {
 Cypress.Commands.add(
   "createEnvironment",
   (name: string, script?: string, build?: boolean, waitBuild?: boolean) => {
+    cy.log("======== Start creating environment");
+    cy.intercept("PUT", /.*/).as("allPuts");
     cy.intercept("POST", /.*/).as("allPosts");
     cy.visit("environments");
     cy.findByTestId(TEST_ID.ENVIRONMENTS_CREATE).should("be.visible").click();
+    cy.wait("@allPosts");
 
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_ENV_NAME)
+    cy.get("[data-test-id=environments-env-name] input")
       .should("be.visible")
-      .type("{selectall}{backspace}" + name);
+      .type(`{selectall}{backspace}${name}{enter}`);
 
-    cy.findByTestId(TEST_ID.ENVIRONMENT_TAB_BUILD).scrollIntoView().click();
-    cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE)
-      .scrollIntoView()
-      .should("be.visible")
-      .click();
+    cy.wait("@allPuts");
+
     if (script !== undefined) {
       let deletions = "{backspace}".repeat(30);
       cy.get(".CodeMirror-line")
         .first()
         .type(deletions + script);
-      cy.findByTestId(TEST_ID.ENVIRONMENTS_SAVE).scrollIntoView().click();
     }
     if (build) {
       cy.findByTestId(TEST_ID.ENVIRONMENT_START_BUILD)
@@ -269,15 +268,15 @@ Cypress.Commands.add(
       cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
         .scrollIntoView()
         .should("be.visible")
-        .contains(/PENDING|STARTED/);
+        .contains(/Building|Getting ready to build/);
       if (waitBuild) {
         cy.findByTestId(TEST_ID.ENVIRONMENTS_BUILD_STATUS)
           .scrollIntoView()
           .should("be.visible")
-          .contains("SUCCESS", { timeout: 20000 });
+          .contains("Build successfully completed!", { timeout: 20000 });
       }
+      cy.log("======== Done creating environment");
     }
-    cy.wait("@allPosts");
   }
 );
 

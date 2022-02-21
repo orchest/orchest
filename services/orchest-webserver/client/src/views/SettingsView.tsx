@@ -1,4 +1,5 @@
 import { Code } from "@/components/common/Code";
+import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
@@ -55,10 +56,6 @@ const SettingsView: React.FC = () => {
   });
 
   const [promiseManager] = React.useState(new PromiseManager());
-
-  const updateView = (e: React.MouseEvent) => {
-    navigateTo(siteMap.update.path, undefined, e);
-  };
 
   const getVersion = () => {
     makeRequest("GET", "/async/version").then((data) => {
@@ -328,7 +325,7 @@ const SettingsView: React.FC = () => {
   return (
     <Layout>
       <div className={"view-page orchest-settings"}>
-        <h2>Orchest settings</h2>
+        <PageTitle>Orchest settings</PageTitle>
         <div className="push-down">
           <div>
             {state.config === undefined ? (

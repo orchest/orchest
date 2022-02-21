@@ -14,6 +14,7 @@ flask-migrate==2.5.3
 flask-restx==0.5.1
 flask-script==2.0.6
 kubernetes==21.7.0
+itsdangerous==2.0.1
 psycopg2-binary==2.8.6
 pytest-mock==3.6.1
 python-engineio==3.14.2

@@ -30,7 +30,6 @@ module.exports = {
       {
         suiteName: "jest tests",
         suiteNameTemplate: "{filepath}",
-        // output: "<rootDir>/reports/junit.xml",
         outputDirectory: "reports",
         classNameTemplate: "{filename}",
         titleTemplate: "{title}",
@@ -40,4 +39,5 @@ module.exports = {
   ],
   collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
   modulePathIgnorePatterns: ["__mocks__"],
+  testEnvironment: "jsdom",
 };
