@@ -209,11 +209,13 @@ const ProjectsView: React.FC = () => {
           projectUuids.map((projectUuid) => deleteProjectRequest(projectUuid))
         )
           .then(() => {
-            fetchProjects();
             resolve(true); // 2. this is resolved later, and this resolves the Promise returned by setConfirm, and thereafter resolved in DataTable
           })
           .catch(() => {
             resolve(false);
+          })
+          .finally(() => {
+            fetchProjects();
           });
         return true; // 1. this is resolved first, thus, the dialog will be gone once user click CONFIRM
       }

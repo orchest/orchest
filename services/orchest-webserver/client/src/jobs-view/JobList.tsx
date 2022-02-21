@@ -172,15 +172,17 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
             })
           )
             .then(() => {
-              fetchJobs();
               resolve(true);
             })
             .catch((e) => {
               setAlert("Error", `Failed to delete selected jobs: ${e}`);
               resolve(false);
+            })
+            .finally(() => {
+              fetchJobs();
             });
           return true;
-        } catch (e) {
+        } catch (error) {
           return false;
         }
       }

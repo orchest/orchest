@@ -24,6 +24,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
 import {
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -60,11 +61,12 @@ const FormSectionTitle: React.FC<{ title: string }> = ({ children, title }) => (
 
 const ServiceForm: React.FC<{
   service: Service;
+  services: Record<string, Service>;
+  serviceUuid: string;
   project_uuid: string;
   pipeline_uuid: string;
   run_uuid: string;
   updateService: (service: Service) => void;
-  nameChangeService: (oldName: string, newName: string) => void;
   disabled: boolean;
 }> = (props) => {
   const environmentPrefix = "environment@";
@@ -100,9 +102,24 @@ const ServiceForm: React.FC<{
     props.updateService(service);
   };
 
+  const [serviceName, setServiceName] = React.useState(props.service.name);
+  const [serviceNameError, setServiceNameError] = React.useState<string | null>(
+    null
+  );
+  const hasServiceNameError = hasValue(serviceNameError);
+
+  const allServiceNames = React.useMemo(() => {
+    return Object.values(props.services).map((s) => s.name);
+  }, [props.services]);
   const handleNameChange = (newName: string) => {
-    let oldName = props.service["name"];
-    props.nameChangeService(oldName, newName);
+    setServiceName(newName);
+
+    if (newName !== props.service.name && allServiceNames.includes(newName)) {
+      setServiceNameError("Same service name has been taken");
+      return;
+    }
+    setServiceNameError(null);
+    props.updateService({ ...props.service, name: newName });
   };
 
   const handleServiceBindsChange = (key: string, value: any) => {
@@ -194,19 +211,23 @@ const ServiceForm: React.FC<{
                   label="Name"
                   type="text"
                   disabled={props.disabled}
-                  value={props.service.name}
+                  error={hasServiceNameError}
+                  value={serviceName}
                   onChange={(e) => {
                     handleNameChange(e.target.value);
                   }}
                   fullWidth
-                  helperText="The name of the service. Up to 36 digits, letters or dashes are allowed."
+                  helperText={
+                    serviceNameError ||
+                    "The name of the service. Up to 36 digits, letters or dashes are allowed."
+                  }
                   aria-describedby="tooltip-name"
                   data-test-id={`service-${props.service.name}-name`}
                 />
                 <TextField
                   label="Image"
                   type="text"
-                  disabled={props.disabled}
+                  disabled={props.disabled || hasServiceNameError}
                   onClick={() => {
                     // TODO:  improve this
                     setShowImageDialog(true);
@@ -231,7 +252,7 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Entrypoint (optional)"
                   type="text"
-                  disabled={props.disabled}
+                  disabled={props.disabled || hasServiceNameError}
                   value={props.service.entrypoint}
                   onChange={(e) => {
                     handleServiceChange("entrypoint", e.target.value);
@@ -245,7 +266,7 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Command (optional)"
                   type="text"
-                  disabled={props.disabled}
+                  disabled={props.disabled || hasServiceNameError}
                   value={props.service.command}
                   onChange={(e) => {
                     handleServiceChange("command", e.target.value);
@@ -264,7 +285,7 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Project directory (optional)"
                   type="text"
-                  disabled={props.disabled}
+                  disabled={props.disabled || hasServiceNameError}
                   value={props.service.binds?.["/project-dir"]}
                   onChange={(e) => {
                     handleServiceBindsChange("/project-dir", e.target.value);
@@ -275,7 +296,7 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Data directory (optional)"
                   type="text"
-                  disabled={props.disabled}
+                  disabled={props.disabled || hasServiceNameError}
                   value={props.service?.binds?.["/data"]}
                   onChange={(e) => {
                     handleServiceBindsChange("/data", e.target.value);
@@ -299,7 +320,7 @@ const ServiceForm: React.FC<{
                           }))
                         : []
                     }
-                    disabled={props.disabled}
+                    disabled={props.disabled || hasServiceNameError}
                     onChange={(ports) => {
                       handleServiceChange(
                         "ports",
@@ -350,6 +371,7 @@ const ServiceForm: React.FC<{
                       control={
                         <Checkbox
                           checked={props.service?.preserve_base_path === true}
+                          disabled={props.disabled || hasServiceNameError}
                           onChange={(e) => {
                             handleServiceChange(
                               "preserve_base_path",
@@ -368,7 +390,7 @@ const ServiceForm: React.FC<{
                   <FormGroup>
                     <FormControlLabel
                       label="Authentication required"
-                      disabled={props.disabled}
+                      disabled={props.disabled || hasServiceNameError}
                       control={
                         <Checkbox
                           checked={
@@ -394,7 +416,7 @@ const ServiceForm: React.FC<{
                   <FormGroup>
                     <FormControlLabel
                       label="Interactive sessions"
-                      disabled={props.disabled}
+                      disabled={props.disabled || hasServiceNameError}
                       control={
                         <Checkbox
                           checked={
@@ -411,7 +433,7 @@ const ServiceForm: React.FC<{
                     />
                     <FormControlLabel
                       label="Job sessions"
-                      disabled={props.disabled}
+                      disabled={props.disabled || hasServiceNameError}
                       control={
                         <Checkbox
                           checked={
@@ -443,7 +465,7 @@ const ServiceForm: React.FC<{
                           value: env_variable.toString(),
                         }
                     )}
-                    disabled={props.disabled}
+                    disabled={props.disabled || hasServiceNameError}
                     onChange={(env_variables) => {
                       handleServiceChange(
                         "env_variables_inherit",
