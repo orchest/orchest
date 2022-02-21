@@ -154,7 +154,7 @@ def _get_memory_server_deployment_manifest(
         "metadata": metadata,
         "spec": {
             "replicas": 1,
-            "selector": {"matchLabels": {"app": "memory-server"}},
+            "selector": {"matchLabels": metadata["labels"]},
             "template": {
                 "metadata": metadata,
                 "spec": {
@@ -278,11 +278,15 @@ def _get_session_sidecar_rbac_manifests(
             },
         },
         "subjects": [
-            {"kind": "ServiceAccount", "name": "session-sidecar-sa", "namespace": ns}
+            {
+                "kind": "ServiceAccount",
+                "name": f"session-sidecar-sa-{session_uuid}",
+                "namespace": ns,
+            }
         ],
         "roleRef": {
             "kind": "Role",
-            "name": "session-sidecar-role",
+            "name": f"session-sidecar-role-{session_uuid}",
             "apiGroup": "rbac.authorization.k8s.io",
         },
     }
@@ -323,7 +327,7 @@ def _get_session_sidecar_deployment_manifest(
         "metadata": metadata,
         "spec": {
             "replicas": 1,
-            "selector": {"matchLabels": {"app": metadata["name"]}},
+            "selector": {"matchLabels": metadata["labels"]},
             "template": {
                 "metadata": metadata,
                 "spec": {
@@ -332,8 +336,8 @@ def _get_session_sidecar_deployment_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "serviceAccount": "session-sidecar-sa",
-                    "serviceAccountName": "session-sidecar-sa",
+                    "serviceAccount": f"session-sidecar-sa-{session_uuid}",
+                    "serviceAccountName": f"session-sidecar-sa-{session_uuid}",
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -419,7 +423,7 @@ def _get_jupyter_server_deployment_service_manifest(
         "metadata": metadata,
         "spec": {
             "replicas": 1,
-            "selector": {"matchLabels": {"app": metadata["name"]}},
+            "selector": {"matchLabels": metadata["labels"]},
             "template": {
                 "metadata": metadata,
                 "spec": {
@@ -458,7 +462,8 @@ def _get_jupyter_server_deployment_service_manifest(
                                 "--port=8888",
                                 "--no-browser",
                                 (
-                                    "--gateway-url=http://jupyter-eg:8888/"
+                                    "--gateway-url="
+                                    f"http://jupyter-eg-{session_uuid}:8888/"
                                     f'{metadata["name"]}'
                                 ),
                                 f"--notebook-dir={_config.PROJECT_DIR}",
@@ -466,7 +471,7 @@ def _get_jupyter_server_deployment_service_manifest(
                             ],
                             "startupProbe": {
                                 "httpGet": {
-                                    "path": "/jupyter-server/api",
+                                    "path": f'/{metadata["name"]}/api',
                                     "port": 8888,
                                 },
                                 "periodSeconds": 1,
@@ -488,7 +493,7 @@ def _get_jupyter_server_deployment_service_manifest(
         "metadata": metadata,
         "spec": {
             "type": "ClusterIP",
-            "selector": {"app": metadata["name"]},
+            "selector": metadata["labels"],
             # Coupled with the idle check.
             "ports": [{"port": 80, "targetPort": 8888}],
         },
@@ -561,11 +566,15 @@ def _get_jupyter_enterprise_gateway_rbac_manifests(
             },
         },
         "subjects": [
-            {"kind": "ServiceAccount", "name": "jupyter-eg-sa", "namespace": ns}
+            {
+                "kind": "ServiceAccount",
+                "name": f"jupyter-eg-sa-{session_uuid}",
+                "namespace": ns,
+            }
         ],
         "roleRef": {
             "kind": "Role",
-            "name": "jupyter-eg-role",
+            "name": f"jupyter-eg-role-{session_uuid}",
             "apiGroup": "rbac.authorization.k8s.io",
         },
     }
@@ -633,7 +642,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "EG_UNAUTHORIZED_USERS": '["dummy"]',
         "EG_UID_BLACKLIST": '["-1"]',
         "EG_ALLOW_ORIGIN": "*",
-        "EG_BASE_URL": "/jupyter-server",
+        "EG_BASE_URL": f"/jupyter-server-{session_uuid}",
         # This is because images might need to be pulled on the node and
         # we aren't using a dameon or similar to pull images on the
         # node.  See kernel-image-puller (KIP) for such an example.
@@ -676,7 +685,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "metadata": metadata,
         "spec": {
             "replicas": 1,
-            "selector": {"matchLabels": {"app": metadata["name"]}},
+            "selector": {"matchLabels": metadata["labels"]},
             "template": {
                 "metadata": metadata,
                 "spec": {
@@ -685,8 +694,8 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                         "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
                     },
-                    "serviceAccount": "jupyter-eg-sa",
-                    "serviceAccountName": "jupyter-eg-sa",
+                    "serviceAccount": f"jupyter-eg-sa-{session_uuid}",
+                    "serviceAccountName": f"jupyter-eg-sa-{session_uuid}",
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -719,7 +728,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "metadata": metadata,
         "spec": {
             "type": "ClusterIP",
-            "selector": {"app": metadata["name"]},
+            "selector": metadata["labels"],
             "ports": [{"port": 8888}],
         },
     }
@@ -840,7 +849,7 @@ def _get_user_service_deployment_service_manifest(
         "metadata": metadata,
         "spec": {
             "replicas": 1,
-            "selector": {"matchLabels": {"app": metadata["name"]}},
+            "selector": {"matchLabels": metadata["labels"]},
             "template": {
                 "metadata": metadata,
                 "spec": {
@@ -886,7 +895,7 @@ def _get_user_service_deployment_service_manifest(
         "metadata": metadata,
         "spec": {
             "type": "ClusterIP",
-            "selector": {"app": metadata["name"]},
+            "selector": metadata["labels"],
             "ports": [{"port": port} for port in service_config["ports"]],
         },
     }

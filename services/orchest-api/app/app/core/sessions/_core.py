@@ -21,6 +21,9 @@ def launch(
 ) -> None:
     """Starts all resources needed by the session.
 
+    !!! Make sure to check that cleanup_resources is covering whatever
+    you decide to add.
+
     Args:
         session_uuid: UUID to identify the session k8s namespace with,
             which is where all related resources will be deployed.
@@ -240,7 +243,7 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
         try:
             logger.info(f"Deleting {resource_name}.")
             entities = thread.get()
-            for entity in entities.items():
+            for entity in entities.items:
                 logger.info(f"Deleting {entity.metadata.name}")
                 resource_delete_threads.append(
                     delete_f(entity.metadata.name, ns, async_req=True)
@@ -298,9 +301,9 @@ def has_busy_kernels(session_uuid: str) -> bool:
     """
     # https://jupyter-server.readthedocs.io/en/latest/developers/rest-api.html
     ns = _config.ORCHEST_NAMESPACE
-    service_dns_name = f"jupyter-server.{ns}.svc.cluster.local"
+    service_dns_name = f"jupyter-server-{session_uuid}.{ns}.svc.cluster.local"
     # Coupled with the juputer-server service port.
-    url = f"http://{service_dns_name}/jupyter-server/api/kernels"
+    url = f"http://{service_dns_name}/jupyter-server-{session_uuid}/api/kernels"
     response = requests.get(url, timeout=2.0)
 
     # Expected format: a list of dictionaries.
@@ -326,16 +329,15 @@ def restart_session_service(
     """
     ns = _config.ORCHEST_NAMESPACE
     k8s_core_api.delete_collection_namespaced_pod(
-        namespace=ns, label_selector=f"app={service_name}"
+        namespace=ns, label_selector=f"session_uuid={session_uuid},app={service_name}"
     )
 
     if wait_for_readiness:
-        deployment = k8s_apps_api.read_namespaced_deployment_status(service_name, ns)
+        dname = f"{service_name}-{session_uuid}"
+        deployment = k8s_apps_api.read_namespaced_deployment_status(dname, ns)
         while deployment.status.available_replicas != deployment.spec.replicas:
             time.sleep(1)
-            deployment = k8s_apps_api.read_namespaced_deployment_status(
-                service_name, ns
-            )
+            deployment = k8s_apps_api.read_namespaced_deployment_status(dname, ns)
 
 
 @contextmanager

@@ -92,7 +92,7 @@ def follow_service_logs(service):
         for event in w.stream(
             k8s_core_api.read_namespaced_pod_log,
             name=pod.metadata.name,
-            container=service,
+            container=f"{service}-{Config.SESSION_UUID}",
             namespace=Config.NAMESPACE,
             follow=True,
         ):
