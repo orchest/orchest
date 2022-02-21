@@ -197,6 +197,19 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     # (name, list function, delete function)
     resources_to_delete = [
         (
+            "deployments",
+            k8s_apps_api.list_namespaced_deployment,
+            k8s_apps_api.delete_namespaced_deployment,
+        ),
+        (
+            "services",
+            k8s_core_api.list_namespaced_service,
+            k8s_core_api.delete_namespaced_service,
+        ),
+        # It's important that this stays after deployments and services
+        # to avoid dangling kernel pods started by Jupyter EG.
+        ("pods", k8s_core_api.list_namespaced_pod, k8s_core_api.delete_namespaced_pod),
+        (
             "service_accounts",
             k8s_core_api.list_namespaced_service_account,
             k8s_core_api.delete_namespaced_service_account,
@@ -211,19 +224,6 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
             k8s_rbac_api.list_namespaced_role,
             k8s_rbac_api.delete_namespaced_role,
         ),
-        (
-            "services",
-            k8s_core_api.list_namespaced_service,
-            k8s_core_api.delete_namespaced_service,
-        ),
-        (
-            "deployments",
-            k8s_apps_api.list_namespaced_deployment,
-            k8s_apps_api.delete_namespaced_deployment,
-        ),
-        # It's important that this stays last to avoid dangling kernel
-        # pods started by Jupyter EG.
-        ("pods", k8s_core_api.list_namespaced_pod, k8s_core_api.delete_namespaced_pod),
     ]
     resource_list_threads = []
     for resource_name, list_f, _ in resources_to_delete:
