@@ -11,6 +11,7 @@ import type {
   PipelineJson,
   PipelineStepState,
   Step,
+  StepsDict,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
 import {
@@ -109,7 +110,7 @@ const LogsView: React.FC = () => {
     let sortedStepKeys = [];
 
     const mutatedPipelineSteps = addOutgoingConnections(
-      pipelineSteps as Record<string, PipelineStepState>
+      pipelineSteps as StepsDict
     );
 
     let conditionalAdd = (step: PipelineStepState) => {

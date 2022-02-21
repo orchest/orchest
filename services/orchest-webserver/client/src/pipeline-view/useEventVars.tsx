@@ -5,6 +5,7 @@ import type {
   PipelineStepState,
   Position,
   Step,
+  StepsDict,
 } from "@/types";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import { intersectRect } from "@orchest/lib-utils";
@@ -55,9 +56,9 @@ type EventVars = {
   prevPosition: [number, number];
   doubleClickFirstClick: boolean;
   scaleFactor: number;
-  steps: Record<string, PipelineStepState>;
+  steps: StepsDict;
   selectedSingleStep?: string;
-  selectedSteps: Set<string>;
+  selectedSteps: string[];
   connections: Connection[];
   selectedConnection?: Connection;
   openedMultiStep: boolean;
@@ -76,7 +77,7 @@ type EventVars = {
 type Action =
   | {
       type: "SET_STEPS";
-      payload: Record<string, PipelineStepState>;
+      payload: StepsDict;
     }
   | {
       type: "CREATE_STEP";
@@ -266,7 +267,7 @@ export const useEventVars = () => {
 
         // for each step perform intersect
         if (state.stepSelector.active) {
-          state.selectedSteps.clear();
+          state.selectedSteps = [];
           Object.values(state.steps).forEach((step) => {
             // guard against ref existing, in case step is being added
             if (stepDomRefs.current[step.uuid]) {
@@ -282,7 +283,7 @@ export const useEventVars = () => {
               };
 
               if (intersectRect(rect, stepRect)) {
-                state.selectedSteps.add(step.uuid);
+                state.selectedSteps.push(step.uuid);
               }
             }
           });
@@ -394,8 +395,8 @@ export const useEventVars = () => {
       };
 
       const selectSteps = (steps: string[]) => {
-        state.selectedSteps.clear();
-        steps.forEach((stepUuid) => state.selectedSteps.add(stepUuid));
+        state.selectedSteps = [];
+        steps.forEach((stepUuid) => state.selectedSteps.push(stepUuid));
         if (steps.length === 1) {
           state.openedStep = steps[0];
           state.openedMultiStep = false;
@@ -404,7 +405,7 @@ export const useEventVars = () => {
       };
 
       const deselectSteps = () => {
-        state.selectedSteps.clear();
+        state.selectedSteps = [];
         state.stepSelector = DEFAULT_STEP_SELECTOR;
         state.openedMultiStep = false;
         // deselecting will close the detail view
@@ -481,8 +482,8 @@ export const useEventVars = () => {
 
           // if user selected multiple steps, they will move together
           if (
-            state.selectedSteps.size > 1 &&
-            state.selectedSteps.has(state.selectedSingleStep)
+            state.selectedSteps.length > 1 &&
+            state.selectedSteps.includes(state.selectedSingleStep)
           ) {
             state.selectedSteps.forEach((uuid) => {
               let singleStep = state.steps[uuid];
@@ -546,7 +547,7 @@ export const useEventVars = () => {
             action.payload.startNodeUUID,
             action.payload.endNodeUUID
           );
-          state.selectedSteps.clear();
+          state.selectedSteps = [];
           state.stepSelector = DEFAULT_STEP_SELECTOR;
 
           if (!selectedConnection) {
@@ -603,6 +604,7 @@ export const useEventVars = () => {
         // this action creates an instance
         case "CREATE_CONNECTION_INSTANCE": {
           state.connections.push(action.payload);
+          console.log("HM 💥", action.payload);
           if (!action.payload.endNodeUUID) {
             state.newConnection = action.payload;
           }
@@ -650,7 +652,7 @@ export const useEventVars = () => {
             // when removing a step, the selection of any step is also cancelled
             // we can simply clean up state.selectedSteps, instead of remove them one by one
             // TODO: double-check if it's true
-            state.selectedSteps.clear();
+            state.selectedSteps = [];
           });
 
           break;
@@ -704,7 +706,7 @@ export const useEventVars = () => {
       newConnection: undefined,
       openedStep: undefined,
       openedMultiStep: undefined,
-      selectedSteps: new Set<string>(),
+      selectedSteps: [],
       stepSelector: {
         active: false,
         x1: 0,
@@ -748,5 +750,10 @@ export const useEventVars = () => {
     }
   }, [eventVars.error, setAlert]);
 
-  return { eventVars, eventVarsDispatch, stepDomRefs, trackMouseMovement };
+  return {
+    eventVars,
+    eventVarsDispatch,
+    stepDomRefs,
+    trackMouseMovement,
+  };
 };

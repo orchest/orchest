@@ -11,12 +11,12 @@ import type {
   Connection,
   PipelineJson,
   PipelineRun,
-  PipelineStepState,
+  Step,
+  StepsDict,
 } from "@/types";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
 import {
-  checkGate,
   filterServices,
   getPipelineJSONEndpoint,
   getScrollLineHeight,
@@ -42,16 +42,17 @@ import {
   hasValue,
   HEADER,
   PromiseManager,
-  RefManager,
   uuidv4,
 } from "@orchest/lib-utils";
 import $ from "jquery";
 import React from "react";
-import io from "socket.io-client";
+import useSWR from "swr";
 import { siteMap } from "../Routes";
 import {
   createNewConnection,
   extractStepsFromPipelineJson,
+  PIPELINE_JOBS_STATUS_ENDPOINT,
+  PIPELINE_RUN_STATUS_ENDPOINT,
   updatePipelineJson,
 } from "./common";
 import PipelineConnection from "./PipelineConnection";
@@ -65,6 +66,10 @@ import {
   scaleCorrectedPosition,
   useEventVars,
 } from "./useEventVars";
+import { useFetchInteractiveRun } from "./useFetchInteractiveRun";
+import { useInitializePipelineEditor } from "./useInitializePipelineEditor";
+import { useIsReadOnly } from "./useIsReadOnly";
+import { useSocketIO } from "./useSocketIO";
 import {
   convertStepsToObject,
   useStepExecutionState,
@@ -75,12 +80,7 @@ const DOUBLE_CLICK_TIMEOUT = 300;
 const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
-export type Step = Record<string, PipelineStepState>;
-
 type RunStepsType = "selection" | "incoming";
-
-const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
-const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
 
 const originTransformScaling = (
   origin: [number, number],
@@ -115,18 +115,88 @@ const PipelineView: React.FC = () => {
     navigateTo,
   } = useCustomRoute();
 
-  const [isReadOnly, _setIsReadOnly] = React.useState(
+  const returnToJob = React.useCallback(
+    (e?: React.MouseEvent) => {
+      navigateTo(
+        siteMap.job.path,
+        {
+          query: { projectUuid, jobUuid: jobUuidFromRoute },
+        },
+        e
+      );
+    },
+    [projectUuid, jobUuidFromRoute, navigateTo]
+  );
+
+  const { runUuid, setRunUuid } = useFetchInteractiveRun(
+    projectUuid,
+    pipelineUuid,
+    runUuidFromRoute
+  );
+
+  const isReadOnly = useIsReadOnly(
+    projectUuid,
+    jobUuidFromRoute,
+    runUuid,
     isReadOnlyFromQueryString
   );
 
-  const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>(null);
+  const {
+    eventVars,
+    eventVarsDispatch,
+    stepDomRefs,
+    trackMouseMovement,
+  } = useEventVars();
 
-  const setIsReadOnly = (readOnly: boolean) => {
-    dispatch({
-      type: "SET_PIPELINE_IS_READONLY",
-      payload: readOnly,
-    });
-    _setIsReadOnly(readOnly);
+  const setPipelineSteps = React.useCallback(
+    (steps: StepsDict) => {
+      eventVarsDispatch({ type: "SET_STEPS", payload: steps });
+    },
+    [eventVarsDispatch]
+  );
+
+  const createConnectionInstance = React.useCallback(
+    (startNodeUUID: string, endNodeUUID?: string | undefined) => {
+      eventVarsDispatch({
+        type: "CREATE_CONNECTION_INSTANCE",
+        payload: createNewConnection(startNodeUUID, endNodeUUID),
+      });
+    },
+    [eventVarsDispatch]
+  );
+
+  // this is only called once when pipelineJson is loaded in the beginning
+  const initializeEventVars = React.useCallback(
+    (initialSteps: StepsDict) => {
+      setPipelineSteps(initialSteps);
+      Object.values(initialSteps).forEach((step) => {
+        step.incoming_connections.forEach((startNodeUUID) => {
+          let endNodeUUID = step.uuid;
+          createConnectionInstance(startNodeUUID, endNodeUUID);
+        });
+      });
+    },
+    [setPipelineSteps, createConnectionInstance]
+  );
+
+  const {
+    pipelineCwd,
+    pipelineJson,
+    setPipelineJson,
+    error: fetchDataError,
+  } = useInitializePipelineEditor(
+    pipelineUuid,
+    projectUuid,
+    jobUuidFromRoute,
+    runUuid,
+    isReadOnly,
+    initializeEventVars
+  );
+
+  const isJobRun = jobUuidFromRoute && runUuid;
+  const jobRunQueryArgs = {
+    jobUuid: jobUuidFromRoute,
+    runUuid,
   };
 
   // TODO: use keyDown[32] or draggingCanvas to determine dragging?????
@@ -139,15 +209,8 @@ const PipelineView: React.FC = () => {
     x: number;
     y: number;
   }>({ x: 0, y: 0 });
-  const {
-    eventVars,
-    eventVarsDispatch,
-    stepDomRefs,
-    trackMouseMovement,
-  } = useEventVars();
 
   const pipelineSetHolderSize = React.useCallback(() => {
-    // TODO: resize canvas based on pipeline size
     if (!pipelineStepsOuterHolder.current || !pipelineStepsHolder.current)
       return;
 
@@ -183,6 +246,7 @@ const PipelineView: React.FC = () => {
     isReadOnly,
   });
 
+  const sio = useSocketIO();
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
   const { setScope } = useHotKeys(
     {
@@ -212,7 +276,6 @@ const PipelineView: React.FC = () => {
 
   // The save hash is used to propagate a save's side-effects to components.
   const [saveHash, setSaveHash] = React.useState<string>();
-  const [pipelineCwd, setPipelineCwd] = React.useState("");
 
   const [isDeletingSteps, setIsDeletingSteps] = React.useState(false);
   const [pendingRuns, setPendingRuns] = React.useState<
@@ -222,7 +285,27 @@ const PipelineView: React.FC = () => {
   const [pipelineRunning, setPipelineRunning] = React.useState(false);
   const [isCancellingRun, setIsCancellingRun] = React.useState(false);
 
-  const [runUuid, setRunUuid] = React.useState(runUuidFromRoute);
+  React.useEffect(() => {
+    // This case is hit when a user tries to load a pipeline that belongs
+    // to a run that has not started yet. The project files are only
+    // copied when the run starts. Before start, the pipeline.json thus
+    // cannot be found. Alert the user about missing pipeline and return
+    // to JobView.
+    if (fetchDataError)
+      setAlert(
+        "Error",
+        jobUuidFromRoute
+          ? "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view."
+          : "Could not load pipeline",
+        (resolve) => {
+          resolve(true);
+          returnToJob();
+
+          return true;
+        }
+      );
+  }, [fetchDataError, returnToJob, setAlert, jobUuidFromRoute]);
+
   const runStatusEndpoint = jobUuidFromRoute
     ? `${PIPELINE_JOBS_STATUS_ENDPOINT}${jobUuidFromRoute}/`
     : PIPELINE_RUN_STATUS_ENDPOINT;
@@ -254,7 +337,6 @@ const PipelineView: React.FC = () => {
     pipelineStepsHolderOffsetTop: number;
     pipelineOffset: [number, number];
     // misc. state
-    sio: any;
     currentOngoingSaves: number;
     defaultDetailViewIndex: number;
   }
@@ -269,57 +351,34 @@ const PipelineView: React.FC = () => {
       INITIAL_PIPELINE_POSITION[1],
     ],
     // misc. state
-    sio: undefined,
     currentOngoingSaves: 0,
     defaultDetailViewIndex: 0,
   };
 
-  const refManager = React.useMemo(() => new RefManager(), []);
   const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
   const [state, _setState] = React.useState<IPipelineViewState>(initialState);
   // TODO: clean up this class-component-stye setState
-  const setState = (
-    newState:
-      | Partial<IPipelineViewState>
-      | ((
-          previousState: Partial<IPipelineViewState>
-        ) => Partial<IPipelineViewState>)
-  ) => {
-    _setState((prevState) => {
-      let updatedState =
-        newState instanceof Function ? newState(prevState) : newState;
+  const setState = React.useCallback(
+    (
+      newState:
+        | Partial<IPipelineViewState>
+        | ((
+            previousState: Partial<IPipelineViewState>
+          ) => Partial<IPipelineViewState>)
+    ) => {
+      _setState((prevState) => {
+        let updatedState =
+          newState instanceof Function ? newState(prevState) : newState;
 
-      return {
-        ...prevState,
-        ...updatedState,
-      };
-    });
-  };
-
-  const fetchActivePipelineRuns = () => {
-    fetcher(
-      `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
-    )
-      .then((data) => {
-        try {
-          // Note that runs are returned by the orchest-api by
-          // started_time DESC. So we can just retrieve the first run.
-          if (data["runs"].length > 0) {
-            let run = data["runs"][0];
-
-            setRunUuid(run.uuid);
-          }
-        } catch (e) {
-          console.log("Error parsing return from orchest-api " + e);
-        }
-      })
-      .catch((error) => {
-        if (!error.isCanceled) {
-          console.error(error);
-        }
+        return {
+          ...prevState,
+          ...updatedState,
+        };
       });
-  };
+    },
+    []
+  );
 
   const decrementSaveCounter = React.useCallback(() => {
     setState((state) => {
@@ -330,11 +389,7 @@ const PipelineView: React.FC = () => {
   }, [setState]);
 
   const executePipelineSteps = React.useCallback(
-    async (
-      uuids: string[],
-      type: RunStepsType,
-      updatedPipelineJson: PipelineJson
-    ) => {
+    async (uuids: string[], type: RunStepsType) => {
       try {
         const result = await fetcher<PipelineRun>(
           PIPELINE_RUN_STATUS_ENDPOINT,
@@ -345,7 +400,7 @@ const PipelineView: React.FC = () => {
               uuids: uuids,
               project_uuid: projectUuid,
               run_type: type,
-              pipeline_definition: updatedPipelineJson,
+              pipeline_definition: pipelineJson,
             }),
           }
         );
@@ -364,11 +419,12 @@ const PipelineView: React.FC = () => {
         return false;
       }
     },
-    [projectUuid, setStepExecutionState, setAlert]
+    [projectUuid, setStepExecutionState, setAlert, pipelineJson, setRunUuid]
   );
 
   const savePipelineJson = React.useCallback(
-    async (pipelineJson: PipelineJson) => {
+    async (data: PipelineJson) => {
+      if (!data) return;
       setState((state) => {
         return {
           currentOngoingSaves: state.currentOngoingSaves + 1,
@@ -384,7 +440,7 @@ const PipelineView: React.FC = () => {
       }, 100);
 
       let formData = new FormData();
-      formData.append("pipeline_json", JSON.stringify(pipelineJson));
+      formData.append("pipeline_json", JSON.stringify(data));
       const response = await resolve(() =>
         fetcher(`/async/pipelines/json/${projectUuid}/${pipelineUuid}`, {
           method: "POST",
@@ -399,11 +455,7 @@ const PipelineView: React.FC = () => {
       if (pendingRuns) {
         const { uuids, type } = pendingRuns;
         setPipelineRunning(true);
-        const executionStarted = await executePipelineSteps(
-          uuids,
-          type,
-          pipelineJson
-        );
+        const executionStarted = await executePipelineSteps(uuids, type);
         if (!executionStarted) setPipelineRunning(false);
         setPendingRuns(undefined);
       }
@@ -424,16 +476,15 @@ const PipelineView: React.FC = () => {
   );
 
   const savePipeline = React.useCallback(
-    async (
-      pipelineJson: PipelineJson,
-      steps: Record<string, PipelineStepState>
-    ) => {
+    async (steps?: StepsDict) => {
       if (isReadOnly) {
         console.error("savePipeline should be uncallable in readOnly mode.");
         return;
       }
 
-      let updatedPipelineJson = updatePipelineJson(pipelineJson, steps);
+      const updatedPipelineJson = steps
+        ? updatePipelineJson(pipelineJson, steps)
+        : pipelineJson;
 
       // validate pipelineJSON
       let pipelineValidation = validatePipeline(updatedPipelineJson);
@@ -446,27 +497,17 @@ const PipelineView: React.FC = () => {
 
       savePipelineJson(updatedPipelineJson);
     },
-    [isReadOnly, savePipelineJson, setAlert]
+    [isReadOnly, savePipelineJson, setAlert, pipelineJson]
   );
 
   const onMouseUpPipelineStep = React.useCallback(
-    (endNodeUUID: string) => {
+    (endNodeUUID: string, steps: StepsDict) => {
       // finish creating connection
       eventVarsDispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
-      savePipeline(pipelineJson, eventVars.steps);
+      savePipeline(steps);
     },
-    [eventVarsDispatch, savePipeline] // TODO:
+    [eventVarsDispatch, savePipeline]
   );
-
-  const setPipelineSteps = (steps: Record<string, PipelineStepState>) => {
-    eventVarsDispatch({ type: "SET_STEPS", payload: steps });
-  };
-
-  const isJobRun = jobUuidFromRoute && runUuid;
-  const jobRunQueryArgs = {
-    jobUuid: jobUuidFromRoute,
-    runUuid,
-  };
 
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
@@ -552,7 +593,7 @@ const PipelineView: React.FC = () => {
         "Please start the session before opening the Notebook in Jupyter."
       );
     },
-    [setAlert, session?.status, navigateTo]
+    [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
   );
 
   const [isShowingServices, setIsShowingServices] = React.useState(false);
@@ -566,25 +607,10 @@ const PipelineView: React.FC = () => {
   };
 
   const initializeResizeHandlers = () => {
+    pipelineSetHolderSize();
     $(window).resize(() => {
       pipelineSetHolderSize();
     });
-  };
-
-  // TODO: only make state.sio defined after successful
-  // connect to avoid .emit()'ing to unconnected
-  // sio client (emits aren't buffered).
-  const connectSocketIO = () => {
-    // disable polling
-    setState({
-      sio: io.connect("/pty", { transports: ["websocket"] }),
-    });
-  };
-
-  const disconnectSocketIO = () => {
-    if (state.sio) {
-      state.sio.disconnect();
-    }
   };
 
   const onClickConnection = (
@@ -604,20 +630,10 @@ const PipelineView: React.FC = () => {
     });
   };
 
-  const createConnectionInstance = (
-    startNodeUUID: string,
-    endNodeUUID?: string | undefined
-  ) => {
-    eventVarsDispatch({
-      type: "CREATE_CONNECTION_INSTANCE",
-      payload: createNewConnection(startNodeUUID, endNodeUUID),
-    });
-  };
-
   const removeConnection = React.useCallback(
     (connection: Connection) => {
       eventVarsDispatch({ type: "REMOVE_CONNECTION", payload: connection });
-      setSaveHash(uuidv4());
+      savePipeline(eventVars.steps); // TODO: check if steps is already updated
     },
     [eventVarsDispatch]
   );
@@ -713,7 +729,7 @@ const PipelineView: React.FC = () => {
           } else {
             // if clicked step is not selected, select it on Ctrl+Mouseup
             if (
-              eventVars.selectedSteps.has(eventVars.selectedSingleStep) 
+              eventVars.selectedSteps.includes(eventVars.selectedSingleStep) 
             ) {
               eventVars.selectedSteps.add(
                 eventVars.selectedSingleStep
@@ -744,12 +760,12 @@ const PipelineView: React.FC = () => {
         }
 
         if (
-          eventVars.selectedSteps.size == 1 &&
+          eventVars.selectedSteps.length == 1 &&
           !stepClicked &&
           !stepDragged
         ) {
           selectStep(eventVars.selectedSteps[0]);
-        } else if (eventVars.selectedSteps.size > 1 && !stepDragged) {
+        } else if (eventVars.selectedSteps.length > 1 && !stepDragged) {
           // make sure single step detail view is closed
           closeDetailsView();
 
@@ -769,7 +785,7 @@ const PipelineView: React.FC = () => {
 
       if (stepDragged) setSaveHash(uuidv4());
 
-      if (e.button === 0 && eventVars.selectedSteps.size == 0) {
+      if (e.button === 0 && eventVars.selectedSteps.length == 0) {
         // when space bar is held make sure deselection does not occur
         // on click (as it is a drag event)
 
@@ -844,143 +860,100 @@ const PipelineView: React.FC = () => {
   };
   */
 
+  // TODO: after fetch pipeline editor data
   const initializePipeline = () => {
     // Initialize should be called only once
     // eventVars.steps is assumed to be populated
     // called after render, assumed dom elements are also available
     // (required by i.e. connections)
 
-    pipelineSetHolderSize();
+    // pipelineSetHolderSize();
 
     if (isPipelineInitialized.current) return;
 
     isPipelineInitialized.current = true;
 
     // add all existing connections (this happens only at initialization)
-    Object.values(eventVars.steps).forEach((step) => {
-      step.incoming_connections.forEach((startNodeUUID) => {
-        let endNodeUUID = step.uuid;
+    // Object.values(eventVars.steps).forEach((step) => {
+    //   step.incoming_connections.forEach((startNodeUUID) => {
+    //     let endNodeUUID = step.uuid;
 
-        createConnectionInstance(startNodeUUID, endNodeUUID);
+    //     createConnectionInstance(startNodeUUID, endNodeUUID);
 
-        // ? Do we really need to cross-verify the UUID's???
+    //     // ? Do we really need to cross-verify the UUID's???
 
-        // let startNodeOutgoingEl = pipelineStepsHolder.current.querySelector(
-        //   `.pipeline-step[data-uuid='${startNodeUUID}'] .outgoing-connections`
-        // ) as HTMLElement;
+    //     // let startNodeOutgoingEl = pipelineStepsHolder.current.querySelector(
+    //     //   `.pipeline-step[data-uuid='${startNodeUUID}'] .outgoing-connections`
+    //     // ) as HTMLElement;
 
-        // let endNodeIncomingEl = pipelineStepsHolder.current.querySelector(
-        //   `.pipeline-step[data-uuid='${endNodeUUID}'] .incoming-connections`
-        // ) as HTMLElement;
+    //     // let endNodeIncomingEl = pipelineStepsHolder.current.querySelector(
+    //     //   `.pipeline-step[data-uuid='${endNodeUUID}'] .incoming-connections`
+    //     // ) as HTMLElement;
 
-        // if (startNodeOutgoingEl && endNodeIncomingEl) {
-        //   const startNodeUUID = $(startNodeOutgoingEl)
-        //     .parents(".pipeline-step")
-        //     .attr("data-uuid");
-        //   const endNodeUUID = $(endNodeIncomingEl)
-        //     .parents(".pipeline-step")
-        //     .attr("data-uuid");
+    //     // if (startNodeOutgoingEl && endNodeIncomingEl) {
+    //     //   const startNodeUUID = $(startNodeOutgoingEl)
+    //     //     .parents(".pipeline-step")
+    //     //     .attr("data-uuid");
+    //     //   const endNodeUUID = $(endNodeIncomingEl)
+    //     //     .parents(".pipeline-step")
+    //     //     .attr("data-uuid");
 
-        //   createConnectionInstance(startNodeUUID, endNodeUUID);
-        // }
-      });
-    });
+    //     //   createConnectionInstance(startNodeUUID, endNodeUUID);
+    //     // }
+    //   });
+    // });
 
     // TODO: uncomment and fix this
     // initialize all listeners related to viewing/navigating the pipeline
     // initializePipelineNavigationListeners();
   };
 
-  const fetchPipelineAndInitialize = () => {
-    let promises = [];
+  const {
+    data = { pipelineCwd: null, pipelineJson: null },
+    mutate,
+    error,
+  } = useSWR(
+    projectUuid && pipelineUuid
+      ? `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
+      : null,
+    async (url) => {
+      const response = await Promise.all([
+        fetcher<{ cwd: string }>(url).then((result) => `${result.cwd}/`),
+        fetcher<{ success: boolean; pipeline_json: string }>(
+          getPipelineJSONEndpoint(
+            pipelineUuid,
+            projectUuid,
+            jobUuidFromRoute,
+            runUuid
+          )
+        ).then((result) => {
+          if (result.success) throw { message: "Could not load pipeline.json" };
+          const newPipelineJson: PipelineJson = JSON.parse(
+            result.pipeline_json
+          );
+          let newSteps = extractStepsFromPipelineJson(
+            newPipelineJson,
+            eventVars.steps
+          );
+          // update steps & pipelineJson
 
-    if (!isReadOnly) {
-      // fetch pipeline cwd
-      promises.push(
-        fetcher(
-          `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-        )
-          .then((cwdPromiseResult) => {
-            // relativeToAbsolutePath expects trailing / for directories
-            setPipelineCwd(`${cwdPromiseResult["cwd"]}/`);
-          })
-          .catch((error) => {
-            if (!error.isCanceled) {
-              console.error(error);
-            }
-          })
-      );
+          setPipelineSteps(newSteps);
+
+          dispatch({
+            type: "pipelineSet",
+            payload: {
+              pipelineUuid,
+              projectUuid,
+              pipelineName: newPipelineJson.name,
+            },
+          });
+          return newPipelineJson;
+        }),
+      ]);
+
+      return { pipelineCwd: response[0], pipelineJson: response[1] };
     }
-
-    promises.push(
-      fetcher<{ success: boolean; pipeline_json: string }>(
-        getPipelineJSONEndpoint(
-          pipelineUuid,
-          projectUuid,
-          jobUuidFromRoute,
-          runUuid
-        )
-      )
-        .then((result) => {
-          if (result.success) {
-            const newPipelineJson: PipelineJson = JSON.parse(
-              result.pipeline_json
-            );
-            let newSteps = extractStepsFromPipelineJson(
-              newPipelineJson,
-              eventVars.steps
-            );
-            // update steps & pipelineJson
-            setPipelineJson(newPipelineJson);
-            setPipelineSteps(newSteps);
-
-            dispatch({
-              type: "pipelineSet",
-              payload: {
-                pipelineUuid,
-                projectUuid,
-                pipelineName: newPipelineJson.name,
-              },
-            });
-          } else {
-            console.error("Could not load pipeline.json");
-            console.error(result);
-          }
-        })
-        .catch((error) => {
-          if (!error.isCanceled) {
-            if (jobUuidFromRoute) {
-              // This case is hit when a user tries to load a pipeline that belongs
-              // to a run that has not started yet. The project files are only
-              // copied when the run starts. Before start, the pipeline.json thus
-              // cannot be found. Alert the user about missing pipeline and return
-              // to JobView.
-
-              setAlert(
-                "Error",
-                "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view.",
-                (resolve) => {
-                  resolve(true);
-                  returnToJob();
-                  return true;
-                }
-              );
-            } else {
-              console.error("Could not load pipeline.json");
-              console.error(error);
-            }
-          }
-        })
-    );
-
-    Promise.all(promises)
-      .then(() => {
-        initializePipeline();
-      })
-      .catch((error) => {
-        console.error(error);
-      });
-  };
+  );
 
   const { data: environments = [] } = useFetchEnvironments(
     !isReadOnly ? projectUuid : undefined
@@ -1029,7 +1002,7 @@ const PipelineView: React.FC = () => {
           },
         },
       });
-      setSaveHash(uuidv4());
+      savePipeline(eventVars.steps);
     } catch (error) {
       setAlert("Error", `Unable to create a new step. ${error}`);
     }
@@ -1047,7 +1020,7 @@ const PipelineView: React.FC = () => {
     if (isReadOnly) {
       onOpenFilePreviewView(undefined, stepUUID);
     } else {
-      openNotebook(undefined, stepUUID);
+      openNotebook(undefined, notebookFilePath(pipelineCwd, stepUUID));
     }
   };
 
@@ -1058,7 +1031,7 @@ const PipelineView: React.FC = () => {
   const deleteSelectedSteps = () => {
     // The if is to avoid the dialog appearing when no steps are
     // selected and the delete button is pressed.
-    if (eventVars.selectedSteps.size > 0) {
+    if (eventVars.selectedSteps.length > 0) {
       setIsDeletingSteps(true);
 
       setConfirm(
@@ -1069,7 +1042,7 @@ const PipelineView: React.FC = () => {
             closeDetailsView();
             removeSteps([...eventVars.selectedSteps]);
             setIsDeletingSteps(false);
-            setSaveHash(uuidv4());
+            savePipeline(eventVars.steps);
             resolve(true);
             return true;
           },
@@ -1090,7 +1063,7 @@ const PipelineView: React.FC = () => {
       "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?",
       async (resolve) => {
         removeSteps([uuid]);
-        setSaveHash(uuidv4());
+        savePipeline(eventVars.steps);
         resolve(true);
         return true;
       }
@@ -1098,7 +1071,7 @@ const PipelineView: React.FC = () => {
   };
 
   const onOpenNotebook = (e: React.MouseEvent) => {
-    openNotebook(e, eventVars.openedStep);
+    openNotebook(e, notebookFilePath(pipelineCwd, eventVars.openedStep));
   };
 
   const centerView = () => {
@@ -1166,63 +1139,58 @@ const PipelineView: React.FC = () => {
     const spacingFactor = 0.7;
     const gridMargin = 20;
 
-    const _pipelineJson = layoutPipeline(
-      // Use the pipeline definition from the editor
-      { ...pipelineJson, steps: eventVars.steps },
-      STEP_HEIGHT,
-      (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
-        (STEP_WIDTH / STEP_HEIGHT),
-      1 + spacingFactor,
-      gridMargin,
-      gridMargin * 4, // don't put steps behind top buttons
-      gridMargin,
-      STEP_HEIGHT
-    );
-
-    // TODO: make the step position state less duplicated.
-    // Currently done for performance reasons.
-
-    for (let stepUUID of Object.keys(_pipelineJson.steps)) {
-      refManager.refs[stepUUID].updatePosition(
-        _pipelineJson.steps[stepUUID].meta_data.position
+    setPipelineJson((current) => {
+      const updated = layoutPipeline(
+        // Use the pipeline definition from the editor
+        updatePipelineJson(current, eventVars.steps),
+        STEP_HEIGHT,
+        (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
+          (STEP_WIDTH / STEP_HEIGHT),
+        1 + spacingFactor,
+        gridMargin,
+        gridMargin * 4, // don't put steps behind top buttons
+        gridMargin,
+        STEP_HEIGHT
       );
-    }
-
-    setPipelineJson(_pipelineJson);
-    setPipelineSteps(_pipelineJson.steps);
+      return updated;
+    });
 
     // and save
-    setSaveHash(uuidv4());
+    savePipeline();
   };
 
-  const pipelineSetHolderOrigin = (newOrigin: [number, number]) => {
-    if (!pipelineStepsHolder.current || !pipelineStepsOuterHolder.current) {
-      console.error(
-        "Unable to set the origin of pipelineStepsHolder. PipelineStepsHolder or pipelineStepsOuterHolder is not yet instantiated!"
+  const pipelineSetHolderOrigin = React.useCallback(
+    (newOrigin: [number, number]) => {
+      if (!pipelineStepsHolder.current || !pipelineStepsOuterHolder.current) {
+        console.error(
+          "Unable to set the origin of pipelineStepsHolder. PipelineStepsHolder or pipelineStepsOuterHolder is not yet instantiated!"
+        );
+        return;
+      }
+
+      let holderOffset = $(pipelineStepsHolder.current).offset();
+      let outerHolderOffset = $(pipelineStepsOuterHolder.current).offset();
+
+      let initialX = holderOffset.left - outerHolderOffset.left;
+      let initialY = holderOffset.top - outerHolderOffset.top;
+
+      let [translateX, translateY] = originTransformScaling(
+        [...newOrigin],
+        eventVars.scaleFactor
       );
-      return;
-    }
 
-    let holderOffset = $(pipelineStepsHolder.current).offset();
-    let outerHolderOffset = $(pipelineStepsOuterHolder.current).offset();
-
-    let initialX = holderOffset.left - outerHolderOffset.left;
-    let initialY = holderOffset.top - outerHolderOffset.top;
-
-    let [translateX, translateY] = originTransformScaling(
-      [...newOrigin],
-      eventVars.scaleFactor
-    );
-
-    setState(({ pipelineOffset }) => {
-      const [pipelineOffsetX, pipelineOffsetY] = pipelineOffset;
-      return {
-        pipelineOrigin: newOrigin,
-        pipelineStepsHolderOffsetLeft: translateX + initialX - pipelineOffsetX,
-        pipelineStepsHolderOffsetTop: translateY + initialY - pipelineOffsetY,
-      };
-    });
-  };
+      setState(({ pipelineOffset }) => {
+        const [pipelineOffsetX, pipelineOffsetY] = pipelineOffset;
+        return {
+          pipelineOrigin: newOrigin,
+          pipelineStepsHolderOffsetLeft:
+            translateX + initialX - pipelineOffsetX,
+          pipelineStepsHolderOffsetTop: translateY + initialY - pipelineOffsetY,
+        };
+      });
+    },
+    [eventVars.scaleFactor, setState]
+  );
 
   const onPipelineStepsOuterHolderWheel = (e: React.WheelEvent) => {
     let pipelineMousePosition = getMousePositionRelativeToPipelineStepHolder();
@@ -1308,7 +1276,7 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const runStepUUIDs = (uuids: Set<string>, type: RunStepsType) => {
+  const runStepUUIDs = (uuids: string[], type: RunStepsType) => {
     if (!session || session.status !== "RUNNING") {
       setAlert(
         "Error",
@@ -1325,7 +1293,7 @@ const PipelineView: React.FC = () => {
       return;
     }
 
-    setSaveHash(uuidv4());
+    savePipeline(eventVars.steps);
     setPendingRuns({ uuids: [...uuids], type });
   };
 
@@ -1333,7 +1301,7 @@ const PipelineView: React.FC = () => {
     eventVarsDispatch({ type: "SET_OPENED_STEP", payload: undefined });
   };
 
-  const hasSelectedSteps = eventVars.selectedSteps.size > 1;
+  const hasSelectedSteps = eventVars.selectedSteps.length > 1;
 
   const onDetailsChangeView = (newIndex: number) => {
     setState({
@@ -1354,7 +1322,7 @@ const PipelineView: React.FC = () => {
         replace,
       },
     });
-    setSaveHash(uuidv4());
+    savePipeline(eventVars.steps);
   };
 
   const deselectSteps = () => {
@@ -1381,7 +1349,6 @@ const PipelineView: React.FC = () => {
   };
 
   React.useLayoutEffect(() => {
-    fetchPipelineAndInitialize();
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.key === " ") {
         $(pipelineStepsOuterHolder.current)
@@ -1522,16 +1489,6 @@ const PipelineView: React.FC = () => {
     );
   }, [pipelineJson, session, jobUuidFromRoute, isJobRun, pipelineRunning]);
 
-  const returnToJob = (e?: React.MouseEvent) => {
-    navigateTo(
-      siteMap.job.path,
-      {
-        query: { projectUuid, jobUuid: jobUuidFromRoute },
-      },
-      e
-    );
-  };
-
   let connections_list = {};
   if (eventVars.openedStep) {
     const step = eventVars.steps[eventVars.openedStep];
@@ -1550,11 +1507,11 @@ const PipelineView: React.FC = () => {
   // This is checked to conditionally render the
   // 'Run incoming steps' button.
   let selectedStepsHasIncoming = false;
-  for (let x = 0; x < eventVars.selectedSteps.size; x++) {
+  for (let x = 0; x < eventVars.selectedSteps.length; x++) {
     let selectedStep = eventVars.steps[eventVars.selectedSteps[x]];
     for (let i = 0; i < selectedStep.incoming_connections.length; i++) {
       let incomingStepUUID = selectedStep.incoming_connections[i];
-      if (!eventVars.selectedSteps.has(incomingStepUUID)) {
+      if (!eventVars.selectedSteps.includes(incomingStepUUID)) {
         selectedStepsHasIncoming = true;
         break;
       }
@@ -1566,7 +1523,7 @@ const PipelineView: React.FC = () => {
 
   const pipelineSteps = Object.entries(eventVars.steps).map((entry) => {
     const [uuid, step] = entry;
-    const selected = eventVars.selectedSteps.has(uuid);
+    const selected = eventVars.selectedSteps.includes(uuid);
     // only add steps to the component that have been properly
     // initialized
     return (
@@ -1585,7 +1542,9 @@ const PipelineView: React.FC = () => {
           eventVars.newConnection?.startNodeUUID === step.uuid
         }
         eventVarsDispatch={eventVarsDispatch}
-        onMouseUp={onMouseUpPipelineStep}
+        onMouseUpIncomingConnectionPoint={() =>
+          onMouseUpPipelineStep(step.uuid, eventVars.steps)
+        }
         onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
       />
     );
@@ -1635,42 +1594,12 @@ const PipelineView: React.FC = () => {
   }, [state.currentOngoingSaves]);
 
   React.useEffect(() => {
-    dispatch({
-      type: "SET_PIPELINE_IS_READONLY",
-      payload: isReadOnly,
-    });
-    const hasActiveRun = runUuid && jobUuidFromRoute;
-    const isNonPipelineRun = !hasActiveRun && isReadOnly;
-    if (isNonPipelineRun) {
-      // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate(projectUuid);
-      checkGatePromise
-        .then(() => {
-          setIsReadOnly(false);
-        })
-        .catch((result) => {
-          if (result.reason === "gate-failed") {
-            requestBuild(projectUuid, result.data, "Pipeline", () => {
-              setIsReadOnly(false);
-            });
-          }
-        });
-    }
-
     // Start with hotkeys disabled
     disableHotKeys();
 
-    connectSocketIO();
     initializeResizeHandlers();
 
-    // Edit mode fetches latest interactive run
-    if (!isReadOnly) {
-      fetchActivePipelineRuns();
-    }
-
     return () => {
-      disconnectSocketIO();
-
       $(document).off("mouseup.initializePipeline");
       $(document).off("mousedown.initializePipeline");
       $(document).off("keyup.initializePipeline");
@@ -1693,7 +1622,7 @@ const PipelineView: React.FC = () => {
     ) {
       pipelineSetHolderOrigin([0, 0]);
     }
-  }, [eventVars.scaleFactor, state.pipelineOffset]);
+  }, [eventVars.scaleFactor, state.pipelineOffset, pipelineSetHolderOrigin]);
 
   const servicesButtonRef = React.useRef<HTMLButtonElement>();
 
@@ -1753,7 +1682,7 @@ const PipelineView: React.FC = () => {
 
             {!isReadOnly &&
               !pipelineRunning &&
-              eventVars.selectedSteps.size > 0 &&
+              eventVars.selectedSteps.length > 0 &&
               !eventVars.stepSelector.active && (
                 <div className="selection-buttons">
                   <Button
@@ -1906,7 +1835,7 @@ const PipelineView: React.FC = () => {
             project_uuid={projectUuid}
             job_uuid={jobUuidFromRoute}
             run_uuid={runUuid}
-            sio={state.sio}
+            sio={sio}
             readOnly={isReadOnly}
             step={eventVars.steps[eventVars.openedStep]}
             saveHash={saveHash}

@@ -294,6 +294,8 @@ export type PipelineStepState = Step & {
   };
 };
 
+export type StepsDict = Record<string, PipelineStepState>;
+
 export type Offset = { top: number; left: number };
 
 export type Service = {

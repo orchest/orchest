@@ -1,5 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, PipelineStepState, Service } from "@/types";
+import { PipelineJson, Service, StepsDict } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -109,9 +109,7 @@ export function filterServices(
  * @param steps
  * @returns stepsWithOutgoingConnections
  */
-export function addOutgoingConnections(
-  steps: Record<string, PipelineStepState>
-) {
+export function addOutgoingConnections(steps: StepsDict) {
   return produce(steps, (draft) => {
     Object.keys(draft).forEach((stepUuid) => {
       // Every step NEEDs to have an `.outgoing_connections` defined.

@@ -1,4 +1,4 @@
-import { PipelineJson, PipelineStepState } from "@/types";
+import { PipelineJson, PipelineStepState, StepsDict } from "@/types";
 import {
   coordCenter,
   dagStratify,
@@ -202,9 +202,7 @@ const traverseGraph = (
  */
 const collectComponents = (pipelineJson: PipelineJson) => {
   // make a deep copy of steps from PipelineJson, and then add outgoing_connections to it
-  const steps = addOutgoingConnections(
-    pipelineJson.steps as Record<string, PipelineStepState>
-  );
+  const steps = addOutgoingConnections(pipelineJson.steps as StepsDict);
 
   // Traverse graph
   let seenNodes: Set<string> = new Set();
@@ -271,6 +269,6 @@ export const layoutPipeline = (
   }
 
   return _pipelineJson as PipelineJson & {
-    steps: Record<string, PipelineStepState>;
+    steps: StepsDict;
   };
 };

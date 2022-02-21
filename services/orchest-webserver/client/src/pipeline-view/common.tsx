@@ -1,9 +1,12 @@
-import type { Connection, PipelineJson, PipelineStepState } from "@/types";
+import type { Connection, PipelineJson, StepsDict } from "@/types";
 import cloneDeep from "lodash.clonedeep";
+
+export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
+export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
 
 export const updatePipelineJson = (
   pipelineJson: PipelineJson,
-  steps: Record<string, PipelineStepState>
+  steps: StepsDict
 ): PipelineJson => {
   if (!pipelineJson) return;
 
@@ -30,7 +33,7 @@ export const updatePipelineJson = (
 
 export const extractStepsFromPipelineJson = (
   pipelineJson: PipelineJson,
-  steps: Record<string, PipelineStepState>
+  steps: StepsDict = {}
 ) => {
   Object.entries(pipelineJson.steps).forEach(([key, step]) => {
     steps[key] = {

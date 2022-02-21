@@ -18,7 +18,7 @@ export interface IPipelineStepProps {
   step?: PipelineStepState;
   isCreatingConnection: boolean;
   isStartNodeOfNewConnection: boolean;
-  onMouseUp: (endNodeUUID: string) => void;
+  onMouseUpIncomingConnectionPoint: () => void;
   executionState?: ExecutionState;
   eventVarsDispatch: (value: EventVarsAction) => void;
   // TODO: clean up these
@@ -30,7 +30,7 @@ const PipelineStep = (
     step,
     executionState,
     selected,
-    onMouseUp,
+    onMouseUpIncomingConnectionPoint,
     isCreatingConnection,
     isStartNodeOfNewConnection,
     eventVarsDispatch,
@@ -145,7 +145,7 @@ const PipelineStep = (
           "incoming-connections connection-point",
           isCreatingConnection ? "hover" : ""
         )}
-        onMouseUp={() => onMouseUp(step.uuid)}
+        onMouseUp={onMouseUpIncomingConnectionPoint}
       >
         <div className="inner-dot"></div>
       </div>
@@ -161,6 +161,7 @@ const PipelineStep = (
         <div className={"step-label"}>
           {step.title}
           <span className="filename">{step.file_path}</span>
+          <span className="filename">{"HM: " + step.uuid}</span>
         </div>
       </div>
       <div
