@@ -63,8 +63,8 @@ def fix_userdir_permissions() -> None:
     try:
         # NOTE: The exit code is only returned on Unix systems
         # (which includes macOS).
-        # Use the `-exec ... +` notation to pass all found files to
-        # `chmod` at once and reduce the number of invocations.
+        # Use the `-exec ... +` notation to try to pass all found files
+        # to `chmod` at once and reduce the number of invocations.
         exit_code = os.system(
             "find /orchest-host/userdir -type d -not -perm -g+s -exec chmod g+s '{}' +"
         )
