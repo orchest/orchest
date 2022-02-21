@@ -98,7 +98,7 @@ export const ServicesMenu = ({
           Running services
         </Typography>
       </ListItem>
-      {serviceLinks ? (
+      {serviceLinks && serviceLinks.length > 0 ? (
         serviceLinks.map((serviceLink) => {
           return (
             <List

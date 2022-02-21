@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -473,6 +474,8 @@ export const DataTable = <T extends Record<string, any>>({
   footnote,
   ...props
 }: DataTableProps<T>) => {
+  const { setAlert } = useAppContext();
+
   const mounted = useMounted();
   const [searchTerm, setSearchTerm] = React.useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, debounceTime);
@@ -493,9 +496,14 @@ export const DataTable = <T extends Record<string, any>>({
   const { run, status, error, data, setData } = useAsync<
     DataTableFetcherResponse<T>
   >({ caching: true });
-  const fetchData = React.useCallback(() => {
+  const fetchData = React.useCallback(async () => {
     if (fetcher) {
-      fetcher({ run, page, rowsPerPage, searchTerm: debouncedSearchTerm });
+      return fetcher({
+        run,
+        page,
+        rowsPerPage,
+        searchTerm: debouncedSearchTerm,
+      });
     }
   }, [run, fetcher, debouncedSearchTerm, page, rowsPerPage]);
 
@@ -686,15 +694,27 @@ export const DataTable = <T extends Record<string, any>>({
   };
 
   const handleDeleteSelectedRows = async () => {
-    if (deleteSelectedRows) {
-      setIsDeleting(true);
-      const success = await deleteSelectedRows(selected);
-      setIsDeleting(false);
-      if (success) setSelected([]);
+    try {
+      if (deleteSelectedRows) {
+        setIsDeleting(true);
+        const success = await deleteSelectedRows(selected);
+        if (success) setSelected([]);
+        setIsDeleting(false);
 
-      // if fetcher is not provided (i.e. you feed rows in the props)
-      // you should also re-fetch from the parent as well.
-      if (!useClientSideSearchAndPagination) fetchData();
+        // if fetcher is not provided (i.e. you feed rows in the props)
+        // you should also re-fetch from the parent as well.
+        if (!useClientSideSearchAndPagination) fetchData();
+      }
+    } catch (deleteRowsError) {
+      // Preferably the promise of deleteSelectedRows should handle error itself
+      // although it's okay to let DataTable handle the error for deleting selected rows.
+      const errorMessage = `Failed to delete selected items. ${deleteRowsError}`;
+      console.error(`[DataTable] ${errorMessage}`);
+      setAlert("Error", errorMessage);
+      // If error bubbles up to this function, we set isDeleting to false, and fetch data to ensure data correctness
+      // !NOTE: if `fetcher` is not provided, fetchData won't do anything, deleteSelectedRows should refetch in its try/catch.
+      setIsDeleting(false);
+      fetchData();
     }
   };
 

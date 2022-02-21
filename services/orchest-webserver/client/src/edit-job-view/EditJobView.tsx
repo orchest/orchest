@@ -624,13 +624,13 @@ const EditJobView: React.FC = () => {
                     <FormControlLabel
                       value="scheduled"
                       control={<Radio />}
-                      label="Scheduled"
+                      label="Later"
                       data-test-id="job-edit-schedule-date"
                     />
                     <FormControlLabel
                       value="cron"
                       control={<Radio />}
-                      label="Cron job"
+                      label="Recurring"
                       data-test-id="job-edit-schedule-cronjob"
                     />
                   </RadioGroup>
