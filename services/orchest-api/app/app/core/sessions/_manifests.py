@@ -134,7 +134,7 @@ def _get_memory_server_deployment_manifest(
     session_type = session_type.value
 
     metadata = {
-        "name": "memory-server",
+        "name": f"memory-server-{session_uuid}",
         "labels": {
             "app": "memory-server",
             "project_uuid": project_uuid,
@@ -228,7 +228,7 @@ def _get_session_sidecar_rbac_manifests(
         "kind": "Role",
         "apiVersion": "rbac.authorization.k8s.io/v1",
         "metadata": {
-            "name": "session-sidecar-role",
+            "name": f"session-sidecar-role-{session_uuid}",
             "labels": {
                 "app": "session-sidecar",
                 "project_uuid": project_uuid,
@@ -257,7 +257,7 @@ def _get_session_sidecar_rbac_manifests(
         "apiVersion": "v1",
         "kind": "ServiceAccount",
         "metadata": {
-            "name": "session-sidecar-sa",
+            "name": f"session-sidecar-sa-{session_uuid}",
             "labels": {
                 "app": "session-sidecar",
                 "project_uuid": project_uuid,
@@ -270,7 +270,7 @@ def _get_session_sidecar_rbac_manifests(
         "kind": "RoleBinding",
         "apiVersion": "rbac.authorization.k8s.io/v1",
         "metadata": {
-            "name": "session-sidecar-rolebinding",
+            "name": f"session-sidecar-rolebinding-{session_uuid}",
             "labels": {
                 "app": "session-sidecar",
                 "project_uuid": project_uuid,
@@ -303,7 +303,7 @@ def _get_session_sidecar_deployment_manifest(
     session_type = session_type.value
 
     metadata = {
-        "name": "session-sidecar",
+        "name": f"session-sidecar-{session_uuid}",
         "labels": {
             "app": "session-sidecar",
             "project_uuid": project_uuid,
@@ -393,7 +393,7 @@ def _get_jupyter_server_deployment_service_manifest(
     session_type = session_type.value
 
     metadata = {
-        "name": "jupyter-server",
+        "name": f"jupyter-server-{session_uuid}",
         "labels": {
             "app": "jupyter-server",
             "project_uuid": project_uuid,
@@ -508,7 +508,7 @@ def _get_jupyter_enterprise_gateway_rbac_manifests(
         "kind": "Role",
         "apiVersion": "rbac.authorization.k8s.io/v1",
         "metadata": {
-            "name": "jupyter-eg-role",
+            "name": f"jupyter-eg-role-{session_uuid}",
             "labels": {
                 "app": "jupyter-eg",
                 "project_uuid": project_uuid,
@@ -540,7 +540,7 @@ def _get_jupyter_enterprise_gateway_rbac_manifests(
         "apiVersion": "v1",
         "kind": "ServiceAccount",
         "metadata": {
-            "name": "jupyter-eg-sa",
+            "name": f"jupyter-eg-sa-{session_uuid}",
             "labels": {
                 "app": "jupyter-eg",
                 "project_uuid": project_uuid,
@@ -553,7 +553,7 @@ def _get_jupyter_enterprise_gateway_rbac_manifests(
         "kind": "RoleBinding",
         "apiVersion": "rbac.authorization.k8s.io/v1",
         "metadata": {
-            "name": "jupyter-eg-rolebinding",
+            "name": f"jupyter-eg-rolebinding-{session_uuid}",
             "labels": {
                 "app": "jupyter-eg",
                 "project_uuid": project_uuid,
@@ -586,7 +586,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     session_type = session_type.value
 
     metadata = {
-        "name": "jupyter-eg",
+        "name": f"jupyter-eg-{session_uuid}",
         "labels": {
             "app": "jupyter-eg",
             "project_uuid": project_uuid,
@@ -826,7 +826,7 @@ def _get_user_service_deployment_service_manifest(
         image = registry_ip + "/" + image
 
     metadata = {
-        "name": service_config["name"],
+        "name": service_config["name"] + "-" + session_uuid,
         "labels": {
             "app": service_config["name"],
             "project_uuid": project_uuid,
