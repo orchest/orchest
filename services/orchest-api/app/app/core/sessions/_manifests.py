@@ -368,10 +368,6 @@ def _get_session_sidecar_deployment_manifest(
                                     "name": "ORCHEST_SESSION_TYPE",
                                     "value": session_type,
                                 },
-                                {
-                                    "name": "K8S_NAMESPACE",
-                                    "value": _config.ORCHEST_NAMESPACE,
-                                },
                             ],
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
