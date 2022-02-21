@@ -27,6 +27,7 @@ minikube kubectl -- run orchest-ctl \
     --image=orchest/orchest-ctl \
     --image-pull-policy=IfNotPresent \
     --namespace=orchest \
+    -l "app=orchest-ctl"
     --overrides='{ "spec": { "serviceAccount": "orchest-ctl" }  }' \
     --env "PYTHONUNBUFFERED=TRUE" \
     -- "$@" 2> /dev/null
