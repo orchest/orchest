@@ -3,7 +3,6 @@ from contextlib import contextmanager
 from typing import Callable, List, Optional
 
 import requests
-from kubernetes import client
 
 from _orchest.internals import config as _config
 from app import errors, utils
@@ -190,8 +189,103 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
     # existing jupyterlab user config lock for interactive sessions.
     # See PR #254.
     ns = _config.ORCHEST_NAMESPACE
+    label_selector = f"session_uuid={session_uuid}"
 
-    # Implemented in the next commit.
+    # (name, list function, delete function)
+    resources_to_delete = [
+        (
+            "service_accounts",
+            k8s_core_api.list_namespaced_service_account,
+            k8s_core_api.delete_namespaced_service_account,
+        ),
+        (
+            "role_bindings",
+            k8s_rbac_api.list_namespaced_role_binding,
+            k8s_rbac_api.delete_namespaced_role_binding,
+        ),
+        (
+            "roles",
+            k8s_rbac_api.list_namespaced_role,
+            k8s_rbac_api.delete_namespaced_role,
+        ),
+        (
+            "services",
+            k8s_core_api.list_namespaced_service,
+            k8s_core_api.delete_namespaced_service,
+        ),
+        (
+            "deployments",
+            k8s_apps_api.list_namespaced_deployment,
+            k8s_apps_api.delete_namespaced_deployment,
+        ),
+        # It's important that this stays last to avoid dangling kernel
+        # pods started by Jupyter EG.
+        ("pods", k8s_core_api.list_namespaced_pod, k8s_core_api.delete_namespaced_pod),
+    ]
+    resource_list_threads = []
+    for resource_name, list_f, _ in resources_to_delete:
+        logger.info(f"Getting {resource_name} for deletion.")
+        resource_list_threads.append(
+            list_f(ns, label_selector=label_selector, async_req=True)
+        )
+
+    # Delete all obtained entities.
+    resource_delete_threads = []
+    exceptions = []
+    for (resource_name, _, delete_f), thread in zip(
+        resources_to_delete, resource_list_threads
+    ):
+        # Don't let an error here hinder the deletion of other
+        # resources.
+        try:
+            logger.info(f"Deleting {resource_name}.")
+            entities = thread.get()
+            for entity in entities.items():
+                logger.info(f"Deleting {entity.metadata.name}")
+                resource_delete_threads.append(
+                    delete_f(entity.metadata.name, ns, async_req=True)
+                )
+        except Exception as e:
+            logger.error(str(e))
+            exceptions.append(e)
+
+    # Make sure all requests have terminated before returning, to not
+    # assume that the container or (worker) process will keep running
+    # once we return.
+    for thread in resource_delete_threads:
+        thread.get()
+
+    # TODO: move to exception groups
+    # https://www.python.org/dev/peps/pep-0654/.
+    if exceptions:
+        raise errors.SessionCleanupFailedError(str(exceptions))
+
+    if not wait_for_completion:
+        return
+    # Else keep listing resources until no resources are there.
+    tries = 1000
+    while resources_to_delete and tries > 0:
+        logger.info("Waiting for resources to be deleted.")
+        tmp_resources = []
+
+        resource_list_threads = []
+        for resource_name, list_f, _ in resources_to_delete:
+            resource_list_threads.append(
+                list_f(ns, label_selector=label_selector, async_req=True)
+            )
+        for (resource_name, list_f, delete_f), thread in zip(
+            resources_to_delete, resource_list_threads
+        ):
+            if thread.get().items:
+                logger.info(f"{resource_name} deletion not complete.")
+                tmp_resources.append((resource_name, list_f, delete_f))
+
+        resources_to_delete = tmp_resources
+        tries -= 1
+        time.sleep(1)
+
+    if resources_to_delete:
+        raise errors.SessionCleanupFailedError()
 
 
 def has_busy_kernels(session_uuid: str) -> bool:
