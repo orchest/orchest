@@ -23,7 +23,7 @@ describe("environments", () => {
     it("creates an environment", () => {
       cy.createEnvironment("myname");
       cy.visit("environments");
-      cy.findAllByTestId(TEST_ID.ENVIRONMENTS_ROW)
+      cy.findAllByTestId("environment-list-row")
         .should("have.length", 1)
         .should("contain", "myname");
     });
@@ -46,10 +46,10 @@ describe("environments", () => {
     });
 
     it("creates and build multiple environments, delete all of them during the build", () => {
-      Array.from(Array(10).keys()).map((env) => {
-        cy.createEnvironment(env.toString(), "sleep 1000", true);
+      Array.from(Array(3).keys()).map((env) => {
+        cy.createEnvironment(env.toString(), "sleep 100000", true);
       });
-      cy.deleteAllEnvironments(10);
+      cy.deleteAllEnvironments(3);
     });
   });
 });

@@ -166,12 +166,11 @@ const ImportDialog: React.FC<{
               value={importUrl}
               helperText={
                 !shouldShowWarning ? (
-                  ""
+                  " "
                 ) : (
                   <Typography
                     variant="caption"
                     sx={{
-                      // color: (theme) => theme.palette.warning.dark,
                       display: "flex",
                       flexDirection: "row",
                       alignItems: "center",
@@ -229,7 +228,6 @@ const ImportDialog: React.FC<{
             disabled={importResult?.status === "PENDING"}
             type="submit"
             form="import-project"
-            // onClick={startImport}
             data-test-id="import-project-ok"
           >
             Import

@@ -4,18 +4,24 @@ on:
   push:
     branches:
       - dev
-    paths-ignore:
-      - "docs/**"
-      - ".github/**"
-      - "README.md"
+    # Run on all file changes, except for ... but always run when the
+    # workflow for integration tests is changed.
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/integration-tests.yml"
+      - "!README.md"
   pull_request:
     branches:
       - master
       - dev
-    paths-ignore:
-      - "docs/**"
-      - ".github/**"
-      - "README.md"
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/integration-tests.yml"
+      - "!README.md"
 
 # Pending or running workflows for the same branch will be cancelled,
 # always keep the latest.
@@ -56,10 +62,21 @@ jobs:
           killall Cypress || echo "Did not need to kill Cypress."
           killall nodejs || echo "Did not need to kill Node.js."
           killall chrome || echo "Did not need to kill Chrome."
-          ./orchest stop
-          [ ! -z "$(docker ps -a -q)" ] && docker rm -fv $(docker ps -a -q)
+          # Stop Orchest by killing all its resources.
+          # NOTE: We can not make use of the `orchest stop` to do this,
+          # because:
+          # - the command might have been broken by the version of the
+          #   previous deployment.
+          # - first building and then using `orchest stop` wouldn't
+          #   reliably work as the previous deployment does not need to
+          #   be compatible.
+          # NOTE: Assumes that `orchest stop` does not have any
+          # side-effects.
+          [ ! -z "$(docker ps -a -q -f network=orchest)" ] \
+            && docker rm -fv $(docker ps -a -q -f network=orchest)
           docker image prune -f
-          [ ! -z "$(docker images --filter 'label=_orchest_project_uuid' -q)" ] && docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q)
+          [ ! -z "$(docker images --filter 'label=_orchest_project_uuid' -q)" ] \
+            && docker rmi -f $(docker images --filter "label=_orchest_project_uuid" -q)
           exit 0
 
       # Orchest won't be able to write files that are part of a project

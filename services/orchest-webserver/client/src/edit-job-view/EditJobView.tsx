@@ -1,3 +1,4 @@
+import { BackButton } from "@/components/common/BackButton";
 import { Code } from "@/components/common/Code";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import CronScheduleInput from "@/components/CronScheduleInput";
@@ -543,7 +544,9 @@ const EditJobView: React.FC = () => {
   }, [selectedRuns, pipelineRuns.length]);
 
   return (
-    <Layout fullHeight>
+    <Layout
+      toolbarElements={<BackButton onClick={cancel}>Back to jobs</BackButton>}
+    >
       <Stack direction="column" sx={{ height: "100%" }}>
         <Typography variant="h5">Edit job</Typography>
         {job && pipelineJson ? (
@@ -562,6 +565,7 @@ const EditJobView: React.FC = () => {
               >
                 <TextField
                   required
+                  autoFocus
                   label="Job name"
                   value={job.name}
                   sx={{ width: "50%" }}

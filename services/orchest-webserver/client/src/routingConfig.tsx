@@ -1,5 +1,6 @@
 import React from "react";
 import EditJobView from "./edit-job-view/EditJobView";
+import EnvironmentEditView from "./environment-edit-view/EnvironmentEditView";
 import JobView from "./job-view/JobView";
 import JobsView from "./jobs-view/JobsView";
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
@@ -9,7 +10,6 @@ import PipelinesView from "./pipelines-view/PipelinesView";
 import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
-import EnvironmentEditView from "./views/EnvironmentEditView";
 import EnvironmentsView from "./views/EnvironmentsView";
 import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
@@ -262,3 +262,27 @@ export const generatePathFromRoute = <T extends string>(
     return str.replace(`:${key}`, isValueValid ? value.toString() : "");
   }, route);
 };
+
+// Exclude detail views
+const excludedPaths = [
+  siteMap.pipeline.path,
+  siteMap.environment.path,
+  siteMap.pipelineSettings.path,
+  siteMap.projectSettings.path,
+  siteMap.jupyterLab.path,
+  siteMap.filePreview.path,
+  siteMap.logs.path,
+  siteMap.job.path,
+  siteMap.editJob.path,
+];
+
+// used in CommandPalette
+export const pageCommands = getOrderedRoutes((title: string) => title)
+  .filter((route) => !excludedPaths.includes(route.path))
+  .map((route) => {
+    return {
+      title: "Page: " + route.title,
+      action: "openPage",
+      data: { path: route.path, query: {} },
+    };
+  });

@@ -271,7 +271,7 @@ const PipelineDetailsProperties: React.FC<{
     });
 
     // Note, listener should be unmounted
-    $(document).on("mouseup.connectionList", function (e) {
+    $(document).on("mouseup.connectionList", function () {
       let selectedConnection = $(refManager.refs.connectionList).find(
         ".connection-item.selected"
       );

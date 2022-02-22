@@ -110,7 +110,7 @@ export const EditProjectPathDialog = ({
             sx={{ marginTop: (theme) => theme.spacing(2) }}
             value={projectName}
             label="Project name"
-            helperText={validation}
+            helperText={validation || " "}
             error={validation.length > 0}
             disabled={isUpdatingProjectPath}
             onChange={(e) => {

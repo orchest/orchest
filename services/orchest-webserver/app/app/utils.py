@@ -208,7 +208,7 @@ def serialize_environment_to_disk(environment, env_directory):
         file.write(environment.setup_script)
 
 
-def read_environment_from_disk(env_directory, project_uuid):
+def read_environment_from_disk(env_directory, project_uuid) -> Optional[Environment]:
 
     try:
         with open(os.path.join(env_directory, "properties.json"), "r") as file:
