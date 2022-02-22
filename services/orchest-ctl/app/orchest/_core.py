@@ -1,6 +1,8 @@
 """Core functionality of orchest-ctl."""
+import atexit
 import logging
 import os
+import signal
 import subprocess
 import time
 
@@ -12,6 +14,9 @@ from app.connections import k8s_core_api
 from app.orchest import _k8s_wrapper as k8sw
 
 logger = logging.getLogger(__name__)
+
+signal.signal(signal.SIGTERM, lambda *args, **kwargs: k8sw.delete_orchest_ctl_pod())
+atexit.register(k8sw.delete_orchest_ctl_pod)
 
 
 def is_orchest_already_installed() -> bool:
