@@ -1,0 +1,42 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  generateName: orchest-ctl-
+  labels:
+    app: orchest-ctl
+    version: %VERSION%
+    command: %COMMAND%
+spec:
+  containers:
+  - command:
+    - sleep
+    - "10000"
+    env:
+    - name: PYTHONUNBUFFERED
+      value: "TRUE"
+    - name: ORCHEST_VERSION
+      value: %VERSION%
+    - name: POD_NAME
+      valueFrom:
+        fieldRef:
+          fieldPath: metadata.name
+    image: %IMAGE%
+    imagePullPolicy: IfNotPresent
+    name: orchest-ctl
+    volumeMounts:
+      - name: userdir
+        mountPath: /userdir
+  restartPolicy: Never
+  # Concurrent orchest-ctl pods are supported, but some important
+  # operations cannot run concurrently, like a restart or an update. To
+  # avoid that, orchest-ctl will check if there are other instances
+  # running with conflicting commands, and refuse if it's so.
+  terminationGracePeriodSeconds: 0
+  serviceAccount: orchest-ctl
+  serviceAccountName: orchest-ctl
+  # Needed to run fix_userdir_permissions.
+  volumes:
+    - name: userdir
+      hostPath:
+        path: /var/lib/orchest/userdir
+        type: DirectoryOrCreate
