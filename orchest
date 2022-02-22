@@ -5,6 +5,12 @@
 # - wait for it to be ready
 # - attach to it and run the CLI command
 # - cleanup on exit
+namespace_state=$(minikube kubectl -- get namespace orchest -o \
+    jsonpath={.status.phase} 2> /dev/null)
+if [ "$namespace_state" == "Terminating" ]; then
+    echo "The 'orchest' namespace is being terminated, aborting operation."
+    exit 1
+fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
@@ -12,10 +18,13 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # being installed.
 minikube kubectl -- create namespace orchest  > /dev/null 2>&1
 
+
+
 # Script and dependencies, i.e. yaml files.
 repo_version=$(git describe --tags --abbrev=0)
 # The deployment.
-cluster_version=$(kubectl get namespace orchest -o jsonpath='{.metadata.labels.version}')
+cluster_version=$(minikube kubectl -- get namespace orchest -o \
+    jsonpath='{.metadata.labels.version}')
 # K8S_TODO: fix this once we actually stop using latest.
 cluster_version=test
 
