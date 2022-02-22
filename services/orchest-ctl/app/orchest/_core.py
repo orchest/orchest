@@ -39,13 +39,22 @@ def install():
         utils.echo("Installation is already complete. Did you mean to run:")
         utils.echo("\torchest update")
         return
+
+    orchest_version = os.environ.get("ORCHEST_VERSION")
+    if orchest_version is None:
+        utils.echo(
+            "Expected to find an ORCHEST_VERSION environment variable, exiting.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     # "When running a command via kubectl run -it that immediately
     # prints something, we might lose some lines of the log due to a
     # race of the execution of the container and the kubectl attach used
     # by kubectl run to attach to the terminal (compare comment #16670
     # (comment))." https://github.com/kubernetes/kubernetes/issues/27264
     # K8S_TODO: find a workaround.
-    utils.echo("Installing...")
+    utils.echo(f"Installing Orchest {orchest_version}.")
 
     # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
@@ -99,6 +108,8 @@ def install():
 
     logger.info("Setting 'userdir/' permissions.")
     utils.fix_userdir_permissions()
+
+    k8sw.set_orchest_cluster_version(orchest_version)
 
     # K8S_TODO: coordinate with ingress for this.
     # port = 8001

@@ -9,7 +9,7 @@ from typing import List, Optional
 from kubernetes import client as k8s_client
 
 from app import config
-from app.connections import k8s_apps_api
+from app.connections import k8s_apps_api, k8s_core_api
 
 
 def get_orchest_deployments(
@@ -35,3 +35,9 @@ def get_orchest_deployments(
             else:
                 raise
     return responses
+
+
+def set_orchest_cluster_version(version: str):
+    k8s_core_api.patch_namespace(
+        "orchest", {"metadata": {"labels": {"version": version}}}
+    )
