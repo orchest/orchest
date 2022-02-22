@@ -1,7 +1,14 @@
-import { PipelineStepState, PipelineStepStatus } from "@/types";
+import {
+  MouseTracker,
+  Offset,
+  PipelineStepMetaData,
+  PipelineStepState,
+  PipelineStepStatus,
+} from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
-import { createNewConnection } from "./common";
+import { createNewConnection, DRAG_CLICK_SENSITIVITY } from "./common";
 import { EventVarsAction } from "./useEventVars";
 
 export const STEP_WIDTH = 190;
@@ -13,48 +20,25 @@ export type ExecutionState = {
   started_time?: Date;
   status: PipelineStepStatus;
 };
-export interface IPipelineStepProps {
-  selected?: boolean;
-  step?: PipelineStepState;
-  isCreatingConnection: boolean;
-  isStartNodeOfNewConnection: boolean;
-  onMouseUpIncomingConnectionPoint: () => void;
-  executionState?: ExecutionState;
-  eventVarsDispatch: (value: EventVarsAction) => void;
-  // TODO: clean up these
-  onDoubleClick: any;
-}
 
-const PipelineStep = (
-  {
-    step,
-    executionState,
-    selected,
-    onMouseUpIncomingConnectionPoint,
-    isCreatingConnection,
-    isStartNodeOfNewConnection,
-    eventVarsDispatch,
-    ...props
-  }: IPipelineStepProps,
-  ref: React.MutableRefObject<HTMLDivElement>
-) => {
-  const formatSeconds = (seconds: number) => {
-    // Hours, minutes and seconds
-    let hrs = ~~(seconds / 3600);
-    let mins = ~~((seconds % 3600) / 60);
-    let secs = ~~seconds % 60;
+const formatSeconds = (seconds: number) => {
+  // Hours, minutes and seconds
+  let hrs = ~~(seconds / 3600);
+  let mins = ~~((seconds % 3600) / 60);
+  let secs = ~~seconds % 60;
 
-    let ret = "";
-    if (hrs > 0) {
-      ret += hrs + "h ";
-    }
-    if (mins > 0) {
-      ret += mins + "m ";
-    }
-    ret += secs + "s";
-    return ret;
-  };
+  let ret = "";
+  if (hrs > 0) {
+    ret += hrs + "h ";
+  }
+  if (mins > 0) {
+    ret += mins + "m ";
+  }
+  ret += secs + "s";
+  return ret;
+};
 
+const getStateText = (executionState: ExecutionState) => {
   let stateText = "Ready";
 
   if (executionState.status === "SUCCESS") {
@@ -98,19 +82,100 @@ const PipelineStep = (
   if (executionState.status == "ABORTED") {
     stateText = "Aborted";
   }
+  return stateText;
+};
 
-  const [x, y] = step.meta_data.position;
-  const style = { transform: `translateX(${x}px) translateY(${y}px)` };
+const foo = 0;
 
-  const onMouseDown = () => {
-    eventVarsDispatch({ type: "SELECT_SINGLE_STEP", payload: step.uuid });
+const _PipelineStep = (
+  {
+    initialValue,
+    scaleFactor,
+    offset,
+    executionState,
+    selected,
+    isSelectorActive,
+    onMouseUpIncomingConnectionPoint,
+    isCreatingConnection,
+    isStartNodeOfNewConnection,
+    eventVarsDispatch,
+    mouseTracker,
+    selectedSingleStep,
+    disabledDragging,
+  }: {
+    initialValue: PipelineStepState;
+    scaleFactor: number;
+    offset: Offset;
+    selected: boolean;
+    isSelectorActive: boolean;
+    isCreatingConnection: boolean;
+    isStartNodeOfNewConnection: boolean;
+    onMouseUpIncomingConnectionPoint: () => void;
+    executionState?: ExecutionState;
+    eventVarsDispatch: (value: EventVarsAction) => void;
+    mouseTracker: React.MutableRefObject<MouseTracker>;
+    selectedSingleStep: React.MutableRefObject<string>;
+    disabledDragging?: boolean;
+    // TODO: clean up these
+    onDoubleClick?: any;
+  },
+  ref: React.MutableRefObject<HTMLDivElement>
+) => {
+  // const isDragged = React.useRef(false);
+
+  const [step, setStep] = React.useState<Omit<PipelineStepState, "meta_data">>(
+    () => {
+      const { meta_data, ...rest } = initialValue; // eslint-disable-line @typescript-eslint/no-unused-vars
+      return rest;
+    }
+  );
+  const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
+    ...initialValue.meta_data,
+  }));
+
+  const stateText = React.useMemo(() => getStateText(executionState), [
+    executionState,
+  ]);
+
+  const isMouseDown = React.useRef(false);
+  const isDragged = React.useRef(false);
+  const dragCount = React.useRef(0);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    isMouseDown.current = true;
   };
 
-  const onClick = () => {
-    eventVarsDispatch({ type: "SELECT_STEPS", payload: [step.uuid] });
+  const resetDraggingVariables = React.useCallback(() => {
+    selectedSingleStep.current = undefined;
+    dragCount.current = 0;
+  }, [selectedSingleStep, dragCount]);
+
+  const onMouseUp = () => {
+    // we want this event to be propagated because Canvas also needs to be notified
+
+    isMouseDown.current = false;
+
+    // This is basically onClick, we cannot use onClick here
+    // because onClick is always called after onMouseUp and we cannot distinguish them within React
+    if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
+      eventVarsDispatch({ type: "SET_OPENED_STEP", payload: step.uuid });
+    }
+
+    // Was being dragged, when mouse up, simply reset all variables
+    resetDraggingVariables();
+  };
+
+  const onMouseLeave = () => {
+    // if cursor moves too fast, or move out of canvas, we need to remove the dragging state
+    isMouseDown.current = false;
+    if (selected) {
+      resetDraggingVariables();
+    }
   };
 
   const onMouseDownOutgoingConnections = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (e.button === 0) {
       e.stopPropagation();
 
@@ -121,24 +186,93 @@ const PipelineStep = (
     }
   };
 
+  // use mouseTracker to get mouse movements
+  // mutate the local metadata without update the central state in useEventVars
+  // so that we can ONLY re-render selected steps and get away from performance penalty
+  React.useEffect(() => {
+    const isBeingDragged = () => {
+      if (!isMouseDown.current) return false;
+      if (dragCount.current < DRAG_CLICK_SENSITIVITY) {
+        dragCount.current += 1;
+        return false;
+      }
+
+      selectedSingleStep.current = step.uuid;
+
+      // if not selected, selectedSteps must be empty
+      // we select current step
+      if (!selected) {
+        eventVarsDispatch({ type: "SELECT_STEPS", payload: [step.uuid] });
+      }
+
+      return true;
+    };
+    const onMouseMove = (e) => {
+      if (disabledDragging) {
+        resetDraggingVariables();
+        return;
+      }
+
+      const shouldFollowSelectedSingleStep =
+        selected && !isSelectorActive && hasValue(selectedSingleStep.current);
+
+      const shouldFollowCursor =
+        isBeingDragged() || shouldFollowSelectedSingleStep;
+
+      console.log("HM", e.clientX, e.clientY);
+      if (shouldFollowCursor) {
+        setMetadata((current) => {
+          const { x, y } = mouseTracker.current.delta;
+          const updatedPosition = [
+            Math.max(current.position[0] + x, -10),
+            Math.max(current.position[1] + y, -10),
+          ] as [number, number];
+          // TODO: also updated connected Connections
+          console.log("HM", updatedPosition);
+          return {
+            ...current,
+            position: updatedPosition,
+          };
+        });
+      }
+    };
+    document.body.addEventListener("mousemove", onMouseMove);
+    return () => document.body.removeEventListener("mousemove", onMouseMove);
+  }, [
+    scaleFactor,
+    mouseTracker,
+    step.uuid,
+    isSelectorActive,
+    selected,
+    selectedSingleStep,
+    resetDraggingVariables,
+    isDragged,
+    offset,
+    dragCount,
+    disabledDragging,
+    eventVarsDispatch,
+  ]);
+
+  const [x, y] = metadata.position;
+  const transform = `translateX(${x}px) translateY(${y}px)`;
+
   return (
     <div
       data-uuid={step.uuid}
       data-test-title={step.title}
       data-test-id={"pipeline-step"}
       ref={ref}
-      className={[
+      className={classNames(
         "pipeline-step",
         executionState.status,
         selected && "selected",
-        step.meta_data?.hidden && "hidden",
-        isStartNodeOfNewConnection && "creating-connection",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      style={style}
+        metadata.hidden && "hidden",
+        isStartNodeOfNewConnection && "creating-connection"
+      )}
+      style={{ transform }}
       onMouseDown={onMouseDown}
-      onClick={onClick}
+      onMouseUp={onMouseUp}
+      onMouseLeave={onMouseLeave}
     >
       <div
         className={classNames(
@@ -161,7 +295,6 @@ const PipelineStep = (
         <div className={"step-label"}>
           {step.title}
           <span className="filename">{step.file_path}</span>
-          <span className="filename">{"HM: " + step.uuid}</span>
         </div>
       </div>
       <div
@@ -174,4 +307,4 @@ const PipelineStep = (
   );
 };
 
-export default React.forwardRef(PipelineStep);
+export const PipelineStep = React.memo(React.forwardRef(_PipelineStep));

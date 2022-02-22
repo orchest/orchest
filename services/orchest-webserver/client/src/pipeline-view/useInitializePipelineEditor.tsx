@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { PipelineJson, StepsDict } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
@@ -94,9 +95,14 @@ export const useInitializePipelineEditor = (
     }
   }, [isFetchingPipelineJson, pipelineJson, initializeEventVars]);
 
+  const { data: environments = [] } = useFetchEnvironments(
+    !isReadOnly ? projectUuid : undefined
+  );
+
   return {
     pipelineCwd,
     pipelineJson,
+    environments,
     setPipelineJson,
     error,
     isFetching: isFetchingPipelineJson || isFetchingCwd,

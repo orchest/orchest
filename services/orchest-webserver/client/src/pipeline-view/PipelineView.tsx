@@ -3,12 +3,11 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import StyledButtonOutlined from "@/styled-components/StyledButton";
 import type {
   Connection,
+  Offset,
   PipelineJson,
   PipelineRun,
   Step,
@@ -18,13 +17,11 @@ import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
 import {
   filterServices,
-  getPipelineJSONEndpoint,
   getScrollLineHeight,
   validatePipeline,
 } from "@/utils/webserver-utils";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import CropFreeIcon from "@mui/icons-material/CropFree";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -34,7 +31,6 @@ import TuneIcon from "@mui/icons-material/Tune";
 import ViewHeadlineIcon from "@mui/icons-material/ViewHeadline";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import Button from "@mui/material/Button";
-import { darken } from "@mui/material/styles";
 import {
   activeElementIsInput,
   collapseDoubleDots,
@@ -46,26 +42,23 @@ import {
 } from "@orchest/lib-utils";
 import $ from "jquery";
 import React from "react";
-import useSWR from "swr";
 import { siteMap } from "../Routes";
+import { BackToJobButton } from "./BackToJobButton";
 import {
   createNewConnection,
-  extractStepsFromPipelineJson,
   PIPELINE_JOBS_STATUS_ENDPOINT,
   PIPELINE_RUN_STATUS_ENDPOINT,
+  scaleCorrectedPosition,
   updatePipelineJson,
 } from "./common";
+import { PipelineCanvas } from "./PipelineCanvas";
 import PipelineConnection from "./PipelineConnection";
 import { PipelineDetails } from "./PipelineDetails";
-import PipelineStep, { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
+import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { useAutoStartSession } from "./useAutoStartSession";
-import {
-  nodeCenter,
-  scaleCorrectedPosition,
-  useEventVars,
-} from "./useEventVars";
+import { nodeCenter, useEventVars } from "./useEventVars";
 import { useFetchInteractiveRun } from "./useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "./useInitializePipelineEditor";
 import { useIsReadOnly } from "./useIsReadOnly";
@@ -141,12 +134,41 @@ const PipelineView: React.FC = () => {
     isReadOnlyFromQueryString
   );
 
+  /**
+   * useEventVars is responsible for managing all mouse-curser events
+   */
+
+  const [canvasOffset, setCanvasOffset] = React.useState<Offset>(null);
+  const updateCanvasOffset = React.useCallback(() => {
+    // TODO: replace this with plain javascript
+    // TODO: call this function when dragging the canvas
+    setCanvasOffset($(pipelineCanvas.current).offset());
+  }, []);
+  React.useLayoutEffect(() => {
+    if (pipelineCanvas.current) {
+      setCanvasOffset($(pipelineCanvas.current).offset());
+    }
+  }, []);
+
+  const [isPanning, setIsPanning] = React.useState(false);
+
   const {
     eventVars,
     eventVarsDispatch,
     stepDomRefs,
+    selectedSingleStep,
+    mouseClient,
+    keysDown,
     trackMouseMovement,
+    mouseTracker,
   } = useEventVars();
+
+  const selectStep = (stepUUID: string) => {
+    eventVarsDispatch({ type: "SELECT_STEPS", payload: [stepUUID] });
+  };
+  const removeSteps = (uuids: string[]) => {
+    eventVarsDispatch({ type: "REMOVE_STEPS", payload: uuids });
+  };
 
   const setPipelineSteps = React.useCallback(
     (steps: StepsDict) => {
@@ -182,6 +204,7 @@ const PipelineView: React.FC = () => {
   const {
     pipelineCwd,
     pipelineJson,
+    environments,
     setPipelineJson,
     error: fetchDataError,
   } = useInitializePipelineEditor(
@@ -199,22 +222,14 @@ const PipelineView: React.FC = () => {
     runUuid,
   };
 
-  // TODO: use keyDown[32] or draggingCanvas to determine dragging?????
-  const [draggingCanvas, setDraggingCanvas] = React.useState(false);
   const isPipelineInitialized = React.useRef(false);
-  const pipelineStepsOuterHolder = React.useRef<HTMLDivElement>();
+  const pipelineCanvas = React.useRef<HTMLDivElement>();
   const pipelineStepsHolder = React.useRef<HTMLDivElement>();
 
-  const [mouseClient, setMouseClient] = React.useState<{
-    x: number;
-    y: number;
-  }>({ x: 0, y: 0 });
-
   const pipelineSetHolderSize = React.useCallback(() => {
-    if (!pipelineStepsOuterHolder.current || !pipelineStepsHolder.current)
-      return;
+    if (!pipelineCanvas.current || !pipelineStepsHolder.current) return;
 
-    let jElStepOuterHolder = $(pipelineStepsOuterHolder.current);
+    let jElStepOuterHolder = $(pipelineCanvas.current);
 
     if (jElStepOuterHolder.filter(":visible").length > 0) {
       $(pipelineStepsHolder.current).css({
@@ -501,12 +516,12 @@ const PipelineView: React.FC = () => {
   );
 
   const onMouseUpPipelineStep = React.useCallback(
-    (endNodeUUID: string, steps: StepsDict) => {
+    (endNodeUUID: string) => {
       // finish creating connection
       eventVarsDispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
-      savePipeline(steps);
+      savePipeline(eventVars.steps);
     },
-    [eventVarsDispatch, savePipeline]
+    [eventVarsDispatch, savePipeline, eventVars.steps]
   );
 
   const openSettings = (e: React.MouseEvent) => {
@@ -618,16 +633,14 @@ const PipelineView: React.FC = () => {
     startNodeUUID: string,
     endNodeUUID: string
   ) => {
-    eventVarsDispatch((state) => {
-      // if space is pressed, user probably wants to drag the canvas, but accidentally key down on a connection
-      // connection has transparent background, user might think they key down on the canvas, but they actually key down on a connection
-      if (e.button === 0 && !state.keysDown[32]) {
-        return {
-          type: "SELECT_CONNECTION",
-          payload: { startNodeUUID, endNodeUUID },
-        };
-      }
-    });
+    // if space is pressed, user probably wants to drag the canvas, but accidentally key down on a connection
+    // connection has transparent background, user might think they key down on the canvas, but they actually key down on a connection
+    if (e.button === 0 && !isPanning) {
+      eventVarsDispatch({
+        type: "SELECT_CONNECTION",
+        payload: { startNodeUUID, endNodeUUID },
+      });
+    }
   };
 
   const removeConnection = React.useCallback(
@@ -790,7 +803,7 @@ const PipelineView: React.FC = () => {
         // on click (as it is a drag event)
 
         if (
-          (e.target === pipelineStepsOuterHolder.current ||
+          (e.target === pipelineCanvas.current ||
             e.target === pipelineStepsHolder.current) &&
           eventVars.draggingCanvas !== true
         ) {
@@ -841,7 +854,7 @@ const PipelineView: React.FC = () => {
       eventVars.keysDown[e.keyCode] = false;
 
       if (e.keyCode) {
-        $(pipelineStepsOuterHolder.current).removeClass("dragging");
+        $(pipelineCanvas.current).removeClass("dragging");
 
         eventVars.draggingCanvas = false;
         updateEventVars();
@@ -908,61 +921,10 @@ const PipelineView: React.FC = () => {
     // initializePipelineNavigationListeners();
   };
 
-  const {
-    data = { pipelineCwd: null, pipelineJson: null },
-    mutate,
-    error,
-  } = useSWR(
-    projectUuid && pipelineUuid
-      ? `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-      : null,
-    async (url) => {
-      const response = await Promise.all([
-        fetcher<{ cwd: string }>(url).then((result) => `${result.cwd}/`),
-        fetcher<{ success: boolean; pipeline_json: string }>(
-          getPipelineJSONEndpoint(
-            pipelineUuid,
-            projectUuid,
-            jobUuidFromRoute,
-            runUuid
-          )
-        ).then((result) => {
-          if (result.success) throw { message: "Could not load pipeline.json" };
-          const newPipelineJson: PipelineJson = JSON.parse(
-            result.pipeline_json
-          );
-          let newSteps = extractStepsFromPipelineJson(
-            newPipelineJson,
-            eventVars.steps
-          );
-          // update steps & pipelineJson
-
-          setPipelineSteps(newSteps);
-
-          dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineUuid,
-              projectUuid,
-              pipelineName: newPipelineJson.name,
-            },
-          });
-          return newPipelineJson;
-        }),
-      ]);
-
-      return { pipelineCwd: response[0], pipelineJson: response[1] };
-    }
-  );
-
-  const { data: environments = [] } = useFetchEnvironments(
-    !isReadOnly ? projectUuid : undefined
-  );
-
   const createNextStep = async () => {
-    if (!pipelineStepsOuterHolder.current) {
+    if (!pipelineCanvas.current) {
       console.error(
-        "Unable to create next step. pipelineStepsOuterHolder is not yet instantiated!"
+        "Unable to create next step. pipelineCanvas is not yet instantiated!"
       );
       return;
     }
@@ -973,7 +935,7 @@ const PipelineView: React.FC = () => {
       // When new steps are successively created then we don't want
       // them to be spawned on top of each other. NOTE: we use the
       // same offset for X and Y position.
-      const { clientWidth, clientHeight } = pipelineStepsOuterHolder.current;
+      const { clientWidth, clientHeight } = pipelineCanvas.current;
       const [pipelineOffsetX, pipelineOffsetY] = state.pipelineOffset;
 
       const position = [
@@ -1008,10 +970,6 @@ const PipelineView: React.FC = () => {
     }
   };
 
-  const selectStep = (stepUUID: string) => {
-    eventVarsDispatch({ type: "SELECT_STEPS", payload: [stepUUID] });
-  };
-
   const onClickStepHandler = (stepUUID: string) => {
     selectStep(stepUUID);
   };
@@ -1022,10 +980,6 @@ const PipelineView: React.FC = () => {
     } else {
       openNotebook(undefined, notebookFilePath(pipelineCwd, stepUUID));
     }
-  };
-
-  const removeSteps = (uuids: string[]) => {
-    eventVarsDispatch({ type: "REMOVE_STEPS", payload: uuids });
   };
 
   const deleteSelectedSteps = () => {
@@ -1091,27 +1045,25 @@ const PipelineView: React.FC = () => {
   };
 
   const centerPipelineOrigin = () => {
-    if (!pipelineStepsOuterHolder.current) {
-      console.error("PipelineStepsOuterHolder is not yet instantiated!");
+    if (!pipelineCanvas.current) {
+      console.error("PipelineCanvas is not yet instantiated!");
       return;
     }
-    let pipelineStepsOuterHolderEl = $(pipelineStepsOuterHolder.current);
-
-    let pipelineStepsOuterHolderOffset = pipelineStepsOuterHolderEl.offset();
+    let pipelineCanvasEl = $(pipelineCanvas.current);
 
     let pipelineStepsHolderOffset = $(pipelineStepsHolder.current).offset();
 
     let centerOrigin = [
       scaleCorrectedPosition(
-        pipelineStepsOuterHolderOffset.left -
+        canvasOffset.left -
           pipelineStepsHolderOffset.left +
-          pipelineStepsOuterHolderEl.width() / 2,
+          pipelineCanvasEl.width() / 2,
         eventVars.scaleFactor
       ),
       scaleCorrectedPosition(
-        pipelineStepsOuterHolderOffset.top -
+        canvasOffset.top -
           pipelineStepsHolderOffset.top +
-          pipelineStepsOuterHolderEl.height() / 2,
+          pipelineCanvasEl.height() / 2,
         eventVars.scaleFactor
       ),
     ] as [number, number];
@@ -1161,15 +1113,15 @@ const PipelineView: React.FC = () => {
 
   const pipelineSetHolderOrigin = React.useCallback(
     (newOrigin: [number, number]) => {
-      if (!pipelineStepsHolder.current || !pipelineStepsOuterHolder.current) {
+      if (!pipelineStepsHolder.current || !pipelineCanvas.current) {
         console.error(
-          "Unable to set the origin of pipelineStepsHolder. PipelineStepsHolder or pipelineStepsOuterHolder is not yet instantiated!"
+          "Unable to set the origin of pipelineStepsHolder. PipelineStepsHolder or pipelineCanvas is not yet instantiated!"
         );
         return;
       }
 
       let holderOffset = $(pipelineStepsHolder.current).offset();
-      let outerHolderOffset = $(pipelineStepsOuterHolder.current).offset();
+      let outerHolderOffset = $(pipelineCanvas.current).offset();
 
       let initialX = holderOffset.left - outerHolderOffset.left;
       let initialY = holderOffset.top - outerHolderOffset.top;
@@ -1192,7 +1144,7 @@ const PipelineView: React.FC = () => {
     [eventVars.scaleFactor, setState]
   );
 
-  const onPipelineStepsOuterHolderWheel = (e: React.WheelEvent) => {
+  const onPipelineCanvasWheel = (e: React.WheelEvent) => {
     let pipelineMousePosition = getMousePositionRelativeToPipelineStepHolder();
     if (!pipelineMousePosition) return;
 
@@ -1341,29 +1293,30 @@ const PipelineView: React.FC = () => {
       return;
     }
     let { left, top } = $(pipelineStepsHolder.current).offset();
+    const { x, y } = mouseClient.current;
 
     return [
-      scaleCorrectedPosition(mouseClient.x - left, eventVars.scaleFactor),
-      scaleCorrectedPosition(mouseClient.y - top, eventVars.scaleFactor),
+      scaleCorrectedPosition(x - left, eventVars.scaleFactor),
+      scaleCorrectedPosition(y - top, eventVars.scaleFactor),
     ] as [number, number];
   };
 
   React.useLayoutEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (event.key === " ") {
-        $(pipelineStepsOuterHolder.current)
+        $(pipelineCanvas.current)
           .removeClass("dragging")
           .addClass("ready-to-drag");
-        eventVarsDispatch({ type: "SET_KEYS_DOWN", payload: { 32: true } });
+
+        setIsPanning(true);
+        // eventVarsDispatch({ type: "SET_KEYS_DOWN", payload: { 32: true } });
       }
     };
     const keyUpHandler = (event: KeyboardEvent) => {
       if (event.key === " ") {
-        $(pipelineStepsOuterHolder.current).removeClass([
-          "ready-to-drag",
-          "dragging",
-        ]);
-        eventVarsDispatch({ type: "SET_KEYS_DOWN", payload: { 32: false } });
+        $(pipelineCanvas.current).removeClass(["ready-to-drag", "dragging"]);
+
+        setIsPanning(false);
       }
     };
 
@@ -1384,78 +1337,62 @@ const PipelineView: React.FC = () => {
     setIsHoverEditor(false);
   };
 
-  const onMouseDownStepsOuterHolder = (e: React.MouseEvent) => {
+  const onMouseDownCanvas = (e: React.MouseEvent) => {
     const isLeftClick = e.button === 0;
 
-    if (isLeftClick && eventVars.keysDown[32]) {
+    trackMouseMovement(e.clientX, e.clientY);
+
+    if (isLeftClick && isPanning) {
       // space held while clicking, means canvas drag
-      $(pipelineStepsOuterHolder.current)
+      $(pipelineCanvas.current)
         .addClass("dragging")
         .removeClass("ready-to-drag");
-      setDraggingCanvas(true);
     }
 
-    const mouseClientX = e.clientX;
-    const mouseClientY = e.clientY;
-    setMouseClient({ x: e.clientX, y: e.clientY });
-    const draggingCanvas = eventVars.keysDown[32]; // key down space
     // not dragging the canvas, so user must be creating a selection rectangle
     // we need to save the offset of cursor against pipeline steps holder
-    const pipelineStepHolderOffset =
-      isLeftClick && !draggingCanvas
-        ? $(pipelineStepsHolder.current).offset()
-        : null;
-
-    if (isLeftClick && !draggingCanvas) {
-      eventVarsDispatch({
-        type: "ON_MOUSE_DOWN_CANVAS",
-        payload: {
-          mouseClientX,
-          mouseClientY,
-          pipelineStepHolderOffset,
-        },
-      });
+    if (isLeftClick && !isPanning) {
+      eventVarsDispatch({ type: "CREATE_SELECTOR", payload: canvasOffset });
     }
   };
 
-  // TODO: check if these are actually working, we might need to use onMouseEnter onMouseLeave to assign event listeners
-  const onMouseMoveStepsOuterHolder = (e: React.MouseEvent<HTMLDivElement>) => {
+  const onMouseUpCanvas = () => {
+    if (eventVars.stepSelector.active) {
+      eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    }
+  };
+
+  const onMouseMoveCanvas = (e: React.MouseEvent<HTMLDivElement>) => {
     trackMouseMovement(e.clientX, e.clientY);
 
-    if (eventVars.selectedSingleStep) eventVarsDispatch({ type: "MOVE_STEPS" });
+    // if (selectedSingleStep.current) {
+    //   eventVarsDispatch({ type: "MOVE_STEPS" });
+    // }
 
-    if (eventVars.newConnection && pipelineStepsHolder.current) {
-      let offset = $(pipelineStepsHolder.current).offset();
-
+    if (eventVars.newConnection) {
       eventVarsDispatch({
         type: "UPDATE_NEW_CONNECTION_END_NODE",
-        payload: { mouseClientX: e.clientX, mouseClientY: e.clientY, offset },
+        payload: canvasOffset,
       });
     }
 
     if (eventVars.stepSelector.active) {
-      if (!pipelineStepsHolder.current) {
+      if (!pipelineCanvas.current) {
         console.error(
-          "stepSelector is active, but pipelineStepsHolder is not yet instantiated!"
+          "stepSelector is active, but pipelineCanvas is not yet instantiated!"
         );
         return;
       }
 
-      let offset = $(pipelineStepsHolder.current).offset();
-
       eventVarsDispatch({
         type: "UPDATE_STEP_SELECTOR",
-        payload: {
-          offset,
-          mouseClientX: e.clientY,
-          mouseClientY: e.clientY,
-        },
+        payload: canvasOffset,
       });
     }
 
-    if (eventVars.keysDown[32]) {
-      let dx = e.clientX - mouseClient.x;
-      let dy = e.clientY - mouseClient.y;
+    if (isPanning) {
+      let dx = e.clientX - mouseClient.current.x;
+      let dy = e.clientY - mouseClient.current.y;
 
       setState((state) => {
         return {
@@ -1466,8 +1403,6 @@ const PipelineView: React.FC = () => {
         };
       });
     }
-
-    setMouseClient({ x: e.clientX, y: e.clientY });
   };
 
   const services = React.useMemo(() => {
@@ -1520,68 +1455,6 @@ const PipelineView: React.FC = () => {
       break;
     }
   }
-
-  const pipelineSteps = Object.entries(eventVars.steps).map((entry) => {
-    const [uuid, step] = entry;
-    const selected = eventVars.selectedSteps.includes(uuid);
-    // only add steps to the component that have been properly
-    // initialized
-    return (
-      <PipelineStep
-        key={step.uuid}
-        step={step}
-        selected={selected}
-        ref={(el) => (stepDomRefs.current[step.uuid] = el)}
-        executionState={
-          stepExecutionState
-            ? stepExecutionState[step.uuid] || { status: "IDLE" }
-            : { status: "IDLE" }
-        }
-        isCreatingConnection={hasValue(eventVars.newConnection)}
-        isStartNodeOfNewConnection={
-          eventVars.newConnection?.startNodeUUID === step.uuid
-        }
-        eventVarsDispatch={eventVarsDispatch}
-        onMouseUpIncomingConnectionPoint={() =>
-          onMouseUpPipelineStep(step.uuid, eventVars.steps)
-        }
-        onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
-      />
-    );
-  });
-
-  const connectionComponents = eventVars.connections.map(
-    (connection, index) => {
-      const { startNodeUUID, endNodeUUID } = connection;
-      const startNode = stepDomRefs.current[startNodeUUID];
-      const endNode = endNodeUUID ? stepDomRefs.current[endNodeUUID] : null;
-
-      if (!pipelineStepsHolder.current || !startNode) return null;
-
-      let startNodePosition = nodeCenter(
-        startNode,
-        pipelineStepsHolder.current,
-        eventVars.scaleFactor
-      );
-      let endNodePosition = endNode
-        ? nodeCenter(
-            endNode,
-            pipelineStepsHolder.current,
-            eventVars.scaleFactor
-          )
-        : null;
-
-      return (
-        <PipelineConnection
-          key={index}
-          onClick={onClickConnection}
-          startNodePosition={startNodePosition}
-          endNodePosition={endNodePosition}
-          {...connection}
-        />
-      );
-    }
-  );
 
   React.useEffect(() => {
     if (state.currentOngoingSaves === 0) {
@@ -1636,30 +1509,9 @@ const PipelineView: React.FC = () => {
         >
           {jobUuidFromRoute && isReadOnly && (
             <div className="pipeline-actions top-left">
-              <StyledButtonOutlined
-                variant="outlined"
-                color="secondary"
-                sx={{
-                  backgroundColor: (theme) => theme.palette.background.default,
-                  borderColor: (theme) =>
-                    darken(theme.palette.background.default, 0.2),
-                  "&:hover": {
-                    backgroundColor: (theme) =>
-                      darken(theme.palette.background.default, 0.1),
-                    borderColor: (theme) =>
-                      darken(theme.palette.background.default, 0.3),
-                  },
-                }}
-                startIcon={<ArrowBackIcon />}
-                onClick={returnToJob}
-                onAuxClick={returnToJob}
-                data-test-id="pipeline-back-to-job"
-              >
-                Back to job
-              </StyledButtonOutlined>
+              <BackToJobButton onClick={returnToJob} />
             </div>
           )}
-
           <div className="pipeline-actions bottom-left">
             <div className="navigation-buttons">
               <IconButton
@@ -1679,7 +1531,6 @@ const PipelineView: React.FC = () => {
                 <AccountTreeOutlinedIcon />
               </IconButton>
             </div>
-
             {!isReadOnly &&
               !pipelineRunning &&
               eventVars.selectedSteps.length > 0 &&
@@ -1718,7 +1569,6 @@ const PipelineView: React.FC = () => {
               </div>
             )}
           </div>
-
           {pipelineJson && (
             <div className={"pipeline-actions top-right"}>
               {!isReadOnly && (
@@ -1732,7 +1582,6 @@ const PipelineView: React.FC = () => {
                   NEW STEP
                 </Button>
               )}
-
               {isReadOnly && (
                 <Button
                   color="secondary"
@@ -1782,12 +1631,12 @@ const PipelineView: React.FC = () => {
             </div>
           )}
 
-          <div
-            className="pipeline-steps-outer-holder"
-            ref={pipelineStepsOuterHolder}
-            onMouseMove={onMouseMoveStepsOuterHolder}
-            onMouseDown={onMouseDownStepsOuterHolder}
-            onWheel={onPipelineStepsOuterHolderWheel}
+          <PipelineCanvas
+            ref={pipelineCanvas}
+            onMouseMove={onMouseMoveCanvas}
+            onMouseDown={onMouseDownCanvas}
+            onMouseUp={onMouseUpCanvas}
+            onWheel={onPipelineCanvasWheel}
           >
             <div
               className="pipeline-steps-holder"
@@ -1813,10 +1662,76 @@ const PipelineView: React.FC = () => {
                   {...getStepSelectorRectangle(eventVars.stepSelector)}
                 />
               )}
-              {pipelineSteps}
-              <div className="connections">{connectionComponents}</div>
+              {Object.entries(eventVars.steps).map((entry) => {
+                const [uuid, step] = entry;
+                const selected = eventVars.selectedSteps.includes(uuid);
+                // only add steps to the component that have been properly
+                // initialized
+                return (
+                  <PipelineStep
+                    key={step.uuid}
+                    initialValue={step}
+                    disabledDragging={isPanning}
+                    scaleFactor={eventVars.scaleFactor}
+                    offset={canvasOffset}
+                    selected={selected}
+                    isSelectorActive={eventVars.stepSelector.active}
+                    selectedSingleStep={selectedSingleStep}
+                    ref={(el) => (stepDomRefs.current[step.uuid] = el)}
+                    executionState={
+                      stepExecutionState
+                        ? stepExecutionState[step.uuid] || { status: "IDLE" }
+                        : { status: "IDLE" }
+                    }
+                    isCreatingConnection={hasValue(eventVars.newConnection)}
+                    isStartNodeOfNewConnection={
+                      eventVars.newConnection?.startNodeUUID === step.uuid
+                    }
+                    eventVarsDispatch={eventVarsDispatch}
+                    onMouseUpIncomingConnectionPoint={() =>
+                      onMouseUpPipelineStep(step.uuid)
+                    }
+                    mouseTracker={mouseTracker}
+                    // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
+                  />
+                );
+              })}
+              <div className="connections">
+                {eventVars.connections.map((connection, index) => {
+                  const { startNodeUUID, endNodeUUID } = connection;
+                  const startNode = stepDomRefs.current[startNodeUUID];
+                  const endNode = endNodeUUID
+                    ? stepDomRefs.current[endNodeUUID]
+                    : null;
+
+                  if (!pipelineStepsHolder.current || !startNode) return null;
+
+                  let startNodePosition = nodeCenter(
+                    startNode,
+                    pipelineStepsHolder.current,
+                    eventVars.scaleFactor
+                  );
+                  let endNodePosition = endNode
+                    ? nodeCenter(
+                        endNode,
+                        pipelineStepsHolder.current,
+                        eventVars.scaleFactor
+                      )
+                    : null;
+
+                  return (
+                    <PipelineConnection
+                      key={index}
+                      onClick={onClickConnection}
+                      startNodePosition={startNodePosition}
+                      endNodePosition={endNodePosition}
+                      {...connection}
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          </PipelineCanvas>
         </div>
 
         {eventVars.openedStep && (

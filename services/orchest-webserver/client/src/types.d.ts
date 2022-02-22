@@ -268,6 +268,8 @@ export type Step = {
   parameters: Record<string, any>;
 };
 
+export type MouseTracker = { prev: Position; delta: Position };
+
 export type Connection = {
   // ! Immer doesn't accept Elements
   // startNode: JQuery<HTMLElement>;
@@ -284,14 +286,16 @@ export type Position = { x: number; y: number };
 
 export type LogType = "step" | "service";
 
+export type PipelineStepMetaData = {
+  hidden: boolean;
+  position: [number, number];
+  _drag_count: number;
+  _dragged: boolean;
+};
+
 export type PipelineStepState = Step & {
   outgoing_connections?: string[];
-  meta_data?: {
-    hidden: boolean;
-    position: [number, number];
-    _drag_count: number;
-    _dragged: boolean;
-  };
+  meta_data?: PipelineStepMetaData;
 };
 
 export type StepsDict = Record<string, PipelineStepState>;

@@ -3,7 +3,6 @@ import type {
   Connection,
   MouseTracker,
   Offset,
-  PipelineStepState,
   Position,
   Step,
   StepsDict,
@@ -35,6 +34,11 @@ export const nodeCenter = (
   return nodePosition;
 };
 
+type PipelineStepsState = {
+  selectedSteps: string[];
+  error?: string | null;
+};
+
 type EventVars = {
   // mouseClientX: number;
   // mouseClientY: number;
@@ -62,23 +66,8 @@ type EventVars = {
 
 type Action =
   | {
-      type: "SET_STEPS";
-      payload: StepsDict;
-    }
-  | {
-      type: "CREATE_STEP";
-      payload: PipelineStepState;
-    }
-  | {
       type: "SELECT_STEPS";
       payload: string[];
-    }
-  | {
-      type: "SELECT_SINGLE_STEP";
-      payload: string | undefined;
-    }
-  | {
-      type: "MOVE_STEPS";
     }
   | {
       type: "SELECT_CONNECTION";
@@ -113,7 +102,7 @@ type Action =
         replace: boolean;
       };
     }
-  // | { type: "SET_KEYS_DOWN"; payload: Record<string, boolean> }
+  | { type: "SET_KEYS_DOWN"; payload: Record<string, boolean> }
   | {
       type: "CREATE_SELECTOR";
       payload: Offset;
@@ -138,9 +127,9 @@ type Action =
       payload: string | null;
     };
 
-type ActionCallback = (previousState: EventVars) => Action | void;
+type ActionCallback = (previousState: PipelineStepsState) => Action | void;
 
-export type EventVarsAction = Action | ActionCallback | undefined;
+export type PipelineStepsStateAction = Action | ActionCallback | undefined;
 
 const DEFAULT_SCALE_FACTOR = 1;
 const DRAG_CLICK_SENSITIVITY = 3;
@@ -152,12 +141,8 @@ const DEFAULT_STEP_SELECTOR = {
   y2: Number.MIN_VALUE,
   active: false,
 };
-// const DESELECT_STEPS_PAYLOAD = {
-//   selectedSteps: [],
-//   stepSelector: DEFAULT_STEP_SELECTOR,
-// };
 
-export const useEventVars = () => {
+export const useSelectSteps = () => {
   const { setAlert } = useAppContext();
   // Ref's
   const stepDomRefs = React.useRef<Record<string, HTMLDivElement>>({});
@@ -170,10 +155,9 @@ export const useEventVars = () => {
   const positionDelta = React.useRef<Position>({ x: 0, y: 0 });
 
   const selectedSingleStep = React.useRef<string>();
-  const keysDown = React.useMemo<Set<number>>(() => new Set(), []);
 
   const [eventVars, eventVarsDispatch] = React.useReducer(
-    produce((state: EventVars, _action: EventVarsAction) => {
+    produce((state: PipelineStepsState, _action: PipelineStepsStateAction) => {
       const action = _action instanceof Function ? _action(state) : _action;
 
       if (!action) return;
@@ -464,7 +448,7 @@ export const useEventVars = () => {
           }
 
           // check for space bar, i.e. not dragging canvas
-          if (keysDown.has(32)) break;
+          if (keysDown.current[32]) break;
 
           const originalSelectedSteps = originalState.selectedSteps;
           // this should never happen,
@@ -669,6 +653,11 @@ export const useEventVars = () => {
           break;
         }
 
+        case "SET_KEYS_DOWN": {
+          keysDown.current = { ...keysDown.current, ...action.payload };
+          break;
+        }
+
         case "SET_ERROR": {
           state.error = action.payload;
           break;
@@ -686,27 +675,7 @@ export const useEventVars = () => {
      *          Beginning of initial state
      */
     {
-      // keysDown: {},
-      // mouseClientX: 0,
-      // mouseClientY: 0,
-      // draggingCanvas: false,
-      // prevPosition: [null, null],
-      doubleClickFirstClick: false,
-      selectedConnection: undefined,
-      newConnection: undefined,
-      openedStep: undefined,
-      openedMultiStep: undefined,
       selectedSteps: [],
-      stepSelector: {
-        active: false,
-        x1: 0,
-        y1: 0,
-        x2: 0,
-        y2: 0,
-      },
-      steps: {},
-      scaleFactor: DEFAULT_SCALE_FACTOR,
-      connections: [],
     }
   );
 

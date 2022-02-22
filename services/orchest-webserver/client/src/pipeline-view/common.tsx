@@ -1,8 +1,17 @@
-import type { Connection, PipelineJson, StepsDict } from "@/types";
+import type {
+  Connection,
+  Offset,
+  PipelineJson,
+  Position,
+  StepsDict,
+} from "@/types";
 import cloneDeep from "lodash.clonedeep";
 
 export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
 export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
+
+export const DEFAULT_SCALE_FACTOR = 1;
+export const DRAG_CLICK_SENSITIVITY = 3;
 
 export const updatePipelineJson = (
   pipelineJson: PipelineJson,
@@ -56,5 +65,43 @@ export const createNewConnection = (
     startNodeUUID,
     endNodeUUID,
     selected: false,
+  };
+};
+
+export const scaleCorrectedPosition = (
+  position: number,
+  scaleFactor: number
+) => {
+  position /= scaleFactor;
+  return position;
+};
+
+export const localElementPosition = (
+  offset: Offset,
+  parentOffset: Offset,
+  scaleFactor: number
+) => {
+  return {
+    x: scaleCorrectedPosition(offset.left - parentOffset.left, scaleFactor),
+    y: scaleCorrectedPosition(offset.top - parentOffset.top, scaleFactor),
+  };
+};
+
+export const getPositionFromOffset = ({
+  position,
+  offset,
+  scaleFactor,
+}: {
+  position: Position;
+  offset: Offset;
+  scaleFactor: number;
+}): Position => {
+  return {
+    x:
+      scaleCorrectedPosition(position.x, scaleFactor) -
+      scaleCorrectedPosition(offset.left, scaleFactor),
+    y:
+      scaleCorrectedPosition(position.y, scaleFactor) -
+      scaleCorrectedPosition(offset.top, scaleFactor),
   };
 };
