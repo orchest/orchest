@@ -23,15 +23,15 @@ def is_orchest_already_installed() -> bool:
     deployments = k8sw.get_orchest_deployments()
     if all(deployments):
         return True
-    elif not any(deployments):
-        return False
-    else:
+    elif any(deployments):
         utils.echo(
             "Unexpected Orchest installation state. Expected to find no deployments at "
             "all or a complete installation. Please verify your installation.",
             err=True,
         )
         raise typer.Exit(code=1)
+    else:
+        return False
 
 
 def install():
@@ -39,11 +39,11 @@ def install():
         utils.echo("Installation is already complete. Did you mean to run:")
         utils.echo("\torchest update")
         return
-    # "When running a command via kubectl run -it that immediately prints
-    # something, we might lose some lines of the log due to a race of the
-    # execution of the container and the kubectl attach used by kubectl run to
-    # attach to the terminal (compare comment #16670 (comment))."
-    # https://github.com/kubernetes/kubernetes/issues/27264
+    # "When running a command via kubectl run -it that immediately
+    # prints something, we might lose some lines of the log due to a
+    # race of the execution of the container and the kubectl attach used
+    # by kubectl run to attach to the terminal (compare comment #16670
+    # (comment))." https://github.com/kubernetes/kubernetes/issues/27264
     # K8S_TODO: find a workaround.
     utils.echo("Installing...")
 
