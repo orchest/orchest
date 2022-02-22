@@ -70,6 +70,8 @@ jobs:
           # - first building and then using `orchest stop` wouldn't
           #   reliably work as the previous deployment does not need to
           #   be compatible.
+          # NOTE: Assumes that `orchest stop` does not have any
+          # side-effects.
           [ ! -z "$(docker ps -a -q -f network=orchest)" ] \
             && docker rm -fv $(docker ps -a -q -f network=orchest)
           docker image prune -f
