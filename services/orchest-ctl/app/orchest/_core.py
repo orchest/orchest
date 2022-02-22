@@ -62,10 +62,13 @@ def install():
     n_ready_deployments = 0
     returncode = None
     with typer.progressbar(
-        length=len(config.ORCHEST_DEPLOYMENTS),
+        length=len(config.ORCHEST_DEPLOYMENTS) + 1,
         label="Installation",
         show_eta=False,
     ) as progress:
+        # This is just to make the bar not stay at 0% for too long
+        # because images are being pulled etc, i.e. just UX.
+        progress.update(1)
         while returncode is None:
             # This way we are able to perform the last update on the
             # bar in case of success before the loop exiting.
