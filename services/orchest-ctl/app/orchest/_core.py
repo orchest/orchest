@@ -93,6 +93,10 @@ def install():
             err=True,
         )
         raise typer.Exit(returncode)
+
+    logger.info("Setting 'userdir/' permissions.")
+    utils.fix_userdir_permissions()
+
     # K8S_TODO: coordinate with ingress for this.
     # port = 8001
     # utils.echo(f"Orchest is running at: http://localhost:{port}")
