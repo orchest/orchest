@@ -4,18 +4,24 @@ on:
   push:
     branches:
       - dev
-    paths-ignore:
-      - "docs/**"
-      - ".github/**"
-      - "README.md"
+    # Run on all file changes, except for ... but always run when the
+    # workflow for integration tests is changed.
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/integration-tests.yml"
+      - "!README.md"
   pull_request:
     branches:
       - master
       - dev
-    paths-ignore:
-      - "docs/**"
-      - ".github/**"
-      - "README.md"
+    paths:
+      - "**"
+      - "!docs/**"
+      - "!.github/**"
+      - ".github/workflows/integration-tests.yml"
+      - "!README.md"
 
 # Pending or running workflows for the same branch will be cancelled,
 # always keep the latest.
