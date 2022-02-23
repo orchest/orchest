@@ -1,10 +1,12 @@
 """Core functionality of orchest-ctl."""
 import atexit
+import json
 import logging
 import os
 import signal
 import subprocess
 import time
+from typing import Dict, Optional
 
 import typer
 from kubernetes import client as k8s_client
@@ -117,3 +119,66 @@ def install():
     # port = 8001
     # utils.echo(f"Orchest is running at: http://localhost:{port}")
     utils.echo("Installation was successful.")
+
+
+def _echo_version(
+    cluster_version: str,
+    deployment_versions: Optional[Dict[str, str]] = None,
+    output_json: bool = False,
+):
+    if not output_json:
+        utils.echo(f"Cluster version: {cluster_version}.")
+        if deployment_versions is not None:
+            differences = False
+            utils.echo("Deployments:")
+            max_length = max([len(k) for k in deployment_versions.keys()])
+            buffer_space = max_length + 10
+
+            for depl in sorted(deployment_versions.keys()):
+                d_version = deployment_versions[depl]
+                utils.echo(f"{depl:<{buffer_space}}: {d_version}")
+                if depl in config.DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION:
+                    differences = differences or d_version != cluster_version
+            if differences:
+                utils.echo(
+                    "Some deployment version differs from the cluster version. This is "
+                    "an unexpected state. Upgrading or using the helm charts in "
+                    "the 'deploy' directory might fix the issue.",
+                    err=True,
+                )
+    else:
+        data = {
+            "cluster_version": cluster_version,
+        }
+        if deployment_versions is not None:
+            data["deployment_versions"] = deployment_versions
+        print(json.dumps(data, sort_keys=True, indent=2))
+
+
+def version(ext=False, output_json: bool = False):
+    """Returns the version of Orchest.
+
+    Args:
+        ext: If True return the extensive version of Orchest, i.e.
+        including deployment versions.
+        output_json: If true echo json instead of text.
+    """
+    cluster_version = k8sw.get_orchest_cluster_version()
+    if not ext:
+        _echo_version(cluster_version, None, output_json)
+        return
+
+    deployments = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
+    depl_versions = {}
+    for (
+        name,
+        depl,
+    ) in zip(config.ORCHEST_DEPLOYMENTS, deployments):
+        if depl is None:
+            depl_versions[name] = None
+        else:
+            depl_versions[name] = depl.spec.template.spec.containers[0].image.split(
+                ":"
+            )[1]
+
+    _echo_version(cluster_version, depl_versions, output_json)

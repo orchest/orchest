@@ -45,6 +45,10 @@ def set_orchest_cluster_version(version: str):
     )
 
 
+def get_orchest_cluster_version() -> str:
+    return k8s_core_api.read_namespace("orchest").metadata.labels.get("version")
+
+
 def delete_orchest_ctl_pod():
     """Deletes the pod in which this script is running
 

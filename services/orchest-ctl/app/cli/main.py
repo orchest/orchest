@@ -92,11 +92,17 @@ def version(
         show_default=False,
         help="Get extensive version information.",
     ),
+    json: bool = typer.Option(
+        False,
+        "--json",
+        show_default=False,
+        help="Get output in json.",
+    ),
 ):
     """
     Get Orchest version.
     """
-    app.version(ext=ext)
+    orchest.version(ext=ext, output_json=json)
 
 
 @typer_app.command()
