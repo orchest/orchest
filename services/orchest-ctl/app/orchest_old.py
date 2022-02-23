@@ -335,52 +335,6 @@ class OrchestApp:
 
         self.docker_client.run_containers(config_, use_name=True, detach=True)
 
-    def status(self, ext=False):
-        if self._is_restarting():
-            utils.echo("Orchest is currently restarting.")
-            raise typer.Exit(code=4)
-
-        if self._is_updating():
-            utils.echo("Orchest is currently updating.")
-            raise typer.Exit(code=5)
-
-        _, running_containers_names = self.resource_manager.get_containers(
-            state="running"
-        )
-
-        if not utils.is_orchest_running(running_containers_names):
-            utils.echo("Orchest is not running.")
-            raise typer.Exit(code=1)
-
-        # Minimal set of containers to be running for Orchest to be in
-        # a valid state.
-        valid_set: Set[str] = reduce(
-            lambda x, y: x.union(y), config._on_start_images, set()
-        )
-
-        if valid_set - set(running_containers_names):
-            utils.echo("Orchest is running, but has reached an invalid state. Run:")
-            utils.echo("\torchest restart")
-            logger.warning(
-                "Orchest has reached an invalid state. Running containers:\n"
-                + "\n".join(running_containers_names)
-            )
-            raise typer.Exit(code=2)
-        else:
-            utils.echo("Orchest is running.")
-            if ext:
-                utils.echo("Performing extensive status checks...")
-                no_issues = True
-                for container, exit_code in health_check(self.resource_manager).items():
-                    if exit_code != 0:
-                        no_issues = False
-                        utils.echo(f"{container} is not ready ({exit_code}).")
-
-                if no_issues:
-                    utils.echo("All services are ready.")
-                else:
-                    raise typer.Exit(code=3)
-
     def debug(self, ext: bool, compress: bool):
         debug_dump(ext, compress)
 
