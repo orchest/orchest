@@ -1,8 +1,7 @@
+import theme from "@/theme";
 import { Position } from "@/types";
-import { globalMDCVars } from "@orchest/lib-utils";
+import classNames from "classnames";
 import React from "react";
-
-const THEME_SECONDARY = globalMDCVars()["mdcthemesecondary"];
 
 // set SVG properties
 const lineHeight = 2;
@@ -24,146 +23,180 @@ const curvedHorizontal = function (
   return line.join(" ");
 };
 
-const PipelineConnection: React.FC<{
-  startNodePosition: Position;
-  endNodePosition: Position | null;
+const ConnectionLine = ({
+  onMouseDown,
+  selected,
+  width,
+  height,
+  d,
+}: React.SVGProps<SVGPathElement> & { selected: boolean }) => {
+  return (
+    <svg width={width} height={height}>
+      <path
+        id="path"
+        stroke={selected ? theme.palette.primary.main : "#000"}
+        strokeWidth={selected ? 3 : 2}
+        fill="none"
+        d={d}
+      />
+      <path
+        id="path-clickable"
+        onMouseDown={onMouseDown}
+        stroke="transparent"
+        strokeWidth={16}
+        fill="none"
+        d={d}
+      />
+    </svg>
+  );
+};
+
+const getRenderProperties = ({
+  startNodeX,
+  startNodeY,
+  endNodeX,
+  endNodeY,
+}: {
+  startNodeX: number;
+  startNodeY: number;
+  endNodeX: number;
+  endNodeY: number;
+}) => {
+  let targetX = endNodeX - startNodeX;
+  let targetY = endNodeY - startNodeY;
+
+  let xOffset = Math.min(targetX, 0);
+  let yOffset = Math.min(targetY, 0);
+
+  const translateX = startNodeX - svgPadding + xOffset;
+  const translateY = startNodeY - svgPadding + yOffset - lineHeight / 2;
+
+  let style = {
+    transform: `translateX(${translateX}px) translateY(${translateY}px)`,
+  };
+
+  const width = Math.abs(targetX) + 2 * svgPadding + "px";
+  const height = Math.abs(targetY) + 2 * svgPadding + "px";
+  const drawn = curvedHorizontal(
+    svgPadding - xOffset,
+    svgPadding - yOffset,
+    svgPadding + targetX - xOffset - arrowWidth,
+    svgPadding + targetY - yOffset
+  );
+
+  const className = classNames(
+    targetX < arrowWidth * 10 && "flipped-horizontal",
+    targetY < 0 && "flipped"
+  );
+
+  return { width, height, drawn, style, className };
+};
+
+const _PipelineConnection: React.FC<{
+  startNodeX: number;
+  startNodeY: number;
+  endNodeX: number | undefined;
+  endNodeY: number | undefined;
   startNodeUUID: string;
   endNodeUUID?: string;
-  onClick: (e: MouseEvent, startNodeUUID: string, endNodeUUID: string) => void;
-  xEnd: number;
-  yEnd: number;
+  getPosition: (element: HTMLElement) => Position;
+  onClick: (e: MouseEvent) => void;
   selected: boolean;
+  shouldUpdate: [boolean, boolean];
+  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
+  selectedSingleStep: React.MutableRefObject<string>;
 }> = ({
-  startNodePosition,
-  endNodePosition,
+  startNodeX,
+  endNodeX,
+  endNodeY,
+  startNodeY,
+  getPosition,
   onClick,
   selected,
   startNodeUUID,
   endNodeUUID,
-  ...props
+  shouldUpdate,
+  stepDomRefs,
+  selectedSingleStep,
 }) => {
-  const connectionHolder = React.useRef(null);
-
-  // TODO: clean up
-  const isDev =
-    startNodeUUID.includes("106bb") && endNodeUUID.includes("ac578");
-
-  const renderProperties = React.useMemo(() => {
-    // 1. if endNodePosition is defined => a complete connection
-    // 2. if props.xEnd is defined => user is still making the connection, not yet decided the endNode
-    // 3. startNodePosition => default, just started to create
-    let xEnd = endNodePosition
-      ? endNodePosition.x
-      : props.xEnd ?? startNodePosition.x; // props.xEnd could be 0, so we need to use ?? instead of ||
-
-    let yEnd = endNodePosition
-      ? endNodePosition.y
-      : props.yEnd ?? startNodePosition.y;
-
-    let targetX = xEnd - startNodePosition.x;
-    let targetY = yEnd - startNodePosition.y;
-
-    let xOffset = Math.min(targetX, 0);
-    let yOffset = Math.min(targetY, 0);
-
-    let styles = {
-      transform:
-        "translateX(" +
-        (startNodePosition.x - svgPadding + xOffset) +
-        "px) translateY(" +
-        (startNodePosition.y - svgPadding + yOffset - lineHeight / 2) +
-        "px)",
-    };
-
-    return { targetX, targetY, styles, xOffset, yOffset };
-  }, [
-    startNodePosition.x,
-    startNodePosition.y,
-    endNodePosition,
-    props.xEnd,
-    props.yEnd,
-  ]);
-
-  const onMouseDown = React.useCallback(
-    (e) => {
-      if (onClick) onClick(e, startNodeUUID, endNodeUUID);
-    },
-    [onClick, startNodeUUID, endNodeUUID]
+  const [renderProperties, setRenderProperties] = React.useState(() =>
+    getRenderProperties({
+      startNodeX,
+      endNodeX,
+      endNodeY,
+      startNodeY,
+    })
   );
 
-  // render SVG
-  React.useEffect(() => {
-    // startNode is required
-    if (connectionHolder.current && renderProperties) {
-      const { styles, targetX, targetY, xOffset, yOffset } = renderProperties;
-      // initialize SVG
-      let svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      let svgPath = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-      svgPath.setAttribute("stroke", "black");
-      svgPath.setAttribute("stroke-width", "2");
-      svgPath.setAttribute("fill", "none");
-      svgPath.setAttribute("id", "path");
+  const [shouldUpdateStart, shouldUpdateEnd] = shouldUpdate;
 
-      let svgPathClickable = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-      svgPathClickable.setAttribute("stroke", "transparent");
-      svgPathClickable.setAttribute("stroke-width", "16");
-      svgPathClickable.setAttribute("fill", "none");
-      svgPathClickable.setAttribute("id", "path-clickable");
+  const containerRef = React.useRef<HTMLDivElement>();
 
-      svgPathClickable.onmousedown = onMouseDown;
-      svgEl.appendChild(svgPath);
-      svgEl.appendChild(svgPathClickable);
+  const onMouseMove = React.useCallback(() => {
+    if (selectedSingleStep.current && (shouldUpdateStart || shouldUpdateEnd)) {
+      const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+      const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
 
-      // update svg poly line
-      svgEl.setAttribute("width", Math.abs(targetX) + 2 * svgPadding + "px");
-      svgEl.setAttribute("height", Math.abs(targetY) + 2 * svgPadding + "px");
+      const startNodePosition = getPosition(startNode);
+      const endNodePosition = getPosition(endNode);
 
-      svgPath.setAttribute(
-        "d",
-        curvedHorizontal(
-          svgPadding - xOffset,
-          svgPadding - yOffset,
-          svgPadding + targetX - xOffset - arrowWidth,
-          svgPadding + targetY - yOffset
-        )
-      );
-      svgPathClickable.setAttribute("d", svgPath.getAttribute("d"));
-
-      if (selected) {
-        svgPath.setAttribute("stroke", THEME_SECONDARY);
-        svgPath.setAttribute("stroke-width", "3");
-      } else {
-        svgPath.setAttribute("stroke", "black");
-        svgPath.setAttribute("stroke-width", "2");
-      }
-
-      const classes = [
-        "connection",
-        targetX < arrowWidth * 10 && "flipped-horizontal",
-        targetY < 0 && "flipped",
-        selected && "selected",
-      ].filter(Boolean);
-
-      connectionHolder.current.className = "";
-      connectionHolder.current.classList.add(...classes);
-      Object.assign(connectionHolder.current.style, styles);
-      connectionHolder.current.replaceChildren(svgEl);
+      setRenderProperties((current) => {
+        return {
+          ...current,
+          ...getRenderProperties({
+            startNodeX: shouldUpdateStart ? startNodePosition.x : startNodeX,
+            startNodeY: shouldUpdateStart ? startNodePosition.y : startNodeY,
+            endNodeX: shouldUpdateEnd ? endNodePosition.x : endNodeX,
+            endNodeY: shouldUpdateEnd ? endNodePosition.y : endNodeY,
+          }),
+        };
+      });
     }
-  }, [renderProperties, selected, onMouseDown]);
+  }, [
+    startNodeX,
+    endNodeX,
+    endNodeY,
+    startNodeY,
+    endNodeUUID,
+    startNodeUUID,
+    getPosition,
+    stepDomRefs,
+    selectedSingleStep,
+    shouldUpdateStart,
+    shouldUpdateEnd,
+  ]);
+
+  // Similar to PipelineStep, here we track the positions of startNode and endNode
+  // via stepDomRefs, and update the SVG accordingly
+  // so that we can ONLY re-render relevant connections and get away from performance penalty
+  React.useEffect(() => {
+    document.body.addEventListener("mousemove", onMouseMove);
+    return () => document.body.removeEventListener("mousemove", onMouseMove);
+  }, [onMouseMove]);
+
+  const onMouseDown = React.useCallback((e) => {
+    if (onClick) onClick(e);
+  }, []);
+
+  const { style, className, width, height, drawn } = renderProperties;
 
   return (
     <div
       data-start-uuid={startNodeUUID}
       data-end-uuid={endNodeUUID}
-      ref={connectionHolder}
-    ></div>
+      className={classNames("connection", className, selected && "selected")}
+      ref={containerRef}
+      style={style}
+    >
+      <ConnectionLine
+        selected={selected}
+        onMouseDown={onMouseDown}
+        width={width}
+        height={height}
+        d={drawn}
+      />
+    </div>
   );
 };
 
-export default PipelineConnection;
+export const PipelineConnection = React.memo(_PipelineConnection);

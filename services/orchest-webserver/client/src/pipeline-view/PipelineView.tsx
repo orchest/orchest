@@ -53,7 +53,7 @@ import {
   updatePipelineJson,
 } from "./common";
 import { PipelineCanvas } from "./PipelineCanvas";
-import PipelineConnection from "./PipelineConnection";
+import { PipelineConnection } from "./PipelineConnection";
 import { PipelineDetails } from "./PipelineDetails";
 import {
   ConnectionDot,
@@ -64,7 +64,7 @@ import {
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { useAutoStartSession } from "./useAutoStartSession";
-import { nodeCenter, useEventVars } from "./useEventVars";
+import { getNodeCenter, useEventVars } from "./useEventVars";
 import { useFetchInteractiveRun } from "./useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "./useInitializePipelineEditor";
 import { useIsReadOnly } from "./useIsReadOnly";
@@ -1745,33 +1745,49 @@ const PipelineView: React.FC = () => {
 
                     if (!startNode) return null;
 
-                    const startNodeOffset = getOffset(startNode);
+                    const shouldUpdate = [
+                      startNodeUUID,
+                      endNodeUUID,
+                    ].map((uuid) => eventVars.selectedSteps.includes(uuid)) as [
+                      boolean,
+                      boolean
+                    ];
 
-                    let startNodePosition = nodeCenter(
-                      [startNode.clientWidth, startNode.clientHeight],
-                      startNodeOffset,
+                    const getPosition = getNodeCenter(
                       canvasOffset,
                       eventVars.scaleFactor
                     );
 
-                    const endNodeOffset = endNode ? getOffset(endNode) : null;
+                    let startNodePosition = getPosition(startNode);
+                    let endNodePosition = getPosition(endNode);
 
-                    let endNodePosition = endNodeOffset
-                      ? nodeCenter(
-                          [endNode.clientWidth, endNode.clientHeight],
-                          endNodeOffset,
-                          canvasOffset,
-                          eventVars.scaleFactor
-                        )
-                      : null;
+                    let endNodeX =
+                      endNodePosition?.x ??
+                      connection.xEnd ??
+                      startNodePosition.x;
+
+                    let endNodeY =
+                      endNodePosition?.y ??
+                      connection.yEnd ??
+                      startNodePosition.y;
 
                     return (
                       <PipelineConnection
                         key={index}
-                        onClick={onClickConnection}
-                        startNodePosition={startNodePosition}
-                        endNodePosition={endNodePosition}
-                        {...connection}
+                        selected={connection.selected}
+                        startNodeUUID={startNodeUUID}
+                        endNodeUUID={endNodeUUID}
+                        getPosition={getPosition}
+                        onClick={(e) =>
+                          onClickConnection(e, startNodeUUID, endNodeUUID)
+                        }
+                        stepDomRefs={stepDomRefs}
+                        startNodeX={startNodePosition.x}
+                        startNodeY={startNodePosition.y}
+                        endNodeX={endNodeX}
+                        endNodeY={endNodeY}
+                        shouldUpdate={shouldUpdate}
+                        selectedSingleStep={selectedSingleStep}
                       />
                     );
                   })}

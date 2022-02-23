@@ -8,6 +8,7 @@ import type {
   Step,
   StepsDict,
 } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import { intersectRect } from "@orchest/lib-utils";
 import produce, { original } from "immer";
@@ -20,19 +21,17 @@ import {
 } from "./common";
 import { getStepSelectorRectangle } from "./Rectangle";
 
-export const nodeCenter = (
-  nodeSize: [number, number],
-  nodeOffset: Offset,
-  parentOffset: Offset,
-  scaleFactor: number
+export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
+  node: HTMLElement
 ) => {
   let nodePosition = localElementPosition(
-    nodeOffset,
+    getOffset(node),
     parentOffset,
     scaleFactor
   );
-  nodePosition.x += nodeSize[0] / 2;
-  nodePosition.y += nodeSize[1] / 2;
+
+  nodePosition.x += node.clientWidth / 2;
+  nodePosition.y += node.clientHeight / 2;
   return nodePosition;
 };
 

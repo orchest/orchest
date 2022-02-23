@@ -1160,11 +1160,7 @@ button.themed-secondary {
 
     .pipeline-step {
       position: absolute;
-      // background: #fff;
-      // TODO: "HM clean up this  ========
-      background: transparent;
-      border: "1px dotted green";
-      // =================================
+      background: #fff;
       padding: calc(var(--space-5) / 2) var(--space-5);
       border: 1px solid $borderColor;
       border-radius: $stepBorderRadius;

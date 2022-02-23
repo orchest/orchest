@@ -299,21 +299,18 @@ const _PipelineStep = (
         metadata.hidden && "hidden",
         isStartNodeOfNewConnection && "creating-connection"
       )}
-      style={{ transform }}
+      style={{
+        transform,
+        zIndex:
+          dragCount.current === DRAG_CLICK_SENSITIVITY || selected
+            ? 2
+            : "unset",
+      }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
     >
       {incomingDot}
-      {/* <div
-        className={classNames(
-          "incoming-connections connection-point",
-          isCreatingConnection ? "hover" : ""
-        )}
-        onMouseUp={onMouseUpIncomingConnectionPoint}
-      >
-        <div className="inner-dot"></div>
-      </div> */}
       <div className={"execution-indicator"}>
         {{
           SUCCESS: <span className="success">✓ </span>,
@@ -330,12 +327,6 @@ const _PipelineStep = (
         </div>
       </div>
       {outgoingDot}
-      {/* <div
-        className={"outgoing-connections connection-point"}
-        onMouseDown={onMouseDownOutgoingConnections}
-      >
-        <div className="inner-dot"></div>
-      </div> */}
     </div>
   );
 };

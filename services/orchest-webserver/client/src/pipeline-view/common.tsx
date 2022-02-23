@@ -6,6 +6,7 @@ import type {
   StepsDict,
 } from "@/types";
 import cloneDeep from "lodash.clonedeep";
+import { getNodeCenter } from "./useEventVars";
 
 export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
 export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
@@ -104,4 +105,13 @@ export const getPositionFromOffset = ({
       scaleCorrectedPosition(position.y, scaleFactor) -
       scaleCorrectedPosition(offset.top, scaleFactor),
   };
+};
+
+export const getPosition = (
+  element: HTMLElement | undefined,
+  parentOffset: Offset,
+  scaleFactor: number
+) => {
+  if (!element) return null;
+  return getNodeCenter(parentOffset, scaleFactor)(element);
 };
