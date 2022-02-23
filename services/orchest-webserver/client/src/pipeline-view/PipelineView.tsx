@@ -1505,6 +1505,8 @@ const PipelineView: React.FC = () => {
 
   const servicesButtonRef = React.useRef<HTMLButtonElement>();
 
+  console.log("HM 😆", eventVars.connections, eventVars.newConnection);
+
   return (
     <Layout disablePadding>
       <div className="pipeline-view">
@@ -1746,12 +1748,10 @@ const PipelineView: React.FC = () => {
                     if (!startNode) return null;
 
                     const shouldUpdate = [
-                      startNodeUUID,
-                      endNodeUUID,
-                    ].map((uuid) => eventVars.selectedSteps.includes(uuid)) as [
-                      boolean,
-                      boolean
-                    ];
+                      eventVars.selectedSteps.includes(startNodeUUID),
+                      !endNodeUUID || // user is trying to make a new connection
+                        eventVars.selectedSteps.includes(endNodeUUID),
+                    ] as [boolean, boolean];
 
                     const getPosition = getNodeCenter(
                       canvasOffset,

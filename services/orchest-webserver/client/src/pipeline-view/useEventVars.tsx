@@ -22,8 +22,9 @@ import {
 import { getStepSelectorRectangle } from "./Rectangle";
 
 export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
-  node: HTMLElement
+  node: HTMLElement | undefined
 ) => {
+  if (!node) return null;
   let nodePosition = localElementPosition(
     getOffset(node),
     parentOffset,
@@ -178,6 +179,8 @@ export const useEventVars = () => {
 
       if (!action) return;
 
+      const originalState = original(state);
+
       /**
        * =================== common functions inside of reducer
        */
@@ -186,7 +189,7 @@ export const useEventVars = () => {
         startNodeUUID: string,
         endNodeUUID: string
       ) => {
-        return state.connections.find((connection) => {
+        return originalState.connections.find((connection) => {
           return (
             connection.startNodeUUID === startNodeUUID &&
             connection.endNodeUUID === endNodeUUID
@@ -203,21 +206,20 @@ export const useEventVars = () => {
         whiteSet.delete(step_uuid);
         greySet.add(step_uuid);
 
-        for (
-          let x = 0;
-          x < state.steps[step_uuid].outgoing_connections.length;
-          x++
-        ) {
-          let child_uuid = state.steps[step_uuid].outgoing_connections[x];
-
-          if (whiteSet.has(child_uuid)) {
-            if (dfsWithSets(child_uuid, whiteSet, greySet)) {
+        const found = originalState.steps[step_uuid].outgoing_connections.some(
+          (child_uuid) => {
+            if (
+              whiteSet.has(child_uuid) &&
+              dfsWithSets(child_uuid, whiteSet, greySet)
+            )
               return true;
-            }
-          } else if (greySet.has(child_uuid)) {
-            return true;
+            if (!whiteSet.has(child_uuid) && greySet.has(child_uuid))
+              return true;
+            return false;
           }
-        }
+        );
+
+        if (found) return true;
 
         // move from grey to black
         greySet.delete(step_uuid);
@@ -225,10 +227,12 @@ export const useEventVars = () => {
 
       const willCreateCycle = (startNodeUUID: string, endNodeUUID: string) => {
         // add connection temporarily
-        let insertIndex =
-          state.steps[endNodeUUID].incoming_connections.push(startNodeUUID) - 1;
 
-        let whiteSet = new Set(Object.keys(state.steps));
+        originalState.steps[endNodeUUID].incoming_connections.push(
+          startNodeUUID
+        );
+
+        let whiteSet = new Set(Object.keys(originalState.steps));
         let greySet = new Set<string>();
 
         let cycles = false;
@@ -242,19 +246,16 @@ export const useEventVars = () => {
           }
         }
 
-        // remove temp connection
-        state.steps[endNodeUUID].incoming_connections.splice(insertIndex, 1);
-
         return cycles;
       };
 
       const saveStepsSelectedByRect = () => {
-        let rect = getStepSelectorRectangle(state.stepSelector);
+        let rect = getStepSelectorRectangle(originalState.stepSelector);
 
         // for each step perform intersect
-        if (state.stepSelector.active) {
+        if (originalState.stepSelector.active) {
           state.selectedSteps = [];
-          Object.values(state.steps).forEach((step) => {
+          Object.values(originalState.steps).forEach((step) => {
             // guard against ref existing, in case step is being added
             if (stepDomRefs.current[step.uuid]) {
               const stepContainer = stepDomRefs.current[step.uuid];
@@ -283,7 +284,7 @@ export const useEventVars = () => {
         //
         // then user mouseup, we need to get endNodeUUID to finish the creation of the new connection
 
-        let startNodeUUID = state.newConnection?.startNodeUUID;
+        let startNodeUUID = originalState.newConnection?.startNodeUUID;
 
         // ==== startNodeUUID is required, abort if missing
 
@@ -297,7 +298,7 @@ export const useEventVars = () => {
         // ==== user didn't mouseup on a step, abort
 
         if (!endNodeUUID) {
-          removeConnection(state.newConnection);
+          removeConnection(originalState.newConnection);
           console.error("Failed to make connection. endNodeUUID is undefined.");
           return;
         }
@@ -314,12 +315,12 @@ export const useEventVars = () => {
         // );
 
         // ==== check whether there already exists a connection
-        let connectionAlreadyExists = state.steps[
+        let connectionAlreadyExists = originalState.steps[
           endNodeUUID
         ].incoming_connections.includes(startNodeUUID);
 
         if (connectionAlreadyExists) {
-          removeConnection(state.newConnection);
+          removeConnection(originalState.newConnection);
           state.error =
             "These steps are already connected. No new connection has been created.";
 
@@ -332,7 +333,7 @@ export const useEventVars = () => {
           willCreateCycle(startNodeUUID, endNodeUUID);
 
         if (connectionCreatesCycle) {
-          removeConnection(state.newConnection);
+          removeConnection(originalState.newConnection);
           state.error =
             "Connecting this step will create a cycle in your pipeline which is not supported.";
 
@@ -343,7 +344,9 @@ export const useEventVars = () => {
 
         // TODO: check how connection line is drawn. is incoming_connections the only thing to change?
         if (
-          !state.steps[endNodeUUID].incoming_connections.includes(startNodeUUID)
+          !originalState.steps[endNodeUUID].incoming_connections.includes(
+            startNodeUUID
+          )
         ) {
           state.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
         }
@@ -358,7 +361,7 @@ export const useEventVars = () => {
         state.newConnection = undefined;
 
         // remove it from the state.connections array
-        const foundIndex = state.connections.findIndex((connection) => {
+        const foundIndex = originalState.connections.findIndex((connection) => {
           const matchStart = connection.startNodeUUID === startNodeUUID;
 
           const matchEnd =
@@ -373,7 +376,7 @@ export const useEventVars = () => {
         if (!endNodeUUID) return;
 
         // remove it from the incoming_connections of its subsequent nodes
-        const subsequentStep = state.steps[endNodeUUID];
+        const subsequentStep = originalState.steps[endNodeUUID];
 
         subsequentStep.incoming_connections = subsequentStep.incoming_connections.filter(
           (startNodeUuid) => startNodeUuid !== endNodeUUID
@@ -381,8 +384,7 @@ export const useEventVars = () => {
       };
 
       const selectSteps = (steps: string[]) => {
-        state.selectedSteps = [];
-        steps.forEach((stepUuid) => state.selectedSteps.push(stepUuid));
+        state.selectedSteps = [...steps];
         state.openedMultiStep = steps.length > 1;
       };
 
@@ -405,7 +407,7 @@ export const useEventVars = () => {
         baseOffset = 15
       ) => {
         const stepPositions = new Set();
-        Object.values(state.steps).forEach((step) => {
+        Object.values(originalState.steps).forEach((step) => {
           // Make position hashable.
           stepPositions.add(String(step.meta_data.position));
         });
@@ -434,7 +436,7 @@ export const useEventVars = () => {
         case "CREATE_STEP": {
           const newStep = action.payload;
 
-          if (state.steps[newStep.uuid]) {
+          if (originalState.steps[newStep.uuid]) {
             state.error = "Step already exists";
             break;
           }
@@ -451,40 +453,40 @@ export const useEventVars = () => {
 
           break;
         }
-        case "MOVE_STEPS": {
-          const stepUuid = selectedSingleStep.current;
-          const originalState = original(state);
-          let originalStep = originalState.steps[stepUuid];
-          if (!originalStep) break;
+        // case "MOVE_STEPS": {
+        //   const stepUuid = selectedSingleStep.current;
 
-          state.steps[stepUuid].meta_data._drag_count++;
-          if (originalStep.meta_data._drag_count >= DRAG_CLICK_SENSITIVITY) {
-            state.steps[stepUuid].meta_data._dragged = true;
-            state.steps[stepUuid].meta_data._drag_count = 0;
-          }
+        //   let originalStep = originalState.steps[stepUuid];
+        //   if (!originalStep) break;
 
-          // check for space bar, i.e. not dragging canvas
-          if (keysDown.has(32)) break;
+        //   state.steps[stepUuid].meta_data._drag_count++;
+        //   if (originalStep.meta_data._drag_count >= DRAG_CLICK_SENSITIVITY) {
+        //     state.steps[stepUuid].meta_data._dragged = true;
+        //     state.steps[stepUuid].meta_data._drag_count = 0;
+        //   }
 
-          const originalSelectedSteps = originalState.selectedSteps;
-          // this should never happen,
-          // when mouse down a step, the step should be added to selectedSteps at the same time
+        //   // check for space bar, i.e. not dragging canvas
+        //   if (keysDown.has(32)) break;
 
-          if (!originalSelectedSteps.includes(stepUuid)) break;
+        //   const originalSelectedSteps = originalState.selectedSteps;
+        //   // this should never happen,
+        //   // when mouse down a step, the step should be added to selectedSteps at the same time
 
-          // if user selected multiple steps, they will move together
-          originalSelectedSteps.forEach((uuid) => {
-            const originalPosition =
-              originalState.steps[uuid].meta_data.position;
+        //   if (!originalSelectedSteps.includes(stepUuid)) break;
 
-            state.steps[uuid].meta_data.position[0] =
-              originalPosition[0] + positionDelta.current.x;
-            state.steps[uuid].meta_data.position[1] =
-              originalPosition[1] + positionDelta.current.y;
-          });
+        //   // if user selected multiple steps, they will move together
+        //   originalSelectedSteps.forEach((uuid) => {
+        //     const originalPosition =
+        //       originalState.steps[uuid].meta_data.position;
 
-          break;
-        }
+        //     state.steps[uuid].meta_data.position[0] =
+        //       originalPosition[0] + positionDelta.current.x;
+        //     state.steps[uuid].meta_data.position[1] =
+        //       originalPosition[1] + positionDelta.current.y;
+        //   });
+
+        //   break;
+        // }
         case "CREATE_SELECTOR": {
           // not dragging the canvas, so user must be creating a selection rectangle
           state.selectedSteps = [];
@@ -492,7 +494,7 @@ export const useEventVars = () => {
           const selectorOrigin = getPositionFromOffset({
             offset: action.payload,
             position: mouseClient.current,
-            scaleFactor: original(state).scaleFactor,
+            scaleFactor: originalState.scaleFactor,
           });
 
           state.stepSelector = {
@@ -523,7 +525,7 @@ export const useEventVars = () => {
           selectedSingleStep.current = action.payload;
           if (
             action.payload &&
-            !original(state).selectedSteps.includes(action.payload)
+            !originalState.selectedSteps.includes(action.payload)
           ) {
             state.selectedSteps = [action.payload];
             // TODO: press SHIFT/CTRL to add action.payload to current state.selectedSteps
@@ -535,7 +537,6 @@ export const useEventVars = () => {
           break;
         }
         case "DESELECT_CONNECTION": {
-          // return { ...state, selectedConnection: undefined };
           state.selectedConnection = undefined;
           break;
         }
@@ -573,7 +574,7 @@ export const useEventVars = () => {
           const { x, y } = getPositionFromOffset({
             offset: action.payload,
             position: mouseClient.current,
-            scaleFactor: original(state).scaleFactor,
+            scaleFactor: originalState.scaleFactor,
           });
 
           state.stepSelector.x2 = x;
@@ -588,7 +589,7 @@ export const useEventVars = () => {
           const { x, y } = getPositionFromOffset({
             offset: action.payload,
             position: mouseClient.current,
-            scaleFactor: original(state).scaleFactor,
+            scaleFactor: originalState.scaleFactor,
           });
 
           state.newConnection.xEnd = x;
@@ -622,7 +623,7 @@ export const useEventVars = () => {
           const stepsToDelete = action.payload;
           stepsToDelete.forEach((uuid) => {
             // remove the connections between current step and its subsequent nodes
-            Object.values(state.steps).forEach((step) => {
+            Object.values(originalState.steps).forEach((step) => {
               const isSubsequentNode = step.incoming_connections.includes(uuid);
               if (isSubsequentNode) {
                 removeConnection({
@@ -633,7 +634,7 @@ export const useEventVars = () => {
             });
 
             // remove the connections between current step and its preceding nodes
-            let currentStep = state.steps[uuid];
+            let currentStep = originalState.steps[uuid];
             currentStep.incoming_connections.forEach((incomingConnection) => {
               const connectionToPrecedingStep = getConnectionByUUIDs(
                 incomingConnection,
@@ -663,6 +664,7 @@ export const useEventVars = () => {
               state.steps[uuid][propKey] = mutation;
             });
           } else {
+            // TODO: check this!!!
             merge(state.steps[uuid], stepChanges);
           }
 
