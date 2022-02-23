@@ -55,3 +55,34 @@ def delete_orchest_ctl_pod():
     Used to avoid leaving dangling pods around.
     """
     k8s_core_api.delete_namespaced_pod(os.environ["POD_NAME"], "orchest")
+
+
+def _get_ongoing_status_changing_pods() -> List[k8s_client.V1Pod]:
+    """Both orchest-ctl and update-server pods.
+    Sorted by creation time.
+    """
+    pods = k8s_core_api.list_namespaced_pod(
+        config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
+    ).items
+    pods = [
+        p
+        for p in pods
+        if (
+            # The update server could be launched through the GUI.
+            p.metadata.labels["app"] == "update-server"
+            or p.metadata.labels["command"] in config.STATUS_CHANGING_OPERATIONS
+        )
+    ]
+    pods.sort(key=lambda pod: pod.metadata.creation_timestamp)
+    return pods
+
+
+def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
+    pods = _get_ongoing_status_changing_pods()
+    if not pods:
+        return None
+    if pods[0].metadata.labels["app"] == "update-server":
+        return config.OrchestStatus.UPDATING
+    else:
+        cmd = pods[0].metadata.labels["command"]
+        return config.ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]

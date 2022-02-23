@@ -115,32 +115,20 @@ def stop():
 
 @typer_app.command()
 def status(
-    ext: bool = typer.Option(
+    json: bool = typer.Option(
         False,
-        "--ext",
+        "--json",
         show_default=False,
-        help="Get extensive status information.",
+        help="Get output in json.",
     ),
 ):
     """
-    Get status of Orchest.
+    Get status of Orchest, one of: "installing", "restarting",
+    "running", "starting", "stopped", "stopping", "unhealthy",
+    "updating".
 
-    Exit codes:
-
-    - 0: Orchest is running and services are ready.
-
-    - 1: Orchest is not running.
-
-    - 2: Orchest is running, but some required service has shut down.
-
-    - 3: Orchest is running, but some required service is not passing a
-    health check.
-
-    - 4: Orchest is restarting.
-
-    - 5: Orchest is updating.
     """
-    app.status(ext=ext)
+    orchest.status(output_json=json)
 
 
 @typer_app.command()

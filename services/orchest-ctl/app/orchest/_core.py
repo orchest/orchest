@@ -155,7 +155,7 @@ def _echo_version(
         print(json.dumps(data, sort_keys=True, indent=2))
 
 
-def version(ext=False, output_json: bool = False):
+def version(ext: bool = False, output_json: bool = False):
     """Returns the version of Orchest.
 
     Args:
@@ -183,3 +183,62 @@ def version(ext=False, output_json: bool = False):
             )[1]
 
     _echo_version(cluster_version, depl_versions, output_json)
+
+
+def status(output_json: bool = False):
+    """Gets the status of Orchest.
+
+    Note: this is not race condition free, given that a status changing
+    command could start after our read. K8S_TODO: we could try multiple
+    times if the cluster looks unhealthy, discuss.
+    """
+    config.JSON_MODE = output_json
+    utils.echo("Checking for ongoing status changes...")
+    ongoing_change = k8sw.get_ongoing_status_change()
+    if ongoing_change is not None:
+        status = ongoing_change
+    else:
+        utils.echo("No ongoing status changes, checking if Orchest is running.")
+
+        deployments = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
+        running_deployments = set()
+        stopped_deployments = set()
+        unhealthy_deployments = set()
+        for depl_name, depl in zip(config.ORCHEST_DEPLOYMENTS, deployments):
+            if depl is None:
+                unhealthy_deployments.add(depl_name)
+            else:
+                replicas = depl.spec.replicas
+                if replicas > 0:
+                    running_deployments.add(depl_name)
+                else:
+                    stopped_deployments.add(depl_name)
+                if replicas != depl.status.available_replicas:
+                    unhealthy_deployments.add(depl_name)
+        unhealthy = (
+            # Can't have both.
+            (stopped_deployments and running_deployments)
+            or unhealthy_deployments
+        )
+        unhealthy_reason = set()
+        if unhealthy:
+            status = config.OrchestStatus.UNHEALTHY
+            unhealthy_reason.update(unhealthy_deployments)
+            # Assume that, if at least 1 deployment is running, the ones
+            # which are not are unhealthy.
+            if stopped_deployments and running_deployments:
+                unhealthy_reason.update(stopped_deployments)
+            unhealthy_reason = sorted(unhealthy_reason)
+            utils.echo(f"Unhealthy deployments: {unhealthy_reason}.")
+        elif running_deployments:
+            status = config.OrchestStatus.RUNNING
+        else:
+            status = config.OrchestStatus.STOPPED
+
+    utils.echo(f"Orchest is {status}.")
+
+    if output_json:
+        data = {"status": status}
+        if status == "unhealthy":
+            data["reason"] = unhealthy_reason
+        print(json.dumps(data))
