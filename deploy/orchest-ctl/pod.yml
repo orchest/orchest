@@ -5,6 +5,8 @@ metadata:
   labels:
     app: orchest-ctl
     version: %VERSION%
+    # Refer to config.STATUS_CHANGING_OPERATIONS if you plan changes to
+    # this label.
     command: %COMMAND%
 spec:
   containers:

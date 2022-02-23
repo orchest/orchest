@@ -1,4 +1,3 @@
-"""Core functionality of orchest-ctl."""
 import atexit
 import json
 import logging
