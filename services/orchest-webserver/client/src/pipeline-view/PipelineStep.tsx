@@ -85,7 +85,35 @@ const getStateText = (executionState: ExecutionState) => {
   return stateText;
 };
 
-const foo = 0;
+type DotType = React.DetailedHTMLProps<
+  React.HTMLAttributes<HTMLDivElement>,
+  HTMLDivElement
+> & {
+  incoming?: boolean;
+  outgoing?: boolean;
+};
+
+const Dot = (
+  { incoming, outgoing, className, ...props }: DotType,
+  ref: React.MutableRefObject<HTMLDivElement>
+) => {
+  const typeClassName = incoming
+    ? "incoming-connections"
+    : outgoing
+    ? "outgoing-connections"
+    : "";
+  return (
+    <div
+      ref={ref}
+      className={classNames(typeClassName, className, "connection-point")}
+      {...props}
+    >
+      <div className="inner-dot"></div>
+    </div>
+  );
+};
+
+export const ConnectionDot = React.forwardRef(Dot);
 
 const _PipelineStep = (
   {
@@ -95,27 +123,31 @@ const _PipelineStep = (
     executionState,
     selected,
     isSelectorActive,
-    onMouseUpIncomingConnectionPoint,
-    isCreatingConnection,
+    // onMouseUpIncomingConnectionPoint,
+    // isCreatingConnection,
     isStartNodeOfNewConnection,
     eventVarsDispatch,
     mouseTracker,
     selectedSingleStep,
     disabledDragging,
+    incomingDot,
+    outgoingDot,
   }: {
     initialValue: PipelineStepState;
     scaleFactor: number;
     offset: Offset;
     selected: boolean;
     isSelectorActive: boolean;
-    isCreatingConnection: boolean;
+    // isCreatingConnection: boolean;
     isStartNodeOfNewConnection: boolean;
-    onMouseUpIncomingConnectionPoint: () => void;
+    // onMouseUpIncomingConnectionPoint: () => void;
     executionState?: ExecutionState;
     eventVarsDispatch: (value: EventVarsAction) => void;
     mouseTracker: React.MutableRefObject<MouseTracker>;
     selectedSingleStep: React.MutableRefObject<string>;
     disabledDragging?: boolean;
+    incomingDot: React.ReactNode;
+    outgoingDot: React.ReactNode;
     // TODO: clean up these
     onDoubleClick?: any;
   },
@@ -164,6 +196,7 @@ const _PipelineStep = (
 
     // Was being dragged, when mouse up, simply reset all variables
     resetDraggingVariables();
+    // TODO: save all steps to BE
   };
 
   const onMouseLeave = () => {
@@ -207,7 +240,7 @@ const _PipelineStep = (
 
       return true;
     };
-    const onMouseMove = (e) => {
+    const onMouseMove = (e: MouseEvent) => {
       if (disabledDragging) {
         resetDraggingVariables();
         return;
@@ -216,19 +249,16 @@ const _PipelineStep = (
       const shouldFollowSelectedSingleStep =
         selected && !isSelectorActive && hasValue(selectedSingleStep.current);
 
-      const shouldFollowCursor =
+      const shouldMoveWithCursor =
         isBeingDragged() || shouldFollowSelectedSingleStep;
 
-      console.log("HM", e.clientX, e.clientY);
-      if (shouldFollowCursor) {
+      if (shouldMoveWithCursor) {
         setMetadata((current) => {
           const { x, y } = mouseTracker.current.delta;
           const updatedPosition = [
             Math.max(current.position[0] + x, -10),
             Math.max(current.position[1] + y, -10),
           ] as [number, number];
-          // TODO: also updated connected Connections
-          console.log("HM", updatedPosition);
           return {
             ...current,
             position: updatedPosition,
@@ -274,7 +304,8 @@ const _PipelineStep = (
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
     >
-      <div
+      {incomingDot}
+      {/* <div
         className={classNames(
           "incoming-connections connection-point",
           isCreatingConnection ? "hover" : ""
@@ -282,7 +313,7 @@ const _PipelineStep = (
         onMouseUp={onMouseUpIncomingConnectionPoint}
       >
         <div className="inner-dot"></div>
-      </div>
+      </div> */}
       <div className={"execution-indicator"}>
         {{
           SUCCESS: <span className="success">✓ </span>,
@@ -295,14 +326,16 @@ const _PipelineStep = (
         <div className={"step-label"}>
           {step.title}
           <span className="filename">{step.file_path}</span>
+          <span className="filename">{step.uuid}</span>
         </div>
       </div>
-      <div
+      {outgoingDot}
+      {/* <div
         className={"outgoing-connections connection-point"}
         onMouseDown={onMouseDownOutgoingConnections}
       >
         <div className="inner-dot"></div>
-      </div>
+      </div> */}
     </div>
   );
 };

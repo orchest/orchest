@@ -7,6 +7,7 @@ import type {
   Step,
   StepsDict,
 } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import { intersectRect } from "@orchest/lib-utils";
 import produce, { original } from "immer";
@@ -25,8 +26,8 @@ export const nodeCenter = (
   scaleFactor: number
 ) => {
   let nodePosition = localElementPosition(
-    $(el).offset(),
-    $(parentEl).offset(),
+    getOffset(el),
+    getOffset(parentEl),
     scaleFactor
   );
   nodePosition.x += $(el).width() / 2;

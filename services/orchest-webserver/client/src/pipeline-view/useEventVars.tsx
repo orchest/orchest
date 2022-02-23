@@ -21,17 +21,18 @@ import {
 import { getStepSelectorRectangle } from "./Rectangle";
 
 export const nodeCenter = (
-  el: HTMLElement,
-  parentEl: HTMLElement,
+  nodeSize: [number, number],
+  nodeOffset: Offset,
+  parentOffset: Offset,
   scaleFactor: number
 ) => {
   let nodePosition = localElementPosition(
-    $(el).offset(),
-    $(parentEl).offset(),
+    nodeOffset,
+    parentOffset,
     scaleFactor
   );
-  nodePosition.x += $(el).width() / 2;
-  nodePosition.y += $(el).height() / 2;
+  nodePosition.x += nodeSize[0] / 2;
+  nodePosition.y += nodeSize[1] / 2;
   return nodePosition;
 };
 

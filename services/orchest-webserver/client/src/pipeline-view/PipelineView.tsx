@@ -13,6 +13,7 @@ import type {
   Step,
   StepsDict,
 } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
 import {
@@ -54,7 +55,12 @@ import {
 import { PipelineCanvas } from "./PipelineCanvas";
 import PipelineConnection from "./PipelineConnection";
 import { PipelineDetails } from "./PipelineDetails";
-import { PipelineStep, STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
+import {
+  ConnectionDot,
+  PipelineStep,
+  STEP_HEIGHT,
+  STEP_WIDTH,
+} from "./PipelineStep";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { useAutoStartSession } from "./useAutoStartSession";
@@ -84,7 +90,7 @@ const originTransformScaling = (
    * that avoids visual displacement when the origin of the
    * transformed/scaled parent is modified.
    *
-   * the adjustedScaleFactor was derived by analysing the geometric behavior
+   * the adjustedScaleFactor was derived by analyzing the geometric behavior
    * of applying the css transform: translate(...) scale(...);.
    */
 
@@ -142,11 +148,11 @@ const PipelineView: React.FC = () => {
   const updateCanvasOffset = React.useCallback(() => {
     // TODO: replace this with plain javascript
     // TODO: call this function when dragging the canvas
-    setCanvasOffset($(pipelineCanvas.current).offset());
+    setCanvasOffset(getOffset(pipelineCanvas.current));
   }, []);
   React.useLayoutEffect(() => {
     if (pipelineCanvas.current) {
-      setCanvasOffset($(pipelineCanvas.current).offset());
+      setCanvasOffset(getOffset(pipelineCanvas.current));
     }
   }, []);
 
@@ -1051,7 +1057,7 @@ const PipelineView: React.FC = () => {
     }
     let pipelineCanvasEl = $(pipelineCanvas.current);
 
-    let pipelineStepsHolderOffset = $(pipelineStepsHolder.current).offset();
+    let pipelineStepsHolderOffset = getOffset(pipelineStepsHolder.current);
 
     let centerOrigin = [
       scaleCorrectedPosition(
@@ -1120,8 +1126,8 @@ const PipelineView: React.FC = () => {
         return;
       }
 
-      let holderOffset = $(pipelineStepsHolder.current).offset();
-      let outerHolderOffset = $(pipelineCanvas.current).offset();
+      let holderOffset = getOffset(pipelineStepsHolder.current);
+      let outerHolderOffset = getOffset(pipelineCanvas.current);
 
       let initialX = holderOffset.left - outerHolderOffset.left;
       let initialY = holderOffset.top - outerHolderOffset.top;
@@ -1292,7 +1298,7 @@ const PipelineView: React.FC = () => {
       );
       return;
     }
-    let { left, top } = $(pipelineStepsHolder.current).offset();
+    let { left, top } = getOffset(pipelineStepsHolder.current);
     const { x, y } = mouseClient.current;
 
     return [
@@ -1678,57 +1684,97 @@ const PipelineView: React.FC = () => {
                     isSelectorActive={eventVars.stepSelector.active}
                     selectedSingleStep={selectedSingleStep}
                     ref={(el) => (stepDomRefs.current[step.uuid] = el)}
+                    incomingDot={
+                      <ConnectionDot
+                        incoming
+                        ref={(el) =>
+                          (stepDomRefs.current[`${step.uuid}-incoming`] = el)
+                        }
+                        className={
+                          hasValue(eventVars.newConnection) ? "hover" : ""
+                        }
+                        onMouseUp={() => onMouseUpPipelineStep(step.uuid)}
+                      />
+                    }
+                    outgoingDot={
+                      <ConnectionDot
+                        outgoing
+                        ref={(el) =>
+                          (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
+                        }
+                        onMouseDown={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          if (e.button === 0) {
+                            e.stopPropagation();
+
+                            eventVarsDispatch({
+                              type: "CREATE_CONNECTION_INSTANCE",
+                              payload: createNewConnection(step.uuid),
+                            });
+                          }
+                        }}
+                      />
+                    }
                     executionState={
                       stepExecutionState
                         ? stepExecutionState[step.uuid] || { status: "IDLE" }
                         : { status: "IDLE" }
                     }
-                    isCreatingConnection={hasValue(eventVars.newConnection)}
+                    // isCreatingConnection={hasValue(eventVars.newConnection)}
                     isStartNodeOfNewConnection={
                       eventVars.newConnection?.startNodeUUID === step.uuid
                     }
                     eventVarsDispatch={eventVarsDispatch}
-                    onMouseUpIncomingConnectionPoint={() =>
-                      onMouseUpPipelineStep(step.uuid)
-                    }
+                    // onMouseUpIncomingConnectionPoint={() =>
+                    //   onMouseUpPipelineStep(step.uuid)
+                    // }
                     mouseTracker={mouseTracker}
                     // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
                   />
                 );
               })}
               <div className="connections">
-                {eventVars.connections.map((connection, index) => {
-                  const { startNodeUUID, endNodeUUID } = connection;
-                  const startNode = stepDomRefs.current[startNodeUUID];
-                  const endNode = endNodeUUID
-                    ? stepDomRefs.current[endNodeUUID]
-                    : null;
+                {canvasOffset &&
+                  eventVars.connections.map((connection, index) => {
+                    const { startNodeUUID, endNodeUUID } = connection;
+                    const startNode =
+                      stepDomRefs.current[`${startNodeUUID}-outgoing`];
+                    const endNode = endNodeUUID
+                      ? stepDomRefs.current[`${endNodeUUID}-incoming`]
+                      : null;
 
-                  if (!pipelineStepsHolder.current || !startNode) return null;
+                    if (!startNode) return null;
 
-                  let startNodePosition = nodeCenter(
-                    startNode,
-                    pipelineStepsHolder.current,
-                    eventVars.scaleFactor
-                  );
-                  let endNodePosition = endNode
-                    ? nodeCenter(
-                        endNode,
-                        pipelineStepsHolder.current,
-                        eventVars.scaleFactor
-                      )
-                    : null;
+                    const startNodeOffset = getOffset(startNode);
 
-                  return (
-                    <PipelineConnection
-                      key={index}
-                      onClick={onClickConnection}
-                      startNodePosition={startNodePosition}
-                      endNodePosition={endNodePosition}
-                      {...connection}
-                    />
-                  );
-                })}
+                    let startNodePosition = nodeCenter(
+                      [startNode.clientWidth, startNode.clientHeight],
+                      startNodeOffset,
+                      canvasOffset,
+                      eventVars.scaleFactor
+                    );
+
+                    const endNodeOffset = endNode ? getOffset(endNode) : null;
+
+                    let endNodePosition = endNodeOffset
+                      ? nodeCenter(
+                          [endNode.clientWidth, endNode.clientHeight],
+                          endNodeOffset,
+                          canvasOffset,
+                          eventVars.scaleFactor
+                        )
+                      : null;
+
+                    return (
+                      <PipelineConnection
+                        key={index}
+                        onClick={onClickConnection}
+                        startNodePosition={startNodePosition}
+                        endNodePosition={endNodePosition}
+                        {...connection}
+                      />
+                    );
+                  })}
               </div>
             </div>
           </PipelineCanvas>

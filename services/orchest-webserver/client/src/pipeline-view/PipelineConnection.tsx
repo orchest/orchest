@@ -9,6 +9,21 @@ const lineHeight = 2;
 const svgPadding = 5;
 const arrowWidth = 7;
 
+const curvedHorizontal = function (
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number
+) {
+  let line = [];
+  let mx = x1 + (x2 - x1) / 2;
+
+  line.push("M", x1, y1);
+  line.push("C", mx, y1, mx, y2, x2, y2);
+
+  return line.join(" ");
+};
+
 const PipelineConnection: React.FC<{
   startNodePosition: Position;
   endNodePosition: Position | null;
@@ -29,20 +44,14 @@ const PipelineConnection: React.FC<{
 }) => {
   const connectionHolder = React.useRef(null);
 
-  const curvedHorizontal = function (x1, y1, x2, y2) {
-    let line = [];
-    let mx = x1 + (x2 - x1) / 2;
-
-    line.push("M", x1, y1);
-    line.push("C", mx, y1, mx, y2, x2, y2);
-
-    return line.join(" ");
-  };
+  // TODO: clean up
+  const isDev =
+    startNodeUUID.includes("106bb") && endNodeUUID.includes("ac578");
 
   const renderProperties = React.useMemo(() => {
-    // 1. endNodePosition => a complete connection
-    // 2. props.xEnd => user is still making the connection, not yet decided the endNode
-    // 3. startNode => default, just started to create
+    // 1. if endNodePosition is defined => a complete connection
+    // 2. if props.xEnd is defined => user is still making the connection, not yet decided the endNode
+    // 3. startNodePosition => default, just started to create
     let xEnd = endNodePosition
       ? endNodePosition.x
       : props.xEnd ?? startNodePosition.x; // props.xEnd could be 0, so we need to use ?? instead of ||
