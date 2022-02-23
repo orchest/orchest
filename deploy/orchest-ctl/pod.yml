@@ -5,7 +5,7 @@ metadata:
   labels:
     app: orchest-ctl
     version: %VERSION%
-    command: ""
+    command: %COMMAND%
 spec:
   containers:
   - command:
