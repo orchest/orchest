@@ -10,13 +10,15 @@ from urllib import request
 
 import typer
 
-from app import error
+from app import config, error
 from app.config import WRAP_LINES
 
 logger = logging.getLogger(__name__)
 
 
 def echo(*args, wrap=WRAP_LINES, **kwargs):
+    if config.JSON_MODE:
+        return
     """Wraps typer.echo to natively support line wrapping."""
     if wrap:
         message = kwargs.get("message")

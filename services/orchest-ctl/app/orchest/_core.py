@@ -163,6 +163,7 @@ def version(ext=False, output_json: bool = False):
         including deployment versions.
         output_json: If true echo json instead of text.
     """
+    config.JSON_MODE = output_json
     cluster_version = k8sw.get_orchest_cluster_version()
     if not ext:
         _echo_version(cluster_version, None, output_json)

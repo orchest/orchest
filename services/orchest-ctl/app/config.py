@@ -87,6 +87,8 @@ ORCHEST_IMAGES = {
 }
 
 WRAP_LINES = 72
+# Used to avoid outputting anything that isn't the desired json.
+JSON_MODE = False
 
 ORCHEST_WEBSERVER_ADDRESS = "http://orchest-webserver:80"
 
