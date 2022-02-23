@@ -55,9 +55,8 @@ image="orchest/orchest-ctl"
 
 set -e
 
-# TODO: passing an argument containing @ will break this.
 pod=$(sed -e "s@%IMAGE%@$image@g" -e "s@%VERSION%@$repo_version@g" \
--e "s@%COMMAND%@$@@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
+"$DIR/deploy/orchest-ctl/pod.yml" | \
 minikube kubectl -- create -n orchest -o name -f -)
 
 # Make sure to cleanup the pod on exit.
@@ -76,6 +75,8 @@ trap on_exit EXIT
 # doesn't go through more than 1 iteration usually.
 for i in {1..100}; do minikube kubectl -- get -n orchest "${pod}" \
     > /dev/null 2>&1 && break; done
+
+minikube kubectl -- label -n orchest "${pod}" "command=$1" --overwrite > /dev/null 
 
 # Wait for 15mins because the image might need to be pulled. TODO:
 # alert the user if a pull happens, then wait.
