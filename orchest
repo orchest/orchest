@@ -70,7 +70,7 @@ function on_exit {
 trap on_exit EXIT
 
 # Necessary because
-# https://github.com/kubernetes/kubernetes/issues/83242 Not: not
+# https://github.com/kubernetes/kubernetes/issues/83242 Note: not
 # sleeping here because not all sleep implementations support floating
 # point values, and sleeping for 1s introuces a bad delay UX wise. It
 # doesn't go through more than 1 iteration usually.

@@ -15,6 +15,9 @@ from app.orchest import _k8s_wrapper as k8sw
 
 logger = logging.getLogger(__name__)
 
+
+# This is just another failsafe to make sure we don't leave dangling
+# pods around.
 signal.signal(signal.SIGTERM, lambda *args, **kwargs: k8sw.delete_orchest_ctl_pod())
 atexit.register(k8sw.delete_orchest_ctl_pod)
 
