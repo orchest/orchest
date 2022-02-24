@@ -58,8 +58,9 @@ def delete_orchest_ctl_pod():
 
 
 def _get_ongoing_status_changing_pods() -> List[k8s_client.V1Pod]:
-    """Both orchest-ctl and update-server pods.
-    Sorted by creation time.
+    """Gets both the orchest-ctl and update-server pods.
+
+    The output is sorted by creation time.
     """
     pods = k8s_core_api.list_namespaced_pod(
         config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
