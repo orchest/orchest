@@ -28,38 +28,30 @@ def _get_common_volumes_and_volume_mounts(
     volumes = {}
     volume_mounts = {}
 
-    volumes.append(
+    volumes["userdir-pvc"] = {
+        "name": "userdir-pvc",
+        "persistentVolumeClaim":
         {
-            "name": "userdir-pvc",
-            "persistentVolumeClaim":
-            {
-                "claimName" : userdir_pvc,
-                "readOnly": False
-            }
+            "claimName" : userdir_pvc,
+            "readOnly": False
         }
-    )
+    }
 
-    volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": container_data_dir,
-            "subPath": "data"
-        }
-    )
-    volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": container_project_dir,
-            "subPath": get_userdir_relpath(project_dir)
-        }
-    )
-    volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": container_pipeline_path,
-            "subPath": get_userdir_relpath(pipeline_path)
-        }
-    )
+    volume_mounts["data"] = {
+        "name": "userdir-pvc",
+        "mountPath": container_data_dir,
+        "subPath": "data"
+    }
+    volume_mounts["project-dir"] = {
+        "name": "userdir-pvc",
+        "mountPath": container_project_dir,
+        "subPath": get_userdir_relpath(project_dir)
+    }
+    volume_mounts["pipeline-file"] = {
+        "name": "userdir-pvc",
+        "mountPath": container_pipeline_path,
+        "subPath": get_userdir_relpath(os.path(project_dir, pipeline_path))
+    }
 
     return volumes, volume_mounts
 
@@ -85,30 +77,24 @@ def _get_jupyter_volumes_and_volume_mounts(
     source_kernelspecs = os.path.join(
         _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
     )
-    volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": "/usr/local/share/jupyter/kernels",
-            "subPath": source_kernelspecs
-        }
-    )
+    volume_mounts["kernelspec"] = {
+        "name": "userdir-pvc",
+        "mountPath": "/usr/local/share/jupyter/kernels",
+        "subPath": source_kernelspecs
+    }
 
     # User configurations of the JupyterLab IDE.
-    volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": "/usr/local/share/jupyter/lab",
-            "subPath": ".orchest/user-configurations/jupyterlab/lab"
-        }
-    )
+    volume_mounts["jupyterlab-lab"] = {
+        "name": "userdir-pvc",
+        "mountPath": "/usr/local/share/jupyter/lab",
+        "subPath": ".orchest/user-configurations/jupyterlab/lab"
+    }
 
-    volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": "/root/.jupyter/lab/user-settings",
-            "subPath": ".orchest/user-configurations/jupyterlab/user-settings"
-        }
-    )
+    volume_mounts["jupyterlab-user-settings"] = {
+        "name": "userdir-pvc",
+        "mountPath": "/root/.jupyter/lab/user-settings",
+        "subPath": ".orchest/user-configurations/jupyterlab/user-settings"
+    }
 
     return volumes, volume_mounts
 
@@ -163,8 +149,7 @@ def _get_memory_server_deployment_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["project-dir"],
-                        volumes_dict["pipeline-file"],
+                        volumes_dict["userdir-pvc"],
                         {"name": "dev-shm", "emptyDir": {"medium": "Memory"}},
                     ],
                     "containers": [
@@ -334,8 +319,7 @@ def _get_session_sidecar_deployment_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["project-dir"],
-                        volumes_dict["pipeline-file"],
+                        volumes_dict["userdir-pvc"],
                     ],
                     "containers": [
                         {
@@ -419,11 +403,7 @@ def _get_jupyter_server_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["project-dir"],
-                        volumes_dict["pipeline-file"],
-                        volumes_dict["data"],
-                        volumes_dict["jupyterlab-lab"],
-                        volumes_dict["jupyterlab-user-settings"],
+                        volumes_dict["userdir-pvc"],
                     ],
                     "containers": [
                         {
@@ -713,7 +693,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["kernelspec"],
+                        volumes_dict["userdir-pvc"],
                     ],
                     "containers": [
                         {
