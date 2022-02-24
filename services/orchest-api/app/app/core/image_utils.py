@@ -31,7 +31,7 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                         ],
                         "volumeMounts": [
                             {
-                                "name": "kaniko-cache",
+                                "name": "kaniko-cache-pvc",
                                 "mountPath": "/cache",
                             },
                         ],
@@ -143,6 +143,10 @@ def _get_image_build_workflow_manifest(
 
                             },
                             {
+                                "name": "kaniko-cache-pvc",
+                                "mountPath": "/cache",
+                            },
+                            {
                                 "name": "tls-secret",
                                 "mountPath": "/kaniko/ssl/certs/additional-ca-cert-bundle.crt",  # noqa
                                 "subPath": "additional-ca-cert-bundle.crt",
@@ -171,15 +175,13 @@ def _get_image_build_workflow_manifest(
                     "name": "userdir-pvc",
                     "persistentVolumeClaim": {
                         "claimName": "userdir-pvc",
-                        "readOnly": "true",
                     },
                 },
                 {
-                    "name": "kaniko-cache",
-                    "hostPath": {
-                        "path": CONFIG_CLASS.HOST_BASE_IMAGES_CACHE,
-                        "type": "DirectoryOrCreate",
-                    },
+                    "name": "kaniko-cache-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName" : "kaniko-cache-pvc",
+                    }
                 },
                 {
                     "name": "tls-secret",
