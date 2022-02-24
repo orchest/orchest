@@ -1,5 +1,5 @@
 import theme from "@/theme";
-import { Position } from "@/types";
+import { Connection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
 
@@ -54,13 +54,13 @@ const ConnectionLine = ({
 const getRenderProperties = ({
   startNodeX,
   startNodeY,
-  endNodeX,
-  endNodeY,
+  endNodeX = startNodeX,
+  endNodeY = startNodeY,
 }: {
   startNodeX: number;
   startNodeY: number;
-  endNodeX: number;
-  endNodeY: number;
+  endNodeX?: number;
+  endNodeY?: number;
 }) => {
   let targetX = endNodeX - startNodeX;
   let targetY = endNodeY - startNodeY;
@@ -93,19 +93,22 @@ const getRenderProperties = ({
 };
 
 const _PipelineConnection: React.FC<{
+  isNew: boolean;
   startNodeX: number;
   startNodeY: number;
   endNodeX: number | undefined;
   endNodeY: number | undefined;
   startNodeUUID: string;
   endNodeUUID?: string;
-  getPosition: (element: HTMLElement) => Position;
+  getPosition: (element: HTMLElement | undefined) => Position | null;
   onClick: (e: MouseEvent) => void;
   selected: boolean;
   shouldUpdate: [boolean, boolean];
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
   selectedSingleStep: React.MutableRefObject<string>;
+  newConnection: React.MutableRefObject<Connection>;
 }> = ({
+  isNew,
   startNodeX,
   endNodeX,
   endNodeY,
@@ -118,13 +121,14 @@ const _PipelineConnection: React.FC<{
   shouldUpdate,
   stepDomRefs,
   selectedSingleStep,
+  newConnection,
 }) => {
   const [renderProperties, setRenderProperties] = React.useState(() =>
     getRenderProperties({
       startNodeX,
+      startNodeY,
       endNodeX,
       endNodeY,
-      startNodeY,
     })
   );
 
@@ -133,12 +137,18 @@ const _PipelineConnection: React.FC<{
   const containerRef = React.useRef<HTMLDivElement>();
 
   const onMouseMove = React.useCallback(() => {
-    if (selectedSingleStep.current && (shouldUpdateStart || shouldUpdateEnd)) {
+    if (
+      (selectedSingleStep.current || isNew) &&
+      (shouldUpdateStart || shouldUpdateEnd)
+    ) {
       const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
       const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
 
       const startNodePosition = getPosition(startNode);
-      const endNodePosition = getPosition(endNode);
+      const endNodePosition = getPosition(endNode) || {
+        x: newConnection.current.xEnd,
+        y: newConnection.current.yEnd,
+      };
 
       setRenderProperties((current) => {
         return {
@@ -153,6 +163,7 @@ const _PipelineConnection: React.FC<{
       });
     }
   }, [
+    isNew,
     startNodeX,
     endNodeX,
     endNodeY,
@@ -164,6 +175,7 @@ const _PipelineConnection: React.FC<{
     selectedSingleStep,
     shouldUpdateStart,
     shouldUpdateEnd,
+    newConnection,
   ]);
 
   // Similar to PipelineStep, here we track the positions of startNode and endNode

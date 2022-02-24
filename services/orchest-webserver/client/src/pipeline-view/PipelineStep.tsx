@@ -1,3 +1,4 @@
+import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   MouseTracker,
   Offset,
@@ -5,10 +6,11 @@ import {
   PipelineStepState,
   PipelineStepStatus,
 } from "@/types";
+import Box from "@mui/material/Box";
 import { hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
-import { createNewConnection, DRAG_CLICK_SENSITIVITY } from "./common";
+import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { EventVarsAction } from "./useEventVars";
 
 export const STEP_WIDTH = 190;
@@ -153,8 +155,6 @@ const _PipelineStep = (
   },
   ref: React.MutableRefObject<HTMLDivElement>
 ) => {
-  // const isDragged = React.useRef(false);
-
   const [step, setStep] = React.useState<Omit<PipelineStepState, "meta_data">>(
     () => {
       const { meta_data, ...rest } = initialValue; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -170,7 +170,7 @@ const _PipelineStep = (
   ]);
 
   const isMouseDown = React.useRef(false);
-  const isDragged = React.useRef(false);
+
   const dragCount = React.useRef(0);
 
   const onMouseDown = (e: React.MouseEvent) => {
@@ -178,10 +178,13 @@ const _PipelineStep = (
     isMouseDown.current = true;
   };
 
+  const [, forceUpdate] = useForceUpdate();
+
   const resetDraggingVariables = React.useCallback(() => {
     selectedSingleStep.current = undefined;
     dragCount.current = 0;
-  }, [selectedSingleStep, dragCount]);
+    forceUpdate();
+  }, [selectedSingleStep, dragCount, forceUpdate]);
 
   const onMouseUp = () => {
     // we want this event to be propagated because Canvas also needs to be notified
@@ -204,18 +207,6 @@ const _PipelineStep = (
     isMouseDown.current = false;
     if (selected) {
       resetDraggingVariables();
-    }
-  };
-
-  const onMouseDownOutgoingConnections = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (e.button === 0) {
-      e.stopPropagation();
-
-      eventVarsDispatch({
-        type: "CREATE_CONNECTION_INSTANCE",
-        payload: createNewConnection(step.uuid),
-      });
     }
   };
 
@@ -256,12 +247,12 @@ const _PipelineStep = (
         setMetadata((current) => {
           const { x, y } = mouseTracker.current.delta;
           const updatedPosition = [
-            Math.max(current.position[0] + x, -10),
-            Math.max(current.position[1] + y, -10),
-          ] as [number, number];
+            current.position[0] + x,
+            current.position[1] + y,
+          ];
           return {
             ...current,
-            position: updatedPosition,
+            position: updatedPosition as [number, number],
           };
         });
       }
@@ -276,7 +267,6 @@ const _PipelineStep = (
     selected,
     selectedSingleStep,
     resetDraggingVariables,
-    isDragged,
     offset,
     dragCount,
     disabledDragging,
@@ -285,9 +275,9 @@ const _PipelineStep = (
 
   const [x, y] = metadata.position;
   const transform = `translateX(${x}px) translateY(${y}px)`;
-
+  const shouldExpandBackground = selectedSingleStep.current === step.uuid;
   return (
-    <div
+    <Box
       data-uuid={step.uuid}
       data-test-title={step.title}
       data-test-id={"pipeline-step"}
@@ -305,6 +295,20 @@ const _PipelineStep = (
           dragCount.current === DRAG_CLICK_SENSITIVITY || selected
             ? 2
             : "unset",
+      }}
+      sx={{
+        // create a transparent background to prevent mouse leave occur unexpectedly
+        "&::after": shouldExpandBackground
+          ? {
+              content: "''",
+              minWidth: STEP_WIDTH * 5,
+              minHeight: STEP_HEIGHT * 5,
+              display: "block",
+              position: "absolute",
+              left: -STEP_WIDTH * 2,
+              top: -STEP_HEIGHT * 2,
+            }
+          : null,
       }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
@@ -327,7 +331,7 @@ const _PipelineStep = (
         </div>
       </div>
       {outgoingDot}
-    </div>
+    </Box>
   );
 };
 

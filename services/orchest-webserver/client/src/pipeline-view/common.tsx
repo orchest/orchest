@@ -56,7 +56,7 @@ export const extractStepsFromPipelineJson = (
   return steps;
 };
 
-export const createNewConnection = (
+export const instantiateConnection = (
   startNodeUUID: string,
   endNodeUUID?: string | undefined
 ): Connection => {
