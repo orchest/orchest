@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "library.cluster.orchest.kanikocache.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.config.storage }}
+  storageClassName: {{ include "library.cluster.orchest.filesystem.storageClass" . }}

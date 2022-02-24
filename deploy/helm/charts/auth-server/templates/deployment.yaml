@@ -31,7 +31,7 @@ deployment
         - name: "PYTHONUNBUFFERED"
           value: "TRUE"
         volumeMounts:
-         - name: config
+         - name: config-pvc
            mountPath: /config
         startupProbe:
           exec:

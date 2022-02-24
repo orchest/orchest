@@ -8,3 +8,8 @@ userdir:
 config:
   name: config-pvc
   storage: 10Mi
+
+kanikocache:
+  name: kaniko-cache-pvc
+  storage: 5Gi
+

@@ -10,6 +10,17 @@ Get the name of the userdir pvc.
 {{- end -}}
 
 {{/*
+Get the name of the kaniko pvc.
+*/}}
+{{- define "library.cluster.orchest.kanikocache.name" -}}
+  {{- if .Values.kanikocache.name -}}
+    {{ .Values.kanikocache.name | trunc 63 | trimSuffix "-" }}
+  {{- else -}}
+    {{ "kaniko-cache-pvc" }}
+  {{- end }}
+{{- end -}}
+
+{{/*
 Get the name of the userdir pvc.
 */}}
 {{- define "library.cluster.orchest.config.name" -}}

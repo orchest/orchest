@@ -26,7 +26,7 @@ deployment
         - name: "ORCHEST_GPU_ENABLED_INSTANCE"
           value: "FALSE"
         volumeMounts:
-         - name: userdir
+         - name: userdir-pvc
            mountPath: /userdir
         startupProbe:
           exec:
