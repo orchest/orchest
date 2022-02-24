@@ -6,7 +6,7 @@ import os
 import signal
 import subprocess
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import typer
 from kubernetes import client as k8s_client
@@ -125,7 +125,7 @@ def _echo_version(
     cluster_version: str,
     deployment_versions: Optional[Dict[str, str]] = None,
     output_json: bool = False,
-):
+) -> None:
     if not output_json:
         utils.echo(f"Cluster version: {cluster_version}.")
         if deployment_versions is not None:
@@ -147,7 +147,7 @@ def _echo_version(
                     err=True,
                 )
     else:
-        data = {
+        data: Dict[str, Any] = {
             "cluster_version": cluster_version,
         }
         if deployment_versions is not None:
@@ -155,17 +155,17 @@ def _echo_version(
         print(json.dumps(data, sort_keys=True, indent=2))
 
 
-def version(ext=False, output_json: bool = False):
+def version(ext=False, output_json: bool = False) -> None:
     """Returns the version of Orchest.
 
     Args:
         ext: If True return the extensive version of Orchest, i.e.
-        including deployment versions.
-        output_json: If true echo json instead of text.
+            including deployment versions.
+        output_json: If True echo json instead of text.
     """
     cluster_version = k8sw.get_orchest_cluster_version()
     if not ext:
-        _echo_version(cluster_version, None, output_json)
+        _echo_version(cluster_version, output_json=output_json)
         return
 
     deployments = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
