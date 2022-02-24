@@ -18,6 +18,7 @@ import {
   getPositionFromOffset,
   localElementPosition,
   scaleCorrectedPosition,
+  willCreateCycle,
 } from "./common";
 import { getStepSelectorRectangle } from "./Rectangle";
 
@@ -37,11 +38,6 @@ export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
 };
 
 type EventVars = {
-  // mouseClientX: number;
-  // mouseClientY: number;
-  // draggingCanvas: boolean;
-  // keysDown: Record<string, boolean>;
-  // prevPosition: [number, number];
   doubleClickFirstClick: boolean;
   scaleFactor: number;
   steps: StepsDict;
@@ -50,7 +46,6 @@ type EventVars = {
   selectedConnection?: Connection;
   openedMultiStep: boolean;
   openedStep?: string;
-  newConnection: Connection;
   stepSelector: {
     x1: number;
     y1: number;
@@ -75,10 +70,6 @@ type Action =
       payload: string[];
     }
   | {
-      type: "SELECT_SINGLE_STEP";
-      payload: string | undefined;
-    }
-  | {
       type: "MOVE_STEPS";
     }
   | {
@@ -88,10 +79,8 @@ type Action =
         endNodeUUID: string;
       };
     }
-  | { type: "DESELECT_STEPS" }
-  | {
-      type: "DESELECT_CONNECTION";
-    }
+  // | { type: "DESELECT_STEPS" }
+  // | { type: "DESELECT_CONNECTION" }
   | {
       type: "SET_OPENED_STEP";
       payload: string | undefined;
@@ -127,10 +116,10 @@ type Action =
       type: "UPDATE_STEP_SELECTOR";
       payload: Offset;
     }
-  | {
-      type: "UPDATE_NEW_CONNECTION_END_NODE";
-      payload: Offset;
-    }
+  // | {
+  //     type: "UPDATE_NEW_CONNECTION_END_NODE";
+  //     payload: Offset;
+  //   }
   | {
       type: "SET_STEP_SELECTOR_INACTIVE";
     }
@@ -168,6 +157,8 @@ export const useEventVars = () => {
     delta: { x: 0, y: 0 },
   });
 
+  const newConnection = React.useRef<Connection>();
+
   const positionDelta = React.useRef<Position>({ x: 0, y: 0 });
 
   const selectedSingleStep = React.useRef<string>();
@@ -195,58 +186,6 @@ export const useEventVars = () => {
             connection.endNodeUUID === endNodeUUID
           );
         });
-      };
-
-      const dfsWithSets = (
-        step_uuid: string,
-        whiteSet: Set<string>,
-        greySet: Set<string>
-      ) => {
-        // move from white to grey
-        whiteSet.delete(step_uuid);
-        greySet.add(step_uuid);
-
-        const found = originalState.steps[step_uuid].outgoing_connections.some(
-          (child_uuid) => {
-            if (
-              whiteSet.has(child_uuid) &&
-              dfsWithSets(child_uuid, whiteSet, greySet)
-            )
-              return true;
-            if (!whiteSet.has(child_uuid) && greySet.has(child_uuid))
-              return true;
-            return false;
-          }
-        );
-
-        if (found) return true;
-
-        // move from grey to black
-        greySet.delete(step_uuid);
-      };
-
-      const willCreateCycle = (startNodeUUID: string, endNodeUUID: string) => {
-        // add connection temporarily
-
-        originalState.steps[endNodeUUID].incoming_connections.push(
-          startNodeUUID
-        );
-
-        let whiteSet = new Set(Object.keys(originalState.steps));
-        let greySet = new Set<string>();
-
-        let cycles = false;
-
-        while (whiteSet.size > 0) {
-          // take first element left in whiteSet
-          let step_uuid = whiteSet.values().next().value;
-
-          if (dfsWithSets(step_uuid, whiteSet, greySet)) {
-            cycles = true;
-          }
-        }
-
-        return cycles;
       };
 
       const saveStepsSelectedByRect = () => {
@@ -283,8 +222,7 @@ export const useEventVars = () => {
         // 2. mousemove -> start dragging, drawing an connection line, the end of the line is following mouse curser
         //
         // then user mouseup, we need to get endNodeUUID to finish the creation of the new connection
-
-        let startNodeUUID = originalState.newConnection?.startNodeUUID;
+        let startNodeUUID = newConnection.current?.startNodeUUID;
 
         // ==== startNodeUUID is required, abort if missing
 
@@ -298,29 +236,19 @@ export const useEventVars = () => {
         // ==== user didn't mouseup on a step, abort
 
         if (!endNodeUUID) {
-          removeConnection(originalState.newConnection);
+          removeConnection(newConnection.current);
           console.error("Failed to make connection. endNodeUUID is undefined.");
           return;
         }
 
-        // ==== check if it's a valid connection
-
-        // ! assign this function to <div className="incoming-connections" />
-        // TODO: remove this
-        //   so that we don't need to do low-level checking here
-
-        // check whether drag release was on .incoming-connections class
-        // let dragEndedInIncomingConnectionsElement = $(e.target).hasClass(
-        //   "incoming-connections"
-        // );
-
         // ==== check whether there already exists a connection
+
         let connectionAlreadyExists = originalState.steps[
           endNodeUUID
         ].incoming_connections.includes(startNodeUUID);
 
         if (connectionAlreadyExists) {
-          removeConnection(originalState.newConnection);
+          removeConnection(newConnection.current);
           state.error =
             "These steps are already connected. No new connection has been created.";
 
@@ -330,10 +258,10 @@ export const useEventVars = () => {
         // ==== check whether connection will create a cycle in Pipeline graph
         let connectionCreatesCycle =
           !connectionAlreadyExists &&
-          willCreateCycle(startNodeUUID, endNodeUUID);
+          willCreateCycle(originalState.steps, [startNodeUUID, endNodeUUID]);
 
         if (connectionCreatesCycle) {
-          removeConnection(originalState.newConnection);
+          removeConnection(newConnection.current);
           state.error =
             "Connecting this step will create a cycle in your pipeline which is not supported.";
 
@@ -356,10 +284,6 @@ export const useEventVars = () => {
         startNodeUUID,
         endNodeUUID,
       }: Pick<Connection, "startNodeUUID" | "endNodeUUID">) => {
-        // when deleting connections, it's impossible that user is also creating a new connection
-        // thus, we always clean it up.
-        state.newConnection = undefined;
-
         // remove it from the state.connections array
         const foundIndex = originalState.connections.findIndex((connection) => {
           const matchStart = connection.startNodeUUID === startNodeUUID;
@@ -381,6 +305,9 @@ export const useEventVars = () => {
         subsequentStep.incoming_connections = subsequentStep.incoming_connections.filter(
           (startNodeUuid) => startNodeUuid !== endNodeUUID
         );
+        // when deleting connections, it's impossible that user is also creating a new connection
+        // thus, we always clean it up.
+        newConnection.current = undefined;
       };
 
       const selectSteps = (steps: string[]) => {
@@ -388,13 +315,13 @@ export const useEventVars = () => {
         state.openedMultiStep = steps.length > 1;
       };
 
-      const deselectSteps = () => {
-        state.selectedSteps = [];
-        state.stepSelector = DEFAULT_STEP_SELECTOR;
-        state.openedMultiStep = false;
-        // deselecting will close the detail view
-        state.openedStep = undefined;
-      };
+      // const deselectSteps = () => {
+      //   state.selectedSteps = [];
+      //   state.stepSelector = DEFAULT_STEP_SELECTOR;
+      //   state.openedMultiStep = false;
+      //   // deselecting will close the detail view
+      //   state.openedStep = undefined;
+      // };
 
       /**
        * Get position for new step so it doesn't spawn on top of other
@@ -446,7 +373,7 @@ export const useEventVars = () => {
             newStep.meta_data.position
           );
 
-          deselectSteps();
+          // deselectSteps();
           selectSteps([newStep.uuid]);
 
           state.steps[newStep.uuid] = newStep;
@@ -515,31 +442,14 @@ export const useEventVars = () => {
           selectSteps(action.payload);
           break;
         }
-        case "SELECT_SINGLE_STEP": {
-          // this is the step that user's current mouse-down target.
-          // at the same time, user might already select multiple steps, there are 2 cases
-          // - this current mouse-down target is part of the selected steps:
-          //   then user can drag the current mouse-down target, and all the rest of selected steps would follow
-          // - this current mouse-down target is NOT part of the selected steps:
-          //   deselect the rest, as if user only select the current mouse-down target
-          selectedSingleStep.current = action.payload;
-          if (
-            action.payload &&
-            !originalState.selectedSteps.includes(action.payload)
-          ) {
-            state.selectedSteps = [action.payload];
-            // TODO: press SHIFT/CTRL to add action.payload to current state.selectedSteps
-          }
-          break;
-        }
-        case "DESELECT_STEPS": {
-          deselectSteps();
-          break;
-        }
-        case "DESELECT_CONNECTION": {
-          state.selectedConnection = undefined;
-          break;
-        }
+        // case "DESELECT_STEPS": {
+        //   deselectSteps();
+        //   break;
+        // }
+        // case "DESELECT_CONNECTION": {
+        //   state.selectedConnection = undefined;
+        //   break;
+        // }
 
         case "SELECT_CONNECTION": {
           const selectedConnection = getConnectionByUUIDs(
@@ -585,26 +495,10 @@ export const useEventVars = () => {
           break;
         }
 
-        case "UPDATE_NEW_CONNECTION_END_NODE": {
-          const { x, y } = getPositionFromOffset({
-            offset: action.payload,
-            position: mouseClient.current,
-            scaleFactor: originalState.scaleFactor,
-          });
-
-          state.newConnection.xEnd = x;
-          state.newConnection.yEnd = y;
-
-          break;
-        }
-
         // this means that the connection might not yet complete, as endNodeUUID is optional
         // this action creates an instance
         case "CREATE_CONNECTION_INSTANCE": {
           state.connections.push(action.payload);
-          if (!action.payload.endNodeUUID) {
-            state.newConnection = action.payload;
-          }
           break;
         }
 
@@ -688,14 +582,8 @@ export const useEventVars = () => {
      *          Beginning of initial state
      */
     {
-      // keysDown: {},
-      // mouseClientX: 0,
-      // mouseClientY: 0,
-      // draggingCanvas: false,
-      // prevPosition: [null, null],
       doubleClickFirstClick: false,
       selectedConnection: undefined,
-      newConnection: undefined,
       openedStep: undefined,
       openedMultiStep: undefined,
       selectedSteps: [],
@@ -745,6 +633,7 @@ export const useEventVars = () => {
   return {
     eventVars,
     mouseClient,
+    newConnection,
     eventVarsDispatch,
     stepDomRefs,
     keysDown,

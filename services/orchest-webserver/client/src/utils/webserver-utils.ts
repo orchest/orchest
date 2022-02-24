@@ -1,11 +1,10 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, Service, StepsDict } from "@/types";
+import { PipelineJson, PipelineStepState, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
-import produce from "immer";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 
@@ -109,21 +108,26 @@ export function filterServices(
  * @param steps
  * @returns stepsWithOutgoingConnections
  */
-export function addOutgoingConnections(steps: StepsDict) {
-  return produce(steps, (draft) => {
-    Object.keys(draft).forEach((stepUuid) => {
-      // Every step NEEDs to have an `.outgoing_connections` defined.
-      draft[stepUuid].outgoing_connections =
-        draft[stepUuid].outgoing_connections || [];
+export function addOutgoingConnections<
+  T extends Record<
+    string,
+    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
+  >
+>(steps: T) {
+  Object.keys(steps).forEach((stepUuid) => {
+    // Every step NEEDs to have an `.outgoing_connections` defined.
+    steps[stepUuid].outgoing_connections =
+      steps[stepUuid].outgoing_connections || [];
 
-      draft[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-        if (!draft[incomingConnectionUuid].outgoing_connections) {
-          draft[incomingConnectionUuid].outgoing_connections = [];
-        }
-        draft[incomingConnectionUuid].outgoing_connections.push(stepUuid);
-      });
+    steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
+      steps[incomingConnectionUuid].outgoing_connections = steps[
+        incomingConnectionUuid
+      ].outgoing_connections
+        ? [...steps[incomingConnectionUuid].outgoing_connections, stepUuid]
+        : [stepUuid];
     });
   });
+  return steps;
 }
 
 export function clearOutgoingConnections(steps: {

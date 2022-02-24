@@ -46,7 +46,8 @@ import React from "react";
 import { siteMap } from "../Routes";
 import { BackToJobButton } from "./BackToJobButton";
 import {
-  createNewConnection,
+  getPositionFromOffset,
+  instantiateConnection,
   PIPELINE_JOBS_STATUS_ENDPOINT,
   PIPELINE_RUN_STATUS_ENDPOINT,
   scaleCorrectedPosition,
@@ -162,6 +163,7 @@ const PipelineView: React.FC = () => {
     eventVars,
     eventVarsDispatch,
     stepDomRefs,
+    newConnection,
     selectedSingleStep,
     mouseClient,
     keysDown,
@@ -185,10 +187,15 @@ const PipelineView: React.FC = () => {
 
   const createConnectionInstance = React.useCallback(
     (startNodeUUID: string, endNodeUUID?: string | undefined) => {
+      const connectionInstance = instantiateConnection(
+        startNodeUUID,
+        endNodeUUID
+      );
       eventVarsDispatch({
         type: "CREATE_CONNECTION_INSTANCE",
-        payload: createNewConnection(startNodeUUID, endNodeUUID),
+        payload: connectionInstance,
       });
+      return connectionInstance;
     },
     [eventVarsDispatch]
   );
@@ -652,7 +659,7 @@ const PipelineView: React.FC = () => {
   const removeConnection = React.useCallback(
     (connection: Connection) => {
       eventVarsDispatch({ type: "REMOVE_CONNECTION", payload: connection });
-      savePipeline(eventVars.steps); // TODO: check if steps is already updated
+      // savePipeline(eventVars.steps); // TODO: check if steps is already updated
     },
     [eventVarsDispatch]
   );
@@ -1283,13 +1290,13 @@ const PipelineView: React.FC = () => {
     savePipeline(eventVars.steps);
   };
 
-  const deselectSteps = () => {
-    eventVarsDispatch({ type: "DESELECT_STEPS" });
-  };
+  // const deselectSteps = () => {
+  //   eventVarsDispatch({ type: "DESELECT_STEPS" });
+  // };
 
-  const deselectConnection = () => {
-    eventVarsDispatch({ type: "DESELECT_CONNECTION" });
-  };
+  // const deselectConnection = () => {
+  //   eventVarsDispatch({ type: "DESELECT_CONNECTION" });
+  // };
 
   const getMousePositionRelativeToPipelineStepHolder = () => {
     if (!pipelineStepsHolder.current) {
@@ -1366,20 +1373,23 @@ const PipelineView: React.FC = () => {
     if (eventVars.stepSelector.active) {
       eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
+    if (newConnection.current) {
+      removeConnection(newConnection.current);
+    }
   };
 
   const onMouseMoveCanvas = (e: React.MouseEvent<HTMLDivElement>) => {
     trackMouseMovement(e.clientX, e.clientY);
 
-    // if (selectedSingleStep.current) {
-    //   eventVarsDispatch({ type: "MOVE_STEPS" });
-    // }
-
-    if (eventVars.newConnection) {
-      eventVarsDispatch({
-        type: "UPDATE_NEW_CONNECTION_END_NODE",
-        payload: canvasOffset,
+    // update newConnection's position
+    if (newConnection.current) {
+      const { x, y } = getPositionFromOffset({
+        offset: canvasOffset,
+        position: mouseClient.current,
+        scaleFactor: eventVars.scaleFactor,
       });
+
+      newConnection.current = { ...newConnection.current, xEnd: x, yEnd: y };
     }
 
     if (eventVars.stepSelector.active) {
@@ -1504,8 +1514,6 @@ const PipelineView: React.FC = () => {
   }, [eventVars.scaleFactor, state.pipelineOffset, pipelineSetHolderOrigin]);
 
   const servicesButtonRef = React.useRef<HTMLButtonElement>();
-
-  console.log("HM 😆", eventVars.connections, eventVars.newConnection);
 
   return (
     <Layout disablePadding>
@@ -1693,9 +1701,12 @@ const PipelineView: React.FC = () => {
                           (stepDomRefs.current[`${step.uuid}-incoming`] = el)
                         }
                         className={
-                          hasValue(eventVars.newConnection) ? "hover" : ""
+                          hasValue(newConnection.current) ? "hover" : ""
                         }
-                        onMouseUp={() => onMouseUpPipelineStep(step.uuid)}
+                        onMouseUp={(e) => {
+                          e.stopPropagation();
+                          onMouseUpPipelineStep(step.uuid);
+                        }}
                       />
                     }
                     outgoingDot={
@@ -1705,14 +1716,11 @@ const PipelineView: React.FC = () => {
                           (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
                         }
                         onMouseDown={(e: React.MouseEvent) => {
-                          e.stopPropagation();
                           if (e.button === 0) {
                             e.stopPropagation();
-
-                            eventVarsDispatch({
-                              type: "CREATE_CONNECTION_INSTANCE",
-                              payload: createNewConnection(step.uuid),
-                            });
+                            newConnection.current = createConnectionInstance(
+                              step.uuid
+                            );
                           }
                         }}
                       />
@@ -1722,14 +1730,10 @@ const PipelineView: React.FC = () => {
                         ? stepExecutionState[step.uuid] || { status: "IDLE" }
                         : { status: "IDLE" }
                     }
-                    // isCreatingConnection={hasValue(eventVars.newConnection)}
                     isStartNodeOfNewConnection={
-                      eventVars.newConnection?.startNodeUUID === step.uuid
+                      newConnection.current?.startNodeUUID === step.uuid
                     }
                     eventVarsDispatch={eventVarsDispatch}
-                    // onMouseUpIncomingConnectionPoint={() =>
-                    //   onMouseUpPipelineStep(step.uuid)
-                    // }
                     mouseTracker={mouseTracker}
                     // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
                   />
@@ -1747,10 +1751,13 @@ const PipelineView: React.FC = () => {
 
                     if (!startNode) return null;
 
+                    // user is trying to make a new connection
+                    const isNew =
+                      !endNodeUUID || hasValue(newConnection.current);
+
                     const shouldUpdate = [
                       eventVars.selectedSteps.includes(startNodeUUID),
-                      !endNodeUUID || // user is trying to make a new connection
-                        eventVars.selectedSteps.includes(endNodeUUID),
+                      isNew || eventVars.selectedSteps.includes(endNodeUUID),
                     ] as [boolean, boolean];
 
                     const getPosition = getNodeCenter(
@@ -1759,21 +1766,15 @@ const PipelineView: React.FC = () => {
                     );
 
                     let startNodePosition = getPosition(startNode);
-                    let endNodePosition = getPosition(endNode);
-
-                    let endNodeX =
-                      endNodePosition?.x ??
-                      connection.xEnd ??
-                      startNodePosition.x;
-
-                    let endNodeY =
-                      endNodePosition?.y ??
-                      connection.yEnd ??
-                      startNodePosition.y;
+                    let endNodePosition = getPosition(endNode) || {
+                      x: newConnection.current.xEnd,
+                      y: newConnection.current.yEnd,
+                    };
 
                     return (
                       <PipelineConnection
                         key={index}
+                        isNew={isNew}
                         selected={connection.selected}
                         startNodeUUID={startNodeUUID}
                         endNodeUUID={endNodeUUID}
@@ -1784,8 +1785,9 @@ const PipelineView: React.FC = () => {
                         stepDomRefs={stepDomRefs}
                         startNodeX={startNodePosition.x}
                         startNodeY={startNodePosition.y}
-                        endNodeX={endNodeX}
-                        endNodeY={endNodeY}
+                        endNodeX={endNodePosition?.x}
+                        endNodeY={endNodePosition?.y}
+                        newConnection={newConnection}
                         shouldUpdate={shouldUpdate}
                         selectedSingleStep={selectedSingleStep}
                       />

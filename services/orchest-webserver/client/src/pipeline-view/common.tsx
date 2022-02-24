@@ -2,9 +2,11 @@ import type {
   Connection,
   Offset,
   PipelineJson,
+  PipelineStepState,
   Position,
   StepsDict,
 } from "@/types";
+import { addOutgoingConnections } from "@/utils/webserver-utils";
 import cloneDeep from "lodash.clonedeep";
 import { getNodeCenter } from "./useEventVars";
 
@@ -114,4 +116,66 @@ export const getPosition = (
 ) => {
   if (!element) return null;
   return getNodeCenter(parentOffset, scaleFactor)(element);
+};
+
+function dfsWithSets<
+  T extends Record<
+    string,
+    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
+  >
+>(steps: T, step_uuid: string, whiteSet: Set<string>, greySet: Set<string>) {
+  // move from white to grey
+  whiteSet.delete(step_uuid);
+  greySet.add(step_uuid);
+
+  for (let childUuid of steps[step_uuid].outgoing_connections) {
+    if (whiteSet.has(childUuid)) {
+      if (dfsWithSets(steps, childUuid, whiteSet, greySet)) {
+        return true;
+      }
+    } else if (greySet.has(childUuid)) {
+      return true;
+    }
+  }
+
+  // move from grey to black
+  greySet.delete(step_uuid);
+}
+
+export const willCreateCycle = (
+  _steps: StepsDict,
+  newConnection: [string, string]
+) => {
+  const [startNodeUUID, endNodeUUID] = newConnection;
+  // make a new copy of original steps, because we are checking this as a side effect
+  // we don't want to mutate the original steps.
+  const steps = Object.entries(_steps).reduce((newCopy, [uuid, step]) => {
+    return {
+      ...newCopy,
+      [uuid]: { uuid, incoming_connections: [...step.incoming_connections] },
+    };
+  }, {} as StepsDict);
+  // add new connection
+  steps[endNodeUUID].incoming_connections = [
+    ...steps[endNodeUUID].incoming_connections,
+    startNodeUUID,
+  ];
+
+  addOutgoingConnections(steps);
+
+  let whiteSet = new Set(Object.keys(steps));
+  let greySet = new Set<string>();
+
+  let cycles = false;
+
+  while (whiteSet.size > 0) {
+    // take first element left in whiteSet
+    let step_uuid = whiteSet.values().next().value;
+
+    if (dfsWithSets(steps, step_uuid, whiteSet, greySet)) {
+      cycles = true;
+    }
+  }
+
+  return cycles;
 };
