@@ -54,11 +54,11 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "kaniko-cache",
-                    "hostPath": {
-                        "path": CONFIG_CLASS.HOST_BASE_IMAGES_CACHE,
-                        "type": "DirectoryOrCreate",
-                    },
+                    "name": "kaniko-cache-pvc", 
+                    "persistentVolumeClaim": {
+                        "claimName" : "kaniko-cache-pvc",
+                        "readOnly": False
+                    }
                 },
             ],
         },
