@@ -373,6 +373,9 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     volumes = []
     volume_mounts = []
 
+    relative_project_dir = get_userdir_relpath(project_dir)
+    relative_pipeline_path = os.path.join(relative_project_dir, pipeline_file)
+
     volumes.append(
         {
             "name": "userdir-pvc",
@@ -395,21 +398,21 @@ def get_step_and_kernel_volumes_and_volume_mounts(
         {
             "name": "userdir-pvc",
             "mountPath": "/userdir/projects",
-            "subPath": get_userdir_relpath(project_dir)
+            "subPath": relative_project_dir
         }
     )
     volume_mounts.append(
         {
             "name": "userdir-pvc",
             "mountPath": container_project_dir,
-            "subPath": get_userdir_relpath(project_dir)
+            "subPath": relative_project_dir
         }
     )
     volume_mounts.append(
         {
             "name": "userdir-pvc",
             "mountPath": container_pipeline_file,
-            "subPath": get_userdir_relpath(pipeline_file)
+            "subPath": relative_pipeline_path
         }
     )
 

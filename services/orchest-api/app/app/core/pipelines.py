@@ -505,10 +505,7 @@ def _pipeline_to_workflow_manifest(
     volumes, volume_mounts = get_step_and_kernel_volumes_and_volume_mounts(
         userdir_pvc=run_config["userdir_pvc"],
         project_dir=run_config["project_dir"],
-        pipeline_file=os.path.join(
-            run_config["project_dir"],
-            run_config["pipeline_path"],
-        ),
+        pipeline_file=run_config["pipeline_path"],
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
     )

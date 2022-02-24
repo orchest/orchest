@@ -88,8 +88,8 @@ def _get_kernel_pod_manifest(
 
     vols, vol_mounts = get_step_and_kernel_volumes_and_volume_mounts(
         userdir_pvc=os.environ.get("ORCHEST_USERDIR_PVC"),
-        host_project_dir=os.environ.get("ORCHEST_HOST_PROJECT_DIR"),
-        host_pipeline_file=os.environ.get("ORCHEST_HOST_PIPELINE_FILE"),
+        project_dir=os.environ.get("ORCHEST_PROJECT_DIR"),
+        pipeline_file=os.environ.get("ORCHEST_PIPELINE_FILE"),
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
     )
