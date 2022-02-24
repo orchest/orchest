@@ -375,7 +375,7 @@ def get_step_and_kernel_volumes_and_volume_mounts(
 
     volumes.append(
         {
-            "name": "userdir",
+            "name": "userdir-pvc",
             "persistentVolumeClaim":
             {
                 "claimName" : userdir_pvc,
@@ -386,27 +386,32 @@ def get_step_and_kernel_volumes_and_volume_mounts(
 
     volume_mounts.append(
         {
-            "name": "userdir",
+            "name": "userdir-pvc",
             "mountPath": "/data",
             "subPath": "data"
         }
     )
     volume_mounts.append(
         {
-            "name": "userdir",
-            "mountPath": container_project_dir,
-            "subPath": project_dir
+            "name": "userdir-pvc",
+            "mountPath": "/userdir/projects",
+            "subPath": get_userdir_relpath(project_dir)
         }
     )
     volume_mounts.append(
         {
-            "name": "userdir",
-            "mountPath": container_pipeline_file,
-            "subPath": pipeline_file
+            "name": "userdir-pvc",
+            "mountPath": container_project_dir,
+            "subPath": get_userdir_relpath(project_dir)
         }
     )
-
-
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": container_pipeline_file,
+            "subPath": get_userdir_relpath(pipeline_file)
+        }
+    )
 
     return volumes, volume_mounts
 
