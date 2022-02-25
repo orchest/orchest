@@ -7,7 +7,6 @@ import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import type {
   Connection,
-  Offset,
   PipelineJson,
   PipelineRun,
   Step,
@@ -240,25 +239,11 @@ const PipelineView: React.FC = () => {
     }
   }, []);
 
-  const [offsets, setOffsets] = React.useState<{
-    viewport: Offset;
-    canvas: Offset;
-  }>({ viewport: { left: 0, top: 0 }, canvas: { left: 0, top: 0 } });
-
-  console.log("HM", offsets);
-  // const [viewportOffset, setViewportOffset] = React.useState<Offset>(null);
-  // const [canvasOffset, setCanvasOffset] = React.useState<Offset>(null);
-
-  const updateOffsets = React.useCallback(() => {
-    setOffsets({
-      viewport: getOffset(pipelineViewportRef.current),
-      canvas: getOffset(pipelineCanvasRef.current),
-    });
-  }, []);
-
-  React.useLayoutEffect(() => {
-    updateOffsets();
-  }, [updateOffsets]);
+  // TODO: persists this
+  const offsets = {
+    viewport: getOffset(pipelineViewportRef.current),
+    canvas: getOffset(pipelineCanvasRef.current),
+  };
 
   // TODO: put document event listeners here
   React.useLayoutEffect(() => {
@@ -644,9 +629,12 @@ const PipelineView: React.FC = () => {
   };
 
   const removeConnection = React.useCallback(
-    (connection: Pick<Connection, "startNodeUUID" | "endNodeUUID">) => {
+    (connection: Connection) => {
       eventVarsDispatch({ type: "REMOVE_CONNECTION", payload: connection });
-      savePipeline(eventVars.steps); // TODO: check if steps is already updated
+      // if it's a aborted new connection, we don't need to save it
+      if (connection.endNodeUUID) {
+        savePipeline(eventVars.steps); // TODO: check if steps is already updated
+      }
     },
     [eventVarsDispatch, savePipeline, eventVars.steps]
   );
@@ -1048,7 +1036,7 @@ const PipelineView: React.FC = () => {
 
   const zoomOut = () => {
     centerPipelineOrigin();
-    updateOffsets();
+    // updateOffsets();
     eventVarsDispatch({
       type: "SET_SCALE_FACTOR",
       payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
@@ -1057,7 +1045,7 @@ const PipelineView: React.FC = () => {
 
   const zoomIn = () => {
     centerPipelineOrigin();
-    updateOffsets();
+    // updateOffsets();
     eventVarsDispatch({
       type: "SET_SCALE_FACTOR",
       payload: Math.min(eventVars.scaleFactor + 0.25, 2),
@@ -1347,7 +1335,10 @@ const PipelineView: React.FC = () => {
   const onMouseUpViewport = () => {
     if (eventVars.stepSelector.active) {
       eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    } else {
+      eventVarsDispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
     }
+
     if (newConnection.current) {
       removeConnection(newConnection.current);
     }
@@ -1683,9 +1674,7 @@ const PipelineView: React.FC = () => {
                         ref={(el) =>
                           (stepDomRefs.current[`${step.uuid}-incoming`] = el)
                         }
-                        active={
-                          hasValue(newConnection.current) || isIncomingActive
-                        }
+                        active={isIncomingActive}
                         onMouseUp={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
@@ -1702,7 +1691,8 @@ const PipelineView: React.FC = () => {
                           (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
                         }
                         active={
-                          hasValue(newConnection.current) || isOutgoingActive
+                          newConnection.current?.startNodeUUID === step.uuid ||
+                          isOutgoingActive
                         }
                         onMouseDown={(e: React.MouseEvent) => {
                           e.stopPropagation();

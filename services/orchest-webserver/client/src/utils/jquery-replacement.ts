@@ -1,4 +1,5 @@
-export const getOffset = (element: HTMLElement) => {
+export const getOffset = (element: HTMLElement | undefined) => {
+  if (!element) return { top: 0, left: 0 };
   const box = element.getBoundingClientRect();
   return {
     top: box.top + window.pageYOffset - document.documentElement.clientTop,
