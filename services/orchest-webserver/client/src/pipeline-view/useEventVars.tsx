@@ -26,6 +26,7 @@ export type EventVars = {
   scaleFactor: number;
   steps: StepsDict;
   selectedSteps: string[];
+  cursorControlledStep: string | undefined;
   connections: Connection[];
   selectedConnection: Pick<Connection, "endNodeUUID" | "startNodeUUID"> | null;
   openedMultiStep?: boolean;
@@ -70,6 +71,10 @@ type Action =
   | { type: "DESELECT_CONNECTION" }
   | {
       type: "SET_OPENED_STEP";
+      payload: string | undefined;
+    }
+  | {
+      type: "SET_CURSOR_CONTROLLED_STEP";
       payload: string | undefined;
     }
   | {
@@ -180,7 +185,6 @@ export const useEventVars = () => {
 
   const newConnection = React.useRef<NewConnection>();
 
-  const selectedSingleStep = React.useRef<string>();
   const keysDown = React.useMemo<Set<number>>(() => new Set(), []);
 
   const memoizedReducer = React.useCallback(
@@ -362,7 +366,6 @@ export const useEventVars = () => {
         case "CREATE_SELECTOR": {
           // not dragging the canvas, so user must be creating a selection rectangle
           // NOTE: this also deselect all steps
-          selectedSingleStep.current = undefined;
           const selectorOrigin = getPositionFromOffset({
             offset: action.payload,
             position: mouseTracker.current.client,
@@ -371,6 +374,7 @@ export const useEventVars = () => {
 
           return {
             ...state,
+            cursorControlledStep: undefined,
             selectedSteps: [],
             stepSelector: {
               x1: selectorOrigin.x,
@@ -452,6 +456,10 @@ export const useEventVars = () => {
             openedMultiStep: false,
             ...(action.payload ? selectSteps([action.payload]) : null),
           };
+        }
+
+        case "SET_CURSOR_CONTROLLED_STEP": {
+          return { ...state, cursorControlledStep: action.payload };
         }
 
         case "UPDATE_STEP_SELECTOR": {
@@ -600,6 +608,7 @@ export const useEventVars = () => {
     openedStep: undefined,
     openedMultiStep: undefined,
     selectedSteps: [],
+    cursorControlledStep: undefined,
     stepSelector: {
       active: false,
       x1: 0,
@@ -650,7 +659,6 @@ export const useEventVars = () => {
     eventVarsDispatch,
     stepDomRefs,
     keysDown,
-    selectedSingleStep,
     trackMouseMovement,
     mouseTracker,
   };

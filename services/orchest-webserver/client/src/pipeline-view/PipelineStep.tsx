@@ -98,8 +98,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     isSelectorActive,
     isStartNodeOfNewConnection,
     eventVarsDispatch,
+    selectedSteps,
     mouseTracker,
-    selectedSingleStep,
+    cursorControlledStep,
     disabledDragging,
     incomingDot,
     outgoingDot,
@@ -113,8 +114,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     isStartNodeOfNewConnection: boolean;
     executionState?: ExecutionState;
     eventVarsDispatch: (value: EventVarsAction) => void;
+    selectedSteps: string[];
     mouseTracker: React.MutableRefObject<MouseTracker>;
-    selectedSingleStep: React.MutableRefObject<string>;
+    cursorControlledStep: string | undefined;
     disabledDragging?: boolean;
     incomingDot: React.ReactNode;
     outgoingDot: React.ReactNode;
@@ -150,10 +152,15 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   };
 
   const resetDraggingVariables = React.useCallback(() => {
-    selectedSingleStep.current = undefined;
+    if (hasValue(cursorControlledStep)) {
+      eventVarsDispatch({
+        type: "SET_CURSOR_CONTROLLED_STEP",
+        payload: undefined,
+      });
+    }
     dragCount.current = 0;
     forceUpdate();
-  }, [selectedSingleStep, dragCount, forceUpdate]);
+  }, [dragCount, forceUpdate, eventVarsDispatch, cursorControlledStep]);
 
   // we cannot use onClick in this component, but we need to achieve things alike
   const handleClickBehavior = (e: React.MouseEvent) => {
@@ -211,14 +218,10 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         return false;
       }
 
-      selectedSingleStep.current = step.uuid;
-
-      // if not selected, selectedSteps must be empty
-      // we select current step
-      if (!selected) {
+      if (!cursorControlledStep) {
         eventVarsDispatch({
-          type: "SELECT_STEPS",
-          payload: { uuids: [step.uuid] },
+          type: "SET_CURSOR_CONTROLLED_STEP",
+          payload: step.uuid,
         });
       }
 
@@ -230,11 +233,14 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         return;
       }
 
-      const shouldFollowSelectedSingleStep =
-        selected && !isSelectorActive && hasValue(selectedSingleStep.current);
+      const shouldFollowCursorControlledStep =
+        selected &&
+        !isSelectorActive &&
+        hasValue(cursorControlledStep) &&
+        selectedSteps.includes(cursorControlledStep);
 
       const shouldMoveWithCursor =
-        isBeingDragged() || shouldFollowSelectedSingleStep;
+        isBeingDragged() || shouldFollowCursorControlledStep;
 
       if (shouldMoveWithCursor) {
         setMetadata((current) => {
@@ -258,17 +264,18 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     step.uuid,
     isSelectorActive,
     selected,
-    selectedSingleStep,
+    cursorControlledStep,
     resetDraggingVariables,
     offset,
     dragCount,
     disabledDragging,
     eventVarsDispatch,
+    selectedSteps,
   ]);
 
   const [x, y] = metadata.position;
   const transform = `translateX(${x}px) translateY(${y}px)`;
-  const shouldExpandBackground = selectedSingleStep.current === step.uuid;
+  const shouldExpandBackground = cursorControlledStep === step.uuid;
   return (
     <Box
       data-uuid={step.uuid}
@@ -287,8 +294,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         zIndex:
           dragCount.current === DRAG_CLICK_SENSITIVITY ||
           isMouseDown.current ||
-          (!isSelectorActive && selected)
-            ? zIndexMax + 1
+          (!isSelectorActive && selected) ||
+          cursorControlledStep === step.uuid
+            ? zIndexMax + (cursorControlledStep === step.uuid ? 10 : 1)
             : "unset",
       }}
       sx={{

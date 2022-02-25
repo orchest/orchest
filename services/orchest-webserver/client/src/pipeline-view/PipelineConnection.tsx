@@ -115,7 +115,7 @@ const PipelineConnectionComponent: React.FC<{
   zIndexMax: number;
   shouldUpdate: [boolean, boolean];
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
-  selectedSingleStep: React.MutableRefObject<string>;
+  cursorControlledStep: string;
   newConnection: React.MutableRefObject<NewConnection>;
 }> = ({
   isNew,
@@ -132,7 +132,7 @@ const PipelineConnectionComponent: React.FC<{
   endNodeUUID,
   shouldUpdate,
   stepDomRefs,
-  selectedSingleStep,
+  cursorControlledStep,
   newConnection,
 }) => {
   const [renderProperties, setRenderProperties] = React.useState(() =>
@@ -150,7 +150,7 @@ const PipelineConnectionComponent: React.FC<{
 
   const onMouseMove = React.useCallback(() => {
     if (
-      (selectedSingleStep.current || isNew) &&
+      (cursorControlledStep || isNew) &&
       (shouldUpdateStart || shouldUpdateEnd)
     ) {
       const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
@@ -184,7 +184,7 @@ const PipelineConnectionComponent: React.FC<{
     startNodeUUID,
     getPosition,
     stepDomRefs,
-    selectedSingleStep,
+    cursorControlledStep,
     shouldUpdateStart,
     shouldUpdateEnd,
     newConnection,

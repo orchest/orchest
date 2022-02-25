@@ -147,7 +147,6 @@ const PipelineView: React.FC = () => {
     eventVarsDispatch,
     stepDomRefs,
     newConnection,
-    selectedSingleStep,
     keysDown,
     trackMouseMovement,
     mouseTracker,
@@ -689,8 +688,8 @@ const PipelineView: React.FC = () => {
       let stepClicked = false;
       let stepDragged = false;
 
-      // if (eventVars.selectedSingleStep !== undefined) {
-      //   let step = eventVars.steps[eventVars.selectedSingleStep];
+      // if (eventVars.cursorControlledStep !== undefined) {
+      //   let step = eventVars.steps[eventVars.cursorControlledStep];
 
       //   if (!step.meta_data._dragged) {
       //     if (eventVars.selectedConnection) {
@@ -701,12 +700,12 @@ const PipelineView: React.FC = () => {
       //       stepClicked = true;
 
       //       if (eventVars.doubleClickFirstClick) {
-      //         refManager.refs[eventVars.selectedSingleStep].props.onDoubleClick(
-      //           eventVars.selectedSingleStep
+      //         refManager.refs[eventVars.cursorControlledStep].props.onDoubleClick(
+      //           eventVars.cursorControlledStep
       //         );
       //       } else {
-      //         refManager.refs[eventVars.selectedSingleStep].props.onClick(
-      //           eventVars.selectedSingleStep
+      //         refManager.refs[eventVars.cursorControlledStep].props.onClick(
+      //           eventVars.cursorControlledStep
       //         );
       //       }
 
@@ -718,14 +717,14 @@ const PipelineView: React.FC = () => {
       //     } else {
       //       // if clicked step is not selected, select it on Ctrl+Mouseup
       //       if (
-      //         eventVars.selectedSteps.includes(eventVars.selectedSingleStep)
+      //         eventVars.selectedSteps.includes(eventVars.cursorControlledStep)
       //       ) {
-      //         eventVars.selectedSteps.add(eventVars.selectedSingleStep);
+      //         eventVars.selectedSteps.add(eventVars.cursorControlledStep);
 
       //         updateEventVars();
       //       } else {
       //         // remove from selection
-      //         eventVars.selectedSteps.delete(eventVars.selectedSingleStep);
+      //         eventVars.selectedSteps.delete(eventVars.cursorControlledStep);
       //         updateEventVars();
       //       }
       //     }
@@ -740,7 +739,7 @@ const PipelineView: React.FC = () => {
       // check if step needs to be selected based on selectedSteps
       if (
         eventVars.stepSelector.active ||
-        selectedSingleStep.current !== undefined
+        eventVars.cursorControlledStep !== undefined
       ) {
         if (eventVars.selectedConnection) {
           deselectConnection();
@@ -786,8 +785,8 @@ const PipelineView: React.FC = () => {
           deselectSteps();
         }
       }
-      if (eventVars.selectedSingleStep !== undefined) {
-        eventVars.selectedSingleStep = undefined;
+      if (eventVars.cursorControlledStep !== undefined) {
+        eventVars.cursorControlledStep = undefined;
         updateEventVars();
       }
 
@@ -1235,14 +1234,6 @@ const PipelineView: React.FC = () => {
     savePipeline(eventVars.steps);
   };
 
-  // const deselectSteps = () => {
-  //   eventVarsDispatch({ type: "DESELECT_STEPS" });
-  // };
-
-  // const deselectConnection = () => {
-  //   eventVarsDispatch({ type: "DESELECT_CONNECTION" });
-  // };
-
   const getMousePositionRelativeToPipelineStepHolder = () => {
     if (!pipelineCanvasRef.current) {
       console.error(
@@ -1491,6 +1482,12 @@ const PipelineView: React.FC = () => {
 
   const totalDomCount = stepCount + connectionCount;
 
+  console.log(
+    "HM",
+    eventVars.cursorControlledStep
+    // startNodeUUID
+  );
+
   return (
     <Layout disablePadding>
       <div className="pipeline-view">
@@ -1666,7 +1663,7 @@ const PipelineView: React.FC = () => {
                     selected={selected}
                     zIndexMax={totalDomCount}
                     isSelectorActive={eventVars.stepSelector.active}
-                    selectedSingleStep={selectedSingleStep}
+                    cursorControlledStep={eventVars.cursorControlledStep}
                     ref={(el) => (stepDomRefs.current[step.uuid] = el)}
                     incomingDot={
                       <ConnectionDot
@@ -1715,6 +1712,7 @@ const PipelineView: React.FC = () => {
                       newConnection.current?.startNodeUUID === step.uuid
                     }
                     eventVarsDispatch={eventVarsDispatch}
+                    selectedSteps={eventVars.selectedSteps}
                     mouseTracker={mouseTracker}
                     // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
                   />
@@ -1738,10 +1736,20 @@ const PipelineView: React.FC = () => {
 
                 // if the connection is attached to a selected step,
                 // the connection should update its start/end node, to move along with the step
-                const shouldUpdate = [
-                  eventVars.selectedSteps.includes(startNodeUUID),
-                  isNew || eventVars.selectedSteps.includes(endNodeUUID),
-                ] as [boolean, boolean];
+
+                const shouldUpdateX =
+                  eventVars.cursorControlledStep === startNodeUUID ||
+                  eventVars.selectedSteps.includes(startNodeUUID);
+
+                const shouldUpdateY =
+                  eventVars.cursorControlledStep === endNodeUUID ||
+                  isNew ||
+                  eventVars.selectedSteps.includes(endNodeUUID);
+
+                const shouldUpdate = [shouldUpdateX, shouldUpdateY] as [
+                  boolean,
+                  boolean
+                ];
 
                 const getPosition = getNodeCenter(
                   offsets.canvas,
@@ -1788,7 +1796,7 @@ const PipelineView: React.FC = () => {
                     endNodeY={endNodePosition?.y}
                     newConnection={newConnection}
                     shouldUpdate={shouldUpdate}
-                    selectedSingleStep={selectedSingleStep}
+                    cursorControlledStep={eventVars.cursorControlledStep}
                   />
                 );
               })}
