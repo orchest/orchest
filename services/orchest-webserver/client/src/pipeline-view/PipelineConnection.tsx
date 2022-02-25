@@ -1,7 +1,8 @@
 import theme from "@/theme";
-import { Connection, Position } from "@/types";
+import { NewConnection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
+import { EventVarsAction } from "./useEventVars";
 
 // set SVG properties
 const lineHeight = 2;
@@ -24,26 +25,33 @@ const curvedHorizontal = function (
 };
 
 const ConnectionLine = ({
-  onMouseDown,
+  onClick,
   selected,
+  movedToTop,
+  zIndexMax,
   width,
   height,
   d,
-}: React.SVGProps<SVGPathElement> & { selected: boolean }) => {
+}: React.SVGProps<SVGPathElement> & {
+  selected: boolean;
+  movedToTop: boolean;
+  zIndexMax: number;
+}) => {
   return (
     <svg width={width} height={height}>
       <path
         id="path"
         stroke={selected ? theme.palette.primary.main : "#000"}
+        style={{ zIndex: selected || movedToTop ? zIndexMax + 100 : "unset" }}
         strokeWidth={selected ? 3 : 2}
         fill="none"
         d={d}
       />
       <path
         id="path-clickable"
-        onMouseDown={onMouseDown}
+        onClick={onClick}
         stroke="transparent"
-        strokeWidth={16}
+        strokeWidth={4}
         fill="none"
         d={d}
       />
@@ -92,7 +100,7 @@ const getRenderProperties = ({
   return { width, height, drawn, style, className };
 };
 
-const _PipelineConnection: React.FC<{
+const PipelineConnectionComponent: React.FC<{
   isNew: boolean;
   startNodeX: number;
   startNodeY: number;
@@ -101,12 +109,14 @@ const _PipelineConnection: React.FC<{
   startNodeUUID: string;
   endNodeUUID?: string;
   getPosition: (element: HTMLElement | undefined) => Position | null;
-  onClick: (e: MouseEvent) => void;
+  eventVarsDispatch: React.Dispatch<EventVarsAction>;
   selected: boolean;
+  movedToTop: boolean;
+  zIndexMax: number;
   shouldUpdate: [boolean, boolean];
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
   selectedSingleStep: React.MutableRefObject<string>;
-  newConnection: React.MutableRefObject<Connection>;
+  newConnection: React.MutableRefObject<NewConnection>;
 }> = ({
   isNew,
   startNodeX,
@@ -114,8 +124,10 @@ const _PipelineConnection: React.FC<{
   endNodeY,
   startNodeY,
   getPosition,
-  onClick,
+  eventVarsDispatch,
   selected,
+  movedToTop,
+  zIndexMax,
   startNodeUUID,
   endNodeUUID,
   shouldUpdate,
@@ -146,8 +158,8 @@ const _PipelineConnection: React.FC<{
 
       const startNodePosition = getPosition(startNode);
       const endNodePosition = getPosition(endNode) || {
-        x: newConnection.current.xEnd,
-        y: newConnection.current.yEnd,
+        x: newConnection.current?.xEnd,
+        y: newConnection.current?.yEnd,
       };
 
       setRenderProperties((current) => {
@@ -186,9 +198,18 @@ const _PipelineConnection: React.FC<{
     return () => document.body.removeEventListener("mousemove", onMouseMove);
   }, [onMouseMove]);
 
-  const onMouseDown = React.useCallback((e) => {
-    if (onClick) onClick(e);
-  }, []);
+  const onClickFun = React.useCallback(
+    (e) => {
+      if (e.button === 0) {
+        e.stopPropagation();
+        eventVarsDispatch({
+          type: "SELECT_CONNECTION",
+          payload: { startNodeUUID, endNodeUUID },
+        });
+      }
+    },
+    [eventVarsDispatch, startNodeUUID, endNodeUUID]
+  );
 
   const { style, className, width, height, drawn } = renderProperties;
 
@@ -202,7 +223,9 @@ const _PipelineConnection: React.FC<{
     >
       <ConnectionLine
         selected={selected}
-        onMouseDown={onMouseDown}
+        movedToTop={movedToTop}
+        zIndexMax={zIndexMax}
+        onClick={onClickFun}
         width={width}
         height={height}
         d={drawn}
@@ -211,4 +234,4 @@ const _PipelineConnection: React.FC<{
   );
 };
 
-export const PipelineConnection = React.memo(_PipelineConnection);
+export const PipelineConnection = React.memo(PipelineConnectionComponent);

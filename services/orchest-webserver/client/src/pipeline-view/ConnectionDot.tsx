@@ -1,0 +1,91 @@
+import Box, { BoxProps } from "@mui/material/Box";
+import { alpha, styled } from "@mui/material/styles";
+import classNames from "classnames";
+import React from "react";
+
+type DotType = BoxProps & {
+  incoming?: boolean;
+  outgoing?: boolean;
+  disabled?: boolean;
+  active?: boolean;
+};
+
+const DOT_SIZE = "10px";
+
+const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
+  background: active ? theme.palette.primary.main : theme.palette.common.black,
+  borderRadius: DOT_SIZE,
+  width: DOT_SIZE,
+  height: DOT_SIZE,
+  margin: theme.spacing(1.25, 1.25),
+  pointerEvents: "none",
+}));
+
+export const ConnectionDot = React.forwardRef(function Dot(
+  {
+    incoming,
+    outgoing,
+    active,
+    className,
+    disabled,
+    onMouseOver,
+    onMouseLeave,
+    sx,
+    ...props
+  }: DotType,
+  ref: React.MutableRefObject<Extract<BoxProps, "ref">>
+) {
+  const typeClassName = incoming
+    ? "incoming-connections"
+    : outgoing
+    ? "outgoing-connections"
+    : "";
+
+  const [isHovering, setIsHovering] = React.useState(false);
+  const onMouseOverContainer = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    if (onMouseOver) onMouseOver(e);
+    setIsHovering(true);
+  };
+  const onMouseLeaveContainer = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    if (onMouseLeave) onMouseLeave(e);
+    setIsHovering(false);
+  };
+
+  return (
+    <Box
+      ref={ref}
+      className={classNames(typeClassName, className, "connection-point")}
+      sx={sx}
+      onMouseOver={onMouseOverContainer}
+      onMouseLeave={onMouseLeaveContainer}
+      {...props}
+    >
+      <InnerDot active={active} />
+      <Box
+        sx={{
+          position: "absolute",
+          width: 24,
+          height: 24,
+          top: 3,
+          left: 3,
+          borderRadius: "100%",
+          backgroundColor: (theme) =>
+            isHovering
+              ? alpha(
+                  !disabled
+                    ? theme.palette.primary.main
+                    : theme.palette.error.light,
+                  0.2
+                )
+              : "transparent",
+        }}
+      ></Box>
+    </Box>
+  );
+});

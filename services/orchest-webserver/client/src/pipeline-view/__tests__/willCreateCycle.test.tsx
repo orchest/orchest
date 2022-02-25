@@ -1,7 +1,7 @@
 import { PipelineStepState, StepsDict } from "@/types";
 import { willCreateCycle } from "../common";
 
-const getMockStep = (
+export const getMockStep = (
   payload: Partial<PipelineStepState>
 ): PipelineStepState => ({
   environment: "environment",

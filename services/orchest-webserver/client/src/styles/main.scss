@@ -1257,23 +1257,6 @@ button.themed-secondary {
         width: 30px;
         height: 30px;
         border-radius: 30px;
-
-        &.hover:hover {
-          .inner-dot {
-            background: $secondary;
-          }
-        }
-
-        .inner-dot {
-          background: black;
-          border-radius: 10px;
-          width: 10px;
-          height: 10px;
-          margin-left: 10px;
-          margin-top: 10px;
-          pointer-events: none;
-        }
-
         position: absolute;
         top: 50%;
         transform: translateY(-50%);

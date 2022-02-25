@@ -268,18 +268,20 @@ export type Step = {
   parameters: Record<string, any>;
 };
 
-export type MouseTracker = { prev: Position; delta: Position };
+export type MouseTracker = {
+  client: Position;
+  prev: Position;
+  delta: Position;
+};
 
 export type Connection = {
-  // ! Immer doesn't accept Elements
-  // startNode: JQuery<HTMLElement>;
-  // endNode?: JQuery<HTMLElement> | undefined;
-  // pipelineViewEl: HTMLElement;
-  xEnd: number | undefined;
-  yEnd: number | undefined;
   startNodeUUID: string;
-  endNodeUUID: string | undefined;
-  selected: boolean;
+  endNodeUUID?: string;
+};
+
+export type NewConnection = Connection & {
+  xEnd?: number;
+  yEnd?: number;
 };
 
 export type Position = { x: number; y: number };

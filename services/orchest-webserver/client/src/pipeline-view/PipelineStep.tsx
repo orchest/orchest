@@ -87,46 +87,15 @@ const getStateText = (executionState: ExecutionState) => {
   return stateText;
 };
 
-type DotType = React.DetailedHTMLProps<
-  React.HTMLAttributes<HTMLDivElement>,
-  HTMLDivElement
-> & {
-  incoming?: boolean;
-  outgoing?: boolean;
-};
-
-const Dot = (
-  { incoming, outgoing, className, ...props }: DotType,
-  ref: React.MutableRefObject<HTMLDivElement>
-) => {
-  const typeClassName = incoming
-    ? "incoming-connections"
-    : outgoing
-    ? "outgoing-connections"
-    : "";
-  return (
-    <div
-      ref={ref}
-      className={classNames(typeClassName, className, "connection-point")}
-      {...props}
-    >
-      <div className="inner-dot"></div>
-    </div>
-  );
-};
-
-export const ConnectionDot = React.forwardRef(Dot);
-
-const _PipelineStep = (
+const PipelineStepComponent = React.forwardRef(function PipelineStep(
   {
     initialValue,
     scaleFactor,
     offset,
     executionState,
     selected,
+    zIndexMax,
     isSelectorActive,
-    // onMouseUpIncomingConnectionPoint,
-    // isCreatingConnection,
     isStartNodeOfNewConnection,
     eventVarsDispatch,
     mouseTracker,
@@ -139,10 +108,9 @@ const _PipelineStep = (
     scaleFactor: number;
     offset: Offset;
     selected: boolean;
+    zIndexMax: number;
     isSelectorActive: boolean;
-    // isCreatingConnection: boolean;
     isStartNodeOfNewConnection: boolean;
-    // onMouseUpIncomingConnectionPoint: () => void;
     executionState?: ExecutionState;
     eventVarsDispatch: (value: EventVarsAction) => void;
     mouseTracker: React.MutableRefObject<MouseTracker>;
@@ -154,7 +122,8 @@ const _PipelineStep = (
     onDoubleClick?: any;
   },
   ref: React.MutableRefObject<HTMLDivElement>
-) => {
+) {
+  const [, forceUpdate] = useForceUpdate();
   const [step, setStep] = React.useState<Omit<PipelineStepState, "meta_data">>(
     () => {
       const { meta_data, ...rest } = initialValue; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -175,10 +144,10 @@ const _PipelineStep = (
 
   const onMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     isMouseDown.current = true;
+    forceUpdate();
   };
-
-  const [, forceUpdate] = useForceUpdate();
 
   const resetDraggingVariables = React.useCallback(() => {
     selectedSingleStep.current = undefined;
@@ -186,7 +155,26 @@ const _PipelineStep = (
     forceUpdate();
   }, [selectedSingleStep, dragCount, forceUpdate]);
 
-  const onMouseUp = () => {
+  // we cannot use onClick in this component, but we need to achieve things alike
+  const handleClickBehavior = (e: React.MouseEvent) => {
+    const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+
+    // if this step (and possibly other steps) are selected,
+    // press ctrl/cmd and select this step => remove this step from the selection
+    if (selected && ctrlKeyPressed) {
+      eventVarsDispatch({ type: "DESELECT_STEPS", payload: [step.uuid] });
+      return;
+    }
+    // only need to re-render if step is not selected
+    if (!selected) {
+      eventVarsDispatch({
+        type: "SELECT_STEPS",
+        payload: { uuids: [step.uuid], inclusive: ctrlKeyPressed },
+      });
+    }
+  };
+
+  const onMouseUp = (e: React.MouseEvent) => {
     // we want this event to be propagated because Canvas also needs to be notified
 
     isMouseDown.current = false;
@@ -194,10 +182,10 @@ const _PipelineStep = (
     // This is basically onClick, we cannot use onClick here
     // because onClick is always called after onMouseUp and we cannot distinguish them within React
     if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
-      eventVarsDispatch({ type: "SET_OPENED_STEP", payload: step.uuid });
+      handleClickBehavior(e);
     }
 
-    // Was being dragged, when mouse up, simply reset all variables
+    // this step could have been being dragged, when mouse up, simply reset all variables
     resetDraggingVariables();
     // TODO: save all steps to BE
   };
@@ -226,7 +214,10 @@ const _PipelineStep = (
       // if not selected, selectedSteps must be empty
       // we select current step
       if (!selected) {
-        eventVarsDispatch({ type: "SELECT_STEPS", payload: [step.uuid] });
+        eventVarsDispatch({
+          type: "SELECT_STEPS",
+          payload: { uuids: [step.uuid] },
+        });
       }
 
       return true;
@@ -292,8 +283,10 @@ const _PipelineStep = (
       style={{
         transform,
         zIndex:
-          dragCount.current === DRAG_CLICK_SENSITIVITY || selected
-            ? 2
+          dragCount.current === DRAG_CLICK_SENSITIVITY ||
+          isMouseDown.current ||
+          (!isSelectorActive && selected)
+            ? zIndexMax + 1
             : "unset",
       }}
       sx={{
@@ -333,6 +326,6 @@ const _PipelineStep = (
       {outgoingDot}
     </Box>
   );
-};
+});
 
-export const PipelineStep = React.memo(React.forwardRef(_PipelineStep));
+export const PipelineStep = React.memo(PipelineStepComponent);

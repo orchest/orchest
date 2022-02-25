@@ -1,14 +1,14 @@
 import type {
-  Connection,
+  NewConnection,
   Offset,
   PipelineJson,
   PipelineStepState,
   Position,
   StepsDict,
 } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import cloneDeep from "lodash.clonedeep";
-import { getNodeCenter } from "./useEventVars";
 
 export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
 export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
@@ -58,16 +58,14 @@ export const extractStepsFromPipelineJson = (
   return steps;
 };
 
-export const instantiateConnection = (
-  startNodeUUID: string,
-  endNodeUUID?: string | undefined
-): Connection => {
+export const instantiateNewConnection = (
+  startNodeUUID: string
+): NewConnection => {
   return {
     xEnd: undefined,
     yEnd: undefined,
     startNodeUUID,
-    endNodeUUID,
-    selected: false,
+    endNodeUUID: undefined,
   };
 };
 
@@ -88,6 +86,21 @@ export const localElementPosition = (
     x: scaleCorrectedPosition(offset.left - parentOffset.left, scaleFactor),
     y: scaleCorrectedPosition(offset.top - parentOffset.top, scaleFactor),
   };
+};
+
+export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
+  node: HTMLElement | undefined
+) => {
+  if (!node) return null;
+  let nodePosition = localElementPosition(
+    getOffset(node),
+    parentOffset,
+    scaleFactor
+  );
+
+  nodePosition.x += node.clientWidth / 2;
+  nodePosition.y += node.clientHeight / 2;
+  return nodePosition;
 };
 
 export const getPositionFromOffset = ({
