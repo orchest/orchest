@@ -46,6 +46,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
     e.stopPropagation();
+    e.preventDefault();
     if (onMouseOver) onMouseOver(e);
     setIsHovering(true);
   };
@@ -53,8 +54,16 @@ export const ConnectionDot = React.forwardRef(function Dot(
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
     e.stopPropagation();
+    e.preventDefault();
     if (onMouseLeave) onMouseLeave(e);
     setIsHovering(false);
+  };
+
+  const onMouseDownContainer = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   return (
@@ -64,6 +73,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
       sx={sx}
       onMouseOver={onMouseOverContainer}
       onMouseLeave={onMouseLeaveContainer}
+      onMouseDown={onMouseDownContainer}
       {...props}
     >
       <InnerDot active={active} />

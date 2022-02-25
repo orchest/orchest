@@ -1482,12 +1482,6 @@ const PipelineView: React.FC = () => {
 
   const totalDomCount = stepCount + connectionCount;
 
-  console.log(
-    "HM",
-    eventVars.cursorControlledStep
-    // startNodeUUID
-  );
-
   return (
     <Layout disablePadding>
       <div className="pipeline-view">
