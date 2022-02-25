@@ -10,7 +10,7 @@ import type {
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
-import { hasValue, intersectRect } from "@orchest/lib-utils";
+import { intersectRect } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
@@ -271,22 +271,12 @@ export const useEventVars = () => {
         // ==== Start creating a connection
 
         // first find the index from the array, at the moment, the connection is incomplete
-        const index = state.connections.findIndex(
-          (connection) => !hasValue(connection.endNodeUUID)
-        );
-
-        const finalizedNewConnection: Connection = {
-          startNodeUUID: newConnection.current.startNodeUUID,
-          endNodeUUID,
-        };
-
-        newConnection.current = null;
-
         return produce(state, (draft) => {
-          state.connections[index] = finalizedNewConnection;
-          if (!endNodeStep.incoming_connections.includes(startNodeUUID)) {
-            draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
-          }
+          const index = draft.connections.findIndex(
+            (connection) => !connection.endNodeUUID
+          );
+          draft.connections[index].endNodeUUID = endNodeUUID;
+          draft.steps[endNodeUUID].incoming_connections.push(startNodeUUID);
         });
       };
 

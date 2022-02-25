@@ -497,6 +497,7 @@ const PipelineView: React.FC = () => {
 
   const savePipeline = React.useCallback(
     async (steps?: StepsDict) => {
+      if (!pipelineJson) return;
       if (isReadOnly) {
         console.error("savePipeline should be uncallable in readOnly mode.");
         return;
@@ -524,10 +525,13 @@ const PipelineView: React.FC = () => {
     (endNodeUUID: string) => {
       // finish creating connection
       eventVarsDispatch({ type: "MAKE_CONNECTION", payload: endNodeUUID });
-      savePipeline(eventVars.steps);
     },
-    [eventVarsDispatch, savePipeline, eventVars.steps]
+    [eventVarsDispatch]
   );
+
+  React.useEffect(() => {
+    savePipeline(eventVars.steps);
+  }, [savePipeline, eventVars.steps]);
 
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
