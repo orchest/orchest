@@ -1670,10 +1670,8 @@ const PipelineView: React.FC = () => {
                           (stepDomRefs.current[`${step.uuid}-incoming`] = el)
                         }
                         active={isIncomingActive}
-                        onMouseUp={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          if (e.button === 0 && newConnection.current) {
+                        endCreateConnection={() => {
+                          if (newConnection.current) {
                             onMouseUpPipelineStep(step.uuid);
                           }
                         }}
@@ -1685,14 +1683,9 @@ const PipelineView: React.FC = () => {
                         ref={(el) =>
                           (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
                         }
-                        active={
-                          newConnection.current?.startNodeUUID === step.uuid ||
-                          isOutgoingActive
-                        }
-                        onMouseDown={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          if (e.button === 0 && !newConnection.current) {
+                        active={isOutgoingActive}
+                        startCreateConnection={() => {
+                          if (!newConnection.current) {
                             newConnection.current = {
                               startNodeUUID: step.uuid,
                             };

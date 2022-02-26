@@ -3,13 +3,6 @@ import { alpha, styled } from "@mui/material/styles";
 import classNames from "classnames";
 import React from "react";
 
-type DotType = BoxProps & {
-  incoming?: boolean;
-  outgoing?: boolean;
-  disabled?: boolean;
-  active?: boolean;
-};
-
 const DOT_SIZE = "10px";
 
 const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
@@ -21,6 +14,16 @@ const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
   pointerEvents: "none",
 }));
 
+type DotType = BoxProps & {
+  incoming?: boolean;
+  outgoing?: boolean;
+  disabled?: boolean;
+  active?: boolean;
+  onMouseLeave?: (e: React.MouseEvent) => void;
+  startCreateConnection?: () => void;
+  endCreateConnection?: () => void;
+};
+
 export const ConnectionDot = React.forwardRef(function Dot(
   {
     incoming,
@@ -28,8 +31,11 @@ export const ConnectionDot = React.forwardRef(function Dot(
     active,
     className,
     disabled,
+    onMouseUp,
     onMouseOver,
     onMouseLeave,
+    startCreateConnection,
+    endCreateConnection,
     sx,
     ...props
   }: DotType,
@@ -42,6 +48,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
     : "";
 
   const [isHovering, setIsHovering] = React.useState(false);
+  const [isMouseDown, setIsMouseDown] = React.useState(false);
+
   const onMouseOverContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
@@ -50,20 +58,49 @@ export const ConnectionDot = React.forwardRef(function Dot(
     if (onMouseOver) onMouseOver(e);
     setIsHovering(true);
   };
-  const onMouseLeaveContainer = (
-    e: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (onMouseLeave) onMouseLeave(e);
-    setIsHovering(false);
-  };
 
   const onMouseDownContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
     e.stopPropagation();
     e.preventDefault();
+    setIsMouseDown(true);
+  };
+
+  const onMouseUpContainer = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (onMouseUp) onMouseUp(e);
+    if (
+      e.button === 0 &&
+      incoming &&
+      !outgoing &&
+      !isMouseDown && // because user drag the connection line into this dot, onMouseUp was not triggered in the first place
+      endCreateConnection
+    )
+      endCreateConnection();
+    setIsMouseDown(false);
+  };
+
+  const onMouseLeaveContainer = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
+    e.stopPropagation();
+    e.preventDefault();
+    // user is trying to create a new connection
+    if (onMouseLeave) onMouseLeave(e);
+    if (
+      e.button === 0 &&
+      !incoming &&
+      outgoing &&
+      isMouseDown &&
+      startCreateConnection
+    )
+      startCreateConnection();
+    setIsMouseDown(false);
+    setIsHovering(false);
   };
 
   return (
@@ -72,6 +109,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
       className={classNames(typeClassName, className, "connection-point")}
       sx={sx}
       onMouseOver={onMouseOverContainer}
+      onMouseUp={onMouseUpContainer}
       onMouseLeave={onMouseLeaveContainer}
       onMouseDown={onMouseDownContainer}
       {...props}
