@@ -1,5 +1,21 @@
 from typing import List, Set
 
+ORCHEST_NAMESPACE = "orchest"
+
+ORCHEST_DEPLOYMENTS = [
+    "celery-worker",
+    "docker-registry",
+    "file-manager",
+    "orchest-api",
+    "orchest-database",
+    "orchest-webserver",
+    "rabbitmq-server",
+    "update-server",
+    # Bit risky in chase of a name change? K8S_TODO: discuss.
+    "argo-workflow-argo-workflows-server",
+    "argo-workflow-argo-workflows-workflow-controller",
+]
+
 # NOTE: "orchest/orchest-ctl:latest" is excluded on purpose, since the
 # orchest-ctl is not managing itself. Instead the top-level `orchest`
 # shell script manages its updates.

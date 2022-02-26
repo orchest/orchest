@@ -20,3 +20,6 @@
 
 # Pyright / VSCode
 **/pyrightconfig.json
+
+# Helm deployment state
+deploy/bin/

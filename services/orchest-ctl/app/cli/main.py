@@ -5,9 +5,9 @@ from typing import Optional
 
 import typer
 
+from app import orchest
 from app.cli import start as cli_start
-from app.orchest import OrchestApp
-from app.spec import get_container_config
+from app.orchest_old import OrchestApp
 from app.utils import echo, fix_userdir_permissions
 
 
@@ -195,8 +195,9 @@ def install(
     # Make sure the permissions of the userdir are correctly set in case
     # Orchest will always be started using `--cloud` in the future (as
     # in other modes the permissions are fixed on start).
-    fix_userdir_permissions()
-    app.install(language, gpu=gpu)
+    # K8S_TODO: is this still needed?
+    # fix_userdir_permissions()
+    orchest.install()
 
 
 # TODO: make mode in Mode type. Although it is "web" here

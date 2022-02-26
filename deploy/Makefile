@@ -1,5 +1,5 @@
 NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest}
-KUBECONFIG := ${if ${KUBECONFIG},${KUBECONFIG},~/.kube/config}
+KUBECONFIG := ${if ${KUBECONFIG},--kubeconfig ${KUBECONFIG},}
 
 DEFAULT_TAG := ${if ${DEFAULT_TAG},${DEFAULT_TAG},latest}
 
@@ -15,8 +15,8 @@ REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
 # define DISABLE_ROOK env variable and set it to something (preferably FALSE)
 ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
 
-SHARED_DEPLOY_CONFIG := --kubeconfig ${KUBECONFIG} \
-	${DEBUG} --namespace ${NAMESPACE} --create-namespace --wait
+SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
+	 --create-namespace --wait --atomic
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}

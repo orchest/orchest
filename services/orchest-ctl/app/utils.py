@@ -66,7 +66,7 @@ def fix_userdir_permissions() -> None:
         # Use the `-exec ... +` notation to try to pass all found files
         # to `chmod` at once and reduce the number of invocations.
         exit_code = os.system(
-            "find /orchest-host/userdir -type d -not -perm -g+s -exec chmod g+s '{}' +"
+            "find /userdir -type d -not -perm -g+s -exec chmod g+s '{}' +"
         )
     except Exception as e:
         logger.warning("Could not set gid permissions on '/orchest-host/userdir'.")
