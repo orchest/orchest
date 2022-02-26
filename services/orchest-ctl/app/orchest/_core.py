@@ -43,6 +43,7 @@ def is_orchest_already_installed() -> bool:
 
 
 def install():
+    k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
         utils.echo("\torchest update")
@@ -240,6 +241,7 @@ def status(output_json: bool = False):
 
 
 def stop():
+    k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
     running_deployments = []
@@ -287,6 +289,7 @@ def stop():
 
 
 def start():
+    k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
     deployments_to_start = []

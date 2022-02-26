@@ -8,9 +8,10 @@ async_req=True in the k8s python SDK that happens here.
 import os
 from typing import Dict, List, Optional, Union
 
+import typer
 from kubernetes import client as k8s_client
 
-from app import config
+from app import config, utils
 from app.config import OrchestStatus
 from app.connections import k8s_apps_api, k8s_core_api
 
@@ -129,10 +130,20 @@ def delete_orchest_ctl_pod():
     k8s_core_api.delete_namespaced_pod(os.environ["POD_NAME"], "orchest")
 
 
-def _get_ongoing_status_changing_pods() -> List[k8s_client.V1Pod]:
-    """Gets both the orchest-ctl and update-server pods.
+def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
+    """Returns a pod that is changing the state of Orchest.
 
-    The output is sorted by creation time.
+    This can be used to know what operation Orchest is undergoing, or
+    if another, possibly confliting command can be run concurrently or
+    not. This works by checking what's the oldest pod that is running a
+    status changing command or the update-server, which works as a
+    priority when it comes to conflicts.
+
+    Returns:
+        None if no instance of the update-server or orchest-ctl running
+        with state changing commands is not running. That instance pod
+        otherwise.
+
     """
     pods = k8s_core_api.list_namespaced_pod(
         config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
@@ -147,17 +158,38 @@ def _get_ongoing_status_changing_pods() -> List[k8s_client.V1Pod]:
         )
     ]
     pods.sort(key=lambda pod: pod.metadata.creation_timestamp)
-    return pods
+    return pods[0] if pods else None
+
+
+def abort_if_unsafe() -> None:
+    """Exits if the command can't be safely run.
+
+    This is to avoid having inconsistent state due to the concurrent
+    running of other CLI commands that alter the state of the Orchest
+    deployment.
+    """
+    pod = _get_ongoing_status_changing_pod()
+    if pod.metadata.name != os.environ["POD_NAME"]:
+        cmd = pod.metadata.labels.get("command", "update")
+        if pod.metadata.labels["app"] == "update-server":
+            cmd = "update"
+        else:
+            cmd = pod.metadata.labels["command"]
+        utils.echo(
+            "This command cannot be run concurrently due to another "
+            f"ongoing, possibly conflicting command: {cmd}."
+        )
+        raise typer.Exit(1)
 
 
 def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
-    pods = _get_ongoing_status_changing_pods()
-    if not pods:
+    pod = _get_ongoing_status_changing_pod()
+    if pod is None:
         return None
-    if pods[0].metadata.labels["app"] == "update-server":
+    if pod.metadata.labels["app"] == "update-server":
         return config.OrchestStatus.UPDATING
     else:
-        cmd = pods[0].metadata.labels["command"]
+        cmd = pod.metadata.labels["command"]
         # Just used for proper mapping of concepts, e.g. if "install"
         # then Orchest is "installing". Not all operations change the
         # state of orchest.
