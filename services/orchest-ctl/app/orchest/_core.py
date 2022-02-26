@@ -346,3 +346,8 @@ def start():
     # port = 8001
     # utils.echo(f"Orchest is running at: http://localhost:{port}")
     utils.echo("Orchest is running, portforward to the webserver to access it.")
+
+
+def restart():
+    stop()
+    start()

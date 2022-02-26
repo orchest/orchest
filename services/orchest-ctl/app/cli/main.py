@@ -223,17 +223,6 @@ def update(
 
 @typer_app.command()
 def restart(
-    # Support the old way of passing mode so that an old version of
-    # Orchest does not break when updating.
-    mode: str = typer.Option(
-        "reg",
-        help=(
-            "Mode in which to start Orchest afterwards. This option is "
-            "deprecated and will be removed in a future version. Use --dev "
-            "instead of --mode=dev."
-        ),
-        hidden=True,
-    ),
     port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
     cloud: bool = typer.Option(
         False,
@@ -249,9 +238,7 @@ def restart(
     Restart Orchest.
     """
 
-    dev = dev or (mode == "dev")
-    container_config = get_container_config(port, cloud=cloud, dev=dev)
-    app.restart(container_config, cloud=cloud)
+    orchest.restart()
 
 
 @typer_app.command(hidden=True)
