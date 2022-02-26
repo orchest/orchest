@@ -236,3 +236,50 @@ def status(output_json: bool = False):
         if status == "unhealthy":
             data["reason"] = {"deployments": unhealthy_deployments}
         utils.echo_json(data)
+
+
+def stop():
+    depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
+    missing_deployments = []
+    running_deployments = []
+    for depl_name, depl in zip(config.ORCHEST_DEPLOYMENTS, depls):
+        if depl is None:
+            missing_deployments.append(depl_name)
+        elif depl.spec.replicas > 0:
+            running_deployments.append(depl)
+
+    if missing_deployments:
+        if len(missing_deployments) == len(config.ORCHEST_DEPLOYMENTS):
+            utils.echo("It doesn't look like Orchest is installed.")
+            return
+        else:
+            utils.echo(
+                "Detected some inconsistent state, missign deployments: "
+                f"{sorted(missing_deployments)}. This operation will "
+                "proceed regardless."
+            )
+    if not running_deployments:
+        utils.echo("Orchest is not running.")
+        return
+
+    deployments_pods = k8sw.get_orchest_deployments_pods(running_deployments)
+    utils.echo("Shutting down...")
+    with typer.progressbar(
+        # + 1 for UX and to account for the previous actions.
+        length=len(deployments_pods) + 1,
+        label="Shutdown",
+        show_eta=False,
+    ) as progress:
+        k8sw.scale_orchest_deployments(
+            [depl.metadata.name for depl in running_deployments], 0
+        )
+        progress.update(1)
+
+        # Wait for all pods to be removed.
+        while deployments_pods:
+            time.sleep(1)
+            tmp_pods = k8sw.get_orchest_deployments_pods(running_deployments)
+            progress.update(len(deployments_pods) - len(tmp_pods))
+            deployments_pods = tmp_pods
+
+    utils.echo("Shutdown successful.")

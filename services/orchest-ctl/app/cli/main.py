@@ -110,7 +110,7 @@ def stop():
     """
     Shutdown Orchest.
     """
-    app.stop()
+    orchest.stop()
 
 
 @typer_app.command()

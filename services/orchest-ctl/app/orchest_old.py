@@ -257,62 +257,6 @@ class OrchestApp:
                 exposed_port = port_binding[0]["HostPort"]
                 utils.echo(f"Orchest is running at: http://localhost:{exposed_port}")
 
-    def stop(self, skip_containers: Optional[List[str]] = None):
-        """Stop the Orchest application.
-
-        Args:
-            skip_containers: The names of the images of the containers
-                for which the containers are not stopped.
-
-        """
-
-        ids, running_containers = self.resource_manager.get_containers(state="running")
-        if not utils.is_orchest_running(running_containers):
-            utils.echo("Orchest is not running.")
-            return
-
-        # Exclude the orchest-ctl from shutting down itself.
-        if skip_containers is None:
-            skip_containers = []
-        skip_containers += ["orchest/orchest-ctl:latest"]
-
-        utils.echo("Shutting down...")
-        # This is necessary because some of our containers might spawn
-        # other containers, leading to a possible race condition where
-        # the listed running containers are not up to date with the
-        # real state anymore.
-        n = 2
-        for _ in range(n):
-
-            id_containers = [
-                (id_, c)
-                for id_, c in zip(ids, running_containers)
-                if c not in skip_containers
-            ]
-            # It might be that there are no containers to shut down
-            # after filtering through skip_containers.
-            if not id_containers:
-                break
-            ids: Tuple[str]
-            running_containers: Tuple[Optional[str]]
-            ids, running_containers = list(zip(*id_containers))
-
-            logger.info("Shutting down containers:\n" + "\n".join(running_containers))
-            self.docker_client.remove_containers(ids)
-
-            # This is a safeguard against the fact that docker might be
-            # buffering the start of a container, which translates to
-            # the fact that we could "miss" the container and leave it
-            # dangling. See #239 for more info.
-            time.sleep(2)
-            ids, running_containers = self.resource_manager.get_containers(
-                state="running"
-            )
-            if not ids:
-                break
-
-        utils.echo("Shutdown successful.")
-
     def restart(self, container_config: dict, cloud: bool = False):
         """Starts Orchest.
 

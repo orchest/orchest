@@ -6,7 +6,7 @@ async_req=True in the k8s python SDK that happens here.
 """
 
 import os
-from typing import List, Optional
+from typing import Dict, List, Optional, Union
 
 from kubernetes import client as k8s_client
 
@@ -48,6 +48,56 @@ def get_orchest_deployments(
             else:
                 raise
     return responses
+
+
+def match_labels_to_label_selector(match_labels: Dict[str, str]) -> str:
+    return ",".join([f"{k}={v}" for k, v in match_labels.items()])
+
+
+def get_orchest_deployments_pods(
+    deployments: Union[Optional[List[str]], k8s_client.V1Pod] = None,
+) -> List[Optional[k8s_client.V1Pod]]:
+    if deployments is None:
+        deployments = config.ORCHEST_DEPLOYMENTS
+    if all([isinstance(depl, str) for depl in deployments]):
+        deployments = [d for d in get_orchest_deployments(deployments) if d is not None]
+    elif not all([isinstance(depl, k8s_client.V1Deployment) for depl in deployments]):
+        raise ValueError(
+            "Deployments should either be all of type string or all of type "
+            "V1Deployments."
+        )
+
+    threads = []
+    for depl in deployments:
+        t = k8s_core_api.list_namespaced_pod(
+            config.ORCHEST_NAMESPACE,
+            label_selector=match_labels_to_label_selector(
+                depl.spec.selector.match_labels
+            ),
+            async_req=True,
+        )
+        threads.append(t)
+
+    pods = []
+    for t in threads:
+        depl_pods = t.get()
+        pods.extend(depl_pods.items)
+    return pods
+
+
+def scale_down_orchest_deployments(
+    deployments: Optional[List[str]] = None,
+) -> None:
+    if deployments is None:
+        deployments = config.ORCHEST_DEPLOYMENTS
+    threads = []
+    for name in deployments:
+        t = k8s_apps_api.patch_namespaced_deployment_scale(
+            name, config.ORCHEST_NAMESPACE, {"spec": {"replicas": 0}}, async_req=True
+        )
+        threads.append(t)
+    for t in threads:
+        t.get()
 
 
 def set_orchest_cluster_version(version: str):
