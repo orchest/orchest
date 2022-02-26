@@ -85,15 +85,26 @@ def get_orchest_deployments_pods(
     return pods
 
 
-def scale_down_orchest_deployments(
-    deployments: Optional[List[str]] = None,
+def scale_up_orchest_deployments(deployments: Optional[List[str]] = None):
+    _scale_orchest_deployments(deployments, 1)
+
+
+def scale_down_orchest_deployments(deployments: Optional[List[str]] = None):
+    _scale_orchest_deployments(deployments, 0)
+
+
+def _scale_orchest_deployments(
+    deployments: Optional[List[str]] = None, replicas: int = 1
 ) -> None:
     if deployments is None:
         deployments = config.ORCHEST_DEPLOYMENTS
     threads = []
     for name in deployments:
         t = k8s_apps_api.patch_namespaced_deployment_scale(
-            name, config.ORCHEST_NAMESPACE, {"spec": {"replicas": 0}}, async_req=True
+            name,
+            config.ORCHEST_NAMESPACE,
+            {"spec": {"replicas": replicas}},
+            async_req=True,
         )
         threads.append(t)
     for t in threads:

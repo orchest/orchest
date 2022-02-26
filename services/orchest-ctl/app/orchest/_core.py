@@ -117,6 +117,7 @@ def install():
     # port = 8001
     # utils.echo(f"Orchest is running at: http://localhost:{port}")
     utils.echo("Installation was successful.")
+    utils.echo("Orchest is running, portforward to the webserver to access it.")
 
 
 def _echo_version(
@@ -270,8 +271,8 @@ def stop():
         label="Shutdown",
         show_eta=False,
     ) as progress:
-        k8sw.scale_orchest_deployments(
-            [depl.metadata.name for depl in running_deployments], 0
+        k8sw.scale_down_orchest_deployments(
+            [depl.metadata.name for depl in running_deployments]
         )
         progress.update(1)
 
@@ -283,3 +284,65 @@ def stop():
             deployments_pods = tmp_pods
 
     utils.echo("Shutdown successful.")
+
+
+def start():
+    depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
+    missing_deployments = []
+    deployments_to_start = []
+    for depl_name, depl in zip(config.ORCHEST_DEPLOYMENTS, depls):
+        if depl is None:
+            missing_deployments.append(depl_name)
+        elif depl.spec.replicas == 0:
+            deployments_to_start.append(depl)
+
+    if missing_deployments:
+        if len(missing_deployments) == len(config.ORCHEST_DEPLOYMENTS):
+            utils.echo("It doesn't look like Orchest is installed.")
+            return
+        else:
+            utils.echo(
+                "Detected some inconsistent state, missign deployments: "
+                f"{sorted(missing_deployments)}. This operation will "
+                "proceed regardless."
+            )
+    # Note: this implies that the operation can't be used to set the
+    # scale of all deployments to 1 if, for example, it has been altered
+    # to more than that.
+    if not deployments_to_start:
+        utils.echo("Orchest is already running.")
+        return
+
+    utils.echo("Starting...")
+    deployments_to_start_names = [depl.metadata.name for depl in deployments_to_start]
+    k8sw.scale_up_orchest_deployments(deployments_to_start_names)
+
+    with typer.progressbar(
+        # + 1 for UX and to account for the previous actions.
+        length=len(deployments_to_start) + 1,
+        label="Start",
+        show_eta=False,
+    ) as progress:
+        # Do this after scaling but before waiting for all deployments
+        # to be erady so that those can happen concurrently.
+        logger.info("Setting 'userdir/' permissions.")
+        utils.fix_userdir_permissions()
+
+        # This is just to make the bar not stay at 0% for too long
+        # because images are being pulled etc, i.e. just UX.
+        progress.update(1)
+
+        while deployments_to_start:
+            time.sleep(1)
+            tmp_deployments_to_start = [
+                d
+                for d in k8sw.get_orchest_deployments(deployments_to_start_names)
+                if d is not None and d.status.ready_replicas != d.spec.replicas
+            ]
+            progress.update(len(deployments_to_start) - len(tmp_deployments_to_start))
+            deployments_to_start = tmp_deployments_to_start
+
+    # K8S_TODO: coordinate with ingress for this.
+    # port = 8001
+    # utils.echo(f"Orchest is running at: http://localhost:{port}")
+    utils.echo("Orchest is running, portforward to the webserver to access it.")
