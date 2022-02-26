@@ -242,4 +242,4 @@ def status(output_json: bool = False):
         data = {"status": status}
         if status == "unhealthy":
             data["reason"] = unhealthy_reason
-        print(json.dumps(data))
+        utils.echo(json.dumps(data, sort_keys=True, indent=2), wrap=False)
