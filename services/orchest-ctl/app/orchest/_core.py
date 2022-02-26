@@ -152,7 +152,7 @@ def _echo_version(
         }
         if deployment_versions is not None:
             data["deployment_versions"] = deployment_versions
-        print(json.dumps(data, sort_keys=True, indent=2))
+        utils.echo(json.dumps(data, sort_keys=True, indent=2), wrap=False)
 
 
 def version(ext=False, output_json: bool = False) -> None:
