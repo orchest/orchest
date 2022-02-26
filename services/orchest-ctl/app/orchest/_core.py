@@ -187,9 +187,10 @@ def version(ext: bool = False, output_json: bool = False) -> None:
 def status(output_json: bool = False):
     """Gets the status of Orchest.
 
-    Note: this is not race condition free, given that a status changing
-    command could start after our read. K8S_TODO: we could try multiple
-    times if the cluster looks unhealthy, discuss.
+    Note:
+        This is not race condition free, given that a status changing
+        command could start after our read. K8S_TODO: we could try
+        multiple times if the cluster looks unhealthy, discuss.
     """
     config.JSON_MODE = output_json
     utils.echo("Checking for ongoing status changes...")
@@ -215,7 +216,8 @@ def status(output_json: bool = False):
                 if replicas != depl.status.available_replicas:
                     unhealthy_deployments.add(depl_name)
         unhealthy = (
-            # Can't have both.
+            # Given that there are no ongoing status changes, Orchest
+            # can't have both stopped and running deployments.
             (stopped_deployments and running_deployments)
             or unhealthy_deployments
         )
