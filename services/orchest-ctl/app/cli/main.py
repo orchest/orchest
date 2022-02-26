@@ -123,8 +123,10 @@ def status(
     ),
 ):
     """
-    Get status of Orchest, one of: "installing", "restarting",
-    "running", "starting", "stopped", "stopping", "unhealthy",
+    Get status of Orchest.
+
+    The given status will be one of: "installing", "restarting",
+    "running", "starting", "stopped", "stopping", "unhealthy" or
     "updating".
 
     """

@@ -16,10 +16,18 @@ from app.config import WRAP_LINES
 logger = logging.getLogger(__name__)
 
 
+def echo_json(data: dict) -> None:
+    """Wraps typer.echo to output json in a consistent manner."""
+    typer.echo(json.dumps(data, sort_keys=True, indent=True))
+
+
 def echo(*args, wrap=WRAP_LINES, **kwargs):
+    """Wraps typer.echo to natively support line wrapping.
+
+    If config.JSON_MODE is True no output will be produced.
+    """
     if config.JSON_MODE:
         return
-    """Wraps typer.echo to natively support line wrapping."""
     if wrap:
         message = kwargs.get("message")
         if message is not None:

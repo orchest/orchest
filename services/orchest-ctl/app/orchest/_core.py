@@ -1,11 +1,10 @@
 import atexit
-import json
 import logging
 import os
 import signal
 import subprocess
 import time
-from typing import Dict, Optional
+from typing import Any, Dict, Optional
 
 import typer
 from kubernetes import client as k8s_client
@@ -124,7 +123,7 @@ def _echo_version(
     cluster_version: str,
     deployment_versions: Optional[Dict[str, str]] = None,
     output_json: bool = False,
-):
+) -> None:
     if not output_json:
         utils.echo(f"Cluster version: {cluster_version}.")
         if deployment_versions is not None:
@@ -146,26 +145,26 @@ def _echo_version(
                     err=True,
                 )
     else:
-        data = {
+        data: Dict[str, Any] = {
             "cluster_version": cluster_version,
         }
         if deployment_versions is not None:
             data["deployment_versions"] = deployment_versions
-        print(json.dumps(data, sort_keys=True, indent=2))
+        utils.echo_json(data)
 
 
-def version(ext: bool = False, output_json: bool = False):
+def version(ext: bool = False, output_json: bool = False) -> None:
     """Returns the version of Orchest.
 
     Args:
         ext: If True return the extensive version of Orchest, i.e.
-        including deployment versions.
-        output_json: If true echo json instead of text.
+            including deployment versions.
+        output_json: If True echo json instead of text.
     """
     config.JSON_MODE = output_json
     cluster_version = k8sw.get_orchest_cluster_version()
     if not ext:
-        _echo_version(cluster_version, None, output_json)
+        _echo_version(cluster_version, output_json=output_json)
         return
 
     deployments = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
@@ -187,9 +186,10 @@ def version(ext: bool = False, output_json: bool = False):
 def status(output_json: bool = False):
     """Gets the status of Orchest.
 
-    Note: this is not race condition free, given that a status changing
-    command could start after our read. K8S_TODO: we could try multiple
-    times if the cluster looks unhealthy, discuss.
+    Note:
+        This is not race condition free, given that a status changing
+        command could start after our read. K8S_TODO: we could try
+        multiple times if the cluster looks unhealthy, discuss.
     """
     config.JSON_MODE = output_json
     utils.echo("Checking for ongoing status changes...")
@@ -214,21 +214,16 @@ def status(output_json: bool = False):
                     stopped_deployments.add(depl_name)
                 if replicas != depl.status.available_replicas:
                     unhealthy_deployments.add(depl_name)
-        unhealthy = (
-            # Can't have both.
-            (stopped_deployments and running_deployments)
-            or unhealthy_deployments
-        )
-        unhealthy_reason = set()
-        if unhealthy:
+        # Given that there are no ongoing status changes, Orchest can't
+        # have both stopped and running deployments.  Assume that, if at
+        # least 1 deployment is running, the ones which are not are
+        # unhealthy.
+        if stopped_deployments and running_deployments:
+            unhealthy_deployments.update(stopped_deployments)
+        if unhealthy_deployments:
             status = config.OrchestStatus.UNHEALTHY
-            unhealthy_reason.update(unhealthy_deployments)
-            # Assume that, if at least 1 deployment is running, the ones
-            # which are not are unhealthy.
-            if stopped_deployments and running_deployments:
-                unhealthy_reason.update(stopped_deployments)
-            unhealthy_reason = sorted(unhealthy_reason)
-            utils.echo(f"Unhealthy deployments: {unhealthy_reason}.")
+            unhealthy_deployments = sorted(unhealthy_deployments)
+            utils.echo(f"Unhealthy deployments: {unhealthy_deployments}.")
         elif running_deployments:
             status = config.OrchestStatus.RUNNING
         else:
@@ -239,5 +234,5 @@ def status(output_json: bool = False):
     if output_json:
         data = {"status": status}
         if status == "unhealthy":
-            data["reason"] = unhealthy_reason
-        print(json.dumps(data))
+            data["reason"] = {"deployments": unhealthy_deployments}
+        utils.echo_json(data)

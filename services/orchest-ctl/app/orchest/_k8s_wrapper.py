@@ -11,12 +11,23 @@ from typing import List, Optional
 from kubernetes import client as k8s_client
 
 from app import config
+from app.config import OrchestStatus
 from app.connections import k8s_apps_api, k8s_core_api
 
 
 def get_orchest_deployments(
     deployments: Optional[List[str]] = None,
 ) -> List[Optional[k8s_client.V1Deployment]]:
+    """Returns Deployment objects given their name.
+
+    Args:
+        deployments: Names of deployments to retrieve. If not passed or
+            None, config.ORCHEST_DEPLOYMENTS will be used.
+
+    Return:
+        List of Deployment objects, returned in the same order as the
+        given deployments argument.
+    """
     if deployments is None:
         deployments = config.ORCHEST_DEPLOYMENTS
     threads = []
@@ -58,8 +69,9 @@ def delete_orchest_ctl_pod():
 
 
 def _get_ongoing_status_changing_pods() -> List[k8s_client.V1Pod]:
-    """Both orchest-ctl and update-server pods.
-    Sorted by creation time.
+    """Gets both the orchest-ctl and update-server pods.
+
+    The output is sorted by creation time.
     """
     pods = k8s_core_api.list_namespaced_pod(
         config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
@@ -85,4 +97,14 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
         return config.OrchestStatus.UPDATING
     else:
         cmd = pods[0].metadata.labels["command"]
-        return config.ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
+        # Just used for proper mapping of concepts, e.g. if "install"
+        # then Orchest is "installing". Not all operations change the
+        # state of orchest.
+        ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS = {
+            "install": OrchestStatus.INSTALLING,
+            "start": OrchestStatus.STARTING,
+            "stop": OrchestStatus.STOPPING,
+            "restart": OrchestStatus.RESTARTING,
+            "update": OrchestStatus.UPDATING,
+        }
+        return ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
