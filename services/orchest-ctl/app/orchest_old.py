@@ -156,18 +156,6 @@ class OrchestApp:
             utils.echo("Update completed. To start Orchest again, run:")
             utils.echo("\torchest start")
 
-    def restart(self, container_config: dict, cloud: bool = False):
-        """Starts Orchest.
-
-        Raises:
-            ValueError: If the `container_config` does not contain a
-                configuration for every image that is supposed to run
-                on start.
-
-        """
-        self.stop()
-        self.start(container_config, cloud=cloud)
-
     def _updateserver(self, port: int = 8000, cloud: bool = False, dev: bool = False):
         """Starts the update-server service."""
         logger.info("Starting Orchest update service...")
