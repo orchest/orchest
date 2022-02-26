@@ -17,6 +17,16 @@ from app.connections import k8s_apps_api, k8s_core_api
 def get_orchest_deployments(
     deployments: Optional[List[str]] = None,
 ) -> List[Optional[k8s_client.V1Deployment]]:
+    """Returns Deployment objects given their name.
+
+    Args:
+        deployments: Names of deployments to retrieve. If not passed or
+            None, config.ORCHEST_DEPLOYMENTS will be used.
+
+    Return:
+        List of Deployment objects, returned in the same order as the
+        given deployments argument.
+    """
     if deployments is None:
         deployments = config.ORCHEST_DEPLOYMENTS
     threads = []
