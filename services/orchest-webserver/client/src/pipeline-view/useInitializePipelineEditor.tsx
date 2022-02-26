@@ -3,7 +3,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { PipelineJson, StepsDict } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
 import { extractStepsFromPipelineJson } from "./common";
@@ -52,13 +52,20 @@ export const useInitializePipelineEditor = (
       )
   );
 
+  const hash = React.useRef<string>(uuidv4());
   const setPipelineJson = React.useCallback(
     (
       data?:
         | PipelineJson
         | Promise<PipelineJson>
-        | MutatorCallback<PipelineJson>
-    ) => mutate(data, false),
+        | MutatorCallback<PipelineJson>,
+      flushPage?: boolean
+    ) => {
+      // in case you want to re-initialize all components according to the new PipelineJson
+      // to be part of the re-initialization, you need to assign hash.current as part of the key of your component
+      if (flushPage) hash.current = uuidv4();
+      mutate(data, false);
+    },
     [mutate]
   );
 
@@ -104,6 +111,7 @@ export const useInitializePipelineEditor = (
     pipelineJson,
     environments,
     setPipelineJson,
+    hash,
     error,
     isFetching: isFetchingPipelineJson || isFetchingCwd,
   };

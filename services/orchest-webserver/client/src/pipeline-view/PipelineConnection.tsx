@@ -101,6 +101,7 @@ const getRenderProperties = ({
 };
 
 const PipelineConnectionComponent: React.FC<{
+  flushPage: boolean;
   isNew: boolean;
   startNodeX: number;
   startNodeY: number;
@@ -118,6 +119,7 @@ const PipelineConnectionComponent: React.FC<{
   cursorControlledStep: string;
   newConnection: React.MutableRefObject<NewConnection>;
 }> = ({
+  flushPage,
   isNew,
   startNodeX,
   endNodeX,
@@ -148,10 +150,11 @@ const PipelineConnectionComponent: React.FC<{
 
   const containerRef = React.useRef<HTMLDivElement>();
 
-  const onMouseMove = React.useCallback(() => {
+  const redrawConnectionLine = React.useCallback(() => {
     if (
-      (cursorControlledStep || isNew) &&
-      (shouldUpdateStart || shouldUpdateEnd)
+      flushPage ||
+      ((cursorControlledStep || isNew) &&
+        (shouldUpdateStart || shouldUpdateEnd))
     ) {
       const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
       const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
@@ -181,6 +184,7 @@ const PipelineConnectionComponent: React.FC<{
     endNodeY,
     startNodeY,
     endNodeUUID,
+    flushPage,
     startNodeUUID,
     getPosition,
     stepDomRefs,
@@ -194,9 +198,14 @@ const PipelineConnectionComponent: React.FC<{
   // via stepDomRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
   React.useEffect(() => {
-    document.body.addEventListener("mousemove", onMouseMove);
-    return () => document.body.removeEventListener("mousemove", onMouseMove);
-  }, [onMouseMove]);
+    document.body.addEventListener("mousemove", redrawConnectionLine);
+    return () =>
+      document.body.removeEventListener("mousemove", redrawConnectionLine);
+  }, [redrawConnectionLine]);
+
+  React.useEffect(() => {
+    if (flushPage) redrawConnectionLine();
+  }, [flushPage, redrawConnectionLine]);
 
   const onClickFun = React.useCallback(
     (e) => {

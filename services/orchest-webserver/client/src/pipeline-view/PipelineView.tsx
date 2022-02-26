@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import type {
@@ -205,6 +206,7 @@ const PipelineView: React.FC = () => {
     pipelineJson,
     environments,
     setPipelineJson,
+    hash,
     error: fetchDataError,
   } = useInitializePipelineEditor(
     pipelineUuid,
@@ -1073,7 +1075,7 @@ const PipelineView: React.FC = () => {
         STEP_HEIGHT
       );
       return updated;
-    });
+    }, true);
 
     // and save
     savePipeline();
@@ -1485,6 +1487,7 @@ const PipelineView: React.FC = () => {
   ]);
 
   const totalDomCount = stepCount + connectionCount;
+  const flushPage = useHasChanged(hash.current);
 
   return (
     <Layout disablePadding>
@@ -1653,7 +1656,7 @@ const PipelineView: React.FC = () => {
                 // initialized
                 return (
                   <PipelineStep
-                    key={step.uuid}
+                    key={`${step.uuid}-${hash.current}`}
                     initialValue={step}
                     disabledDragging={isPanning}
                     scaleFactor={eventVars.scaleFactor}
@@ -1729,10 +1732,12 @@ const PipelineView: React.FC = () => {
                 // the connection should update its start/end node, to move along with the step
 
                 const shouldUpdateX =
+                  flushPage ||
                   eventVars.cursorControlledStep === startNodeUUID ||
                   eventVars.selectedSteps.includes(startNodeUUID);
 
                 const shouldUpdateY =
+                  flushPage ||
                   eventVars.cursorControlledStep === endNodeUUID ||
                   isNew ||
                   eventVars.selectedSteps.includes(endNodeUUID);
@@ -1763,7 +1768,7 @@ const PipelineView: React.FC = () => {
                     startNodeUUID &&
                   eventVars.selectedConnection?.endNodeUUID === endNodeUUID;
 
-                const key = `${connection.startNodeUUID}-${connection.endNodeUUID}`;
+                const key = `${connection.startNodeUUID}-${connection.endNodeUUID}-${hash.current}`;
 
                 const movedToTop = eventVars.selectedSteps.some((step) =>
                   key.includes(step)
@@ -1772,6 +1777,7 @@ const PipelineView: React.FC = () => {
                 return (
                   <PipelineConnection
                     key={key}
+                    flushPage={flushPage}
                     isNew={isNew}
                     selected={isSelected}
                     movedToTop={movedToTop}
