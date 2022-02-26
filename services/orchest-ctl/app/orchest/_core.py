@@ -1,5 +1,4 @@
 import atexit
-import json
 import logging
 import os
 import signal
@@ -151,7 +150,7 @@ def _echo_version(
         }
         if deployment_versions is not None:
             data["deployment_versions"] = deployment_versions
-        utils.echo(json.dumps(data, sort_keys=True, indent=2), wrap=False)
+        utils.echo_json(data)
 
 
 def version(ext: bool = False, output_json: bool = False) -> None:
@@ -242,4 +241,4 @@ def status(output_json: bool = False):
         data = {"status": status}
         if status == "unhealthy":
             data["reason"] = unhealthy_reason
-        utils.echo(json.dumps(data, sort_keys=True, indent=2), wrap=False)
+        utils.echo_json(data)
