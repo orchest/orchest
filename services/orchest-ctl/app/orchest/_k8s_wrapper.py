@@ -11,6 +11,7 @@ from typing import List, Optional
 from kubernetes import client as k8s_client
 
 from app import config
+from app.config import OrchestStatus
 from app.connections import k8s_apps_api, k8s_core_api
 
 
@@ -96,4 +97,14 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
         return config.OrchestStatus.UPDATING
     else:
         cmd = pods[0].metadata.labels["command"]
-        return config.ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
+        # Just used for proper mapping of concepts, e.g. if "install"
+        # then Orchest is "installing". Not all operations change the
+        # state of orchest.
+        ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS = {
+            "install": OrchestStatus.INSTALLING,
+            "start": OrchestStatus.STARTING,
+            "stop": OrchestStatus.STOPPING,
+            "restart": OrchestStatus.RESTARTING,
+            "update": OrchestStatus.UPDATING,
+        }
+        return ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
