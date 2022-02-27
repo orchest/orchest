@@ -259,10 +259,10 @@ def cleanup():
     app = create_app(config_class=CONFIG_CLASS, use_db=True, be_scheduler=False)
 
     with app.app_context():
-        app.logger.debug("Starting app cleanup.")
+        app.logger.info("Starting app cleanup.")
 
         try:
-            # Fix interactive runs.
+            app.logger.info("Aborting interactive pipeline runs.")
             runs = InteractivePipelineRun.query.filter(
                 InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
             ).all()
@@ -270,6 +270,7 @@ def cleanup():
                 for run in runs:
                     AbortPipelineRun(tpe).transaction(run.uuid)
 
+            app.logger.info("Shutting down interactive sessions.")
             int_sessions = InteractiveSession.query.all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for session in int_sessions:
@@ -277,7 +278,7 @@ def cleanup():
                         session.project_uuid, session.pipeline_uuid, async_mode=False
                     )
 
-            # Fix env builds.
+            app.logger.info("Aborting environment builds.")
             builds = EnvironmentBuild.query.filter(
                 EnvironmentBuild.status.in_(["PENDING", "STARTED"])
             ).all()
@@ -285,7 +286,7 @@ def cleanup():
                 for build in builds:
                     AbortEnvironmentBuild(tpe).transaction(build.uuid)
 
-            # Fix jupyter builds.
+            app.logger.info("Aborting jupyter builds.")
             builds = JupyterBuild.query.filter(
                 JupyterBuild.status.in_(["PENDING", "STARTED"])
             ).all()
@@ -293,13 +294,13 @@ def cleanup():
                 for build in builds:
                     AbortJupyterBuild(tpe).transaction(build.uuid)
 
-            # Fix one off jobs (and their pipeline runs).
+            app.logger.info("Aborting running one off jobs.")
             jobs = Job.query.filter_by(schedule=None, status="STARTED").all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for job in jobs:
                     AbortJob(tpe).transaction(job.uuid)
 
-            # This is to fix the state of cron jobs pipeline runs.
+            app.logger.info("Aborting running pipeline runs of cron jobs.")
             runs = NonInteractivePipelineRun.query.filter(
                 NonInteractivePipelineRun.status.in_(["STARTED"])
             ).all()
