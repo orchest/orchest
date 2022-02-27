@@ -22,8 +22,7 @@ ROOK_TARGET := ${if ${DISABLE_ROOK},,rook}
 # if rook is disabled, we also diable ceph-resources target
 CEPH_TARGET := ${if ${DISABLE_ROOK},,ceph-resources}
 
-SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
-	 --create-namespace --atomic
+SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
