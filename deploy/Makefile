@@ -75,7 +75,7 @@ CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
 
 # orchest resources deployment configs
 ORCHEST_RSC_ENABLE_CONFIG := --set cluster-resources.orchest.enabled=true
-ORCHEST_RSC_USERDIR_STORAGE := --set cluster-resources.orchest.userdir.storageClass=${FILESYSTEM_STORAGE_CLASS}
+ORCHEST_RSC_USERDIR_STORAGE := --set cluster-resources.orchest.filesystem.storageClass=${FILESYSTEM_STORAGE_CLASS}
 ORCHEST_RSC_DEPLOY_CONFIG := orchest-resources \
 							--namespace ${NAMESPACE} \
 							${SHARED_DEPLOY_CONFIG}	\
