@@ -240,9 +240,19 @@ def status(output_json: bool = False):
         utils.echo_json(data)
 
 
+def _wait_deployments_to_be_stopped(
+    deployments: List[k8s_client.V1Deployment], progress_bar
+) -> None:
+    pods = k8sw.get_orchest_deployments_pods(deployments)
+    while pods:
+        tmp_pods = k8sw.get_orchest_deployments_pods(deployments)
+        progress_bar.update(len(pods) - len(tmp_pods))
+        pods = tmp_pods
+        time.sleep(1)
+
+
 def stop():
     k8sw.abort_if_unsafe()
-    k8sw.orchest_cleanup()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
     running_deployments = []
@@ -266,25 +276,37 @@ def stop():
         utils.echo("Orchest is not running.")
         return
 
-    deployments_pods = k8sw.get_orchest_deployments_pods(running_deployments)
     utils.echo("Shutting down...")
+    pre_cleanup_deployments_to_stop = []
+    post_cleanup_deployments_to_stop = []
+    for depl in running_deployments:
+        # Shut down those before cleanup, this way the webserver won't
+        # be available to the user and the orchest-api scheduler won't
+        # run any job while the cleanup is in progress.
+        if depl.metadata.name in ["orchest-api", "orchest-webserver"]:
+            pre_cleanup_deployments_to_stop.append(depl)
+        else:
+            post_cleanup_deployments_to_stop.append(depl)
+
+    deployments_pods = k8sw.get_orchest_deployments_pods(running_deployments)
     with typer.progressbar(
         # + 1 for UX and to account for the previous actions.
         length=len(deployments_pods) + 1,
         label="Shutdown",
         show_eta=False,
-    ) as progress:
+    ) as progress_bar:
+        progress_bar.update(1)
         k8sw.scale_down_orchest_deployments(
-            [depl.metadata.name for depl in running_deployments]
+            [depl.metadata.name for depl in pre_cleanup_deployments_to_stop]
         )
-        progress.update(1)
+        _wait_deployments_to_be_stopped(pre_cleanup_deployments_to_stop, progress_bar)
 
-        # Wait for all pods to be removed.
-        while deployments_pods:
-            time.sleep(1)
-            tmp_pods = k8sw.get_orchest_deployments_pods(running_deployments)
-            progress.update(len(deployments_pods) - len(tmp_pods))
-            deployments_pods = tmp_pods
+        k8sw.orchest_cleanup()
+
+        k8sw.scale_down_orchest_deployments(
+            [depl.metadata.name for depl in post_cleanup_deployments_to_stop]
+        )
+        _wait_deployments_to_be_stopped(post_cleanup_deployments_to_stop, progress_bar)
 
     utils.echo("Shutdown successful.")
 
