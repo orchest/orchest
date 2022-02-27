@@ -184,9 +184,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const onMouseUp = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    // we want this event to be propagated because Canvas also needs to be notified
 
     isMouseDown.current = false;
+
+    if (isSelectorActive) {
+      eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    }
 
     // This is basically onClick, we cannot use onClick here
     // because onClick is always called after onMouseUp and we cannot distinguish them within React

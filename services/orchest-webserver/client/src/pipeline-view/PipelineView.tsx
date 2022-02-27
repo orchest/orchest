@@ -241,10 +241,11 @@ const PipelineView: React.FC = () => {
   }, []);
 
   // TODO: persists this
-  const offsets = {
-    viewport: getOffset(pipelineViewportRef.current),
-    canvas: getOffset(pipelineCanvasRef.current),
-  };
+  const canvasOffset = getOffset(pipelineCanvasRef.current);
+  // const offsets = {
+  //   viewport: getOffset(pipelineViewportRef.current),
+  //   canvas: getOffset(pipelineCanvasRef.current),
+  // };
 
   // TODO: put document event listeners here
   React.useLayoutEffect(() => {
@@ -1325,7 +1326,7 @@ const PipelineView: React.FC = () => {
     // not dragging the canvas, so user must be creating a selection rectangle
     // we need to save the offset of cursor against pipeline steps holder
     if (isLeftClick && !isPanning) {
-      eventVarsDispatch({ type: "CREATE_SELECTOR", payload: offsets.viewport });
+      eventVarsDispatch({ type: "CREATE_SELECTOR", payload: canvasOffset });
     }
   };
 
@@ -1355,7 +1356,7 @@ const PipelineView: React.FC = () => {
     // update newConnection's position
     if (newConnection.current) {
       const { x, y } = getPositionFromOffset({
-        offset: offsets.canvas,
+        offset: canvasOffset,
         position: mouseTracker.current.client,
         scaleFactor: eventVars.scaleFactor,
       });
@@ -1366,7 +1367,7 @@ const PipelineView: React.FC = () => {
     if (eventVars.stepSelector.active) {
       eventVarsDispatch({
         type: "UPDATE_STEP_SELECTOR",
-        payload: offsets.canvas,
+        payload: canvasOffset,
       });
     }
 
@@ -1660,7 +1661,7 @@ const PipelineView: React.FC = () => {
                     initialValue={step}
                     disabledDragging={isPanning}
                     scaleFactor={eventVars.scaleFactor}
-                    offset={offsets.viewport}
+                    offset={canvasOffset}
                     selected={selected}
                     zIndexMax={totalDomCount}
                     isSelectorActive={eventVars.stepSelector.active}
@@ -1748,7 +1749,7 @@ const PipelineView: React.FC = () => {
                 ];
 
                 const getPosition = getNodeCenter(
-                  offsets.canvas,
+                  canvasOffset,
                   eventVars.scaleFactor
                 );
 
