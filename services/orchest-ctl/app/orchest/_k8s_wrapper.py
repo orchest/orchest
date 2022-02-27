@@ -215,6 +215,8 @@ _cleanup_pod_manifest = {
     },
     "spec": {
         "restartPolicy": "Never",
+        "serviceAccount": "orchest-api",
+        "serviceAccountName": "orchest-api",
         "containers": [
             {
                 "name": "orchest-api-cleanup",
@@ -223,8 +225,6 @@ _cleanup_pod_manifest = {
                 # Make sure the database is compatible with the code.
                 "args": ["python migration_manager.py db migrate && python cleanup.py"],
                 "imagePullPolicy": "IfNotPresent",
-                "serviceAccount": "orchest-api",
-                "serviceAccountName": "orchest-api",
                 "env": [
                     {
                         # K8S_TODO: fix it? A real value does not need
