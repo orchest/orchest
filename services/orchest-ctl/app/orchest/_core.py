@@ -4,7 +4,7 @@ import os
 import signal
 import subprocess
 import time
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import typer
 from kubernetes import client as k8s_client
@@ -77,10 +77,10 @@ def install():
         length=len(config.ORCHEST_DEPLOYMENTS) + 1,
         label="Installation",
         show_eta=False,
-    ) as progress:
+    ) as progress_bar:
         # This is just to make the bar not stay at 0% for too long
         # because images are being pulled etc, i.e. just UX.
-        progress.update(1)
+        progress_bar.update(1)
         while returncode is None:
             # This way we are able to perform the last update on the
             # bar in case of success before the loop exiting.
@@ -95,7 +95,7 @@ def install():
                 for d in deployments
                 if d is not None and d.status.ready_replicas == d.spec.replicas
             ]
-            progress.update(len(ready_deployments) - n_ready_deployments)
+            progress_bar.update(len(ready_deployments) - n_ready_deployments)
             n_ready_deployments = len(ready_deployments)
 
             # K8S_TODO: failure cases? Or are they covered by helm?
@@ -242,6 +242,7 @@ def status(output_json: bool = False):
 
 def stop():
     k8sw.abort_if_unsafe()
+    k8sw.orchest_cleanup()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
     running_deployments = []
@@ -288,6 +289,21 @@ def stop():
     utils.echo("Shutdown successful.")
 
 
+def _wait_deployments_to_be_ready(
+    deployments: List[k8s_client.V1Deployment], progress_bar
+) -> None:
+    while deployments:
+        depl_names = [depl.metadata.name for depl in deployments]
+        tmp_deployments_to_start = [
+            d
+            for d in k8sw.get_orchest_deployments(depl_names)
+            if d is not None and d.status.ready_replicas != d.spec.replicas
+        ]
+        progress_bar.update(len(deployments) - len(tmp_deployments_to_start))
+        deployments = tmp_deployments_to_start
+        time.sleep(1)
+
+
 def start():
     k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
@@ -306,9 +322,10 @@ def start():
         else:
             utils.echo(
                 "Detected some inconsistent state, missign deployments: "
-                f"{sorted(missing_deployments)}. This operation will "
-                "proceed regardless."
+                f"{sorted(missing_deployments)}. Try to stop Orchest and "
+                "start it again."
             )
+            raise typer.Exit(code=1)
     # Note: this implies that the operation can't be used to set the
     # scale of all deployments to 1 if, for example, it has been altered
     # to more than that.
@@ -317,33 +334,47 @@ def start():
         return
 
     utils.echo("Starting...")
-    deployments_to_start_names = [depl.metadata.name for depl in deployments_to_start]
-    k8sw.scale_up_orchest_deployments(deployments_to_start_names)
+    pre_cleanup_deployments_to_start = []
+    post_cleanup_deployments_to_start = []
+    for depl in deployments_to_start:
+        # Don't start those until after cleanup, this way the webserver
+        # won't be available to the user and the orchest-api scheduler
+        # won't run any job while the cleanup is in progress.
+        if depl.metadata.name in ["orchest-api", "orchest-webserver"]:
+            post_cleanup_deployments_to_start.append(depl)
+        else:
+            pre_cleanup_deployments_to_start.append(depl)
 
     with typer.progressbar(
-        # + 1 for UX and to account for the previous actions.
-        length=len(deployments_to_start) + 1,
+        # + 1 for previous actions, +1 for cleanup
+        length=len(pre_cleanup_deployments_to_start)
+        + len(post_cleanup_deployments_to_start)
+        + 2,
         label="Start",
         show_eta=False,
-    ) as progress:
+    ) as progress_bar:
+        progress_bar.update(1)
+        k8sw.scale_up_orchest_deployments(
+            [depl.metadata.name for depl in pre_cleanup_deployments_to_start]
+        )
+
         # Do this after scaling but before waiting for all deployments
         # to be ready so that those can happen concurrently.
         logger.info("Setting 'userdir/' permissions.")
         utils.fix_userdir_permissions()
 
         # This is just to make the bar not stay at 0% for too long
-        # because images are being pulled etc, i.e. just UX.
-        progress.update(1)
+        # in case images are being pulled etc, i.e. just UX.
+        progress_bar.update(1)
 
-        while deployments_to_start:
-            time.sleep(1)
-            tmp_deployments_to_start = [
-                d
-                for d in k8sw.get_orchest_deployments(deployments_to_start_names)
-                if d is not None and d.status.ready_replicas != d.spec.replicas
-            ]
-            progress.update(len(deployments_to_start) - len(tmp_deployments_to_start))
-            deployments_to_start = tmp_deployments_to_start
+        _wait_deployments_to_be_ready(pre_cleanup_deployments_to_start, progress_bar)
+
+        k8sw.orchest_cleanup()
+
+        k8sw.scale_up_orchest_deployments(
+            [depl.metadata.name for depl in post_cleanup_deployments_to_start]
+        )
+        _wait_deployments_to_be_ready(post_cleanup_deployments_to_start, progress_bar)
 
     # K8S_TODO: coordinate with ingress for this.
     # port = 8001

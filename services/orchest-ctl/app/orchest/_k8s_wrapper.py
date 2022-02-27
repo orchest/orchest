@@ -253,7 +253,8 @@ def orchest_cleanup() -> None:
     """Performs a cleanup that must be run on start and stop.
 
     It's implemented by spinning up a pod that will run the required
-    code.
+    code. Requires the orchest-dabatase and the celery-worker services
+    to be online.
     """
     manifest = _cleanup_pod_manifest
     # K8S_TODO: fix this once we move to versioned images.
