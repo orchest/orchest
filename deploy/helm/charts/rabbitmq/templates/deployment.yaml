@@ -19,15 +19,3 @@ deployment
         volumeMounts:
          - name: mnesia
            mountPath: /var/lib/rabbitmq/mnesia
-        readinessProbe:
-          exec:
-            command:
-              - su
-              - rabbitmq
-              - -c
-              - "/opt/rabbitmq/sbin/rabbitmq-diagnostics ping"
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 5
-          successThreshold: 1
-          failureThreshold: 40
