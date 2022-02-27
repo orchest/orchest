@@ -101,7 +101,7 @@ const getRenderProperties = ({
 };
 
 const PipelineConnectionComponent: React.FC<{
-  flushPage: boolean;
+  shouldRedraw: boolean;
   isNew: boolean;
   startNodeX: number;
   startNodeY: number;
@@ -119,7 +119,7 @@ const PipelineConnectionComponent: React.FC<{
   cursorControlledStep: string;
   newConnection: React.MutableRefObject<NewConnection>;
 }> = ({
-  flushPage,
+  shouldRedraw,
   isNew,
   startNodeX,
   endNodeX,
@@ -151,44 +151,35 @@ const PipelineConnectionComponent: React.FC<{
   const containerRef = React.useRef<HTMLDivElement>();
 
   const redrawConnectionLine = React.useCallback(() => {
-    if (
-      flushPage ||
-      ((cursorControlledStep || isNew) &&
-        (shouldUpdateStart || shouldUpdateEnd))
-    ) {
-      const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
-      const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
+    const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+    const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
 
-      const startNodePosition = getPosition(startNode);
-      const endNodePosition = getPosition(endNode) || {
-        x: newConnection.current?.xEnd,
-        y: newConnection.current?.yEnd,
+    const startNodePosition = getPosition(startNode);
+    const endNodePosition = getPosition(endNode) || {
+      x: newConnection.current?.xEnd,
+      y: newConnection.current?.yEnd,
+    };
+
+    setRenderProperties((current) => {
+      return {
+        ...current,
+        ...getRenderProperties({
+          startNodeX: shouldUpdateStart ? startNodePosition.x : startNodeX,
+          startNodeY: shouldUpdateStart ? startNodePosition.y : startNodeY,
+          endNodeX: shouldUpdateEnd ? endNodePosition.x : endNodeX,
+          endNodeY: shouldUpdateEnd ? endNodePosition.y : endNodeY,
+        }),
       };
-
-      setRenderProperties((current) => {
-        return {
-          ...current,
-          ...getRenderProperties({
-            startNodeX: shouldUpdateStart ? startNodePosition.x : startNodeX,
-            startNodeY: shouldUpdateStart ? startNodePosition.y : startNodeY,
-            endNodeX: shouldUpdateEnd ? endNodePosition.x : endNodeX,
-            endNodeY: shouldUpdateEnd ? endNodePosition.y : endNodeY,
-          }),
-        };
-      });
-    }
+    });
   }, [
-    isNew,
     startNodeX,
     endNodeX,
     endNodeY,
     startNodeY,
     endNodeUUID,
-    flushPage,
     startNodeUUID,
     getPosition,
     stepDomRefs,
-    cursorControlledStep,
     shouldUpdateStart,
     shouldUpdateEnd,
     newConnection,
@@ -198,14 +189,27 @@ const PipelineConnectionComponent: React.FC<{
   // via stepDomRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
   React.useEffect(() => {
-    document.body.addEventListener("mousemove", redrawConnectionLine);
-    return () =>
-      document.body.removeEventListener("mousemove", redrawConnectionLine);
-  }, [redrawConnectionLine]);
+    const onMouseMove = () => {
+      if (
+        (cursorControlledStep || isNew) &&
+        (shouldUpdateStart || shouldUpdateEnd)
+      ) {
+        redrawConnectionLine();
+      }
+    };
+    document.body.addEventListener("mousemove", onMouseMove);
+    return () => document.body.removeEventListener("mousemove", onMouseMove);
+  }, [
+    redrawConnectionLine,
+    cursorControlledStep,
+    isNew,
+    shouldUpdateEnd,
+    shouldUpdateStart,
+  ]);
 
   React.useEffect(() => {
-    if (flushPage) redrawConnectionLine();
-  }, [flushPage, redrawConnectionLine]);
+    if (shouldRedraw) redrawConnectionLine();
+  }, [shouldRedraw, redrawConnectionLine]);
 
   const onClickFun = React.useCallback(
     (e) => {

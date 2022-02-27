@@ -1777,7 +1777,7 @@ const PipelineView: React.FC = () => {
                 return (
                   <PipelineConnection
                     key={key}
-                    flushPage={flushPage}
+                    shouldRedraw={flushPage}
                     isNew={isNew}
                     selected={isSelected}
                     movedToTop={movedToTop}
