@@ -269,11 +269,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     selected,
     cursorControlledStep,
     resetDraggingVariables,
-    offset,
     dragCount,
     disabledDragging,
     eventVarsDispatch,
     selectedSteps,
+    // was not part of the effect, but we need to update mouse move listener when canvas moved
+    offset,
   ]);
 
   const [x, y] = metadata.position;

@@ -15,8 +15,8 @@ import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
 import {
-  getPositionFromOffset,
-  scaleCorrectedPosition,
+  getScaleCorrectedPosition,
+  scaleCorrected,
   willCreateCycle,
 } from "./common";
 import { getStepSelectorRectangle } from "./Rectangle";
@@ -356,7 +356,7 @@ export const useEventVars = () => {
         case "CREATE_SELECTOR": {
           // not dragging the canvas, so user must be creating a selection rectangle
           // NOTE: this also deselect all steps
-          const selectorOrigin = getPositionFromOffset({
+          const selectorOrigin = getScaleCorrectedPosition({
             offset: action.payload,
             position: mouseTracker.current.client,
             scaleFactor: state.scaleFactor,
@@ -453,7 +453,7 @@ export const useEventVars = () => {
         }
 
         case "UPDATE_STEP_SELECTOR": {
-          const { x, y } = getPositionFromOffset({
+          const { x, y } = getScaleCorrectedPosition({
             offset: action.payload,
             position: mouseTracker.current.client,
             scaleFactor: state.scaleFactor,
@@ -621,13 +621,13 @@ export const useEventVars = () => {
       const previous = mouseTracker.current.prev;
 
       mouseTracker.current.delta = {
-        x: scaleCorrectedPosition(clientX, eventVars.scaleFactor) - previous.x,
-        y: scaleCorrectedPosition(clientY, eventVars.scaleFactor) - previous.y,
+        x: scaleCorrected(clientX, eventVars.scaleFactor) - previous.x,
+        y: scaleCorrected(clientY, eventVars.scaleFactor) - previous.y,
       };
 
       mouseTracker.current.prev = {
-        x: scaleCorrectedPosition(clientX, eventVars.scaleFactor),
-        y: scaleCorrectedPosition(clientY, eventVars.scaleFactor),
+        x: scaleCorrected(clientX, eventVars.scaleFactor),
+        y: scaleCorrected(clientY, eventVars.scaleFactor),
       };
     },
     [eventVars?.scaleFactor]

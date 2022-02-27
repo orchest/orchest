@@ -46,10 +46,10 @@ import { siteMap } from "../Routes";
 import { BackToJobButton } from "./BackToJobButton";
 import {
   getNodeCenter,
-  getPositionFromOffset,
+  getScaleCorrectedPosition,
   PIPELINE_JOBS_STATUS_ENDPOINT,
   PIPELINE_RUN_STATUS_ENDPOINT,
-  scaleCorrectedPosition,
+  scaleCorrected,
   updatePipelineJson,
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
@@ -227,6 +227,9 @@ const PipelineView: React.FC = () => {
   const pipelineViewportRef = React.useRef<HTMLDivElement>();
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
+  const canvasOffset = getOffset(pipelineCanvasRef.current);
+  const getPosition = getNodeCenter(canvasOffset, eventVars.scaleFactor);
+
   const pipelineSetHolderSize = React.useCallback(() => {
     if (!pipelineViewportRef.current || !pipelineCanvasRef.current) return;
 
@@ -239,13 +242,6 @@ const PipelineView: React.FC = () => {
       });
     }
   }, []);
-
-  // TODO: persists this
-  const canvasOffset = getOffset(pipelineCanvasRef.current);
-  // const offsets = {
-  //   viewport: getOffset(pipelineViewportRef.current),
-  //   canvas: getOffset(pipelineCanvasRef.current),
-  // };
 
   // TODO: put document event listeners here
   React.useLayoutEffect(() => {
@@ -805,8 +801,8 @@ const PipelineView: React.FC = () => {
 
     $(pipelineStepsHolder.current).on("mousedown", (e) => {
       eventVars.prevPosition = [
-        scaleCorrectedPosition(e.clientX, eventVars.scaleFactor),
-        scaleCorrectedPosition(e.clientY, eventVars.scaleFactor),
+        scaleCorrected(e.clientX, eventVars.scaleFactor),
+        scaleCorrected(e.clientY, eventVars.scaleFactor),
       ];
     });
 
@@ -1021,20 +1017,16 @@ const PipelineView: React.FC = () => {
 
   const centerPipelineOrigin = () => {
     let viewportOffset = getOffset(pipelineViewportRef.current);
-    let canvasOffset = getOffset(pipelineCanvasRef.current);
 
     let viewportWidth = getWidth(pipelineViewportRef.current);
     let viewportHeight = getHeight(pipelineViewportRef.current);
 
+    let originalX = viewportOffset.left - canvasOffset.left + viewportWidth / 2;
+    let originalY = viewportOffset.top - canvasOffset.top + viewportHeight / 2;
+
     let centerOrigin = [
-      scaleCorrectedPosition(
-        viewportOffset.left - canvasOffset.left + viewportWidth / 2,
-        eventVars.scaleFactor
-      ),
-      scaleCorrectedPosition(
-        viewportOffset.top - canvasOffset.top + viewportHeight / 2,
-        eventVars.scaleFactor
-      ),
+      scaleCorrected(originalX, eventVars.scaleFactor),
+      scaleCorrected(originalY, eventVars.scaleFactor),
     ] as [number, number];
 
     pipelineSetHolderOrigin(centerOrigin);
@@ -1042,7 +1034,6 @@ const PipelineView: React.FC = () => {
 
   const zoomOut = () => {
     centerPipelineOrigin();
-    // updateOffsets();
     eventVarsDispatch({
       type: "SET_SCALE_FACTOR",
       payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
@@ -1051,7 +1042,6 @@ const PipelineView: React.FC = () => {
 
   const zoomIn = () => {
     centerPipelineOrigin();
-    // updateOffsets();
     eventVarsDispatch({
       type: "SET_SCALE_FACTOR",
       payload: Math.min(eventVars.scaleFactor + 0.25, 2),
@@ -1252,8 +1242,8 @@ const PipelineView: React.FC = () => {
     const { x, y } = mouseTracker.current.client;
 
     return [
-      scaleCorrectedPosition(x - left, eventVars.scaleFactor),
-      scaleCorrectedPosition(y - top, eventVars.scaleFactor),
+      scaleCorrected(x - left, eventVars.scaleFactor),
+      scaleCorrected(y - top, eventVars.scaleFactor),
     ] as [number, number];
   };
 
@@ -1324,9 +1314,12 @@ const PipelineView: React.FC = () => {
     eventVarsDispatch({ type: "DESELECT_CONNECTION" });
 
     // not dragging the canvas, so user must be creating a selection rectangle
-    // we need to save the offset of cursor against pipeline steps holder
+    // we need to save the offset of cursor against pipeline canvas
     if (isLeftClick && !isPanning) {
-      eventVarsDispatch({ type: "CREATE_SELECTOR", payload: canvasOffset });
+      eventVarsDispatch({
+        type: "CREATE_SELECTOR",
+        payload: getOffset(pipelineCanvasRef.current),
+      });
     }
   };
 
@@ -1355,7 +1348,7 @@ const PipelineView: React.FC = () => {
     trackMouseMovement(e.clientX, e.clientY);
     // update newConnection's position
     if (newConnection.current) {
-      const { x, y } = getPositionFromOffset({
+      const { x, y } = getScaleCorrectedPosition({
         offset: canvasOffset,
         position: mouseTracker.current.client,
         scaleFactor: eventVars.scaleFactor,
@@ -1747,11 +1740,6 @@ const PipelineView: React.FC = () => {
                   boolean,
                   boolean
                 ];
-
-                const getPosition = getNodeCenter(
-                  canvasOffset,
-                  eventVars.scaleFactor
-                );
 
                 let startNodePosition = getPosition(startNode);
                 let endNodePosition =

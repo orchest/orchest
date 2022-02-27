@@ -69,12 +69,9 @@ export const instantiateNewConnection = (
   };
 };
 
-export const scaleCorrectedPosition = (
-  position: number,
-  scaleFactor: number
-) => {
-  position /= scaleFactor;
-  return position;
+export const scaleCorrected = (value: number, scaleFactor: number) => {
+  value /= scaleFactor;
+  return value;
 };
 
 export const localElementPosition = (
@@ -83,8 +80,8 @@ export const localElementPosition = (
   scaleFactor: number
 ) => {
   return {
-    x: scaleCorrectedPosition(offset.left - parentOffset.left, scaleFactor),
-    y: scaleCorrectedPosition(offset.top - parentOffset.top, scaleFactor),
+    x: scaleCorrected(offset.left - parentOffset.left, scaleFactor),
+    y: scaleCorrected(offset.top - parentOffset.top, scaleFactor),
   };
 };
 
@@ -103,7 +100,7 @@ export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
   return nodePosition;
 };
 
-export const getPositionFromOffset = ({
+export const getScaleCorrectedPosition = ({
   position,
   offset,
   scaleFactor,
@@ -114,11 +111,11 @@ export const getPositionFromOffset = ({
 }): Position => {
   return {
     x:
-      scaleCorrectedPosition(position.x, scaleFactor) -
-      scaleCorrectedPosition(offset.left, scaleFactor),
+      scaleCorrected(position.x, scaleFactor) -
+      scaleCorrected(offset.left, scaleFactor),
     y:
-      scaleCorrectedPosition(position.y, scaleFactor) -
-      scaleCorrectedPosition(offset.top, scaleFactor),
+      scaleCorrected(position.y, scaleFactor) -
+      scaleCorrected(offset.top, scaleFactor),
   };
 };
 
