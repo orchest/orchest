@@ -6,6 +6,7 @@ async_req=True in the k8s python SDK that happens here.
 """
 
 import os
+import time
 from typing import Dict, List, Optional, Union
 
 import typer
@@ -201,3 +202,87 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
             "update": OrchestStatus.UPDATING,
         }
         return ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
+
+
+_cleanup_pod_manifest = {
+    "apiVersion": "v1",
+    "kind": "Pod",
+    "metadata": {
+        # This is to avoid, in any case, a dangling pod leading to
+        # stop/start errors.
+        "generateName": "orchest-api-cleanup-",
+        "labels": {"app": "orchest-api-cleanup"},
+    },
+    "spec": {
+        "restartPolicy": "Never",
+        "containers": [
+            {
+                "name": "orchest-api-cleanup",
+                "image": f'orchest/orchest-api:{os.environ["ORCHEST_VERSION"]}',
+                "command": ["/bin/sh", "-c"],
+                # Make sure the database is compatible with the code.
+                "args": ["python migration_manager.py db migrate && python cleanup.py"],
+                "imagePullPolicy": "IfNotPresent",
+                "serviceAccount": "orchest-api",
+                "serviceAccountName": "orchest-api",
+                "env": [
+                    {
+                        # K8S_TODO: fix it? A real value does not need
+                        # to be provided since it's just used by passing
+                        # it to running pipelines.
+                        "name": "ORCHEST_HOST_GID",
+                        "value": "1",
+                    },
+                    {"name": "PYTHONUNBUFFERED", "value": "TRUE"},
+                    {"name": "ORCHEST_GPU_ENABLED_INSTANCE", "value": "FALSE"},
+                ],
+                "volumeMounts": [{"name": "dockersock", "mountPath": "/var/run"}],
+            }
+        ],
+        "volumes": [
+            {
+                "name": "dockersock",
+                "hostPath": {"path": "/var/run", "type": "Directory"},
+            }
+        ],
+    },
+}
+
+
+def orchest_cleanup() -> None:
+    """Performs a cleanup that must be run on start and stop.
+
+    It's implemented by spinning up a pod that will run the required
+    code.
+    """
+    manifest = _cleanup_pod_manifest
+    # K8S_TODO: fix this once we move to versioned images.
+    manifest["spec"]["containers"][0]["image"] = "orchest/orchest-api:latest"
+    resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
+    pod_name = resp.metadata.name
+
+    max_retries = 1000
+    status = None
+    while max_retries > 0:
+        max_retries = max_retries - 1
+        try:
+            resp = k8s_core_api.read_namespaced_pod(
+                name=pod_name, namespace=config.ORCHEST_NAMESPACE
+            )
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
+            time.sleep(1)
+        else:
+            status = resp.status.phase
+            if status in ["Succeeded", "Failed", "Unknown"]:
+                break
+        time.sleep(1)
+
+    if status is None or status in ["Failed", "Unknown"]:
+        utils.echo(
+            f"Error while performing cleanup, pod status: {status}. This operation "
+            "will proceed regardless."
+        )
+
+    k8s_core_api.delete_namespaced_pod(pod_name, config.ORCHEST_NAMESPACE)

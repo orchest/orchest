@@ -327,7 +327,7 @@ def start():
         show_eta=False,
     ) as progress:
         # Do this after scaling but before waiting for all deployments
-        # to be erady so that those can happen concurrently.
+        # to be ready so that those can happen concurrently.
         logger.info("Setting 'userdir/' permissions.")
         utils.fix_userdir_permissions()
 
