@@ -117,7 +117,7 @@ class DeleteImage(TwoPhaseFunction):
         )
         for sess in int_sess:
             StopInteractiveSession(self.tpe).transaction(
-                sess.project_uuid, sess.pipeline_uuid
+                sess.project_uuid, sess.pipeline_uuid, async_mode=True
             )
 
         # Stop all interactive runs making use of the env.

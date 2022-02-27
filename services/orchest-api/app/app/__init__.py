@@ -274,7 +274,7 @@ def cleanup(app):
             with TwoPhaseExecutor(db.session) as tpe:
                 for session in int_sessions:
                     StopInteractiveSession(tpe).transaction(
-                        session.project_uuid, session.pipeline_uuid
+                        session.project_uuid, session.pipeline_uuid, async_mode=False
                     )
 
             # Fix env builds.
