@@ -25,7 +25,6 @@ from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_jupyter_builds import AbortJupyterBuild, CreateJupyterBuild
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
-from app.config import CONFIG_CLASS
 from app.connections import db
 from app.core import environments
 from app.core.scheduler import Scheduler
@@ -37,6 +36,7 @@ from app.models import (
     JupyterBuild,
     NonInteractivePipelineRun,
 )
+from config import CONFIG_CLASS
 
 
 def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db=False):
@@ -255,7 +255,7 @@ def register_teardown_request(app):
     return app
 
 
-def cleanup(app):
+def cleanup():
     app = create_app(config_class=CONFIG_CLASS, use_db=True, be_scheduler=False)
 
     with app.app_context():
