@@ -394,7 +394,7 @@ environment:
     p = orchest.pipeline.Pipeline.from_json(desc)
     step_uuid = orchest.utils.get_step_uuid(p)
 
-Lastly, there are ``ORCHEST_MEMORY_EVICTION`` and ``ORCHEST_HOST_PROJECT_DIR``. The former is never
+Lastly, there are ``ORCHEST_MEMORY_EVICTION`` and ``ORCHEST_PROJECT_DIR``. The former is never
 present when running notebooks interactively and otherwise always present, this means eviction of
 objects from memory can never be triggered when running notebooks interactively. The latter is used
 to make the entire project directory available through the JupyterLab UI and is thus only set for
