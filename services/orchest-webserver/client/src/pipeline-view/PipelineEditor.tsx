@@ -882,7 +882,7 @@ export const PipelineEditor: React.FC = () => {
     }
   };
 
-  const onDoubleClickStepHandler = (stepUUID: string) => {
+  const onDoubleClickStep = (stepUUID: string) => {
     if (isReadOnly) {
       onOpenFilePreviewView(undefined, stepUUID);
     } else {
@@ -1701,7 +1701,7 @@ export const PipelineEditor: React.FC = () => {
                   eventVarsDispatch={dispatch}
                   selectedSteps={eventVars.selectedSteps}
                   mouseTracker={mouseTracker}
-                  // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
+                  onDoubleClick={onDoubleClickStep}
                 />
               );
             })}

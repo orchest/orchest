@@ -106,6 +106,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     disabledDragging,
     incomingDot,
     outgoingDot,
+    onDoubleClick,
   }: {
     initialValue: PipelineStepState;
     scaleFactor: number;
@@ -123,8 +124,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     disabledDragging?: boolean;
     incomingDot: React.ReactNode;
     outgoingDot: React.ReactNode;
-    // TODO: clean up these
-    onDoubleClick?: any;
+    onDoubleClick: (stepUUID: string) => void;
   },
   ref: React.MutableRefObject<HTMLDivElement>
 ) {
@@ -179,23 +179,29 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     forceUpdate();
   }, [dragCount, forceUpdate, eventVarsDispatch, cursorControlledStep]);
 
-  // we cannot use onClick in this component, but we need to achieve things alike
-  const handleClickBehavior = (e: React.MouseEvent) => {
-    const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+  const onClick = (e: React.MouseEvent) => {
+    if (e.detail === 1) {
+      // because onClick is always called after onMouseUp, so we need to check if it's actually a normal onClick
+      if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
+        const ctrlKeyPressed = e.ctrlKey || e.metaKey;
 
-    // if this step (and possibly other steps) are selected,
-    // press ctrl/cmd and select this step => remove this step from the selection
-    if (selected && ctrlKeyPressed) {
-      eventVarsDispatch({ type: "DESELECT_STEPS", payload: [step.uuid] });
+        // if this step (and possibly other steps) are selected,
+        // press ctrl/cmd and select this step => remove this step from the selection
+        if (selected && ctrlKeyPressed) {
+          eventVarsDispatch({ type: "DESELECT_STEPS", payload: [step.uuid] });
+          return;
+        }
+        // only need to re-render if step is not selected
+        if (!selected) {
+          eventVarsDispatch({
+            type: "SELECT_STEPS",
+            payload: { uuids: [step.uuid], inclusive: ctrlKeyPressed },
+          });
+        }
+      }
       return;
     }
-    // only need to re-render if step is not selected
-    if (!selected) {
-      eventVarsDispatch({
-        type: "SELECT_STEPS",
-        payload: { uuids: [step.uuid], inclusive: ctrlKeyPressed },
-      });
-    }
+    if (e.detail === 2) onDoubleClick(step.uuid);
   };
 
   const onMouseUp = (e: React.MouseEvent) => {
@@ -208,15 +214,8 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
-    // This is basically onClick, we cannot use onClick here
-    // because onClick is always called after onMouseUp and we cannot distinguish them within React
-    if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
-      handleClickBehavior(e);
-    }
-
     // this step could have been being dragged, when mouse up, simply reset all variables
     resetDraggingVariables();
-    // TODO: save all steps to BE
   };
 
   const onMouseLeave = () => {
@@ -328,6 +327,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
+      onClick={onClick}
     >
       {incomingDot}
       <div className={"execution-indicator"}>

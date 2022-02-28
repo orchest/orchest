@@ -2,7 +2,7 @@ import { PipelineRun } from "@/types";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
-import { PIPELINE_RUN_STATUS_ENDPOINT } from "./common";
+import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
 
 export const useFetchInteractiveRun = (
   projectUuid: string,

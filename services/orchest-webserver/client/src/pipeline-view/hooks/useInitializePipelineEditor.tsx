@@ -6,7 +6,7 @@ import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { fetcher, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
-import { extractStepsFromPipelineJson } from "./common";
+import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
   pipelineUuid: string,

@@ -5,7 +5,7 @@ import { serverTimeToDate } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback, useSWRConfig } from "swr";
-import { ExecutionState } from "./PipelineStep";
+import { ExecutionState } from "../PipelineStep";
 
 const STATUS_POLL_FREQUENCY = 1000;
 
