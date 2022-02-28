@@ -4,7 +4,6 @@ import os
 import signal
 import time
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -207,8 +206,6 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
     env_builds_dir = "/userdir/.orchest/env-builds"
-    # K8S_TODO: remove this?
-    Path(env_builds_dir).mkdir(parents=True, exist_ok=True)
     # Make a snapshot of the project state, used for the context.
     snapshot_path = f"{env_builds_dir}/{task_uuid}"
     if os.path.isdir(snapshot_path):
