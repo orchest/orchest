@@ -52,7 +52,7 @@ def get_orchest_deployments(
     return responses
 
 
-def match_labels_to_label_selector(match_labels: Dict[str, str]) -> str:
+def _match_labels_to_label_selector(match_labels: Dict[str, str]) -> str:
     return ",".join([f"{k}={v}" for k, v in match_labels.items()])
 
 
@@ -61,19 +61,19 @@ def get_orchest_deployments_pods(
 ) -> List[Optional[k8s_client.V1Pod]]:
     if deployments is None:
         deployments = config.ORCHEST_DEPLOYMENTS
-    if all([isinstance(depl, str) for depl in deployments]):
+
+    if all(isinstance(depl, str) for depl in deployments):
         deployments = [d for d in get_orchest_deployments(deployments) if d is not None]
-    elif not all([isinstance(depl, k8s_client.V1Deployment) for depl in deployments]):
+    elif not all(isinstance(depl, k8s_client.V1Deployment) for depl in deployments):
         raise ValueError(
-            "Deployments should either be all of type string or all of type "
-            "V1Deployments."
+            "Deployments should either all be of type string or of type V1Deployments."
         )
 
     threads = []
     for depl in deployments:
         t = k8s_core_api.list_namespaced_pod(
             config.ORCHEST_NAMESPACE,
-            label_selector=match_labels_to_label_selector(
+            label_selector=_match_labels_to_label_selector(
                 depl.spec.selector.match_labels
             ),
             async_req=True,
