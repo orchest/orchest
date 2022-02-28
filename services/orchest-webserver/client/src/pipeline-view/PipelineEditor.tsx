@@ -352,12 +352,6 @@ export const PipelineEditor: React.FC = () => {
         ? updatePipelineJson(pipelineJson, steps)
         : pipelineJson;
 
-      console.log(
-        "HM updatedPipelineJson: ",
-        updatedPipelineJson.steps["316cfcfc-e9b7-41ad-978d-43b7e59d552b"]
-          ?.meta_data.position
-      );
-
       // validate pipelineJSON
       let pipelineValidation = validatePipeline(updatedPipelineJson);
 
@@ -380,8 +374,8 @@ export const PipelineEditor: React.FC = () => {
   );
 
   React.useEffect(() => {
-    savePipeline(eventVars.steps);
-  }, [savePipeline, eventVars.steps]);
+    if (eventVars.initialized) savePipeline(eventVars.steps);
+  }, [savePipeline, eventVars.steps, eventVars.initialized]);
 
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
@@ -656,10 +650,11 @@ export const PipelineEditor: React.FC = () => {
         gridMargin,
         STEP_HEIGHT
       );
-      return updated;
-    }, true);
 
-    savePipeline();
+      // reset eventVars.steps, this will trigger saving
+      dispatch({ type: "SET_STEPS", payload: updated.steps });
+      return updated;
+    }, true); // flush page, re-instantiate all UI elements with new local state for dragging
   };
 
   const savePositions = React.useCallback(() => {
@@ -1338,7 +1333,7 @@ export const PipelineEditor: React.FC = () => {
                     <div className={"step-label"}>
                       {step.title}
                       <span className="filename">{step.file_path}</span>
-                      <span className="filename">{step.uuid}</span>
+                      <span className="filename">{`${hash.current}`}</span>
                     </div>
                   </div>
                   <ConnectionDot

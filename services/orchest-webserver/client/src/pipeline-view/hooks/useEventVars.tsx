@@ -22,6 +22,7 @@ import {
 import { getStepSelectorRectangle } from "../Rectangle";
 
 export type EventVars = {
+  initialized: boolean;
   doubleClickFirstClick: boolean;
   scaleFactor: number;
   steps: StepsDict;
@@ -42,6 +43,9 @@ export type EventVars = {
 };
 
 type Action =
+  | {
+      type: "SET_INITIALIZED";
+    }
   | {
       type: "SET_STEPS";
       payload: StepsDict;
@@ -322,6 +326,9 @@ export const useEventVars = () => {
        * ========================== action handlers
        */
       switch (action.type) {
+        case "SET_INITIALIZED": {
+          return { ...state, initialized: true };
+        }
         case "SET_SCALE_FACTOR": {
           return { ...state, scaleFactor: action.payload };
         }
@@ -553,7 +560,6 @@ export const useEventVars = () => {
             draft.openedStep = undefined;
             // when removing a step, the selection of any step is also cancelled
             // we can simply clean up state.selectedSteps, instead of remove them one by one
-            // TODO: double-check if it's true
             draft.selectedSteps = [];
           });
         }
@@ -588,6 +594,7 @@ export const useEventVars = () => {
   );
 
   const [eventVars, dispatch] = React.useReducer(memoizedReducer, {
+    initialized: false,
     doubleClickFirstClick: false,
     openedStep: undefined,
     openedMultiStep: undefined,

@@ -112,6 +112,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
           zIndexMax.current += 1;
         });
       });
+      dispatch({ type: "SET_INITIALIZED" });
     },
     [dispatch, instantiateConnection]
   );
