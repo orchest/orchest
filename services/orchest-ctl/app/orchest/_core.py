@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 import typer
 from kubernetes import client as k8s_client
-from kubernetes.stream import stream
+from kubernetes import stream
 
 from app import config, utils
 from app.connections import k8s_core_api
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 # This is just another failsafe to make sure we don't leave dangling
 # pods around.
-signal.signal(signal.SIGTERM, lambda *args, **kwargs: k8sw.delete_orchest_ctl_pod())
-atexit.register(k8sw.delete_orchest_ctl_pod)
+signal.signal(signal.SIGTERM, lambda *args, **kwargs: k8sw.delete_orchest_ctl_pods())
+atexit.register(k8sw.delete_orchest_ctl_pods)
 
 
 def is_orchest_already_installed() -> bool:
@@ -51,10 +51,10 @@ class HelmMode(str, Enum):
 
 def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     if mode == HelmMode.INSTALL:
-        cmd = ["make", "orchest"]
+        cmd = "make orchest"
         label = "Installation"
     elif mode == HelmMode.UPGRADE:
-        cmd = ["make", "orchest-upgrade"]
+        cmd = "make registry-upgrade && make argo-upgrade && make orchest-upgrade"
         label = "Update"
     else:
         raise ValueError()
@@ -69,6 +69,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         env=env,
+        shell=True,
     )
 
     n_ready_deployments = 0
@@ -485,10 +486,78 @@ def add_user(username: str, password: str, token: str, is_admin: str) -> None:
 
 
 def update() -> None:
+    """Stop Orchest then launches a orchest-ctl pod with hidden-update.
+
+    When updating orchest from v1 to v2, orchest-ctl:v1 knows how to
+    stop a orchest cluster on version v1, while orchest-ctl:v2 will
+    update it to the new version. This leads to the following logic:
+    - orchest update leads to a orchest-ctl:v1 pod
+    - the pod will stop orchest
+    - the pod will create a orchest-ctl:v2 pod
+    - the orchest-ctl:v2 pod will actually update orchest
+    - the orchest-ctl:v1 pod will get the logs of orchest-ctl:v2 and
+      print them
+    """
     k8sw.abort_if_unsafe()
     stop()
+    pod = k8sw.create_update_pod()
 
-    return
+    max_retries = 1000
+    status = None
+    while max_retries > 0:
+        max_retries = max_retries - 1
+        try:
+            resp = k8s_core_api.read_namespaced_pod(
+                name=pod.metadata.name, namespace="orchest"
+            )
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
+            time.sleep(1)
+        else:
+            status = resp.status.phase
+            if status in ["Succeeded", "Failed", "Unknown", "Running"]:
+                break
+        time.sleep(1)
+    if status is None or status in ["Failed", "Unknown"]:
+        utils.echo(
+            f"Error while updating, update pod status: {status}. Cancelling update."
+        )
+
+    # We exec into the pod instead of running the command as the pod
+    # command and following logs because this allows us to use a tty,
+    # which will correctly render the progress bar.
+    resp = stream.stream(
+        k8s_core_api.connect_get_namespaced_pod_exec,
+        pod.metadata.name,
+        config.ORCHEST_NAMESPACE,
+        container="orchest-ctl",
+        stderr=True,
+        stdin=True,
+        stdout=True,
+        tty=True,
+        # Note that this will also take care of scaling the deployments,
+        # i.e. Orchest will be STARTED after the update.
+        command=["orchest", "hidden-update"],
+        _preload_content=False,
+    )
+    while resp.is_open():
+        resp.update()
+        # nl=False, wrap=False to not disrupt the progress bar.
+        if resp.peek_stdout():
+            utils.echo(resp.read_stdout(), nl=False, wrap=False)
+        if resp.peek_stderr():
+            utils.echo(resp.read_stdout(), nl=False, wrap=False, err=True)
+
+    # The pod will try to terminate itself, this is for safety in case
+    # it does not work.
+    try:
+        k8s_core_api.delete_namespaced_pod(
+            pod.metadata.name, config.ORCHEST_DEPLOYMENTS
+        )
+    except k8s_client.ApiException as e:
+        if e.status != 404:
+            raise
 
 
 def _update() -> None:

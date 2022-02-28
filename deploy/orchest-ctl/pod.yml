@@ -1,3 +1,5 @@
+# Keep this in sync with
+# services/orchest-ctl/app/orchest/_k8s_wrapper.py.
 apiVersion: v1
 kind: Pod
 metadata:

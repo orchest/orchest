@@ -123,11 +123,24 @@ def get_orchest_cluster_version() -> str:
     return k8s_core_api.read_namespace("orchest").metadata.labels.get("version")
 
 
-def delete_orchest_ctl_pod():
-    """Deletes the pod in which this script is running
+def delete_orchest_ctl_pods():
+    """Deletes this pod and pods created by this pod.
 
     Used to avoid leaving dangling pods around.
     """
+    # The pod will try to terminate itself, this is for safety in case
+    # it does not work.
+    children_pods = k8s_core_api.list_namespaced_pod(
+        config.ORCHEST_NAMESPACE, label_selector=f'parent={os.environ["POD_NAME"]}'
+    )
+    for pod in children_pods.items:
+        try:
+            k8s_core_api.delete_namespaced_pod(
+                pod.metadata.name, config.ORCHEST_NAMESPACE
+            )
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
     k8s_core_api.delete_namespaced_pod(os.environ["POD_NAME"], "orchest")
 
 
@@ -211,7 +224,7 @@ _cleanup_pod_manifest = {
         # This is to avoid, in any case, a dangling pod leading to
         # stop/start errors.
         "generateName": "orchest-api-cleanup-",
-        "labels": {"app": "orchest-api-cleanup"},
+        "labels": {"app": "orchest-api-cleanup", "parent": os.environ["POD_NAME"]},
     },
     "spec": {
         "restartPolicy": "Never",
@@ -253,7 +266,7 @@ def orchest_cleanup() -> None:
     """Performs a cleanup that must be run on start and stop.
 
     It's implemented by spinning up a pod that will run the required
-    code. Requires the orchest-dabatase and the celery-worker services
+    code. Requires the orchest-database and the celery-worker services
     to be online.
     """
     manifest = _cleanup_pod_manifest
@@ -287,3 +300,61 @@ def orchest_cleanup() -> None:
         )
 
     k8s_core_api.delete_namespaced_pod(pod_name, config.ORCHEST_NAMESPACE)
+
+
+def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
+    """! Keep this in sync with deploy/orchest-ctl/pod.yml."""
+    manifest = {
+        "apiVersion": "v1",
+        "kind": "Pod",
+        "metadata": {
+            "generateName": "orchest-ctl-",
+            "labels": {
+                "app": "orchest-ctl",
+                "version": update_to_version,
+                "command": "hidden-update",
+                "parent": os.environ["POD_NAME"],
+            },
+        },
+        "spec": {
+            "containers": [
+                {
+                    "command": ["sleep", "10000"],
+                    "env": [
+                        {"name": "PYTHONUNBUFFERED", "value": "TRUE"},
+                        {"name": "ORCHEST_VERSION", "value": "VERSION"},
+                        {
+                            "name": "POD_NAME",
+                            "valueFrom": {"fieldRef": {"fieldPath": "metadata.name"}},
+                        },
+                    ],
+                    "image": f"orchest/orchest-ctl:{update_to_version}",
+                    "imagePullPolicy": "IfNotPresent",
+                    "name": "orchest-ctl",
+                    "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
+                }
+            ],
+            "restartPolicy": "Never",
+            "terminationGracePeriodSeconds": 1,
+            "serviceAccount": "orchest-ctl",
+            "serviceAccountName": "orchest-ctl",
+            "volumes": [
+                {
+                    "name": "userdir",
+                    "hostPath": {
+                        "path": "/var/lib/orchest/userdir",
+                        "type": "DirectoryOrCreate",
+                    },
+                }
+            ],
+        },
+    }
+    return manifest
+
+
+def create_update_pod() -> k8s_client.V1Pod:
+    # K8S_TODO: query the update-info server once we moved to versioned
+    # images.
+    manifest = _get_orchest_ctl_update_post_manifest("latest")
+    r = k8s_core_api.create_namespaced_pod("orchest", manifest)
+    return r
