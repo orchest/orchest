@@ -12,6 +12,7 @@ import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { EventVarsAction } from "./useEventVars";
+import { useUpdateZIndex } from "./useZIndexMax";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
@@ -109,7 +110,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     scaleFactor: number;
     offset: Offset;
     selected: boolean;
-    zIndexMax: number;
+    zIndexMax: React.MutableRefObject<number>;
     isSelectorActive: boolean;
     isStartNodeOfNewConnection: boolean;
     executionState?: ExecutionState;
@@ -132,6 +133,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       return rest;
     }
   );
+
   const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
     ...initialValue.meta_data,
   }));
@@ -143,6 +145,18 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const isMouseDown = React.useRef(false);
 
   const dragCount = React.useRef(0);
+
+  const shouldMoveToTop =
+    dragCount.current === DRAG_CLICK_SENSITIVITY ||
+    isMouseDown.current ||
+    (!isSelectorActive && selected) ||
+    cursorControlledStep === step.uuid;
+
+  const zIndex = useUpdateZIndex(
+    shouldMoveToTop,
+    zIndexMax,
+    step.incoming_connections.length
+  );
 
   const onMouseDown = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -293,16 +307,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         metadata.hidden && "hidden",
         isStartNodeOfNewConnection && "creating-connection"
       )}
-      style={{
-        transform,
-        zIndex:
-          dragCount.current === DRAG_CLICK_SENSITIVITY ||
-          isMouseDown.current ||
-          (!isSelectorActive && selected) ||
-          cursorControlledStep === step.uuid
-            ? zIndexMax + (cursorControlledStep === step.uuid ? 10 : 1)
-            : "unset",
-      }}
+      style={{ transform, zIndex }}
       sx={{
         // create a transparent background to prevent mouse leave occur unexpectedly
         "&::after": shouldExpandBackground

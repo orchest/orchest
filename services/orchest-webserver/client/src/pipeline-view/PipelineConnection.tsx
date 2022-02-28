@@ -3,6 +3,7 @@ import { NewConnection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
 import { EventVarsAction } from "./useEventVars";
+import { useUpdateZIndex } from "./useZIndexMax";
 
 // set SVG properties
 const lineHeight = 2;
@@ -27,22 +28,17 @@ const curvedHorizontal = function (
 const ConnectionLine = ({
   onClick,
   selected,
-  movedToTop,
-  zIndexMax,
   width,
   height,
   d,
 }: React.SVGProps<SVGPathElement> & {
   selected: boolean;
-  movedToTop: boolean;
-  zIndexMax: number;
 }) => {
   return (
     <svg width={width} height={height}>
       <path
         id="path"
         stroke={selected ? theme.palette.primary.main : "#000"}
-        style={{ zIndex: selected || movedToTop ? zIndexMax + 100 : "unset" }}
         strokeWidth={selected ? 3 : 2}
         fill="none"
         d={d}
@@ -113,7 +109,7 @@ const PipelineConnectionComponent: React.FC<{
   eventVarsDispatch: React.Dispatch<EventVarsAction>;
   selected: boolean;
   movedToTop: boolean;
-  zIndexMax: number;
+  zIndexMax: React.MutableRefObject<number>;
   shouldUpdate: [boolean, boolean];
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
   cursorControlledStep: string;
@@ -188,28 +184,29 @@ const PipelineConnectionComponent: React.FC<{
   // Similar to PipelineStep, here we track the positions of startNode and endNode
   // via stepDomRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
+
+  const shouldReRender =
+    (cursorControlledStep || isNew) && (shouldUpdateStart || shouldUpdateEnd);
+
   React.useEffect(() => {
     const onMouseMove = () => {
-      if (
-        (cursorControlledStep || isNew) &&
-        (shouldUpdateStart || shouldUpdateEnd)
-      ) {
+      if (shouldReRender) {
         redrawConnectionLine();
       }
     };
     document.body.addEventListener("mousemove", onMouseMove);
     return () => document.body.removeEventListener("mousemove", onMouseMove);
-  }, [
-    redrawConnectionLine,
-    cursorControlledStep,
-    isNew,
-    shouldUpdateEnd,
-    shouldUpdateStart,
-  ]);
+  }, [redrawConnectionLine, shouldReRender]);
 
   React.useEffect(() => {
     if (shouldRedraw) redrawConnectionLine();
   }, [shouldRedraw, redrawConnectionLine]);
+
+  // movedToTop: when associated step is selected
+  // shouldRedraw && isNew: user is creating
+  const shouldMoveToTop = shouldReRender || movedToTop;
+  // -1 is to ensure connection lines are beneath the step that is on focus (i.e. the top step amongst all).
+  const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax, -1);
 
   const onClickFun = React.useCallback(
     (e) => {
@@ -232,12 +229,10 @@ const PipelineConnectionComponent: React.FC<{
       data-end-uuid={endNodeUUID}
       className={classNames("connection", className, selected && "selected")}
       ref={containerRef}
-      style={style}
+      style={{ ...style, zIndex }}
     >
       <ConnectionLine
         selected={selected}
-        movedToTop={movedToTop}
-        zIndexMax={zIndexMax}
         onClick={onClickFun}
         width={width}
         height={height}

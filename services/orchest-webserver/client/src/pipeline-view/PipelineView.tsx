@@ -187,14 +187,19 @@ const PipelineView: React.FC = () => {
     [eventVarsDispatch]
   );
 
+  // calculate z-index max when initializing steps and connections.
+  // zIndexMax is the initial total count of all steps and connections
+  const zIndexMax = React.useRef<number>(0);
   // this is only called once when pipelineJson is loaded in the beginning
   const initializeEventVars = React.useCallback(
     (initialSteps: StepsDict) => {
       setPipelineSteps(initialSteps);
+      zIndexMax.current = Object.keys(initialSteps).length;
       Object.values(initialSteps).forEach((step) => {
         step.incoming_connections.forEach((startNodeUUID) => {
           let endNodeUUID = step.uuid;
           instantiateConnection(startNodeUUID, endNodeUUID);
+          zIndexMax.current += 1;
         });
       });
     },
@@ -1472,15 +1477,6 @@ const PipelineView: React.FC = () => {
   }, [eventVars.scaleFactor, state.pipelineOffset, pipelineSetHolderOrigin]);
 
   const servicesButtonRef = React.useRef<HTMLButtonElement>();
-  const stepCount = React.useMemo(() => Object.keys(eventVars.steps).length, [
-    eventVars.steps,
-  ]);
-
-  const connectionCount = React.useMemo(() => eventVars.connections.length, [
-    eventVars.connections,
-  ]);
-
-  const totalDomCount = stepCount + connectionCount;
   const flushPage = useHasChanged(hash.current);
 
   return (
@@ -1634,78 +1630,6 @@ const PipelineView: React.FC = () => {
                 top: state.pipelineStepsHolderOffsetTop,
               }}
             >
-              {Object.entries(eventVars.steps).map((entry) => {
-                const [uuid, step] = entry;
-                const selected = eventVars.selectedSteps.includes(uuid);
-
-                const isIncomingActive =
-                  eventVars.selectedConnection &&
-                  eventVars.selectedConnection.endNodeUUID === step.uuid;
-
-                const isOutgoingActive =
-                  eventVars.selectedConnection &&
-                  eventVars.selectedConnection.startNodeUUID === step.uuid;
-
-                // only add steps to the component that have been properly
-                // initialized
-                return (
-                  <PipelineStep
-                    key={`${step.uuid}-${hash.current}`}
-                    initialValue={step}
-                    disabledDragging={isPanning}
-                    scaleFactor={eventVars.scaleFactor}
-                    offset={canvasOffset}
-                    selected={selected}
-                    zIndexMax={totalDomCount}
-                    isSelectorActive={eventVars.stepSelector.active}
-                    cursorControlledStep={eventVars.cursorControlledStep}
-                    ref={(el) => (stepDomRefs.current[step.uuid] = el)}
-                    incomingDot={
-                      <ConnectionDot
-                        incoming
-                        ref={(el) =>
-                          (stepDomRefs.current[`${step.uuid}-incoming`] = el)
-                        }
-                        active={isIncomingActive}
-                        endCreateConnection={() => {
-                          if (newConnection.current) {
-                            onMouseUpPipelineStep(step.uuid);
-                          }
-                        }}
-                      />
-                    }
-                    outgoingDot={
-                      <ConnectionDot
-                        outgoing
-                        ref={(el) =>
-                          (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
-                        }
-                        active={isOutgoingActive}
-                        startCreateConnection={() => {
-                          if (!newConnection.current) {
-                            newConnection.current = {
-                              startNodeUUID: step.uuid,
-                            };
-                            instantiateConnection(step.uuid);
-                          }
-                        }}
-                      />
-                    }
-                    executionState={
-                      stepExecutionState
-                        ? stepExecutionState[step.uuid] || { status: "IDLE" }
-                        : { status: "IDLE" }
-                    }
-                    isStartNodeOfNewConnection={
-                      newConnection.current?.startNodeUUID === step.uuid
-                    }
-                    eventVarsDispatch={eventVarsDispatch}
-                    selectedSteps={eventVars.selectedSteps}
-                    mouseTracker={mouseTracker}
-                    // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
-                  />
-                );
-              })}
               {eventVars.connections.map((connection) => {
                 if (!connection) return null;
 
@@ -1772,7 +1696,7 @@ const PipelineView: React.FC = () => {
                     movedToTop={movedToTop}
                     startNodeUUID={startNodeUUID}
                     endNodeUUID={endNodeUUID}
-                    zIndexMax={totalDomCount}
+                    zIndexMax={zIndexMax}
                     getPosition={getPosition}
                     eventVarsDispatch={eventVarsDispatch}
                     stepDomRefs={stepDomRefs}
@@ -1783,6 +1707,78 @@ const PipelineView: React.FC = () => {
                     newConnection={newConnection}
                     shouldUpdate={shouldUpdate}
                     cursorControlledStep={eventVars.cursorControlledStep}
+                  />
+                );
+              })}
+              {Object.entries(eventVars.steps).map((entry) => {
+                const [uuid, step] = entry;
+                const selected = eventVars.selectedSteps.includes(uuid);
+
+                const isIncomingActive =
+                  eventVars.selectedConnection &&
+                  eventVars.selectedConnection.endNodeUUID === step.uuid;
+
+                const isOutgoingActive =
+                  eventVars.selectedConnection &&
+                  eventVars.selectedConnection.startNodeUUID === step.uuid;
+
+                // only add steps to the component that have been properly
+                // initialized
+                return (
+                  <PipelineStep
+                    key={`${step.uuid}-${hash.current}`}
+                    initialValue={step}
+                    disabledDragging={isPanning}
+                    scaleFactor={eventVars.scaleFactor}
+                    offset={canvasOffset}
+                    selected={selected}
+                    zIndexMax={zIndexMax}
+                    isSelectorActive={eventVars.stepSelector.active}
+                    cursorControlledStep={eventVars.cursorControlledStep}
+                    ref={(el) => (stepDomRefs.current[step.uuid] = el)}
+                    incomingDot={
+                      <ConnectionDot
+                        incoming
+                        ref={(el) =>
+                          (stepDomRefs.current[`${step.uuid}-incoming`] = el)
+                        }
+                        active={isIncomingActive}
+                        endCreateConnection={() => {
+                          if (newConnection.current) {
+                            onMouseUpPipelineStep(step.uuid);
+                          }
+                        }}
+                      />
+                    }
+                    outgoingDot={
+                      <ConnectionDot
+                        outgoing
+                        ref={(el) =>
+                          (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
+                        }
+                        active={isOutgoingActive}
+                        startCreateConnection={() => {
+                          if (!newConnection.current) {
+                            newConnection.current = {
+                              startNodeUUID: step.uuid,
+                            };
+                            instantiateConnection(step.uuid);
+                          }
+                        }}
+                      />
+                    }
+                    executionState={
+                      stepExecutionState
+                        ? stepExecutionState[step.uuid] || { status: "IDLE" }
+                        : { status: "IDLE" }
+                    }
+                    isStartNodeOfNewConnection={
+                      newConnection.current?.startNodeUUID === step.uuid
+                    }
+                    eventVarsDispatch={eventVarsDispatch}
+                    selectedSteps={eventVars.selectedSteps}
+                    mouseTracker={mouseTracker}
+                    // onDoubleClick={onDoubleClickStepHandler} // TODO: fix this
                   />
                 );
               })}
