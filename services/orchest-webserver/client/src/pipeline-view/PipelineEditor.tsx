@@ -39,6 +39,7 @@ import {
   PromiseManager,
   uuidv4,
 } from "@orchest/lib-utils";
+import classNames from "classnames";
 import $ from "jquery";
 import React from "react";
 import { siteMap } from "../Routes";
@@ -947,7 +948,7 @@ export const PipelineEditor: React.FC = () => {
     openNotebook(e, notebookFilePath(pipelineCwd, eventVars.openedStep));
   };
 
-  const centerView = () => {
+  const centerView = React.useCallback(() => {
     dispatch({
       type: "SET_SCALE_FACTOR",
       payload: DEFAULT_SCALE_FACTOR,
@@ -961,7 +962,7 @@ export const PipelineEditor: React.FC = () => {
       pipelineStepsHolderOffsetLeft: 0,
       pipelineStepsHolderOffsetTop: 0,
     });
-  };
+  }, [dispatch, setState]);
 
   const centerPipelineOrigin = () => {
     let viewportOffset = getOffset(pipelineViewportRef.current);
@@ -1193,18 +1194,15 @@ export const PipelineEditor: React.FC = () => {
 
   React.useLayoutEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
+      if (activeElementIsInput()) return;
       if (event.key === " ") {
-        $(pipelineViewportRef.current)
-          .removeClass("dragging")
-          .addClass("ready-to-drag");
-
+        $(pipelineViewportRef.current).removeClass("dragging");
         setIsPanning(true);
-        // dispatch({ type: "SET_KEYS_DOWN", payload: { 32: true } });
       }
-      if (
-        (event.key === "Backspace" || event.key === "Delete") &&
-        !activeElementIsInput()
-      ) {
+      if (event.key === "h") {
+        centerView();
+      }
+      if (event.key === "Backspace" || event.key === "Delete") {
         if (eventVars.selectedSteps.length > 0) deleteSelectedSteps();
         if (eventVars.selectedConnection)
           removeConnection(eventVars.selectedConnection);
@@ -1212,10 +1210,7 @@ export const PipelineEditor: React.FC = () => {
     };
     const keyUpHandler = (event: KeyboardEvent) => {
       if (event.key === " ") {
-        $(pipelineViewportRef.current).removeClass([
-          "ready-to-drag",
-          "dragging",
-        ]);
+        $(pipelineViewportRef.current).removeClass(["dragging"]);
 
         setIsPanning(false);
       }
@@ -1233,6 +1228,7 @@ export const PipelineEditor: React.FC = () => {
     eventVars.selectedSteps,
     removeConnection,
     deleteSelectedSteps,
+    centerView,
   ]);
 
   const enableHotKeys = () => {
@@ -1536,6 +1532,7 @@ export const PipelineEditor: React.FC = () => {
           onMouseUp={onMouseUpViewport}
           onMouseLeave={onMouseLeaveViewport}
           onWheel={onPipelineCanvasWheel}
+          className={classNames(isPanning && "ready-to-drag")}
         >
           <PipelineCanvas
             ref={pipelineCanvasRef}
