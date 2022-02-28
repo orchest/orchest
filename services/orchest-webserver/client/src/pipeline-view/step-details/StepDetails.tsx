@@ -17,7 +17,7 @@ import Tab from "@mui/material/Tab";
 import React from "react";
 import { usePipelineEditorContext } from "../PipelineEditorContext";
 import { StepDetailsLogs } from "./StepDetailsLogs";
-import { StepDetailsProperties } from "./StepDetailsProperties";
+import { ConnectionDict, StepDetailsProperties } from "./StepDetailsProperties";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 3),
@@ -50,8 +50,6 @@ export const StepDetails: React.FC<{
   onDelete: () => void;
   defaultViewIndex?: number;
   onSave: (stepChanges: Partial<Step>, uuid: string, replace: boolean) => void;
-  // onNameUpdate;
-  // onChange;
 }> = ({
   defaultViewIndex = 0,
   onOpenNotebook,
@@ -59,8 +57,6 @@ export const StepDetails: React.FC<{
   onChangeView,
   onSave,
   onDelete,
-  // onNameUpdate,
-  // onChange,
 }) => {
   const {
     eventVars,
@@ -76,22 +72,16 @@ export const StepDetails: React.FC<{
 
   const step = eventVars.steps[eventVars.openedStep];
 
-  // TODO: move this
-  type TempConnections = Record<string, [string, string]>;
-
   const connections = React.useMemo(() => {
-    if (!eventVars.openedStep) return {};
+    if (!step) return {};
 
-    const step = eventVars.steps[eventVars.openedStep];
     const { incoming_connections = [] } = step;
 
     return incoming_connections.reduce((all, id: string) => {
-      return {
-        ...all,
-        [id]: [eventVars.steps[id].title, eventVars.steps[id].file_path],
-      };
-    }, {} as TempConnections);
-  }, [eventVars.openedStep, eventVars.steps]);
+      const { title, file_path } = eventVars.steps[id];
+      return { ...all, [id]: { title, file_path } };
+    }, {} as ConnectionDict);
+  }, [eventVars.steps, step]);
 
   const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
     "pipelinedetails.panelWidth",
@@ -163,7 +153,7 @@ export const StepDetails: React.FC<{
     },
   ];
 
-  if (!eventVars.openedStep) return null;
+  if (!eventVars.openedStep || !step) return null;
   return (
     <StepDetailsContainer
       style={{ width: panelWidth + "px" }}
@@ -188,8 +178,8 @@ export const StepDetails: React.FC<{
         </Tabs>
         <CustomTabPanel value={subViewIndex} index={0} name="pipeline-details">
           <StepDetailsProperties
-            project_uuid={projectUuid}
-            pipeline_uuid={pipelineJson.uuid}
+            projectUuid={projectUuid}
+            pipelineUuid={pipelineJson.uuid}
             pipelineCwd={pipelineCwd}
             readOnly={isReadOnly}
             onSave={onSave}
