@@ -20,7 +20,7 @@ export type PipelineEditorContextType = {
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
   newConnection: React.MutableRefObject<NewConnection>;
-  keysDown: Set<number>;
+  keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
   mouseTracker: React.MutableRefObject<MouseTracker>;
   setPipelineSaveStatus: (status: "saving" | "saved") => void;

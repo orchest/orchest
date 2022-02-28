@@ -39,7 +39,6 @@ import {
   PromiseManager,
   uuidv4,
 } from "@orchest/lib-utils";
-import classNames from "classnames";
 import $ from "jquery";
 import React from "react";
 import { siteMap } from "../Routes";
@@ -117,7 +116,9 @@ export const PipelineEditor: React.FC = () => {
     [projectUuid, jobUuidFromRoute, navigateTo]
   );
 
-  const [isPanning, setIsPanning] = React.useState(false);
+  const [panningState, setPanningState] = React.useState<
+    "ready-to-pan" | "panning" | "idle"
+  >("idle");
 
   const {
     eventVars,
@@ -1195,12 +1196,14 @@ export const PipelineEditor: React.FC = () => {
   React.useLayoutEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
-      if (event.key === " ") {
-        $(pipelineViewportRef.current).removeClass("dragging");
-        setIsPanning(true);
+
+      if (event.key === " " && !keysDown.has("Space")) {
+        setPanningState("ready-to-pan");
+        keysDown.add("Space");
       }
-      if (event.key === "h") {
+      if (event.key === "h" && !keysDown.has("h")) {
         centerView();
+        keysDown.add("h");
       }
       if (event.key === "Backspace" || event.key === "Delete") {
         if (eventVars.selectedSteps.length > 0) deleteSelectedSteps();
@@ -1210,9 +1213,11 @@ export const PipelineEditor: React.FC = () => {
     };
     const keyUpHandler = (event: KeyboardEvent) => {
       if (event.key === " ") {
-        $(pipelineViewportRef.current).removeClass(["dragging"]);
-
-        setIsPanning(false);
+        setPanningState("idle");
+        keysDown.delete("Space");
+      }
+      if (event.key === "h") {
+        keysDown.delete("h");
       }
     };
 
@@ -1231,6 +1236,8 @@ export const PipelineEditor: React.FC = () => {
     centerView,
   ]);
 
+  console.log("HM panningState: ", panningState);
+
   const enableHotKeys = () => {
     setScope("pipeline-editor");
     setIsHoverEditor(true);
@@ -1245,18 +1252,16 @@ export const PipelineEditor: React.FC = () => {
 
     trackMouseMovement(e.clientX, e.clientY);
 
-    if (isLeftClick && isPanning) {
+    if (isLeftClick && panningState === "ready-to-pan") {
       // space held while clicking, means canvas drag
-      $(pipelineViewportRef.current)
-        .addClass("dragging")
-        .removeClass("ready-to-drag");
+      setPanningState("panning");
     }
 
     dispatch({ type: "DESELECT_CONNECTION" });
 
     // not dragging the canvas, so user must be creating a selection rectangle
     // we need to save the offset of cursor against pipeline canvas
-    if (isLeftClick && !isPanning) {
+    if (isLeftClick && panningState === "idle") {
       dispatch({
         type: "CREATE_SELECTOR",
         payload: getOffset(pipelineCanvasRef.current),
@@ -1264,7 +1269,7 @@ export const PipelineEditor: React.FC = () => {
     }
   };
 
-  const onMouseUpViewport = () => {
+  const onMouseUpViewport = (e: React.MouseEvent) => {
     if (eventVars.stepSelector.active) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     } else {
@@ -1273,6 +1278,12 @@ export const PipelineEditor: React.FC = () => {
 
     if (newConnection.current) {
       removeConnection(newConnection.current);
+    }
+
+    const isLeftClick = e.button === 0;
+
+    if (isLeftClick && panningState === "panning") {
+      setPanningState("ready-to-pan");
     }
   };
 
@@ -1305,7 +1316,9 @@ export const PipelineEditor: React.FC = () => {
       });
     }
 
-    if (isPanning) {
+    if (panningState === "ready-to-pan") setPanningState("panning");
+
+    if (panningState === "panning") {
       let dx = e.clientX - mouseTracker.current.client.x;
       let dy = e.clientY - mouseTracker.current.client.y;
 
@@ -1532,7 +1545,7 @@ export const PipelineEditor: React.FC = () => {
           onMouseUp={onMouseUpViewport}
           onMouseLeave={onMouseLeaveViewport}
           onWheel={onPipelineCanvasWheel}
-          className={classNames(isPanning && "ready-to-drag")}
+          className={panningState}
         >
           <PipelineCanvas
             ref={pipelineCanvasRef}
@@ -1647,7 +1660,7 @@ export const PipelineEditor: React.FC = () => {
                 <PipelineStep
                   key={`${step.uuid}-${hash.current}`}
                   initialValue={step}
-                  disabledDragging={isPanning}
+                  disabledDragging={panningState === "panning"}
                   scaleFactor={eventVars.scaleFactor}
                   offset={canvasOffset}
                   selected={selected}

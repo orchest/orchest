@@ -1071,12 +1071,12 @@ button.themed-secondary {
     overflow: hidden;
     position: absolute;
 
-    &.ready-to-drag {
+    &.ready-to-pan {
       cursor: grabbing; // as a fallback
       cursor: grab;
     }
 
-    &.dragging {
+    &.panning {
       cursor: grabbing;
 
       .pipeline-steps-holder {

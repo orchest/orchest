@@ -1,11 +1,16 @@
+import classNames from "classnames";
 import React from "react";
 
 const PipelineStepsOuterHolder = (
-  { children, ...props }: React.PropsWithChildren<any>,
+  { children, className, ...props }: React.PropsWithChildren<any>,
   ref: React.ForwardedRef<HTMLDivElement>
 ) => {
   return (
-    <div className="pipeline-steps-outer-holder" ref={ref} {...props}>
+    <div
+      className={classNames("pipeline-steps-outer-holder", className)}
+      ref={ref}
+      {...props}
+    >
       {children}
     </div>
   );
