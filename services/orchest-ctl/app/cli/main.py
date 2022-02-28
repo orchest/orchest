@@ -160,19 +160,21 @@ def install(
     orchest.install()
 
 
-# TODO: make mode in Mode type. Although it is "web" here
 @typer_app.command()
 def update():
     """
     Update Orchest.
 
-    For the update to succeed, make sure you have the 'master' branch
-    checked out.
-
     Note: when updating Orchest all running sessions and pipeline runs
     will be killed. Orchest can not be running during update.
     """
     orchest.update()
+
+
+@typer_app.command(hidden=True)
+def hidden_update():
+    """Do not use unless you know what you are doing."""
+    orchest._update()
 
 
 @typer_app.command()

@@ -4,6 +4,7 @@ import os
 import signal
 import subprocess
 import time
+from enum import Enum
 from typing import Any, Dict, List, Optional
 
 import typer
@@ -43,6 +44,65 @@ def is_orchest_already_installed() -> bool:
         return False
 
 
+class HelmMode(str, Enum):
+    INSTALL = "Install"
+    UPGRADE = "Update"
+
+
+def _run_helm_with_progress_bar(mode: HelmMode) -> None:
+    if mode == HelmMode.INSTALL:
+        cmd = ["make", "orchest"]
+        label = "Installation"
+    elif mode == HelmMode.UPGRADE:
+        cmd = ["make", "orchest-upgrade"]
+        label = "Update"
+    else:
+        raise ValueError()
+
+    # K8S_TODO: remove DISABLE_ROOK?
+    env = os.environ.copy()
+    env["DISABLE_ROOK"] = "TRUE"
+    process = subprocess.Popen(
+        cmd,
+        cwd="deploy",
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+    )
+
+    n_ready_deployments = 0
+    return_code = None
+    with typer.progressbar(
+        length=len(config.ORCHEST_DEPLOYMENTS) + 1,
+        label=label,
+        show_eta=False,
+    ) as progress_bar:
+        # This is just to make the bar not stay at 0% for too long
+        # because images are being pulled etc, i.e. just UX.
+        progress_bar.update(1)
+        while return_code is None:
+            # This way we are able to perform the last update on the
+            # bar in case of success before the loop exiting.
+            process.poll()
+            return_code = process.returncode
+
+            # Set the progress bar to the length of the deployments that
+            # are ready.
+            deployments = k8sw.get_orchest_deployments()
+            ready_deployments = [
+                d
+                for d in deployments
+                if d is not None and d.status.ready_replicas == d.spec.replicas
+            ]
+            progress_bar.update(len(ready_deployments) - n_ready_deployments)
+            n_ready_deployments = len(ready_deployments)
+
+            # K8S_TODO: failure cases? Or are they covered by helm?
+            time.sleep(1)
+    return return_code
+
+
 def install():
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
@@ -60,55 +120,15 @@ def install():
 
     utils.echo(f"Installing Orchest {orchest_version}.")
 
-    # K8S_TODO: remove DISABLE_ROOK?
-    env = os.environ.copy()
-    env["DISABLE_ROOK"] = "TRUE"
-    process = subprocess.Popen(
-        ["make", "orchest"],
-        cwd="deploy",
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        env=env,
-    )
+    return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
 
-    n_ready_deployments = 0
-    returncode = None
-    with typer.progressbar(
-        length=len(config.ORCHEST_DEPLOYMENTS) + 1,
-        label="Installation",
-        show_eta=False,
-    ) as progress_bar:
-        # This is just to make the bar not stay at 0% for too long
-        # because images are being pulled etc, i.e. just UX.
-        progress_bar.update(1)
-        while returncode is None:
-            # This way we are able to perform the last update on the
-            # bar in case of success before the loop exiting.
-            process.poll()
-            returncode = process.returncode
-
-            # Set the progress bar to the length of the deployments that
-            # are ready.
-            deployments = k8sw.get_orchest_deployments()
-            ready_deployments = [
-                d
-                for d in deployments
-                if d is not None and d.status.ready_replicas == d.spec.replicas
-            ]
-            progress_bar.update(len(ready_deployments) - n_ready_deployments)
-            n_ready_deployments = len(ready_deployments)
-
-            # K8S_TODO: failure cases? Or are they covered by helm?
-            time.sleep(1)
-
-    if returncode != 0:
+    if return_code != 0:
         utils.echo(
             "There was an error during the installation of Orchest, "
-            f"exit code: {returncode} .",
+            f"exit code: {return_code} .",
             err=True,
         )
-        raise typer.Exit(returncode)
+        raise typer.Exit(return_code)
 
     logger.info("Setting 'userdir/' permissions.")
     utils.fix_userdir_permissions()
@@ -462,3 +482,45 @@ def add_user(username: str, password: str, token: str, is_admin: str) -> None:
         tty=False,
     )
     utils.echo(str(resp))
+
+
+def update() -> None:
+    k8sw.abort_if_unsafe()
+    stop()
+
+    return
+
+
+def _update() -> None:
+    """Updates Orchest.
+
+    This command should only be used internally, i.e. not called by
+    a user through the CLI. This code will change the state of the
+    deployment of Orchest. It assumes Orchest has been stopped.
+    """
+    utils.echo("Updating...")
+
+    # K8S_TODO: delete user-built jupyter images.
+    orchest_version = os.environ.get("ORCHEST_VERSION")
+    if orchest_version is None:
+        utils.echo(
+            "Expected to find an ORCHEST_VERSION environment variable, exiting.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    return_code = _run_helm_with_progress_bar(HelmMode.UPGRADE)
+    if return_code != 0:
+        utils.echo(
+            f"There was an error while updating Orchest, exit code: {return_code} .",
+            err=True,
+        )
+        raise typer.Exit(return_code)
+
+    k8sw.set_orchest_cluster_version(orchest_version)
+
+    # K8S_TODO: coordinate with ingress for this.
+    # port = 8001
+    # utils.echo(f"Orchest is running at: http://localhost:{port}")
+    utils.echo("Update was successful.")
+    utils.echo("Orchest is running, portforward to the webserver to access it.")

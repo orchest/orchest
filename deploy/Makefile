@@ -148,6 +148,6 @@ initialize: ./bin/initialize
 rook:
 	helm install ${ROOK_DEPLOY_CONFIG}
 
-.PHONY: orchest_upgrade
-orchest_upgrade:
+.PHONY: orchest-upgrade
+orchest-upgrade:
 	helm upgrade ${ORCHEST_DEPLOY_CONFIG}
