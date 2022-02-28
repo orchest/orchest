@@ -54,6 +54,10 @@ import {
 import { ConnectionDot } from "./ConnectionDot";
 import { useAutoStartSession } from "./hooks/useAutoStartSession";
 import {
+  INITIAL_PIPELINE_POSITION,
+  usePipelineViewState,
+} from "./hooks/usePipelineViewState";
+import {
   convertStepsToObject,
   useStepExecutionState,
 } from "./hooks/useStepExecutionState";
@@ -67,8 +71,6 @@ import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
 
 const CANVAS_VIEW_MULTIPLE = 3;
-const DOUBLE_CLICK_TIMEOUT = 300;
-const INITIAL_PIPELINE_POSITION = [-1, -1];
 const DEFAULT_SCALE_FACTOR = 1;
 
 type RunStepsType = "selection" | "incoming";
@@ -291,62 +293,14 @@ export const PipelineEditor: React.FC = () => {
     }
   );
 
-  interface IPipelineViewState {
-    // rendering state
-    pipelineOrigin: number[];
-    pipelineStepsHolderOffsetLeft: number;
-    pipelineStepsHolderOffsetTop: number;
-    pipelineOffset: [number, number];
-    // misc. state
-    currentOngoingSaves: number;
-    defaultDetailViewIndex: number;
-  }
-
-  let initialState: IPipelineViewState = {
-    // rendering state
-    pipelineOrigin: [0, 0],
-    pipelineStepsHolderOffsetLeft: 0,
-    pipelineStepsHolderOffsetTop: 0,
-    pipelineOffset: [
-      INITIAL_PIPELINE_POSITION[0],
-      INITIAL_PIPELINE_POSITION[1],
-    ],
-    // misc. state
-    currentOngoingSaves: 0,
-    defaultDetailViewIndex: 0,
-  };
-
   const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
-  const [state, _setState] = React.useState<IPipelineViewState>(initialState);
-  // TODO: clean up this class-component-stye setState
-  const setState = React.useCallback(
-    (
-      newState:
-        | Partial<IPipelineViewState>
-        | ((
-            previousState: Partial<IPipelineViewState>
-          ) => Partial<IPipelineViewState>)
-    ) => {
-      _setState((prevState) => {
-        let updatedState =
-          newState instanceof Function ? newState(prevState) : newState;
-
-        return {
-          ...prevState,
-          ...updatedState,
-        };
-      });
-    },
-    []
-  );
+  const [state, setState] = usePipelineViewState();
 
   const decrementSaveCounter = React.useCallback(() => {
-    setState((state) => {
-      return {
-        currentOngoingSaves: state.currentOngoingSaves - 1,
-      };
-    });
+    setState((current) => ({
+      currentOngoingSaves: current.currentOngoingSaves - 1,
+    }));
   }, [setState]);
 
   const executePipelineSteps = React.useCallback(
@@ -386,11 +340,9 @@ export const PipelineEditor: React.FC = () => {
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
       if (!data) return;
-      setState((state) => {
-        return {
-          currentOngoingSaves: state.currentOngoingSaves + 1,
-        };
-      });
+      setState((current) => ({
+        currentOngoingSaves: current.currentOngoingSaves + 1,
+      }));
 
       clearTimeout(timersRef.current.saveIndicatorTimeout);
       timersRef.current.saveIndicatorTimeout = setTimeout(() => {
@@ -956,10 +908,7 @@ export const PipelineEditor: React.FC = () => {
     });
 
     setState({
-      pipelineOffset: [
-        INITIAL_PIPELINE_POSITION[0],
-        INITIAL_PIPELINE_POSITION[1],
-      ],
+      pipelineOffset: INITIAL_PIPELINE_POSITION,
       pipelineStepsHolderOffsetLeft: 0,
       pipelineStepsHolderOffsetTop: 0,
     });
@@ -1035,22 +984,19 @@ export const PipelineEditor: React.FC = () => {
         eventVars.scaleFactor
       );
 
-      setState(({ pipelineOffset }) => {
-        const [pipelineOffsetX, pipelineOffsetY] = pipelineOffset;
-        return {
-          pipelineOrigin: newOrigin,
-          pipelineStepsHolderOffsetLeft:
-            translateX + initialX - pipelineOffsetX,
-          pipelineStepsHolderOffsetTop: translateY + initialY - pipelineOffsetY,
-        };
-      });
+      setState((current) => ({
+        pipelineOrigin: newOrigin,
+        pipelineStepsHolderOffsetLeft:
+          translateX + initialX - current.pipelineOffset[0],
+        pipelineStepsHolderOffsetTop:
+          translateY + initialY - current.pipelineOffset[1],
+      }));
     },
     [eventVars.scaleFactor, setState]
   );
 
   const onPipelineCanvasWheel = (e: React.WheelEvent) => {
     let pipelineMousePosition = getMousePositionRelativeToPipelineStepHolder();
-    if (!pipelineMousePosition) return;
 
     // set origin at scroll wheel trigger
     if (
@@ -1156,9 +1102,7 @@ export const PipelineEditor: React.FC = () => {
   const hasSelectedSteps = eventVars.selectedSteps.length > 1;
 
   const onDetailsChangeView = (newIndex: number) => {
-    setState({
-      defaultDetailViewIndex: newIndex,
-    });
+    setState({ defaultDetailViewIndex: newIndex });
   };
 
   const onSaveDetails = (
@@ -1178,18 +1122,11 @@ export const PipelineEditor: React.FC = () => {
   };
 
   const getMousePositionRelativeToPipelineStepHolder = () => {
-    if (!pipelineCanvasRef.current) {
-      console.error(
-        "Unable to get mouse position relative to pipelineStepsHolder. PipelineStepsHolder is not yet instantiated!"
-      );
-      return;
-    }
-    let { left, top } = getOffset(pipelineCanvasRef.current);
     const { x, y } = mouseTracker.current.client;
 
     return [
-      scaleCorrected(x - left, eventVars.scaleFactor),
-      scaleCorrected(y - top, eventVars.scaleFactor),
+      scaleCorrected(x - canvasOffset.left, eventVars.scaleFactor),
+      scaleCorrected(y - canvasOffset.top, eventVars.scaleFactor),
     ] as [number, number];
   };
 
@@ -1229,6 +1166,7 @@ export const PipelineEditor: React.FC = () => {
     };
   }, [
     dispatch,
+    keysDown,
     eventVars.selectedConnection,
     eventVars.selectedSteps,
     removeConnection,
@@ -1276,6 +1214,10 @@ export const PipelineEditor: React.FC = () => {
       dispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
     }
 
+    if (eventVars.openedStep) {
+      dispatch({ type: "SET_OPENED_STEP", payload: undefined });
+    }
+
     if (newConnection.current) {
       removeConnection(newConnection.current);
     }
@@ -1319,17 +1261,15 @@ export const PipelineEditor: React.FC = () => {
     if (panningState === "ready-to-pan") setPanningState("panning");
 
     if (panningState === "panning") {
-      let dx = e.clientX - mouseTracker.current.client.x;
-      let dy = e.clientY - mouseTracker.current.client.y;
+      let dx = mouseTracker.current.delta.x;
+      let dy = mouseTracker.current.delta.y;
 
-      setState((state) => {
-        return {
-          pipelineOffset: [
-            state.pipelineOffset[0] + dx,
-            state.pipelineOffset[1] + dy,
-          ],
-        };
-      });
+      setState((current) => ({
+        pipelineOffset: [
+          current.pipelineOffset[0] + dx,
+          current.pipelineOffset[1] + dy,
+        ],
+      }));
     }
   };
 
@@ -1376,7 +1316,7 @@ export const PipelineEditor: React.FC = () => {
       clearTimeout(timersRef.current.saveIndicatorTimeout);
       setPipelineSaveStatus("saved");
     }
-  }, [state.currentOngoingSaves]);
+  }, [state.currentOngoingSaves, setPipelineSaveStatus]);
 
   React.useEffect(() => {
     // Start with hotkeys disabled
@@ -1401,9 +1341,9 @@ export const PipelineEditor: React.FC = () => {
 
   React.useEffect(() => {
     if (
-      state.pipelineOffset[0] == INITIAL_PIPELINE_POSITION[0] &&
-      state.pipelineOffset[1] == INITIAL_PIPELINE_POSITION[1] &&
-      eventVars.scaleFactor == DEFAULT_SCALE_FACTOR
+      state.pipelineOffset[0] === INITIAL_PIPELINE_POSITION[0] &&
+      state.pipelineOffset[1] === INITIAL_PIPELINE_POSITION[1] &&
+      eventVars.scaleFactor === DEFAULT_SCALE_FACTOR
     ) {
       pipelineSetHolderOrigin([0, 0]);
     }
