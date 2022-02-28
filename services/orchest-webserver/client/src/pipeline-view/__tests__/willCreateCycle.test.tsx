@@ -12,8 +12,6 @@ export const getMockStep = (
   parameters: {},
   uuid: "0",
   meta_data: {
-    _drag_count: 0,
-    _dragged: false,
     hidden: false,
     position: [0, 0],
   },

@@ -1,4 +1,3 @@
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import {
   Environment,
@@ -9,11 +8,15 @@ import {
 } from "@/types";
 import React from "react";
 import { MutatorCallback } from "swr";
-import { EventVars, EventVarsAction, useEventVars } from "./hooks/useEventVars";
-import { useFetchInteractiveRun } from "./hooks/useFetchInteractiveRun";
-import { useInitializePipelineEditor } from "./hooks/useInitializePipelineEditor";
-import { useIsReadOnly } from "./hooks/useIsReadOnly";
-import { SocketIO, useSocketIO } from "./hooks/useSocketIO";
+import {
+  EventVars,
+  EventVarsAction,
+  useEventVars,
+} from "../hooks/useEventVars";
+import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
+import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
+import { useIsReadOnly } from "../hooks/useIsReadOnly";
+import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
 
 export type PipelineEditorContextType = {
   eventVars: EventVars;
@@ -23,7 +26,7 @@ export type PipelineEditorContextType = {
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
   mouseTracker: React.MutableRefObject<MouseTracker>;
-  setPipelineSaveStatus: (status: "saving" | "saved") => void;
+  metadataPositions: React.MutableRefObject<Record<string, [number, number]>>;
   pipelineCwd: string;
   pipelineJson: PipelineJson;
   environments: Environment[];
@@ -66,17 +69,6 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuid: runUuidFromRoute,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
-  const { dispatch: ProjectContextDispatch } = useProjectsContext();
-
-  const setPipelineSaveStatus = React.useCallback(
-    (status: "saving" | "saved") => {
-      ProjectContextDispatch({
-        type: "pipelineSetSaveStatus",
-        payload: status,
-      });
-    },
-    [ProjectContextDispatch]
-  );
 
   const {
     eventVars,
@@ -86,6 +78,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     keysDown,
     trackMouseMovement,
     mouseTracker,
+    metadataPositions,
   } = useEventVars();
 
   const instantiateConnection = React.useCallback(
@@ -165,7 +158,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         keysDown,
         trackMouseMovement,
         mouseTracker,
-        setPipelineSaveStatus,
+        metadataPositions,
         pipelineCwd,
         pipelineJson,
         environments,

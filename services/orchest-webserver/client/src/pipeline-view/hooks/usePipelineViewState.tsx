@@ -8,9 +8,6 @@ interface PipelineViewState {
   pipelineStepsHolderOffsetLeft: number;
   pipelineStepsHolderOffsetTop: number;
   pipelineOffset: [number, number];
-  // misc. state
-  currentOngoingSaves: number;
-  defaultDetailViewIndex: number;
 }
 let initialState: PipelineViewState = {
   // rendering state
@@ -18,9 +15,6 @@ let initialState: PipelineViewState = {
   pipelineStepsHolderOffsetLeft: 0,
   pipelineStepsHolderOffsetTop: 0,
   pipelineOffset: INITIAL_PIPELINE_POSITION,
-  // misc. state
-  currentOngoingSaves: 0,
-  defaultDetailViewIndex: 0,
 };
 
 const reducer = (

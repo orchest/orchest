@@ -1,7 +1,8 @@
-import { EventVars, removeConnection } from "../useEventVars";
+import { EventVars, removeConnection } from "../hooks/useEventVars";
 
 const mockState: EventVars = {
   doubleClickFirstClick: false,
+  cursorControlledStep: undefined,
   selectedSteps: [],
   stepSelector: {
     x1: 5e-324,
@@ -21,8 +22,6 @@ const mockState: EventVars = {
       ],
       kernel: { display_name: "Python 3", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [1004.5264350628843, 457.433333079455],
       },
@@ -37,8 +36,6 @@ const mockState: EventVars = {
       incoming_connections: [],
       kernel: { display_name: "Python 3", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [114.79004357272606, 355.1891122428357],
       },
@@ -80,8 +77,6 @@ const mockState: EventVars = {
       incoming_connections: ["c9484b08-9d23-4f1a-96da-c41711d77c09"],
       kernel: { display_name: "custom-base-kernel-py", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [732.2843866171004, 578.3516919903861],
       },
@@ -110,8 +105,6 @@ const mockState: EventVars = {
       incoming_connections: ["106bb318-252d-4f94-ba86-c36722dddf41"],
       kernel: { display_name: "Python 3", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [409.877390860413, 272.07007254205917],
       },
@@ -126,8 +119,6 @@ const mockState: EventVars = {
       incoming_connections: ["106bb318-252d-4f94-ba86-c36722dddf41"],
       kernel: { display_name: "Python 3", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [408.81305028370195, 457.16801619433204],
       },
@@ -182,8 +173,6 @@ const mockState: EventVars = {
       incoming_connections: ["c9484b08-9d23-4f1a-96da-c41711d77c09"],
       kernel: { display_name: "Python 3", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [729.8604381113583, 457.10930478196144],
       },
@@ -212,8 +201,6 @@ const mockState: EventVars = {
       incoming_connections: ["c9484b08-9d23-4f1a-96da-c41711d77c09"],
       kernel: { display_name: "Python 3", name: "python" },
       meta_data: {
-        _drag_count: 0,
-        _dragged: false,
         hidden: false,
         position: [729.4319081206595, 334.3457576120965],
       },
@@ -313,8 +300,6 @@ describe("removeConnection", () => {
           ],
           kernel: { display_name: "Python 3", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [1004.5264350628843, 457.433333079455],
           },
@@ -329,8 +314,6 @@ describe("removeConnection", () => {
           incoming_connections: [],
           kernel: { display_name: "Python 3", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [114.79004357272606, 355.1891122428357],
           },
@@ -372,8 +355,6 @@ describe("removeConnection", () => {
           incoming_connections: ["c9484b08-9d23-4f1a-96da-c41711d77c09"],
           kernel: { display_name: "custom-base-kernel-py", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [732.2843866171004, 578.3516919903861],
           },
@@ -402,8 +383,6 @@ describe("removeConnection", () => {
           incoming_connections: ["106bb318-252d-4f94-ba86-c36722dddf41"],
           kernel: { display_name: "Python 3", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [409.877390860413, 272.07007254205917],
           },
@@ -418,8 +397,6 @@ describe("removeConnection", () => {
           incoming_connections: ["106bb318-252d-4f94-ba86-c36722dddf41"],
           kernel: { display_name: "Python 3", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [408.81305028370195, 457.16801619433204],
           },
@@ -474,8 +451,6 @@ describe("removeConnection", () => {
           incoming_connections: ["c9484b08-9d23-4f1a-96da-c41711d77c09"],
           kernel: { display_name: "Python 3", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [729.8604381113583, 457.10930478196144],
           },
@@ -504,8 +479,6 @@ describe("removeConnection", () => {
           incoming_connections: ["c9484b08-9d23-4f1a-96da-c41711d77c09"],
           kernel: { display_name: "Python 3", name: "python" },
           meta_data: {
-            _drag_count: 0,
-            _dragged: false,
             hidden: false,
             position: [729.4319081206595, 334.3457576120965],
           },

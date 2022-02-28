@@ -15,7 +15,7 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import React from "react";
-import { usePipelineEditorContext } from "../PipelineEditorContext";
+import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { ConnectionDict, StepDetailsProperties } from "./StepDetailsProperties";
 
@@ -46,18 +46,9 @@ const StepDetailsContainer = styled("div")(({ theme }) => ({
 export const StepDetails: React.FC<{
   onOpenNotebook: (e: React.MouseEvent) => void;
   onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
-  onChangeView: (index: number) => void;
   onDelete: () => void;
-  defaultViewIndex?: number;
   onSave: (stepChanges: Partial<Step>, uuid: string, replace: boolean) => void;
-}> = ({
-  defaultViewIndex = 0,
-  onOpenNotebook,
-  onOpenFilePreviewView,
-  onChangeView,
-  onSave,
-  onDelete,
-}) => {
+}> = ({ onOpenNotebook, onOpenFilePreviewView, onSave, onDelete }) => {
   const {
     eventVars,
     pipelineCwd,
@@ -99,7 +90,7 @@ export const StepDetails: React.FC<{
 
   const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
 
-  const [subViewIndex, setSubViewIndex] = React.useState(defaultViewIndex);
+  const [subViewIndex, setSubViewIndex] = React.useState(0);
 
   const onStartDragging = React.useCallback((e: React.MouseEvent) => {
     uiVars.current.prevClientX = e.clientX;
@@ -137,7 +128,6 @@ export const StepDetails: React.FC<{
     index: number
   ) => {
     setSubViewIndex(index);
-    onChangeView(index);
   };
 
   const tabs = [
@@ -153,7 +143,7 @@ export const StepDetails: React.FC<{
     },
   ];
 
-  if (!eventVars.openedStep || !step) return null;
+  if (!eventVars.openedStep || !step || !pipelineJson) return null;
   return (
     <StepDetailsContainer
       style={{ width: panelWidth + "px" }}

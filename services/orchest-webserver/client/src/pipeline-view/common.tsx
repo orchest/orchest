@@ -51,7 +51,7 @@ export const extractStepsFromPipelineJson = (
     steps[key] = {
       ...step,
       // augmenting state with runtime data in meta_data
-      meta_data: { ...step.meta_data, _drag_count: 0, _dragged: false },
+      meta_data: step.meta_data,
     };
   });
 

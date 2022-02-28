@@ -59,9 +59,6 @@ type Action =
     }
   | { type: "DESELECT_STEPS"; payload: string[] }
   | {
-      type: "MOVE_STEPS";
-    }
-  | {
       type: "SELECT_CONNECTION";
       payload: {
         startNodeUUID: string;
@@ -95,10 +92,9 @@ type Action =
       payload: {
         stepChanges: Partial<Step>;
         uuid: string;
-        replace: boolean;
+        replace?: boolean;
       };
     }
-  // | { type: "SET_KEYS_DOWN"; payload: Record<string, boolean> }
   | {
       type: "CREATE_SELECTOR";
       payload: Offset;
@@ -111,10 +107,6 @@ type Action =
       type: "UPDATE_STEP_SELECTOR";
       payload: Offset;
     }
-  // | {
-  //     type: "UPDATE_NEW_CONNECTION_END_NODE";
-  //     payload: Offset;
-  //   }
   | {
       type: "SET_STEP_SELECTOR_INACTIVE";
     }
@@ -182,6 +174,8 @@ export const useEventVars = () => {
     prev: { x: 0, y: 0 },
     delta: { x: 0, y: 0 },
   });
+  // this is used for temporarily saving dragged steps' positions
+  const metadataPositions = React.useRef<Record<string, [number, number]>>({});
 
   const newConnection = React.useRef<NewConnection>();
 
@@ -651,5 +645,6 @@ export const useEventVars = () => {
     keysDown,
     trackMouseMovement,
     mouseTracker,
+    metadataPositions,
   };
 };

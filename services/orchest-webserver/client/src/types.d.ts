@@ -291,8 +291,6 @@ export type LogType = "step" | "service";
 export type PipelineStepMetaData = {
   hidden: boolean;
   position: [number, number];
-  _drag_count: number;
-  _dragged: boolean;
 };
 
 export type PipelineStepState = Step & {

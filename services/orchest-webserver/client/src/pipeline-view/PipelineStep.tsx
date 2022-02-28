@@ -6,11 +6,14 @@ import {
   PipelineStepState,
   PipelineStepStatus,
 } from "@/types";
+import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
+import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { EventVarsAction } from "./hooks/useEventVars";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 
@@ -22,6 +25,35 @@ export type ExecutionState = {
   server_time?: Date;
   started_time?: Date;
   status: PipelineStepStatus;
+};
+
+export const stepStatusMapping: Record<
+  string,
+  { label: string; sx: SxProps<Theme> }
+> = {
+  SUCCESS: {
+    label: "✓",
+    sx: { color: (theme) => theme.palette.success.light },
+  },
+  FAILURE: {
+    label: "✗",
+    sx: { color: (theme) => theme.palette.error.light },
+  },
+  ABORTED: {
+    label: "❗",
+    sx: { color: (theme) => theme.palette.warning.light },
+  },
+};
+
+export const StepStatus = ({ value }: { value: string }) => {
+  if (!stepStatusMapping[value]) return null;
+
+  const { label, sx } = stepStatusMapping[value];
+  return (
+    <Typography component="span" sx={{ ...sx, marginRight: 2 }}>
+      {label}
+    </Typography>
+  );
 };
 
 const formatSeconds = (seconds: number) => {
@@ -41,7 +73,7 @@ const formatSeconds = (seconds: number) => {
   return ret;
 };
 
-const getStateText = (executionState: ExecutionState) => {
+export const getStateText = (executionState: ExecutionState) => {
   let stateText = "Ready";
 
   if (executionState.status === "SUCCESS") {
@@ -90,10 +122,9 @@ const getStateText = (executionState: ExecutionState) => {
 
 const PipelineStepComponent = React.forwardRef(function PipelineStep(
   {
-    initialValue,
+    data,
     scaleFactor,
     offset,
-    executionState,
     selected,
     zIndexMax,
     movedToTop,
@@ -103,12 +134,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     selectedSteps,
     mouseTracker,
     cursorControlledStep,
+    savePositions,
     disabledDragging,
-    incomingDot,
-    outgoingDot,
     onDoubleClick,
+    children, // we leave out the children, so that children doesn't re-render when step is being dragged
   }: {
-    initialValue: PipelineStepState;
+    data: PipelineStepState;
     scaleFactor: number;
     offset: Offset;
     selected: boolean;
@@ -116,33 +147,26 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     zIndexMax: React.MutableRefObject<number>;
     isSelectorActive: boolean;
     isStartNodeOfNewConnection: boolean;
-    executionState?: ExecutionState;
     eventVarsDispatch: (value: EventVarsAction) => void;
     selectedSteps: string[];
     mouseTracker: React.MutableRefObject<MouseTracker>;
     cursorControlledStep: string | undefined;
+    savePositions: () => void;
     disabledDragging?: boolean;
-    incomingDot: React.ReactNode;
-    outgoingDot: React.ReactNode;
     onDoubleClick: (stepUUID: string) => void;
+    children: React.ReactNode;
   },
   ref: React.MutableRefObject<HTMLDivElement>
 ) {
   const [, forceUpdate] = useForceUpdate();
-  const [step, setStep] = React.useState<Omit<PipelineStepState, "meta_data">>(
-    () => {
-      const { meta_data, ...rest } = initialValue; // eslint-disable-line @typescript-eslint/no-unused-vars
-      return rest;
-    }
-  );
+  const { metadataPositions } = usePipelineEditorContext();
 
+  // only persist meta_data for manipulating location with a local state
+  // the rest will be updated together with pipelineJson (i.e. data)
+  const { uuid, title, incoming_connections, meta_data } = data;
   const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
-    ...initialValue.meta_data,
+    ...meta_data,
   }));
-
-  const stateText = React.useMemo(() => getStateText(executionState), [
-    executionState,
-  ]);
 
   const isMouseDown = React.useRef(false);
 
@@ -152,13 +176,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     dragCount.current === DRAG_CLICK_SENSITIVITY ||
     isMouseDown.current ||
     (!isSelectorActive && selected && !cursorControlledStep) ||
-    cursorControlledStep === step.uuid ||
+    cursorControlledStep === uuid ||
     movedToTop;
 
   const zIndex = useUpdateZIndex(
     shouldMoveToTop,
     zIndexMax,
-    step.incoming_connections.length
+    incoming_connections.length
   );
 
   const onMouseDown = (e: React.MouseEvent) => {
@@ -179,31 +203,6 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     forceUpdate();
   }, [dragCount, forceUpdate, eventVarsDispatch, cursorControlledStep]);
 
-  const onClick = (e: React.MouseEvent) => {
-    if (e.detail === 1) {
-      // because onClick is always called after onMouseUp, so we need to check if it's actually a normal onClick
-      if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
-        const ctrlKeyPressed = e.ctrlKey || e.metaKey;
-
-        // if this step (and possibly other steps) are selected,
-        // press ctrl/cmd and select this step => remove this step from the selection
-        if (selected && ctrlKeyPressed) {
-          eventVarsDispatch({ type: "DESELECT_STEPS", payload: [step.uuid] });
-          return;
-        }
-        // only need to re-render if step is not selected
-        if (!selected) {
-          eventVarsDispatch({
-            type: "SELECT_STEPS",
-            payload: { uuids: [step.uuid], inclusive: ctrlKeyPressed },
-          });
-        }
-      }
-      return;
-    }
-    if (e.detail === 2) onDoubleClick(step.uuid);
-  };
-
   const onMouseUp = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -214,8 +213,40 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
+    // this is basically on single click
+    // because onClick is always called after onMouseUp (i.e. dragCount.current is always 0), we cannot distinguish it within onClick
+    // so, we have to handle it in onMouseUp
+    if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
+      const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+
+      // if this step (and possibly other steps) are selected,
+      // press ctrl/cmd and select this step => remove this step from the selection
+      if (selected && ctrlKeyPressed) {
+        eventVarsDispatch({ type: "DESELECT_STEPS", payload: [uuid] });
+        return;
+      }
+      // only need to re-render if step is not selected
+      if (!selected) {
+        eventVarsDispatch({
+          type: "SELECT_STEPS",
+          payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
+        });
+      }
+      resetDraggingVariables();
+      return;
+    }
+
+    if (hasValue(cursorControlledStep) && cursorControlledStep === uuid) {
+      savePositions();
+    }
+
     // this step could have been being dragged, when mouse up, simply reset all variables
     resetDraggingVariables();
+  };
+
+  const onClick = (e: React.MouseEvent) => {
+    if (e.detail === 1) return; // see explanation in onMouseUp
+    if (e.detail === 2) onDoubleClick(uuid);
   };
 
   const onMouseLeave = () => {
@@ -240,13 +271,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       if (!cursorControlledStep) {
         eventVarsDispatch({
           type: "SET_CURSOR_CONTROLLED_STEP",
-          payload: step.uuid,
+          payload: uuid,
         });
       }
 
       return true;
     };
-    const onMouseMove = (e: MouseEvent) => {
+    const onMouseMove = () => {
       if (disabledDragging) {
         resetDraggingVariables();
         return;
@@ -267,10 +298,11 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
           const updatedPosition = [
             current.position[0] + x,
             current.position[1] + y,
-          ];
+          ] as [number, number];
+          metadataPositions.current[uuid] = updatedPosition;
           return {
             ...current,
-            position: updatedPosition as [number, number],
+            position: updatedPosition,
           };
         });
       }
@@ -280,7 +312,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   }, [
     scaleFactor,
     mouseTracker,
-    step.uuid,
+    uuid,
     isSelectorActive,
     selected,
     cursorControlledStep,
@@ -289,22 +321,22 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     disabledDragging,
     eventVarsDispatch,
     selectedSteps,
+    metadataPositions,
     // was not part of the effect, but we need to update mouse move listener when canvas moved
     offset,
   ]);
 
   const [x, y] = metadata.position;
   const transform = `translateX(${x}px) translateY(${y}px)`;
-  const shouldExpandBackground = cursorControlledStep === step.uuid;
+  const shouldExpandBackground = cursorControlledStep === uuid;
   return (
     <Box
-      data-uuid={step.uuid}
-      data-test-title={step.title}
+      data-uuid={uuid}
+      data-test-title={title}
       data-test-id={"pipeline-step"}
       ref={ref}
       className={classNames(
         "pipeline-step",
-        executionState.status,
         selected && "selected",
         metadata.hidden && "hidden",
         isStartNodeOfNewConnection && "creating-connection"
@@ -329,23 +361,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       onMouseLeave={onMouseLeave}
       onClick={onClick}
     >
-      {incomingDot}
-      <div className={"execution-indicator"}>
-        {{
-          SUCCESS: <span className="success">✓ </span>,
-          FAILURE: <span className="failure">✗ </span>,
-          ABORTED: <span className="aborted">❗ </span>,
-        }[executionState.status] || null}
-        {stateText}
-      </div>
-      <div className="step-label-holder">
-        <div className={"step-label"}>
-          {step.title}
-          <span className="filename">{step.file_path}</span>
-          <span className="filename">{step.uuid}</span>
-        </div>
-      </div>
-      {outgoingDot}
+      {children}
     </Box>
   );
 });

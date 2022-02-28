@@ -1189,16 +1189,6 @@ button.themed-secondary {
         border-radius: 0 0 6px 6px;
         user-select: none;
         -webkit-user-select: none;
-
-        span.success {
-          color: #16bd43;
-        }
-        span.failure {
-          color: red;
-        }
-        span.aborted {
-          color: orange;
-        }
       }
 
       &.running {
