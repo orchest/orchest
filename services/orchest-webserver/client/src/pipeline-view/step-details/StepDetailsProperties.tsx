@@ -1,3 +1,4 @@
+import ProjectFilePicker from "@/components/ProjectFilePicker";
 import { Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
@@ -19,10 +20,10 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
+import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import ProjectFilePicker from "../components/ProjectFilePicker";
 
 const ConnectionItem = ({
   connection: { name, uuid },
@@ -45,13 +46,11 @@ const KERNEL_OPTIONS = [
   { value: "julia", label: "Julia" },
 ];
 
-const PipelineDetailsProperties: React.FC<{
+export const StepDetailsProperties: React.FC<{
   [key: string]: any;
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
 }> = (props) => {
-  const { $ } = window;
-
   const [state, setState] = React.useState({
     environmentOptions: [],
     // this is required to let users edit JSON (while typing the text will not be valid JSON)
@@ -59,8 +58,8 @@ const PipelineDetailsProperties: React.FC<{
     autogenerateFilePath: props.step.file_path.length == 0,
   });
 
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
+  const promiseManager = React.useMemo(() => new PromiseManager(), []);
+  const refManager = React.useMemo(() => new RefManager(), []);
 
   const isNotebookStep =
     extensionFromFilename(props.step.file_path) === "ipynb";
@@ -469,5 +468,3 @@ const PipelineDetailsProperties: React.FC<{
     </div>
   );
 };
-
-export default PipelineDetailsProperties;

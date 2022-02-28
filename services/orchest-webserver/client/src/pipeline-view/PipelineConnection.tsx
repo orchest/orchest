@@ -2,8 +2,8 @@ import theme from "@/theme";
 import { NewConnection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
-import { EventVarsAction } from "./useEventVars";
-import { useUpdateZIndex } from "./useZIndexMax";
+import { EventVarsAction } from "./hooks/useEventVars";
+import { useUpdateZIndex } from "./hooks/useZIndexMax";
 
 // set SVG properties
 const lineHeight = 2;

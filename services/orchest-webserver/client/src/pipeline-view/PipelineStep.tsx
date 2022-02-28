@@ -11,8 +11,8 @@ import { hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
-import { EventVarsAction } from "./useEventVars";
-import { useUpdateZIndex } from "./useZIndexMax";
+import { EventVarsAction } from "./hooks/useEventVars";
+import { useUpdateZIndex } from "./hooks/useZIndexMax";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;

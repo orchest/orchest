@@ -18,8 +18,8 @@ import {
   getScaleCorrectedPosition,
   scaleCorrected,
   willCreateCycle,
-} from "./common";
-import { getStepSelectorRectangle } from "./Rectangle";
+} from "../common";
+import { getStepSelectorRectangle } from "../Rectangle";
 
 export type EventVars = {
   doubleClickFirstClick: boolean;
@@ -593,7 +593,7 @@ export const useEventVars = () => {
     []
   );
 
-  const [eventVars, eventVarsDispatch] = React.useReducer(memoizedReducer, {
+  const [eventVars, dispatch] = React.useReducer(memoizedReducer, {
     doubleClickFirstClick: false,
     openedStep: undefined,
     openedMultiStep: undefined,
@@ -636,7 +636,7 @@ export const useEventVars = () => {
   React.useEffect(() => {
     if (eventVars.error) {
       setAlert("Error", eventVars.error, (resolve) => {
-        eventVarsDispatch({ type: "SET_ERROR", payload: null });
+        dispatch({ type: "SET_ERROR", payload: null });
         resolve(true);
         return true;
       });
@@ -646,7 +646,7 @@ export const useEventVars = () => {
   return {
     eventVars,
     newConnection,
-    eventVarsDispatch,
+    dispatch,
     stepDomRefs,
     keysDown,
     trackMouseMovement,

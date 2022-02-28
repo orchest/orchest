@@ -15,8 +15,9 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import React from "react";
-import PipelineDetailsLogs from "./PipelineDetailsLogs";
-import PipelineDetailsProperties from "./PipelineDetailsProperties";
+import { usePipelineEditorContext } from "../PipelineEditorContext";
+import { StepDetailsLogs } from "./StepDetailsLogs";
+import { StepDetailsProperties } from "./StepDetailsProperties";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 3),
@@ -32,7 +33,7 @@ const ResizeBar = styled("div")(({ theme }) => ({
   cursor: "col-resize",
 }));
 
-const PipelineDetailsContainer = styled("div")(({ theme }) => ({
+const StepDetailsContainer = styled("div")(({ theme }) => ({
   height: "100%",
   backgroundColor: theme.palette.common.white,
   borderLeft: `1px solid ${theme.palette.grey[300]}`,
@@ -42,60 +43,88 @@ const PipelineDetailsContainer = styled("div")(({ theme }) => ({
   flexDirection: "column",
 }));
 
-export const PipelineDetails: React.FC<{
+export const StepDetails: React.FC<{
   onOpenNotebook: (e: React.MouseEvent) => void;
   onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
   onChangeView: (index: number) => void;
-  onClose: () => void;
   onDelete: () => void;
   defaultViewIndex?: number;
-  step: Step;
-  readOnly?: boolean;
-  project_uuid: string;
   onSave: (stepChanges: Partial<Step>, uuid: string, replace: boolean) => void;
-  [key: string]: any;
+  // onNameUpdate;
+  // onChange;
 }> = ({
   defaultViewIndex = 0,
   onOpenNotebook,
   onOpenFilePreviewView,
   onChangeView,
   onSave,
-  step,
-  readOnly,
-  onClose,
   onDelete,
-  project_uuid,
-  ...props
+  // onNameUpdate,
+  // onChange,
 }) => {
+  const {
+    eventVars,
+    pipelineCwd,
+    isReadOnly,
+    runUuid,
+    pipelineJson,
+    dispatch,
+    sio,
+    jobUuid,
+    projectUuid,
+  } = usePipelineEditorContext();
+
+  const step = eventVars.steps[eventVars.openedStep];
+
+  // TODO: move this
+  type TempConnections = Record<string, [string, string]>;
+
+  const connections = React.useMemo(() => {
+    if (!eventVars.openedStep) return {};
+
+    const step = eventVars.steps[eventVars.openedStep];
+    const { incoming_connections = [] } = step;
+
+    return incoming_connections.reduce((all, id: string) => {
+      return {
+        ...all,
+        [id]: [eventVars.steps[id].title, eventVars.steps[id].file_path],
+      };
+    }, {} as TempConnections);
+  }, [eventVars.openedStep, eventVars.steps]);
+
   const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
     "pipelinedetails.panelWidth",
     450
   );
 
-  const eventVars = React.useRef({
+  const uiVars = React.useRef({
     prevClientX: 0,
     cumulativeDeltaX: 0,
   });
+
+  const onClose = () => {
+    dispatch({ type: "SET_OPENED_STEP", payload: undefined });
+  };
 
   const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
 
   const [subViewIndex, setSubViewIndex] = React.useState(defaultViewIndex);
 
   const onStartDragging = React.useCallback((e: React.MouseEvent) => {
-    eventVars.current.prevClientX = e.clientX;
-    eventVars.current.cumulativeDeltaX = 0;
+    uiVars.current.prevClientX = e.clientX;
+    uiVars.current.cumulativeDeltaX = 0;
   }, []);
 
   const onDragging = React.useCallback((e) => {
-    eventVars.current.cumulativeDeltaX +=
-      e.clientX - eventVars.current.prevClientX;
-    eventVars.current.prevClientX = e.clientX;
+    uiVars.current.cumulativeDeltaX += e.clientX - uiVars.current.prevClientX;
+    uiVars.current.prevClientX = e.clientX;
     setPanelWidth((prevPanelWidth) => {
       let newPanelWidth = Math.max(
         50, // panelWidth min: 50px
-        prevPanelWidth - eventVars.current.cumulativeDeltaX
+        prevPanelWidth - uiVars.current.cumulativeDeltaX
       );
-      eventVars.current.cumulativeDeltaX = 0;
+      uiVars.current.cumulativeDeltaX = 0;
       return newPanelWidth;
     });
   }, []);
@@ -134,8 +163,9 @@ export const PipelineDetails: React.FC<{
     },
   ];
 
+  if (!eventVars.openedStep) return null;
   return (
-    <PipelineDetailsContainer
+    <StepDetailsContainer
       style={{ width: panelWidth + "px" }}
       className="pipeline-details pane"
     >
@@ -157,29 +187,26 @@ export const PipelineDetails: React.FC<{
           ))}
         </Tabs>
         <CustomTabPanel value={subViewIndex} index={0} name="pipeline-details">
-          <PipelineDetailsProperties
-            project_uuid={project_uuid}
-            pipeline_uuid={props.pipeline.uuid}
-            pipelineCwd={props.pipelineCwd}
-            readOnly={readOnly}
-            onNameUpdate={props.onNameUpdate}
+          <StepDetailsProperties
+            project_uuid={projectUuid}
+            pipeline_uuid={pipelineJson.uuid}
+            pipelineCwd={pipelineCwd}
+            readOnly={isReadOnly}
             onSave={onSave}
-            connections={props.connections}
+            connections={connections}
             step={step}
-            onChange={props.onChange}
-            saveHash={props.saveHash}
             menuMaxWidth={`${panelWidth - 48}px`}
           />
         </CustomTabPanel>
         <CustomTabPanel value={subViewIndex} index={1} name="pipeline-logs">
-          <PipelineDetailsLogs
-            sio={props.sio}
-            projectUuid={project_uuid}
-            jobUuid={props.job_uuid}
-            runUuid={props.run_uuid}
+          <StepDetailsLogs
+            sio={sio}
+            projectUuid={projectUuid}
+            jobUuid={jobUuid}
+            runUuid={runUuid}
             type="step"
             logId={step.uuid}
-            pipelineUuid={props.pipeline.uuid}
+            pipelineUuid={pipelineJson.uuid}
           />
         </CustomTabPanel>
       </Overflowable>
@@ -189,7 +216,7 @@ export const PipelineDetails: React.FC<{
           alignItems="flex-start"
           sx={{ marginBottom: (theme) => theme.spacing(2) }}
         >
-          {!readOnly && (
+          {!isReadOnly && (
             <Button
               startIcon={<LaunchIcon />}
               variant="contained"
@@ -224,7 +251,7 @@ export const PipelineDetails: React.FC<{
           >
             Close
           </Button>
-          {!readOnly && (
+          {!isReadOnly && (
             <Button
               startIcon={<DeleteIcon />}
               color="secondary"
@@ -236,6 +263,6 @@ export const PipelineDetails: React.FC<{
           )}
         </Stack>
       </Box>
-    </PipelineDetailsContainer>
+    </StepDetailsContainer>
   );
 };
