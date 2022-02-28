@@ -96,6 +96,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     executionState,
     selected,
     zIndexMax,
+    movedToTop,
     isSelectorActive,
     isStartNodeOfNewConnection,
     eventVarsDispatch,
@@ -110,6 +111,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     scaleFactor: number;
     offset: Offset;
     selected: boolean;
+    movedToTop: boolean;
     zIndexMax: React.MutableRefObject<number>;
     isSelectorActive: boolean;
     isStartNodeOfNewConnection: boolean;
@@ -149,8 +151,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const shouldMoveToTop =
     dragCount.current === DRAG_CLICK_SENSITIVITY ||
     isMouseDown.current ||
-    (!isSelectorActive && selected) ||
-    cursorControlledStep === step.uuid;
+    (!isSelectorActive && selected && !cursorControlledStep) ||
+    cursorControlledStep === step.uuid ||
+    movedToTop;
 
   const zIndex = useUpdateZIndex(
     shouldMoveToTop,

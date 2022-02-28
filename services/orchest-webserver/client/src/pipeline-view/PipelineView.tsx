@@ -1263,9 +1263,7 @@ const PipelineView: React.FC = () => {
         // eventVarsDispatch({ type: "SET_KEYS_DOWN", payload: { 32: true } });
       }
       if (event.key === "Backspace" || event.key === "Delete") {
-        // TODO: prevent excessive submission
-        if (eventVars.selectedSteps.length > 0)
-          removeSteps(eventVars.selectedSteps);
+        if (eventVars.selectedSteps.length > 0) deleteSelectedSteps();
         if (eventVars.selectedConnection)
           removeConnection(eventVars.selectedConnection);
       }
@@ -1722,6 +1720,10 @@ const PipelineView: React.FC = () => {
                   eventVars.selectedConnection &&
                   eventVars.selectedConnection.startNodeUUID === step.uuid;
 
+                const movedToTop =
+                  eventVars.selectedConnection?.startNodeUUID === step.uuid ||
+                  eventVars.selectedConnection?.endNodeUUID === step.uuid;
+
                 // only add steps to the component that have been properly
                 // initialized
                 return (
@@ -1735,6 +1737,7 @@ const PipelineView: React.FC = () => {
                     zIndexMax={zIndexMax}
                     isSelectorActive={eventVars.stepSelector.active}
                     cursorControlledStep={eventVars.cursorControlledStep}
+                    movedToTop={movedToTop}
                     ref={(el) => (stepDomRefs.current[step.uuid] = el)}
                     incomingDot={
                       <ConnectionDot

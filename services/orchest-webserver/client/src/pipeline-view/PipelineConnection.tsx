@@ -204,9 +204,11 @@ const PipelineConnectionComponent: React.FC<{
 
   // movedToTop: when associated step is selected
   // shouldRedraw && isNew: user is creating
-  const shouldMoveToTop = shouldReRender || movedToTop;
+  const shouldMoveToTop = shouldReRender || movedToTop || selected;
+
   // -1 is to ensure connection lines are beneath the step that is on focus (i.e. the top step amongst all).
-  const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax, -1);
+  // selected means that only THIS connection is selected, we just need to make it on top of everything
+  const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax, selected ? 0 : -1);
 
   const onClickFun = React.useCallback(
     (e) => {
