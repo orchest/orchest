@@ -97,11 +97,7 @@ export interface IOrchestSessionUuid {
 
 export interface IOrchestSession extends IOrchestSessionUuid {
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
-  jupyter_server_ip?: string;
-  notebook_server_info?: {
-    port: number;
-    base_url: string;
-  };
+  base_url: string;
   user_services?: {
     [key: string]: {
       name: string;
