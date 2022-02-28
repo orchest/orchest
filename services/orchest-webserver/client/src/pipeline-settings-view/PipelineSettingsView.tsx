@@ -514,33 +514,33 @@ const PipelineSettingsView: React.FC = () => {
     },
   ];
 
-  const serviceRows: DataTableRow<ServiceRow>[] = !pipelineJson
-    ? []
-    : Object.entries(pipelineJson.services)
-        .sort((a, b) => a[1].order - b[1].order)
-        .map(([key, service]) => {
-          return {
-            uuid: key,
-            name: service.name,
-            scope: service.scope
-              .map((scopeAsString) => scopeMap[scopeAsString])
-              .join(", "),
-            remove: key,
-            details: (
-              <ServiceForm
-                key={key}
-                serviceUuid={key}
-                service={service}
-                services={pipelineJson.services}
-                disabled={isReadOnly}
-                updateService={(updated) => onChangeService(key, updated)}
-                pipeline_uuid={pipelineUuid}
-                project_uuid={projectUuid}
-                run_uuid={runUuid}
-              />
-            ),
-          };
-        });
+  const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(
+    pipelineJson?.services || {}
+  )
+    .sort((a, b) => a[1].order - b[1].order)
+    .map(([key, service]) => {
+      return {
+        uuid: key,
+        name: service.name,
+        scope: service.scope
+          .map((scopeAsString) => scopeMap[scopeAsString])
+          .join(", "),
+        remove: key,
+        details: (
+          <ServiceForm
+            key={key}
+            serviceUuid={key}
+            service={service}
+            services={pipelineJson.services}
+            disabled={isReadOnly}
+            updateService={(updated) => onChangeService(key, updated)}
+            pipeline_uuid={pipelineUuid}
+            project_uuid={projectUuid}
+            run_uuid={runUuid}
+          />
+        ),
+      };
+    });
 
   const isMemorySizeValid = isValidMemorySize(
     pipelineJson?.settings?.data_passing_memory_size || ""
