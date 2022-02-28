@@ -60,9 +60,6 @@ POSTGRES_ENABLE_CONFIG := --set postgres.enabled=true
 # rabbitmq deployment configs
 RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 
-# update-server deployment configs
-UPDATE_SERVER_ENABLE_CONFIG := --set update-server.enabled=true
-
 # Orchest deployment configs
 ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${AUTH_SERVER_ENABLE_CONFIG} \

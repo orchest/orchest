@@ -23,8 +23,5 @@ postgres:
 rabbitmq:
   enabled: false
 
-update-server:
-  enabled: false
-
 cluster-resources:
   enabled: false

@@ -34,10 +34,6 @@ dependencies:
   version: "0.0.1"
   repository: "file://charts/rabbitmq"
   condition: rabbitmq.enabled
-- name: update-server
-  version: "0.0.1"
-  repository: "file://charts/update-server"
-  condition: update-server.enabled
 - name: cluster-resources
   version: "0.0.1"
   repository: "file://charts/cluster-resources"

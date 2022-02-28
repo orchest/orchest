@@ -34,7 +34,6 @@ ORCHEST_DEPLOYMENTS = [
     "orchest-database",
     "orchest-webserver",
     "rabbitmq-server",
-    "update-server",
     # Bit risky in chase of a name change? K8S_TODO: discuss.
     "argo-workflow-argo-workflows-server",
     "argo-workflow-argo-workflows-workflow-controller",
