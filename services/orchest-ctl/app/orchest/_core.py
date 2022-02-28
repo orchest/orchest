@@ -343,7 +343,7 @@ def start():
             return
         else:
             utils.echo(
-                "Detected some inconsistent state, missign deployments: "
+                "Detected some inconsistent state, missing deployments: "
                 f"{sorted(missing_deployments)}. Try to stop Orchest and "
                 "start it again."
             )
