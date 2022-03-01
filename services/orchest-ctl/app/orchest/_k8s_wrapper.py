@@ -7,7 +7,7 @@ async_req=True in the k8s python SDK that happens here.
 
 import os
 import time
-from typing import Dict, List, Optional, Union
+from typing import Container, Dict, Iterable, List, Optional, Union
 
 import typer
 from kubernetes import client as k8s_client
@@ -275,23 +275,12 @@ def orchest_cleanup() -> None:
     resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
     pod_name = resp.metadata.name
 
-    max_retries = 1000
-    status = None
-    while max_retries > 0:
-        max_retries = max_retries - 1
-        try:
-            resp = k8s_core_api.read_namespaced_pod(
-                name=pod_name, namespace=config.ORCHEST_NAMESPACE
-            )
-        except k8s_client.ApiException as e:
-            if e.status != 404:
-                raise
-            time.sleep(1)
-        else:
-            status = resp.status.phase
-            if status in ["Succeeded", "Failed", "Unknown"]:
-                break
-        time.sleep(1)
+    status = wait_for_pod_status(
+        pod_name,
+        ["Succeeded", "Failed", "Unknown"],
+        notify_progress_retries_period=50,
+        notify_progress_message="Still cleaning up resources...",
+    )
 
     if status is None or status in ["Failed", "Unknown"]:
         utils.echo(
@@ -358,3 +347,32 @@ def create_update_pod() -> k8s_client.V1Pod:
     manifest = _get_orchest_ctl_update_post_manifest("latest")
     r = k8s_core_api.create_namespaced_pod("orchest", manifest)
     return r
+
+
+def wait_for_pod_status(
+    name: str,
+    expected_statuses: Union[Container[str], Iterable[str]],
+    max_retries: int = 999,
+    notify_progress_retries_period: int = 50,
+    notify_progress_message: str = "Still ongoing",
+) -> None:
+    status = None
+    while max_retries > 0:
+        max_retries = max_retries - 1
+        if max_retries % notify_progress_retries_period == 0:
+            utils.echo(notify_progress_message)
+        try:
+            resp = k8s_core_api.read_namespaced_pod(
+                name=name, namespace=config.ORCHEST_NAMESPACE
+            )
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
+            time.sleep(1)
+        else:
+            status = resp.status.phase
+            if status in expected_statuses:
+                return status
+        time.sleep(1)
+
+    return status

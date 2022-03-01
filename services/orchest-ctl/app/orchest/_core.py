@@ -502,23 +502,11 @@ def update() -> None:
     stop()
     pod = k8sw.create_update_pod()
 
-    max_retries = 1000
-    status = None
-    while max_retries > 0:
-        max_retries = max_retries - 1
-        try:
-            resp = k8s_core_api.read_namespaced_pod(
-                name=pod.metadata.name, namespace="orchest"
-            )
-        except k8s_client.ApiException as e:
-            if e.status != 404:
-                raise
-            time.sleep(1)
-        else:
-            status = resp.status.phase
-            if status in ["Succeeded", "Failed", "Unknown", "Running"]:
-                break
-        time.sleep(1)
+    status = k8sw.wait_for_pod_status(
+        pod.metadata.name,
+        ["Succeeded", "Failed", "Unknown", "Running"],
+        notify_progress_message="Waiting for update pod to come online.",
+    )
     if status is None or status in ["Failed", "Unknown"]:
         utils.echo(
             f"Error while updating, update pod status: {status}. Cancelling update."
