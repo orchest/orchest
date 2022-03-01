@@ -264,13 +264,13 @@ def stop():
 
     if missing_deployments:
         if len(missing_deployments) == len(config.ORCHEST_DEPLOYMENTS):
-            utils.echo("It doesn't look like Orchest is installed.")
+            utils.echo("It looks like Orchest isn't installed.")
             return
         else:
             utils.echo(
-                "Detected some inconsistent state, missign deployments: "
-                f"{sorted(missing_deployments)}. This operation will "
-                "proceed regardless."
+                "Detected some inconsistent state, missing deployments: "
+                f"{sorted(missing_deployments)}. Orchest will be stopped "
+                "regardless."
             )
     if not running_deployments:
         utils.echo("Orchest is not running.")
@@ -343,7 +343,7 @@ def start():
             return
         else:
             utils.echo(
-                "Detected some inconsistent state, missign deployments: "
+                "Detected some inconsistent state, missing deployments: "
                 f"{sorted(missing_deployments)}. Try to stop Orchest and "
                 "start it again."
             )
