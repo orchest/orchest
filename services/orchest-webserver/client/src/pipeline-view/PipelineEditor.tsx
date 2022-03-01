@@ -1289,6 +1289,7 @@ export const PipelineEditor: React.FC = () => {
                 >
                   <ConnectionDot
                     incoming
+                    isReadOnly={isReadOnly}
                     ref={(el) =>
                       (stepDomRefs.current[`${step.uuid}-incoming`] = el)
                     }
@@ -1312,6 +1313,7 @@ export const PipelineEditor: React.FC = () => {
                   </div>
                   <ConnectionDot
                     outgoing
+                    isReadOnly={isReadOnly}
                     ref={(el) =>
                       (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
                     }

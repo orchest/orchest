@@ -18,6 +18,7 @@ type DotType = BoxProps & {
   incoming?: boolean;
   outgoing?: boolean;
   disabled?: boolean;
+  isReadOnly: boolean;
   active?: boolean;
   onMouseLeave?: (e: React.MouseEvent) => void;
   startCreateConnection?: () => void;
@@ -31,6 +32,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
     active,
     className,
     disabled,
+    isReadOnly,
     onMouseUp,
     onMouseOver,
     onMouseLeave,
@@ -124,7 +126,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
           left: 3,
           borderRadius: "100%",
           backgroundColor: (theme) =>
-            isHovering
+            isHovering && !isReadOnly
               ? alpha(
                   !disabled
                     ? theme.palette.primary.main
