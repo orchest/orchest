@@ -9,7 +9,6 @@ import type {
   StepsDict,
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
-import { addOutgoingConnections } from "@/utils/webserver-utils";
 import { intersectRect } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
@@ -333,7 +332,7 @@ export const useEventVars = () => {
           return { ...state, scaleFactor: action.payload };
         }
         case "SET_STEPS": {
-          return { ...state, steps: addOutgoingConnections(action.payload) };
+          return { ...state, steps: action.payload };
         }
         case "CREATE_STEP": {
           const newStep = action.payload;

@@ -8,7 +8,10 @@ import {
   sugiyama,
 } from "d3-dag";
 import cloneDeep from "lodash.clonedeep";
-import { addOutgoingConnections } from "./webserver-utils";
+import {
+  addOutgoingConnections,
+  clearOutgoingConnections,
+} from "./webserver-utils";
 
 type Component = {
   uuid: string;
@@ -221,9 +224,8 @@ const collectComponents = (pipelineJson: PipelineJson) => {
   // Sort components (big to small)
   components.sort((a, b) => b.length - a.length);
 
-  // ? why do we need to remove this?
   // Remove annotations after being done with them
-  // clearOutgoingConnections(pipelineJson.steps);
+  clearOutgoingConnections(pipelineJson.steps as StepsDict);
 
   return components;
 };

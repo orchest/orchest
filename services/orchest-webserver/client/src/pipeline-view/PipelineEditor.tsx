@@ -1301,7 +1301,7 @@ export const PipelineEditor: React.FC = () => {
                     <div className={"step-label"}>
                       {step.title}
                       <span className="filename">{step.file_path}</span>
-                      <span className="filename">{`${hash.current}`}</span>
+                      <span className="filename">{`${step.uuid}`}</span>
                     </div>
                   </div>
                   <ConnectionDot

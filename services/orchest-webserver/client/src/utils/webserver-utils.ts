@@ -124,21 +124,25 @@ export function addOutgoingConnections<
       steps[stepUuid].outgoing_connections || [];
 
     steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-      steps[incomingConnectionUuid].outgoing_connections = steps[
-        incomingConnectionUuid
-      ].outgoing_connections
-        ? [...steps[incomingConnectionUuid].outgoing_connections, stepUuid]
-        : [stepUuid];
+      const outgoingConnections = new Set(
+        steps[incomingConnectionUuid].outgoing_connections || []
+      );
+      outgoingConnections.add(stepUuid);
+      steps[incomingConnectionUuid].outgoing_connections = [
+        ...outgoingConnections,
+      ];
     });
   });
   return steps;
 }
 
-export function clearOutgoingConnections(steps: {
-  [stepUuid: string]: {
-    outgoing_connections?: string[];
-  };
-}) {
+export function clearOutgoingConnections<
+  T extends {
+    [stepUuid: string]: {
+      outgoing_connections?: string[];
+    };
+  }
+>(steps: T) {
   // Notes: modifies 'steps' object that's passed in
   for (let stepUuid in steps) {
     if (steps[stepUuid] && steps[stepUuid].outgoing_connections !== undefined) {
