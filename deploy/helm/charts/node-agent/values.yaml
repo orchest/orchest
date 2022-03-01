@@ -1,0 +1,3 @@
+images:
+  pullPolicy: IfNotPresent
+  name: orchest/node-agent:latest 
