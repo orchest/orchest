@@ -272,7 +272,7 @@ export const PipelineEditor: React.FC = () => {
 
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
-      if (!data) return;
+      if (!data || isReadOnly) return;
       setOngoingSaves((current) => current + 1);
 
       let formData = new FormData();
@@ -815,7 +815,10 @@ export const PipelineEditor: React.FC = () => {
         centerView();
         keysDown.add("h");
       }
-      if (event.key === "Backspace" || event.key === "Delete") {
+      if (
+        !isReadOnly &&
+        (event.key === "Backspace" || event.key === "Delete")
+      ) {
         if (eventVars.selectedSteps.length > 0) deleteSelectedSteps();
         if (eventVars.selectedConnection)
           removeConnection(eventVars.selectedConnection);
@@ -840,6 +843,7 @@ export const PipelineEditor: React.FC = () => {
   }, [
     dispatch,
     keysDown,
+    isReadOnly,
     eventVars.selectedConnection,
     eventVars.selectedSteps,
     removeConnection,
@@ -1034,9 +1038,11 @@ export const PipelineEditor: React.FC = () => {
             <IconButton title="Zoom in" onClick={zoomIn}>
               <AddIcon />
             </IconButton>
-            <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
-              <AccountTreeOutlinedIcon />
-            </IconButton>
+            {!isReadOnly && (
+              <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
+                <AccountTreeOutlinedIcon />
+              </IconButton>
+            )}
           </div>
           {!isReadOnly &&
             !pipelineRunning &&
@@ -1263,7 +1269,7 @@ export const PipelineEditor: React.FC = () => {
                 <PipelineStep
                   key={`${step.uuid}-${hash.current}`}
                   data={step}
-                  disabledDragging={panningState === "panning"}
+                  disabledDragging={isReadOnly || panningState === "panning"}
                   scaleFactor={eventVars.scaleFactor}
                   offset={canvasOffset}
                   selected={selected}
@@ -1311,7 +1317,7 @@ export const PipelineEditor: React.FC = () => {
                     }
                     active={isOutgoingActive}
                     startCreateConnection={() => {
-                      if (!newConnection.current) {
+                      if (!isReadOnly && !newConnection.current) {
                         newConnection.current = {
                           startNodeUUID: step.uuid,
                         };

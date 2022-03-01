@@ -3,7 +3,7 @@ import { Routes } from "@/Routes";
 import Box from "@mui/material/Box";
 import { makeRequest } from "@orchest/lib-utils";
 import $ from "jquery";
-import React, { useRef } from "react";
+import React from "react";
 import { BrowserRouter as Router, Prompt } from "react-router-dom";
 import { useIntercom } from "react-use-intercom";
 import BuildPendingDialog from "./components/BuildPendingDialog";
@@ -48,7 +48,7 @@ const App = () => {
     setAsSaved,
   } = useAppContext();
 
-  const jupyterRef = useRef(null);
+  const jupyterRef = React.useRef<HTMLDivElement>(null);
 
   // Each client provides an heartbeat, used for telemetry and idle
   // checking.
@@ -75,7 +75,7 @@ const App = () => {
 
   React.useEffect(() => {
     setJupyter(new Jupyter(jupyterRef.current, setConfirm));
-  }, []);
+  }, [setConfirm]);
 
   window.orchest = {
     jupyter,
