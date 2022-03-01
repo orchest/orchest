@@ -443,19 +443,19 @@ def add_user(username: str, password: str, token: str, is_admin: str) -> None:
         raise typer.Exit(code=1)
     pod = pods[0]
 
-    cmd = f"python add_user.py {username} {password}"
+    args = ["add_user.py", username, password]
     if token:
-        cmd += f" --token {token}"
+        args.append("--token")
+        args.append(token)
     if is_admin:
-        cmd += " --is_admin"
-    cmd = cmd.split()
+        args.append("--admin")
 
     resp = stream(
         k8s_core_api.connect_get_namespaced_pod_exec,
         pod.metadata.name,
         config.ORCHEST_NAMESPACE,
-        command=cmd[:1],
-        args=cmd[1:],
+        command=["python"],
+        args=args,
         stderr=True,
         stdin=False,
         stdout=True,
