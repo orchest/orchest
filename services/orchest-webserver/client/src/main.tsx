@@ -10,8 +10,6 @@ declare global {
   }
 
   interface Window {
-    /** @deprecated please don't use jQuery */
-    $: any;
     orchest: any;
     Intercom: any;
   }

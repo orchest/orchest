@@ -34,8 +34,6 @@ $.fn.overflowing = function () {
   return overflowed;
 };
 
-window.$ = $;
-
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
   const { boot } = useIntercom();
