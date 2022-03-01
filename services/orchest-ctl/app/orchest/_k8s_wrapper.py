@@ -152,11 +152,7 @@ def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
     pods = [
         p
         for p in pods
-        if (
-            # The update server could be launched through the GUI.
-            p.metadata.labels["app"] == "update-server"
-            or p.metadata.labels["command"] in config.STATUS_CHANGING_OPERATIONS
-        )
+        if (p.metadata.labels["command"] in config.STATUS_CHANGING_OPERATIONS)
     ]
     pods.sort(key=lambda pod: pod.metadata.creation_timestamp)
     return pods[0] if pods else None
@@ -171,11 +167,7 @@ def abort_if_unsafe() -> None:
     """
     pod = _get_ongoing_status_changing_pod()
     if pod.metadata.name != os.environ["POD_NAME"]:
-        cmd = pod.metadata.labels.get("command", "update")
-        if pod.metadata.labels["app"] == "update-server":
-            cmd = "update"
-        else:
-            cmd = pod.metadata.labels["command"]
+        cmd = pod.metadata.labels["command"]
         utils.echo(
             "This command cannot be run concurrently due to another "
             f"ongoing, possibly conflicting command: {cmd}."
