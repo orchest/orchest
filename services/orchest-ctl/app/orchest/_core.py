@@ -101,6 +101,11 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
 
             # K8S_TODO: failure cases? Or are they covered by helm?
             time.sleep(1)
+
+    if return_code != 0:
+        # We use stdout because we are redirecting stderr to stdout.
+        utils.echo(str(process.stdout.read()), err=True)
+
     return return_code
 
 
