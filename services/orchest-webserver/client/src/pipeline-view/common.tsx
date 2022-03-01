@@ -10,8 +10,8 @@ import { getOffset } from "@/utils/jquery-replacement";
 import { addOutgoingConnections } from "@/utils/webserver-utils";
 import cloneDeep from "lodash.clonedeep";
 
-export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs/";
-export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs/";
+export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs";
+export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs";
 
 export const DEFAULT_SCALE_FACTOR = 1;
 export const DRAG_CLICK_SENSITIVITY = 1;

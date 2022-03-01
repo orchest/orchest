@@ -26,6 +26,9 @@ export const convertStepsToObject = (pipelineRun: PipelineRun) => {
   }, {} as StepExecutionStateObj);
 };
 
+/**
+ * a poller hook that checks run status
+ */
 export const useStepExecutionState = (
   url: string | null,
   callback: (status: TStatus) => void

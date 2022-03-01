@@ -1,7 +1,11 @@
 import { EnvVarPair } from "@/components/EnvVarList";
 import { PipelineJson, PipelineStepState, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
-import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
+import {
+  extensionFromFilename,
+  hasValue,
+  makeRequest,
+} from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
@@ -345,21 +349,30 @@ export function getPipelineJSONEndpoint(
   if (!pipeline_uuid || !project_uuid) return "";
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
-  if (job_uuid) {
-    pipelineURL += `?job_uuid=${job_uuid}`;
-  }
+  const queryArgs = { job_uuid, pipeline_run_uuid };
+  // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
+  // i.e. a job run requires both uuid's
+  const queryString = job_uuid
+    ? Object.entries(queryArgs)
+        .map(([key, value]) => {
+          if (!value) return null;
+          return `${key}=${value}`;
+        })
+        .filter((value) => hasValue(value))
+        .join("&")
+    : "";
 
-  if (pipeline_run_uuid) {
-    pipelineURL += `&pipeline_run_uuid=${pipeline_run_uuid}`;
-  }
-  return pipelineURL;
+  return queryString ? `${pipelineURL}?${queryString}` : pipelineURL;
 }
 
-export function getPipelineStepParents(stepUUID: string, pipelineJSON) {
+export function getPipelineStepParents(
+  stepUUID: string,
+  pipelineJSON: PipelineJson
+) {
   let incomingConnections = [];
-  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if ((step as any).uuid == stepUUID) {
-      incomingConnections = (step as any).incoming_connections;
+  for (let step of Object.values(pipelineJSON.steps)) {
+    if (step.uuid === stepUUID) {
+      incomingConnections = step.incoming_connections;
       break;
     }
   }

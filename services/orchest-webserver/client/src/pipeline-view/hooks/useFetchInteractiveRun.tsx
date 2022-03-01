@@ -20,7 +20,7 @@ export const useFetchInteractiveRun = (
     isValidating: isFetchingRunUuid,
   } = useSWR(
     shouldFetchRunUuid
-      ? `${PIPELINE_RUN_STATUS_ENDPOINT}?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
+      ? `${PIPELINE_RUN_STATUS_ENDPOINT}/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
       : null,
     (url) =>
       fetcher<{ runs: PipelineRun[] }>(url).then((result) => {

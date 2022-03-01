@@ -39,7 +39,6 @@ import {
   HEADER,
   uuidv4,
 } from "@orchest/lib-utils";
-import $ from "jquery";
 import React from "react";
 import { siteMap } from "../Routes";
 import { BackToJobButton } from "./BackToJobButton";
@@ -77,7 +76,6 @@ import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
 
-const CANVAS_VIEW_MULTIPLE = 3;
 const DEFAULT_SCALE_FACTOR = 1;
 
 type RunStepsType = "selection" | "incoming";
@@ -105,24 +103,19 @@ export const PipelineEditor: React.FC = () => {
   const { setAlert, setConfirm } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
 
-  const {
-    projectUuid,
-    pipelineUuid,
-    jobUuid: jobUuidFromRoute,
-    navigateTo,
-  } = useCustomRoute();
+  const { projectUuid, pipelineUuid, jobUuid, navigateTo } = useCustomRoute();
 
   const returnToJob = React.useCallback(
     (e?: React.MouseEvent) => {
       navigateTo(
         siteMap.job.path,
         {
-          query: { projectUuid, jobUuid: jobUuidFromRoute },
+          query: { projectUuid, jobUuid },
         },
         e
       );
     },
-    [projectUuid, jobUuidFromRoute, navigateTo]
+    [projectUuid, jobUuid, navigateTo]
   );
 
   const [panningState, setPanningState] = React.useState<
@@ -158,30 +151,14 @@ export const PipelineEditor: React.FC = () => {
     [dispatch]
   );
 
-  const isJobRun = jobUuidFromRoute && runUuid;
-  const jobRunQueryArgs = {
-    jobUuid: jobUuidFromRoute,
-    runUuid,
-  };
+  const isJobRun = jobUuid && runUuid;
+  const jobRunQueryArgs = { jobUuid, runUuid };
 
   const pipelineViewportRef = React.useRef<HTMLDivElement>();
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
   const canvasOffset = getOffset(pipelineCanvasRef.current);
   const getPosition = getNodeCenter(canvasOffset, eventVars.scaleFactor);
-
-  const pipelineSetHolderSize = React.useCallback(() => {
-    if (!pipelineViewportRef.current || !pipelineCanvasRef.current) return;
-
-    let jElStepOuterHolder = $(pipelineViewportRef.current);
-
-    if (jElStepOuterHolder.filter(":visible").length > 0) {
-      $(pipelineCanvasRef.current).css({
-        width: getWidth(pipelineViewportRef.current) * CANVAS_VIEW_MULTIPLE,
-        height: getHeight(pipelineViewportRef.current) * CANVAS_VIEW_MULTIPLE,
-      });
-    }
-  }, []);
 
   const session = useAutoStartSession({
     projectUuid,
@@ -228,7 +205,7 @@ export const PipelineEditor: React.FC = () => {
     if (fetchDataError)
       setAlert(
         "Error",
-        jobUuidFromRoute
+        jobUuid
           ? "The .orchest pipeline file could not be found. This pipeline run has not been started. Returning to Job view."
           : "Could not load pipeline",
         (resolve) => {
@@ -238,14 +215,14 @@ export const PipelineEditor: React.FC = () => {
           return true;
         }
       );
-  }, [fetchDataError, returnToJob, setAlert, jobUuidFromRoute]);
+  }, [fetchDataError, returnToJob, setAlert, jobUuid]);
 
-  const runStatusEndpoint = jobUuidFromRoute
-    ? `${PIPELINE_JOBS_STATUS_ENDPOINT}${jobUuidFromRoute}/`
+  const runStatusEndpoint = jobUuid
+    ? `${PIPELINE_JOBS_STATUS_ENDPOINT}/${jobUuid}`
     : PIPELINE_RUN_STATUS_ENDPOINT;
 
   const { stepExecutionState, setStepExecutionState } = useStepExecutionState(
-    runUuid ? `${runStatusEndpoint}${runUuid}` : null,
+    runUuid ? `${runStatusEndpoint}/${runUuid}` : null,
     (runStatus) => {
       if (["PENDING", "STARTED"].includes(runStatus)) {
         setPipelineRunning(true);
@@ -271,7 +248,7 @@ export const PipelineEditor: React.FC = () => {
     async (uuids: string[], type: RunStepsType) => {
       try {
         const result = await fetcher<PipelineRun>(
-          PIPELINE_RUN_STATUS_ENDPOINT,
+          `${PIPELINE_RUN_STATUS_ENDPOINT}/`, // NOTE: trailing back slash is required
           {
             method: "POST",
             headers: HEADER.JSON,
@@ -318,7 +295,6 @@ export const PipelineEditor: React.FC = () => {
         setAlert("Error", `Failed to save pipeline. ${response.error.message}`);
         return;
       }
-      // TODO: check when to execute pending runs
       if (pendingRuns) {
         const { uuids, type } = pendingRuns;
         setPipelineRunning(true);
@@ -473,7 +449,7 @@ export const PipelineEditor: React.FC = () => {
       dispatch({ type: "REMOVE_CONNECTION", payload: connection });
       // if it's a aborted new connection, we don't need to save it
       if (connection.endNodeUUID) {
-        savePipeline(eventVars.steps); // TODO: check if steps is already updated
+        savePipeline(eventVars.steps);
       }
     },
     [dispatch, savePipeline, eventVars.steps]
@@ -748,12 +724,9 @@ export const PipelineEditor: React.FC = () => {
         async (resolve) => {
           setIsCancellingRun(true);
           try {
-            await fetcher(
-              `/catch/api-proxy/api/jobs/${jobUuidFromRoute}/${runUuid}`,
-              {
-                method: "DELETE",
-              }
-            );
+            await fetcher(`/catch/api-proxy/api/jobs/${jobUuid}/${runUuid}`, {
+              method: "DELETE",
+            });
             resolve(true);
           } catch (error) {
             setAlert("Error", `Failed to cancel this job run.`);
@@ -773,7 +746,7 @@ export const PipelineEditor: React.FC = () => {
 
     try {
       setIsCancellingRun(true);
-      await fetcher(`${PIPELINE_RUN_STATUS_ENDPOINT}${runUuid}`, {
+      await fetcher(`${PIPELINE_RUN_STATUS_ENDPOINT}/${runUuid}`, {
         method: "DELETE",
       });
       setIsCancellingRun(false);
@@ -833,11 +806,8 @@ export const PipelineEditor: React.FC = () => {
   React.useEffect(() => {
     // TODO: not enabled when page load, fix this
     enableHotKeys();
-    pipelineSetHolderSize();
-    window.addEventListener("resize", pipelineSetHolderSize);
     return () => {
       disableHotKeys();
-      window.removeEventListener("resize", pipelineSetHolderSize);
     };
   }, []);
 
@@ -1005,9 +975,9 @@ export const PipelineEditor: React.FC = () => {
 
     return filterServices(
       allServices,
-      jobUuidFromRoute ? "noninteractive" : "interactive"
+      jobUuid ? "noninteractive" : "interactive"
     );
-  }, [pipelineJson, session, jobUuidFromRoute, isJobRun, pipelineRunning]);
+  }, [pipelineJson, session, jobUuid, isJobRun, pipelineRunning]);
 
   // Check if there is an incoming step (that is not part of the
   // selection).
@@ -1041,6 +1011,10 @@ export const PipelineEditor: React.FC = () => {
   const servicesButtonRef = React.useRef<HTMLButtonElement>();
   const flushPage = useHasChanged(hash.current);
 
+  const [canvasResizeStyle, resizeCanvas] = React.useState<React.CSSProperties>(
+    {}
+  );
+
   return (
     <div className="pipeline-view">
       <div
@@ -1048,7 +1022,7 @@ export const PipelineEditor: React.FC = () => {
         onMouseOver={enableHotKeys}
         onMouseLeave={disableHotKeys}
       >
-        {jobUuidFromRoute && isReadOnly && (
+        {jobUuid && isReadOnly && (
           <div className="pipeline-actions top-left">
             <BackToJobButton onClick={returnToJob} />
           </div>
@@ -1174,6 +1148,7 @@ export const PipelineEditor: React.FC = () => {
           onMouseUp={onMouseUpViewport}
           onMouseLeave={onMouseLeaveViewport}
           onWheel={onPipelineCanvasWheel}
+          resizeCanvas={resizeCanvas}
           className={panningState}
         >
           <PipelineCanvas
@@ -1186,6 +1161,7 @@ export const PipelineEditor: React.FC = () => {
                 `scale(${eventVars.scaleFactor})`,
               left: state.pipelineStepsHolderOffsetLeft,
               top: state.pipelineStepsHolderOffsetTop,
+              ...canvasResizeStyle,
             }}
           >
             {eventVars.connections.map((connection) => {

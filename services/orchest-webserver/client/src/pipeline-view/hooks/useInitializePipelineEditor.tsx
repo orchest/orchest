@@ -1,8 +1,8 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { PipelineJson, StepsDict } from "@/types";
-import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import { fetcher, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback } from "swr";
@@ -11,7 +11,7 @@ import { extractStepsFromPipelineJson } from "../common";
 export const useInitializePipelineEditor = (
   pipelineUuid: string,
   projectUuid: string,
-  jobUuid: string,
+  jobUuid: string | undefined,
   runUuid: string | undefined,
   isReadOnly: boolean,
   initializeEventVars: (steps: StepsDict) => void
@@ -20,37 +20,30 @@ export const useInitializePipelineEditor = (
   const { setAlert } = useAppContext();
 
   const {
-    data: pipelineJson,
-    mutate,
+    pipelineJson,
+    setPipelineJson: originalSetPipelineJson,
+    isFetchingPipelineJson,
     error: fetchPipelineJsonError,
-    isValidating: isFetchingPipelineJson,
-  } = useSWR(
-    projectUuid && pipelineUuid
-      ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
-      : null,
-    (url) =>
-      fetcher<{ success: boolean; pipeline_json: string }>(url).then(
-        (result) => {
-          if (!result.success) {
-            throw { message: "Unable to load pipeline" };
-            return;
-          }
+  } = useFetchPipelineJson({ pipelineUuid, projectUuid, jobUuid, runUuid });
 
-          const fetchedPipelineJson: PipelineJson = JSON.parse(
-            result.pipeline_json
-          );
-          dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineUuid,
-              projectUuid,
-              pipelineName: fetchedPipelineJson.name,
-            },
-          });
-          return fetchedPipelineJson;
-        }
-      )
-  );
+  React.useEffect(() => {
+    if (pipelineJson && !fetchPipelineJsonError) {
+      dispatch({
+        type: "pipelineSet",
+        payload: {
+          pipelineUuid,
+          projectUuid,
+          pipelineName: pipelineJson.name,
+        },
+      });
+    }
+  }, [
+    pipelineJson,
+    fetchPipelineJsonError,
+    dispatch,
+    pipelineUuid,
+    projectUuid,
+  ]);
 
   const hash = React.useRef<string>(uuidv4());
   const setPipelineJson = React.useCallback(
@@ -64,9 +57,9 @@ export const useInitializePipelineEditor = (
       // in case you want to re-initialize all components according to the new PipelineJson
       // to be part of the re-initialization, you need to assign hash.current as part of the key of your component
       if (flushPage) hash.current = uuidv4();
-      mutate(data, false);
+      originalSetPipelineJson(data);
     },
-    [mutate]
+    [originalSetPipelineJson]
   );
 
   const {
