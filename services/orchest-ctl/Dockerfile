@@ -2,7 +2,7 @@ FROM python:3.8-slim
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 RUN apt-get update && \
-    apt-get install -y curl make && \
+    apt-get install -y curl make netcat && \
 	curl -L https://get.helm.sh/helm-v3.8.0-linux-amd64.tar.gz | \
 	tar -zxv && \
 	mv linux-amd64/helm /usr/local/bin/helm && \
