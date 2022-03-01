@@ -356,47 +356,24 @@ def start():
         return
 
     utils.echo("Starting...")
-    pre_cleanup_deployments_to_start = []
-    post_cleanup_deployments_to_start = []
-    for depl in deployments_to_start:
-        # Don't start those until after cleanup, this way the webserver
-        # won't be available to the user and the orchest-api scheduler
-        # won't run any job while the cleanup is in progress.
-        if depl.metadata.name in ["orchest-api", "orchest-webserver"]:
-            post_cleanup_deployments_to_start.append(depl)
-        else:
-            pre_cleanup_deployments_to_start.append(depl)
-
     with typer.progressbar(
-        # + 1 for previous actions, +1 for cleanup
-        length=len(pre_cleanup_deployments_to_start)
-        + len(post_cleanup_deployments_to_start)
-        + 2,
+        # + 1 for scaling, +1 for userdir permissions.
+        length=len(deployments_to_start) + 2,
         label="Start",
         show_eta=False,
     ) as progress_bar:
-        progress_bar.update(1)
         k8sw.scale_up_orchest_deployments(
-            [depl.metadata.name for depl in pre_cleanup_deployments_to_start]
+            [depl.metadata.name for depl in deployments_to_start]
         )
+        progress_bar.update(1)
 
         # Do this after scaling but before waiting for all deployments
         # to be ready so that those can happen concurrently.
         logger.info("Setting 'userdir/' permissions.")
         utils.fix_userdir_permissions()
-
-        # This is just to make the bar not stay at 0% for too long
-        # in case images are being pulled etc, i.e. just UX.
         progress_bar.update(1)
 
-        _wait_deployments_to_be_ready(pre_cleanup_deployments_to_start, progress_bar)
-
-        k8sw.orchest_cleanup()
-
-        k8sw.scale_up_orchest_deployments(
-            [depl.metadata.name for depl in post_cleanup_deployments_to_start]
-        )
-        _wait_deployments_to_be_ready(post_cleanup_deployments_to_start, progress_bar)
+        _wait_deployments_to_be_ready(deployments_to_start, progress_bar)
 
     # K8S_TODO: coordinate with ingress for this.
     # port = 8001
