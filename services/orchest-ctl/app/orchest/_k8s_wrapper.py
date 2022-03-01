@@ -57,7 +57,7 @@ def _match_labels_to_label_selector(match_labels: Dict[str, str]) -> str:
 
 
 def get_orchest_deployments_pods(
-    deployments: Optional[Union[List[str], List[k8s_client.V1Pod]]] = None,
+    deployments: Optional[Union[List[str], List[k8s_client.V1Deployment]]] = None,
 ) -> List[Optional[k8s_client.V1Pod]]:
     if deployments is None:
         deployments = config.ORCHEST_DEPLOYMENTS
