@@ -55,7 +55,7 @@ const ConnectionLine = ({
   );
 };
 
-const getRenderProperties = ({
+const getTransformProperty = ({
   startNodeX,
   startNodeY,
   endNodeX = startNodeX,
@@ -75,9 +75,27 @@ const getRenderProperties = ({
   const translateX = startNodeX - svgPadding + xOffset;
   const translateY = startNodeY - svgPadding + yOffset - lineHeight / 2;
 
-  let style = {
+  return {
     transform: `translateX(${translateX}px) translateY(${translateY}px)`,
   };
+};
+
+const getSvgProperties = ({
+  startNodeX,
+  startNodeY,
+  endNodeX = startNodeX,
+  endNodeY = startNodeY,
+}: {
+  startNodeX: number;
+  startNodeY: number;
+  endNodeX?: number;
+  endNodeY?: number;
+}) => {
+  let targetX = endNodeX - startNodeX;
+  let targetY = endNodeY - startNodeY;
+
+  let xOffset = Math.min(targetX, 0);
+  let yOffset = Math.min(targetY, 0);
 
   const width = Math.abs(targetX) + 2 * svgPadding + "px";
   const height = Math.abs(targetY) + 2 * svgPadding + "px";
@@ -93,7 +111,7 @@ const getRenderProperties = ({
     targetY < 0 && "flipped"
   );
 
-  return { width, height, drawn, style, className };
+  return { width, height, drawn, className };
 };
 
 const PipelineConnectionComponent: React.FC<{
@@ -117,10 +135,6 @@ const PipelineConnectionComponent: React.FC<{
 }> = ({
   shouldRedraw,
   isNew,
-  startNodeX,
-  endNodeX,
-  endNodeY,
-  startNodeY,
   getPosition,
   eventVarsDispatch,
   selected,
@@ -132,79 +146,83 @@ const PipelineConnectionComponent: React.FC<{
   stepDomRefs,
   cursorControlledStep,
   newConnection,
+  ...props
 }) => {
-  const [renderProperties, setRenderProperties] = React.useState(() =>
-    getRenderProperties({
-      startNodeX,
-      startNodeY,
-      endNodeX,
-      endNodeY,
-    })
+  const [transformProperty, setTransformProperty] = React.useState(() =>
+    getTransformProperty(props)
+  );
+  const [svgProperties, setSvgProperties] = React.useState(() =>
+    getSvgProperties(props)
   );
 
   const [shouldUpdateStart, shouldUpdateEnd] = shouldUpdate;
 
   const containerRef = React.useRef<HTMLDivElement>();
 
-  const redrawConnectionLine = React.useCallback(() => {
-    const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
-    const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
+  const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+  const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
+  const startNodePosition = getPosition(startNode);
+  const endNodePosition = getPosition(endNode) || {
+    x: newConnection.current?.xEnd,
+    y: newConnection.current?.yEnd,
+  };
 
-    const startNodePosition = getPosition(startNode);
-    const endNodePosition = getPosition(endNode) || {
-      x: newConnection.current?.xEnd,
-      y: newConnection.current?.yEnd,
-    };
+  const startNodeX = shouldUpdateStart ? startNodePosition.x : props.startNodeX;
+  const startNodeY = shouldUpdateStart ? startNodePosition.y : props.startNodeY;
+  const endNodeX = shouldUpdateEnd ? endNodePosition.x : props.endNodeX;
+  const endNodeY = shouldUpdateEnd ? endNodePosition.y : props.endNodeY;
 
-    setRenderProperties((current) => {
-      return {
-        ...current,
-        ...getRenderProperties({
-          startNodeX: shouldUpdateStart ? startNodePosition.x : startNodeX,
-          startNodeY: shouldUpdateStart ? startNodePosition.y : startNodeY,
-          endNodeX: shouldUpdateEnd ? endNodePosition.x : endNodeX,
-          endNodeY: shouldUpdateEnd ? endNodePosition.y : endNodeY,
-        }),
-      };
-    });
-  }, [
-    startNodeX,
-    endNodeX,
-    endNodeY,
-    startNodeY,
-    endNodeUUID,
-    startNodeUUID,
-    getPosition,
-    stepDomRefs,
-    shouldUpdateStart,
-    shouldUpdateEnd,
-    newConnection,
-  ]);
+  const transform = React.useCallback(() => {
+    setTransformProperty(
+      getTransformProperty({
+        startNodeX,
+        startNodeY,
+        endNodeX,
+        endNodeY,
+      })
+    );
+  }, [endNodeX, endNodeY, startNodeX, startNodeY, setTransformProperty]);
+
+  const redraw = React.useCallback(() => {
+    transform();
+    setSvgProperties(
+      getSvgProperties({
+        startNodeX,
+        startNodeY,
+        endNodeX,
+        endNodeY,
+      })
+    );
+  }, [endNodeX, endNodeY, startNodeX, startNodeY, transform]);
 
   // Similar to PipelineStep, here we track the positions of startNode and endNode
   // via stepDomRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
 
-  const shouldReRender =
-    (cursorControlledStep || isNew) && (shouldUpdateStart || shouldUpdateEnd);
+  const shouldTransform = !isNew && shouldUpdateStart && shouldUpdateEnd;
+
+  const shouldRedrawSvg =
+    !shouldTransform &&
+    (cursorControlledStep || isNew) &&
+    (shouldUpdateStart || shouldUpdateEnd);
+
+  const onMouseMove = React.useCallback(() => {
+    if (shouldTransform) transform();
+    if (shouldRedrawSvg) redraw();
+  }, [redraw, shouldRedrawSvg, shouldTransform, transform]);
 
   React.useEffect(() => {
-    const onMouseMove = () => {
-      if (shouldReRender) {
-        redrawConnectionLine();
-      }
-    };
     document.body.addEventListener("mousemove", onMouseMove);
     return () => document.body.removeEventListener("mousemove", onMouseMove);
-  }, [redrawConnectionLine, shouldReRender]);
+  }, [onMouseMove]);
 
   React.useEffect(() => {
-    if (shouldRedraw) redrawConnectionLine();
-  }, [shouldRedraw, redrawConnectionLine]);
+    if (shouldRedraw) redraw();
+  }, [shouldRedraw]);
 
   // movedToTop: when associated step is selected
   // shouldRedraw && isNew: user is creating
-  const shouldMoveToTop = shouldReRender || movedToTop || selected;
+  const shouldMoveToTop = isNew || movedToTop || selected;
 
   // -1 is to ensure connection lines are beneath the step that is on focus (i.e. the top step amongst all).
   // selected means that only THIS connection is selected, we just need to make it on top of everything
@@ -223,7 +241,7 @@ const PipelineConnectionComponent: React.FC<{
     [eventVarsDispatch, startNodeUUID, endNodeUUID]
   );
 
-  const { style, className, width, height, drawn } = renderProperties;
+  const { className, width, height, drawn } = svgProperties;
 
   return (
     <div
@@ -231,7 +249,7 @@ const PipelineConnectionComponent: React.FC<{
       data-end-uuid={endNodeUUID}
       className={classNames("connection", className, selected && "selected")}
       ref={containerRef}
-      style={{ ...style, zIndex }}
+      style={{ ...transformProperty, zIndex }}
     >
       <ConnectionLine
         selected={selected}
