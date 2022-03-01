@@ -150,17 +150,16 @@ def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
     This can be used to know what operation Orchest is undergoing, or
     if another, possibly confliting command can be run concurrently or
     not. This works by checking what's the oldest pod that is running a
-    status changing command or the update-server, which works as a
-    priority when it comes to conflicts.
+    status changing command, which works as a priority when it comes to
+    conflicts.
 
     Returns:
-        None if no instance of the update-server or orchest-ctl running
-        with state changing commands is not running. That instance pod
-        otherwise.
+        None if no instance of orchest-ctl running with state changing
+        commands is not running. That instance pod otherwise.
 
     """
     pods = k8s_core_api.list_namespaced_pod(
-        config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
+        config.ORCHEST_NAMESPACE, label_selector="app=orchest-ctl"
     ).items
     pods = [
         p

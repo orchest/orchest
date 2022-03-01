@@ -186,7 +186,7 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/async/spawn-update-server", methods=["GET"])
+    @app.route("/async/start-update", methods=["GET"])
     def spawn_update_server():
 
         client = docker.from_env()
