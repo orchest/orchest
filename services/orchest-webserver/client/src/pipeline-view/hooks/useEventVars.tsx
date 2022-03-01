@@ -351,7 +351,13 @@ export const useEventVars = () => {
             draft.steps[newStep.uuid] = newStep;
           });
 
-          return { ...state, ...updated, ...selectSteps([newStep.uuid]) };
+          return {
+            ...state,
+            ...updated,
+            openedStep: newStep.uuid,
+            openedMultiStep: false,
+            ...selectSteps([newStep.uuid]),
+          };
         }
 
         case "CREATE_SELECTOR": {

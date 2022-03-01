@@ -1,6 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import {
   Environment,
+  IOrchestSession,
   MouseTracker,
   NewConnection,
   PipelineJson,
@@ -8,6 +9,7 @@ import {
 } from "@/types";
 import React from "react";
 import { MutatorCallback } from "swr";
+import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import {
   EventVars,
   EventVarsAction,
@@ -52,6 +54,7 @@ export type PipelineEditorContextType = {
   sio: SocketIO;
   jobUuid: string;
   projectUuid: string;
+  session: IOrchestSession;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -148,6 +151,12 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
 
   const sio = useSocketIO();
 
+  const session = useAutoStartSession({
+    projectUuid,
+    pipelineUuid,
+    isReadOnly,
+  });
+
   return (
     <PipelineEditorContext.Provider
       value={{
@@ -173,6 +182,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         instantiateConnection,
         jobUuid,
         sio,
+        session,
       }}
     >
       {children}

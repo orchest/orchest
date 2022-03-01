@@ -3,7 +3,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useHotKeys } from "@/hooks/useHotKeys";
-import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import type {
   Connection,
   PipelineJson,
@@ -52,7 +51,6 @@ import {
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { useAutoStartSession } from "./hooks/useAutoStartSession";
 import {
   INITIAL_PIPELINE_POSITION,
   usePipelineViewState,
@@ -101,7 +99,6 @@ const originTransformScaling = (
 
 export const PipelineEditor: React.FC = () => {
   const { setAlert, setConfirm } = useAppContext();
-  useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
 
   const { projectUuid, pipelineUuid, jobUuid, navigateTo } = useCustomRoute();
 
@@ -142,6 +139,7 @@ export const PipelineEditor: React.FC = () => {
     isReadOnly,
     instantiateConnection,
     metadataPositions,
+    session,
   } = usePipelineEditorContext();
 
   const removeSteps = React.useCallback(
@@ -159,12 +157,6 @@ export const PipelineEditor: React.FC = () => {
 
   const canvasOffset = getOffset(pipelineCanvasRef.current);
   const getPosition = getNodeCenter(canvasOffset, eventVars.scaleFactor);
-
-  const session = useAutoStartSession({
-    projectUuid,
-    pipelineUuid,
-    isReadOnly,
-  });
 
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
   const { setScope } = useHotKeys(
