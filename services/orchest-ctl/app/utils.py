@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 def echo_json(data: dict) -> None:
     """Wraps typer.echo to output json in a consistent manner."""
+    if not config.JSON_MODE:
+        return
     typer.echo(json.dumps(data, sort_keys=True, indent=True))
 
 
