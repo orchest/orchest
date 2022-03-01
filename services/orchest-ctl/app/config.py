@@ -17,7 +17,7 @@ class OrchestStatus(str, Enum):
     UPDATING = "updating"
 
 
-ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS = {
+ORCHEST_OPERATION_TO_STATUS_MAPPING = {
     "install": OrchestStatus.INSTALLING,
     "start": OrchestStatus.STARTING,
     "stop": OrchestStatus.STOPPING,

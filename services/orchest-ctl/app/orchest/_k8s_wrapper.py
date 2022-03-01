@@ -96,4 +96,4 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
         return config.OrchestStatus.UPDATING
     else:
         cmd = pods[0].metadata.labels["command"]
-        return config.ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
+        return config.ORCHEST_OPERATION_TO_STATUS_MAPPING[cmd]
