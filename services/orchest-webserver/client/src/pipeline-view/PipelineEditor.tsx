@@ -300,6 +300,7 @@ export const PipelineEditor: React.FC = () => {
     [
       setPipelineRunning,
       setAlert,
+      isReadOnly,
       projectUuid,
       pipelineUuid,
       executePipelineSteps,
@@ -795,15 +796,21 @@ export const PipelineEditor: React.FC = () => {
     ] as [number, number];
   };
 
-  React.useEffect(() => {
-    // TODO: not enabled when page load, fix this
-    enableHotKeys();
-    return () => {
-      disableHotKeys();
-    };
+  const enableHotKeys = React.useCallback(() => {
+    setScope("pipeline-editor");
+    setIsHoverEditor(true);
+  }, [setScope]);
+
+  const disableHotKeys = React.useCallback(() => {
+    setIsHoverEditor(false);
   }, []);
 
-  React.useLayoutEffect(() => {
+  React.useEffect(() => {
+    disableHotKeys();
+    return () => disableHotKeys();
+  }, []);
+
+  React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
 
@@ -850,23 +857,6 @@ export const PipelineEditor: React.FC = () => {
     deleteSelectedSteps,
     centerView,
   ]);
-
-  const enableHotKeys = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    setScope("pipeline-editor");
-    setIsHoverEditor(true);
-  };
-
-  const disableHotKeys = (e?: React.MouseEvent) => {
-    if (e) {
-      e.stopPropagation();
-      e.preventDefault();
-    }
-    setIsHoverEditor(false);
-  };
 
   const onMouseDownViewport = (e: React.MouseEvent) => {
     const isLeftClick = e.button === 0;
