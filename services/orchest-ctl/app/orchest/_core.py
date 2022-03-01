@@ -344,10 +344,10 @@ def start():
         else:
             utils.echo(
                 "Detected some inconsistent state, missing deployments: "
-                f"{sorted(missing_deployments)}. Try to stop Orchest and "
-                "start it again."
+                f"{sorted(missing_deployments)}. This operation will proceed "
+                "regardless of that. Try to stop Orchest and start it again if this "
+                "doesn't work."
             )
-            raise typer.Exit(code=1)
     # Note: this implies that the operation can't be used to set the
     # scale of all deployments to 1 if, for example, it has been altered
     # to more than that.
