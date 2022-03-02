@@ -1,1 +1,1 @@
-from app.orchest._core import install
+from app.orchest._core import install, version

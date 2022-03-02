@@ -2,6 +2,16 @@ from typing import List, Set
 
 ORCHEST_NAMESPACE = "orchest"
 
+DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = set(
+    [
+        "celery-worker",
+        "docker-registry",
+        "file-manager",
+        "orchest-api",
+        "orchest-webserver",
+    ]
+)
+
 ORCHEST_DEPLOYMENTS = [
     "celery-worker",
     "docker-registry",

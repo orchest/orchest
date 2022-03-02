@@ -381,61 +381,6 @@ class OrchestApp:
                 else:
                     raise typer.Exit(code=3)
 
-    def version(self, ext=False, verbose: bool = True):
-        """Returns the version of Orchest.
-
-        Args:
-            ext: If True return the extensive version of Orchest.
-                Meaning that the version of every pulled image is
-                checked.
-            verbose: Echo non-error related output to the user.
-
-        """
-        if not ext:
-            version = os.getenv("ORCHEST_VERSION")
-            verbose and utils.echo(f"Orchest version: {version}")
-            return
-
-        verbose and utils.echo("Getting versions of all containers...")
-
-        # Get container versions.
-        stdouts = self.resource_manager.containers_version()
-        stdout_values = set()
-        for img, stdout in stdouts.items():
-            stdout_values.add(stdout)
-            verbose and utils.echo(f"{img:<44}: {stdout}")
-
-        # Check whether all required images are present.
-        installation_req_images: Set[str] = set(
-            img
-            for img in config.ORCHEST_IMAGES["minimal"]
-            if img.startswith("orchest/")
-        )
-        missing_images = installation_req_images - set(stdouts.keys())
-
-        if missing_images:
-            logger.info("Missing images:\n" + "\n".join(missing_images))
-            utils.echo(
-                "Could not get version of all Orchest required images because some"
-                " are missing. Make sure Orchest is correctly installed:"
-            )
-            utils.echo("\torchest install")
-            raise typer.Exit(code=1)
-        elif len(stdout_values) > 1:
-            # If not all versions are the same.
-            utils.echo(
-                "Not all containers are running on the same version of Orchest, which"
-                " can lead to the application crashing. You can fix this by running:",
-            )
-            utils.echo("\torchest update")
-            utils.echo("This should get all containers on the same version again.")
-            raise typer.Exit(code=2)
-        else:
-            verbose and utils.echo(
-                "All containers are running on the same version"
-                " of Orchest. Happy coding!"
-            )
-
     def debug(self, ext: bool, compress: bool):
         debug_dump(ext, compress)
 
