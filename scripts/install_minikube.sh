@@ -107,8 +107,8 @@ if [[ -z ${kubectl} ]]; then
 fi
 
 
-#minikube-status
-#minikube-start ${num_nodes}
+minikube-status
+minikube-start ${num_nodes}
 create-and-attach-volumes ${size}
 minikube-stop
 minikube start
