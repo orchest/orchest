@@ -350,26 +350,27 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         isStartNodeOfNewConnection && "creating-connection"
       )}
       style={{ transform, zIndex }}
-      sx={{
-        // create a transparent background to prevent mouse leave occur unexpectedly
-        "&::after": shouldExpandBackground
-          ? {
-              content: "''",
-              minWidth: STEP_WIDTH * 5,
-              minHeight: STEP_HEIGHT * 5,
-              display: "block",
-              position: "absolute",
-              left: -STEP_WIDTH * 2,
-              top: -STEP_HEIGHT * 2,
-            }
-          : null,
-      }}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
       onClick={onClick}
     >
       {children}
+      <Box
+        sx={
+          // create a transparent background to prevent mouse leave occur unexpectedly
+          shouldExpandBackground
+            ? {
+                minWidth: STEP_WIDTH * 5,
+                minHeight: STEP_HEIGHT * 5,
+                display: "block",
+                position: "absolute",
+                left: -STEP_WIDTH * 2,
+                top: -STEP_HEIGHT * 2,
+              }
+            : null
+        }
+      />
     </Box>
   );
 });

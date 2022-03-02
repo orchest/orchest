@@ -3,13 +3,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useHotKeys } from "@/hooks/useHotKeys";
-import type {
-  Connection,
-  PipelineJson,
-  PipelineRun,
-  Step,
-  StepsDict,
-} from "@/types";
+import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
@@ -31,7 +25,6 @@ import {
   collapseDoubleDots,
   fetcher,
   hasValue,
-  HEADER,
   uuidv4,
 } from "@orchest/lib-utils";
 import React from "react";
@@ -40,17 +33,13 @@ import { BackToJobButton } from "./BackToJobButton";
 import {
   getNodeCenter,
   getScaleCorrectedPosition,
-  PIPELINE_JOBS_STATUS_ENDPOINT,
   PIPELINE_RUN_STATUS_ENDPOINT,
   updatePipelineJson,
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
-import {
-  convertStepsToObject,
-  useStepExecutionState,
-} from "./hooks/useStepExecutionState";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineConnection } from "./PipelineConnection";
 import {
@@ -63,8 +52,6 @@ import {
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
-
-type RunStepsType = "selection" | "incoming";
 
 export const PipelineEditor: React.FC = () => {
   const { setAlert, setConfirm } = useAppContext();
@@ -103,7 +90,6 @@ export const PipelineEditor: React.FC = () => {
     hash,
     fetchDataError,
     runUuid,
-    setRunUuid,
     zIndexMax,
     isReadOnly,
     instantiateConnection,
@@ -148,17 +134,19 @@ export const PipelineEditor: React.FC = () => {
         },
       },
     },
-    [isHoverEditor],
+    [isHoverEditor, eventVars.steps, eventVars.selectedSteps],
     isHoverEditor
   );
 
   const [isDeletingSteps, setIsDeletingSteps] = React.useState(false);
-  const [pendingRuns, setPendingRuns] = React.useState<
-    { uuids: string[]; type: RunStepsType } | undefined
-  >();
 
-  const [pipelineRunning, setPipelineRunning] = React.useState(false);
-  const [isCancellingRun, setIsCancellingRun] = React.useState(false);
+  const {
+    stepExecutionState,
+    pipelineRunning,
+    isCancellingRun,
+    setIsCancellingRun,
+    executeRun,
+  } = useInteractiveRuns();
 
   React.useEffect(() => {
     // This case is hit when a user tries to load a pipeline that belongs
@@ -181,66 +169,7 @@ export const PipelineEditor: React.FC = () => {
       );
   }, [fetchDataError, returnToJob, setAlert, jobUuid]);
 
-  const runStatusEndpoint = jobUuid
-    ? `${PIPELINE_JOBS_STATUS_ENDPOINT}/${jobUuid}`
-    : PIPELINE_RUN_STATUS_ENDPOINT;
-
-  const { stepExecutionState, setStepExecutionState } = useStepExecutionState(
-    runUuid ? `${runStatusEndpoint}/${runUuid}` : null,
-    (runStatus) => {
-      if (["PENDING", "STARTED"].includes(runStatus)) {
-        setPipelineRunning(true);
-      }
-
-      if (["SUCCESS", "ABORTED", "FAILURE"].includes(runStatus)) {
-        // make sure stale opened files are reloaded in active
-        // Jupyter instance
-
-        if (window.orchest.jupyter)
-          window.orchest.jupyter.reloadFilesFromDisk();
-
-        setPipelineRunning(false);
-        setIsCancellingRun(false);
-      }
-    }
-  );
-
   const setOngoingSaves = useSavingIndicator();
-  // const [state, setState] = usePipelineViewState();
-
-  const executePipelineSteps = React.useCallback(
-    async (uuids: string[], type: RunStepsType) => {
-      try {
-        const result = await fetcher<PipelineRun>(
-          `${PIPELINE_RUN_STATUS_ENDPOINT}/`, // NOTE: trailing back slash is required
-          {
-            method: "POST",
-            headers: HEADER.JSON,
-            body: JSON.stringify({
-              uuids: uuids,
-              project_uuid: projectUuid,
-              run_type: type,
-              pipeline_definition: pipelineJson,
-            }),
-          }
-        );
-
-        setStepExecutionState((current) => ({
-          ...current,
-          ...convertStepsToObject(result),
-        }));
-        setRunUuid(result.uuid);
-        return true;
-      } catch (error) {
-        setAlert(
-          "Error",
-          `Failed to start interactive run. ${error.message || "Unknown error"}`
-        );
-        return false;
-      }
-    },
-    [projectUuid, setStepExecutionState, setAlert, pipelineJson, setRunUuid]
-  );
 
   const savePipelineJson = React.useCallback(
     async (data: PipelineJson) => {
@@ -260,26 +189,10 @@ export const PipelineEditor: React.FC = () => {
         setAlert("Error", `Failed to save pipeline. ${response.error.message}`);
         return;
       }
-      if (pendingRuns) {
-        const { uuids, type } = pendingRuns;
-        setPipelineRunning(true);
-        const executionStarted = await executePipelineSteps(uuids, type);
-        if (!executionStarted) setPipelineRunning(false);
-        setPendingRuns(undefined);
-      }
 
       setOngoingSaves((current) => current - 1);
     },
-    [
-      setPipelineRunning,
-      setAlert,
-      isReadOnly,
-      projectUuid,
-      pipelineUuid,
-      executePipelineSteps,
-      pendingRuns,
-      setOngoingSaves,
-    ]
+    [setAlert, isReadOnly, projectUuid, pipelineUuid, setOngoingSaves]
   );
 
   const mergeStepsIntoPipelineJson = React.useCallback(
@@ -648,16 +561,8 @@ export const PipelineEditor: React.FC = () => {
       return;
     }
 
-    if (pipelineRunning) {
-      setAlert(
-        "Error",
-        "The pipeline is currently executing, please wait until it completes."
-      );
-      return;
-    }
-
     saveSteps(eventVars.steps);
-    setPendingRuns({ uuids: [...uuids], type });
+    executeRun(uuids, type);
   };
 
   const hasSelectedSteps = eventVars.selectedSteps.length > 1;
@@ -678,14 +583,14 @@ export const PipelineEditor: React.FC = () => {
     saveSteps(eventVars.steps);
   };
 
-  const enableHotKeys = React.useCallback(() => {
+  const enableHotKeys = () => {
     setScope("pipeline-editor");
     setIsHoverEditor(true);
-  }, [setScope]);
+  };
 
-  const disableHotKeys = React.useCallback(() => {
+  const disableHotKeys = () => {
     setIsHoverEditor(false);
-  }, []);
+  };
 
   React.useEffect(() => {
     disableHotKeys();
@@ -1175,7 +1080,6 @@ export const PipelineEditor: React.FC = () => {
                   <div className={"step-label"}>
                     {step.title}
                     <span className="filename">{step.file_path}</span>
-                    <span className="filename">{`${step.uuid}`}</span>
                   </div>
                 </div>
                 <ConnectionDot
