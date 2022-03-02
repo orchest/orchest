@@ -4,9 +4,11 @@ import logging
 from docker.client import DockerClient
 from docker.errors import NotFound
 
-POLICY_IF_NOT_PRESENT = "IfNotPresent"
-POLICY_ALYWAYS = "Always"
-policies = (POLICY_IF_NOT_PRESENT, POLICY_ALYWAYS)
+from enum import Enum
+
+class Policy(Enum):
+    IfNotPresent = "IfNotPresent"
+    Always = "Always"
 
 class ImagePuller(object):
     def __init__(self, image_puller_interval,
@@ -28,7 +30,7 @@ class ImagePuller(object):
         checked and, if present, the method returns.  Otherwise, the pull attempt is made
         and the set of pulled images is updated, when successful.
         """
-        if self.policy == POLICY_IF_NOT_PRESENT:
+        if self.policy == Policy.IfNotPresent:
             if self.image_exists(image_name):
                 return
             self.logger.warning(f"Image '{image_name}' is not found - attempting pull...")
