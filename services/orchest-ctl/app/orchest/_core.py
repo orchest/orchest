@@ -52,10 +52,8 @@ class HelmMode(str, Enum):
 def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     if mode == HelmMode.INSTALL:
         cmd = "make orchest"
-        label = "Installation"
     elif mode == HelmMode.UPGRADE:
         cmd = "make registry-upgrade && make argo-upgrade && make orchest-upgrade"
-        label = "Update"
     else:
         raise ValueError()
 
@@ -76,7 +74,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     return_code = None
     with typer.progressbar(
         length=len(config.ORCHEST_DEPLOYMENTS) + 1,
-        label=label,
+        label=mode.value,
         show_eta=False,
     ) as progress_bar:
         # This is just to make the bar not stay at 0% for too long
@@ -540,7 +538,7 @@ def update() -> None:
         if resp.peek_stdout():
             utils.echo(resp.read_stdout(), nl=False, wrap=False)
         if resp.peek_stderr():
-            utils.echo(resp.read_stdout(), nl=False, wrap=False, err=True)
+            utils.echo(resp.read_stderr(), nl=False, wrap=False, err=True)
 
     # The pod will try to terminate itself, this is for safety in case
     # it does not work.
