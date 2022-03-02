@@ -103,6 +103,7 @@ SDK_IMAGES=(
 
 HELM_IMAGES=(
     "orchest-ctl"
+    "orchest-api"
     "update-sidecar"
 )
 

@@ -13,6 +13,7 @@ import typer
 import yaml
 from kubernetes import client as k8s_client
 
+from _orchest.internals import config as _config
 from app import config, utils
 from app.config import OrchestStatus
 from app.connections import k8s_apps_api, k8s_core_api
@@ -292,7 +293,7 @@ def orchest_cleanup() -> None:
 
 
 def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
-    with open(config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
+    with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
         manifest = yaml.safe_load(f)
 
     labels = manifest["metadata"]["labels"]
