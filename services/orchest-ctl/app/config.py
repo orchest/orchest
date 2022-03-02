@@ -42,3 +42,5 @@ ORCHEST_DEPLOYMENTS = [
 WRAP_LINES = 72
 # Used to avoid outputting anything that isn't the desired json.
 JSON_MODE = False
+
+ORCHEST_CTL_POD_YAML_PATH = "/orchest/deploy/orchest-ctl/pod.yml"

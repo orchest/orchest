@@ -10,6 +10,7 @@ import time
 from typing import Container, Dict, Iterable, List, Optional, Union
 
 import typer
+import yaml
 from kubernetes import client as k8s_client
 
 from app import config, utils
@@ -292,52 +293,20 @@ def orchest_cleanup() -> None:
 
 
 def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
-    """! Keep this in sync with deploy/orchest-ctl/pod.yml."""
-    manifest = {
-        "apiVersion": "v1",
-        "kind": "Pod",
-        "metadata": {
-            "generateName": "orchest-ctl-",
-            "labels": {
-                "app": "orchest-ctl",
-                "version": update_to_version,
-                "command": "hidden-update",
-                "parent": os.environ["POD_NAME"],
-            },
-        },
-        "spec": {
-            "containers": [
-                {
-                    "command": ["sleep", "10000"],
-                    "env": [
-                        {"name": "PYTHONUNBUFFERED", "value": "TRUE"},
-                        {"name": "ORCHEST_VERSION", "value": "VERSION"},
-                        {
-                            "name": "POD_NAME",
-                            "valueFrom": {"fieldRef": {"fieldPath": "metadata.name"}},
-                        },
-                    ],
-                    "image": f"orchest/orchest-ctl:{update_to_version}",
-                    "imagePullPolicy": "IfNotPresent",
-                    "name": "orchest-ctl",
-                    "volumeMounts": [{"name": "userdir", "mountPath": "/userdir"}],
-                }
-            ],
-            "restartPolicy": "Never",
-            "terminationGracePeriodSeconds": 1,
-            "serviceAccount": "orchest-ctl",
-            "serviceAccountName": "orchest-ctl",
-            "volumes": [
-                {
-                    "name": "userdir",
-                    "hostPath": {
-                        "path": "/var/lib/orchest/userdir",
-                        "type": "DirectoryOrCreate",
-                    },
-                }
-            ],
-        },
-    }
+    with open(config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
+        manifest = yaml.safe_load(f)
+
+    labels = manifest["metadata"]["labels"]
+    labels["version"] = update_to_version
+    labels["command"] = "hidden-update"
+    labels["parent"] = os.environ["POD_NAME"]
+
+    spec = manifest["spec"]
+    spec["containers"][0]["image"] = f"orchest/orchest-ctl:{update_to_version}"
+    for env_var in spec["containers"][0]["env"]:
+        if env_var["name"] == "ORCHEST_VERSION":
+            env_var["value"] = update_to_version
+            break
     return manifest
 
 
