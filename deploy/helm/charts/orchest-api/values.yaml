@@ -5,4 +5,6 @@ service:
 
 images:
   pullPolicy: IfNotPresent
-ORCHEST_LOG_LEVEL: INFO
+  registry: docker.io
+  name: orchest/orchest-api
+  tag: latest

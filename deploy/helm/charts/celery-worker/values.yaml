@@ -6,3 +6,6 @@ ORCHEST_LOG_LEVEL: INFO
 
 images:
   pullPolicy: IfNotPresent
+  registry: docker.io
+  name: orchest/celery-worker
+  tag: latest

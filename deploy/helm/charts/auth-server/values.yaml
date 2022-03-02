@@ -7,3 +7,7 @@ CLOUD: "False"
 
 images:
   pullPolicy: IfNotPresent
+  registry: docker.io
+  name: orchest/auth-server
+  tag: latest
+  

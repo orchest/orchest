@@ -11,7 +11,7 @@ deployment
             readOnly: false
       containers:
       - name: auth-server
-        image: orchest/auth-server:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
         imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         {{ if .Values.service.port}}
         ports:

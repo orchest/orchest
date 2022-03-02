@@ -12,7 +12,7 @@ deployment
       serviceAccountName: {{ template "library.metadata.name" . }}
       containers:
       - name: celery-worker
-        image: orchest/celery-worker:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
         imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         env:
         - name: "ORCHEST_LOG_LEVEL"

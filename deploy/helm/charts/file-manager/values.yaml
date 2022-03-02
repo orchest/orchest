@@ -3,4 +3,7 @@ service:
   port: 80
 
 images:
-  pullPolicy: IfNotPresent     
+  pullPolicy: IfNotPresent
+  registry: docker.io
+  name: orchest/file-manager
+  tag: latest    

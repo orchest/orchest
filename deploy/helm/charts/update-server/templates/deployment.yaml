@@ -11,7 +11,7 @@ deployment
             type: Directory
       containers:
       - name: update-server
-        image: orchest/update-server:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
         imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         securityContext:
           privileged: true

@@ -11,7 +11,7 @@ deployment
             type: DirectoryOrCreate                      
       containers:
       - name: orchest-database
-        image: postgres:13.1
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
         imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         {{ if .Values.service.port}}
         ports:

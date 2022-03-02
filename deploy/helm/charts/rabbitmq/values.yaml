@@ -7,3 +7,6 @@ service:
 
 images:
   pullPolicy: IfNotPresent     
+  registry: docker.io
+  name: rabbitmq
+  tag: "3"  

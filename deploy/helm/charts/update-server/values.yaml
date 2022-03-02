@@ -5,5 +5,8 @@ service:
 
 images:
   pullPolicy: IfNotPresent
+  registry: docker.io
+  name: orchest/update-server
+  tag: latest  
 
 enableDebug: false  

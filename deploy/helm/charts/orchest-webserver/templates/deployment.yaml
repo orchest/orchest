@@ -20,7 +20,7 @@ deployment
             type: DirectoryOrCreate
       containers:
       - name: orchest-webserver
-        image: orchest/orchest-webserver:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
         imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         ports:
         - containerPort: 80
