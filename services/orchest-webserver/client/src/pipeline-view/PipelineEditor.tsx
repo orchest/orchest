@@ -51,10 +51,7 @@ import {
   convertStepsToObject,
   useStepExecutionState,
 } from "./hooks/useStepExecutionState";
-import {
-  PipelineViewport,
-  PipelineViewportComponent,
-} from "./pipeline-viewport/PipelineViewport";
+import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
 import { PipelineConnection } from "./PipelineConnection";
 import {
   getStateText,
@@ -126,8 +123,9 @@ export const PipelineEditor: React.FC = () => {
   const isJobRun = jobUuid && runUuid;
   const jobRunQueryArgs = { jobUuid, runUuid };
 
-  const pipelineViewportRef = React.useRef<PipelineViewportComponent>();
+  const pipelineViewportRef = React.useRef<HTMLDivElement>();
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
+  const centerPipelineOrigin = React.useRef<() => void>();
 
   const canvasOffset = getOffset(pipelineCanvasRef.current);
   const getPosition = getNodeCenter(canvasOffset, eventVars.scaleFactor);
@@ -888,7 +886,7 @@ export const PipelineEditor: React.FC = () => {
             <IconButton
               title="Zoom out"
               onClick={() => {
-                pipelineViewportRef.current?.centerPipelineOrigin();
+                centerPipelineOrigin.current();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
                   payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
@@ -900,7 +898,7 @@ export const PipelineEditor: React.FC = () => {
             <IconButton
               title="Zoom in"
               onClick={() => {
-                pipelineViewportRef.current?.centerPipelineOrigin();
+                centerPipelineOrigin.current();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
                   payload: Math.min(eventVars.scaleFactor + 0.25, 2),
@@ -1012,6 +1010,7 @@ export const PipelineEditor: React.FC = () => {
         )}
         <PipelineViewport
           ref={pipelineViewportRef}
+          centerPipelineOrigin={centerPipelineOrigin}
           onMouseMove={onMouseMoveViewport}
           onMouseDown={onMouseDownViewport}
           onMouseUp={onMouseUpViewport}

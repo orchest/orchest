@@ -13,12 +13,9 @@ import { PipelineCanvas } from "./PipelineCanvas";
 
 const CANVAS_VIEW_MULTIPLE = 3;
 
-export type PipelineViewportComponent = {
-  centerPipelineOrigin: () => void;
-};
-
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   canvasRef: React.MutableRefObject<HTMLDivElement>;
+  centerPipelineOrigin: React.MutableRefObject<() => void>;
 };
 
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
@@ -28,9 +25,12 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 // but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineViewState in the context
 // so PipelineEditor can use these state
 const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
-  PipelineViewportComponent,
+  HTMLDivElement,
   Props
-> = ({ children, className, canvasRef, ...props }: Props, ref) => {
+> = (
+  { children, className, canvasRef, centerPipelineOrigin, ...props },
+  ref
+) => {
   const {
     pipelineViewState,
     setPipelineViewState,
@@ -79,27 +79,23 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   // here we have to use it to allow parent component (i.e. PipelineEditor) to center pipeline canvas
   // otherwise, we have to use renderProps, but then we will have more issues
   // e.g. we cannot keep the action buttons above PipelineCanvas
-  React.useImperativeHandle(ref, () => ({
-    centerPipelineOrigin() {
-      let viewportOffset = getOffset(localRef.current);
-      const canvasOffset = getOffset(canvasRef.current);
+  React.useImperativeHandle(centerPipelineOrigin, () => () => {
+    let viewportOffset = getOffset(localRef.current);
+    const canvasOffset = getOffset(canvasRef.current);
 
-      let viewportWidth = getWidth(localRef.current);
-      let viewportHeight = getHeight(localRef.current);
+    let viewportWidth = getWidth(localRef.current);
+    let viewportHeight = getHeight(localRef.current);
 
-      let originalX =
-        viewportOffset.left - canvasOffset.left + viewportWidth / 2;
-      let originalY =
-        viewportOffset.top - canvasOffset.top + viewportHeight / 2;
+    let originalX = viewportOffset.left - canvasOffset.left + viewportWidth / 2;
+    let originalY = viewportOffset.top - canvasOffset.top + viewportHeight / 2;
 
-      let centerOrigin = [
-        scaleCorrected(originalX, eventVars.scaleFactor),
-        scaleCorrected(originalY, eventVars.scaleFactor),
-      ] as [number, number];
+    let centerOrigin = [
+      scaleCorrected(originalX, eventVars.scaleFactor),
+      scaleCorrected(originalY, eventVars.scaleFactor),
+    ] as [number, number];
 
-      pipelineSetHolderOrigin(centerOrigin);
-    },
-  }));
+    pipelineSetHolderOrigin(centerOrigin);
+  });
 
   React.useEffect(() => {
     if (
@@ -183,11 +179,9 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
         // in order to capture a forwarded ref, we need to create a local ref to capture it
         localRef.current = node;
         if (typeof ref === "function") {
-          ref((node as unknown) as PipelineViewportComponent);
+          ref(node);
         } else if (ref) {
-          ((ref as unknown) as React.MutableRefObject<
-            HTMLDivElement
-          >).current = node;
+          ref.current = node;
         }
       }}
       onWheel={onPipelineCanvasWheel}
