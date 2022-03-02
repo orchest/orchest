@@ -2,19 +2,21 @@ import React from "react";
 
 export const INITIAL_PIPELINE_POSITION = [-1, -1] as [number, number];
 
-interface PipelineViewState {
+export type PipelineViewState = {
   // rendering state
   pipelineOrigin: number[];
   pipelineStepsHolderOffsetLeft: number;
   pipelineStepsHolderOffsetTop: number;
   pipelineOffset: [number, number];
-}
+  origin: [number, number];
+};
 let initialState: PipelineViewState = {
   // rendering state
   pipelineOrigin: [0, 0],
   pipelineStepsHolderOffsetLeft: 0,
   pipelineStepsHolderOffsetTop: 0,
   pipelineOffset: INITIAL_PIPELINE_POSITION,
+  origin: [0, 0],
 };
 
 const reducer = (

@@ -19,6 +19,10 @@ import {
   willCreateCycle,
 } from "../common";
 import { getStepSelectorRectangle } from "../Rectangle";
+import {
+  INITIAL_PIPELINE_POSITION,
+  usePipelineViewState,
+} from "./usePipelineViewState";
 
 export type EventVars = {
   initialized: boolean;
@@ -107,6 +111,9 @@ type Action =
       payload: number;
     }
   | {
+      type: "CENTER_VIEW";
+    }
+  | {
       type: "UPDATE_STEP_SELECTOR";
       payload: Offset;
     }
@@ -170,6 +177,7 @@ export function removeConnection<
 
 export const useEventVars = () => {
   const { setAlert } = useAppContext();
+
   // Ref's
   const stepDomRefs = React.useRef<Record<string, HTMLDivElement>>({});
   const mouseTracker = React.useRef<MouseTracker>({
@@ -183,6 +191,8 @@ export const useEventVars = () => {
   const newConnection = React.useRef<NewConnection>();
 
   const keysDown = React.useMemo<Set<number>>(() => new Set(), []);
+
+  const [pipelineViewState, setPipelineViewState] = usePipelineViewState();
 
   const memoizedReducer = React.useCallback(
     (state: EventVars, _action: EventVarsAction): EventVars => {
@@ -330,6 +340,14 @@ export const useEventVars = () => {
         }
         case "SET_SCALE_FACTOR": {
           return { ...state, scaleFactor: action.payload };
+        }
+        case "CENTER_VIEW": {
+          setPipelineViewState({
+            pipelineOffset: INITIAL_PIPELINE_POSITION,
+            pipelineStepsHolderOffsetLeft: 0,
+            pipelineStepsHolderOffsetTop: 0,
+          });
+          return { ...state, scaleFactor: DEFAULT_SCALE_FACTOR };
         }
         case "SET_STEPS": {
           return { ...state, steps: action.payload };
@@ -658,5 +676,7 @@ export const useEventVars = () => {
     trackMouseMovement,
     mouseTracker,
     metadataPositions,
+    pipelineViewState,
+    setPipelineViewState,
   };
 };

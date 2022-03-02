@@ -18,6 +18,7 @@ import {
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
+import { PipelineViewState } from "../hooks/usePipelineViewState";
 import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
 
 export type PipelineEditorContextType = {
@@ -55,6 +56,11 @@ export type PipelineEditorContextType = {
   jobUuid: string;
   projectUuid: string;
   session: IOrchestSession;
+  pipelineViewState: PipelineViewState;
+  setPipelineViewState: React.Dispatch<
+    | Partial<PipelineViewState>
+    | ((current: PipelineViewState) => Partial<PipelineViewState>)
+  >;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -82,6 +88,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     trackMouseMovement,
     mouseTracker,
     metadataPositions,
+    pipelineViewState,
+    setPipelineViewState,
   } = useEventVars();
 
   const instantiateConnection = React.useCallback(
@@ -183,6 +191,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         jobUuid,
         sio,
         session,
+        pipelineViewState,
+        setPipelineViewState,
       }}
     >
       {children}
