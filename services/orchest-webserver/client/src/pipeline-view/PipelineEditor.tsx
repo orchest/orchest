@@ -7,7 +7,11 @@ import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
-import { filterServices, validatePipeline } from "@/utils/webserver-utils";
+import {
+  clearOutgoingConnections,
+  filterServices,
+  validatePipeline,
+} from "@/utils/webserver-utils";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -204,7 +208,7 @@ export const PipelineEditor: React.FC = () => {
       }
 
       const updatedPipelineJson = steps
-        ? updatePipelineJson(pipelineJson, steps)
+        ? updatePipelineJson(pipelineJson, clearOutgoingConnections(steps))
         : pipelineJson;
 
       // validate pipelineJSON
@@ -478,6 +482,7 @@ export const PipelineEditor: React.FC = () => {
 
       // reset eventVars.steps, this will trigger saving
       dispatch({ type: "SET_STEPS", payload: updated.steps });
+      saveSteps(updated.steps);
       return updated;
     }, true); // flush page, re-instantiate all UI elements with new local state for dragging
     // the rendering of connection lines depend on the positions of the steps
@@ -779,6 +784,17 @@ export const PipelineEditor: React.FC = () => {
     if (hasValue(eventVars.timestamp) && shouldSave) saveSteps(eventVars.steps);
   }, [saveSteps, eventVars.timestamp, eventVars.steps, shouldSave]);
 
+  const getShouldConnectionMovedToTop = React.useCallback(
+    (connectionKey: string) => {
+      const selectedWhenSelectorIsOff =
+        !eventVars.stepSelector.active &&
+        eventVars.selectedSteps.some((step) => connectionKey.includes(step));
+
+      return selectedWhenSelectorIsOff;
+    },
+    [eventVars.stepSelector, eventVars.selectedSteps]
+  );
+
   return (
     <div className="pipeline-view">
       <div
@@ -990,11 +1006,11 @@ export const PipelineEditor: React.FC = () => {
               eventVars.selectedConnection?.startNodeUUID === startNodeUUID &&
               eventVars.selectedConnection?.endNodeUUID === endNodeUUID;
 
-            const key = `${connection.startNodeUUID}-${connection.endNodeUUID}-${hash.current}`;
+            const key = `${startNodeUUID}-${endNodeUUID}-${hash.current}`;
 
-            const movedToTop = eventVars.selectedSteps.some((step) =>
-              key.includes(step)
-            );
+            const movedToTop =
+              eventVars.selectedSteps.length > 0 &&
+              getShouldConnectionMovedToTop(key);
 
             return (
               <PipelineConnection

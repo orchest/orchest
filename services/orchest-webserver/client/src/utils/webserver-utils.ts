@@ -138,18 +138,14 @@ export function addOutgoingConnections<
 }
 
 export function clearOutgoingConnections<
-  T extends {
-    [stepUuid: string]: {
-      outgoing_connections?: string[];
-    };
-  }
->(steps: T) {
-  // Notes: modifies 'steps' object that's passed in
-  for (let stepUuid in steps) {
-    if (steps[stepUuid] && steps[stepUuid].outgoing_connections !== undefined) {
-      delete steps[stepUuid].outgoing_connections;
-    }
-  }
+  T,
+  K extends Omit<T, "outgoing_connections">
+>(steps: T): K {
+  return Object.entries(steps).reduce((newObj, [stepUuid, step]) => {
+    const { outgoing_connections, ...cleanStep } = step; // eslint-disable-line @typescript-eslint/no-unused-vars
+
+    return { ...newObj, [stepUuid]: cleanStep };
+  }, {} as K);
 }
 
 export function getServiceURLs(

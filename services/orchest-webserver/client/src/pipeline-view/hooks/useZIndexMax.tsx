@@ -7,6 +7,7 @@ export const useUpdateZIndex = (
 ) => {
   const [zIndex, setZIndex] = React.useState<"unset" | number>("unset");
   React.useEffect(() => {
+    if (!shouldUpdate) setZIndex("unset");
     if (shouldUpdate) {
       zIndexMax.current =
         zIndexMax.current === "unset" ? amount : zIndexMax.current + amount + 1;

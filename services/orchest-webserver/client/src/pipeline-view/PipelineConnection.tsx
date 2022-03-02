@@ -218,12 +218,15 @@ const PipelineConnectionComponent: React.FC<{
 
   React.useEffect(() => {
     if (shouldRedraw) redraw();
-  }, [shouldRedraw]);
+  }, [shouldRedraw]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // movedToTop: when associated step is selected
   // shouldRedraw && isNew: user is creating
-  // NOTE: we decided not to move connections lines to top until we have a clear idea about the interaction
-  const shouldMoveToTop = false; // isNew || movedToTop || selected;
+  const shouldMoveToTop =
+    isNew ||
+    movedToTop ||
+    selected ||
+    [startNodeUUID, endNodeUUID].includes(cursorControlledStep);
 
   // -1 is to ensure connection lines are beneath the step that is on focus (i.e. the top step amongst all).
   // selected means that only THIS connection is selected, we just need to make it on top of everything

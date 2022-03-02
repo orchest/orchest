@@ -8,10 +8,6 @@ import {
   sugiyama,
 } from "d3-dag";
 import cloneDeep from "lodash.clonedeep";
-import {
-  addOutgoingConnections,
-  clearOutgoingConnections,
-} from "./webserver-utils";
 
 type Component = {
   uuid: string;
@@ -203,10 +199,7 @@ const traverseGraph = (
  *
  * Sorted by the number of nodes in descending order.
  */
-const collectComponents = (pipelineJson: PipelineJson) => {
-  // make a deep copy of steps from PipelineJson, and then add outgoing_connections to it
-  const steps = addOutgoingConnections(pipelineJson.steps as StepsDict);
-
+const collectComponents = ({ steps }: PipelineJson) => {
   // Traverse graph
   let seenNodes: Set<string> = new Set();
   let components: { uuid: string; incoming_connections: string[] }[][] = [];
@@ -223,9 +216,6 @@ const collectComponents = (pipelineJson: PipelineJson) => {
 
   // Sort components (big to small)
   components.sort((a, b) => b.length - a.length);
-
-  // Remove annotations after being done with them
-  clearOutgoingConnections(pipelineJson.steps as StepsDict);
 
   return components;
 };

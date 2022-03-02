@@ -168,7 +168,14 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
   // only persist meta_data for manipulating location with a local state
   // the rest will be updated together with pipelineJson (i.e. data)
-  const { uuid, title, incoming_connections, meta_data, file_path } = data;
+  const {
+    uuid,
+    title,
+    incoming_connections,
+    outgoing_connections,
+    meta_data,
+    file_path,
+  } = data;
   const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
     ...meta_data,
   }));
@@ -180,14 +187,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const shouldMoveToTop =
     dragCount.current === DRAG_CLICK_SENSITIVITY ||
     isMouseDown.current ||
-    (!isSelectorActive && selected && !cursorControlledStep) ||
-    cursorControlledStep === uuid ||
-    movedToTop;
+    movedToTop ||
+    (!isSelectorActive && (selected || cursorControlledStep === uuid));
 
   const zIndex = useUpdateZIndex(
     shouldMoveToTop,
     zIndexMax,
-    incoming_connections.length
+    incoming_connections.length + outgoing_connections?.length
   );
 
   const onMouseDown = (e: React.MouseEvent) => {
