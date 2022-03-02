@@ -22,6 +22,10 @@ import { PipelineViewState } from "../hooks/usePipelineViewState";
 import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
 
 export type PipelineEditorContextType = {
+  projectUuid: string;
+  pipelineUuid: string | undefined;
+  jobUuid: string;
+  runUuid: string | undefined;
   eventVars: EventVars;
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
@@ -39,7 +43,6 @@ export type PipelineEditorContextType = {
   ) => void;
   hash: React.MutableRefObject<string>;
   fetchDataError: any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  runUuid: string | undefined;
   setRunUuid: (
     data?: string | Promise<string> | MutatorCallback<string>
   ) => Promise<string>;
@@ -53,8 +56,7 @@ export type PipelineEditorContextType = {
     endNodeUUID: string;
   };
   sio: SocketIO;
-  jobUuid: string;
-  projectUuid: string;
+
   session: IOrchestSession;
   pipelineViewState: PipelineViewState;
   setPipelineViewState: React.Dispatch<
@@ -169,6 +171,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     <PipelineEditorContext.Provider
       value={{
         projectUuid,
+        pipelineUuid,
         eventVars,
         dispatch,
         stepDomRefs,

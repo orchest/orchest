@@ -1,3 +1,4 @@
+import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   MouseTracker,
@@ -159,11 +160,15 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   ref: React.MutableRefObject<HTMLDivElement>
 ) {
   const [, forceUpdate] = useForceUpdate();
-  const { metadataPositions } = usePipelineEditorContext();
+  const {
+    metadataPositions,
+    projectUuid,
+    pipelineUuid,
+  } = usePipelineEditorContext();
 
   // only persist meta_data for manipulating location with a local state
   // the rest will be updated together with pipelineJson (i.e. data)
-  const { uuid, title, incoming_connections, meta_data } = data;
+  const { uuid, title, incoming_connections, meta_data, file_path } = data;
   const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
     ...meta_data,
   }));
@@ -244,9 +249,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     resetDraggingVariables();
   };
 
-  const onClick = (e: React.MouseEvent) => {
+  const onClick = async (e: React.MouseEvent) => {
     if (e.detail === 1) return; // see explanation in onMouseUp
-    if (e.detail === 2) onDoubleClick(uuid);
+    if (e.detail === 2) {
+      const valid = await isValidFile(projectUuid, pipelineUuid, file_path);
+      if (valid) onDoubleClick(uuid);
+    }
   };
 
   const onMouseLeave = () => {

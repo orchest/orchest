@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
+import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
 import { FileTree } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import CheckIcon from "@mui/icons-material/Check";
@@ -22,49 +23,11 @@ import {
   extensionFromFilename,
   fetcher,
   FetchError,
-  hasValue,
   HEADER,
 } from "@orchest/lib-utils";
 import React from "react";
 import { Code } from "./common/Code";
 import FilePicker from "./FilePicker";
-
-const pathValidator = (value: string) => {
-  if (value == "" && value.endsWith("/")) {
-    return false;
-  }
-  let ext = extensionFromFilename(value);
-  if (ALLOWED_STEP_EXTENSIONS.indexOf(ext) === -1) {
-    return false;
-  }
-  return true;
-};
-
-const useCheckFileValidity = (
-  project_uuid: string,
-  pipeline_uuid: string,
-  path: string
-) => {
-  const { run, data: selectedFileExists } = useAsync<boolean>();
-  React.useEffect(() => {
-    // only check file existence if it passes rule based validation
-    if (pathValidator(path)) {
-      run(
-        fetcher(
-          `/async/project-files/exists/${project_uuid}/${pipeline_uuid}`,
-          {
-            method: "POST",
-            headers: HEADER.JSON,
-            body: JSON.stringify({
-              relative_path: path,
-            }),
-          }
-        ).then((response) => hasValue(response))
-      );
-    }
-  }, [path, pipeline_uuid, project_uuid, run]);
-  return selectedFileExists;
-};
 
 type DirectoryDetails = {
   tree: FileTree;

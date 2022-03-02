@@ -1,5 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
+import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
 import { useDragElement } from "@/hooks/useDragElement";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Step } from "@/types";
@@ -55,6 +56,7 @@ export const StepDetails: React.FC<{
     isReadOnly,
     runUuid,
     pipelineJson,
+    pipelineUuid,
     dispatch,
     sio,
     jobUuid,
@@ -143,7 +145,14 @@ export const StepDetails: React.FC<{
     },
   ];
 
+  const fileExists = useCheckFileValidity(
+    projectUuid,
+    pipelineUuid,
+    step?.file_path
+  );
+
   if (!eventVars.openedStep || !step || !pipelineJson) return null;
+
   return (
     <StepDetailsContainer
       style={{ width: panelWidth + "px" }}
@@ -203,6 +212,7 @@ export const StepDetails: React.FC<{
               onClick={onOpenNotebook}
               onAuxClick={onOpenNotebook}
               data-test-id="step-view-in-jupyterlab"
+              disabled={!fileExists}
             >
               Edit in JupyterLab
             </Button>
@@ -214,6 +224,7 @@ export const StepDetails: React.FC<{
             onClick={(e) => onOpenFilePreviewView(e, step.uuid)}
             onAuxClick={(e) => onOpenFilePreviewView(e, step.uuid)}
             data-test-id="step-view-file"
+            disabled={!fileExists}
           >
             View file
           </Button>
