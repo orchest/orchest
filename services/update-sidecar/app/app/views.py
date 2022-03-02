@@ -7,7 +7,7 @@ from app.config import CONFIG_CLASS
 
 
 def register_views(app):
-    @app.route("/update-sidecar/heartbeat/", methods=["GET"])
+    @app.route("/update-sidecar/heartbeat", methods=["GET"])
     def heartbeat():
         return "", 200
 

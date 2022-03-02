@@ -20,6 +20,7 @@ rules:
       - namespaces/status
       - pods
       - pods/log
+      - pods/attach
       - roles
       - serviceaccounts
       - rolebindings

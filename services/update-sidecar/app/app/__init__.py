@@ -8,19 +8,28 @@ Additinal note:
 """
 import logging
 import os
+import signal
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask
 from kubernetes import client as k8s_client
 from kubernetes import config as k8s_config
-from kubernetes import watch
+from kubernetes import stream
 
 from _orchest.internals import config as _config
 from app.config import CONFIG_CLASS
 from app.views import register_views
 
 logging.basicConfig(level=logging.DEBUG)
+
+signal.signal(signal.SIGTERM, lambda *args, **kwargs: _delete_pod())
+
+
+def _delete_pod() -> None:
+    k8s_config.load_incluster_config()
+    k8s_core_api = k8s_client.CoreV1Api()
+    k8s_core_api.delete_namespaced_pod(os.environ["POD_NAME"], "orchest")
 
 
 def follow_update() -> None:
@@ -29,6 +38,11 @@ def follow_update() -> None:
     except Exception as e:
         logging.error(e)
         raise
+    finally:
+        # Give time to the webserver to communicate that the update is
+        # done.
+        time.sleep(30)
+        _delete_pod()
 
 
 def _follow_update() -> None:
@@ -60,44 +74,59 @@ def _follow_update() -> None:
             phase = pod.status.phase
             logging.info(f"Update pod status: {phase}.")
             if phase in ["Failed"]:
-                log_file.write("Update failed. Try to restart Orchest.")
+                log_file.write("Update failed. Try to restart Orchest.\n")
                 log_file.flush()
                 return
             elif phase in ["Running", "Succeeded"]:
                 break
             elif phase == "Unknown":
-                log_file.write("Unknown update issue. Try to restart Orchest.")
+                log_file.write("Unknown update issue. Try to restart Orchest.\n")
                 log_file.flush()
                 return
             else:  # Pending
                 msg = pod.status.message
-                if (
-                    msg is not None
-                    and "ImagePullBackOff" in msg
-                    or "ErrImagePull" in msg
+                if msg is not None and (
+                    "ImagePullBackOff" in msg or "ErrImagePull" in msg
                 ):
                     msg = "Update service image pull failed."
                     logging.info(msg)
-                    log_file.write(msg)
+                    log_file.write(msg + "\n")
                     log_file.flush()
                     return
 
-            log_file.write("Waiting for Update service to be ready.")
+            log_file.write("Waiting for Update service to be ready.\n")
             log_file.flush()
             time.sleep(1)
 
         logging.info(f"Getting logs from update pod, status: {phase}")
-        w = watch.Watch()
-        for event in w.stream(
-            k8s_core_api.read_namespaced_pod_log,
-            name=CONFIG_CLASS.UPDATE_POD_NAME,
+
+        # Doing this instead of gettings the logs through the k8s logs
+        # endpoint preserves the update bar.
+        resp = stream.stream(
+            k8s_core_api.connect_get_namespaced_pod_attach,
+            pod.metadata.name,
+            _config.ORCHEST_NAMESPACE,
             container="orchest-ctl",
-            namespace=_config.ORCHEST_NAMESPACE,
-            follow=True,
-        ):
-            log_file.write(event)
-            log_file.flush()
-            logging.info(event)
+            stderr=True,
+            stdin=False,
+            stdout=True,
+            tty=True,
+            _preload_content=False,
+        )
+        while resp.is_open():
+            resp.update()
+            # nl=False, wrap=False to not disrupt the progress bar.
+            if resp.peek_stdout():
+                msg = resp.read_stdout()
+                log_file.write(msg)
+                log_file.flush()
+                logging.info(msg)
+            if resp.peek_stderr():
+                msg = resp.read_stderr()
+                log_file.write(msg)
+                log_file.flush()
+                logging.info(msg)
+
         logging.info("Update pod exited.")
 
     with open(CONFIG_CLASS.UPDATE_COMPLETE_FILE, "w") as f:
