@@ -60,6 +60,9 @@ POSTGRES_ENABLE_CONFIG := --set postgres.enabled=true
 # rabbitmq deployment configs
 RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 
+# update-sidecar service configs
+UPDATE_SIDECAR_ENABLE_CONFIG := --set update-sidecar.enabled=true
+
 # Orchest deployment configs
 ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${AUTH_SERVER_ENABLE_CONFIG} \
@@ -68,7 +71,7 @@ ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${ORCHEST_WEBSERVER_ENABLE_CONFIG} \
 						 ${POSTGRES_ENABLE_CONFIG} \
 						 ${RABBITMQ_ENABLE_CONFIG} \
-						 ${UPDATE_SERVER_ENABLE_CONFIG}
+						 ${UPDATE_SIDECAR_ENABLE_CONFIG}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} ${ORCHEST_ENABLE_CONFIG} helm 
