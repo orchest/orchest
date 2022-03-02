@@ -1,7 +1,7 @@
 import React from "react";
 
 const PipelineStepsHolder = (
-  { children, ...props }: React.PropsWithChildren<any>,
+  { children, ...props }: React.HTMLAttributes<HTMLDivElement>,
   ref: React.ForwardedRef<HTMLDivElement>
 ) => {
   return (

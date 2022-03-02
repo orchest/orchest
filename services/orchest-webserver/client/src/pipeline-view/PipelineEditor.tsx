@@ -51,6 +51,10 @@ import {
   convertStepsToObject,
   useStepExecutionState,
 } from "./hooks/useStepExecutionState";
+import {
+  PipelineViewport,
+  PipelineViewportComponent,
+} from "./pipeline-viewport/PipelineViewport";
 import { PipelineConnection } from "./PipelineConnection";
 import {
   getStateText,
@@ -59,10 +63,6 @@ import {
   STEP_HEIGHT,
   STEP_WIDTH,
 } from "./PipelineStep";
-import {
-  PipelineViewport,
-  PipelineViewportComponent,
-} from "./PipelineViewport";
 import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
