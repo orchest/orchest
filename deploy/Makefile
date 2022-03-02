@@ -22,7 +22,7 @@ ROOK_TARGET := ${if ${DISABLE_ROOK},,rook}
 # if rook is disabled, we also diable ceph-resources target
 CEPH_TARGET := ${if ${DISABLE_ROOK},,ceph-resources}
 
-SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic
+SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
@@ -175,7 +175,7 @@ jupyter-eg: ./bin/jupyter-eg
 argo-workflow: ./bin/argo-workflow
 
 .SECONDARY: ./bin/argo-workflow
-./bin/argo-workflow: create-bin
+./bin/argo-workflow: | create-bin
 	helm install ${ARGO_WORKFLOW_DEPLOY_CONFIG}
 	touch $@
 
