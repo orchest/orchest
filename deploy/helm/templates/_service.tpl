@@ -44,9 +44,13 @@ fqdn of the auth-server url.
 Ingress host
 */}}
 {{- define "library.ingress.host" -}}
-  {{- if .Values.global.ingress.host -}}
-    {{ .Values.global.ingress.host }}
+  {{- if .Values.ingressOverride -}}
+    {{- .Values.ingressOverride | trunc 63 | trimSuffix "-" -}}
   {{- else -}}
-    {{ "www.localorchest.io" }}
-  {{- end -}}
+    {{- if .Values.global.ingress.host -}}
+      {{ .Values.global.ingress.host }}
+    {{- else -}}
+      {{ "www.localorchest.io" }}
+    {{- end -}}
+  {{- end -}}  
 {{- end -}}
