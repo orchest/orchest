@@ -560,6 +560,21 @@ def _update() -> None:
     """
     utils.echo("Updating...")
 
+    # Check if Orchest is actually stopped.
+    depls = k8sw.get_orchest_deployments()
+    depls = [
+        depl.metadata.name
+        for depl in depls
+        if depl is not None and depl.spec.replicas > 0
+    ]
+    if depls:
+        utils.echo(
+            "Orchest is not stopped, thus the update operation cannot proceed. "
+            f"Deployments that aren't stopped: {sorted(depls)}.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     # K8S_TODO: delete user-built jupyter images.
     orchest_version = os.environ.get("ORCHEST_VERSION")
     if orchest_version is None:
