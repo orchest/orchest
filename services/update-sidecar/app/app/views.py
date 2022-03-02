@@ -1,18 +1,21 @@
 import logging
 import os
 
-from flask import jsonify
+from flask import jsonify, request
 
-from config import CONFIG_CLASS
+from app.config import CONFIG_CLASS
 
 
 def register_views(app):
-    @app.route("/update-sidecar/heartbeat", methods=["GET"])
+    @app.route("/update-sidecar/heartbeat/", methods=["GET"])
     def heartbeat():
         return "", 200
 
     @app.route("/update-sidecar/update-status", methods=["GET"])
     def update_status():
+        if request.args.get("token") != CONFIG_CLASS.TOKEN:
+            return "", 403
+
         try:
             updating = True
             if os.path.exists(CONFIG_CLASS.UPDATE_COMPLETE_FILE):

@@ -10,7 +10,7 @@ class Config:
     UPDATE_STARTED_FILE = "/tmp/update-started"
     UPDATE_COMPLETE_FILE = "/tmp/update-complete"
     UPDATE_FILE_LOG = "/tmp/update-log"
-    UPDATE_POD = os.environ["UPDATE_POD"]
+    UPDATE_POD_NAME = os.environ["UPDATE_POD_NAME"]
 
 
 class DevelopmentConfig(Config):
