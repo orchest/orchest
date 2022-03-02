@@ -368,7 +368,6 @@ def wait_for_pod_status(
         except k8s_client.ApiException as e:
             if e.status != 404:
                 raise
-            time.sleep(1)
         else:
             status = resp.status.phase
             if status in expected_statuses:
