@@ -953,18 +953,24 @@ export const PipelineEditor: React.FC = () => {
             // if the connection is attached to a selected step,
             // the connection should update its start/end node, to move along with the step
 
-            const shouldUpdateX =
+            const shouldUpdateStart =
               flushPage ||
               eventVars.cursorControlledStep === startNodeUUID ||
-              eventVars.selectedSteps.includes(startNodeUUID);
+              (eventVars.selectedSteps.includes(startNodeUUID) &&
+                eventVars.selectedSteps.includes(
+                  eventVars.cursorControlledStep
+                ));
 
-            const shouldUpdateY =
+            const shouldUpdateEnd =
               flushPage ||
               eventVars.cursorControlledStep === endNodeUUID ||
               isNew ||
-              eventVars.selectedSteps.includes(endNodeUUID);
+              (eventVars.selectedSteps.includes(endNodeUUID) &&
+                eventVars.selectedSteps.includes(
+                  eventVars.cursorControlledStep
+                ));
 
-            const shouldUpdate = [shouldUpdateX, shouldUpdateY] as [
+            const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
               boolean,
               boolean
             ];

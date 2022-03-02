@@ -51,7 +51,7 @@ export const StepStatus = ({ value }: { value: string }) => {
 
   const { label, sx } = stepStatusMapping[value];
   return (
-    <Typography component="span" sx={{ ...sx, marginRight: 2 }}>
+    <Typography component="span" sx={{ ...sx, lineHeight: 1, marginRight: 2 }}>
       {label}
     </Typography>
   );

@@ -222,7 +222,8 @@ const PipelineConnectionComponent: React.FC<{
 
   // movedToTop: when associated step is selected
   // shouldRedraw && isNew: user is creating
-  const shouldMoveToTop = isNew || movedToTop || selected;
+  // NOTE: we decided not to move connections lines to top until we have a clear idea about the interaction
+  const shouldMoveToTop = false; // isNew || movedToTop || selected;
 
   // -1 is to ensure connection lines are beneath the step that is on focus (i.e. the top step amongst all).
   // selected means that only THIS connection is selected, we just need to make it on top of everything
