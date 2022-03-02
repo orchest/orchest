@@ -24,6 +24,14 @@ logging.basicConfig(level=logging.DEBUG)
 
 
 def follow_update() -> None:
+    try:
+        _follow_update()
+    except Exception as e:
+        logging.error(e)
+        raise
+
+
+def _follow_update() -> None:
     # Make sure only 1 worker can write to the file. This is just a
     # failsafe in case the number of gunicorn workers is scaled.
     try:
@@ -62,8 +70,12 @@ def follow_update() -> None:
                 log_file.flush()
                 return
             else:  # Pending
-                msg = pod.get("message", "")
-                if "ImagePullBackOff" in msg or "ErrImagePull" in msg:
+                msg = pod.status.message
+                if (
+                    msg is not None
+                    and "ImagePullBackOff" in msg
+                    or "ErrImagePull" in msg
+                ):
                     msg = "Update service image pull failed."
                     logging.info(msg)
                     log_file.write(msg)
