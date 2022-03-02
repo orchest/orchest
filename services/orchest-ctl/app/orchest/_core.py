@@ -1,6 +1,4 @@
-"""Core functionality of orchest-ctl."""
 import atexit
-import json
 import logging
 import os
 import signal
@@ -155,10 +153,10 @@ def _echo_version(
         }
         if deployment_versions is not None:
             data["deployment_versions"] = deployment_versions
-        utils.echo(json.dumps(data, sort_keys=True, indent=2), wrap=False)
+        utils.echo_json(data)
 
 
-def version(ext=False, output_json: bool = False) -> None:
+def version(ext: bool = False, output_json: bool = False) -> None:
     """Returns the version of Orchest.
 
     Args:
@@ -166,6 +164,7 @@ def version(ext=False, output_json: bool = False) -> None:
             including deployment versions.
         output_json: If True echo json instead of text.
     """
+    config.JSON_MODE = output_json
     cluster_version = k8sw.get_orchest_cluster_version()
     if not ext:
         _echo_version(cluster_version, output_json=output_json)
@@ -185,3 +184,58 @@ def version(ext=False, output_json: bool = False) -> None:
             )[1]
 
     _echo_version(cluster_version, depl_versions, output_json)
+
+
+def status(output_json: bool = False):
+    """Gets the status of Orchest.
+
+    Note:
+        This is not race condition free, given that a status changing
+        command could start after our read. K8S_TODO: we could try
+        multiple times if the cluster looks unhealthy, discuss.
+    """
+    config.JSON_MODE = output_json
+    utils.echo("Checking for ongoing status changes...")
+    ongoing_change = k8sw.get_ongoing_status_change()
+    if ongoing_change is not None:
+        status = ongoing_change
+    else:
+        utils.echo("No ongoing status changes, checking if Orchest is running.")
+
+        deployments = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
+        running_deployments = set()
+        stopped_deployments = set()
+        unhealthy_deployments = set()
+        for depl_name, depl in zip(config.ORCHEST_DEPLOYMENTS, deployments):
+            if depl is None:
+                unhealthy_deployments.add(depl_name)
+            else:
+                replicas = depl.spec.replicas
+                if replicas > 0:
+                    running_deployments.add(depl_name)
+                else:
+                    stopped_deployments.add(depl_name)
+                if replicas != depl.status.available_replicas:
+                    unhealthy_deployments.add(depl_name)
+        # Given that there are no ongoing status changes, Orchest can't
+        # have both stopped and running deployments.  Assume that, if at
+        # least 1 deployment is running, the ones which are not are
+        # unhealthy.
+        if stopped_deployments and running_deployments:
+            unhealthy_deployments.update(stopped_deployments)
+        if unhealthy_deployments:
+            status = config.OrchestStatus.UNHEALTHY
+            unhealthy_deployments = sorted(unhealthy_deployments)
+            utils.echo(f"Unhealthy deployments: {unhealthy_deployments}.")
+        elif running_deployments:
+            status = config.OrchestStatus.RUNNING
+        else:
+            status = config.OrchestStatus.STOPPED
+
+    utils.echo(f"Orchest is {status}.")
+
+    if output_json:
+        data = {"status": status}
+        if status == "unhealthy":
+            data["reason"] = {"deployments": unhealthy_deployments}
+        utils.echo_json(data)
