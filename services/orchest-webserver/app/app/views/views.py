@@ -186,8 +186,8 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/async/start-update", methods=["GET"])
-    def spawn_update_server():
+    @app.route("/async/start-update", methods=["POST"])
+    def start_update():
 
         resp = requests.post(
             f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl'
