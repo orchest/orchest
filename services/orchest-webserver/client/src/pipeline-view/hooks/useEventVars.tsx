@@ -43,12 +43,10 @@ export type EventVars = {
     active: boolean;
   };
   error?: string | null;
+  timestamp: number | undefined;
 };
 
 type Action =
-  | {
-      type: "SET_INITIALIZED";
-    }
   | {
       type: "SET_STEPS";
       payload: StepsDict;
@@ -173,6 +171,14 @@ export function removeConnection<
     draft[endNodeUUID].incoming_connections = subsequentStepIncomingConnections;
   });
   return updatedState;
+}
+
+// use timestamp to trigger saving to BE
+function withTimestamp<T extends Record<string, unknown>>(obj: T) {
+  return {
+    ...obj,
+    timestamp: new Date().getTime(),
+  };
 }
 
 export const useEventVars = () => {
@@ -335,9 +341,6 @@ export const useEventVars = () => {
        * ========================== action handlers
        */
       switch (action.type) {
-        case "SET_INITIALIZED": {
-          return { ...state, initialized: true };
-        }
         case "SET_SCALE_FACTOR": {
           return { ...state, scaleFactor: action.payload };
         }
@@ -368,13 +371,13 @@ export const useEventVars = () => {
             draft.steps[newStep.uuid] = newStep;
           });
 
-          return {
+          return withTimestamp({
             ...state,
             ...updated,
             openedStep: newStep.uuid,
             openedMultiStep: false,
             ...selectSteps([newStep.uuid]),
-          };
+          });
         }
 
         case "CREATE_SELECTOR": {
@@ -524,12 +527,12 @@ export const useEventVars = () => {
         }
 
         case "MAKE_CONNECTION": {
-          return makeConnection(action.payload);
+          return withTimestamp(makeConnection(action.payload));
         }
 
         case "REMOVE_CONNECTION": {
           newConnection.current = undefined;
-          return removeConnection(state, action.payload);
+          return withTimestamp(removeConnection(state, action.payload));
         }
 
         case "REMOVE_STEPS": {
@@ -575,7 +578,7 @@ export const useEventVars = () => {
             state
           );
 
-          return produce(updatedState, (draft) => {
+          return produce(withTimestamp(updatedState), (draft) => {
             stepsToDelete.forEach(
               (uuidToDelete) => delete draft.steps[uuidToDelete]
             );
@@ -590,7 +593,7 @@ export const useEventVars = () => {
         case "SAVE_STEP_DETAILS": {
           const { replace, stepChanges, uuid } = action.payload;
           // Mutate step with changes
-          return produce(state, (draft) => {
+          return produce(withTimestamp(state), (draft) => {
             if (replace) {
               // Replace works on the top level keys that are provided
               Object.entries(stepChanges).forEach(([propKey, mutation]) => {
@@ -613,7 +616,7 @@ export const useEventVars = () => {
         }
       }
     },
-    []
+    [setPipelineViewState]
   );
 
   const [eventVars, dispatch] = React.useReducer(memoizedReducer, {
@@ -634,6 +637,7 @@ export const useEventVars = () => {
     scaleFactor: DEFAULT_SCALE_FACTOR,
     connections: [],
     selectedConnection: null,
+    timestamp: undefined,
   });
 
   // this function doesn't trigger update, it simply persists clientX clientY for calculation

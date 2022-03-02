@@ -255,6 +255,7 @@ export const PipelineEditor: React.FC = () => {
           body: formData,
         })
       );
+
       if (response.status === "rejected") {
         setAlert("Error", `Failed to save pipeline. ${response.error.message}`);
         return;
@@ -281,8 +282,8 @@ export const PipelineEditor: React.FC = () => {
     ]
   );
 
-  const savePipeline = React.useCallback(
-    async (steps?: StepsDict) => {
+  const mergeStepsIntoPipelineJson = React.useCallback(
+    (steps?: StepsDict) => {
       if (!pipelineJson) return;
       if (isReadOnly) {
         console.error("savePipeline should be uncallable in readOnly mode.");
@@ -301,9 +302,12 @@ export const PipelineEditor: React.FC = () => {
         setAlert("Error", pipelineValidation.errors[0]);
         return;
       }
-      savePipelineJson(updatedPipelineJson);
+
+      setPipelineJson(updatedPipelineJson);
+
+      return updatedPipelineJson;
     },
-    [isReadOnly, savePipelineJson, setAlert, pipelineJson]
+    [isReadOnly, setAlert, pipelineJson, setPipelineJson]
   );
 
   const onMouseUpPipelineStep = React.useCallback(
@@ -314,9 +318,13 @@ export const PipelineEditor: React.FC = () => {
     [dispatch]
   );
 
-  React.useEffect(() => {
-    if (eventVars.initialized) savePipeline(eventVars.steps);
-  }, [savePipeline, eventVars.steps, eventVars.initialized]);
+  const saveSteps = React.useCallback(
+    (steps: StepsDict) => {
+      const newPipelineJson = mergeStepsIntoPipelineJson(steps);
+      savePipelineJson(newPipelineJson);
+    },
+    [mergeStepsIntoPipelineJson, savePipelineJson]
+  );
 
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
@@ -414,10 +422,10 @@ export const PipelineEditor: React.FC = () => {
       dispatch({ type: "REMOVE_CONNECTION", payload: connection });
       // if it's a aborted new connection, we don't need to save it
       if (connection.endNodeUUID) {
-        savePipeline(eventVars.steps);
+        saveSteps(eventVars.steps);
       }
     },
-    [dispatch, savePipeline, eventVars.steps]
+    [dispatch, saveSteps, eventVars.steps]
   );
 
   const createNextStep = async () => {
@@ -467,7 +475,6 @@ export const PipelineEditor: React.FC = () => {
           },
         },
       });
-      savePipeline(eventVars.steps);
     } catch (error) {
       setAlert("Error", `Unable to create a new step. ${error}`);
     }
@@ -495,7 +502,7 @@ export const PipelineEditor: React.FC = () => {
             dispatch({ type: "SET_OPENED_STEP", payload: undefined });
             removeSteps([...eventVars.selectedSteps]);
             setIsDeletingSteps(false);
-            savePipeline(eventVars.steps);
+            saveSteps(eventVars.steps);
             resolve(true);
             return true;
           },
@@ -512,7 +519,7 @@ export const PipelineEditor: React.FC = () => {
     eventVars.selectedSteps,
     eventVars.steps,
     removeSteps,
-    savePipeline,
+    saveSteps,
     setConfirm,
   ]);
 
@@ -523,7 +530,7 @@ export const PipelineEditor: React.FC = () => {
       "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?",
       async (resolve) => {
         removeSteps([uuid]);
-        savePipeline(eventVars.steps);
+        saveSteps(eventVars.steps);
         resolve(true);
         return true;
       }
@@ -649,7 +656,7 @@ export const PipelineEditor: React.FC = () => {
       return;
     }
 
-    savePipeline(eventVars.steps);
+    saveSteps(eventVars.steps);
     setPendingRuns({ uuids: [...uuids], type });
   };
 
@@ -668,7 +675,7 @@ export const PipelineEditor: React.FC = () => {
         replace,
       },
     });
-    savePipeline(eventVars.steps);
+    saveSteps(eventVars.steps);
   };
 
   const enableHotKeys = React.useCallback(() => {
@@ -861,6 +868,11 @@ export const PipelineEditor: React.FC = () => {
 
   const servicesButtonRef = React.useRef<HTMLButtonElement>();
   const flushPage = useHasChanged(hash.current);
+  const shouldSave = useHasChanged(eventVars.timestamp);
+
+  React.useEffect(() => {
+    if (hasValue(eventVars.timestamp) && shouldSave) saveSteps(eventVars.steps);
+  }, [saveSteps, eventVars.timestamp, eventVars.steps, shouldSave]);
 
   return (
     <div className="pipeline-view">
