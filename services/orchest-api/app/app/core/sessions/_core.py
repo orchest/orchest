@@ -6,7 +6,7 @@ import requests
 
 from _orchest.internals import config as _config
 from app import errors, utils
-from app.connections import k8s_apps_api, k8s_core_api, k8s_rbac_api
+from app.connections import k8s_apps_api, k8s_core_api, k8s_networking_api, k8s_rbac_api
 from app.core.sessions import _manifests
 from app.types import NonInteractiveSessionConfig, SessionConfig, SessionType
 
@@ -52,6 +52,7 @@ def launch(
     # Internal Orchest session services.
     orchest_session_service_k8s_deployment_manifests = []
     orchest_session_service_k8s_service_manifests = []
+    orchest_session_service_k8s_ingress_manifests = []
     session_rbac_roles = []
     session_rbac_service_accounts = []
     session_rbac_rolebindings = []
@@ -96,11 +97,16 @@ def launch(
         )
         orchest_session_service_k8s_deployment_manifests.append(depl)
         orchest_session_service_k8s_service_manifests.append(serv)
-        depl, serv = _manifests._get_jupyter_server_deployment_service_manifest(
+        (
+            depl,
+            serv,
+            ingress,
+        ) = _manifests._get_jupyter_server_deployment_service_manifest(
             session_uuid, session_config, session_type
         )
         orchest_session_service_k8s_deployment_manifests.append(depl)
         orchest_session_service_k8s_service_manifests.append(serv)
+        orchest_session_service_k8s_ingress_manifests.append(ingress)
 
     user_session_service_k8s_deployment_manifests = []
     user_session_service_k8s_service_manifests = []
@@ -145,6 +151,14 @@ def launch(
     for manifest in orchest_session_service_k8s_service_manifests:
         logger.info(f'Creating service {manifest["metadata"]["name"]}')
         k8s_core_api.create_namespaced_service(
+            ns,
+            manifest,
+        )
+
+    logger.info("Creating Orchest session services k8s ingresses.")
+    for manifest in orchest_session_service_k8s_ingress_manifests:
+        logger.info(f'Creating ingress {manifest["metadata"]["name"]}')
+        k8s_networking_api.create_namespaced_ingress(
             ns,
             manifest,
         )
@@ -205,6 +219,11 @@ def cleanup_resources(session_uuid: str, wait_for_completion: bool = False):
             "services",
             k8s_core_api.list_namespaced_service,
             k8s_core_api.delete_namespaced_service,
+        ),
+        (
+            "ingresses",
+            k8s_networking_api.list_namespaced_ingress,
+            k8s_networking_api.delete_namespaced_ingress,
         ),
         # It's important that this stays after deployments and services
         # to avoid dangling kernel pods started by Jupyter EG.
