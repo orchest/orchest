@@ -9,7 +9,7 @@ from app.config import CONFIG_CLASS
 def register_views(app):
     @app.route("/update-sidecar/heartbeat", methods=["GET"])
     def heartbeat():
-        return "", 200
+        return {}, 200
 
     @app.route("/update-sidecar/update-status", methods=["GET"])
     def update_status():
