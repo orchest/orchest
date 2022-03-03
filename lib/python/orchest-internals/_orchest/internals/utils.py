@@ -5,15 +5,12 @@ import logging
 import os
 import re
 import subprocess
-import time
 import uuid
 from collections import ChainMap
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Tuple
 
-import docker
 import requests
-from docker.types import DeviceRequest
 from werkzeug.serving import is_running_from_reloader as _irfr
 
 from _orchest.internals import config as _config
@@ -324,72 +321,6 @@ class GlobalOrchestConfig:
             )
 
 
-def get_mount(source, target, form="docker-sdk"):
-    if form == "docker-sdk":
-        return {source: {"bind": target, "mode": "rw"}}
-    elif form == "docker-engine":
-        return f"{source}:{target}"
-
-
-def run_orchest_ctl(client, command):
-
-    return client.containers.run(
-        "orchest/orchest-ctl:latest",
-        command,
-        name="orchest-ctl-" + str(uuid.uuid4()),
-        detach=True,
-        auto_remove=True,
-        mounts=[
-            docker.types.Mount(
-                source="/var/run/docker.sock",
-                target="/var/run/docker.sock",
-                type="bind",
-            ),
-            docker.types.Mount(
-                source=os.environ.get("HOST_REPO_DIR"),
-                target="/orchest-host",
-                type="bind",
-            ),
-            docker.types.Mount(
-                source=os.environ.get("HOST_CONFIG_DIR"),
-                target="/config",
-                type="bind",
-            ),
-        ],
-        environment={
-            "HOST_CONFIG_DIR": os.environ.get("HOST_CONFIG_DIR"),
-            "HOST_REPO_DIR": os.environ.get("HOST_REPO_DIR"),
-            "HOST_USER_DIR": os.environ.get("HOST_USER_DIR"),
-            "HOST_OS": os.environ.get("HOST_OS"),
-        },
-    )
-
-
-def get_device_requests(environment_uuid, project_uuid, form="docker-sdk"):
-
-    device_requests = []
-
-    capabilities = get_environment_capabilities(environment_uuid, project_uuid)
-
-    # Do not request GPU capabilities if the instance can't support it,
-    # it will result in an error.
-    if not _config.GPU_ENABLED_INSTANCE:
-        capabilities = [
-            c for c in capabilities if c not in ["gpu", "utility", "compute"]
-        ]
-
-    if len(capabilities) > 0:
-
-        if form == "docker-sdk":
-            device_requests.append(DeviceRequest(count=-1, capabilities=[capabilities]))
-        elif form == "docker-engine":
-            device_requests.append(
-                {"Driver": "nvidia", "Count": -1, "Capabilities": [capabilities]}
-            )
-
-    return device_requests
-
-
 def get_environment_capabilities(environment_uuid, project_uuid):
 
     capabilities = []
@@ -458,22 +389,6 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     return volumes, volume_mounts
 
 
-def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
-
-    for _ in range(attempt_count):
-        try:
-            return docker_client.images.list(*args, **kwargs)
-        except docker.errors.ImageNotFound as e:
-            logging.debug(
-                "Internal race condition triggered in docker_client.images.list(): %s"
-                % e
-            )
-            return []
-        except Exception as e:
-            logging.debug("Failed to call docker_client.images.list(): %s" % e)
-            return []
-
-
 def is_running_from_reloader():
     """Is this thread running from a werkzeug reloader.
 
@@ -487,19 +402,6 @@ def is_running_from_reloader():
 
     """
     return _irfr()
-
-
-def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
-
-    for _ in range(attempt_count):
-        try:
-            return docker_client.images.remove(*args, **kwargs)
-        except docker.errors.ImageNotFound as e:
-            logging.debug("Failed to remove image: %s" % e)
-            return
-        except Exception as e:
-            logging.debug("Failed to remove image: %s" % e)
-        time.sleep(1)
 
 
 def are_environment_variables_valid(env_variables: Dict[str, str]) -> bool:
@@ -570,39 +472,6 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
             for sname, service in services.items()
         ]
     )
-
-
-def docker_has_gpu_capabilities(
-    client: Optional[docker.client.DockerClient] = None,
-) -> bool:
-    """Checks if GPU capabilities can be requested for containers."""
-
-    if client is None:
-        client = docker.client.DockerClient.from_env()
-
-    other_container_args = {}
-    other_container_args["remove"] = True
-    other_container_args["command"] = "bash"
-    other_container_args["name"] = f"orchest-gpu-test-{str(uuid.uuid1())}"
-    device_requests = []
-    capabilities = ["gpu", "utility", "compute"]
-    device_requests.append(DeviceRequest(count=-1, capabilities=[capabilities]))
-    try:
-        client.containers.run(
-            "python:3.8-slim",
-            device_requests=device_requests,
-            **other_container_args,
-        )
-    except docker.errors.APIError:
-        # If the error is caused by the device driver "nvidia" not being
-        # there the container will not be auto removed.
-        try:
-            c = client.containers.get(other_container_args["name"])
-            c.remove(force=True)
-        except (docker.errors.NotFound, docker.errors.APIError):
-            pass
-        return False
-    return True
 
 
 def rmtree(path, ignore_errors=False) -> None:
