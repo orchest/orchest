@@ -23,9 +23,9 @@ class IdleCheck(Resource):
     )
     def post(self):
         token = secrets.token_hex(20)
+        update_pod_manifest = _get_update_pod_manifest()
         # K8S_TODO: query update-info endpoint once we use versioned
-        # images.
-        update_pod_manifest = _get_update_pod_manifest("latest")
+        # images, because that's the version needed for the sidecar.
         sidecar_manifest = _get_update_sidecar_manifest(
             "latest", update_pod_manifest["metadata"]["name"], token
         )
@@ -83,22 +83,30 @@ def _get_update_sidecar_manifest(
     return manifest
 
 
-def _get_update_pod_manifest(update_to_version: str) -> dict:
+def _get_update_pod_manifest() -> dict:
+    # The update pod is of the same version of the cluster, it will stop
+    # the cluster then spawn an hidden-update pod which will update to
+    # the desired version.
+    # K8S_TODO: enable once we have versioned images.
+    # current_version = k8s_core_api.read_namespace("orchest").metadata.labels.get(
+    #     "version"
+    # )
+    current_version = "latest"
     with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
         manifest = yaml.safe_load(f)
 
     manifest["metadata"].pop("generateName", None)
     manifest["metadata"]["name"] = f"orchest-ctl-{uuid.uuid4()}"
     labels = manifest["metadata"]["labels"]
-    labels["version"] = update_to_version
+    labels["version"] = current_version
     labels["command"] = "update"
 
     containers = manifest["spec"]["containers"]
     orchest_ctl_container = containers[0]
-    orchest_ctl_container["image"] = f"orchest/orchest-ctl:{update_to_version}"
+    orchest_ctl_container["image"] = f"orchest/orchest-ctl:{current_version}"
     for env_var in orchest_ctl_container["env"]:
         if env_var["name"] == "ORCHEST_VERSION":
-            env_var["value"] = update_to_version
+            env_var["value"] = current_version
             break
     orchest_ctl_container["command"] = ["/bin/bash", "-c"]
     # Make sure the sidecar is online before updating.
