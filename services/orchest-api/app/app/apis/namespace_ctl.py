@@ -25,12 +25,16 @@ class IdleCheck(Resource):
         token = secrets.token_hex(20)
         # K8S_TODO: query update-info endpoint once we use versioned
         # images.
-        manifest = _get_update_pod_manifest("latest")
-        k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, manifest)
-        manifest = _get_update_sidecar_manifest(
-            "latest", manifest["metadata"]["name"], token
+        update_pod_manifest = _get_update_pod_manifest("latest")
+        sidecar_manifest = _get_update_sidecar_manifest(
+            "latest", update_pod_manifest["metadata"]["name"], token
         )
-        k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, manifest)
+        # Create the sidecar first to avoid the risk of the update_pod
+        # shutting down the orchest-api before that happens.
+        k8s_core_api.create_namespaced_pod(_config.ORCHEST_NAMESPACE, sidecar_manifest)
+        k8s_core_api.create_namespaced_pod(
+            _config.ORCHEST_NAMESPACE, update_pod_manifest
+        )
 
         data = {
             "token": token,
