@@ -509,7 +509,8 @@ export const PipelineEditor: React.FC = () => {
     });
 
     metadataPositions.current = {};
-  }, [metadataPositions, dispatch]);
+    setPipelineJson((value) => value, true); // ensure that connections are re-rendered against the final positions of the steps
+  }, [metadataPositions, setPipelineJson, dispatch]);
 
   const runSelectedSteps = () => {
     runStepUUIDs(eventVars.selectedSteps, "selection");
@@ -701,6 +702,7 @@ export const PipelineEditor: React.FC = () => {
     if (newConnection.current) {
       removeConnection(newConnection.current);
     }
+    savePositions();
   };
 
   const onMouseMoveViewport = (e: React.MouseEvent<HTMLDivElement>) => {

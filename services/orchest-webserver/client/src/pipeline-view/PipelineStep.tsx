@@ -26,7 +26,7 @@ export type ExecutionState = {
   status: PipelineStepStatus;
 };
 
-const stepStatusMapping: Record<string, React.ReactNode> = {
+const stepStatusMapping: Record<string, JSX.Element> = {
   SUCCESS: <span className="success">✓ </span>,
   FAILURE: <span className="failure">✗ </span>,
   ABORTED: <span className="aborted">❗ </span>,
