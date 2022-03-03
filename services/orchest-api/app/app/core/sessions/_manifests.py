@@ -388,7 +388,7 @@ def _get_jupyter_server_deployment_service_manifest(
     session_uuid: str,
     session_config: SessionConfig,
     session_type: SessionType,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
@@ -488,7 +488,36 @@ def _get_jupyter_server_deployment_service_manifest(
             "ports": [{"port": 80, "targetPort": 8888}],
         },
     }
-    return deployment_manifest, service_manifest
+
+    ingress_manifest = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": metadata,
+        "spec": {
+            "ingressClassName": "nginx",
+            "rules": [
+                {
+                    "host": _config.ORCHEST_FQDN,
+                    "http": {
+                        "paths": [
+                            {
+                                "backend": {
+                                    "service": {
+                                        "name": f"jupyter-server-{session_uuid}",
+                                        "port": {"number": 80},
+                                    }
+                                },
+                                "path": f"/jupyter-server-{session_uuid}",
+                                "pathType": "Prefix",
+                            }
+                        ]
+                    },
+                }
+            ],
+        },
+    }
+
+    return deployment_manifest, service_manifest, ingress_manifest
 
 
 def _get_jupyter_enterprise_gateway_rbac_manifests(
