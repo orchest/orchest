@@ -76,12 +76,20 @@ def _follow_update() -> None:
             if phase in ["Failed"]:
                 log_file.write("Update failed. Try to restart Orchest.\n")
                 log_file.flush()
+                k8s_core_api.delete_namespaced_pod(
+                    CONFIG_CLASS.UPDATE_POD_NAME,
+                    namespace=_config.ORCHEST_NAMESPACE,
+                )
                 return
             elif phase in ["Running", "Succeeded"]:
                 break
             elif phase == "Unknown":
                 log_file.write("Unknown update issue. Try to restart Orchest.\n")
                 log_file.flush()
+                k8s_core_api.delete_namespaced_pod(
+                    CONFIG_CLASS.UPDATE_POD_NAME,
+                    namespace=_config.ORCHEST_NAMESPACE,
+                )
                 return
             else:  # Pending
                 msg = pod.status.message
@@ -100,10 +108,17 @@ def _follow_update() -> None:
                     msg is not None
                     and ("ImagePullBackOff" in msg or "ErrImagePull" in msg)
                 ):
-                    msg = "Update service image pull failed."
+                    msg = (
+                        "Update service image pull failed, aborting the update "
+                        "process."
+                    )
                     logging.info(msg)
                     log_file.write(msg + "\n")
                     log_file.flush()
+                    k8s_core_api.delete_namespaced_pod(
+                        CONFIG_CLASS.UPDATE_POD_NAME,
+                        namespace=_config.ORCHEST_NAMESPACE,
+                    )
                     return
 
             log_file.write("Waiting for Update service to be ready.\n")
