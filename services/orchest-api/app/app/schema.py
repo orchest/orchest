@@ -771,8 +771,8 @@ idleness_check_result = Model(
     },
 )
 
-update_info = Model(
-    "UpdateInfo",
+update_sidecar_info = Model(
+    "UpdateSidecarInfo",
     {
         "token": fields.String(
             required=True,

@@ -157,7 +157,7 @@ def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
 
     Returns:
         None if no instance of orchest-ctl running with state changing
-        commands is not running. That instance pod otherwise.
+        commands is running. That instance pod otherwise.
 
     """
     pods = k8s_core_api.list_namespaced_pod(

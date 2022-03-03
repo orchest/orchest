@@ -14,10 +14,10 @@ api = utils.register_schema(api)
 
 
 @api.route("/start-update")
-class IdleCheck(Resource):
+class StartUpdate(Resource):
     @api.doc("orchest_api_start_update")
     @api.marshal_with(
-        schema.update_info,
+        schema.update_sidecar_info,
         code=201,
         description="Update Orchest.",
     )
