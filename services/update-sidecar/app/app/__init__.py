@@ -85,8 +85,20 @@ def _follow_update() -> None:
                 return
             else:  # Pending
                 msg = pod.status.message
-                if msg is not None and (
-                    "ImagePullBackOff" in msg or "ErrImagePull" in msg
+
+                # Every field could be missing, get's really ugly to
+                # make this safe.
+                try:
+                    container_status_pull = any(
+                        s.state.waiting.reason in ("ErrImagePull", "ImagePullBackOff")
+                        for s in pod.status.container_statuses
+                    )
+                except Exception:
+                    container_status_pull = False
+
+                if container_status_pull or (
+                    msg is not None
+                    and ("ImagePullBackOff" in msg or "ErrImagePull" in msg)
                 ):
                     msg = "Update service image pull failed."
                     logging.info(msg)
