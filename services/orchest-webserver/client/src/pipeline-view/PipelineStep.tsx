@@ -7,9 +7,7 @@ import {
   PipelineStepState,
   PipelineStepStatus,
 } from "@/types";
-import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
@@ -28,33 +26,15 @@ export type ExecutionState = {
   status: PipelineStepStatus;
 };
 
-export const stepStatusMapping: Record<
-  string,
-  { label: string; sx: SxProps<Theme> }
-> = {
-  SUCCESS: {
-    label: "✓",
-    sx: { color: (theme) => theme.palette.success.light },
-  },
-  FAILURE: {
-    label: "✗",
-    sx: { color: (theme) => theme.palette.error.light },
-  },
-  ABORTED: {
-    label: "❗",
-    sx: { color: (theme) => theme.palette.warning.light },
-  },
+const stepStatusMapping: Record<string, React.ReactNode> = {
+  SUCCESS: <span className="success">✓ </span>,
+  FAILURE: <span className="failure">✗ </span>,
+  ABORTED: <span className="aborted">❗ </span>,
 };
 
 export const StepStatus = ({ value }: { value: string }) => {
   if (!stepStatusMapping[value]) return null;
-
-  const { label, sx } = stepStatusMapping[value];
-  return (
-    <Typography component="span" sx={{ ...sx, lineHeight: 1, marginRight: 2 }}>
-      {label}
-    </Typography>
-  );
+  return stepStatusMapping[value];
 };
 
 const formatSeconds = (seconds: number) => {
