@@ -477,7 +477,7 @@ def _step_to_workflow_manifest_task(
                     "name": "image",
                     "value": registry_ip
                     + "/"
-                    + run_config["env_uuid_docker_id_mappings"][
+                    + run_config["env_uuid_to_image_mappings"][
                         step.properties["environment"]
                     ],
                 },

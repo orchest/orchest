@@ -1,4 +1,3 @@
-from docker import errors
 from flask import request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource, marshal
@@ -8,6 +7,7 @@ from sqlalchemy.orm import lazyload
 import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app import errors as self_errors
 from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
@@ -162,17 +162,17 @@ class CreateInteractiveSession(TwoPhaseFunction):
             if img.startswith(prefix):
                 env_as_services.add(img.replace(prefix, ""))
         try:
-            environments.get_env_uuids_to_docker_id_mappings(
+            environments.get_env_uuids_to_image_id_mappings(
                 session_config["project_uuid"], env_as_services
             )
-        except errors.ImageNotFound as e:
-            raise errors.ImageNotFound(
+        except self_errors.ImageNotFound as e:
+            raise self_errors.ImageNotFound(
                 "Pipeline services were referencing environments for "
                 f"which an image does not exist, {e}."
             )
-        except errors.PipelineDefinitionNotValid:
+        except self_errors.PipelineDefinitionNotValid:
             msg = "Please make sure every pipeline step is assigned an environment."
-            raise errors.PipelineDefinitionNotValid(msg)
+            raise self_errors.PipelineDefinitionNotValid(msg)
 
         interactive_session = {
             "project_uuid": session_config["project_uuid"],
@@ -224,14 +224,14 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
                 # Lock the orchest environment images that are used
                 # as services.
-                env_uuid_docker_id_mappings = (
+                env_uuid_image_id_mappings = (
                     environments.lock_environment_images_for_session(
                         project_uuid, pipeline_uuid, env_as_services
                     )
                 )
                 session_config[
-                    "env_uuid_docker_id_mappings"
-                ] = env_uuid_docker_id_mappings
+                    "env_uuid_to_image_mappings"
+                ] = env_uuid_image_id_mappings
 
                 sessions.launch(
                     session_uuid,

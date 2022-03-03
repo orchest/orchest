@@ -1,25 +1,19 @@
 from typing import Dict, List, Set
 
-from docker import errors
-
 import app.models as models
 from _orchest.internals import config as _config
 from app import errors as self_errors
-from app.connections import db, docker_client
+from app.connections import db
 
 
-def get_environment_image_docker_id(name_or_id: str):
+def get_environment_image_id(name_or_id: str):
     # K8S_TODO: fix this, needs registry.
     return None
-    try:
-        return docker_client.images.get(name_or_id).id
-    except errors.ImageNotFound:
-        return None
 
 
 def get_env_uuids_missing_image(project_uuid: str, env_uuids: str) -> List[str]:
-    env_uuid_docker_id_mappings = {
-        env_uuid: get_environment_image_docker_id(
+    env_uuid_image_id_mappings = {
+        env_uuid: get_environment_image_id(
             _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=project_uuid, environment_uuid=env_uuid
             )
@@ -28,16 +22,16 @@ def get_env_uuids_missing_image(project_uuid: str, env_uuids: str) -> List[str]:
     }
     envs_missing_image = [
         env_uuid
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-        if docker_id is None
+        for env_uuid, image_id in env_uuid_image_id_mappings.items()
+        if image_id is None
     ]
     return envs_missing_image
 
 
-def get_env_uuids_to_docker_id_mappings(
+def get_env_uuids_to_image_id_mappings(
     project_uuid: str, env_uuids: Set[str]
 ) -> Dict[str, str]:
-    """Map each environment uuid to its current image docker id.
+    """Map each environment uuid to its current image id.
 
     Args:
         project_uuid: UUID of the project to which the environments
@@ -45,41 +39,35 @@ def get_env_uuids_to_docker_id_mappings(
         env_uuids: Set of environment uuids.
 
     Returns:
-        Dict[env_uuid] = docker_id
+        Dict[env_uuid] = image_id
 
     """
-    env_uuid_docker_id_mappings = {}
+    env_uuid_image_id_mappings = {}
     for env_uuid in env_uuids:
         if env_uuid == "":
             raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
 
         # K8S_TODO: fix.
-        #
-        env_uuid_docker_id_mappings[env_uuid] = _config.ENVIRONMENT_IMAGE_NAME.format(
+        env_uuid_image_id_mappings[env_uuid] = _config.ENVIRONMENT_IMAGE_NAME.format(
             project_uuid=project_uuid, environment_uuid=env_uuid
         )
-        # env_uuid_docker_id_mappings[env_uuid] =
-        # get_environment_image_docker_id(
-        #     _config.ENVIRONMENT_IMAGE_NAME.format(
-        #         project_uuid=project_uuid, environment_uuid=env_uuid
-        #     )
-        # )
 
     envs_missing_image = [
         env_uuid
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
-        if docker_id is None
+        for env_uuid, image_id in env_uuid_image_id_mappings.items()
+        if image_id is None
     ]
     if len(envs_missing_image) > 0:
-        raise errors.ImageNotFound(", ".join(envs_missing_image))
+        # Reference for later K8S_TODO.
+        raise self_errors.ImageNotFound(", ".join(envs_missing_image))
 
-    return env_uuid_docker_id_mappings
+    return env_uuid_image_id_mappings
 
 
 def lock_environment_images_for_run(
     run_id: str, project_uuid: str, environment_uuids: Set[str]
 ) -> Dict[str, str]:
-    """Retrieve the docker ids to use for a pipeline run.
+    """Retrieve the image ids to use for a pipeline run.
 
     Locks a set of environment images by making it so that they will
     not be deleted by the attempt cleanup that follows an environment
@@ -90,7 +78,7 @@ def lock_environment_images_for_run(
     PENDING or STARTED.
 
     In order to avoid a race condition that happens between reading the
-    docker ids of the used environment and actually writing to db, some
+    image ids of the used environment and actually writing to db, some
     logic needs to take place, such logic constitutes the bulk of this
     function.
 
@@ -100,7 +88,7 @@ def lock_environment_images_for_run(
     from deletion as long as they are needed.
 
     About the race condition:
-        between the read of the images docker ids and the commit to the
+        between the read of the images image ids and the commit to the
         db of the mappings a new environment could have been built, an
         image could have become nameless and be subsequently removed
         because the image mappings were not in the db yet, and we would
@@ -115,30 +103,29 @@ def lock_environment_images_for_run(
         environment_uuids:
 
     Returns:
-        A dictionary mapping environment uuids to the docker id
-        of the image, so that the run steps can make use of those
-        images knowingly that the images won't be deleted, even
-        if they become outdated.
+        A dictionary mapping environment uuids to the id of the image,
+        so that the run steps can make use of those images knowingly
+        that the images won't be deleted, even if they become outdated.
 
     """
     model = models.PipelineRunImageMapping
 
-    # Read the current docker image ids of each env.
-    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
+    # Read the current image ids of each env.
+    env_uuid_image_id_mappings = get_env_uuids_to_image_id_mappings(
         project_uuid, environment_uuids
     )
 
-    # Write to the db the image_uuids and docker ids the run uses this
+    # Write to the db the image_uuids and image ids the run uses this
     # is our first lock attempt.
     run_image_mappings = [
         model(
             **{
                 "run_uuid": run_id,
                 "orchest_environment_uuid": env_uuid,
-                "docker_img_id": docker_id,
+                "docker_img_id": image_d,
             }
         )
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+        for env_uuid, image_d in env_uuid_image_id_mappings.items()
     ]
     db.session.bulk_save_objects(run_image_mappings)
     # Note that the commit(s) in this function are necessary to be able
@@ -150,43 +137,43 @@ def lock_environment_images_for_run(
     # we are using has become nameless and it is outdated, and might be
     # deleted if we did not lock in time, i.e. if we got on the base
     # side of the race condition.
-    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+    env_uuid_image_id_mappings2 = get_env_uuids_to_image_id_mappings(
         project_uuid, environment_uuids
     )
-    while set(env_uuid_docker_id_mappings.values()) != set(
-        env_uuid_docker_id_mappings2.values()
+    while set(env_uuid_image_id_mappings.values()) != set(
+        env_uuid_image_id_mappings2.values()
     ):
         # Get which environment images have been updated between the
-        # moment we read the docker id and the commit to db, this is a
+        # moment we read the image id and the commit to db, this is a
         # lock attempt.
-        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
-            env_uuid_docker_id_mappings.items()
+        mappings_to_update = set(env_uuid_image_id_mappings2.items()) - set(
+            env_uuid_image_id_mappings.items()
         )
-        for env_uuid, docker_id in mappings_to_update:
+        for env_uuid, image_id in mappings_to_update:
             model.query.filter(
                 # Same task.
                 model.run_uuid == run_id,
                 # Same environment.
                 model.orchest_environment_uuid == env_uuid
-                # Update docker id to which the run will point to.
-            ).update({"docker_img_id": docker_id})
+                # Update image id to which the run will point to.
+            ).update({"docker_img_id": image_id})
         db.session.commit()
 
-        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
+        env_uuid_image_id_mappings = env_uuid_image_id_mappings2
 
         # The next time we check for equality, if they are equal that
         # means that we know that we are pointing to images that won't
         # be deleted because the run is already in the db as PENDING.
-        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+        env_uuid_image_id_mappings2 = get_env_uuids_to_image_id_mappings(
             project_uuid, environment_uuids
         )
-    return env_uuid_docker_id_mappings
+    return env_uuid_image_id_mappings
 
 
 def lock_environment_images_for_session(
     project_uuid: str, pipeline_uuid: str, environment_uuids: Set[str]
 ) -> Dict[str, str]:
-    """Retrieve the docker ids to use for the services of a session.
+    """Retrieve the image ids to use for the services of a session.
 
     See lock_environment_images_for_run for more details.
     This is only necessary for services which used orchest environments.
@@ -197,15 +184,14 @@ def lock_environment_images_for_session(
         environment_uuids:
 
     Returns:
-        A dictionary mapping environment uuids to the docker id of the
-        image, so that the session can make use of those images
-        knowingly that the images won't be deleted, even if they become
-        outdated.
+        A dictionary mapping environment uuids to the id of the image,
+        so that the session can make use of those images knowingly that
+        the images won't be deleted, even if they become outdated.
 
     """
     model = models.InteractiveSessionImageMapping
 
-    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
+    env_uuid_image_id_mappings = get_env_uuids_to_image_id_mappings(
         project_uuid, environment_uuids
     )
 
@@ -215,43 +201,43 @@ def lock_environment_images_for_session(
                 "project_uuid": project_uuid,
                 "pipeline_uuid": pipeline_uuid,
                 "orchest_environment_uuid": env_uuid,
-                "docker_img_id": docker_id,
+                "docker_img_id": image_id,
             }
         )
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+        for env_uuid, image_id in env_uuid_image_id_mappings.items()
     ]
     db.session.bulk_save_objects(session_image_mappings)
     db.session.commit()
 
-    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+    env_uuid_image_id_mappings2 = get_env_uuids_to_image_id_mappings(
         project_uuid, environment_uuids
     )
-    while set(env_uuid_docker_id_mappings.values()) != set(
-        env_uuid_docker_id_mappings2.values()
+    while set(env_uuid_image_id_mappings.values()) != set(
+        env_uuid_image_id_mappings2.values()
     ):
-        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
-            env_uuid_docker_id_mappings.items()
+        mappings_to_update = set(env_uuid_image_id_mappings2.items()) - set(
+            env_uuid_image_id_mappings.items()
         )
-        for env_uuid, docker_id in mappings_to_update:
+        for env_uuid, image_id in mappings_to_update:
             model.query.filter(
                 model.project_uuid == project_uuid,
                 model.pipeline_uuid == pipeline_uuid,
                 model.orchest_environment_uuid == env_uuid,
-            ).update({"docker_img_id": docker_id})
+            ).update({"docker_img_id": image_id})
         db.session.commit()
 
-        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
+        env_uuid_image_id_mappings = env_uuid_image_id_mappings2
 
-        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+        env_uuid_image_id_mappings2 = get_env_uuids_to_image_id_mappings(
             project_uuid, environment_uuids
         )
-    return env_uuid_docker_id_mappings
+    return env_uuid_image_id_mappings
 
 
 def lock_environment_images_for_job(
     job_uuid: str, project_uuid: str, environment_uuids: Set[str]
 ) -> Dict[str, str]:
-    """Retrieve the docker ids to use for the runs of a job.
+    """Retrieve the image ids to use for the runs of a job.
 
     See lock_environment_images_for_run for more details.
 
@@ -261,14 +247,14 @@ def lock_environment_images_for_job(
         environment_uuids:
 
     Returns:
-        A dictionary mapping environment uuids to the docker id of the
-        image, so that a job can make use of those images knowingly that
-        the images won't be deleted, even if they become outdated.
+        A dictionary mapping environment uuids to the id of the image,
+        so that a job can make use of those images knowingly that the
+        images won't be deleted, even if they become outdated.
 
     """
     model = models.JobImageMapping
 
-    env_uuid_docker_id_mappings = get_env_uuids_to_docker_id_mappings(
+    env_uuid_image_id_mappings = get_env_uuids_to_image_id_mappings(
         project_uuid, environment_uuids
     )
 
@@ -277,36 +263,36 @@ def lock_environment_images_for_job(
             **{
                 "job_uuid": job_uuid,
                 "orchest_environment_uuid": env_uuid,
-                "docker_img_id": docker_id,
+                "docker_img_id": image_id,
             }
         )
-        for env_uuid, docker_id in env_uuid_docker_id_mappings.items()
+        for env_uuid, image_id in env_uuid_image_id_mappings.items()
     ]
     db.session.bulk_save_objects(job_image_mappings)
     db.session.commit()
 
-    env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+    env_uuid_image_id_mappings2 = get_env_uuids_to_image_id_mappings(
         project_uuid, environment_uuids
     )
-    while set(env_uuid_docker_id_mappings.values()) != set(
-        env_uuid_docker_id_mappings2.values()
+    while set(env_uuid_image_id_mappings.values()) != set(
+        env_uuid_image_id_mappings2.values()
     ):
-        mappings_to_update = set(env_uuid_docker_id_mappings2.items()) - set(
-            env_uuid_docker_id_mappings.items()
+        mappings_to_update = set(env_uuid_image_id_mappings2.items()) - set(
+            env_uuid_image_id_mappings.items()
         )
-        for env_uuid, docker_id in mappings_to_update:
+        for env_uuid, image_id in mappings_to_update:
             model.query.filter(
                 model.job_uuid == job_uuid,
                 model.orchest_environment_uuid == env_uuid,
-            ).update({"docker_img_id": docker_id})
+            ).update({"docker_img_id": image_id})
         db.session.commit()
 
-        env_uuid_docker_id_mappings = env_uuid_docker_id_mappings2
+        env_uuid_image_id_mappings = env_uuid_image_id_mappings2
 
-        env_uuid_docker_id_mappings2 = get_env_uuids_to_docker_id_mappings(
+        env_uuid_image_id_mappings2 = get_env_uuids_to_image_id_mappings(
             project_uuid, environment_uuids
         )
-    return env_uuid_docker_id_mappings
+    return env_uuid_image_id_mappings
 
 
 def interactive_runs_using_environment(project_uuid: str, env_uuid: str):

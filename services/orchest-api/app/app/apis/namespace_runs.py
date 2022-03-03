@@ -6,7 +6,6 @@ import uuid
 from typing import Any, Dict, Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
-from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import nullslast
@@ -273,22 +272,12 @@ class CreateInteractiveRun(TwoPhaseFunction):
         env_variables: Dict[str, Any],
         **kwargs,
     ):
-        # Get docker ids of images to use and make it so that the images
-        # will not be deleted in case they become outdated by an
-        # environment rebuild.
         try:
-            env_uuid_docker_id_mappings = environments.lock_environment_images_for_run(
+            env_uuid_image_id_mappings = environments.lock_environment_images_for_run(
                 task_id,
                 project_uuid,
                 pipeline.get_environments(),
             )
-        except errors.ImageNotFound as e:
-            msg = (
-                "Please make sure all pipeline steps are assigned an"
-                " environment that exists in the project. The following"
-                f" environments do not exist:\n\n {e}."
-            )
-            raise errors.ImageNotFound(msg)
         except self_errors.PipelineDefinitionNotValid:
             msg = "Please make sure every pipeline step is assigned an environment."
             raise self_errors.PipelineDefinitionNotValid(msg)
@@ -296,7 +285,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
         celery = make_celery(current_app)
-        run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+        run_config["env_uuid_to_image_mappings"] = env_uuid_image_id_mappings
         run_config["user_env_variables"] = env_variables
         run_config["session_uuid"] = (
             project_uuid[:18] + pipeline.properties["uuid"][:18]

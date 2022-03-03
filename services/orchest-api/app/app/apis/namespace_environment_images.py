@@ -86,9 +86,6 @@ class ProjectEnvironmentDanglingImages(Resource):
         tag-less and which are not referenced by any run
         or job which are pending or running."""
 
-        image_utils.delete_project_environment_dangling_images(
-            project_uuid, environment_uuid
-        )
         return {"message": "Successfully removed dangling images."}, 200
 
 
@@ -150,11 +147,7 @@ class DeleteImage(TwoPhaseFunction):
 
     @classmethod
     def _background_collateral(cls, app, project_uuid, environment_uuid):
-
-        with app.app_context():
-            image_utils.delete_project_environment_dangling_images(
-                project_uuid, environment_uuid
-            )
+        pass
 
     def _collateral(self, project_uuid: str, environment_uuid: str):
         # Needs to happen in the background because session shutdown
