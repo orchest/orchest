@@ -38,8 +38,7 @@ deployment
             command:
               - sh
               - -c
-              - "nc -zvw1 rabbitmq-server 5672 &&
-                nc -zvw1 orchest-database 5432 &&
+              - "nc -zvw1 orchest-database 5432 &&
                 [ -f worker-builds.pid ] &&
                 [ -f worker-interactive.pid ] &&
                 [ -f worker-jobs.pid ]"

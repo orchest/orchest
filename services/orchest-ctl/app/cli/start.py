@@ -4,7 +4,7 @@ from typing import Optional
 
 import typer
 
-from app.orchest_old import OrchestApp
+from app import orchest
 
 logger = logging.getLogger(__name__)
 
@@ -69,8 +69,6 @@ typer_app = typer.Typer(
     callback=_default,
 )
 
-app = OrchestApp()
-
 
 @typer_app.command(hidden=True)
 def reg(
@@ -97,12 +95,12 @@ def reg(
     \b
         orchest start [OPTIONS]
     """
-    container_config = get_container_config(port, cloud, dev, log_level)
-
     if dev:
         logger.info(
             "Starting Orchest with --dev. This mounts host directories "
             "to monitor for source code changes."
         )
 
-    app.start(container_config, cloud=cloud)
+    # K8S_TODO: decide what to do/how to do DEV/CLOUD and other args
+    # passing.
+    orchest.start()

@@ -143,7 +143,7 @@ class DeleteProject(TwoPhaseFunction):
         for session in sessions:
             # Stop any interactive session related to the pipeline.
             StopInteractiveSession(self.tpe).transaction(
-                project_uuid, session.pipeline_uuid
+                project_uuid, session.pipeline_uuid, async_mode=True
             )
 
         # Any job related to the pipeline is stopped if necessary

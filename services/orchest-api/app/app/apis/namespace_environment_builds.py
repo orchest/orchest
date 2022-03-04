@@ -9,10 +9,9 @@ from sqlalchemy import desc, func, or_
 
 import app.models as models
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app import schema
 from app.celery_app import make_celery
-from app.connections import db, docker_client
+from app.connections import db
 from app.utils import register_schema, update_status_db
 
 api = Namespace("environment-builds", description="Managing environment builds")
@@ -334,18 +333,6 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()
-
-        # Necessary to avoid a race condition where a task is aborted
-        # but the image has already been built and the worker won't do
-        # any more "isAborted" checks.
-        filters = {
-            "label": [
-                f"_orchest_env_build_task_uuid={environment_build_uuid}",
-            ]
-        }
-        images_to_remove = docker_images_list_safe(docker_client, filters=filters)
-        for img in images_to_remove:
-            docker_images_rm_safe(docker_client, img.id)
 
 
 class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):

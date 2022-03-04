@@ -107,7 +107,7 @@ class Session(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 could_shutdown = StopInteractiveSession(tpe).transaction(
-                    project_uuid, pipeline_uuid
+                    project_uuid, pipeline_uuid, async_mode=True
                 )
         except Exception as e:
             return {"message": str(e)}, 500
@@ -305,9 +305,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
 class StopInteractiveSession(TwoPhaseFunction):
     def _transaction(
-        self,
-        project_uuid: str,
-        pipeline_uuid: str,
+        self, project_uuid: str, pipeline_uuid: str, async_mode: bool = False
     ):
 
         session = (
@@ -323,6 +321,7 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["session_uuid"] = None
             self.collateral_kwargs["project_uuid"] = None
             self.collateral_kwargs["pipeline_uuid"] = None
+            self.collateral_kwargs["async_mode"] = async_mode
             return False
         else:
             # Abort interactive run if it was PENDING/STARTED.
@@ -339,10 +338,11 @@ class StopInteractiveSession(TwoPhaseFunction):
             self.collateral_kwargs["session_uuid"] = session_uuid
             self.collateral_kwargs["project_uuid"] = project_uuid
             self.collateral_kwargs["pipeline_uuid"] = pipeline_uuid
+            self.collateral_kwargs["async_mode"] = async_mode
         return True
 
     @classmethod
-    def _background_session_stop(
+    def _session_stop(
         cls,
         app,
         session_uuid: str,
@@ -364,10 +364,7 @@ class StopInteractiveSession(TwoPhaseFunction):
                 db.session.commit()
 
     def _collateral(
-        self,
-        session_uuid: str,
-        project_uuid: str,
-        pipeline_uuid: str,
+        self, session_uuid: str, project_uuid: str, pipeline_uuid: str, async_mode: bool
     ):
         # Could be none when the _transaction call sets them to None
         # because there is no session to shutdown. This is a way that
@@ -376,15 +373,23 @@ class StopInteractiveSession(TwoPhaseFunction):
         if project_uuid is None or pipeline_uuid is None:
             return
 
-        current_app.config["SCHEDULER"].add_job(
-            StopInteractiveSession._background_session_stop,
-            args=[
+        if async_mode:
+            current_app.config["SCHEDULER"].add_job(
+                StopInteractiveSession._session_stop,
+                args=[
+                    current_app._get_current_object(),
+                    session_uuid,
+                    project_uuid,
+                    pipeline_uuid,
+                ],
+            )
+        else:
+            StopInteractiveSession._session_stop(
                 current_app._get_current_object(),
                 session_uuid,
                 project_uuid,
                 pipeline_uuid,
-            ],
-        )
+            )
 
 
 class RestartMemoryServer(TwoPhaseFunction):

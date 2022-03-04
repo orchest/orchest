@@ -103,7 +103,7 @@ def follow_service_logs(service):
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGTERM, lambda: sys.exit(0))
+    signal.signal(signal.SIGTERM, lambda *args, **kwargs: sys.exit(0))
     logging.getLogger().setLevel(logging.INFO)
 
     # Needs to be here since the logs directory does not exists for

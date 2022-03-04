@@ -632,6 +632,7 @@ def process_stale_environment_images(
 
 
 def _process_stale_environment_image(img, only_marked_for_removal) -> None:
+    return
     pr_uuid = img.labels.get("_orchest_project_uuid")
     env_uuid = img.labels.get("_orchest_environment_uuid")
     build_uuid = img.labels.get("_orchest_env_build_task_uuid")

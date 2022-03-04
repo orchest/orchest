@@ -1,9 +1,7 @@
 from flask.globals import current_app
 from flask_restx import Namespace, Resource
 
-from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from _orchest.internals.utils import docker_images_list_safe, docker_images_rm_safe
 from app import models
 from app.apis.namespace_environment_builds import (
     AbortEnvironmentBuild,
@@ -14,7 +12,7 @@ from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_jupyter_builds import AbortJupyterBuild
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
-from app.connections import db, docker_client
+from app.connections import db
 from app.core import environments, image_utils
 from app.utils import register_schema
 
@@ -104,19 +102,6 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
 
     @classmethod
     def _background_collateral(cls, app, project_uuid):
-        filters = {
-            "label": [
-                "_orchest_env_build_is_intermediate=0",
-                f"_orchest_project_uuid={project_uuid}",
-            ]
-        }
-        images_to_remove = docker_images_list_safe(docker_client, filters=filters)
-        # Try with repeat because there might be a race condition where
-        # aborted runs are still using the image or kernel containers
-        # are still running.
-        for img in images_to_remove:
-            docker_images_rm_safe(docker_client, img.id)
-
         with app.app_context():
             image_utils.delete_project_dangling_images(project_uuid)
 
@@ -139,7 +124,7 @@ class DeleteImage(TwoPhaseFunction):
         )
         for sess in int_sess:
             StopInteractiveSession(self.tpe).transaction(
-                sess.project_uuid, sess.pipeline_uuid
+                sess.project_uuid, sess.pipeline_uuid, async_mode=True
             )
 
         # Stop all interactive runs making use of the env.
@@ -165,13 +150,6 @@ class DeleteImage(TwoPhaseFunction):
 
     @classmethod
     def _background_collateral(cls, app, project_uuid, environment_uuid):
-        image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=project_uuid, environment_uuid=environment_uuid
-        )
-        # Try with repeat because there might be a race condition where
-        # aborted runs are still using the image or kernel containers
-        # are still running.
-        docker_images_rm_safe(docker_client, image_name)
 
         with app.app_context():
             image_utils.delete_project_environment_dangling_images(

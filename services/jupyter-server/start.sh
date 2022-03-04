@@ -53,7 +53,7 @@ start_jupyterlab(){
     release_lock
     # Don't release the lock again on exit.
     trap - EXIT
-    jupyter lab --collaborative --LabApp.app_dir="$userdir_path" "$@"
+    jupyter lab --LabApp.app_dir="$userdir_path" "$@"
 }
 
 acquire_lock
