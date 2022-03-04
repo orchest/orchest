@@ -463,6 +463,11 @@ export const PipelineEditor: React.FC = () => {
     dispatch({ type: "CENTER_VIEW" });
   }, [dispatch]);
 
+  const recalibrate = React.useCallback(() => {
+    // ensure that connections are re-rendered against the final positions of the steps
+    setPipelineJson((value) => value, true);
+  }, [setPipelineJson]);
+
   const autoLayoutPipeline = () => {
     const spacingFactor = 0.7;
     const gridMargin = 20;
@@ -492,7 +497,7 @@ export const PipelineEditor: React.FC = () => {
     // so we need another render to redraw the connections lines
     // here we intentionally break the React built-in event batching
     window.setTimeout(() => {
-      setPipelineJson((value) => value, true);
+      recalibrate();
     }, 0);
   };
 
@@ -512,8 +517,8 @@ export const PipelineEditor: React.FC = () => {
     });
 
     metadataPositions.current = {};
-    setPipelineJson((value) => value, true); // ensure that connections are re-rendered against the final positions of the steps
-  }, [metadataPositions, setPipelineJson, dispatch]);
+    recalibrate();
+  }, [metadataPositions, recalibrate, dispatch]);
 
   const runSelectedSteps = () => {
     runStepUUIDs(eventVars.selectedSteps, "selection");
@@ -652,6 +657,7 @@ export const PipelineEditor: React.FC = () => {
     isReadOnly,
     eventVars.selectedConnection,
     eventVars.selectedSteps,
+    eventVars.stepSelector.active,
     removeConnection,
     deleteSelectedSteps,
     centerView,
@@ -701,18 +707,8 @@ export const PipelineEditor: React.FC = () => {
     }
   };
 
-  const onMouseLeaveViewport = () => {
-    if (eventVars.stepSelector.active) {
-      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
-    }
-    if (newConnection.current) {
-      removeConnection(newConnection.current);
-    }
-    savePositions();
-  };
-
   const hasMouseMoved = React.useRef(false);
-  const onMouseMoveViewport = () => {
+  const onMouseMoveViewport = React.useCallback(() => {
     if (!hasMouseMoved.current) {
       // ensure that mouseTracker is in sync, to prevent jumping in some cases.
       hasMouseMoved.current = true;
@@ -746,7 +742,39 @@ export const PipelineEditor: React.FC = () => {
         ],
       }));
     }
-  };
+  }, [
+    canvasOffset,
+    dispatch,
+    eventVars.scaleFactor,
+    eventVars.stepSelector.active,
+    mouseTracker,
+    newConnection,
+    panningState,
+    setPipelineViewState,
+  ]);
+
+  const onMouseLeaveViewport = React.useCallback(() => {
+    if (eventVars.stepSelector.active) {
+      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    }
+    if (newConnection.current) {
+      removeConnection(newConnection.current);
+    }
+  }, [
+    dispatch,
+    eventVars.stepSelector.active,
+    removeConnection,
+    newConnection,
+  ]);
+
+  React.useEffect(() => {
+    document.body.addEventListener("mousemove", onMouseMoveViewport);
+    document.body.addEventListener("mouseleave", onMouseLeaveViewport);
+    return () => {
+      document.body.removeEventListener("mousemove", onMouseMoveViewport);
+      document.body.removeEventListener("mouseleave", onMouseLeaveViewport);
+    };
+  }, [onMouseLeaveViewport, onMouseMoveViewport]);
 
   const services = React.useMemo(() => {
     // not a job run, so it is an interactive run, services are only available if session is RUNNING
@@ -841,7 +869,6 @@ export const PipelineEditor: React.FC = () => {
           onMouseMove={onMouseMoveViewport}
           onMouseDown={onMouseDownViewport}
           onMouseUp={onMouseUpViewport}
-          onMouseLeave={onMouseLeaveViewport}
           className={panningState}
           canvasRef={pipelineCanvasRef}
         >
