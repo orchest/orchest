@@ -708,7 +708,13 @@ export const PipelineEditor: React.FC = () => {
     savePositions();
   };
 
+  const hasMouseMoved = React.useRef(false);
   const onMouseMoveViewport = (e: React.MouseEvent) => {
+    if (!hasMouseMoved.current) {
+      // ensure that mouseTracker is in sync, to prevent jumping in some cases.
+      hasMouseMoved.current = true;
+      return;
+    }
     // update newConnection's position
     if (newConnection.current) {
       const { x, y } = getScaleCorrectedPosition({
