@@ -3,7 +3,6 @@ import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Connection,
   MouseTracker,
-  Offset,
   PipelineStepMetaData,
   PipelineStepState,
   PipelineStepStatus,
@@ -107,8 +106,6 @@ export const getStateText = (executionState: ExecutionState) => {
 const PipelineStepComponent = React.forwardRef(function PipelineStep(
   {
     data,
-    scaleFactor,
-    offset,
     selected,
     zIndexMax,
     movedToTop,
@@ -127,8 +124,6 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     children, // expose children, so that children doesn't re-render when step is being dragged
   }: {
     data: PipelineStepState;
-    scaleFactor: number;
-    offset: Offset;
     selected: boolean;
     movedToTop: boolean;
     zIndexMax: React.MutableRefObject<number>;
@@ -248,82 +243,90 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     }
   };
 
-  const onMouseLeave = () => {
-    // if cursor moves too fast, or move out of canvas, we need to remove the dragging state
-    isMouseDown.current = false;
-    if (selected) {
-      resetDraggingVariables();
-    }
-  };
-
-  // use mouseTracker to get mouse movements
-  // mutate the local metadata without update the central state in useEventVars
-  // so that we can ONLY re-render selected steps and get away from performance penalty
-  React.useEffect(() => {
-    const isBeingDragged = () => {
-      if (!isMouseDown.current) return false;
-      if (dragCount.current < DRAG_CLICK_SENSITIVITY) {
-        dragCount.current += 1;
-        return false;
-      }
-
-      if (!cursorControlledStep) {
-        eventVarsDispatch({
-          type: "SET_CURSOR_CONTROLLED_STEP",
-          payload: uuid,
-        });
-      }
-
-      return true;
-    };
-    const onMouseMove = () => {
-      if (disabledDragging) {
+  const onMouseLeave = React.useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // if cursor moves too fast, or move out of canvas, we need to remove the dragging state
+      isMouseDown.current = false;
+      savePositions();
+      if (selected) {
         resetDraggingVariables();
-        return;
       }
+    },
+    [resetDraggingVariables, savePositions, selected]
+  );
 
-      const shouldFollowCursorControlledStep =
-        selected &&
-        !isSelectorActive &&
-        hasValue(cursorControlledStep) &&
-        selectedSteps.includes(cursorControlledStep);
+  const isBeingDragged = React.useCallback(() => {
+    if (!isMouseDown.current) return false;
+    if (dragCount.current < DRAG_CLICK_SENSITIVITY) {
+      dragCount.current += 1;
+      return false;
+    }
 
-      const shouldMoveWithCursor =
-        isBeingDragged() || shouldFollowCursorControlledStep;
+    if (!cursorControlledStep) {
+      eventVarsDispatch({
+        type: "SET_CURSOR_CONTROLLED_STEP",
+        payload: uuid,
+      });
+    }
 
-      if (shouldMoveWithCursor) {
-        setMetadata((current) => {
-          const { x, y } = mouseTracker.current.delta;
-          const updatedPosition = [
-            current.position[0] + x,
-            current.position[1] + y,
-          ] as [number, number];
-          metadataPositions.current[uuid] = updatedPosition;
-          return {
-            ...current,
-            position: updatedPosition,
-          };
-        });
-      }
-    };
-    document.body.addEventListener("mousemove", onMouseMove);
-    return () => document.body.removeEventListener("mousemove", onMouseMove);
+    return true;
+  }, [cursorControlledStep, eventVarsDispatch, uuid]);
+
+  const onMouseMove = React.useCallback(() => {
+    if (disabledDragging) {
+      resetDraggingVariables();
+      return;
+    }
+
+    const shouldFollowCursorControlledStep =
+      selected &&
+      !isSelectorActive &&
+      hasValue(cursorControlledStep) &&
+      selectedSteps.includes(cursorControlledStep);
+
+    const shouldMoveWithCursor =
+      isBeingDragged() || shouldFollowCursorControlledStep;
+
+    if (shouldMoveWithCursor) {
+      setMetadata((current) => {
+        const { x, y } = mouseTracker.current.delta;
+        const updatedPosition = [
+          current.position[0] + x,
+          current.position[1] + y,
+        ] as [number, number];
+        metadataPositions.current[uuid] = updatedPosition;
+        return {
+          ...current,
+          position: updatedPosition,
+        };
+      });
+    }
   }, [
-    scaleFactor,
     mouseTracker,
     uuid,
     isSelectorActive,
     selected,
     cursorControlledStep,
     resetDraggingVariables,
-    dragCount,
     disabledDragging,
-    eventVarsDispatch,
     selectedSteps,
     metadataPositions,
-    // was not part of the effect, but we need to update mouse move listener when canvas moved
-    offset,
+    isBeingDragged,
   ]);
+
+  // use mouseTracker to get mouse movements
+  // mutate the local metadata without update the central state in useEventVars
+  // ONLY selected steps are re-rendered, so we can get away from performance penalty
+  React.useEffect(() => {
+    document.body.addEventListener("mousemove", onMouseMove);
+    document.body.addEventListener("mouseleave", onMouseLeave);
+    return () => {
+      document.body.removeEventListener("mousemove", onMouseMove);
+      document.body.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [onMouseMove, onMouseLeave]);
 
   const [x, y] = metadata.position;
   const transform = `translateX(${x}px) translateY(${y}px)`;
@@ -345,25 +348,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         style={{ transform, zIndex }}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
-        onMouseLeave={onMouseLeave}
         onClick={onClick}
       >
         {children}
-        <Box
-          sx={
-            // create a transparent background to prevent mouse leave occur unexpectedly
-            isCursorControlled
-              ? {
-                  minWidth: STEP_WIDTH * 5,
-                  minHeight: STEP_HEIGHT * 5,
-                  display: "block",
-                  position: "absolute",
-                  left: -STEP_WIDTH * 2,
-                  top: -STEP_HEIGHT * 2,
-                }
-              : null
-          }
-        />
       </Box>
       {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
         interactiveConnections.map((connection) => {

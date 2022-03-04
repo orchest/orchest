@@ -609,6 +609,9 @@ export const PipelineEditor: React.FC = () => {
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
+      if (eventVars.stepSelector.active) {
+        dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      }
 
       if (event.key === " " && !keysDown.has("Space")) {
         setPanningState("ready-to-pan");
@@ -954,8 +957,6 @@ export const PipelineEditor: React.FC = () => {
                 key={`${step.uuid}-${hash.current}`}
                 data={step}
                 disabledDragging={isReadOnly || panningState === "panning"}
-                scaleFactor={eventVars.scaleFactor}
-                offset={canvasOffset}
                 selected={selected}
                 zIndexMax={zIndexMax}
                 isSelectorActive={eventVars.stepSelector.active}
