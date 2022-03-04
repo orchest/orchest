@@ -14,7 +14,6 @@ import yaml
 from kubernetes import client as k8s_client
 
 from app import config, utils
-from app.config import OrchestStatus
 from app.connections import k8s_apps_api, k8s_core_api
 
 
@@ -53,28 +52,28 @@ def get_orchest_deployments(
     return responses
 
 
-def match_labels_to_label_selector(match_labels: Dict[str, str]) -> str:
+def _match_labels_to_label_selector(match_labels: Dict[str, str]) -> str:
     return ",".join([f"{k}={v}" for k, v in match_labels.items()])
 
 
 def get_orchest_deployments_pods(
-    deployments: Optional[Union[List[str], List[k8s_client.V1Pod]]] = None,
+    deployments: Optional[Union[List[str], List[k8s_client.V1Deployment]]] = None,
 ) -> List[Optional[k8s_client.V1Pod]]:
     if deployments is None:
         deployments = config.ORCHEST_DEPLOYMENTS
-    if all([isinstance(depl, str) for depl in deployments]):
+
+    if all(isinstance(depl, str) for depl in deployments):
         deployments = [d for d in get_orchest_deployments(deployments) if d is not None]
-    elif not all([isinstance(depl, k8s_client.V1Deployment) for depl in deployments]):
+    elif not all(isinstance(depl, k8s_client.V1Deployment) for depl in deployments):
         raise ValueError(
-            "Deployments should either be all of type string or all of type "
-            "V1Deployments."
+            "Deployments should either all be of type string or of type V1Deployments."
         )
 
     threads = []
     for depl in deployments:
         t = k8s_core_api.list_namespaced_pod(
             config.ORCHEST_NAMESPACE,
-            label_selector=match_labels_to_label_selector(
+            label_selector=_match_labels_to_label_selector(
                 depl.spec.selector.match_labels
             ),
             async_req=True,
@@ -166,11 +165,7 @@ def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
     pods = [
         p
         for p in pods
-        if (
-            # The update server could be launched through the GUI.
-            p.metadata.labels["app"] == "update-server"
-            or p.metadata.labels["command"] in config.STATUS_CHANGING_OPERATIONS
-        )
+        if (p.metadata.labels["command"] in config.STATUS_CHANGING_OPERATIONS)
     ]
     pods.sort(key=lambda pod: pod.metadata.creation_timestamp)
     return pods[0] if pods else None
@@ -185,11 +180,7 @@ def abort_if_unsafe() -> None:
     """
     pod = _get_ongoing_status_changing_pod()
     if pod.metadata.name != os.environ["POD_NAME"]:
-        cmd = pod.metadata.labels.get("command", "update")
-        if pod.metadata.labels["app"] == "update-server":
-            cmd = "update"
-        else:
-            cmd = pod.metadata.labels["command"]
+        cmd = pod.metadata.labels["command"]
         utils.echo(
             "This command cannot be run concurrently due to another "
             f"ongoing, possibly conflicting command: {cmd}."
@@ -205,17 +196,7 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
         return config.OrchestStatus.UPDATING
     else:
         cmd = pod.metadata.labels["command"]
-        # Just used for proper mapping of concepts, e.g. if "install"
-        # then Orchest is "installing". Not all operations change the
-        # state of orchest.
-        ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS = {
-            "install": OrchestStatus.INSTALLING,
-            "start": OrchestStatus.STARTING,
-            "stop": OrchestStatus.STOPPING,
-            "restart": OrchestStatus.RESTARTING,
-            "update": OrchestStatus.UPDATING,
-        }
-        return ORCHEST_STATUS_CHANGING_OPERATION_TO_STATUS[cmd]
+        return config.ORCHEST_OPERATION_TO_STATUS_MAPPING[cmd]
 
 
 _cleanup_pod_manifest = {

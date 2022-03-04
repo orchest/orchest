@@ -46,7 +46,7 @@ ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
 AUTH_SERVER_ENABLE_CONFIG := --set auth-server.enabled=true
 
 # celery-worker deployment configs
-AUTH_SERVER_ENABLE_CONFIG := --set celery-worker.enabled=true
+CELERY_WORKER_ENABLE_CONFIG := --set celery-worker.enabled=true
 
 # file-manager deployment configs
 FILE_MANAGER_ENABLE_CONFIG := --set file-manager.enabled=true
@@ -63,7 +63,7 @@ RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 # Orchest deployment configs
 ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${AUTH_SERVER_ENABLE_CONFIG} \
-						 ${AUTH_SERVER_ENABLE_CONFIG} \
+						 ${CELERY_WORKER_ENABLE_CONFIG} \
 						 ${FILE_MANAGER_ENABLE_CONFIG} \
 						 ${ORCHEST_WEBSERVER_ENABLE_CONFIG} \
 						 ${POSTGRES_ENABLE_CONFIG} \

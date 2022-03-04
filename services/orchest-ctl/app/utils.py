@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import textwrap
+from pathlib import Path
 
 import typer
 
@@ -13,6 +14,8 @@ logger = logging.getLogger(__name__)
 
 def echo_json(data: dict) -> None:
     """Wraps typer.echo to output json in a consistent manner."""
+    if not config.JSON_MODE:
+        return
     typer.echo(json.dumps(data, sort_keys=True, indent=True))
 
 
@@ -61,3 +64,16 @@ def fix_userdir_permissions() -> None:
                 " check to make sure files created in Orchest are also read and"
                 " writable directly on your host.",
             )
+
+
+def create_required_directories() -> None:
+    for path in [
+        "/userdir/data",
+        "/userdir/jobs",
+        "/userdir/projects",
+        "/userdir/.orchest/env-builds",
+        "/userdir/.orchest/jupyter-builds-dir",
+        "/userdir/.orchest/user-configurations/jupyterlab",
+        "/userdir/.orchest/base-images-cache",
+    ]:
+        Path(path).mkdir(parents=True, exist_ok=True)
