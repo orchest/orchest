@@ -2,7 +2,6 @@ from flask import request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc
-from sqlalchemy.orm import lazyload
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -141,8 +140,8 @@ class CreateInteractiveSession(TwoPhaseFunction):
     def _transaction(self, session_config: InteractiveSessionConfig):
 
         # Gate check to see if there is a Jupyter lab build active
-        latest_jupyter_build = models.JupyterBuild.query.order_by(
-            desc(models.JupyterBuild.requested_time)
+        latest_jupyter_build = models.JupyterImageBuild.query.order_by(
+            desc(models.JupyterImageBuild.requested_time)
         ).first()
 
         if latest_jupyter_build is not None and latest_jupyter_build.status in [

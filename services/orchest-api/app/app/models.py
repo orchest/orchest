@@ -217,8 +217,8 @@ ForeignKeyConstraint(
 )
 
 
-class JupyterBuild(BaseModel):
-    """State of Jupyter builds.
+class JupyterImageBuild(BaseModel):
+    """State of Jupyter image builds.
 
     Table meant to store the state of the build task of a
     Jupyter image, i.e. when a user wants to install a server side
@@ -226,7 +226,7 @@ class JupyterBuild(BaseModel):
 
     """
 
-    __tablename__ = "jupyter_builds"
+    __tablename__ = "jupyter_image_builds"
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)

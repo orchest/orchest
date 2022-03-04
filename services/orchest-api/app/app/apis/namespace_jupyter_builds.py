@@ -30,7 +30,7 @@ class JupyterBuildList(Resource):
         FAILURE, ABORTED.
 
         """
-        jupyter_builds = models.JupyterBuild.query.all()
+        jupyter_builds = models.JupyterImageBuild.query.all()
 
         return (
             {
@@ -72,7 +72,7 @@ class JupyterBuild(Resource):
     @api.marshal_with(schema.jupyter_build, code=200)
     def get(self, jupyter_build_uuid):
         """Fetch a Jupyter build given its uuid."""
-        jupyter_build = models.JupyterBuild.query.filter_by(
+        jupyter_build = models.JupyterImageBuild.query.filter_by(
             uuid=jupyter_build_uuid
         ).one_or_none()
         if jupyter_build is not None:
@@ -91,7 +91,7 @@ class JupyterBuild(Resource):
         try:
             update_status_db(
                 status_update,
-                model=models.JupyterBuild,
+                model=models.JupyterImageBuild,
                 filter_by=filter_by,
             )
             db.session.commit()
@@ -133,8 +133,8 @@ class MostRecentJupyterBuild(Resource):
         # Filter by project uuid. Use a window function to get the most
         # recently requested build for each environment return.
         jupyter_builds = (
-            models.JupyterBuild.query.order_by(
-                models.JupyterBuild.requested_time.desc()
+            models.JupyterImageBuild.query.order_by(
+                models.JupyterImageBuild.requested_time.desc()
             )
             .limit(1)
             .all()
@@ -159,10 +159,10 @@ class CreateJupyterBuild(TwoPhaseFunction):
 
         # Abort any Jupyter build that is
         # already running, given by the status of PENDING/STARTED.
-        already_running_builds = models.JupyterBuild.query.filter(
+        already_running_builds = models.JupyterImageBuild.query.filter(
             or_(
-                models.JupyterBuild.status == "PENDING",
-                models.JupyterBuild.status == "STARTED",
+                models.JupyterImageBuild.status == "PENDING",
+                models.JupyterImageBuild.status == "STARTED",
             ),
         ).all()
 
@@ -187,7 +187,7 @@ class CreateJupyterBuild(TwoPhaseFunction):
             "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
             "status": "PENDING",
         }
-        db.session.add(models.JupyterBuild(**jupyter_build))
+        db.session.add(models.JupyterImageBuild(**jupyter_build))
 
         self.collateral_kwargs["task_id"] = task_id
         return jupyter_build
@@ -201,7 +201,7 @@ class CreateJupyterBuild(TwoPhaseFunction):
         )
 
     def _revert(self):
-        models.JupyterBuild.query.filter_by(
+        models.JupyterImageBuild.query.filter_by(
             uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})
         db.session.commit()
@@ -218,7 +218,7 @@ class AbortJupyterBuild(TwoPhaseFunction):
         # jupyter build was actually PENDING or STARTED.
         abortable = update_status_db(
             status_update,
-            model=models.JupyterBuild,
+            model=models.JupyterImageBuild,
             filter_by=filter_by,
         )
 

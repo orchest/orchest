@@ -33,7 +33,7 @@ from app.models import (
     InteractivePipelineRun,
     InteractiveSession,
     Job,
-    JupyterBuild,
+    JupyterImageBuild,
     NonInteractivePipelineRun,
 )
 from config import CONFIG_CLASS
@@ -284,8 +284,8 @@ def cleanup():
                     AbortEnvironmentBuild(tpe).transaction(build.uuid)
 
             app.logger.info("Aborting jupyter builds.")
-            builds = JupyterBuild.query.filter(
-                JupyterBuild.status.in_(["PENDING", "STARTED"])
+            builds = JupyterImageBuild.query.filter(
+                JupyterImageBuild.status.in_(["PENDING", "STARTED"])
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for build in builds:
@@ -309,7 +309,9 @@ def cleanup():
             # DB. Leave the latest such that the user can see details
             # about the last executed build after restarting Orchest.
             jupyter_builds = (
-                JupyterBuild.query.order_by(JupyterBuild.requested_time.desc())
+                JupyterImageBuild.query.order_by(
+                    JupyterImageBuild.requested_time.desc()
+                )
                 .offset(1)
                 .all()
             )

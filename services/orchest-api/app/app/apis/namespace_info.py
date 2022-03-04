@@ -96,7 +96,7 @@ def is_orchest_idle() -> dict:
     # different versions.
     for name, model in [
         ("ongoing_environment_builds", models.EnvironmentImageBuild),
-        ("ongoing_jupyterlab_builds", models.JupyterBuild),
+        ("ongoing_jupyterlab_builds", models.JupyterImageBuild),
         ("ongoing_interactive_runs", models.InteractivePipelineRun),
         ("ongoing_job_runs", models.NonInteractivePipelineRun),
     ]:
