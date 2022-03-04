@@ -17,6 +17,15 @@ class OrchestStatus(str, Enum):
     UPDATING = "updating"
 
 
+ORCHEST_OPERATION_TO_STATUS_MAPPING = {
+    "install": OrchestStatus.INSTALLING,
+    "start": OrchestStatus.STARTING,
+    "stop": OrchestStatus.STOPPING,
+    "restart": OrchestStatus.RESTARTING,
+    "update": OrchestStatus.UPDATING,
+}
+
+
 DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = set(
     [
         "celery-worker",

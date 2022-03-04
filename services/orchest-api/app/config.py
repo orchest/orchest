@@ -33,7 +33,7 @@ class Config:
     # K8S_TODO this will likely need to be adjusted when it comes to
     # integrating the distributed file system. This is the path where
     # orchest currently resides in the node.
-    BASE_IMAGES_CACHE = "/var/lib/orchest/userdir/.orchest/base_images_cache"
+    BASE_IMAGES_CACHE = "/var/lib/orchest/userdir/.orchest/base-images-cache"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.

@@ -25,16 +25,12 @@ pagination_data = Model(
 )
 
 
-# Namespace: Sessions
-server = Model(
-    "Server",
-    {
-        "port": fields.Integer(
-            required=True, default=8888, description="Port to access the server"
-        ),
-        "base_url": fields.String(required=True, default="/", description="Base URL"),
-    },
-)
+def _session_base_url(s) -> str:
+    if isinstance(s, dict):
+        return "/jupyter-server-" + s["project_uuid"][:18] + s["pipeline_uuid"][:18]
+    else:
+        return "/jupyter-server-" + s.project_uuid[:18] + s.pipeline_uuid[:18]
+
 
 session = Model(
     "Session",
@@ -42,14 +38,10 @@ session = Model(
         "project_uuid": fields.String(required=True, description="UUID of project"),
         "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
         "status": fields.String(required=True, description="Status of session"),
-        "jupyter_server_ip": fields.String(
-            required=True, description="IP of the jupyter-server"
-        ),
-        "notebook_server_info": fields.Nested(
-            server, required=True, description="Jupyter notebook server connection info"
-        ),
-        "user_services": fields.Raw(
-            required=False, description="User services part of the session"
+        "base_url": fields.String(
+            required=True,
+            attribute=lambda s: _session_base_url(s),
+            description="Base URL",
         ),
     },
 )

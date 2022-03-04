@@ -124,7 +124,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             args=[app],
         )
 
-        if _utils.is_running_from_reloader():
+        if not _utils.is_running_from_reloader():
             trigger_conditional_jupyter_build(app)
 
     # Register blueprints at the end to avoid issues when migrating the

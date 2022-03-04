@@ -5,6 +5,7 @@ import subprocess
 import textwrap
 import time
 from collections.abc import Mapping
+from pathlib import Path
 from typing import Any, List, Tuple, Union
 from urllib import request
 
@@ -18,6 +19,8 @@ logger = logging.getLogger(__name__)
 
 def echo_json(data: dict) -> None:
     """Wraps typer.echo to output json in a consistent manner."""
+    if not config.JSON_MODE:
+        return
     typer.echo(json.dumps(data, sort_keys=True, indent=True))
 
 
@@ -197,3 +200,16 @@ def retry_func(func, _retries=10, _sleep_duration=1, _wait_msg=None, **kwargs) -
 # argument, so that "orchest --update update" would match but
 # "orchest update update" would not.
 ctl_command_pattern = r"^orchest(\s+(?!{cmd}\b)\S+)*\s+{cmd}(\s+(?!{cmd}\b)\S+)*\s*$"
+
+
+def create_required_directories() -> None:
+    for path in [
+        "/userdir/data",
+        "/userdir/jobs",
+        "/userdir/projects",
+        "/userdir/.orchest/env-builds",
+        "/userdir/.orchest/jupyter-builds-dir",
+        "/userdir/.orchest/user-configurations/jupyterlab",
+        "/userdir/.orchest/base-images-cache",
+    ]:
+        Path(path).mkdir(parents=True, exist_ok=True)
