@@ -1,6 +1,7 @@
 import { Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
+import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
 
@@ -9,6 +10,7 @@ export const InteractiveConnection: React.FC<{
   startNodeY: number;
   endNodeX: number | undefined;
   endNodeY: number | undefined;
+  zIndexMax: React.MutableRefObject<number>;
   startNodeUUID: string;
   endNodeUUID?: string;
   getPosition: (element: HTMLElement | undefined) => Position | null;
@@ -19,6 +21,7 @@ export const InteractiveConnection: React.FC<{
   startNodeUUID,
   endNodeUUID,
   shouldUpdate,
+  zIndexMax,
   stepDomRefs,
   ...props
 }) => {
@@ -71,6 +74,8 @@ export const InteractiveConnection: React.FC<{
   const shouldRedrawSvg =
     !shouldTransform && (shouldUpdateStart || shouldUpdateEnd);
 
+  const zIndex = useUpdateZIndex(true, zIndexMax);
+
   React.useEffect(() => {
     if (shouldTransform) transform();
     if (shouldRedrawSvg) redraw();
@@ -84,7 +89,7 @@ export const InteractiveConnection: React.FC<{
       data-end-uuid={endNodeUUID}
       className={classNames("connection", className)}
       ref={containerRef}
-      style={transformProperty}
+      style={{ zIndex, ...transformProperty }}
     >
       <ConnectionLine width={width} height={height} d={drawn} />
     </div>

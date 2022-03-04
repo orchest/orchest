@@ -74,7 +74,7 @@ export const scaleCorrected = (value: number, scaleFactor: number) => {
   return value;
 };
 
-export const localElementPosition = (
+const localElementPosition = (
   offset: Offset,
   parentOffset: Offset,
   scaleFactor: number

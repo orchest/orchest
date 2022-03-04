@@ -7,11 +7,7 @@ import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
-import {
-  clearOutgoingConnections,
-  filterServices,
-  validatePipeline,
-} from "@/utils/webserver-utils";
+import { filterServices, validatePipeline } from "@/utils/webserver-utils";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
@@ -213,7 +209,7 @@ export const PipelineEditor: React.FC = () => {
       }
 
       const updatedPipelineJson = steps
-        ? updatePipelineJson(pipelineJson, clearOutgoingConnections(steps))
+        ? updatePipelineJson(pipelineJson, steps)
         : pipelineJson;
 
       // validate pipelineJSON
@@ -472,9 +468,9 @@ export const PipelineEditor: React.FC = () => {
     const gridMargin = 20;
 
     setPipelineJson((current) => {
-      const updated = layoutPipeline(
+      const updatedSteps = layoutPipeline(
         // Use the pipeline definition from the editor
-        updatePipelineJson(current, eventVars.steps),
+        eventVars.steps,
         STEP_HEIGHT,
         (1 + spacingFactor * (STEP_HEIGHT / STEP_WIDTH)) *
           (STEP_WIDTH / STEP_HEIGHT),
@@ -484,6 +480,8 @@ export const PipelineEditor: React.FC = () => {
         gridMargin,
         STEP_HEIGHT
       );
+
+      const updated = updatePipelineJson(current, updatedSteps);
 
       // reset eventVars.steps, this will trigger saving
       dispatch({ type: "SET_STEPS", payload: updated.steps });
@@ -710,7 +708,7 @@ export const PipelineEditor: React.FC = () => {
     savePositions();
   };
 
-  const onMouseMoveViewport = () => {
+  const onMouseMoveViewport = (e: React.MouseEvent) => {
     // update newConnection's position
     if (newConnection.current) {
       const { x, y } = getScaleCorrectedPosition({
@@ -731,6 +729,8 @@ export const PipelineEditor: React.FC = () => {
     if (panningState === "panning") {
       let dx = mouseTracker.current.delta.x;
       let dy = mouseTracker.current.delta.y;
+
+      console.log("HM", eventVars.scaleFactor, dx, dy);
 
       setPipelineViewState((current) => ({
         pipelineOffset: [
@@ -1022,13 +1022,16 @@ export const PipelineEditor: React.FC = () => {
             <IconButton
               title="Center"
               data-test-id="pipeline-center"
-              onClick={centerView}
+              onPointerDown={centerView}
             >
               <CropFreeIcon />
             </IconButton>
             <IconButton
               title="Zoom out"
-              onClick={() => {
+              onPointerDown={() => {
+                // NOTE: onClick also listens to space bar press when button is focused
+                // it causes issue when user press space bar to navigate the canvas
+                // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
                 centerPipelineOrigin.current();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
@@ -1040,7 +1043,7 @@ export const PipelineEditor: React.FC = () => {
             </IconButton>
             <IconButton
               title="Zoom in"
-              onClick={() => {
+              onPointerDown={() => {
                 centerPipelineOrigin.current();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
@@ -1051,7 +1054,10 @@ export const PipelineEditor: React.FC = () => {
               <AddIcon />
             </IconButton>
             {!isReadOnly && (
-              <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
+              <IconButton
+                title="Auto layout"
+                onPointerDown={autoLayoutPipeline}
+              >
                 <AccountTreeOutlinedIcon />
               </IconButton>
             )}

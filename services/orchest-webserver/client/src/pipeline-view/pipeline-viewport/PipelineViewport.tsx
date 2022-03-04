@@ -176,7 +176,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     <div
       className={classNames("pipeline-steps-outer-holder", className)}
       ref={(node) => {
-        // in order to capture a forwarded ref, we need to create a local ref to capture it
+        // in order to manipulate a forwarded ref, we need to create a local ref to capture it
         localRef.current = node;
         if (typeof ref === "function") {
           ref(node);
