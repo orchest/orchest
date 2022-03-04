@@ -14,20 +14,18 @@ api = utils.register_schema(api)
 
 
 @api.route("/start-update")
-class IdleCheck(Resource):
+class StartUpdate(Resource):
     @api.doc("orchest_api_start_update")
     @api.marshal_with(
-        schema.update_info,
+        schema.update_sidecar_info,
         code=201,
         description="Update Orchest.",
     )
     def post(self):
         token = secrets.token_hex(20)
         update_pod_manifest = _get_update_pod_manifest()
-        # K8S_TODO: query update-info endpoint once we use versioned
-        # images, because that's the version needed for the sidecar.
         sidecar_manifest = _get_update_sidecar_manifest(
-            "latest", update_pod_manifest["metadata"]["name"], token
+            update_pod_manifest["metadata"]["name"], token
         )
         # Create the sidecar first to avoid the risk of the update_pod
         # shutting down the orchest-api before that happens.
@@ -42,9 +40,15 @@ class IdleCheck(Resource):
         return data, 201
 
 
-def _get_update_sidecar_manifest(
-    update_to_version: str, update_pod_name, token: str
-) -> dict:
+def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
+    # K8S_TODO: enable once we have versioned images. The update-sidecar
+    # should use the current version of the cluster given that's the
+    # version of the update-pod that is started and of the client that
+    # is getting the logs.
+    # current_version = k8s_core_api.read_namespace("orchest").metadata.labels.get(
+    #     "version"
+    # )
+    current_version = "latest"
     manifest = {
         "apiVersion": "v1",
         "kind": "Pod",
@@ -69,7 +73,7 @@ def _get_update_sidecar_manifest(
                         {"name": "UPDATE_POD_NAME", "value": update_pod_name},
                         {"name": "TOKEN", "value": token},
                     ],
-                    "image": f"orchest/update-sidecar:{update_to_version}",
+                    "image": f"orchest/update-sidecar:{current_version}",
                     "imagePullPolicy": "IfNotPresent",
                     "name": "update-sidecar",
                 }

@@ -1,6 +1,5 @@
 import os
 from datetime import datetime
-from pathlib import Path
 from typing import Any
 
 import requests
@@ -101,12 +100,7 @@ def prepare_build_context(task_uuid):
     # the project path we receive is relative to the projects directory
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
 
-    jupyter_builds_dir = "/userdir/.orchest/jupyter_builds_dir"
-    # K8S_TODO: remove this?
-    Path(jupyter_builds_dir).mkdir(parents=True, exist_ok=True)
-    Path("/userdir/.orchest/user-configurations/jupyterlab").mkdir(
-        parents=True, exist_ok=True
-    )
+    jupyter_builds_dir = "/userdir/.orchest/jupyter-builds-dir"
     snapshot_path = f"{jupyter_builds_dir}/{task_uuid}"
 
     if os.path.isdir(snapshot_path):

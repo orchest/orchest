@@ -157,6 +157,7 @@ def _follow_update() -> None:
         logging.info("Update pod exited.")
 
     with open(CONFIG_CLASS.UPDATE_COMPLETE_FILE, "w") as f:
+        # The content is arbitrary, the file just needs to exist.
         f.write("true")
 
 
