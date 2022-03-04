@@ -112,6 +112,9 @@ def install():
     logger.info("Setting 'userdir/' permissions.")
     utils.fix_userdir_permissions()
 
+    logger.info("Creating the required directories.")
+    utils.create_required_directories()
+
     k8sw.set_orchest_cluster_version(orchest_version)
 
     # K8S_TODO: coordinate with ingress for this.
