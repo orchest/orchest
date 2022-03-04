@@ -709,7 +709,7 @@ export const PipelineEditor: React.FC = () => {
   };
 
   const hasMouseMoved = React.useRef(false);
-  const onMouseMoveViewport = (e: React.MouseEvent) => {
+  const onMouseMoveViewport = () => {
     if (!hasMouseMoved.current) {
       // ensure that mouseTracker is in sync, to prevent jumping in some cases.
       hasMouseMoved.current = true;
