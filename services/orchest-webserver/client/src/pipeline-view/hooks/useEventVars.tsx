@@ -19,10 +19,6 @@ import {
   willCreateCycle,
 } from "../common";
 import { getStepSelectorRectangle } from "../Rectangle";
-import {
-  INITIAL_PIPELINE_POSITION,
-  usePipelineViewState,
-} from "./usePipelineViewState";
 
 export type EventVars = {
   initialized: boolean;
@@ -200,8 +196,6 @@ export const useEventVars = () => {
 
   const keysDown = React.useMemo<Set<number>>(() => new Set(), []);
 
-  const [pipelineViewState, setPipelineViewState] = usePipelineViewState();
-
   const memoizedReducer = React.useCallback(
     (state: EventVars, _action: EventVarsAction): EventVars => {
       const action = _action instanceof Function ? _action(state) : _action;
@@ -345,14 +339,6 @@ export const useEventVars = () => {
       switch (action.type) {
         case "SET_SCALE_FACTOR": {
           return { ...state, scaleFactor: action.payload };
-        }
-        case "CENTER_VIEW": {
-          setPipelineViewState({
-            pipelineOffset: INITIAL_PIPELINE_POSITION,
-            pipelineStepsHolderOffsetLeft: 0,
-            pipelineStepsHolderOffsetTop: 0,
-          });
-          return { ...state, scaleFactor: DEFAULT_SCALE_FACTOR };
         }
         case "SET_STEPS": {
           return { ...state, steps: action.payload };
@@ -619,7 +605,7 @@ export const useEventVars = () => {
         }
       }
     },
-    [setPipelineViewState]
+    []
   );
 
   const [eventVars, dispatch] = React.useReducer(memoizedReducer, {
@@ -695,7 +681,5 @@ export const useEventVars = () => {
     trackMouseMovement,
     mouseTracker,
     metadataPositions,
-    pipelineViewState,
-    setPipelineViewState,
   };
 };

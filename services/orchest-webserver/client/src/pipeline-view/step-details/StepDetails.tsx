@@ -44,7 +44,7 @@ const StepDetailsContainer = styled("div")(({ theme }) => ({
   flexDirection: "column",
 }));
 
-export const StepDetails: React.FC<{
+const StepDetailsComponent: React.FC<{
   onOpenNotebook: (e: React.MouseEvent) => void;
   onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
   onDelete: () => void;
@@ -257,3 +257,5 @@ export const StepDetails: React.FC<{
     </StepDetailsContainer>
   );
 };
+
+export const StepDetails = React.memo(StepDetailsComponent);

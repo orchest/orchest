@@ -2,7 +2,7 @@ import React from "react";
 
 export const INITIAL_PIPELINE_POSITION = [-1, -1] as [number, number];
 
-export type PipelineViewState = {
+export type PipelineCanvasState = {
   // rendering state
   pipelineOrigin: number[];
   pipelineStepsHolderOffsetLeft: number;
@@ -10,7 +10,7 @@ export type PipelineViewState = {
   pipelineOffset: [number, number];
   origin: [number, number];
 };
-let initialState: PipelineViewState = {
+let initialState: PipelineCanvasState = {
   // rendering state
   pipelineOrigin: [0, 0],
   pipelineStepsHolderOffsetLeft: 0,
@@ -20,16 +20,16 @@ let initialState: PipelineViewState = {
 };
 
 const reducer = (
-  state: PipelineViewState,
+  state: PipelineCanvasState,
   _mutation:
-    | Partial<PipelineViewState>
-    | ((current: PipelineViewState) => Partial<PipelineViewState>)
+    | Partial<PipelineCanvasState>
+    | ((current: PipelineCanvasState) => Partial<PipelineCanvasState>)
 ) => {
   const mutation = _mutation instanceof Function ? _mutation(state) : _mutation;
   return { ...state, ...mutation };
 };
 
-export const usePipelineViewState = () => {
+export const usePipelineCanvasState = () => {
   const [state, setState] = React.useReducer(reducer, initialState);
 
   return [state, setState] as const;

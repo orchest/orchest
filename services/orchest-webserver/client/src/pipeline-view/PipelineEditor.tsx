@@ -31,12 +31,14 @@ import React from "react";
 import { siteMap } from "../Routes";
 import { BackToJobButton } from "./BackToJobButton";
 import {
+  DEFAULT_SCALE_FACTOR,
   getNodeCenter,
   getScaleCorrectedPosition,
   PIPELINE_RUN_STATUS_ENDPOINT,
   updatePipelineJson,
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
+import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { useCanvasOffset } from "./hooks/useCanvasOffset";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
@@ -97,9 +99,13 @@ export const PipelineEditor: React.FC = () => {
     instantiateConnection,
     metadataPositions,
     session,
-    pipelineViewState,
-    setPipelineViewState,
   } = usePipelineEditorContext();
+
+  const {
+    pipelineCanvasState,
+    setPipelineCanvasState,
+    resetPipelineCanvas,
+  } = usePipelineCanvasContext();
 
   const removeSteps = React.useCallback(
     (uuids: string[]) => {
@@ -109,7 +115,10 @@ export const PipelineEditor: React.FC = () => {
   );
 
   const isJobRun = jobUuid && runUuid;
-  const jobRunQueryArgs = { jobUuid, runUuid };
+  const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
+    jobUuid,
+    runUuid,
+  ]);
 
   const pipelineViewportRef = React.useRef<HTMLDivElement>();
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
@@ -274,21 +283,31 @@ export const PipelineEditor: React.FC = () => {
     );
   };
 
-  const onOpenFilePreviewView = (e: React.MouseEvent, stepUuid: string) => {
-    navigateTo(
-      siteMap.filePreview.path,
-      {
-        query: {
-          projectUuid,
-          pipelineUuid,
-          stepUuid,
-          ...(isJobRun ? jobRunQueryArgs : undefined),
+  const onOpenFilePreviewView = React.useCallback(
+    (e: React.MouseEvent, stepUuid: string) => {
+      navigateTo(
+        siteMap.filePreview.path,
+        {
+          query: {
+            projectUuid,
+            pipelineUuid,
+            stepUuid,
+            ...(isJobRun ? jobRunQueryArgs : undefined),
+          },
+          state: { isReadOnly },
         },
-        state: { isReadOnly },
-      },
-      e
-    );
-  };
+        e
+      );
+    },
+    [
+      isJobRun,
+      isReadOnly,
+      jobRunQueryArgs,
+      navigateTo,
+      pipelineUuid,
+      projectUuid,
+    ]
+  );
 
   const notebookFilePath = React.useCallback(
     (pipelineCwd: string, stepUUID: string) => {
@@ -367,7 +386,7 @@ export const PipelineEditor: React.FC = () => {
       const [
         pipelineOffsetX,
         pipelineOffsetY,
-      ] = pipelineViewState.pipelineOffset;
+      ] = pipelineCanvasState.pipelineOffset;
 
       const position = [
         -pipelineOffsetX + clientWidth / 2 - STEP_WIDTH / 2,
@@ -441,7 +460,7 @@ export const PipelineEditor: React.FC = () => {
     setConfirm,
   ]);
 
-  const onDetailsDelete = () => {
+  const onDetailsDelete = React.useCallback(() => {
     let uuid = eventVars.openedStep;
     setConfirm(
       "Warning",
@@ -453,15 +472,25 @@ export const PipelineEditor: React.FC = () => {
         return true;
       }
     );
-  };
+  }, [
+    eventVars.openedStep,
+    eventVars.steps,
+    removeSteps,
+    saveSteps,
+    setConfirm,
+  ]);
 
-  const onOpenNotebook = (e: React.MouseEvent) => {
-    openNotebook(e, notebookFilePath(pipelineCwd, eventVars.openedStep));
-  };
+  const onOpenNotebook = React.useCallback(
+    (e: React.MouseEvent) => {
+      openNotebook(e, notebookFilePath(pipelineCwd, eventVars.openedStep));
+    },
+    [eventVars.openedStep, notebookFilePath, openNotebook, pipelineCwd]
+  );
 
   const centerView = React.useCallback(() => {
-    dispatch({ type: "CENTER_VIEW" });
-  }, [dispatch]);
+    resetPipelineCanvas();
+    dispatch({ type: "SET_SCALE_FACTOR", payload: DEFAULT_SCALE_FACTOR });
+  }, [dispatch, resetPipelineCanvas]);
 
   const recalibrate = React.useCallback(() => {
     // ensure that connections are re-rendered against the final positions of the steps
@@ -581,21 +610,16 @@ export const PipelineEditor: React.FC = () => {
 
   const hasSelectedSteps = eventVars.selectedSteps.length > 1;
 
-  const onSaveDetails = (
-    stepChanges: Partial<Step>,
-    uuid: string,
-    replace: boolean
-  ) => {
-    dispatch({
-      type: "SAVE_STEP_DETAILS",
-      payload: {
-        stepChanges,
-        uuid,
-        replace,
-      },
-    });
-    saveSteps(eventVars.steps);
-  };
+  const onSaveDetails = React.useCallback(
+    (stepChanges: Partial<Step>, uuid: string, replace: boolean) => {
+      dispatch({
+        type: "SAVE_STEP_DETAILS",
+        payload: { stepChanges, uuid, replace },
+      });
+      saveSteps(eventVars.steps);
+    },
+    [dispatch, eventVars.steps, saveSteps]
+  );
 
   const enableHotKeys = () => {
     setScope("pipeline-editor");
@@ -735,7 +759,7 @@ export const PipelineEditor: React.FC = () => {
       let dx = mouseTracker.current.unscaledDelta.x;
       let dy = mouseTracker.current.unscaledDelta.y;
 
-      setPipelineViewState((current) => ({
+      setPipelineCanvasState((current) => ({
         pipelineOffset: [
           current.pipelineOffset[0] + dx,
           current.pipelineOffset[1] + dy,
@@ -750,7 +774,7 @@ export const PipelineEditor: React.FC = () => {
     mouseTracker,
     newConnection,
     panningState,
-    setPipelineViewState,
+    setPipelineCanvasState,
   ]);
 
   const onMouseLeaveViewport = React.useCallback(() => {
@@ -866,7 +890,6 @@ export const PipelineEditor: React.FC = () => {
         <PipelineViewport
           ref={pipelineViewportRef}
           centerPipelineOrigin={centerPipelineOrigin}
-          onMouseMove={onMouseMoveViewport}
           onMouseDown={onMouseDownViewport}
           onMouseUp={onMouseUpViewport}
           className={panningState}

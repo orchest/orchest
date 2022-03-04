@@ -7,8 +7,9 @@ import {
   originTransformScaling,
   scaleCorrected,
 } from "../common";
+import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineViewState";
+import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { PipelineCanvas } from "./PipelineCanvas";
 
 const CANVAS_VIEW_MULTIPLE = 3;
@@ -22,7 +23,7 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
 // this means that we don't need to re-render the UI components on PipelineCanvas when zoom-in, zoom-out, panning the canvas
 // therefore, all the scaling states should reside in this component
-// but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineViewState in the context
+// but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineCanvasState in the context
 // so PipelineEditor can use these state
 const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   HTMLDivElement,
@@ -32,13 +33,15 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   ref
 ) => {
   const {
-    pipelineViewState,
-    setPipelineViewState,
     eventVars,
     mouseTracker,
     trackMouseMovement,
     dispatch,
   } = usePipelineEditorContext();
+  const {
+    pipelineCanvasState,
+    setPipelineCanvasState,
+  } = usePipelineCanvasContext();
 
   const localRef = React.useRef<HTMLDivElement>(null);
   const [canvasResizeStyle, resizeCanvas] = React.useState<React.CSSProperties>(
@@ -64,7 +67,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
         eventVars.scaleFactor
       );
 
-      setPipelineViewState((current) => ({
+      setPipelineCanvasState((current) => ({
         pipelineOrigin: [x, y],
         pipelineStepsHolderOffsetLeft:
           translateX + currentOrigin.x - current.pipelineOffset[0],
@@ -72,7 +75,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
           translateY + currentOrigin.y - current.pipelineOffset[1],
       }));
     },
-    [eventVars.scaleFactor, setPipelineViewState, getCurrentOrigin]
+    [eventVars.scaleFactor, setPipelineCanvasState, getCurrentOrigin]
   );
 
   // NOTE: React.useImperativeHandle should only be used in special cases
@@ -99,15 +102,15 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
   React.useEffect(() => {
     if (
-      pipelineViewState.pipelineOffset[0] === INITIAL_PIPELINE_POSITION[0] &&
-      pipelineViewState.pipelineOffset[1] === INITIAL_PIPELINE_POSITION[1] &&
+      pipelineCanvasState.pipelineOffset[0] === INITIAL_PIPELINE_POSITION[0] &&
+      pipelineCanvasState.pipelineOffset[1] === INITIAL_PIPELINE_POSITION[1] &&
       eventVars.scaleFactor === DEFAULT_SCALE_FACTOR
     ) {
       pipelineSetHolderOrigin([0, 0]);
     }
   }, [
     eventVars.scaleFactor,
-    pipelineViewState.pipelineOffset,
+    pipelineCanvasState.pipelineOffset,
     pipelineSetHolderOrigin,
   ]);
 
@@ -135,8 +138,8 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
     // set origin at scroll wheel trigger
     if (
-      pipelineMousePosition[0] !== pipelineViewState.pipelineOrigin[0] ||
-      pipelineMousePosition[1] !== pipelineViewState.pipelineOrigin[1]
+      pipelineMousePosition[0] !== pipelineCanvasState.pipelineOrigin[0] ||
+      pipelineMousePosition[1] !== pipelineCanvasState.pipelineOrigin[1]
     ) {
       pipelineSetHolderOrigin(pipelineMousePosition);
     }
@@ -190,13 +193,13 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       <PipelineCanvas
         ref={canvasRef}
         style={{
-          transformOrigin: `${pipelineViewState.pipelineOrigin[0]}px ${pipelineViewState.pipelineOrigin[1]}px`,
+          transformOrigin: `${pipelineCanvasState.pipelineOrigin[0]}px ${pipelineCanvasState.pipelineOrigin[1]}px`,
           transform:
-            `translateX(${pipelineViewState.pipelineOffset[0]}px) ` +
-            `translateY(${pipelineViewState.pipelineOffset[1]}px) ` +
+            `translateX(${pipelineCanvasState.pipelineOffset[0]}px) ` +
+            `translateY(${pipelineCanvasState.pipelineOffset[1]}px) ` +
             `scale(${eventVars.scaleFactor})`,
-          left: pipelineViewState.pipelineStepsHolderOffsetLeft,
-          top: pipelineViewState.pipelineStepsHolderOffsetTop,
+          left: pipelineCanvasState.pipelineStepsHolderOffsetLeft,
+          top: pipelineCanvasState.pipelineStepsHolderOffsetTop,
           ...canvasResizeStyle,
         }}
       >
