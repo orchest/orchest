@@ -272,6 +272,8 @@ export type MouseTracker = {
   client: Position;
   prev: Position;
   delta: Position;
+  unscaledPrev: Position;
+  unscaledDelta: Position;
 };
 
 export type Connection = {

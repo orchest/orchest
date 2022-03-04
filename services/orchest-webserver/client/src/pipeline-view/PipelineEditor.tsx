@@ -733,10 +733,8 @@ export const PipelineEditor: React.FC = () => {
     if (panningState === "ready-to-pan") setPanningState("panning");
 
     if (panningState === "panning") {
-      let dx = mouseTracker.current.delta.x;
-      let dy = mouseTracker.current.delta.y;
-
-      console.log("HM", eventVars.scaleFactor, dx, dy);
+      let dx = mouseTracker.current.unscaledDelta.x;
+      let dy = mouseTracker.current.unscaledDelta.y;
 
       setPipelineViewState((current) => ({
         pipelineOffset: [

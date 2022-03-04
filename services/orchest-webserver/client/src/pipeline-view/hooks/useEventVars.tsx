@@ -190,6 +190,8 @@ export const useEventVars = () => {
     client: { x: 0, y: 0 },
     prev: { x: 0, y: 0 },
     delta: { x: 0, y: 0 },
+    unscaledPrev: { x: 0, y: 0 },
+    unscaledDelta: { x: 0, y: 0 },
   });
   // this is used for temporarily saving dragged steps' positions
   const metadataPositions = React.useRef<Record<string, [number, number]>>({});
@@ -657,6 +659,18 @@ export const useEventVars = () => {
       mouseTracker.current.prev = {
         x: scaleCorrected(clientX, eventVars.scaleFactor),
         y: scaleCorrected(clientY, eventVars.scaleFactor),
+      };
+
+      const unscaledPrev = mouseTracker.current.unscaledPrev;
+
+      mouseTracker.current.unscaledDelta = {
+        x: clientX - unscaledPrev.x,
+        y: clientY - unscaledPrev.y,
+      };
+
+      mouseTracker.current.unscaledPrev = {
+        x: clientX,
+        y: clientY,
       };
     },
     [eventVars?.scaleFactor]
