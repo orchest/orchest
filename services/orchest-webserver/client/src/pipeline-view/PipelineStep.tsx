@@ -1,11 +1,13 @@
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
+  Connection,
   MouseTracker,
   Offset,
   PipelineStepMetaData,
   PipelineStepState,
   PipelineStepStatus,
+  Position,
 } from "@/types";
 import Box from "@mui/material/Box";
 import { hasValue } from "@orchest/lib-utils";
@@ -15,6 +17,7 @@ import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { EventVarsAction } from "./hooks/useEventVars";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
+import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
@@ -118,7 +121,10 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     savePositions,
     disabledDragging,
     onDoubleClick,
-    children, // we leave out the children, so that children doesn't re-render when step is being dragged
+    // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
+    interactiveConnections,
+    getPosition,
+    children, // expose children, so that children doesn't re-render when step is being dragged
   }: {
     data: PipelineStepState;
     scaleFactor: number;
@@ -135,6 +141,8 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     savePositions: () => void;
     disabledDragging?: boolean;
     onDoubleClick: (stepUUID: string) => void;
+    interactiveConnections: Connection[];
+    getPosition: (element: HTMLElement) => Position;
     children: React.ReactNode;
   },
   ref: React.MutableRefObject<HTMLDivElement>
@@ -144,6 +152,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     metadataPositions,
     projectUuid,
     pipelineUuid,
+    stepDomRefs,
   } = usePipelineEditorContext();
 
   // only persist meta_data for manipulating location with a local state
@@ -222,6 +231,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
           type: "SELECT_STEPS",
           payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
         });
+      }
+      if (selected) {
+        eventVarsDispatch({ type: "SET_OPENED_STEP", payload: uuid });
       }
       resetDraggingVariables();
       return;
@@ -322,42 +334,95 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
   const [x, y] = metadata.position;
   const transform = `translateX(${x}px) translateY(${y}px)`;
-  const shouldExpandBackground = cursorControlledStep === uuid;
+  const isCursorControlled = cursorControlledStep === uuid;
+
   return (
-    <Box
-      data-uuid={uuid}
-      data-test-title={title}
-      data-test-id={"pipeline-step"}
-      ref={ref}
-      className={classNames(
-        "pipeline-step",
-        selected && "selected",
-        metadata.hidden && "hidden",
-        isStartNodeOfNewConnection && "creating-connection"
-      )}
-      style={{ transform, zIndex }}
-      onMouseDown={onMouseDown}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
-      onClick={onClick}
-    >
-      {children}
+    <>
       <Box
-        sx={
-          // create a transparent background to prevent mouse leave occur unexpectedly
-          shouldExpandBackground
-            ? {
-                minWidth: STEP_WIDTH * 5,
-                minHeight: STEP_HEIGHT * 5,
-                display: "block",
-                position: "absolute",
-                left: -STEP_WIDTH * 2,
-                top: -STEP_HEIGHT * 2,
-              }
-            : null
-        }
-      />
-    </Box>
+        data-uuid={uuid}
+        data-test-title={title}
+        data-test-id={"pipeline-step"}
+        ref={ref}
+        className={classNames(
+          "pipeline-step",
+          selected && "selected",
+          metadata.hidden && "hidden",
+          isStartNodeOfNewConnection && "creating-connection"
+        )}
+        style={{ transform, zIndex }}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseLeave}
+        onClick={onClick}
+      >
+        {children}
+        <Box
+          sx={
+            // create a transparent background to prevent mouse leave occur unexpectedly
+            isCursorControlled
+              ? {
+                  minWidth: STEP_WIDTH * 5,
+                  minHeight: STEP_HEIGHT * 5,
+                  display: "block",
+                  position: "absolute",
+                  left: -STEP_WIDTH * 2,
+                  top: -STEP_HEIGHT * 2,
+                }
+              : null
+          }
+        />
+      </Box>
+      {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
+        interactiveConnections.map((connection) => {
+          if (!connection) return null;
+
+          const { startNodeUUID, endNodeUUID } = connection;
+          const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+          const endNode = endNodeUUID
+            ? stepDomRefs.current[`${endNodeUUID}-incoming`]
+            : null;
+
+          // startNode is required
+          if (!startNode) return null;
+
+          // if the connection is attached to a selected step,
+          // the connection should update its start/end node, to move along with the step
+          const shouldUpdateStart =
+            cursorControlledStep === startNodeUUID ||
+            (selectedSteps.includes(startNodeUUID) &&
+              selectedSteps.includes(cursorControlledStep));
+
+          const shouldUpdateEnd =
+            cursorControlledStep === endNodeUUID ||
+            (selectedSteps.includes(endNodeUUID) &&
+              selectedSteps.includes(cursorControlledStep));
+
+          const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
+            boolean,
+            boolean
+          ];
+
+          let startNodePosition = getPosition(startNode);
+          let endNodePosition = getPosition(endNode);
+
+          const key = `${startNodeUUID}-${endNodeUUID}-interactive`;
+
+          return (
+            <InteractiveConnection
+              key={key}
+              startNodeUUID={startNodeUUID}
+              endNodeUUID={endNodeUUID}
+              getPosition={getPosition}
+              stepDomRefs={stepDomRefs}
+              startNodeX={startNodePosition.x}
+              startNodeY={startNodePosition.y}
+              endNodeX={endNodePosition?.x}
+              endNodeY={endNodePosition?.y}
+              shouldUpdate={shouldUpdate}
+            />
+          );
+        })}
+    </>
   );
 });
 

@@ -14,7 +14,7 @@ export const PIPELINE_RUN_STATUS_ENDPOINT = "/catch/api-proxy/api/runs";
 export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs";
 
 export const DEFAULT_SCALE_FACTOR = 1;
-export const DRAG_CLICK_SENSITIVITY = 1;
+export const DRAG_CLICK_SENSITIVITY = 3;
 
 export const updatePipelineJson = (
   pipelineJson: PipelineJson,
@@ -78,7 +78,7 @@ export const localElementPosition = (
   offset: Offset,
   parentOffset: Offset,
   scaleFactor: number
-) => {
+): Position => {
   return {
     x: scaleCorrected(offset.left - parentOffset.left, scaleFactor),
     y: scaleCorrected(offset.top - parentOffset.top, scaleFactor),

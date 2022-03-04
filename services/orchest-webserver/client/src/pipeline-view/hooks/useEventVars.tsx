@@ -519,12 +519,13 @@ export const useEventVars = () => {
         // this means that the connection might not yet complete, as endNodeUUID is optional
         // this action creates an instance
         case "INSTANTIATE_CONNECTION": {
-          return produce(state, (draft) => {
-            draft.connections.push(action.payload);
-            draft.selectedSteps = [];
-            draft.selectedConnection = null;
-            draft.stepSelector = DEFAULT_STEP_SELECTOR;
-          });
+          return {
+            ...state,
+            connections: [...state.connections, action.payload],
+            selectedSteps: [],
+            selectedConnection: null,
+            stepSelector: DEFAULT_STEP_SELECTOR,
+          };
         }
 
         case "MAKE_CONNECTION": {

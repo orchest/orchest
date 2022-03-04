@@ -166,6 +166,13 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     isReadOnly,
   });
 
+  React.useEffect(() => {
+    const startTracking = (e: MouseEvent) =>
+      trackMouseMovement(e.clientX, e.clientY);
+    document.body.addEventListener("mousemove", startTracking);
+    return () => document.body.removeEventListener("mousemove", startTracking);
+  }, [trackMouseMovement]);
+
   return (
     <PipelineEditorContext.Provider
       value={{

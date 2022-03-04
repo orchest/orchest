@@ -17,6 +17,7 @@ const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
 type DotType = BoxProps & {
   incoming?: boolean;
   outgoing?: boolean;
+  shouldShowHoverEffect: boolean;
   disabled?: boolean;
   isReadOnly: boolean;
   active?: boolean;
@@ -29,6 +30,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
   {
     incoming,
     outgoing,
+    shouldShowHoverEffect,
     active,
     className,
     disabled,
@@ -58,7 +60,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
     e.stopPropagation();
     e.preventDefault();
     if (onMouseOver) onMouseOver(e);
-    setIsHovering(true);
+    if (shouldShowHoverEffect) setIsHovering(true);
   };
 
   const onMouseDownContainer = (

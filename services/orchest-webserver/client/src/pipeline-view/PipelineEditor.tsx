@@ -42,10 +42,12 @@ import {
 } from "./common";
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { useCanvasOffset } from "./hooks/useCanvasOffset";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
+import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import { PipelineViewport } from "./pipeline-viewport/PipelineViewport";
-import { PipelineConnection } from "./PipelineConnection";
+import { PipelineActionButton } from "./PipelineActionButton";
 import {
   getStateText,
   PipelineStep,
@@ -117,8 +119,11 @@ export const PipelineEditor: React.FC = () => {
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
   const centerPipelineOrigin = React.useRef<() => void>();
 
-  const canvasOffset = getOffset(pipelineCanvasRef.current);
-  const getPosition = getNodeCenter(canvasOffset, eventVars.scaleFactor);
+  const canvasOffset = useCanvasOffset(pipelineCanvasRef);
+
+  const getPosition = React.useMemo(() => {
+    return getNodeCenter(canvasOffset, eventVars.scaleFactor);
+  }, [canvasOffset, eventVars.scaleFactor]);
 
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
   const { setScope } = useHotKeys(
@@ -705,8 +710,7 @@ export const PipelineEditor: React.FC = () => {
     savePositions();
   };
 
-  const onMouseMoveViewport = (e: React.MouseEvent<HTMLDivElement>) => {
-    trackMouseMovement(e.clientX, e.clientY);
+  const onMouseMoveViewport = () => {
     // update newConnection's position
     if (newConnection.current) {
       const { x, y } = getScaleCorrectedPosition({
@@ -719,10 +723,7 @@ export const PipelineEditor: React.FC = () => {
     }
 
     if (eventVars.stepSelector.active) {
-      dispatch({
-        type: "UPDATE_STEP_SELECTOR",
-        payload: canvasOffset,
-      });
+      dispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
     }
 
     if (panningState === "ready-to-pan") setPanningState("panning");
@@ -797,6 +798,24 @@ export const PipelineEditor: React.FC = () => {
     [eventVars.stepSelector, eventVars.selectedSteps]
   );
 
+  const [connections, interactiveConnections] = React.useMemo(() => {
+    const nonInteractive: Connection[] = [];
+    const interactive: Connection[] = [];
+    eventVars.connections.forEach((connection) => {
+      const { startNodeUUID, endNodeUUID } = connection;
+      const isInteractive =
+        hasValue(eventVars.cursorControlledStep) &&
+        [startNodeUUID, endNodeUUID].includes(eventVars.cursorControlledStep);
+
+      if (isInteractive) {
+        interactive.push(connection);
+      } else {
+        nonInteractive.push(connection);
+      }
+    });
+    return [nonInteractive, interactive];
+  }, [eventVars.connections, eventVars.cursorControlledStep]);
+
   return (
     <div className="pipeline-view">
       <div
@@ -809,140 +828,6 @@ export const PipelineEditor: React.FC = () => {
             <BackToJobButton onClick={returnToJob} />
           </div>
         )}
-        <div className="pipeline-actions bottom-left">
-          <div className="navigation-buttons">
-            <IconButton
-              title="Center"
-              data-test-id="pipeline-center"
-              onClick={centerView}
-            >
-              <CropFreeIcon />
-            </IconButton>
-            <IconButton
-              title="Zoom out"
-              onClick={() => {
-                centerPipelineOrigin.current();
-                dispatch({
-                  type: "SET_SCALE_FACTOR",
-                  payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
-                });
-              }}
-            >
-              <RemoveIcon />
-            </IconButton>
-            <IconButton
-              title="Zoom in"
-              onClick={() => {
-                centerPipelineOrigin.current();
-                dispatch({
-                  type: "SET_SCALE_FACTOR",
-                  payload: Math.min(eventVars.scaleFactor + 0.25, 2),
-                });
-              }}
-            >
-              <AddIcon />
-            </IconButton>
-            {!isReadOnly && (
-              <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
-                <AccountTreeOutlinedIcon />
-              </IconButton>
-            )}
-          </div>
-          {!isReadOnly &&
-            !pipelineRunning &&
-            eventVars.selectedSteps.length > 0 &&
-            !eventVars.stepSelector.active && (
-              <div className="selection-buttons">
-                <Button
-                  variant="contained"
-                  onClick={runSelectedSteps}
-                  data-test-id="interactive-run-run-selected-steps"
-                >
-                  Run selected steps
-                </Button>
-                {selectedStepsHasIncoming && (
-                  <Button
-                    variant="contained"
-                    onClick={onRunIncoming}
-                    data-test-id="interactive-run-run-incoming-steps"
-                  >
-                    Run incoming steps
-                  </Button>
-                )}
-              </div>
-            )}
-          {pipelineRunning && (
-            <div className="selection-buttons">
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={cancelRun}
-                startIcon={<CloseIcon />}
-                disabled={isCancellingRun}
-                data-test-id="interactive-run-cancel"
-              >
-                Cancel run
-              </Button>
-            </div>
-          )}
-        </div>
-        {pipelineJson && (
-          <div className={"pipeline-actions top-right"}>
-            {!isReadOnly && (
-              <Button
-                variant="contained"
-                color="secondary"
-                onClick={createNextStep}
-                startIcon={<AddIcon />}
-                data-test-id="step-create"
-              >
-                NEW STEP
-              </Button>
-            )}
-            {isReadOnly && (
-              <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
-                Read only
-              </Button>
-            )}
-
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={openLogs}
-              onAuxClick={openLogs}
-              startIcon={<ViewHeadlineIcon />}
-            >
-              Logs
-            </Button>
-
-            <Button
-              id="running-services-button"
-              variant="contained"
-              color="secondary"
-              onClick={showServices}
-              startIcon={<SettingsIcon />}
-              ref={servicesButtonRef}
-            >
-              Services
-            </Button>
-            <ServicesMenu
-              isOpen={isShowingServices}
-              onClose={hideServices}
-              anchor={servicesButtonRef}
-              services={services}
-            />
-
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={openSettings}
-              startIcon={<TuneIcon />}
-              data-test-id="pipeline-settings"
-            >
-              Settings
-            </Button>
-          </div>
-        )}
         <PipelineViewport
           ref={pipelineViewportRef}
           centerPipelineOrigin={centerPipelineOrigin}
@@ -953,7 +838,7 @@ export const PipelineEditor: React.FC = () => {
           className={panningState}
           canvasRef={pipelineCanvasRef}
         >
-          {eventVars.connections.map((connection) => {
+          {connections.map((connection) => {
             if (!connection) return null;
 
             const { startNodeUUID, endNodeUUID } = connection;
@@ -970,7 +855,6 @@ export const PipelineEditor: React.FC = () => {
 
             // if the connection is attached to a selected step,
             // the connection should update its start/end node, to move along with the step
-
             const shouldUpdateStart =
               flushPage ||
               eventVars.cursorControlledStep === startNodeUUID ||
@@ -1081,10 +965,13 @@ export const PipelineEditor: React.FC = () => {
                 eventVarsDispatch={dispatch}
                 selectedSteps={eventVars.selectedSteps}
                 mouseTracker={mouseTracker}
+                interactiveConnections={interactiveConnections}
                 onDoubleClick={onDoubleClickStep}
+                getPosition={getPosition}
               >
                 <ConnectionDot
                   incoming
+                  shouldShowHoverEffect={hasValue(newConnection.current)}
                   isReadOnly={isReadOnly}
                   ref={(el) =>
                     (stepDomRefs.current[`${step.uuid}-incoming`] = el)
@@ -1109,6 +996,7 @@ export const PipelineEditor: React.FC = () => {
                 <ConnectionDot
                   outgoing
                   isReadOnly={isReadOnly}
+                  shouldShowHoverEffect={!hasValue(newConnection.current)}
                   ref={(el) =>
                     (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
                   }
@@ -1129,6 +1017,127 @@ export const PipelineEditor: React.FC = () => {
             <Rectangle {...getStepSelectorRectangle(eventVars.stepSelector)} />
           )}
         </PipelineViewport>
+        <div className="pipeline-actions bottom-left">
+          <div className="navigation-buttons">
+            <IconButton
+              title="Center"
+              data-test-id="pipeline-center"
+              onClick={centerView}
+            >
+              <CropFreeIcon />
+            </IconButton>
+            <IconButton
+              title="Zoom out"
+              onClick={() => {
+                centerPipelineOrigin.current();
+                dispatch({
+                  type: "SET_SCALE_FACTOR",
+                  payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
+                });
+              }}
+            >
+              <RemoveIcon />
+            </IconButton>
+            <IconButton
+              title="Zoom in"
+              onClick={() => {
+                centerPipelineOrigin.current();
+                dispatch({
+                  type: "SET_SCALE_FACTOR",
+                  payload: Math.min(eventVars.scaleFactor + 0.25, 2),
+                });
+              }}
+            >
+              <AddIcon />
+            </IconButton>
+            {!isReadOnly && (
+              <IconButton title="Auto layout" onClick={autoLayoutPipeline}>
+                <AccountTreeOutlinedIcon />
+              </IconButton>
+            )}
+          </div>
+          {!isReadOnly &&
+            !pipelineRunning &&
+            eventVars.selectedSteps.length > 0 &&
+            !eventVars.stepSelector.active && (
+              <div className="selection-buttons">
+                <Button
+                  variant="contained"
+                  onClick={runSelectedSteps}
+                  data-test-id="interactive-run-run-selected-steps"
+                >
+                  Run selected steps
+                </Button>
+                {selectedStepsHasIncoming && (
+                  <Button
+                    variant="contained"
+                    onClick={onRunIncoming}
+                    data-test-id="interactive-run-run-incoming-steps"
+                  >
+                    Run incoming steps
+                  </Button>
+                )}
+              </div>
+            )}
+          {pipelineRunning && (
+            <div className="selection-buttons">
+              <PipelineActionButton
+                onClick={cancelRun}
+                startIcon={<CloseIcon />}
+                disabled={isCancellingRun}
+                data-test-id="interactive-run-cancel"
+              >
+                Cancel run
+              </PipelineActionButton>
+            </div>
+          )}
+        </div>
+        {pipelineJson && (
+          <div className={"pipeline-actions top-right"}>
+            {!isReadOnly && (
+              <PipelineActionButton
+                onClick={createNextStep}
+                startIcon={<AddIcon />}
+                data-test-id="step-create"
+              >
+                NEW STEP
+              </PipelineActionButton>
+            )}
+            {isReadOnly && (
+              <Button color="secondary" startIcon={<VisibilityIcon />} disabled>
+                Read only
+              </Button>
+            )}
+            <PipelineActionButton
+              onClick={openLogs}
+              onAuxClick={openLogs}
+              startIcon={<ViewHeadlineIcon />}
+            >
+              Logs
+            </PipelineActionButton>
+            <PipelineActionButton
+              id="running-services-button"
+              onClick={showServices}
+              startIcon={<SettingsIcon />}
+              ref={servicesButtonRef}
+            >
+              Services
+            </PipelineActionButton>
+            <ServicesMenu
+              isOpen={isShowingServices}
+              onClose={hideServices}
+              anchor={servicesButtonRef}
+              services={services}
+            />
+            <PipelineActionButton
+              onClick={openSettings}
+              startIcon={<TuneIcon />}
+              data-test-id="pipeline-settings"
+            >
+              Settings
+            </PipelineActionButton>
+          </div>
+        )}
       </div>
       <StepDetails
         key={eventVars.openedStep}
@@ -1140,16 +1149,14 @@ export const PipelineEditor: React.FC = () => {
 
       {hasSelectedSteps && !isReadOnly && (
         <div className={"pipeline-actions bottom-right"}>
-          <Button
-            variant="contained"
-            color="secondary"
+          <PipelineActionButton
             onClick={deleteSelectedSteps}
             startIcon={<DeleteIcon />}
             disabled={isDeletingSteps}
             data-test-id="step-delete-multi"
           >
             Delete
-          </Button>
+          </PipelineActionButton>
         </div>
       )}
     </div>

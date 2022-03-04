@@ -1,118 +1,10 @@
-import theme from "@/theme";
 import { NewConnection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
-import { EventVarsAction } from "./hooks/useEventVars";
-import { useUpdateZIndex } from "./hooks/useZIndexMax";
-
-// set SVG properties
-const lineHeight = 2;
-const svgPadding = 5;
-const arrowWidth = 7;
-
-const curvedHorizontal = function (
-  x1: number,
-  y1: number,
-  x2: number,
-  y2: number
-) {
-  let line = [];
-  let mx = x1 + (x2 - x1) / 2;
-
-  line.push("M", x1, y1);
-  line.push("C", mx, y1, mx, y2, x2, y2);
-
-  return line.join(" ");
-};
-
-const ConnectionLine = ({
-  onClick,
-  selected,
-  width,
-  height,
-  d,
-}: React.SVGProps<SVGPathElement> & {
-  selected: boolean;
-}) => {
-  return (
-    <svg width={width} height={height}>
-      <path
-        id="path"
-        stroke={selected ? theme.palette.primary.main : "#000"}
-        strokeWidth={selected ? 3 : 2}
-        fill="none"
-        d={d}
-      />
-      <path
-        id="path-clickable"
-        onClick={onClick}
-        stroke="transparent"
-        strokeWidth={4}
-        fill="none"
-        d={d}
-      />
-    </svg>
-  );
-};
-
-const getTransformProperty = ({
-  startNodeX,
-  startNodeY,
-  endNodeX = startNodeX,
-  endNodeY = startNodeY,
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX?: number;
-  endNodeY?: number;
-}) => {
-  let targetX = endNodeX - startNodeX;
-  let targetY = endNodeY - startNodeY;
-
-  let xOffset = Math.min(targetX, 0);
-  let yOffset = Math.min(targetY, 0);
-
-  const translateX = startNodeX - svgPadding + xOffset;
-  const translateY = startNodeY - svgPadding + yOffset - lineHeight / 2;
-
-  return {
-    transform: `translateX(${translateX}px) translateY(${translateY}px)`,
-  };
-};
-
-const getSvgProperties = ({
-  startNodeX,
-  startNodeY,
-  endNodeX = startNodeX,
-  endNodeY = startNodeY,
-}: {
-  startNodeX: number;
-  startNodeY: number;
-  endNodeX?: number;
-  endNodeY?: number;
-}) => {
-  let targetX = endNodeX - startNodeX;
-  let targetY = endNodeY - startNodeY;
-
-  let xOffset = Math.min(targetX, 0);
-  let yOffset = Math.min(targetY, 0);
-
-  const width = Math.abs(targetX) + 2 * svgPadding + "px";
-  const height = Math.abs(targetY) + 2 * svgPadding + "px";
-  const drawn = curvedHorizontal(
-    svgPadding - xOffset,
-    svgPadding - yOffset,
-    svgPadding + targetX - xOffset - arrowWidth,
-    svgPadding + targetY - yOffset
-  );
-
-  const className = classNames(
-    targetX < arrowWidth * 10 && "flipped-horizontal",
-    targetY < 0 && "flipped"
-  );
-
-  return { width, height, drawn, className };
-};
+import { EventVarsAction } from "../hooks/useEventVars";
+import { useUpdateZIndex } from "../hooks/useZIndexMax";
+import { getSvgProperties, getTransformProperty } from "./common";
+import { ConnectionLine } from "./ConnectionLine";
 
 const PipelineConnectionComponent: React.FC<{
   shouldRedraw: boolean;
@@ -199,17 +91,12 @@ const PipelineConnectionComponent: React.FC<{
   // via stepDomRefs, and update the SVG accordingly
   // so that we can ONLY re-render relevant connections and get away from performance penalty
 
-  const shouldTransform = !isNew && shouldUpdateStart && shouldUpdateEnd;
-
   const shouldRedrawSvg =
-    !shouldTransform &&
-    (cursorControlledStep || isNew) &&
-    (shouldUpdateStart || shouldUpdateEnd);
+    (cursorControlledStep || isNew) && (shouldUpdateStart || shouldUpdateEnd);
 
   const onMouseMove = React.useCallback(() => {
-    if (shouldTransform) transform();
     if (shouldRedrawSvg) redraw();
-  }, [redraw, shouldRedrawSvg, shouldTransform, transform]);
+  }, [redraw, shouldRedrawSvg]);
 
   React.useEffect(() => {
     document.body.addEventListener("mousemove", onMouseMove);
