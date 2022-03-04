@@ -296,7 +296,6 @@ class PipelineRunsList(Resource):
         job_runs_query = (
             models.NonInteractivePipelineRun.query.options(
                 noload(models.NonInteractivePipelineRun.pipeline_steps),
-                noload(models.NonInteractivePipelineRun.image_mappings),
                 undefer(models.NonInteractivePipelineRun.env_variables),
             )
             .filter_by(
@@ -799,12 +798,8 @@ class RunJob(TwoPhaseFunction):
         # Prepare data for _collateral.
         self.collateral_kwargs["job"] = job.as_dict()
 
-        mappings = {
-            mapping.orchest_environment_uuid: mapping.docker_img_id
-            for mapping in job.image_mappings
-        }
         run_config = job.pipeline_run_spec["run_config"]
-        run_config["env_uuid_to_image_mappings"] = mappings
+        run_config["env_uuid_to_image_mappings"] = {}
         run_config["user_env_variables"] = job.env_variables
         self.collateral_kwargs["run_config"] = run_config
 

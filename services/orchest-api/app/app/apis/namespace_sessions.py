@@ -195,13 +195,9 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
     @classmethod
     def _should_abort_session_start(cls, project_uuid, pipeline_uuid) -> bool:
-        session_entry = (
-            models.InteractiveSession.query.options(
-                lazyload(models.InteractiveSession.image_mappings)
-            )
-            .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
-            .one_or_none()
-        )
+        session_entry = models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+        ).one_or_none()
         # Has been stopped or is in the process of being stopped.
         return session_entry is None or session_entry.status != "LAUNCHING"
 
@@ -245,11 +241,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # with_for_update to avoid overwriting the state of a
                 # STOPPING instance.
                 session_entry = (
-                    models.InteractiveSession.query
-                    # The lazyload is because you can't lock for update
-                    # such a relationship (nullable FK).
-                    .options(lazyload(models.InteractiveSession.image_mappings))
-                    .with_for_update()
+                    models.InteractiveSession.query.with_for_update()
                     .populate_existing()
                     .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
                     .one_or_none()
@@ -309,10 +301,7 @@ class StopInteractiveSession(TwoPhaseFunction):
     ):
 
         session = (
-            models.InteractiveSession.query.options(
-                lazyload(models.InteractiveSession.image_mappings)
-            )
-            .with_for_update()
+            models.InteractiveSession.query.with_for_update()
             .populate_existing()
             .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
             .one_or_none()

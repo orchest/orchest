@@ -203,14 +203,6 @@ class InteractiveSession(BaseModel):
         server_default="{}",
     )
 
-    # Orchest environments used as services.
-    image_mappings = db.relationship(
-        "InteractiveSessionImageMapping",
-        lazy="joined",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-
     def __repr__(self):
         return f"<Launch {self.pipeline_uuid}>"
 
@@ -354,13 +346,6 @@ class Job(BaseModel):
         ),
     )
 
-    image_mappings = db.relationship(
-        "JobImageMapping",
-        lazy="select",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-
     # The status of a job can be DRAFT, PENDING, STARTED, PAUSED
     # SUCCESS, ABORTED, FAILURE. Only recurring jobs can be PAUSED. Jobs
     # start as DRAFT, this indicates that the job has been created but
@@ -451,12 +436,6 @@ class PipelineRun(BaseModel):
 
     pipeline_steps = db.relationship(
         "PipelineRunStep",
-        lazy="joined",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-    image_mappings = db.relationship(
-        "PipelineRunImageMapping",
         lazy="joined",
         passive_deletes=True,
         cascade="all, delete",
@@ -643,139 +622,6 @@ class InteractivePipelineRun(PipelineRun):
     __mapper_args__ = {
         "polymorphic_identity": "InteractivePipelineRun",
     }
-
-
-class PipelineRunImageMapping(BaseModel):
-    """Stores mappings between a pipeline run and the environment
-     images it uses.
-
-    Used to understand if an image can be removed from the registry if
-    it's not used by a run which is PENDING or STARTED.  Currently, this
-    only references interactive runs.
-
-    """
-
-    __tablename__ = "pipeline_run_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("run_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("run_uuid", "docker_img_id"),
-    )
-
-    run_uuid = db.Column(
-        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
-        unique=False,
-        nullable=False,
-        index=True,
-        primary_key=True,
-    )
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    # Keep this column as docker_img_id until we work on the env
-    # images lifecycle.
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
-    )
-
-    def __repr__(self):
-        return (
-            f"<PipelineRunImageMapping: {self.run_uuid} | "
-            f"{self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
-
-
-class JobImageMapping(BaseModel):
-    """Stores mappings between a job and the environment images it uses.
-
-    Used to understand if an image can be removed from the registry if
-    it's not used by a job which is PENDING or STARTED.
-
-    """
-
-    __tablename__ = "job_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("job_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("job_uuid", "docker_img_id"),
-    )
-
-    job_uuid = db.Column(
-        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
-        unique=False,
-        nullable=False,
-        index=True,
-        primary_key=True,
-    )
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
-    )
-
-    def __repr__(self):
-        return (
-            f"<JobImageMapping: {self.run_uuid} | "
-            f"{self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
-
-
-class InteractiveSessionImageMapping(BaseModel):
-    """Mappings between an interactive session and environment images.
-
-    Used to understand if an image can be removed from the registry
-    environment if it's not used by an interactive session. This could
-    be the case when an interactive session is using an orchest
-    environment as a service.
-    """
-
-    __tablename__ = "interactive_session_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("project_uuid", "pipeline_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("project_uuid", "pipeline_uuid", "docker_img_id"),
-    )
-
-    project_uuid = db.Column(
-        db.String(36),
-        unique=False,
-        nullable=False,
-        index=True,
-        primary_key=True,
-    )
-
-    pipeline_uuid = db.Column(
-        db.String(36),
-        unique=False,
-        nullable=False,
-        index=True,
-        primary_key=True,
-    )
-
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
-    )
-
-    def __repr__(self):
-        return (
-            f"<InteractiveSessionImageMapping: {self.project_uuid}-"
-            f"{self.pipeline_uuid} | {self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
-
-
-# Necessary to have a single FK path from session to image mapping.
-ForeignKeyConstraint(
-    [
-        InteractiveSessionImageMapping.project_uuid,
-        InteractiveSessionImageMapping.pipeline_uuid,
-    ],
-    [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
-    ondelete="CASCADE",
-)
 
 
 class ClientHeartbeat(BaseModel):

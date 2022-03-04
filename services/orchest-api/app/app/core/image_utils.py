@@ -416,31 +416,7 @@ def build_image(
 
 
 def is_image_in_use(img_id: str) -> bool:
-    """True if the image is or will be in use by a run/job
-
-    Args:
-        img_id:
-
-    Returns:
-        bool:
-    """
-
-    int_runs = models.PipelineRun.query.filter(
-        models.PipelineRun.image_mappings.any(docker_img_id=img_id),
-        models.PipelineRun.status.in_(["PENDING", "STARTED"]),
-    ).all()
-
-    int_sessions = models.InteractiveSession.query.filter(
-        models.InteractiveSession.image_mappings.any(docker_img_id=img_id),
-        models.InteractiveSession.status.in_(["LAUNCHING", "RUNNING"]),
-    ).all()
-
-    jobs = models.Job.query.filter(
-        models.Job.image_mappings.any(docker_img_id=img_id),
-        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
-    ).all()
-
-    return bool(int_runs) or bool(int_sessions) or bool(jobs)
+    return True
 
 
 def delete_base_images_cache() -> None:
