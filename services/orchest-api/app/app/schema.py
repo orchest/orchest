@@ -762,3 +762,13 @@ idleness_check_result = Model(
         ),
     },
 )
+
+update_sidecar_info = Model(
+    "UpdateSidecarInfo",
+    {
+        "token": fields.String(
+            required=True,
+            description="Token to access the update sidecar.",
+        ),
+    },
+)

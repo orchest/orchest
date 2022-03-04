@@ -520,16 +520,6 @@ def update() -> None:
         if resp.peek_stderr():
             utils.echo(resp.read_stderr(), nl=False, wrap=False, err=True)
 
-    # The pod will try to terminate itself, this is for safety in case
-    # it does not work.
-    try:
-        k8s_core_api.delete_namespaced_pod(
-            pod.metadata.name, config.ORCHEST_DEPLOYMENTS
-        )
-    except k8s_client.ApiException as e:
-        if e.status != 404:
-            raise
-
 
 def _update() -> None:
     """Updates Orchest.

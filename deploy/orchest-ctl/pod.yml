@@ -1,5 +1,7 @@
 # Note: this yaml file is used is used in the "orchest" script to create
-# the orchest-ctl pod, and in "orchest-ctl" to create the update pod.
+# the orchest-ctl pod, in "orchest-ctl" to create the hidden-update pod
+# and in "orchest-api" to create the orchest-ctl update pod for
+# the GUI update. See ORCHEST_CTL_POD_YAML_PATH.
 apiVersion: v1
 kind: Pod
 metadata:

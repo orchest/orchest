@@ -13,6 +13,7 @@ import typer
 import yaml
 from kubernetes import client as k8s_client
 
+from _orchest.internals import config as _config
 from app import config, utils
 from app.connections import k8s_apps_api, k8s_core_api
 
@@ -150,17 +151,16 @@ def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
     This can be used to know what operation Orchest is undergoing, or
     if another, possibly confliting command can be run concurrently or
     not. This works by checking what's the oldest pod that is running a
-    status changing command or the update-server, which works as a
-    priority when it comes to conflicts.
+    status changing command, which works as a priority when it comes to
+    conflicts.
 
     Returns:
-        None if no instance of the update-server or orchest-ctl running
-        with state changing commands is not running. That instance pod
-        otherwise.
+        None if no instance of orchest-ctl running with state changing
+        commands is running. That instance pod otherwise.
 
     """
     pods = k8s_core_api.list_namespaced_pod(
-        config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
+        config.ORCHEST_NAMESPACE, label_selector="app=orchest-ctl"
     ).items
     pods = [
         p
@@ -274,7 +274,7 @@ def orchest_cleanup() -> None:
 
 
 def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
-    with open(config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
+    with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
         manifest = yaml.safe_load(f)
 
     labels = manifest["metadata"]["labels"]

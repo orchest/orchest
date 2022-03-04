@@ -186,25 +186,14 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/async/spawn-update-server", methods=["GET"])
-    def spawn_update_server():
+    @app.route("/async/start-update", methods=["POST"])
+    def start_update():
 
-        client = docker.from_env()
-
-        cmd = ["updateserver"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
-
-        return ""
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl'
+            "/start-update"
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():

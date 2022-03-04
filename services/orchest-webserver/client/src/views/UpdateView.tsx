@@ -25,6 +25,7 @@ const UpdateView: React.FC = () => {
     ...prevState,
     updating: false,
     updateOutput: "",
+    token: "",
   }));
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
@@ -40,24 +41,33 @@ const UpdateView: React.FC = () => {
         setState({
           updating: true,
           updateOutput: "",
+          token: "",
         });
+        console.log("Starting update.");
 
         try {
-          await makeRequest("GET", "/async/spawn-update-server", {});
-          console.log("Spawned update-server, start polling update-server.");
+          makeRequest("POST", "/async/start-update", {}).then((response) => {
+            let json = JSON.parse(response);
+            setState((prevState) => ({
+              ...prevState,
+              token: json.token,
+            }));
+            console.log("Update started, polling update-sidecar.");
 
-          checkHeartbeat("/update-server/heartbeat")
-            .then(() => {
-              resolve(true);
-              requestUpdate();
-            })
-            .catch((retries) => {
-              console.error(
-                "Update service heartbeat checking timed out after " +
-                  retries +
-                  " retries."
-              );
-            });
+            checkHeartbeat("/update-sidecar/heartbeat")
+              .then(() => {
+                console.log("Heartbeat successful.");
+                resolve(true);
+                startUpdatePolling();
+              })
+              .catch((retries) => {
+                console.error(
+                  "Update sidecar heartbeat checking timed out after " +
+                    retries +
+                    " retries."
+                );
+              });
+          });
 
           return true;
         } catch (error) {
@@ -74,25 +84,9 @@ const UpdateView: React.FC = () => {
     setUpdatePollInterval(1000);
   };
 
-  const requestUpdate = () => {
-    let updateUrl = "/update-server/update";
-
-    let updatePromise = makeCancelable(
-      makeRequest("POST", updateUrl),
-      promiseManager
-    );
-    updatePromise.promise
-      .then(() => {
-        startUpdatePolling();
-      })
-      .catch((e) => {
-        console.error(e);
-      });
-  };
-
   useInterval(() => {
     let updateStatusPromise = makeCancelable(
-      makeRequest("GET", "/update-server/update-status"),
+      makeRequest("GET", `/update-sidecar/update-status?token=${state.token}`),
       promiseManager
     );
 

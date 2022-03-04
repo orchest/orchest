@@ -55,7 +55,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "base-kernel-julia"
         "orchest-api"
         "orchest-ctl"
-        "update-server"
+        "update-sidecar"
         "orchest-webserver"
         "nginx-proxy"
         "memory-server"
@@ -76,7 +76,7 @@ LIB_IMAGES=(
     "memory-server"
     "session-sidecar"
     "auth-server"
-    "update-server"
+    "update-sidecar"
     "celery-worker"
     "jupyter-enterprise-gateway"
 )
@@ -103,7 +103,8 @@ SDK_IMAGES=(
 
 HELM_IMAGES=(
     "orchest-ctl"
-    "update-server"
+    "orchest-api"
+    "update-sidecar"
 )
 
 CLEANUP_BUILD_CTX=()
@@ -327,13 +328,13 @@ do
             $build_ctx)
     fi
 
-    if [ $IMG == "update-server" ]; then
+    if [ $IMG == "update-sidecar" ]; then
 
-        build_ctx=$DIR/../services/update-server
+        build_ctx=$DIR/../services/update-sidecar
         build=(docker build --progress=plain \
-            -t "orchest/update-server:$BUILD_TAG" \
+            -t "orchest/update-sidecar:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
-            -f $DIR/../services/update-server/Dockerfile \
+            -f $DIR/../services/update-sidecar/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi

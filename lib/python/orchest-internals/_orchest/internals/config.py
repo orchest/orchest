@@ -110,10 +110,4 @@ MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
 SIDECAR_PORT = 1111
 
 ORCHEST_NAMESPACE = "orchest"
-
-# update-server
-
-# This is used to force docker to flush the logs buffer, which won't
-# happen without a newline. This way the update server knows when a
-# newline is "genuine" vs a newline being put there to flush the buffer.
-DOCKER_LOGS_BUFFER_FLUSH_FLAG = "F|!!!|\n"
+ORCHEST_CTL_POD_YAML_PATH = "/orchest/deploy/orchest-ctl/pod.yml"

@@ -1,9 +1,4 @@
-import logging
-import sys
-
 from app import create_app
-
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
 
 app = create_app()
 

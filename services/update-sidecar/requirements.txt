@@ -1,6 +1,6 @@
 Flask==1.1.1
-docker
 itsdangerous==2.0.1
+kubernetes==21.7.0
 requests
 six>=1.13.0
 -e ../../lib/python/orchest-internals
