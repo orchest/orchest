@@ -357,12 +357,8 @@ export const PipelineEditor: React.FC = () => {
   const removeConnection = React.useCallback(
     (connection: Connection) => {
       dispatch({ type: "REMOVE_CONNECTION", payload: connection });
-      // if it's a aborted new connection, we don't need to save it
-      if (connection.endNodeUUID) {
-        saveSteps(eventVars.steps);
-      }
     },
-    [dispatch, saveSteps, eventVars.steps]
+    [dispatch]
   );
 
   const createNextStep = async () => {
@@ -519,7 +515,7 @@ export const PipelineEditor: React.FC = () => {
 
       // reset eventVars.steps, this will trigger saving
       dispatch({ type: "SET_STEPS", payload: updated.steps });
-      saveSteps(updated.steps);
+      saveSteps(updated.steps); // normally SET_STEPS won't trigger save
       return updated;
     }, true); // flush page, re-instantiate all UI elements with new local state for dragging
     // the rendering of connection lines depend on the positions of the steps
@@ -842,6 +838,8 @@ export const PipelineEditor: React.FC = () => {
   const flushPage = useHasChanged(hash.current);
   const shouldSave = useHasChanged(eventVars.timestamp);
 
+  // if timestamp is changed, auto-save
+  // check useEventVars to see if the action return value is wrapped by withTimestamp
   React.useEffect(() => {
     if (hasValue(eventVars.timestamp) && shouldSave) saveSteps(eventVars.steps);
   }, [saveSteps, eventVars.timestamp, eventVars.steps, shouldSave]);

@@ -9,7 +9,7 @@ import type {
   StepsDict,
 } from "@/types";
 import { getOuterHeight, getOuterWidth } from "@/utils/jquery-replacement";
-import { intersectRect } from "@orchest/lib-utils";
+import { hasValue, intersectRect } from "@orchest/lib-utils";
 import produce from "immer";
 import merge from "lodash.merge";
 import React from "react";
@@ -521,7 +521,12 @@ export const useEventVars = () => {
 
         case "REMOVE_CONNECTION": {
           newConnection.current = undefined;
-          return withTimestamp(removeConnection(state, action.payload));
+          // if endNodeUUID is undefined, it's an aborted new connection
+          // no need to send a request to delete it
+          const shouldSave = hasValue(action.payload.endNodeUUID);
+          const outcome = removeConnection(state, action.payload);
+
+          return shouldSave ? withTimestamp(outcome) : outcome;
         }
 
         case "REMOVE_STEPS": {
