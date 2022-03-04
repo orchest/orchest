@@ -29,7 +29,7 @@ class EnvironmentBuildList(Resource):
         FAILURE, ABORTED.
 
         """
-        environment_builds = models.EnvironmentBuild.query.all()
+        environment_builds = models.EnvironmentImageBuild.query.all()
         if not environment_builds:
             environment_builds = []
 
@@ -110,7 +110,7 @@ class EnvironmentBuild(Resource):
     @api.marshal_with(schema.environment_build, code=200)
     def get(self, environment_build_uuid):
         """Fetch an environment build given its uuid."""
-        env_build = models.EnvironmentBuild.query.filter_by(
+        env_build = models.EnvironmentImageBuild.query.filter_by(
             uuid=environment_build_uuid
         ).one_or_none()
         if env_build is not None:
@@ -129,7 +129,7 @@ class EnvironmentBuild(Resource):
         try:
             update_status_db(
                 status_update,
-                model=models.EnvironmentBuild,
+                model=models.EnvironmentImageBuild,
                 filter_by=filter_by,
             )
             db.session.commit()
@@ -189,14 +189,14 @@ class ProjectMostRecentBuildsList(Resource):
             .over(partition_by="environment_uuid", order_by=desc("requested_time"))
             .label("rank")
         )
-        query = db.session.query(models.EnvironmentBuild)
+        query = db.session.query(models.EnvironmentImageBuild)
         query = query.filter_by(project_uuid=project_uuid)
         query = query.add_column(rank)
         # Note: this works because rank is of type Label and rank == 1
         # will evaluate to sqlalchemy.sql.elements.BinaryExpression
         # since the equality operator is overloaded.
         query = query.from_self().filter(rank == 1)
-        query = query.with_entities(models.EnvironmentBuild)
+        query = query.with_entities(models.EnvironmentImageBuild)
         env_builds = query.all()
 
         return {"environment_builds": [build.as_dict() for build in env_builds]}
@@ -218,9 +218,9 @@ class ProjectEnvironmentMostRecentBuild(Resource):
         environment_builds = []
 
         recent = (
-            db.session.query(models.EnvironmentBuild)
+            db.session.query(models.EnvironmentImageBuild)
             .filter_by(project_uuid=project_uuid, environment_uuid=environment_uuid)
-            .order_by(desc(models.EnvironmentBuild.requested_time))
+            .order_by(desc(models.EnvironmentImageBuild.requested_time))
             .first()
         )
         if recent:
@@ -234,14 +234,14 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
 
         # Abort any environment build of this environment that is
         # already running, given by the status of PENDING/STARTED.
-        already_running_builds = models.EnvironmentBuild.query.filter(
-            models.EnvironmentBuild.project_uuid == build_request["project_uuid"],
-            models.EnvironmentBuild.environment_uuid
+        already_running_builds = models.EnvironmentImageBuild.query.filter(
+            models.EnvironmentImageBuild.project_uuid == build_request["project_uuid"],
+            models.EnvironmentImageBuild.environment_uuid
             == build_request["environment_uuid"],
-            models.EnvironmentBuild.project_path == build_request["project_path"],
+            models.EnvironmentImageBuild.project_path == build_request["project_path"],
             or_(
-                models.EnvironmentBuild.status == "PENDING",
-                models.EnvironmentBuild.status == "STARTED",
+                models.EnvironmentImageBuild.status == "PENDING",
+                models.EnvironmentImageBuild.status == "STARTED",
             ),
         ).all()
 
@@ -269,7 +269,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
             "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
             "status": "PENDING",
         }
-        db.session.add(models.EnvironmentBuild(**environment_build))
+        db.session.add(models.EnvironmentImageBuild(**environment_build))
 
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
@@ -294,7 +294,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         )
 
     def _revert(self):
-        models.EnvironmentBuild.query.filter_by(
+        models.EnvironmentImageBuild.query.filter_by(
             uuid=self.collateral_kwargs["task_id"]
         ).update({"status": "FAILURE"})
         db.session.commit()
@@ -311,7 +311,7 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
         # environment build was actually PENDING or STARTED.
         abortable = update_status_db(
             status_update,
-            model=models.EnvironmentBuild,
+            model=models.EnvironmentImageBuild,
             filter_by=filter_by,
         )
 
@@ -341,10 +341,10 @@ class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
         # be related to a PENDING or STARTED build, all others are
         # surely not PENDING or STARTED.
         env_builds = (
-            models.EnvironmentBuild.query.filter_by(
+            models.EnvironmentImageBuild.query.filter_by(
                 project_uuid=project_uuid, environment_uuid=environment_uuid
             )
-            .order_by(desc(models.EnvironmentBuild.requested_time))
+            .order_by(desc(models.EnvironmentImageBuild.requested_time))
             .all()
         )
 
@@ -361,10 +361,10 @@ class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
 class DeleteProjectBuilds(TwoPhaseFunction):
     def _transaction(self, project_uuid: str):
         builds = (
-            models.EnvironmentBuild.query.filter_by(project_uuid=project_uuid)
+            models.EnvironmentImageBuild.query.filter_by(project_uuid=project_uuid)
             .with_entities(
-                models.EnvironmentBuild.project_uuid,
-                models.EnvironmentBuild.environment_uuid,
+                models.EnvironmentImageBuild.project_uuid,
+                models.EnvironmentImageBuild.environment_uuid,
             )
             .distinct()
             .all()

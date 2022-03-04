@@ -95,7 +95,7 @@ def is_orchest_idle() -> dict:
     # on this "feature" in the future without fragmenting users due to
     # different versions.
     for name, model in [
-        ("ongoing_environment_builds", models.EnvironmentBuild),
+        ("ongoing_environment_builds", models.EnvironmentImageBuild),
         ("ongoing_jupyterlab_builds", models.JupyterBuild),
         ("ongoing_interactive_runs", models.InteractivePipelineRun),
         ("ongoing_job_runs", models.NonInteractivePipelineRun),

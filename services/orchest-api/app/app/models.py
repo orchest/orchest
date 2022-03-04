@@ -58,8 +58,8 @@ class Project(BaseModel):
     pipelines = db.relationship(
         "Pipeline", lazy="select", passive_deletes=True, cascade="all, delete"
     )
-    environment_builds = db.relationship(
-        "EnvironmentBuild", lazy="select", passive_deletes=True, cascade="all, delete"
+    environments = db.relationship(
+        "Environment", lazy="select", passive_deletes=True, cascade="all, delete"
     )
     interactive_sessions = db.relationship(
         "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
@@ -115,29 +115,80 @@ class Pipeline(BaseModel):
     )
 
 
-class EnvironmentBuild(BaseModel):
-    """State of environment builds.
+class Environment(BaseModel):
+    __tablename__ = "environments"
 
-    Table meant to store the state of the build task of an environment,
-    i.e. when we need to build an image starting from a base image plus
-    optional sh code. This is not related to keeping track of
-    environments or images to decide if a project or pipeline can be
-    run.
-
-    """
-
-    __tablename__ = "environment_builds"
-    __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
-
-    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
-    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     project_uuid = db.Column(
         db.String(36),
         db.ForeignKey("projects.uuid", ondelete="CASCADE"),
         primary_key=True,
+    )
+    uuid = db.Column(db.String(36), primary_key=True)
+
+    images = db.relationship(
+        "EnvironmentImage", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+
+    def __repr__(self):
+        return f"<Environment: {self.project_uuid}-{self.environment_uuid}>"
+
+
+class EnvironmentImage(BaseModel):
+    __tablename__ = "environment_images"
+
+    project_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+    )
+    environment_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+    )
+    # A new environment image record with a given tag will be created
+    # everytime an environment build is started, the tag only
+    # increments.
+    tag = db.Column(db.Integer, primary_key=True)
+
+    def __repr__(self):
+        return (
+            "<EnvironmentImage: "
+            f"{self.project_uuid}-{self.environment_uuid}-{self.tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [EnvironmentImage.project_uuid, EnvironmentImage.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
+
+
+class EnvironmentImageBuild(BaseModel):
+    """State of environment image builds.
+
+    There is a 1:1 mapping between an EnvironmentImage and an
+    EnvironmentImageBuild.
+    """
+
+    __tablename__ = "environment_image_builds"
+    __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
+
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
         index=True,
     )
-    environment_uuid = db.Column(db.String(36), nullable=False, index=True)
+    environment_uuid = db.Column(
+        db.String(36), nullable=False, index=True, primary_key=True
+    )
+    image_tag = db.Column(db.Integer, nullable=False, index=True, primary_key=True)
+    # To be able to cancel the task.
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    celery_task_uuid = db.Column(db.String(36), primary_key=False, nullable=False)
+
     project_path = db.Column(db.String(4096), nullable=False, index=True)
     requested_time = db.Column(db.DateTime, unique=False, nullable=False)
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
@@ -145,7 +196,25 @@ class EnvironmentBuild(BaseModel):
     status = db.Column(db.String(15), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<EnvironmentBuildTask: {self.uuid}>"
+        return (
+            f"<EnvironmentImageBuild: {self.project_uuid}-"
+            f"{self.environment_uuid}-{self.image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+        EnvironmentImageBuild.image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
 
 
 class JupyterBuild(BaseModel):

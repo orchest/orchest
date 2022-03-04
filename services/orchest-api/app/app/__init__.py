@@ -29,7 +29,7 @@ from app.connections import db
 from app.core import environments
 from app.core.scheduler import Scheduler
 from app.models import (
-    EnvironmentBuild,
+    EnvironmentImageBuild,
     InteractivePipelineRun,
     InteractiveSession,
     Job,
@@ -276,8 +276,8 @@ def cleanup():
                     )
 
             app.logger.info("Aborting environment builds.")
-            builds = EnvironmentBuild.query.filter(
-                EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+            builds = EnvironmentImageBuild.query.filter(
+                EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for build in builds:

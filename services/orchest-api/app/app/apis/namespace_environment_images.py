@@ -161,8 +161,8 @@ class DeleteImage(TwoPhaseFunction):
 
 class DeleteBaseImagesCache(TwoPhaseFunction):
     def _transaction(self):
-        env_builds = models.EnvironmentBuild.query.filter(
-            models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+        env_builds = models.EnvironmentImageBuild.query.filter(
+            models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
         )
         for eb in env_builds:
             AbortEnvironmentBuild(self.tpe).transaction(eb.uuid)
