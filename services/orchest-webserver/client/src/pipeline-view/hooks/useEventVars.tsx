@@ -280,6 +280,7 @@ export const useEventVars = () => {
         // ==== Start creating a connection
 
         // first find the index from the array, at the moment, the connection is incomplete
+        newConnection.current = undefined;
         return produce(state, (draft) => {
           const index = draft.connections.findIndex(
             (connection) => !connection.endNodeUUID

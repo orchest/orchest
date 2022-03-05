@@ -1,3 +1,4 @@
+import { NewConnection } from "@/types";
 import Box, { BoxProps } from "@mui/material/Box";
 import { alpha, styled } from "@mui/material/styles";
 import classNames from "classnames";
@@ -17,7 +18,7 @@ const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
 type DotType = BoxProps & {
   incoming?: boolean;
   outgoing?: boolean;
-  shouldShowHoverEffect: boolean;
+  newConnection: React.MutableRefObject<NewConnection>;
   disabled?: boolean;
   isReadOnly: boolean;
   active?: boolean;
@@ -30,7 +31,7 @@ export const ConnectionDot = React.forwardRef(function Dot(
   {
     incoming,
     outgoing,
-    shouldShowHoverEffect,
+    newConnection,
     active,
     className,
     disabled,
@@ -60,6 +61,11 @@ export const ConnectionDot = React.forwardRef(function Dot(
     e.stopPropagation();
     e.preventDefault();
     if (onMouseOver) onMouseOver(e);
+
+    const shouldShowHoverEffect =
+      (newConnection.current && incoming) ||
+      (!newConnection.current && outgoing);
+
     if (shouldShowHoverEffect) setIsHovering(true);
   };
 

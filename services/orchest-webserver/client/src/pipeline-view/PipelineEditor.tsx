@@ -1024,7 +1024,7 @@ export const PipelineEditor: React.FC = () => {
               >
                 <ConnectionDot
                   incoming
-                  shouldShowHoverEffect={hasValue(newConnection.current)}
+                  newConnection={newConnection}
                   isReadOnly={isReadOnly}
                   ref={(el) =>
                     (stepDomRefs.current[`${step.uuid}-incoming`] = el)
@@ -1049,7 +1049,7 @@ export const PipelineEditor: React.FC = () => {
                 <ConnectionDot
                   outgoing
                   isReadOnly={isReadOnly}
-                  shouldShowHoverEffect={!hasValue(newConnection.current)}
+                  newConnection={newConnection}
                   ref={(el) =>
                     (stepDomRefs.current[`${step.uuid}-outgoing`] = el)
                   }
