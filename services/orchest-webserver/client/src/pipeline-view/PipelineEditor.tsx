@@ -906,7 +906,7 @@ export const PipelineEditor: React.FC = () => {
             if (!startNode) return null;
 
             // user is trying to make a new connection
-            const isNew = !endNodeUUID || hasValue(newConnection.current);
+            const isNew = !endNodeUUID && hasValue(newConnection.current);
 
             // if the connection is attached to a selected step,
             // the connection should update its start/end node, to move along with the step
