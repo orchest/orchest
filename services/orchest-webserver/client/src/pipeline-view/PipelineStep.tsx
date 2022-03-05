@@ -173,13 +173,6 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     interactiveConnections.length
   );
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    isMouseDown.current = true;
-    forceUpdate();
-  };
-
   const resetDraggingVariables = React.useCallback(() => {
     if (hasValue(cursorControlledStep)) {
       eventVarsDispatch({
@@ -187,24 +180,58 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         payload: undefined,
       });
     }
+    isMouseDown.current = false;
     dragCount.current = 0;
     forceUpdate();
   }, [dragCount, forceUpdate, eventVarsDispatch, cursorControlledStep]);
 
+  // handles all mouse up cases except "just finished dragging"
+  // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
+  // so this onMouseUp on the DOM won't work
   const onMouseUp = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-
-    isMouseDown.current = false;
 
     if (isSelectorActive) {
       eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
-    // this is basically on single click
-    // because onClick is always called after onMouseUp (i.e. dragCount.current is always 0), we cannot distinguish it within onClick
-    // so, we have to handle it in onMouseUp
-    if (dragCount.current < DRAG_CLICK_SENSITIVITY && !isSelectorActive) {
+    // this condition means user is just done dragging
+    // we cannot clean up dragging variables here
+    // skip resetDraggingVariables and let onClick take over (onClick is called right after onMouseUp)
+    if (dragCount.current === DRAG_CLICK_SENSITIVITY) return;
+
+    resetDraggingVariables();
+  };
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    isMouseDown.current = true;
+    // because user might accidentally start dragging while their cursor is not over this DOM element
+    // this mouse event listener is used to "finish" the dragging behavior
+    document.body.addEventListener("mouseup", finishDragging);
+    forceUpdate();
+  };
+
+  const finishDragging = React.useCallback(() => {
+    savePositions();
+    resetDraggingVariables();
+    document.body.removeEventListener("mouseup", finishDragging);
+  }, [resetDraggingVariables, savePositions]);
+
+  const onClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.detail === 1) {
+      // even user is actually dragging, React still sees it as a click
+      // maybe because cursor remains on the same position over the DOM
+      // we can intercept this "click" event and handle it as a "done-dragging" case
+      if (dragCount.current === DRAG_CLICK_SENSITIVITY) {
+        finishDragging();
+        return;
+      }
+
       const ctrlKeyPressed = e.ctrlKey || e.metaKey;
 
       // if this step (and possibly other steps) are selected,
@@ -224,19 +251,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         eventVarsDispatch({ type: "SET_OPENED_STEP", payload: uuid });
       }
       resetDraggingVariables();
-      return;
     }
-
-    if (hasValue(cursorControlledStep) && cursorControlledStep === uuid) {
-      savePositions();
-    }
-
-    // this step could have been being dragged, when mouse up, simply reset all variables
-    resetDraggingVariables();
-  };
-
-  const onClick = async (e: React.MouseEvent) => {
-    if (e.detail === 1) return; // see explanation in onMouseUp
     if (e.detail === 2) {
       const valid = await isValidFile(projectUuid, pipelineUuid, file_path);
       if (valid) onDoubleClick(uuid);
