@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 from enum import Enum
@@ -11,6 +12,12 @@ class Policy(Enum):
     Always = "Always"
 
 
+class PullTaskMessage:
+    def __init__(self, retry: int, image_name: str) -> None:
+        self.retry = retry
+        self.image_name = image_name
+
+
 class ImagePuller(object):
     def __init__(
         self,
@@ -19,6 +26,7 @@ class ImagePuller(object):
         image_puller_retries: int,
         image_puller_images: list,
         image_puller_log_level: str,
+        image_puller_thrediness: int,
     ) -> None:
 
         """ImagePuller is started is responsible for pulling the
@@ -44,10 +52,11 @@ class ImagePuller(object):
         self.policy = image_puller_policy
         self.num_retries = image_puller_retries
         self.images = image_puller_images
+        self.thrediness = image_puller_thrediness
         self.logger = logging.getLogger("image_puller")
         self.logger.setLevel(image_puller_log_level)
 
-    def pull_image(self, image_name: str):
+    async def pull_image(self, queue: asyncio.Queue):
         """Pulls the image.
 
         If the policy is `IfNotPresent` the set of pulled image names
@@ -56,17 +65,44 @@ class ImagePuller(object):
         when successful.
 
         Args:
-            image_name: The name of the image to be pulled.
+            queue: The queue to get the image name from.
 
         """
-        if self.policy == Policy.IfNotPresent:
-            if self.image_exists(image_name):
-                return
-            self.logger.info(f"Image '{image_name}' is not found - attempting pull...")
 
-        self.logger.info(f"Pulling image '{image_name}'...")
-        if not self.download_image(image_name):
-            self.logger.warning(f"Image '{image_name}' was not downloaded!")
+        pull_task = await queue.get()
+
+        if self.policy == Policy.IfNotPresent:
+            if self.image_exists(pull_task.image_name):
+                self.logger.info(
+                    f"Image '{pull_task.image_name}' is not found - attempting pull..."
+                )
+
+        try:
+            self.logger.info(f"Pulling image '{pull_task.image_name}'...")
+            if not self.download_image(pull_task.image_name):
+                self.logger.warning(
+                    f"Image '{pull_task.image_name}' was not downloaded!"
+                )
+        except Exception as ex:
+            if pull_task.retry < self.num_retries:
+                self.logger.warning(
+                    f"Attempt {pull_task.retry} to pull image "
+                    f"'{pull_task.image_name}' failed with "
+                    f"exception - retrying. Exception was: {ex}."
+                )
+                # re-queue the pull task to be processed again
+                await queue.put(
+                    PullTaskMessage(pull_task.retry + 1, pull_task.image_name)
+                )
+
+            else:
+                self.logger.error(
+                    f"Attempt {pull_task.retry} to pull image: "
+                    f"'{pull_task.image_name}' failed with "
+                    f"exception: {ex}"
+                )
+
+        queue.task_done()
 
     def image_exists(self, image_name: str) -> bool:
         """Checks for the existence of the named image using
@@ -118,23 +154,16 @@ class ImagePuller(object):
 
         self.logger.info("Starting image puller.")
 
+        queue = asyncio.Queue()
+        for _ in range(self.thrediness):
+            asyncio.create_task(self.pull_image(queue))
+
         while True:
+
             for image_name in self.images:
-                i = 0
-                while i < self.num_retries:
-                    try:
-                        self.pull_image(image_name)
-                        break
-                    except Exception as ex:
-                        i += 1
-                        if i < self.num_retries:
-                            self.logger.warning(
-                                f"Attempt {i} to pull image '{image_name}'"
-                                "encountered exception - retrying. "
-                                f"Exception was: {ex}."
-                            )
-                        else:
-                            self.logger.error(
-                                f"Attempt {i} to pull image '{image_name}' "
-                                f"failed with exception: {ex}"
-                            )
+                # Create a pull task, with image_name which will
+                # be consumed by image puller tasks.
+                queue.put_nowait(PullTaskMessage(1, image_name))
+
+            await queue.join()
+            await asyncio.sleep(self.interval)

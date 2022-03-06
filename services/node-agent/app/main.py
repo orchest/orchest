@@ -44,6 +44,13 @@ if __name__ == "__main__":
         type=int,
     )
     parser.add_argument(
+        "--image-puller-thrediness",
+        dest="image_puller_thrediness",
+        nargs="?",
+        help="Specifies number of async pullers to be yse, default 3.",
+        default=3,
+    )
+    parser.add_argument(
         "--image-puller-images",
         dest="image_puller_images",
         nargs="+",
