@@ -1051,16 +1051,11 @@ def register_views(app, db):
         # Make absolute path relative
         fp = os.path.join(root_dir_path, path[1:])
 
-        if os.path.isfile(fp):
-            try:
-                os.remove(fp)
-            except Exception:
-                return jsonify({"message": "Deletion of file failed"}), 500
-        elif os.path.isdir(fp):
+        if os.path.exists(fp):
             try:
                 rmtree(fp)
             except Exception:
-                return jsonify({"message": "Deletion of folder failed"}), 500
+                return jsonify({"message": "Deletion failed."}), 500
         else:
             return jsonify({"message": "No file or directory at path %s" % path}), 500
 
