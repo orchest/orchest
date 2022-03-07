@@ -25,7 +25,7 @@ RUN chown $NB_USER -R /orchest/orchest-sdk \
 
 USER $NB_USER
 
-# Install requirements.
+# Install requirements on base environment
 WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements-user.txt
 # Install Orchest dependencies in our own environment
