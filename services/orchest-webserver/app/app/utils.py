@@ -501,10 +501,10 @@ def rmtree(path, ignore_errors=False):
     """A wrapped rm -rf.
 
     If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
+    patching subprocess, this function is not going to block the thread.
 
     Raises:
-        OSError if it failed to copy.
+        OSError if it failed to remove.
 
     """
     exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
@@ -512,7 +512,26 @@ def rmtree(path, ignore_errors=False):
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
 
-def copytree(source: str, target: str):
+def copy(source: str, target: str, ignore_errors: bool = False) -> None:
+    """A wrapped `cp {source} {target}`.
+
+    If eventlet is being used and it's either patching all modules or
+    patching subprocess, this function is not going to block the thread.
+
+    Raises:
+        OSError if it failed to copy.
+
+    """
+    exit_code = subprocess.call(
+        f"cp {source} {target}", stderr=subprocess.STDOUT, shell=True
+    )
+    if exit_code != 0 and not ignore_errors:
+        raise OSError(
+            f"Failed to run 'cp {source} {target}' with exit code: {exit_code}."
+        )
+
+
+def copytree(source: str, target: str, respect_gitignore: bool = True):
     """Copies content from source to target.
 
     As part of the copying process it ignores patterns from the
@@ -537,7 +556,8 @@ def copytree(source: str, target: str):
     # of attributes, e.g. symlinks, `-a` also automatically copies
     # recursively.
     copy_cmd = ["rsync", "-aWHAX"]
-    if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
+    # NOTE: source has trailing `/`
+    if respect_gitignore and os.path.isfile(f"{source}.gitignore"):
         copy_cmd += [f"--exclude-from={source}.gitignore"]
     copy_cmd += [f"{source} {target}"]
 

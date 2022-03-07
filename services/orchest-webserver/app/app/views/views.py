@@ -1,12 +1,14 @@
+import io
 import json
 import os
 import subprocess
 import uuid
+import zipfile
 
 import docker
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, request, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
@@ -18,6 +20,7 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import run_orchest_ctl
 from app import analytics, error
 from app.config import CONFIG_CLASS as StaticConfig
+from app.core import filemanager
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
@@ -31,8 +34,11 @@ from app.core.projects import (
 from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
+from app.utils import rmtree  # K8S_TODO: merge conflict as it is now in internal lib?
 from app.utils import (
     check_pipeline_correctness,
+    copy,
+    copytree,
     create_pipeline_file,
     delete_environment,
     get_environment,
@@ -1032,3 +1038,219 @@ def register_views(app, db):
             return jsonify({"message": "File exists."})
         else:
             return jsonify({"message": "File does not exists."}), 404
+
+    @app.route("/async/file-manager/delete", methods=["POST"])
+    def filemanager_delete():
+        root_dir_path = filemanager.root_from_request(request)
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+
+        # Make absolute path relative
+        fp = os.path.join(root_dir_path, path[1:])
+
+        if os.path.isfile(fp):
+            try:
+                os.remove(fp)
+            except Exception:
+                return jsonify({"message": "Deletion of file failed"}), 500
+        elif os.path.isdir(fp):
+            try:
+                rmtree(fp)
+            except Exception:
+                return jsonify({"message": "Deletion of folder failed"}), 500
+        else:
+            return jsonify({"message": "No file or directory at path %s" % path}), 500
+
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/duplicate", methods=["POST"])
+    def filemanager_duplicate():
+        root_dir_path = filemanager.root_from_request(request)
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+
+        # Make absolute path relative
+        fp = os.path.join(root_dir_path, path[1:])
+
+        if os.path.isfile(fp) or os.path.isdir(fp):
+            new_fp = filemanager.find_unique_duplicate_filepath(fp)
+            try:
+                if os.path.isfile(fp):
+                    copy(fp, new_fp)
+                else:
+                    copytree(fp, new_fp, respect_gitignore=False)
+            except Exception as e:
+                app.logger.debug(e)
+                return jsonify({"message": "Copy of file/directory failed"}), 500
+        else:
+            return jsonify({"message": "No file or directory at path %s" % path}), 500
+
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/create-dir", methods=["POST"])
+    def filemanager_create_dir():
+        root_dir_path = filemanager.root_from_request(request)
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+        if not path.endswith("/") or not path.startswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "The path query argument should always"
+                            " start and end with a forward-slash: /"
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        # Make absolute path relavtie
+        path = "/".join(path.split("/")[1:])
+
+        full_path = os.path.join(root_dir_path, path)
+
+        if os.path.isdir(full_path) or os.path.isfile(full_path):
+            return jsonify({"message": "Path already exists"}), 500
+
+        os.makedirs(full_path, exist_ok=True)
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/upload", methods=["POST"])
+    def filemanager_upload():
+
+        root_dir_path = filemanager.root_from_request(request)
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+        app.logger.debug(path)
+        if not path.endswith("/") or not path.startswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "The path query argument should always"
+                            " start and end with a forward-slash: /"
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        # check if the post request has the file part
+        if "file" not in request.files or request.files["file"].filename == "":
+            return jsonify({"message": "No file found"}), 500
+
+        file = request.files["file"]
+        if file and filemanager.allowed_file(file.filename):
+            filename = file.filename.split(os.sep)[-1]
+            # Trim path for joining (up until this point paths always
+            # start and end with a /)
+            path = path[1:]
+            dir_path = os.path.join(root_dir_path, path)
+            # Create directory if it doesn't exist
+            if not os.path.isdir(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+            file.save(os.path.join(dir_path, filename))
+
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/rename", methods=["POST"])
+    def filemanager_rename():
+
+        if (
+            "oldPath" not in request.args
+            or "newPath" not in request.args
+            or "oldRoot" not in request.args
+            or "newRoot" not in request.args
+        ):
+            return (
+                jsonify({"message": "Need both oldPath and newPath query arguments."}),
+                500,
+            )
+
+        [old_root_path, new_root_path] = filemanager.old_new_roots_from_request(request)
+
+        oldPath = request.args.get("oldPath")[1:]
+        newPath = request.args.get("newPath")[1:]
+        absOldPath = os.path.join(old_root_path, oldPath)
+        absNewPath = os.path.join(new_root_path, newPath)
+        try:
+            os.rename(absOldPath, absNewPath)
+            return jsonify({"message": "Success"})
+        except Exception:
+            return jsonify({"message": "Failed to rename"}), 500
+
+    @app.route("/async/file-manager/download", methods=["GET"])
+    def filemanager_download():
+        root_dir_path = filemanager.root_from_request(request)
+
+        if "path" not in request.args:
+            return jsonify({"message": "No path was passed."}), 500
+
+        path = request.args["path"]
+        fp = os.path.join(root_dir_path, path[1:])
+
+        if os.path.isfile(fp):
+            return send_file(fp, as_attachment=True)
+        else:
+            memory_file = io.BytesIO()
+            with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_STORED) as zf:
+                filemanager.zipdir(fp, zf)
+            memory_file.seek(0)
+            return send_file(
+                memory_file,
+                mimetype="application/zip",
+                as_attachment=True,
+                attachment_filename=os.path.basename(fp[:-1]) + ".zip",
+            )
+
+    @app.route("/async/file-manager/browse")
+    def filemanager_browse():
+        root_dir_path = filemanager.root_from_request(request)
+
+        # Path
+        path_filter = "/"
+
+        if "path" in request.args:
+            path_filter = request.args.get("path")
+
+            if not path_filter.endswith("/") or not path_filter.startswith("/"):
+                return (
+                    jsonify(
+                        {
+                            "message": (
+                                "The path query argument should always"
+                                " start and end with a forward-slash: /"
+                            ),
+                        }
+                    ),
+                    500,
+                )
+
+        app.logger.info("Path filter %s" % path_filter)
+
+        depth = 3
+        if "depth" in request.args:
+            try:
+                depth = int(request.args.get("depth"), 10)
+            except Exception:
+                return (
+                    jsonify({"message": "Invalid value for 'depth' query argument"}),
+                    500,
+                )
+
+        return filemanager.generate_tree(
+            root_dir_path, path_filter=path_filter, depth=depth
+        )
