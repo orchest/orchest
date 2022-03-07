@@ -65,10 +65,15 @@ includes the packages you need, simply follow the steps in the previous section.
 .. code-block:: bash
 
    #!/bin/bash
-   pip install tensorflow
 
    # Get system level dependency for one of your packages.
    sudo apt-get install -y default-libmysqlclient-dev
+
+   # Install a Python dependency using pip
+   pip install tensorflow
+
+   # Or, alternatively, install any dependency using conda
+   conda install -y spacy -c conda-forge
 
 .. note::
    💡 The environments Orchest provides are based on the  `Jupyter Docker Stacks
@@ -76,6 +81,11 @@ includes the packages you need, simply follow the steps in the previous section.
    `pre-installed packages
    <https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html>`_. However, the
    JupyterLab kernel needs to be restarted if it was already running.
+
+.. warning::
+   🚨 Installing packages with conda is supported, but conda might need a long time to solve
+   the environment. To reduce this time, try pinning the exact versions of the packages you want,
+   or install `mamba <https://mamba.readthedocs.io/>`_ as a faster drop-in replacement to conda.
 
 Installing packages from a ``requirements.txt``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
