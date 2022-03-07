@@ -239,7 +239,7 @@ export const toQueryString = <T extends string>(
           const [key, value] = entry;
           const encodedValue =
             value && value !== "null" && value !== "undefined" // we don't pass along null or undefined since it doesn't mean much to the receiver
-              ? encodeURIComponent(value.toString().toLowerCase())
+              ? encodeURIComponent(value.toString())
               : null;
           return encodedValue
             ? `${str}${snakeCase(key)}=${encodedValue}&`
