@@ -20,9 +20,9 @@ api = register_schema(api)
 
 
 @api.route("/")
-class JupyterBuildList(Resource):
-    @api.doc("get_jupyter_builds")
-    @api.marshal_with(schema.jupyter_builds)
+class JupyterEnvironmentBuildList(Resource):
+    @api.doc("get_jupyter_image_builds")
+    @api.marshal_with(schema.jupyter_image_builds)
     def get(self):
         """Fetches all jupyter builds (past and present).
 
@@ -30,63 +30,67 @@ class JupyterBuildList(Resource):
         FAILURE, ABORTED.
 
         """
-        jupyter_builds = models.JupyterImageBuild.query.all()
+        jupyter_image_builds = models.JupyterImageBuild.query.all()
 
         return (
             {
-                "jupyter_builds": [
-                    jupyter_build.as_dict() for jupyter_build in jupyter_builds
+                "jupyter_image_builds": [
+                    jupyter_image_build.as_dict()
+                    for jupyter_image_build in jupyter_image_builds
                 ]
             },
             200,
         )
 
-    @api.doc("start_jupyter_build")
+    @api.doc("start_jupyter_image_build")
     def post(self):
         """Queues a Jupyter build."""
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                jupyter_build = CreateJupyterBuild(tpe).transaction()
+                jupyter_image_build = CreateJupyterEnvironmentBuild(tpe).transaction()
         except SessionInProgressException:
             return {"message": "SessionInProgressException"}, 500
         except Exception:
-            jupyter_build = None
+            jupyter_image_build = None
 
-        if jupyter_build is not None:
-            return_data = {"jupyter_build": jupyter_build}
+        if jupyter_image_build is not None:
+            return_data = {"jupyter_image_build": jupyter_image_build}
             return_code = 200
         else:
             return_data = {}
             return_code = 500
 
-        return marshal(return_data, schema.jupyter_build_request_result), return_code
+        return (
+            marshal(return_data, schema.jupyter_image_build_request_result),
+            return_code,
+        )
 
 
 @api.route(
-    "/<string:jupyter_build_uuid>",
+    "/<string:jupyter_image_build_uuid>",
 )
-@api.param("jupyter_build_uuid", "UUID of the JupyterBuild")
+@api.param("jupyter_image_build_uuid", "UUID of the JupyterEnvironmentBuild")
 @api.response(404, "Jupyter build not found")
-class JupyterBuild(Resource):
-    @api.doc("get_jupyter_build")
-    @api.marshal_with(schema.jupyter_build, code=200)
-    def get(self, jupyter_build_uuid):
+class JupyterEnvironmentBuild(Resource):
+    @api.doc("get_jupyter_image_build")
+    @api.marshal_with(schema.jupyter_image_build, code=200)
+    def get(self, jupyter_image_build_uuid):
         """Fetch a Jupyter build given its uuid."""
-        jupyter_build = models.JupyterImageBuild.query.filter_by(
-            uuid=jupyter_build_uuid
+        jupyter_image_build = models.JupyterImageBuild.query.filter_by(
+            uuid=jupyter_image_build_uuid
         ).one_or_none()
-        if jupyter_build is not None:
-            return jupyter_build.as_dict()
-        abort(404, "JupyterBuild not found.")
+        if jupyter_image_build is not None:
+            return jupyter_image_build.as_dict()
+        abort(404, "JupyterEnvironmentBuild not found.")
 
-    @api.doc("set_jupyter_build_status")
+    @api.doc("set_jupyter_image_build_status")
     @api.expect(schema.status_update)
-    def put(self, jupyter_build_uuid):
+    def put(self, jupyter_image_build_uuid):
         """Set the status of a jupyter build."""
         status_update = request.get_json()
 
         filter_by = {
-            "uuid": jupyter_build_uuid,
+            "uuid": jupyter_image_build_uuid,
         }
         try:
             update_status_db(
@@ -101,9 +105,9 @@ class JupyterBuild(Resource):
 
         return {"message": "Status was updated successfully."}, 200
 
-    @api.doc("delete_jupyter_build")
+    @api.doc("delete_jupyter_image_build")
     @api.response(200, "Jupyter build cancelled or stopped ")
-    def delete(self, jupyter_build_uuid):
+    def delete(self, jupyter_image_build_uuid):
         """Stops a Jupyter build given its UUID.
 
         However, it will not delete any corresponding database entries,
@@ -111,7 +115,9 @@ class JupyterBuild(Resource):
         """
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                could_abort = AbortJupyterBuild(tpe).transaction(jupyter_build_uuid)
+                could_abort = AbortJupyterEnvironmentBuild(tpe).transaction(
+                    jupyter_image_build_uuid
+                )
         except Exception as e:
             return {"message": str(e)}, 500
 
@@ -124,15 +130,15 @@ class JupyterBuild(Resource):
 @api.route(
     "/most-recent/",
 )
-class MostRecentJupyterBuild(Resource):
-    @api.doc("get_project_most_recent_jupyter_build")
-    @api.marshal_with(schema.jupyter_builds, code=200)
+class MostRecentJupyterEnvironmentBuild(Resource):
+    @api.doc("get_project_most_recent_jupyter_image_build")
+    @api.marshal_with(schema.jupyter_image_builds, code=200)
     def get(self):
         """Get the most recent Jupyter build."""
 
         # Filter by project uuid. Use a window function to get the most
         # recently requested build for each environment return.
-        jupyter_builds = (
+        jupyter_image_builds = (
             models.JupyterImageBuild.query.order_by(
                 models.JupyterImageBuild.requested_time.desc()
             )
@@ -140,10 +146,12 @@ class MostRecentJupyterBuild(Resource):
             .all()
         )
 
-        return {"jupyter_builds": [build.as_dict() for build in jupyter_builds]}
+        return {
+            "jupyter_image_builds": [build.as_dict() for build in jupyter_image_builds]
+        }
 
 
-class CreateJupyterBuild(TwoPhaseFunction):
+class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
     def _transaction(self):
         # Check if there are any active sessions
         active_session_count = models.InteractiveSession.query.filter(
@@ -167,7 +175,7 @@ class CreateJupyterBuild(TwoPhaseFunction):
         ).all()
 
         for build in already_running_builds:
-            AbortJupyterBuild(self.tpe).transaction(build.uuid)
+            AbortJupyterEnvironmentBuild(self.tpe).transaction(build.uuid)
 
         # We specify the task id beforehand so that we can commit to the
         # db before actually launching the task, since the task might
@@ -182,15 +190,15 @@ class CreateJupyterBuild(TwoPhaseFunction):
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         # task.forget()
 
-        jupyter_build = {
+        jupyter_image_build = {
             "uuid": task_id,
             "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
             "status": "PENDING",
         }
-        db.session.add(models.JupyterImageBuild(**jupyter_build))
+        db.session.add(models.JupyterImageBuild(**jupyter_image_build))
 
         self.collateral_kwargs["task_id"] = task_id
-        return jupyter_build
+        return jupyter_image_build
 
     def _collateral(self, task_id: str):
         celery = make_celery(current_app)
@@ -207,11 +215,11 @@ class CreateJupyterBuild(TwoPhaseFunction):
         db.session.commit()
 
 
-class AbortJupyterBuild(TwoPhaseFunction):
-    def _transaction(self, jupyter_build_uuid: str):
+class AbortJupyterEnvironmentBuild(TwoPhaseFunction):
+    def _transaction(self, jupyter_image_build_uuid: str):
 
         filter_by = {
-            "uuid": jupyter_build_uuid,
+            "uuid": jupyter_image_build_uuid,
         }
         status_update = {"status": "ABORTED"}
         # Will return true if any row is affected, meaning that the
@@ -222,21 +230,21 @@ class AbortJupyterBuild(TwoPhaseFunction):
             filter_by=filter_by,
         )
 
-        self.collateral_kwargs["jupyter_build_uuid"] = (
-            jupyter_build_uuid if abortable else None
+        self.collateral_kwargs["jupyter_image_build_uuid"] = (
+            jupyter_image_build_uuid if abortable else None
         )
         return abortable
 
-    def _collateral(self, jupyter_build_uuid: Optional[str]):
+    def _collateral(self, jupyter_image_build_uuid: Optional[str]):
 
-        if not jupyter_build_uuid:
+        if not jupyter_image_build_uuid:
             return
 
         celery_app = make_celery(current_app)
         # Make use of both constructs (revoke, abort) so we cover both a
         # task that is pending and a task which is running.
-        celery_app.control.revoke(jupyter_build_uuid, timeout=1.0)
-        res = AbortableAsyncResult(jupyter_build_uuid, app=celery_app)
+        celery_app.control.revoke(jupyter_image_build_uuid, timeout=1.0)
+        res = AbortableAsyncResult(jupyter_image_build_uuid, app=celery_app)
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()

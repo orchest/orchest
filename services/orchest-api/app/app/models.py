@@ -236,7 +236,7 @@ class JupyterImageBuild(BaseModel):
     status = db.Column(db.String(15), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<JupyterBuildTask: {self.uuid}>"
+        return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
 
 
 class InteractiveSession(BaseModel):

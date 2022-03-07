@@ -22,7 +22,10 @@ from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app.apis import blueprint as api
 from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
 from app.apis.namespace_jobs import AbortJob
-from app.apis.namespace_jupyter_builds import AbortJupyterBuild, CreateJupyterBuild
+from app.apis.namespace_jupyter_image_builds import (
+    AbortJupyterEnvironmentBuild,
+    CreateJupyterEnvironmentBuild,
+)
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
@@ -125,7 +128,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
         )
 
         if not _utils.is_running_from_reloader():
-            trigger_conditional_jupyter_build(app)
+            trigger_conditional_jupyter_image_build(app)
 
     # Register blueprints at the end to avoid issues when migrating the
     # DB. When registering a blueprint the DB schema is also registered
@@ -211,7 +214,7 @@ def init_logging():
     dictConfig(logging_config)
 
 
-def trigger_conditional_jupyter_build(app):
+def trigger_conditional_jupyter_image_build(app):
     # Use early return to satisfy all conditions for
     # triggering a build.
 
@@ -230,7 +233,7 @@ def trigger_conditional_jupyter_build(app):
 
     try:
         with TwoPhaseExecutor(db.session) as tpe:
-            CreateJupyterBuild(tpe).transaction()
+            CreateJupyterEnvironmentBuild(tpe).transaction()
     except Exception:
         app.logger.error("Failed to build Jupyter image")
 
@@ -289,7 +292,7 @@ def cleanup():
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for build in builds:
-                    AbortJupyterBuild(tpe).transaction(build.uuid)
+                    AbortJupyterEnvironmentBuild(tpe).transaction(build.uuid)
 
             app.logger.info("Aborting running one off jobs.")
             jobs = Job.query.filter_by(schedule=None, status="STARTED").all()
@@ -305,10 +308,11 @@ def cleanup():
                 for run in runs:
                     AbortPipelineRun(tpe).transaction(run.uuid)
 
-            # Delete old JupyterBuilds on to avoid accumulation in the
-            # DB. Leave the latest such that the user can see details
-            # about the last executed build after restarting Orchest.
-            jupyter_builds = (
+            # Delete old JupyterEnvironmentBuilds on to avoid
+            # accumulation in the DB. Leave the latest such that the
+            # user can see details about the last executed build after
+            # restarting Orchest.
+            jupyter_image_builds = (
                 JupyterImageBuild.query.order_by(
                     JupyterImageBuild.requested_time.desc()
                 )
@@ -317,8 +321,8 @@ def cleanup():
             )
             # Can't use offset and .delete in conjunction in sqlalchemy
             # unfortunately.
-            for jupyter_build in jupyter_builds:
-                db.session.delete(jupyter_build)
+            for jupyter_image_build in jupyter_image_builds:
+                db.session.delete(jupyter_image_build)
 
             db.session.commit()
 

@@ -630,8 +630,8 @@ environment_image_builds_requests_result = Model(
 )
 
 
-jupyter_build = Model(
-    "JupyterBuild",
+jupyter_image_build = Model(
+    "JupyterEnvironmentBuild",
     {
         "uuid": fields.String(required=True, description="UUID of the Jupyter build"),
         "requested_time": fields.String(
@@ -651,23 +651,23 @@ jupyter_build = Model(
     },
 )
 
-jupyter_builds = Model(
-    "JupyterBuilds",
+jupyter_image_builds = Model(
+    "JupyterEnvironmentBuilds",
     {
-        "jupyter_builds": fields.List(
-            fields.Nested(jupyter_build),
+        "jupyter_image_builds": fields.List(
+            fields.Nested(jupyter_image_build),
             required=True,
-            description="Collection of jupyter_builds",
+            description="Collection of jupyter_image_builds",
         ),
     },
 )
 
-jupyter_build_request_result = Model(
-    "JupyterBuildPost",
+jupyter_image_build_request_result = Model(
+    "JupyterEnvironmentBuildPost",
     {
-        "jupyter_build": fields.Nested(
-            jupyter_build,
-            description="Requested jupyter_build",
+        "jupyter_image_build": fields.Nested(
+            jupyter_image_build,
+            description="Requested jupyter_image_build",
         )
     },
 )

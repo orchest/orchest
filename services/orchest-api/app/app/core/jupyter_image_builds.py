@@ -15,13 +15,13 @@ from config import CONFIG_CLASS
 
 logger = get_logger()
 
-__JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_builds_logs"
+__JUPYTER_BUILD_FULL_LOGS_DIRECTORY = "/tmp/jupyter_image_builds_logs"
 
 
-def update_jupyter_build_status(
+def update_jupyter_image_build_status(
     status: str,
     session: requests.sessions.Session,
-    jupyter_build_uuid,
+    jupyter_image_build_uuid,
 ) -> Any:
     """Update Jupyter build status."""
     data = {"status": status}
@@ -30,7 +30,10 @@ def update_jupyter_build_status(
     elif data["status"] in ["SUCCESS", "FAILURE"]:
         data["finished_time"] = datetime.utcnow().isoformat()
 
-    url = f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/jupyter-builds/" f"{jupyter_build_uuid}"
+    url = (
+        f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/jupyter-builds/"
+        f"{jupyter_image_build_uuid}"
+    )
 
     with session.put(url, json=data) as response:
         return response.json()
@@ -100,8 +103,8 @@ def prepare_build_context(task_uuid):
     # the project path we receive is relative to the projects directory
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
 
-    jupyter_builds_dir = "/userdir/.orchest/jupyter-builds-dir"
-    snapshot_path = f"{jupyter_builds_dir}/{task_uuid}"
+    jupyter_image_builds_dir = "/userdir/.orchest/jupyter-builds-dir"
+    snapshot_path = f"{jupyter_image_builds_dir}/{task_uuid}"
 
     if os.path.isdir(snapshot_path):
         rmtree(snapshot_path)
@@ -153,7 +156,7 @@ def build_jupyter_task(task_uuid):
     with requests.sessions.Session() as session:
 
         try:
-            update_jupyter_build_status("STARTED", session, task_uuid)
+            update_jupyter_image_build_status("STARTED", session, task_uuid)
 
             # Prepare the project snapshot with the correctly placed
             # dockerfile, scripts, etc.
@@ -192,12 +195,12 @@ def build_jupyter_task(task_uuid):
             # cleanup
             rmtree(build_context["snapshot_path"])
 
-            update_jupyter_build_status(status, session, task_uuid)
+            update_jupyter_image_build_status(status, session, task_uuid)
 
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
-            update_jupyter_build_status("FAILURE", session, task_uuid)
+            update_jupyter_image_build_status("FAILURE", session, task_uuid)
             logger.error(e)
             raise e
         finally:

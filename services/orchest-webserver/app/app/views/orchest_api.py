@@ -171,7 +171,7 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds", methods=["POST"])
-    def catch_api_proxy_jupyter_builds_post():
+    def catch_api_proxy_jupyter_image_builds_post():
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
@@ -179,7 +179,7 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
-    def catch_api_proxy_jupyter_builds_delete(build_uuid):
+    def catch_api_proxy_jupyter_image_builds_delete(build_uuid):
         resp = requests.delete(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
@@ -192,7 +192,7 @@ def register_orchest_api_views(app, db):
         "/catch/api-proxy/api/jupyter-builds/most-recent",
         methods=["GET"],
     )
-    def catch_api_proxy_jupyter_builds_most_recent():
+    def catch_api_proxy_jupyter_image_builds_most_recent():
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]

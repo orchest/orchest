@@ -9,7 +9,7 @@ from app.apis.namespace_environment_image_builds import (
     DeleteProjectEnvironmentImageBuilds,
 )
 from app.apis.namespace_jobs import AbortJob
-from app.apis.namespace_jupyter_builds import AbortJupyterBuild
+from app.apis.namespace_jupyter_image_builds import AbortJupyterEnvironmentBuild
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
@@ -166,11 +166,11 @@ class DeleteBaseImagesCache(TwoPhaseFunction):
         )
         for eb in env_builds:
             AbortEnvironmentImageBuild(self.tpe).transaction(eb.uuid)
-        jupyter_builds = models.JupyterImageBuild.query.filter(
+        jupyter_image_builds = models.JupyterImageBuild.query.filter(
             models.JupyterImageBuild.status.in_(["PENDING", "STARTED"])
         )
-        for jb in jupyter_builds:
-            AbortJupyterBuild(self.tpe).transaction(jb.uuid)
+        for jb in jupyter_image_builds:
+            AbortJupyterEnvironmentBuild(self.tpe).transaction(jb.uuid)
 
     def _collateral(self):
         image_utils.delete_base_images_cache()

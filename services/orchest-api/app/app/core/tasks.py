@@ -16,7 +16,7 @@ from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
 from app.core.environment_image_builds import build_environment_task
-from app.core.jupyter_builds import build_jupyter_task
+from app.core.jupyter_image_builds import build_jupyter_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
 from app.types import PipelineDefinition, RunConfig

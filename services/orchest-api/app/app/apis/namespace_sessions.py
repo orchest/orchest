@@ -11,7 +11,7 @@ from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
 from app.core import environments, sessions
-from app.errors import JupyterBuildInProgressException
+from app.errors import JupyterEnvironmentBuildInProgressException
 from app.types import InteractiveSessionConfig, SessionType
 from app.utils import register_schema
 
@@ -57,8 +57,8 @@ class SessionList(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 CreateInteractiveSession(tpe).transaction(session_config)
-        except JupyterBuildInProgressException:
-            return {"message": "JupyterBuildInProgress"}, 423
+        except JupyterEnvironmentBuildInProgressException:
+            return {"message": "JupyterEnvironmentBuildInProgress"}, 423
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -140,15 +140,19 @@ class CreateInteractiveSession(TwoPhaseFunction):
     def _transaction(self, session_config: InteractiveSessionConfig):
 
         # Gate check to see if there is a Jupyter lab build active
-        latest_jupyter_build = models.JupyterImageBuild.query.order_by(
+        latest_jupyter_image_build = models.JupyterImageBuild.query.order_by(
             desc(models.JupyterImageBuild.requested_time)
         ).first()
 
-        if latest_jupyter_build is not None and latest_jupyter_build.status in [
-            "PENDING",
-            "STARTED",
-        ]:
-            raise JupyterBuildInProgressException()
+        if (
+            latest_jupyter_image_build is not None
+            and latest_jupyter_image_build.status
+            in [
+                "PENDING",
+                "STARTED",
+            ]
+        ):
+            raise JupyterEnvironmentBuildInProgressException()
 
         # Make sure the service environments are there. This piece of
         # code needs to be there to reject a session post if the
