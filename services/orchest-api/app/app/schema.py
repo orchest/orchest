@@ -79,6 +79,31 @@ projects = Model(
     {"projects": fields.List(fields.Nested(project), description="All projects")},
 )
 
+environment = Model(
+    "Environment",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "uuid": fields.String(required=True, description="UUID of environment"),
+    },
+)
+
+environment_post = Model(
+    "EnvironmentPost",
+    {
+        "uuid": fields.String(required=True, description="UUID of environment"),
+    },
+)
+
+environments = Model(
+    "Environments",
+    {
+        "environments": fields.List(
+            fields.Nested(environment), description="Environments"
+        )
+    },
+)
+
+
 service = Model(
     "Service",
     {
