@@ -233,8 +233,6 @@ def read_environment_from_disk(env_directory, project_uuid) -> Optional[Environm
 def delete_environment(app, project_uuid, environment_uuid):
     """Delete an environment from disk and from the runtime environment
 
-    The only runtime environment for now is Docker.
-
     Args:
         project_uuid:
         environment_uuid:

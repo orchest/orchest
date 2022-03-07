@@ -1,7 +1,4 @@
-import logging
 import os
-import signal
-import time
 from datetime import datetime
 from typing import Any
 
@@ -11,7 +8,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import rmtree
 from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_image, cleanup_docker_artifacts
+from app.core.image_utils import build_image
 from app.core.sio_streamed_task import SioStreamedTask
 from app.utils import get_logger
 from config import CONFIG_CLASS
@@ -62,9 +59,9 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
     statements.append("COPY . .")
 
     # Note: commands are concatenated with && because this way an
-    # exit_code != 0 will bubble up and cause the docker build to fail,
-    # as it should. The bash script is removed so that the user won't
-    # be able to see it after the build is done.
+    # exit_code != 0 will bubble up and cause the build to fail, as it
+    # should. The bash script is removed so that the user won't be able
+    # to see it after the build is done.
     flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
@@ -88,10 +85,10 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
 
 
 def prepare_build_context(task_uuid):
-    """Prepares the docker build context for building the Jupyter image.
+    """Prepares the build context for building the Jupyter image.
 
-    Prepares the docker build context by copying the JupyterLab
-    fine tune bash script.
+    Prepares the build context by copying the JupyterLab fine tune bash
+    script.
 
     Args:
         task_uuid:
@@ -143,9 +140,9 @@ def prepare_build_context(task_uuid):
 def build_jupyter_task(task_uuid):
     """Function called by the celery task to build Jupyter image.
 
-    Builds a Jupyter (docker image) given the arguments, the logs
-    produced by the user provided script are forwarded to a SocketIO
-    server and namespace defined in the orchest internals config.
+    Builds a Jupyter image given the arguments, the logs produced by the
+    user provided script are forwarded to a SocketIO server and
+    namespace defined in the orchest internals config.
 
     Args:
         task_uuid:
@@ -162,21 +159,21 @@ def build_jupyter_task(task_uuid):
             # dockerfile, scripts, etc.
             build_context = prepare_build_context(task_uuid)
 
-            # Use the agreed upon pattern for the docker image name.
-            docker_image_name = _config.JUPYTER_IMAGE_NAME
+            # Use the agreed upon pattern for the image name.
+            image_name = _config.JUPYTER_IMAGE_NAME
 
             if not os.path.exists(__JUPYTER_BUILD_FULL_LOGS_DIRECTORY):
                 os.mkdir(__JUPYTER_BUILD_FULL_LOGS_DIRECTORY)
             # place the logs in the celery container
             complete_logs_path = os.path.join(
-                __JUPYTER_BUILD_FULL_LOGS_DIRECTORY, docker_image_name
+                __JUPYTER_BUILD_FULL_LOGS_DIRECTORY, image_name
             )
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
                 task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
-                    docker_image_name,
+                    image_name,
                     build_context,
                     user_logs_fo,
                     complete_logs_path,
@@ -220,32 +217,6 @@ def build_jupyter_task(task_uuid):
                 "workflows",
                 f"image-build-task-{task_uuid}",
             )
-
-            filters = {
-                "label": [
-                    "_orchest_jupyter_build_is_intermediate=1",
-                    f"_orchest_jupyter_build_task_uuid={task_uuid}",
-                ]
-            }
-
-            # Necessary to avoid the case where the abortion of a task
-            # comes too late, leaving a dangling image.
-            if AbortableAsyncResult(task_uuid).is_aborted():
-                filters["label"].pop(0)
-
-            # Artifacts of this build (intermediate containers, images,
-            # etc.) See the build task docstring in
-            # environment_builds.py for why this needs to be here.
-            if os.fork() == 0:
-                for _ in range(10):
-                    time.sleep(0.5)
-                    try:
-                        cleanup_docker_artifacts(filters)
-                    except Exception as e:
-                        logging.error(e)
-                # To avoid running any celery code that would run once
-                # the task is done.
-                os.kill(os.getpid(), signal.SIGKILL)
 
     # The status of the Celery task is SUCCESS since it has finished
     # running. Not related to the actual state of the build, e.g.

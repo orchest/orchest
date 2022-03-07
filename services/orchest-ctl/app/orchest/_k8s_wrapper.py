@@ -231,13 +231,6 @@ _cleanup_pod_manifest = {
                     {"name": "PYTHONUNBUFFERED", "value": "TRUE"},
                     {"name": "ORCHEST_GPU_ENABLED_INSTANCE", "value": "FALSE"},
                 ],
-                "volumeMounts": [{"name": "dockersock", "mountPath": "/var/run"}],
-            }
-        ],
-        "volumes": [
-            {
-                "name": "dockersock",
-                "hostPath": {"path": "/var/run", "type": "Directory"},
             }
         ],
     },

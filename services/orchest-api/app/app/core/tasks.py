@@ -156,7 +156,7 @@ def start_non_interactive_pipeline_run(
             Example: {
                 'host_user_dir': '/home/../userdir',
                 'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_docker_id_mappings': {
+                'env_uuid_to_image_mappings': {
                     'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
                         'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
                 }
@@ -179,10 +179,7 @@ def start_non_interactive_pipeline_run(
 
     # Update the `run_config` for the interactive pipeline run. The
     # pipeline run should execute on the `run_dir` as its
-    # `project_dir`. Note that the `project_dir` inside the
-    # `run_config` has to be the abs path w.r.t. the host because it is
-    # used by the `docker.sock` when mounting the dir to the container
-    # of a step.
+    # `project_dir.
     host_userdir = run_config["host_user_dir"]
     host_base_user_dir = os.path.split(host_userdir)[0]
 
@@ -208,12 +205,12 @@ def start_non_interactive_pipeline_run(
     # Note that run_config contains user_env_variables, which is of
     # interest for the session_config.
     session_config = copy.deepcopy(run_config)
-    session_config.pop("env_uuid_docker_id_mappings")
+    session_config.pop("env_uuid_to_image_mappings")
     session_config.pop("run_endpoint")
     session_config["host_userdir"] = host_userdir
     session_config["services"] = pipeline_definition.get("services", {})
-    session_config["env_uuid_docker_id_mappings"] = run_config[
-        "env_uuid_docker_id_mappings"
+    session_config["env_uuid_to_image_mappings"] = run_config[
+        "env_uuid_to_image_mappings"
     ]
 
     with launch_noninteractive_session(
@@ -241,7 +238,7 @@ def build_environment(
     environment_uuid,
     project_path,
 ) -> str:
-    """Builds an environment, producing a new image in the docker env.
+    """Builds an environment, pushing a new image to the registry.
 
     Args:
         project_uuid: UUID of the project.
@@ -265,7 +262,7 @@ def build_environment(
 def build_jupyter(
     self,
 ) -> str:
-    """Builds Jupyter image, producing a new image in the docker env.
+    """Builds Jupyter image, pushing a new image to the registry.
 
     Returns:
         Status of the environment build.

@@ -14,8 +14,7 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # lower value so that in conditions of high cpu contention core Orchest
 # services have priority, which helps in being responsive under high
 # load. This is only enforced when CPU cycles are constrained. For more
-# information, see
-# https://docs.docker.com/config/containers/resource_constraints/.
+# information, see the k8s docs about CPU SHARES.
 USER_CONTAINERS_CPU_SHARES = "500m"
 REGISTRY = "docker-registry"
 REGISTRY_FQDN = "docker-registry.orchest.svc.cluster.local"

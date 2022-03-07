@@ -649,9 +649,9 @@ class PipelineRunImageMapping(BaseModel):
     """Stores mappings between a pipeline run and the environment
      images it uses.
 
-    Used to understand if an image can be removed from the docker
-    environment if it's not used by a run which is PENDING or STARTED.
-    Currently, this only references interactive runs.
+    Used to understand if an image can be removed from the registry if
+    it's not used by a run which is PENDING or STARTED.  Currently, this
+    only references interactive runs.
 
     """
 
@@ -671,6 +671,8 @@ class PipelineRunImageMapping(BaseModel):
     orchest_environment_uuid = db.Column(
         db.String(36), unique=False, nullable=False, primary_key=True, index=True
     )
+    # Keep this column as docker_img_id until we work on the env
+    # images lifecycle.
     docker_img_id = db.Column(
         db.String(), unique=False, nullable=False, primary_key=True, index=True
     )
@@ -686,8 +688,8 @@ class PipelineRunImageMapping(BaseModel):
 class JobImageMapping(BaseModel):
     """Stores mappings between a job and the environment images it uses.
 
-    Used to understand if an image can be removed from the docker
-    environment if it's not used by a job which is PENDING or STARTED.
+    Used to understand if an image can be removed from the registry if
+    it's not used by a job which is PENDING or STARTED.
 
     """
 
@@ -722,7 +724,7 @@ class JobImageMapping(BaseModel):
 class InteractiveSessionImageMapping(BaseModel):
     """Mappings between an interactive session and environment images.
 
-    Used to understand if an image can be removed from the docker
+    Used to understand if an image can be removed from the registry
     environment if it's not used by an interactive session. This could
     be the case when an interactive session is using an orchest
     environment as a service.

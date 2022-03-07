@@ -87,8 +87,8 @@ service = Model(
         "scopes": fields.List(
             fields.String, required=True, description="interactive/noninteractive"
         ),
-        "command": fields.String(required=False, description="Docker command"),
-        "entrypoint": fields.String(required=False, description="Docker entrypoint"),
+        "command": fields.String(required=False, description="Command"),
+        "entrypoint": fields.String(required=False, description="Entrypoint"),
         "ports": fields.List(
             fields.String, required=False, description="List of service exposed ports"
         ),

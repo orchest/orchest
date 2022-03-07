@@ -225,10 +225,7 @@ def trigger_conditional_jupyter_build(app):
         return
 
     user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
-    if (
-        environments.get_environment_image_docker_id(user_jupyer_server_image)
-        is not None
-    ):
+    if environments.get_environment_image_id(user_jupyer_server_image) is not None:
         return
 
     try:
