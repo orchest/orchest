@@ -173,16 +173,56 @@ def lock_environment_images_for_job(
     return env_uuid_to_image_name
 
 
-def interactive_runs_using_environment(project_uuid: str, env_uuid: str):
-    return []
+def interactive_runs_using_environment(
+    project_uuid: str, env_uuid: str
+) -> List[models.InteractivePipelineRun]:
+    """Get the list of interactive runs using a given environment.
+
+    Args:
+        project_uuid:
+        env_uuid:
+
+    Returns:
+    """
+    return models.InteractivePipelineRun.query.filter(
+        models.InteractivePipelineRun.project_uuid == project_uuid,
+        models.InteractivePipelineRun.images_in_use.any(environment_uuid=env_uuid),
+        models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+    ).all()
 
 
-def interactive_sessions_using_environment(project_uuid: str, env_uuid: str):
-    return []
+def interactive_sessions_using_environment(
+    project_uuid: str, env_uuid: str
+) -> List[models.InteractiveSession]:
+    """Get the list of interactive sessions using a given environment.
+
+    Args:
+        project_uuid:
+        env_uuid:
+
+    Returns:
+    """
+    return models.InteractiveSession.query.filter(
+        models.InteractiveSession.project_uuid == project_uuid,
+        models.InteractiveSession.images_in_use.any(environment_uuid=env_uuid),
+    ).all()
 
 
-def jobs_using_environment(project_uuid: str, env_uuid: str):
-    return []
+def jobs_using_environment(project_uuid: str, env_uuid: str) -> List[models.Job]:
+    """Get the list of jobs using a given environment.
+
+    Args:
+        project_uuid:
+        env_uuid:
+
+    Returns:
+    """
+
+    return models.Job.query.filter(
+        models.Job.project_uuid == project_uuid,
+        models.Job.images_in_use.any(environment_uuid=env_uuid),
+        models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]),
+    ).all()
 
 
 def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
@@ -195,7 +235,8 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
         bool:
     """
 
-    int_sess = interactive_sessions_using_environment(project_uuid, env_uuid)
-    int_runs = interactive_runs_using_environment(project_uuid, env_uuid)
-    jobs = jobs_using_environment(project_uuid, env_uuid)
-    return len(int_runs) > 0 or len(int_sess) > 0 or len(jobs) > 0
+    return (
+        interactive_sessions_using_environment(project_uuid, env_uuid)
+        or interactive_runs_using_environment(project_uuid, env_uuid)
+        or jobs_using_environment(project_uuid, env_uuid)
+    )

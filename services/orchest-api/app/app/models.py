@@ -292,6 +292,13 @@ class InteractiveSession(BaseModel):
         server_default="{}",
     )
 
+    images_in_use = db.relationship(
+        "InteractiveSessionInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
     def __repr__(self):
         return f"<Launch {self.pipeline_uuid}>"
 
@@ -489,6 +496,13 @@ class Job(BaseModel):
     # that there is no such limit. The default value is -1.
     max_retained_pipeline_runs = db.Column(
         db.Integer, nullable=False, server_default=text("-1")
+    )
+
+    images_in_use = db.relationship(
+        "JobInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
     )
 
     def __repr__(self):
@@ -711,6 +725,13 @@ class InteractivePipelineRun(PipelineRun):
     __mapper_args__ = {
         "polymorphic_identity": "InteractivePipelineRun",
     }
+
+    images_in_use = db.relationship(
+        "PipelineRunInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
 
 
 class ClientHeartbeat(BaseModel):
