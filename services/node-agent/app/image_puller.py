@@ -2,20 +2,14 @@ import asyncio
 import logging
 import time
 from enum import Enum
+from typing import Optional
 
-from docker.client import DockerClient
-from docker.errors import NotFound
+import aiodocker
 
 
 class Policy(Enum):
     IfNotPresent = "IfNotPresent"
     Always = "Always"
-
-
-class PullTaskMessage:
-    def __init__(self, retry: int, image_name: str) -> None:
-        self.retry = retry
-        self.image_name = image_name
 
 
 class ImagePuller(object):
@@ -26,7 +20,7 @@ class ImagePuller(object):
         image_puller_retries: int,
         image_puller_images: list,
         image_puller_log_level: str,
-        image_puller_thrediness: int,
+        image_puller_threadiness: int,
     ) -> None:
 
         """ImagePuller is started is responsible for pulling the
@@ -52,9 +46,26 @@ class ImagePuller(object):
         self.policy = image_puller_policy
         self.num_retries = image_puller_retries
         self.images = image_puller_images
-        self.thrediness = image_puller_thrediness
-        self.logger = logging.getLogger("image_puller")
+        self.threadiness = image_puller_threadiness
+        self.logger = logging.getLogger("IMAGE_PULLER")
         self.logger.setLevel(image_puller_log_level)
+
+        self._aclient: Optional[aiodocker.Docker] = None
+
+    async def get_image_names(self, queue: asyncio.Queue):
+        """Get the image names for pulling.
+        Args:
+            queue: The queue to put the image names to, the queue will
+            be consumed by puller tasks.
+
+        """
+        while True:
+            for image_name in self.images:
+                # Create a pull task, with image_name which will
+                # be consumed by image puller tasks.
+                await queue.put(image_name)
+
+                await asyncio.sleep(self.interval)
 
     async def pull_image(self, queue: asyncio.Queue):
         """Pulls the image.
@@ -69,42 +80,32 @@ class ImagePuller(object):
 
         """
 
-        pull_task = await queue.get()
+        while True:
+            image_name = await queue.get()
+            if self.policy == Policy.IfNotPresent:
+                if await self.image_exists(image_name):
+                    queue.task_done()
+                    continue
 
-        if self.policy == Policy.IfNotPresent:
-            if self.image_exists(pull_task.image_name):
-                self.logger.info(
-                    f"Image '{pull_task.image_name}' is not found - attempting pull..."
-                )
+            self.logger.info(
+                f"Image '{image_name}' " "is not found - attempting pull..."
+            )
 
-        try:
-            self.logger.info(f"Pulling image '{pull_task.image_name}'...")
-            if not self.download_image(pull_task.image_name):
-                self.logger.warning(
-                    f"Image '{pull_task.image_name}' was not downloaded!"
-                )
-        except Exception as ex:
-            if pull_task.retry < self.num_retries:
-                self.logger.warning(
-                    f"Attempt {pull_task.retry} to pull image "
-                    f"'{pull_task.image_name}' failed with "
-                    f"exception - retrying. Exception was: {ex}."
-                )
-                # re-queue the pull task to be processed again
-                await queue.put(
-                    PullTaskMessage(pull_task.retry + 1, pull_task.image_name)
-                )
+            for retry in range(self.num_retries):
+                try:
+                    self.logger.info(f"Pulling image '{image_name}'...")
+                    if await self.download_image(image_name):
+                        break
+                    self.logger.warning(f"Image '{image_name}' was not downloaded!")
+                except Exception as ex:
+                    self.logger.warning(
+                        f"Attempt {retry} to pull image "
+                        f"'{image_name}' failed with "
+                        f"exception - retrying. Exception was: {ex}."
+                    )
+            queue.task_done()
 
-            else:
-                self.logger.error(
-                    f"Attempt {pull_task.retry} to pull image: "
-                    f"'{pull_task.image_name}' failed with "
-                    f"exception: {ex}"
-                )
-
-        queue.task_done()
-
-    def image_exists(self, image_name: str) -> bool:
+    async def image_exists(self, image_name: str) -> bool:
         """Checks for the existence of the named image using
         the configured container runtime.
 
@@ -116,20 +117,17 @@ class ImagePuller(object):
 
         """
         result = True
-        t0 = time.time()
         try:
-            DockerClient.from_env().images.get(image_name)
-        except NotFound:
+            await self.aclient().images.inspect(image_name)
+        except aiodocker.DockerError:
             result = False
 
-        t1 = time.time()
         self.logger.debug(
-            f"Checked existence of image '{image_name} '"
-            f"in {(t1 - t0):.3f} secs.  exists = {result}"
+            f"Checked existence of image '{image_name} '" f"exists = {result}"
         )
         return result
 
-    def download_image(self, image_name: str) -> bool:
+    async def download_image(self, image_name: str) -> bool:
         """Downloads (pulls) the named image.
 
         Args:
@@ -142,28 +140,29 @@ class ImagePuller(object):
         result = True
         t0 = time.time()
         try:
-            DockerClient.from_env().images.pull(image_name)
-        except NotFound:
+            await self.aclient().images.pull(image_name)
+        except aiodocker.DockerError:
             result = False
         t1 = time.time()
         if result is True:
             self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
         return result
 
+    def aclient(self):
+        if self._aclient is None:
+            self._aclient = aiodocker.Docker()
+
+        return self._aclient
+
     async def run(self):
 
         self.logger.info("Starting image puller.")
 
         queue = asyncio.Queue()
-        for _ in range(self.thrediness):
-            asyncio.create_task(self.pull_image(queue))
 
-        while True:
+        get_images_future = asyncio.ensure_future(self.get_image_names(queue))
+        pullers = [
+            asyncio.create_task(self.pull_image(queue)) for _ in range(self.threadiness)
+        ]
 
-            for image_name in self.images:
-                # Create a pull task, with image_name which will
-                # be consumed by image puller tasks.
-                queue.put_nowait(PullTaskMessage(1, image_name))
-
-            await queue.join()
-            await asyncio.sleep(self.interval)
+        await asyncio.gather(*pullers, get_images_future)
