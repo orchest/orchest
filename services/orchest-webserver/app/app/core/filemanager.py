@@ -1,53 +1,44 @@
 import logging
 import os
 import re
-from os.path import expanduser
 
 from flask import jsonify
 
-logger = logging.getLogger("app")
+from _orchest.internals import config as _config
 
-PROJECT_DIR_PATH_STUB = "/project-dir"
-PROJECT_DIR_PATH = os.path.join(expanduser("~"), "Desktop")
+logger = logging.getLogger(__name__)
+
+PROJECT_DIR_PATH = _config.PROJECT_DIR
 ALLOWED_ROOTS = [PROJECT_DIR_PATH, "/data"]
 
 
 def allowed_file(filename):
-    """
-    Allow all files for now
+    """Answers: Is the given file allowed?
+
+    Note:
+        Allows all files for now.
+
     """
     return True
 
 
 def root_from_request(request):
-    root = None
-
-    if "root" in request.args:
-        root = resolve_root_dir(request.args["root"])
-    else:
-        root = resolve_root_dir(PROJECT_DIR_PATH_STUB)
+    root = request.args.get("root", PROJECT_DIR_PATH)
 
     if root in ALLOWED_ROOTS:
         return root
     else:
-        raise Exception("Received illegal root path.")
+        raise ValueError("Received illegal root path.")
 
 
 def old_new_roots_from_request(request):
-    old_root = resolve_root_dir(request.args["oldRoot"])
-    new_root = resolve_root_dir(request.args["newRoot"])
+    old_root = request.args["oldRoot"]
+    new_root = request.args["newRoot"]
 
     if old_root in ALLOWED_ROOTS and new_root in ALLOWED_ROOTS:
         return [old_root, new_root]
     else:
-        raise Exception("Received illegal root path.")
-
-
-def resolve_root_dir(path):
-    if path == PROJECT_DIR_PATH_STUB:
-        return PROJECT_DIR_PATH
-    else:
-        return path
+        raise ValueError("Received illegal root path.")
 
 
 def find_unique_duplicate_filepath(fp):
