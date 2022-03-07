@@ -11,7 +11,7 @@ import { useHotKeys } from "@/hooks/useHotKeys";
 import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { CustomImage, Environment, EnvironmentBuild } from "@/types";
+import type { CustomImage, Environment, EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -30,7 +30,7 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import { ContainerImagesRadioGroup } from "./ContainerImagesRadioGroup";
 import { CustomImageDialog } from "./CustomImageDialog";
 import { useAutoSaveEnvironment } from "./useAutoSaveEnvironment";
-import { useRequestEnvironmentBuild } from "./useRequestEnvironmentBuild";
+import { useRequestEnvironmentImageBuild } from "./useRequestEnvironmentImageBuild";
 
 const CANCELABLE_STATUSES = ["PENDING", "STARTED"];
 
@@ -128,8 +128,8 @@ const EnvironmentEditView: React.FC = () => {
 
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
 
-  const [environmentBuild, setEnvironmentBuild] = React.useState<
-    EnvironmentBuild
+  const [environmentBuild, setEnvironmentImageBuild] = React.useState<
+    EnvironmentImageBuild
   >(null);
   const building = React.useMemo(() => {
     return (
@@ -237,10 +237,10 @@ const EnvironmentEditView: React.FC = () => {
 
   const {
     isRequestingToBuild,
-    newEnvironmentBuild,
+    newEnvironmentImageBuild,
     requestBuildError,
     requestToBuild,
-  } = useRequestEnvironmentBuild(ENVIRONMENT_BUILDS_BASE_ENDPOINT);
+  } = useRequestEnvironmentImageBuild(ENVIRONMENT_BUILDS_BASE_ENDPOINT);
 
   const build = React.useCallback(
     async (e?: React.MouseEvent) => {
@@ -274,10 +274,10 @@ const EnvironmentEditView: React.FC = () => {
   });
 
   React.useEffect(() => {
-    if (newEnvironmentBuild) {
-      setEnvironmentBuild(newEnvironmentBuild);
+    if (newEnvironmentImageBuild) {
+      setEnvironmentImageBuild(newEnvironmentImageBuild);
     }
-  }, [newEnvironmentBuild]);
+  }, [newEnvironmentImageBuild]);
   React.useEffect(() => {
     if (requestBuildError) {
       setIgnoreIncomingLogs(false);
@@ -464,12 +464,12 @@ const EnvironmentEditView: React.FC = () => {
                   <ImageBuildLog
                     hideDefaultStatus
                     buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment?.uuid}`}
-                    buildsKey="environment_builds"
+                    buildsKey="environment_image_builds"
                     socketIONamespace={
                       config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
                     }
                     streamIdentity={`${projectUuid}-${environment?.uuid}`}
-                    onUpdateBuild={setEnvironmentBuild}
+                    onUpdateBuild={setEnvironmentImageBuild}
                     ignoreIncomingLogs={ignoreIncomingLogs}
                     build={environmentBuild}
                     buildFetchHash={buildFetchHash}

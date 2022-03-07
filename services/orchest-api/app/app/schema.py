@@ -553,8 +553,8 @@ jobs = Model(
     },
 )
 
-environment_build = Model(
-    "EnvironmentBuild",
+environment_image_build = Model(
+    "EnvironmentImageBuild",
     {
         "uuid": fields.String(
             required=True, description="UUID of the environment build"
@@ -582,8 +582,8 @@ environment_build = Model(
 )
 
 
-environment_build_request = Model(
-    "EnvironmentBuildRequest",
+environment_image_build_request = Model(
+    "EnvironmentImageBuildRequest",
     {
         "project_uuid": fields.String(required=True, description="UUID of the project"),
         "environment_uuid": fields.String(
@@ -593,36 +593,36 @@ environment_build_request = Model(
     },
 )
 
-environment_build_requests = Model(
-    "EnvironmentBuildRequests",
+environment_image_build_requests = Model(
+    "EnvironmentImageBuildRequests",
     {
-        "environment_build_requests": fields.List(
-            fields.Nested(environment_build_request),
-            description="Collection of environment_build_request",
+        "environment_image_build_requests": fields.List(
+            fields.Nested(environment_image_build_request),
+            description="Collection of environment_image_build_request",
             unique=True,
         ),
     },
 )
 
-environment_builds = Model(
-    "EnvironmentBuilds",
+environment_image_builds = Model(
+    "EnvironmentImageBuilds",
     {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
+        "environment_image_builds": fields.List(
+            fields.Nested(environment_image_build),
+            description="Collection of environment_image_builds",
         ),
     },
 )
 
-environment_builds_requests_result = Model(
-    "EnvironmentBuildsPost",
+environment_image_builds_requests_result = Model(
+    "EnvironmentImageBuildsPost",
     {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
+        "environment_image_builds": fields.List(
+            fields.Nested(environment_image_build),
+            description="Collection of environment_image_builds",
         ),
         "failed_requests": fields.List(
-            fields.Nested(environment_build_request),
+            fields.Nested(environment_image_build_request),
             description="Collection of requests that could not be satisfied",
             unique=True,
         ),
@@ -730,7 +730,7 @@ _idleness_check_result_details = Model(
         "active_clients": fields.Boolean(
             required=True,
         ),
-        "ongoing_environment_builds": fields.Boolean(
+        "ongoing_environment_image_builds": fields.Boolean(
             required=True,
         ),
         "ongoing_jupyterlab_builds": fields.Boolean(

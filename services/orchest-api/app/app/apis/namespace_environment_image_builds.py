@@ -19,9 +19,9 @@ api = register_schema(api)
 
 
 @api.route("/")
-class EnvironmentBuildList(Resource):
-    @api.doc("get_environment_builds")
-    @api.marshal_with(schema.environment_builds)
+class EnvironmentImageBuildList(Resource):
+    @api.doc("get_environment_image_builds")
+    @api.marshal_with(schema.environment_image_builds)
     def get(self):
         """Fetches all environment builds (past and present).
 
@@ -29,19 +29,23 @@ class EnvironmentBuildList(Resource):
         FAILURE, ABORTED.
 
         """
-        environment_builds = models.EnvironmentImageBuild.query.all()
-        if not environment_builds:
-            environment_builds = []
+        environment_image_builds = models.EnvironmentImageBuild.query.all()
+        if not environment_image_builds:
+            environment_image_builds = []
 
         return (
-            {"environment_builds": [envb.as_dict() for envb in environment_builds]},
+            {
+                "environment_image_builds": [
+                    envb.as_dict() for envb in environment_image_builds
+                ]
+            },
             200,
         )
 
-    @api.doc("start_environment_builds")
-    @api.expect(schema.environment_build_requests)
+    @api.doc("start_environment_image_builds")
+    @api.expect(schema.environment_image_build_requests)
     @api.marshal_with(
-        schema.environment_builds_requests_result,
+        schema.environment_image_builds_requests_result,
         code=201,
         description="Queued environment builds",
     )
@@ -49,10 +53,10 @@ class EnvironmentBuildList(Resource):
         """Queues a list of environment builds.
 
         Only unique requests are considered, meaning that a request
-        containing duplicate environment_build_requests will produce an
-        environment build only for each unique
-        environment_build_request. Note that requesting an
-        environment_build for an environment (identified by
+        containing duplicate environment_image_build_requests will
+        produce an environment build only for each unique
+        environment_image_build_request. Note that requesting an
+        environment_image_build for an environment (identified by
         project_uuid, environment_uuid, project_path) will REVOKE/ABORT
         any other active (queued or actually started) environment build
         for that environment.  This implies that only an environment
@@ -62,7 +66,7 @@ class EnvironmentBuildList(Resource):
 
         # keep only unique requests
         post_data = request.get_json()
-        builds_requests = post_data["environment_build_requests"]
+        builds_requests = post_data["environment_image_build_requests"]
         builds_requests = set(
             [
                 (req["project_uuid"], req["environment_uuid"], req["project_path"])
@@ -85,12 +89,12 @@ class EnvironmentBuildList(Resource):
             try:
                 with TwoPhaseExecutor(db.session) as tpe:
                     defined_builds.append(
-                        CreateEnvironmentBuild(tpe).transaction(build_request)
+                        CreateEnvironmentImageBuild(tpe).transaction(build_request)
                     )
             except Exception:
                 failed_requests.append(build_request)
 
-        return_data = {"environment_builds": defined_builds}
+        return_data = {"environment_image_builds": defined_builds}
         return_code = 200
 
         if failed_requests:
@@ -101,30 +105,30 @@ class EnvironmentBuildList(Resource):
 
 
 @api.route(
-    "/<string:environment_build_uuid>",
+    "/<string:environment_image_build_uuid>",
 )
-@api.param("environment_build_uuid", "UUID of the EnvironmentBuild")
+@api.param("environment_image_build_uuid", "UUID of the EnvironmentImageBuild")
 @api.response(404, "Environment build not found")
-class EnvironmentBuild(Resource):
-    @api.doc("get_environment_build")
-    @api.marshal_with(schema.environment_build, code=200)
-    def get(self, environment_build_uuid):
+class EnvironmentImageBuild(Resource):
+    @api.doc("get_environment_image_build")
+    @api.marshal_with(schema.environment_image_build, code=200)
+    def get(self, environment_image_build_uuid):
         """Fetch an environment build given its uuid."""
         env_build = models.EnvironmentImageBuild.query.filter_by(
-            uuid=environment_build_uuid
+            uuid=environment_image_build_uuid
         ).one_or_none()
         if env_build is not None:
             return env_build.as_dict()
-        abort(404, "EnvironmentBuild not found.")
+        abort(404, "EnvironmentImageBuild not found.")
 
-    @api.doc("set_environment_build_status")
+    @api.doc("set_environment_image_build_status")
     @api.expect(schema.status_update)
-    def put(self, environment_build_uuid):
+    def put(self, environment_image_build_uuid):
         """Set the status of a environment build."""
         status_update = request.get_json()
 
         filter_by = {
-            "uuid": environment_build_uuid,
+            "uuid": environment_image_build_uuid,
         }
         try:
             update_status_db(
@@ -139,9 +143,9 @@ class EnvironmentBuild(Resource):
 
         return {"message": "Status was updated successfully."}, 200
 
-    @api.doc("delete_environment_build")
+    @api.doc("delete_environment_image_build")
     @api.response(200, "Environment build cancelled or stopped ")
-    def delete(self, environment_build_uuid):
+    def delete(self, environment_image_build_uuid):
         """Stops an environment build given its UUID.
 
         However, it will not delete any corresponding database entries,
@@ -149,8 +153,8 @@ class EnvironmentBuild(Resource):
         """
         try:
             with TwoPhaseExecutor(db.session) as tpe:
-                could_abort = AbortEnvironmentBuild(tpe).transaction(
-                    environment_build_uuid
+                could_abort = AbortEnvironmentImageBuild(tpe).transaction(
+                    environment_image_build_uuid
                 )
         except Exception as e:
             return {"message": str(e)}, 500
@@ -171,8 +175,8 @@ class EnvironmentBuild(Resource):
     "UUID of the project for which environment builds should be collected",
 )
 class ProjectMostRecentBuildsList(Resource):
-    @api.doc("get_project_most_recent_environment_builds")
-    @api.marshal_with(schema.environment_builds, code=200)
+    @api.doc("get_project_most_recent_environment_image_builds")
+    @api.marshal_with(schema.environment_image_builds, code=200)
     def get(self, project_uuid):
         """Get the most recent build for each environment of a project.
 
@@ -199,7 +203,7 @@ class ProjectMostRecentBuildsList(Resource):
         query = query.with_entities(models.EnvironmentImageBuild)
         env_builds = query.all()
 
-        return {"environment_builds": [build.as_dict() for build in env_builds]}
+        return {"environment_image_builds": [build.as_dict() for build in env_builds]}
 
 
 @api.route("/most-recent/<string:project_uuid>/<string:environment_uuid>")
@@ -207,7 +211,7 @@ class ProjectMostRecentBuildsList(Resource):
 @api.param("environment_uuid", "UUID of the environment.")
 class ProjectEnvironmentMostRecentBuild(Resource):
     @api.doc("get_most_recent_build_by_proj_env")
-    @api.marshal_with(schema.environment_builds, code=200)
+    @api.marshal_with(schema.environment_image_builds, code=200)
     def get(self, project_uuid, environment_uuid):
         """Get the most recent build for a project and environment pair.
 
@@ -215,7 +219,7 @@ class ProjectEnvironmentMostRecentBuild(Resource):
         are considered.
         """
 
-        environment_builds = []
+        environment_image_builds = []
 
         recent = (
             db.session.query(models.EnvironmentImageBuild)
@@ -224,12 +228,12 @@ class ProjectEnvironmentMostRecentBuild(Resource):
             .first()
         )
         if recent:
-            environment_builds.append(recent.as_dict())
+            environment_image_builds.append(recent.as_dict())
 
-        return {"environment_builds": environment_builds}
+        return {"environment_image_builds": environment_image_builds}
 
 
-class CreateEnvironmentBuild(TwoPhaseFunction):
+class CreateEnvironmentImageBuild(TwoPhaseFunction):
     def _transaction(self, build_request):
 
         # Abort any environment build of this environment that is
@@ -246,7 +250,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         ).all()
 
         for build in already_running_builds:
-            AbortEnvironmentBuild(self.tpe).transaction(build.uuid)
+            AbortEnvironmentImageBuild(self.tpe).transaction(build.uuid)
 
         # We specify the task id beforehand so that we can commit to the
         # db before actually launching the task, since the task might
@@ -261,7 +265,7 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         # task.forget()
 
-        environment_build = {
+        environment_image_build = {
             "uuid": task_id,
             "project_uuid": build_request["project_uuid"],
             "environment_uuid": build_request["environment_uuid"],
@@ -269,13 +273,13 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
             "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
             "status": "PENDING",
         }
-        db.session.add(models.EnvironmentImageBuild(**environment_build))
+        db.session.add(models.EnvironmentImageBuild(**environment_image_build))
 
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
         self.collateral_kwargs["environment_uuid"] = build_request["environment_uuid"]
         self.collateral_kwargs["project_path"] = build_request["project_path"]
-        return environment_build
+        return environment_image_build
 
     def _collateral(
         self, task_id: str, project_uuid: str, environment_uuid: str, project_path: str
@@ -300,11 +304,11 @@ class CreateEnvironmentBuild(TwoPhaseFunction):
         db.session.commit()
 
 
-class AbortEnvironmentBuild(TwoPhaseFunction):
-    def _transaction(self, environment_build_uuid: str):
+class AbortEnvironmentImageBuild(TwoPhaseFunction):
+    def _transaction(self, environment_image_build_uuid: str):
 
         filter_by = {
-            "uuid": environment_build_uuid,
+            "uuid": environment_image_build_uuid,
         }
         status_update = {"status": "ABORTED"}
         # Will return true if any row is affected, meaning that the
@@ -315,27 +319,27 @@ class AbortEnvironmentBuild(TwoPhaseFunction):
             filter_by=filter_by,
         )
 
-        self.collateral_kwargs["environment_build_uuid"] = (
-            environment_build_uuid if abortable else None
+        self.collateral_kwargs["environment_image_build_uuid"] = (
+            environment_image_build_uuid if abortable else None
         )
         return abortable
 
-    def _collateral(self, environment_build_uuid: Optional[str]):
+    def _collateral(self, environment_image_build_uuid: Optional[str]):
 
-        if not environment_build_uuid:
+        if not environment_image_build_uuid:
             return
 
         celery_app = make_celery(current_app)
         # Make use of both constructs (revoke, abort) so we cover both a
         # task that is pending and a task which is running.
-        celery_app.control.revoke(environment_build_uuid, timeout=1.0)
-        res = AbortableAsyncResult(environment_build_uuid, app=celery_app)
+        celery_app.control.revoke(environment_image_build_uuid, timeout=1.0)
+        res = AbortableAsyncResult(environment_image_build_uuid, app=celery_app)
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()
 
 
-class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
+class DeleteProjectEnvironmentImageBuilds(TwoPhaseFunction):
     def _transaction(self, project_uuid: str, environment_uuid: str):
         # Order by request time so that the first build might be related
         # be related to a PENDING or STARTED build, all others are
@@ -349,7 +353,7 @@ class DeleteProjectEnvironmentBuilds(TwoPhaseFunction):
         )
 
         if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
-            AbortEnvironmentBuild(self.tpe).transaction(env_builds[0].uuid)
+            AbortEnvironmentImageBuild(self.tpe).transaction(env_builds[0].uuid)
 
         for build in env_builds:
             db.session.delete(build)
@@ -371,7 +375,7 @@ class DeleteProjectBuilds(TwoPhaseFunction):
         )
 
         for build in builds:
-            DeleteProjectEnvironmentBuilds(self.tpe).transaction(
+            DeleteProjectEnvironmentImageBuilds(self.tpe).transaction(
                 build.project_uuid, build.environment_uuid
             )
 

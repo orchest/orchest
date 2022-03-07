@@ -2,7 +2,7 @@ from flask import Blueprint
 from flask_restx import Api
 
 from app.apis.namespace_ctl import api as ns_ctl
-from app.apis.namespace_environment_builds import api as ns_env_builds
+from app.apis.namespace_environment_image_builds import api as ns_env_builds
 from app.apis.namespace_environment_images import api as ns_env_images
 from app.apis.namespace_info import api as ns_info
 from app.apis.namespace_jobs import api as ns_jobs

@@ -20,7 +20,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app.apis import blueprint as api
-from app.apis.namespace_environment_builds import AbortEnvironmentBuild
+from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
 from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_jupyter_builds import AbortJupyterBuild, CreateJupyterBuild
 from app.apis.namespace_runs import AbortPipelineRun
@@ -281,7 +281,7 @@ def cleanup():
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for build in builds:
-                    AbortEnvironmentBuild(tpe).transaction(build.uuid)
+                    AbortEnvironmentImageBuild(tpe).transaction(build.uuid)
 
             app.logger.info("Aborting jupyter builds.")
             builds = JupyterImageBuild.query.filter(

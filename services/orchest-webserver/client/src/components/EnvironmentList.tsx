@@ -30,7 +30,7 @@ type Environment = {
   uuid: string;
 };
 
-type EnvironmentBuild = {
+type EnvironmentImageBuild = {
   environment_uuid: string;
   finished_time: string;
   project_path: string;
@@ -148,8 +148,8 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       ? `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}`
       : null,
     (url: string) =>
-      fetcher<{ environment_builds: EnvironmentBuild[] }>(url).then(
-        (response) => response.environment_builds
+      fetcher<{ environment_image_builds: EnvironmentImageBuild[] }>(url).then(
+        (response) => response.environment_image_builds
       ),
     { refreshInterval: BUILD_POLL_FREQUENCY }
   );
@@ -234,10 +234,12 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
       `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
     );
     if (sessionData.sessions.length > 0) {
-      const buildData = await fetcher<{ environment_builds: any[] }>(
+      const buildData = await fetcher<{ environment_image_builds: any[] }>(
         `/catch/api-proxy/api/environment-builds/most-recent/${projectUuid}/${environmentUuid}`
       );
-      if (buildData.environment_builds.some((x) => x.status == "SUCCESS")) {
+      if (
+        buildData.environment_image_builds.some((x) => x.status == "SUCCESS")
+      ) {
         setAlert(
           "Error",
           <>

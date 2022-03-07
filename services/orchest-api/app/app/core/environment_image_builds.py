@@ -13,13 +13,13 @@ from app.core.image_utils import build_image
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
-__ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
+__ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_image_builds_logs"
 
 
-def update_environment_build_status(
+def update_environment_image_build_status(
     status: str,
     session: requests.sessions.Session,
-    environment_build_uuid,
+    environment_image_build_uuid,
 ) -> Any:
     """Update environment build status."""
     data = {"status": status}
@@ -30,7 +30,7 @@ def update_environment_build_status(
 
     url = (
         f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/environment-builds/"
-        f"{environment_build_uuid}"
+        f"{environment_image_build_uuid}"
     )
 
     with session.put(url, json=data) as response:
@@ -275,7 +275,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
     with requests.sessions.Session() as session:
 
         try:
-            update_environment_build_status("STARTED", session, task_uuid)
+            update_environment_image_build_status("STARTED", session, task_uuid)
 
             # Prepare the project snapshot with the correctly placed
             # dockerfile, scripts, etc.
@@ -318,12 +318,12 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             # Cleanup.
             rmtree(build_context["snapshot_path"])
 
-            update_environment_build_status(status, session, task_uuid)
+            update_environment_image_build_status(status, session, task_uuid)
 
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
-            update_environment_build_status("FAILURE", session, task_uuid)
+            update_environment_image_build_status("FAILURE", session, task_uuid)
             raise e
         finally:
             # We get here either because the task was successful or was

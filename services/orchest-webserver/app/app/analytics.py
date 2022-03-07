@@ -292,7 +292,7 @@ class _Anonymizer:
         return derived_properties
 
     @staticmethod
-    def environment_build_start(event_properties: dict) -> dict:
+    def environment_image_build_start(event_properties: dict) -> dict:
         base_image = event_properties.pop("base_image", None)
         derived_properties = {}
         if isinstance(base_image, str):

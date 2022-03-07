@@ -156,7 +156,7 @@ export type CustomImage = Pick<
   "base_image" | "language" | "gpu_support"
 >;
 
-export type EnvironmentBuild = {
+export type EnvironmentImageBuild = {
   environment_uuid: string;
   finished_time: string;
   project_path: string;

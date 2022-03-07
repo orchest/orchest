@@ -3,10 +3,10 @@ from flask_restx import Namespace, Resource
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import models
-from app.apis.namespace_environment_builds import (
-    AbortEnvironmentBuild,
+from app.apis.namespace_environment_image_builds import (
+    AbortEnvironmentImageBuild,
     DeleteProjectBuilds,
-    DeleteProjectEnvironmentBuilds,
+    DeleteProjectEnvironmentImageBuilds,
 )
 from app.apis.namespace_jobs import AbortJob
 from app.apis.namespace_jupyter_builds import AbortJupyterBuild
@@ -138,7 +138,7 @@ class DeleteImage(TwoPhaseFunction):
 
         # Cleanup references to the builds and dangling images
         # of this environment.
-        DeleteProjectEnvironmentBuilds(self.tpe).transaction(
+        DeleteProjectEnvironmentImageBuilds(self.tpe).transaction(
             project_uuid, environment_uuid
         )
 
@@ -165,7 +165,7 @@ class DeleteBaseImagesCache(TwoPhaseFunction):
             models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
         )
         for eb in env_builds:
-            AbortEnvironmentBuild(self.tpe).transaction(eb.uuid)
+            AbortEnvironmentImageBuild(self.tpe).transaction(eb.uuid)
         jupyter_builds = models.JupyterImageBuild.query.filter(
             models.JupyterImageBuild.status.in_(["PENDING", "STARTED"])
         )
