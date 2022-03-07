@@ -156,6 +156,14 @@ class EnvironmentImage(BaseModel):
         primary_key=True,
     )
 
+    build = db.relationship(
+        "EnvironmentImageBuild",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+        uselist=False,
+    )
+
     __table_args__ = (
         # To find all images of the environment of a project.
         Index("project_uuid", "environment_uuid"),

@@ -156,7 +156,7 @@ def start_non_interactive_pipeline_run(
             Example: {
                 'host_user_dir': '/home/../userdir',
                 'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_to_image_mappings': {
+                'env_uuid_to_image': {
                     'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
                         'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
                 }
@@ -205,13 +205,11 @@ def start_non_interactive_pipeline_run(
     # Note that run_config contains user_env_variables, which is of
     # interest for the session_config.
     session_config = copy.deepcopy(run_config)
-    session_config.pop("env_uuid_to_image_mappings")
+    session_config.pop("env_uuid_to_image")
     session_config.pop("run_endpoint")
     session_config["host_userdir"] = host_userdir
     session_config["services"] = pipeline_definition.get("services", {})
-    session_config["env_uuid_to_image_mappings"] = run_config[
-        "env_uuid_to_image_mappings"
-    ]
+    session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]
 
     with launch_noninteractive_session(
         session_uuid,

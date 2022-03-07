@@ -54,7 +54,7 @@ class PipelineDefinition(TypedDict):
 
 
 class RunConfig(TypedDict):
-    env_uuid_to_image_mappings: Dict[str, str]
+    env_uuid_to_image: Dict[str, str]
     host_user_dir: str
     pipeline_path: str
     pipeline_uuid: str
@@ -72,7 +72,7 @@ class SessionType(Enum):
 
 
 class SessionConfig(TypedDict):
-    env_uuid_to_image_mappings: Dict[str, str]
+    env_uuid_to_image: Dict[str, str]
     host_userdir: str
     pipeline_path: str
     pipeline_uuid: str

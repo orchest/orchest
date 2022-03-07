@@ -154,28 +154,13 @@ class CreateInteractiveSession(TwoPhaseFunction):
         ):
             raise JupyterEnvironmentBuildInProgressException()
 
-        # Make sure the service environments are there. This piece of
-        # code needs to be there to reject a session post if the
-        # referenced environments aren't there, since this is something
-        # the background task that is launching the session cannot do.
+        # Lock the orchest environment images that are used as services.
         env_as_services = set()
         prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
         for service in session_config.get("services", {}).values():
             img = service["image"]
             if img.startswith(prefix):
                 env_as_services.add(img.replace(prefix, ""))
-        try:
-            environments.get_env_uuids_to_image_id_mappings(
-                session_config["project_uuid"], env_as_services
-            )
-        except self_errors.ImageNotFound as e:
-            raise self_errors.ImageNotFound(
-                "Pipeline services were referencing environments for "
-                f"which an image does not exist, {e}."
-            )
-        except self_errors.PipelineDefinitionNotValid:
-            msg = "Please make sure every pipeline step is assigned an environment."
-            raise self_errors.PipelineDefinitionNotValid(msg)
 
         interactive_session = {
             "project_uuid": session_config["project_uuid"],
@@ -189,6 +174,24 @@ class CreateInteractiveSession(TwoPhaseFunction):
             "user_services": session_config.get("services", {}),
         }
         db.session.add(models.InteractiveSession(**interactive_session))
+
+        try:
+            env_uuid_to_image = (
+                environments.lock_environment_images_for_interactive_session(
+                    session_config["project_uuid"],
+                    session_config["pipeline_uuid"],
+                    env_as_services,
+                )
+            )
+        except self_errors.ImageNotFound as e:
+            raise self_errors.ImageNotFound(
+                "Pipeline services were referencing environments for "
+                f"which an image does not exist, {e}."
+            )
+        except self_errors.PipelineDefinitionNotValid:
+            msg = "Please make sure every pipeline step is assigned an environment."
+            raise self_errors.PipelineDefinitionNotValid(msg)
+        session_config["env_uuid_to_image"] = env_uuid_to_image
 
         session_uuid = (
             session_config["project_uuid"][:18] + session_config["pipeline_uuid"][:18]
@@ -213,24 +216,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
             try:
                 project_uuid = session_config["project_uuid"]
                 pipeline_uuid = session_config["pipeline_uuid"]
-
-                env_as_services = set()
-                prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-                for service in session_config.get("services", {}).values():
-                    img = service["image"]
-                    if img.startswith(prefix):
-                        env_as_services.add(img.replace(prefix, ""))
-
-                # Lock the orchest environment images that are used
-                # as services.
-                env_uuid_image_id_mappings = (
-                    environments.lock_environment_images_for_session(
-                        project_uuid, pipeline_uuid, env_as_services
-                    )
-                )
-                session_config[
-                    "env_uuid_to_image_mappings"
-                ] = env_uuid_image_id_mappings
 
                 sessions.launch(
                     session_uuid,

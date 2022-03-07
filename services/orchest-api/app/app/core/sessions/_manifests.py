@@ -759,7 +759,7 @@ def _get_user_service_deployment_service_manifest(
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
-    img_mappings = session_config["env_uuid_to_image_mappings"]
+    img_mappings = session_config["env_uuid_to_image"]
     session_type = session_type.value
 
     # Get user configured environment variables
