@@ -201,21 +201,30 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     resetDraggingVariables();
   };
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    isMouseDown.current = true;
-    // because user might accidentally start dragging while their cursor is not over this DOM element
-    // this mouse event listener is used to "finish" the dragging behavior
-    document.body.addEventListener("mouseup", finishDragging);
-    forceUpdate();
-  };
-
   const finishDragging = React.useCallback(() => {
     savePositions();
     resetDraggingVariables();
     document.body.removeEventListener("mouseup", finishDragging);
   }, [resetDraggingVariables, savePositions]);
+
+  React.useEffect(() => {
+    // because user might accidentally start dragging while their cursor is not over this DOM element
+    // this mouse event listener is used to "finish" the dragging behavior
+    if (isMouseDown.current) {
+      document.body.addEventListener("mouseup", finishDragging);
+    }
+    return () => document.body.removeEventListener("mouseup", finishDragging);
+  }, [finishDragging]);
+
+  const onMouseDown = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      isMouseDown.current = true;
+      forceUpdate();
+    },
+    [forceUpdate]
+  );
 
   const onClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
