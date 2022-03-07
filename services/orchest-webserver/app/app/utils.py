@@ -498,7 +498,7 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
 
 
 def rmtree(path, ignore_errors=False):
-    """A wrapped rm -rf.
+    """A wrapped `rm -rf -- {path}`.
 
     If eventlet is being used and it's either patching all modules or
     patching subprocess, this function is not going to block the thread.
@@ -507,7 +507,9 @@ def rmtree(path, ignore_errors=False):
         OSError if it failed to remove.
 
     """
-    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
+    exit_code = subprocess.call(
+        f"rm -rf -- {path}", stderr=subprocess.STDOUT, shell=True
+    )
     if exit_code != 0 and not ignore_errors:
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
