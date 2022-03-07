@@ -236,7 +236,7 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     """
 
     return (
-        interactive_sessions_using_environment(project_uuid, env_uuid)
-        or interactive_runs_using_environment(project_uuid, env_uuid)
-        or jobs_using_environment(project_uuid, env_uuid)
+        len(interactive_sessions_using_environment(project_uuid, env_uuid)) > 0
+        or len(interactive_runs_using_environment(project_uuid, env_uuid)) > 0
+        or len(jobs_using_environment(project_uuid, env_uuid)) > 0
     )

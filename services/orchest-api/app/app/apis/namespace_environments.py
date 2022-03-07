@@ -92,6 +92,18 @@ class Environment(Resource):
         return {"message": "Environment deletion was successful."}, 200
 
 
+@api.route(
+    "/in-use/<string:project_uuid>/<string:environment_uuid>",
+)
+@api.param("project_uuid", "UUID of the project")
+@api.param("environment_uuid", "UUID of the environment")
+class EnvironmentInUse(Resource):
+    @api.doc("is-environment-in-use")
+    def get(self, project_uuid, environment_uuid):
+        in_use = environments.is_environment_in_use(project_uuid, environment_uuid)
+        return {"message": in_use, "in_use": in_use}, 200
+
+
 class DeleteEnvironment(TwoPhaseFunction):
     """Delete an environment and all related entities.
 

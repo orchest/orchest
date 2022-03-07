@@ -258,7 +258,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     }
 
     const imageData = await fetcher<{ in_use: boolean }>(
-      `/catch/api-proxy/api/environment-images/in-use/${projectUuid}/${environmentUuid}`
+      `/catch/api-proxy/api/environments/in-use/${projectUuid}/${environmentUuid}`
     );
 
     if (imageData.in_use) {

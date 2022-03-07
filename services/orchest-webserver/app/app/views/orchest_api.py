@@ -152,7 +152,7 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
-        "/catch/api-proxy/api/environment-images/in-use"
+        "/catch/api-proxy/api/environments/in-use"
         + "/<project_uuid>/<environment_uuid>",
         methods=["GET"],
     )
@@ -161,7 +161,7 @@ def register_orchest_api_views(app, db):
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/environment-images/in-use/%s/%s" % (project_uuid, environment_uuid),
+            + "/api/environments/in-use/%s/%s" % (project_uuid, environment_uuid),
         )
 
         return resp.content, resp.status_code, resp.headers.items()

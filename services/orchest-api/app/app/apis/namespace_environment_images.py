@@ -9,7 +9,7 @@ from app.apis.namespace_environment_image_builds import (
 )
 from app.apis.namespace_jupyter_image_builds import AbortJupyterEnvironmentBuild
 from app.connections import db
-from app.core import environments, image_utils
+from app.core import image_utils
 from app.utils import register_schema
 
 api = Namespace("environment-images", description="Managing environment images")
@@ -33,18 +33,6 @@ class BaseImagesCache(Resource):
             return {"message": str(e)}, 500
 
         return {"message": "Base images cache deletion successful."}, 200
-
-
-@api.route(
-    "/in-use/<string:project_uuid>/<string:environment_uuid>",
-)
-@api.param("project_uuid", "UUID of the project")
-@api.param("environment_uuid", "UUID of the environment")
-class EnvironmentImageInUse(Resource):
-    @api.doc("is-environment-in-use")
-    def get(self, project_uuid, environment_uuid):
-        in_use = environments.is_environment_in_use(project_uuid, environment_uuid)
-        return {"message": in_use, "in_use": in_use}, 200
 
 
 @api.route(
