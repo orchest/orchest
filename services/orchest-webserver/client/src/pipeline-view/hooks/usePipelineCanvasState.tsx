@@ -2,21 +2,23 @@ import React from "react";
 
 export const INITIAL_PIPELINE_POSITION = [-1, -1] as [number, number];
 
+type PanningState = "ready-to-pan" | "panning" | "idle";
+
 export type PipelineCanvasState = {
-  // rendering state
   pipelineOrigin: number[];
   pipelineStepsHolderOffsetLeft: number;
   pipelineStepsHolderOffsetTop: number;
   pipelineOffset: [number, number];
   origin: [number, number];
+  panningState: PanningState;
 };
 let initialState: PipelineCanvasState = {
-  // rendering state
   pipelineOrigin: [0, 0],
   pipelineStepsHolderOffsetLeft: 0,
   pipelineStepsHolderOffsetTop: 0,
   pipelineOffset: INITIAL_PIPELINE_POSITION,
   origin: [0, 0],
+  panningState: "idle",
 };
 
 const reducer = (

@@ -2,7 +2,6 @@ import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Connection,
-  MouseTracker,
   PipelineStepMetaData,
   PipelineStepState,
   PipelineStepStatus,
@@ -13,8 +12,8 @@ import { hasValue } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
+import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { EventVarsAction } from "./hooks/useEventVars";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -107,16 +106,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   {
     data,
     selected,
-    zIndexMax,
     movedToTop,
-    isSelectorActive,
     isStartNodeOfNewConnection,
-    eventVarsDispatch,
-    selectedSteps,
-    mouseTracker,
-    cursorControlledStep,
     savePositions,
-    disabledDragging,
     onDoubleClick,
     // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
     interactiveConnections,
@@ -126,15 +118,8 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     data: PipelineStepState;
     selected: boolean;
     movedToTop: boolean;
-    zIndexMax: React.MutableRefObject<number>;
-    isSelectorActive: boolean;
     isStartNodeOfNewConnection: boolean;
-    eventVarsDispatch: (value: EventVarsAction) => void;
-    selectedSteps: string[];
-    mouseTracker: React.MutableRefObject<MouseTracker>;
-    cursorControlledStep: string | undefined;
     savePositions: () => void;
-    disabledDragging?: boolean;
     onDoubleClick: (stepUUID: string) => void;
     interactiveConnections: Connection[];
     getPosition: (element: HTMLElement) => Position;
@@ -148,7 +133,19 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     projectUuid,
     pipelineUuid,
     stepDomRefs,
+    isReadOnly,
+    zIndexMax,
+    dispatch,
+    mouseTracker,
+    eventVars: { cursorControlledStep, selectedSteps, stepSelector },
   } = usePipelineEditorContext();
+
+  const {
+    pipelineCanvasState: { panningState },
+  } = usePipelineCanvasContext();
+
+  const isSelectorActive = stepSelector.active;
+  const disabledDragging = isReadOnly || panningState === "panning";
 
   // only persist meta_data for manipulating location with a local state
   // the rest will be updated together with pipelineJson (i.e. data)
@@ -175,7 +172,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
   const resetDraggingVariables = React.useCallback(() => {
     if (hasValue(cursorControlledStep)) {
-      eventVarsDispatch({
+      dispatch({
         type: "SET_CURSOR_CONTROLLED_STEP",
         payload: undefined,
       });
@@ -183,7 +180,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     isMouseDown.current = false;
     dragCount.current = 0;
     forceUpdate();
-  }, [dragCount, forceUpdate, eventVarsDispatch, cursorControlledStep]);
+  }, [dragCount, forceUpdate, dispatch, cursorControlledStep]);
 
   // handles all mouse up cases except "just finished dragging"
   // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
@@ -193,7 +190,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     e.preventDefault();
 
     if (isSelectorActive) {
-      eventVarsDispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     }
 
     // this condition means user is just done dragging
@@ -237,18 +234,18 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       // if this step (and possibly other steps) are selected,
       // press ctrl/cmd and select this step => remove this step from the selection
       if (selected && ctrlKeyPressed) {
-        eventVarsDispatch({ type: "DESELECT_STEPS", payload: [uuid] });
+        dispatch({ type: "DESELECT_STEPS", payload: [uuid] });
         return;
       }
       // only need to re-render if step is not selected
       if (!selected) {
-        eventVarsDispatch({
+        dispatch({
           type: "SELECT_STEPS",
           payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
         });
       }
       if (selected) {
-        eventVarsDispatch({ type: "SET_OPENED_STEP", payload: uuid });
+        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
       }
       resetDraggingVariables();
     }
@@ -280,14 +277,14 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     }
 
     if (!cursorControlledStep) {
-      eventVarsDispatch({
+      dispatch({
         type: "SET_CURSOR_CONTROLLED_STEP",
         payload: uuid,
       });
     }
 
     return true;
-  }, [cursorControlledStep, eventVarsDispatch, uuid]);
+  }, [cursorControlledStep, dispatch, uuid]);
 
   const onMouseMove = React.useCallback(() => {
     if (disabledDragging) {
