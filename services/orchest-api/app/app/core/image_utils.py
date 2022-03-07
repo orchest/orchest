@@ -4,7 +4,7 @@ from flask import current_app
 from kubernetes import watch
 
 from _orchest.internals import config as _config
-from app import errors, models, utils
+from app import errors, utils
 from app.celery_app import make_celery
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from config import CONFIG_CLASS
@@ -66,7 +66,7 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
 
 
 def _get_image_build_workflow_manifest(
-    workflow_name, image_name, build_context_host_path, dockerfile_path
+    workflow_name, image_name, image_tag, build_context_host_path, dockerfile_path
 ) -> dict:
     """Returns a workflow manifest given the arguments.
 
@@ -102,7 +102,8 @@ def _get_image_build_workflow_manifest(
                         "args": [
                             f"--dockerfile={dockerfile_path}",
                             "--context=dir:///build-context",
-                            f"--destination={_config.REGISTRY_FQDN}/{image_name}:latest",  # noqa
+                            f"--destination={_config.REGISTRY_FQDN}/{image_name}:"
+                            f"{image_tag}",
                             "--cleanup",
                             "--log-format=json",
                             "--reproducible",
@@ -272,6 +273,7 @@ def _cache_image(
 def _build_image(
     task_uuid,
     image_name,
+    image_tag,
     build_context,
     user_logs_file_object,
     complete_logs_file_object,
@@ -281,6 +283,7 @@ def _build_image(
     manifest = _get_image_build_workflow_manifest(
         pod_name,
         image_name,
+        image_tag,
         build_context["snapshot_host_path"],
         build_context["dockerfile_path"],
     )
@@ -369,6 +372,7 @@ def _build_image(
 def build_image(
     task_uuid,
     image_name,
+    image_tag,
     build_context,
     user_logs_file_object,
     complete_logs_path,
@@ -382,6 +386,7 @@ def build_image(
     Args:
         task_uuid:
         image_name:
+        image_tag:
         build_context:
         user_logs_file_object: file object to which logs from the user
             script are written.
@@ -403,6 +408,7 @@ def build_image(
             _build_image(
                 task_uuid,
                 image_name,
+                image_tag,
                 build_context,
                 user_logs_file_object,
                 complete_logs_file_object,

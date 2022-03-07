@@ -316,7 +316,7 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
         self.collateral_kwargs["environment_uuid"] = build_request["environment_uuid"]
-        self.collateral_kwargs["image_tag"] = image_tag
+        self.collateral_kwargs["image_tag"] = str(image_tag)
         self.collateral_kwargs["project_path"] = build_request["project_path"]
         return environment_image_build
 
@@ -337,7 +337,7 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         }
 
         celery.send_task(
-            "app.core.tasks.build_environment",
+            "app.core.tasks.build_environment_image",
             kwargs=celery_job_kwargs,
             task_id=task_id,
         )

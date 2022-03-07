@@ -67,8 +67,8 @@ class Config:
         "app.core.tasks.start_non_interactive_pipeline_run": {"queue": "jobs"},
         "app.core.tasks.delete_job_pipeline_run_directories": {"queue": "jobs"},
         "app.core.tasks.run_pipeline": {"queue": "celery"},
-        "app.core.tasks.build_environment": {"queue": "builds"},
-        "app.core.tasks.build_jupyter": {"queue": "builds"},
+        "app.core.tasks.build_environment_image": {"queue": "builds"},
+        "app.core.tasks.build_jupyter_image": {"queue": "builds"},
         "app.core.tasks.delete_base_images_cache": {"queue": "builds"},
     }
 

@@ -204,7 +204,7 @@ class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
         celery = make_celery(current_app)
 
         celery.send_task(
-            "app.core.tasks.build_jupyter",
+            "app.core.tasks.build_jupyter_image",
             task_id=task_id,
         )
 

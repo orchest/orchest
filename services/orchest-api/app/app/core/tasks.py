@@ -15,8 +15,8 @@ from _orchest.internals.utils import copytree, rmtree
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
-from app.core.environment_image_builds import build_environment_task
-from app.core.jupyter_image_builds import build_jupyter_task
+from app.core.environment_image_builds import build_environment_image_task
+from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
 from app.types import PipelineDefinition, RunConfig
@@ -232,10 +232,11 @@ def start_non_interactive_pipeline_run(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_environment(
+def build_environment_image(
     self,
-    project_uuid,
-    environment_uuid,
+    project_uuid: str,
+    environment_uuid: str,
+    image_tag: str,
     project_path,
 ) -> str:
     """Builds an environment, pushing a new image to the registry.
@@ -250,8 +251,8 @@ def build_environment(
 
     """
 
-    return build_environment_task(
-        self.request.id, project_uuid, environment_uuid, project_path
+    return build_environment_image_task(
+        self.request.id, project_uuid, environment_uuid, image_tag, project_path
     )
 
 
@@ -259,7 +260,7 @@ def build_environment(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_jupyter(
+def build_jupyter_image(
     self,
 ) -> str:
     """Builds Jupyter image, pushing a new image to the registry.
@@ -269,7 +270,7 @@ def build_jupyter(
 
     """
 
-    return build_jupyter_task(self.request.id)
+    return build_jupyter_image_task(self.request.id)
 
 
 @celery.task(bind=True, base=AbortableTask)

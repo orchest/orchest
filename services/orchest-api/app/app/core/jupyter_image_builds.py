@@ -140,7 +140,7 @@ def prepare_build_context(task_uuid):
     }
 
 
-def build_jupyter_task(task_uuid):
+def build_jupyter_image_task(task_uuid):
     """Function called by the celery task to build Jupyter image.
 
     Builds a Jupyter image given the arguments, the logs produced by the
@@ -177,6 +177,7 @@ def build_jupyter_task(task_uuid):
                 task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
                     image_name,
+                    "latest",
                     build_context,
                     user_logs_fo,
                     complete_logs_path,
