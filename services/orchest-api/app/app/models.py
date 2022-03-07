@@ -140,6 +140,8 @@ class EnvironmentImage(BaseModel):
         db.String(36),
         nullable=False,
         primary_key=True,
+        # To find all images of a project.
+        index=True,
     )
     environment_uuid = db.Column(
         db.String(36),
@@ -149,7 +151,17 @@ class EnvironmentImage(BaseModel):
     # A new environment image record with a given tag will be created
     # everytime an environment build is started, the tag only
     # increments.
-    tag = db.Column(db.Integer, primary_key=True)
+    tag = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
+
+    __table_args__ = (
+        # To find all images of the environment of a project.
+        Index("project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index("project_uuid", "environment_uuid", tag.desc()),
+    )
 
     def __repr__(self):
         return (

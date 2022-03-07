@@ -64,7 +64,7 @@ class EnvironmentImageBuildList(Resource):
         environment.
         """
 
-        # keep only unique requests
+        # Keep only unique requests.
         post_data = request.get_json()
         builds_requests = post_data["environment_image_build_requests"]
         builds_requests = set(
