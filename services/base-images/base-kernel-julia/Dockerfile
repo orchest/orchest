@@ -1,4 +1,4 @@
-# Ubuntu 18.04.1 LTS Bionic
+# Ubuntu 20.04.1 LTS Focal
 FROM orchest/kernel-julia:2.5.2
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
@@ -25,7 +25,7 @@ RUN chown $NB_USER -R /orchest/orchest-sdk \
 
 USER $NB_USER
 
-# Install requirements.
+# Install requirements on base environment
 WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements-user.txt
 # Install Orchest dependencies in our own environment
