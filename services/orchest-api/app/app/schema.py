@@ -588,6 +588,9 @@ environment_image_build = Model(
         "environment_uuid": fields.String(
             required=True, description="UUID of the environment"
         ),
+        "image_tag": fields.String(
+            required=True, description="Tag of the image to be built"
+        ),
         "project_path": fields.String(required=True, description="Project path"),
         "requested_time": fields.String(
             required=True, description="Time at which the build was requested"

@@ -91,8 +91,12 @@ class DeleteBaseImagesCache(TwoPhaseFunction):
         env_builds = models.EnvironmentImageBuild.query.filter(
             models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
         )
-        for eb in env_builds:
-            AbortEnvironmentImageBuild(self.tpe).transaction(eb.uuid)
+        for build in env_builds:
+            AbortEnvironmentImageBuild(self.tpe).transaction(
+                build.project_uuid,
+                build.environment_uuid,
+                build.image_tag,
+            )
         jupyter_image_builds = models.JupyterImageBuild.query.filter(
             models.JupyterImageBuild.status.in_(["PENDING", "STARTED"])
         )

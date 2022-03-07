@@ -105,17 +105,21 @@ class EnvironmentImageBuildList(Resource):
 
 
 @api.route(
-    "/<string:environment_image_build_uuid>",
+    "/<string:project_uuid>/<string:environment_uuid>/<string:image_tag>",
 )
-@api.param("environment_image_build_uuid", "UUID of the EnvironmentImageBuild")
+@api.param("project_uuid")
+@api.param("environment_uuid")
+@api.param("image_tag")
 @api.response(404, "Environment build not found")
 class EnvironmentImageBuild(Resource):
     @api.doc("get_environment_image_build")
     @api.marshal_with(schema.environment_image_build, code=200)
-    def get(self, environment_image_build_uuid):
-        """Fetch an environment build given its uuid."""
+    def get(self, project_uuid, environment_uuid, image_tag):
+        """Fetch an environment build."""
         env_build = models.EnvironmentImageBuild.query.filter_by(
-            uuid=environment_image_build_uuid
+            project_uuid=project_uuid,
+            environment_uuid=environment_uuid,
+            image_tag=int(image_tag),
         ).one_or_none()
         if env_build is not None:
             return env_build.as_dict()
@@ -123,12 +127,14 @@ class EnvironmentImageBuild(Resource):
 
     @api.doc("set_environment_image_build_status")
     @api.expect(schema.status_update)
-    def put(self, environment_image_build_uuid):
+    def put(self, project_uuid, environment_uuid, image_tag):
         """Set the status of a environment build."""
         status_update = request.get_json()
 
         filter_by = {
-            "uuid": environment_image_build_uuid,
+            "project_uuid": project_uuid,
+            "environment_uuid": environment_uuid,
+            "image_tag": int(image_tag),
         }
         try:
             update_status_db(
@@ -145,8 +151,8 @@ class EnvironmentImageBuild(Resource):
 
     @api.doc("delete_environment_image_build")
     @api.response(200, "Environment build cancelled or stopped ")
-    def delete(self, environment_image_build_uuid):
-        """Stops an environment build given its UUID.
+    def delete(self, project_uuid, environment_uuid, image_tag):
+        """Stops an environment build.
 
         However, it will not delete any corresponding database entries,
         it will update the status of corresponding objects to ABORTED.
@@ -154,7 +160,7 @@ class EnvironmentImageBuild(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 could_abort = AbortEnvironmentImageBuild(tpe).transaction(
-                    environment_image_build_uuid
+                    project_uuid, environment_uuid, image_tag
                 )
         except Exception as e:
             return {"message": str(e)}, 500
@@ -250,7 +256,11 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         ).all()
 
         for build in already_running_builds:
-            AbortEnvironmentImageBuild(self.tpe).transaction(build.uuid)
+            AbortEnvironmentImageBuild(self.tpe).transaction(
+                build.project_uuid,
+                build.environment_uuid,
+                build.image_tag,
+            )
 
         # We specify the task id beforehand so that we can commit to the
         # db before actually launching the task, since the task might
@@ -264,11 +274,39 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         # abortable tasks.
         # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
         # task.forget()
+        (
+            models.Environment.query.with_for_update()
+            .filter_by(
+                project_uuid=build_request["project_uuid"],
+                uuid=build_request["environment_uuid"],
+            )
+            .one()
+        )
+        lastest_env_image = (
+            models.EnvironmentImage.query.filter_by(
+                project_uuid=build_request["project_uuid"],
+                environment_uuid=build_request["environment_uuid"],
+            )
+            .order_by(desc(models.EnvironmentImage.tag))
+            .first()
+        )
+        if lastest_env_image is None:
+            image_tag = 1
+        else:
+            image_tag = lastest_env_image.tag + 1
 
+        db.session.add(
+            models.EnvironmentImage(
+                project_uuid=build_request["project_uuid"],
+                environment_uuid=build_request["environment_uuid"],
+                tag=image_tag,
+            )
+        )
         environment_image_build = {
-            "uuid": task_id,
+            "celery_task_uuid": task_id,
             "project_uuid": build_request["project_uuid"],
             "environment_uuid": build_request["environment_uuid"],
+            "image_tag": image_tag,
             "project_path": build_request["project_path"],
             "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
             "status": "PENDING",
@@ -278,16 +316,23 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["project_uuid"] = build_request["project_uuid"]
         self.collateral_kwargs["environment_uuid"] = build_request["environment_uuid"]
+        self.collateral_kwargs["image_tag"] = image_tag
         self.collateral_kwargs["project_path"] = build_request["project_path"]
         return environment_image_build
 
     def _collateral(
-        self, task_id: str, project_uuid: str, environment_uuid: str, project_path: str
+        self,
+        task_id: str,
+        project_uuid: str,
+        environment_uuid: str,
+        image_tag: str,
+        project_path: str,
     ):
         celery = make_celery(current_app)
         celery_job_kwargs = {
             "project_uuid": project_uuid,
             "environment_uuid": environment_uuid,
+            "image_tag": image_tag,
             "project_path": project_path,
         }
 
@@ -305,10 +350,12 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
 
 
 class AbortEnvironmentImageBuild(TwoPhaseFunction):
-    def _transaction(self, environment_image_build_uuid: str):
+    def _transaction(self, project_uuid: str, environment_uuid: str, image_tag: str):
 
         filter_by = {
-            "uuid": environment_image_build_uuid,
+            "project_uuid": project_uuid,
+            "environment_uuid": environment_uuid,
+            "image_tag": int(image_tag),
         }
         status_update = {"status": "ABORTED"}
         # Will return true if any row is affected, meaning that the
@@ -319,21 +366,22 @@ class AbortEnvironmentImageBuild(TwoPhaseFunction):
             filter_by=filter_by,
         )
 
-        self.collateral_kwargs["environment_image_build_uuid"] = (
-            environment_image_build_uuid if abortable else None
-        )
+        self.collateral_kwargs["celery_task_uuid"] = None
+        if abortable:
+            env_build = models.EnvironmentImageBuild.query.filter_by(**filter_by).one()
+            self.collateral_kwargs["celery_task_uuid"] = env_build.celery_task_uuid
         return abortable
 
-    def _collateral(self, environment_image_build_uuid: Optional[str]):
+    def _collateral(self, celery_task_uuid: Optional[str]):
 
-        if not environment_image_build_uuid:
+        if not celery_task_uuid:
             return
 
         celery_app = make_celery(current_app)
         # Make use of both constructs (revoke, abort) so we cover both a
         # task that is pending and a task which is running.
-        celery_app.control.revoke(environment_image_build_uuid, timeout=1.0)
-        res = AbortableAsyncResult(environment_image_build_uuid, app=celery_app)
+        celery_app.control.revoke(celery_task_uuid, timeout=1.0)
+        res = AbortableAsyncResult(celery_task_uuid, app=celery_app)
         # It is responsibility of the task to terminate by reading it's
         # aborted status.
         res.abort()
@@ -353,7 +401,11 @@ class DeleteProjectEnvironmentImageBuilds(TwoPhaseFunction):
         )
 
         if len(env_builds) > 0 and env_builds[0].status in ["PENDING", "STARTED"]:
-            AbortEnvironmentImageBuild(self.tpe).transaction(env_builds[0].uuid)
+            AbortEnvironmentImageBuild(self.tpe).transaction(
+                env_builds[0].project_uuid,
+                env_builds[0].environment_uuid,
+                env_builds[0].image_tag,
+            )
 
         for build in env_builds:
             db.session.delete(build)

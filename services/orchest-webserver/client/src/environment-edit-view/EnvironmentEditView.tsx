@@ -294,9 +294,13 @@ const EnvironmentEditView: React.FC = () => {
     ) {
       setIsCancellingBuild(true);
 
-      fetcher(`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/${environmentBuild.uuid}`, {
-        method: "DELETE",
-      })
+      fetcher(
+        `${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/${environmentBuild.project_uuid}/` +
+          `${environmentBuild.environment_uuid}/${environmentBuild.image_tag}`,
+        {
+          method: "DELETE",
+        }
+      )
         .then(() => {
           // immediately fetch latest status
           // NOTE: this DELETE call doesn't actually destroy the resource, that's

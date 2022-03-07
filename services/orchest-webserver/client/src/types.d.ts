@@ -161,10 +161,11 @@ export type EnvironmentImageBuild = {
   finished_time: string;
   project_path: string;
   project_uuid: string;
+  image_tag: string;
   requested_time: string;
   started_time: string;
   status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
-  uuid: string;
+  celery_task_uuid: string;
 };
 
 export type PipelineStepStatus =

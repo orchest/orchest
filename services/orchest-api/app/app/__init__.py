@@ -284,7 +284,11 @@ def cleanup():
             ).all()
             with TwoPhaseExecutor(db.session) as tpe:
                 for build in builds:
-                    AbortEnvironmentImageBuild(tpe).transaction(build.uuid)
+                    AbortEnvironmentImageBuild(tpe).transaction(
+                        build.project_uuid,
+                        build.environment_uuid,
+                        build.image_tag,
+                    )
 
             app.logger.info("Aborting jupyter builds.")
             builds = JupyterImageBuild.query.filter(

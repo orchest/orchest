@@ -76,21 +76,31 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
-        "/catch/api-proxy/api/environment-builds/<environment_image_build_uuid>",
+        "/catch/api-proxy/api/environment-builds/<project_uuid>/<environment_uuid>/"
+        "<image_tag>",
         methods=["DELETE"],
     )
-    def catch_api_proxy_environment_image_build_delete(environment_image_build_uuid):
+    def catch_api_proxy_environment_image_build_delete(
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    ):
 
         resp = requests.delete(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/environment-builds/%s" % (environment_image_build_uuid),
+            + "/api/environment-builds/%s/%s/%s"
+            % (project_uuid, environment_uuid, image_tag),
         )
 
         analytics.send_event(
             app,
             analytics.Event.ENVIRONMENT_BUILD_CANCEL,
-            {"environment_image_build_uuid": environment_image_build_uuid},
+            {
+                "project_uuid": project_uuid,
+                "environment_uuid": environment_uuid,
+                "image_tag": image_tag,
+            },
         )
         return resp.content, resp.status_code, resp.headers.items()
 
