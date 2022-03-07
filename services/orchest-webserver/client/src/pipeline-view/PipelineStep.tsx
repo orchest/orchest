@@ -137,6 +137,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     zIndexMax,
     dispatch,
     mouseTracker,
+    newConnection,
     eventVars: { cursorControlledStep, selectedSteps, stepSelector },
   } = usePipelineEditorContext();
 
@@ -191,6 +192,10 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
     if (isSelectorActive) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    }
+
+    if (newConnection.current) {
+      dispatch({ type: "MAKE_CONNECTION", payload: uuid });
     }
 
     // this condition means user is just done dragging
@@ -353,6 +358,19 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const transform = `translateX(${x}px) translateY(${y}px)`;
   const isCursorControlled = cursorControlledStep === uuid;
 
+  const [isHovering, setIsHovering] = React.useState(false);
+
+  const onMouseOverContainer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (newConnection.current) setIsHovering(true);
+  };
+  const onMouseOutContainer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsHovering(false);
+  };
+
   return (
     <>
       <Box
@@ -362,13 +380,15 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         ref={ref}
         className={classNames(
           "pipeline-step",
-          selected && "selected",
+          (selected || isHovering) && "selected",
           metadata.hidden && "hidden",
           isStartNodeOfNewConnection && "creating-connection"
         )}
         style={{ transform, zIndex }}
         onMouseDown={onMouseDown}
         onMouseUp={onMouseUp}
+        onMouseOver={onMouseOverContainer}
+        onMouseOut={onMouseOutContainer}
         onClick={onClick}
       >
         {children}
