@@ -6,8 +6,9 @@ from image_puller import ImagePuller, Policy
 
 if __name__ == "__main__":
 
-    logger = logging.getLogger("node_agent")
-    logger.setLevel("INFO")
+    logging.basicConfig(level=logging.DEBUG)
+
+    logger = logging.getLogger("NODE_AGENT")
 
     logger.info("Starting node_agent.")
 
@@ -16,8 +17,8 @@ if __name__ == "__main__":
         "--image-puller-log-level",
         dest="image_puller_log_level",
         nargs="?",
-        help='Specifies log level, default "DEBUG".',
-        default="DEBUG",
+        help='Specifies log level, default "INFO".',
+        default="INFO",
     )
     parser.add_argument(
         "--image-puller-interval",
@@ -44,11 +45,11 @@ if __name__ == "__main__":
         type=int,
     )
     parser.add_argument(
-        "--image-puller-thrediness",
-        dest="image_puller_thrediness",
+        "--image-puller-threadiness",
+        dest="image_puller_threadiness",
         nargs="?",
-        help="Specifies number of async pullers to be yse, default 3.",
-        default=3,
+        help="Specifies number of async pullers, default 4.",
+        default=4,
     )
     parser.add_argument(
         "--image-puller-images",
