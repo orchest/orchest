@@ -706,3 +706,186 @@ class ClientHeartbeat(BaseModel):
         index=True,
         server_default=func.now(),
     )
+
+
+class InteractiveSessionInUseImage(BaseModel):
+    """Mappings between an interactive session and environment images.
+
+    Used to understand if an image can be removed from the registry
+    environment if it's not used by an interactive session. This could
+    be the case when an interactive session is using an orchest
+    environment as a service.
+    """
+
+    __tablename__ = "interactive_session_in_use_images"
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    pipeline_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<InteractiveSessionInUseImage: {self.project_uuid}-"
+            f"{self.pipeline_uuid} | {self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        InteractiveSessionInUseImage.project_uuid,
+        InteractiveSessionInUseImage.pipeline_uuid,
+    ],
+    [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
+    ondelete="CASCADE",
+)
+ForeignKeyConstraint(
+    [
+        InteractiveSessionInUseImage.project_uuid,
+        InteractiveSessionInUseImage.environment_uuid,
+        InteractiveSessionInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class JobInUseImage(BaseModel):
+    """Stores mappings between a job and the environment images it uses.
+
+    Used to understand if an image can be removed from the registry if
+    it's not used by a job which is PENDING or STARTED.
+
+    """
+
+    __tablename__ = "job_in_use_images"
+
+    job_uuid = db.Column(
+        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<JobInUseImage: {self.job_uuid} | "
+            f"{self.project_uuid} | "
+            f"{self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        JobInUseImage.project_uuid,
+        JobInUseImage.environment_uuid,
+        JobInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class PipelineRunInUseImage(BaseModel):
+    """Mappings between a pipeline run and environment images it uses.
+
+    Used to understand if an image can be removed from the registry if
+    it's not used by a run which is PENDING or STARTED.  Currently, this
+    only references interactive runs.
+
+    """
+
+    __tablename__ = "pipeline_run_in_use_images"
+
+    run_uuid = db.Column(
+        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<PipelineRunInUseImage: {self.run_uuid} | "
+            f"{self.project_uuid} | "
+            f"{self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        PipelineRunInUseImage.project_uuid,
+        PipelineRunInUseImage.environment_uuid,
+        PipelineRunInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
