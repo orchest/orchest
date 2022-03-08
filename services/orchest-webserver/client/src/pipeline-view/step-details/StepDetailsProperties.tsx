@@ -190,7 +190,7 @@ export const StepDetailsProperties: React.FC<{
     onSave({ kernel: { name: updatedKernel } }, step.uuid);
   };
 
-  const onChangeTitle = (updatedTitle) => {
+  const onChangeTitle = (updatedTitle: string) => {
     onSave({ title: updatedTitle }, step.uuid);
   };
 

@@ -183,13 +183,14 @@ export const PipelineEditor: React.FC = () => {
       );
 
       if (response.status === "rejected") {
-        setAlert("Error", `Failed to save pipeline. ${response.error.message}`);
-        return;
+        // currently step details doesn't do form field validation properly
+        // don't apply setAlert here before the form validation is implemented
+        console.error(`Failed to save pipeline. ${response.error.message}`);
       }
 
       setOngoingSaves((current) => current - 1);
     },
-    [setAlert, isReadOnly, projectUuid, pipelineUuid, setOngoingSaves]
+    [isReadOnly, projectUuid, pipelineUuid, setOngoingSaves]
   );
 
   const mergeStepsIntoPipelineJson = React.useCallback(
