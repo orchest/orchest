@@ -87,10 +87,6 @@ The ``input_data`` in step-3 will be as follows:
 You can see both ``my_string`` and ``my_list``, the output data from steps 1 and 2 respectively, are
 in the received input data. But what is the ``unnamed``? We will answer this in the next section.
 
-.. tip::
-   👉 You can increase the size of the shared memory (to allow for larger data to be passed) in the
-   :ref:`pipeline settings <pipeline settings>`.
-
 Passing data without a name
 ---------------------------
 As you could see in the previous example, step-3 received input data with a special key called
@@ -173,14 +169,3 @@ the data in ``unnamed`` has changed!):
    }
 
 Top-to-bottom in the UI corresponds with left-to-right in ``unnamed``.
-
-Memory footprint
-----------------
-When passing data between steps, by default it is passed through memory and kept it memory for the
-lifetime of the :ref:`session <interactive session>`. This makes it easy to develop your pipeline
-without having to rerun it in its entirety again. The data is essentially cached in memory.
-
-If you are passing large amounts of data between steps, then you might have to increase the size of
-the cache. This can be done through the :ref:`pipeline settings <pipeline settings>`. Alternatively,
-you might want to enable ``auto-eviction`` so that cached data is removed once all receiving steps
-have obtained the passed data.
