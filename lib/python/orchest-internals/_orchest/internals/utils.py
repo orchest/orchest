@@ -379,40 +379,32 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     volumes.append(
         {
             "name": "userdir-pvc",
-            "persistentVolumeClaim":
-            {
-                "claimName" : userdir_pvc,
-                "readOnly": False
-            }
+            "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
         }
     )
 
     volume_mounts.append(
-        {
-            "name": "userdir-pvc",
-            "mountPath": "/data",
-            "subPath": "data"
-        }
+        {"name": "userdir-pvc", "mountPath": "/data", "subPath": "data"}
     )
     volume_mounts.append(
         {
             "name": "userdir-pvc",
             "mountPath": "/userdir/projects",
-            "subPath": relative_project_dir
+            "subPath": relative_project_dir,
         }
     )
     volume_mounts.append(
         {
             "name": "userdir-pvc",
             "mountPath": container_project_dir,
-            "subPath": relative_project_dir
+            "subPath": relative_project_dir,
         }
     )
     volume_mounts.append(
         {
             "name": "userdir-pvc",
             "mountPath": container_pipeline_file,
-            "subPath": relative_pipeline_path
+            "subPath": relative_pipeline_path,
         }
     )
 
@@ -560,6 +552,7 @@ def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
     )
     if exit_code != 0:
         raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
+
 
 def get_userdir_relpath(path):
     return os.path.relpath(path, "/userdir")

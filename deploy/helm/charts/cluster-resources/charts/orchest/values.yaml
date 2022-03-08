@@ -3,7 +3,7 @@ filesystem:
 
 userdir:
   name: userdir-pvc
-  storage: 4Gi
+  storage: 20Gi
 
 config:
   name: config-pvc
@@ -11,5 +11,5 @@ config:
 
 kanikocache:
   name: kaniko-cache-pvc
-  storage: 5Gi
+  storage: 10Gi
 

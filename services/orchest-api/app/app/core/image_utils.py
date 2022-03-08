@@ -54,11 +54,11 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "kaniko-cache-pvc", 
+                    "name": "kaniko-cache-pvc",
                     "persistentVolumeClaim": {
-                        "claimName" : "kaniko-cache-pvc",
-                        "readOnly": False
-                    }
+                        "claimName": "kaniko-cache-pvc",
+                        "readOnly": False,
+                    },
                 },
             ],
         },
@@ -76,7 +76,7 @@ def _get_image_build_workflow_manifest(
         image_name: Name of the resulting image, can include repository
             and tags.
         build_context_path: Path on the container where the build
-            context is to be found, ther userdir should be removed
+            context is to be found.
         dockerfile_path: Path to the dockerfile, relative to the
             context.
 
@@ -139,12 +139,12 @@ def _get_image_build_workflow_manifest(
                             {
                                 "name": "userdir-pvc",
                                 "mountPath": "/build-context",
-                                "subPath": get_userdir_relpath(build_context_path)
-
+                                "subPath": get_userdir_relpath(build_context_path),
                             },
                             {
                                 "name": "kaniko-cache-pvc",
                                 "mountPath": "/cache",
+                                "readOnly": True,
                             },
                             {
                                 "name": "tls-secret",
@@ -180,8 +180,8 @@ def _get_image_build_workflow_manifest(
                 {
                     "name": "kaniko-cache-pvc",
                     "persistentVolumeClaim": {
-                        "claimName" : "kaniko-cache-pvc",
-                    }
+                        "claimName": "kaniko-cache-pvc",
+                    },
                 },
                 {
                     "name": "tls-secret",
