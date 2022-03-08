@@ -133,58 +133,6 @@ class Environment(BaseModel):
         return f"<Environment: {self.project_uuid}-{self.environment_uuid}>"
 
 
-class EnvironmentImage(BaseModel):
-    __tablename__ = "environment_images"
-
-    project_uuid = db.Column(
-        db.String(36),
-        nullable=False,
-        primary_key=True,
-        # To find all images of a project.
-        index=True,
-    )
-    environment_uuid = db.Column(
-        db.String(36),
-        nullable=False,
-        primary_key=True,
-    )
-    # A new environment image record with a given tag will be created
-    # everytime an environment build is started, the tag only
-    # increments.
-    tag = db.Column(
-        db.Integer,
-        primary_key=True,
-    )
-
-    build = db.relationship(
-        "EnvironmentImageBuild",
-        lazy="select",
-        passive_deletes=True,
-        cascade="all, delete",
-        uselist=False,
-    )
-
-    __table_args__ = (
-        # To find all images of the environment of a project.
-        Index("project_uuid", "environment_uuid"),
-        # To find the latest tag.
-        Index("project_uuid", "environment_uuid", tag.desc()),
-    )
-
-    def __repr__(self):
-        return (
-            "<EnvironmentImage: "
-            f"{self.project_uuid}-{self.environment_uuid}-{self.tag}>"
-        )
-
-
-ForeignKeyConstraint(
-    [EnvironmentImage.project_uuid, EnvironmentImage.environment_uuid],
-    [Environment.project_uuid, Environment.uuid],
-    ondelete="CASCADE",
-)
-
-
 class EnvironmentImageBuild(BaseModel):
     """State of environment image builds.
 
@@ -235,16 +183,60 @@ ForeignKeyConstraint(
 )
 
 
+class EnvironmentImage(BaseModel):
+    __tablename__ = "environment_images"
+
+    project_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+        # To find all images of a project.
+        index=True,
+    )
+    environment_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+    )
+    # A new environment image record with a given tag will be created
+    # everytime an environment build is started, the tag only
+    # increments.
+    tag = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
+
+    __table_args__ = (
+        # To find all images of the environment of a project.
+        Index("project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index("project_uuid", "environment_uuid", tag.desc()),
+    )
+
+    def __repr__(self):
+        return (
+            "<EnvironmentImage: "
+            f"{self.project_uuid}-{self.environment_uuid}-{self.tag}>"
+        )
+
+
 ForeignKeyConstraint(
-    [
-        EnvironmentImageBuild.project_uuid,
-        EnvironmentImageBuild.environment_uuid,
-        EnvironmentImageBuild.image_tag,
-    ],
+    [EnvironmentImage.project_uuid, EnvironmentImage.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
+
+
+ForeignKeyConstraint(
     [
         EnvironmentImage.project_uuid,
         EnvironmentImage.environment_uuid,
         EnvironmentImage.tag,
+    ],
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+        EnvironmentImageBuild.image_tag,
     ],
     ondelete="CASCADE",
 )
