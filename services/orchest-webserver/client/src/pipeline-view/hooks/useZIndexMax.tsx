@@ -3,7 +3,7 @@ import React from "react";
 export const useUpdateZIndex = (
   shouldUpdate: boolean,
   zIndexMax: React.MutableRefObject<number | "unset">,
-  amount = 0
+  amount = 0 // in case that you need to lift the element more than 1
 ) => {
   const [zIndex, setZIndex] = React.useState<"unset" | number>("unset");
   React.useEffect(() => {

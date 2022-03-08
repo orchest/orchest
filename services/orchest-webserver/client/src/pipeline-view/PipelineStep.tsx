@@ -164,17 +164,15 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
   const dragCount = React.useRef(0);
 
+  const isOnDragging = dragCount.current === DRAG_CLICK_SENSITIVITY;
+
   const shouldMoveToTop =
-    dragCount.current === DRAG_CLICK_SENSITIVITY ||
+    isOnDragging ||
     isMouseDown.current ||
     movedToTop ||
     (!isSelectorActive && (selected || cursorControlledStep === uuid));
 
-  const zIndex = useUpdateZIndex(
-    shouldMoveToTop,
-    zIndexMax,
-    interactiveConnections.length
-  );
+  const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax);
 
   const resetDraggingVariables = React.useCallback(() => {
     if (hasValue(cursorControlledStep)) {
@@ -212,8 +210,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     // this condition means user is just done dragging
     // we cannot clean up dragging variables here
     // skip resetDraggingVariables and let onClick take over (onClick is called right after onMouseUp)
-    if (isMouseDown.current && dragCount.current === DRAG_CLICK_SENSITIVITY)
-      return;
+    if (isMouseDown.current && isOnDragging) return;
 
     // this happens if user started dragging on the edge (i.e. continue dragging without actually hovering on the step)
     // and release their cursor on non-canvas elements (e.g. other steps, connections)
@@ -249,7 +246,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       // even user is actually dragging, React still sees it as a click
       // maybe because cursor remains on the same position over the DOM
       // we can intercept this "click" event and handle it as a "done-dragging" case
-      if (dragCount.current === DRAG_CLICK_SENSITIVITY) {
+      if (isOnDragging) {
         finishDragging();
         return;
       }
