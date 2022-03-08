@@ -369,6 +369,11 @@ def _build_image(
         complete_logs_file_object.write(msg)
         complete_logs_file_object.flush()
         raise errors.ImageBuildFailedError()
+    else:
+        msg = "Done!"
+        user_logs_file_object.write(msg)
+        complete_logs_file_object.write(msg)
+        complete_logs_file_object.flush()
 
 
 def build_image(
