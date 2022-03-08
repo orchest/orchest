@@ -785,7 +785,6 @@ export const PipelineEditor: React.FC = () => {
                 isStartNodeOfNewConnection={
                   newConnection.current?.startNodeUUID === step.uuid
                 }
-                // selectedSteps={eventVars.selectedSteps}
                 interactiveConnections={interactiveConnections}
                 onDoubleClick={onDoubleClickStep}
                 getPosition={getPosition}
@@ -812,7 +811,6 @@ export const PipelineEditor: React.FC = () => {
                   <div className={"step-label"}>
                     {step.title}
                     <span className="filename">{step.file_path}</span>
-                    <span className="filename">{step.uuid}</span>
                   </div>
                 </div>
                 <ConnectionDot

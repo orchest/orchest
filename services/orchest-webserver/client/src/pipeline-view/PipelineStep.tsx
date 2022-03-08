@@ -291,11 +291,11 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     [resetDraggingVariables, savePositions, selected]
   );
 
-  const isBeingDragged = React.useCallback(() => {
-    if (!isMouseDown.current) return false;
+  const detectDraggingBehavior = React.useCallback(() => {
+    if (!isMouseDown.current) return;
     if (dragCount.current < DRAG_CLICK_SENSITIVITY) {
       dragCount.current += 1;
-      return false;
+      return;
     }
 
     if (!cursorControlledStep) {
@@ -304,8 +304,6 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         payload: uuid,
       });
     }
-
-    return true;
   }, [cursorControlledStep, dispatch, uuid]);
 
   const onMouseMove = React.useCallback(() => {
@@ -314,14 +312,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       return;
     }
 
-    const shouldFollowCursorControlledStep =
+    if (!hasValue(cursorControlledStep)) detectDraggingBehavior();
+
+    const shouldMoveWithCursor =
       selected &&
       !isSelectorActive &&
       hasValue(cursorControlledStep) &&
       selectedSteps.includes(cursorControlledStep);
-
-    const shouldMoveWithCursor =
-      isBeingDragged() || shouldFollowCursorControlledStep;
 
     if (shouldMoveWithCursor) {
       setMetadata((current) => {
@@ -344,7 +341,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     disabledDragging,
     selectedSteps,
     metadataPositions,
-    isBeingDragged,
+    detectDraggingBehavior,
   ]);
 
   // use mouseTracker to get mouse movements
