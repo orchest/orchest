@@ -1,8 +1,10 @@
+from flask import abort
 from flask.globals import current_app
 from flask_restx import Namespace, Resource
+from sqlalchemy import desc
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import models
+from app import models, schema
 from app.apis.namespace_environment_image_builds import (
     AbortEnvironmentImageBuild,
     DeleteProjectBuilds,
@@ -14,6 +16,27 @@ from app.utils import register_schema
 
 api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
+
+
+@api.route("/<string:project_uuid>/<string:environment_uuid>/latest")
+@api.param("project_uuid", "uuid of the project")
+@api.param("environment_uuid", "uuid of the environment")
+class LatestEnvironmentImage(Resource):
+    @api.doc("get_latest_environment_image")
+    @api.marshal_with(schema.environment_image, code=200)
+    def get(self, project_uuid, environment_uuid):
+        """Fetches the latest built image for an environment."""
+        env_image = (
+            models.EnvironmentImage.query.filter_by(
+                project_uuid=project_uuid,
+                environment_uuid=environment_uuid,
+            )
+            .order_by(desc(models.EnvironmentImage.tag))
+            .first()
+        )
+        if env_image is None:
+            abort(404, "No image for for this environment.")
+        return env_image
 
 
 @api.route(

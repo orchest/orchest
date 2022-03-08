@@ -657,6 +657,17 @@ environment_image_builds_requests_result = Model(
     },
 )
 
+environment_image = Model(
+    "EnvironmentImage",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of environment"
+        ),
+        "tag": fields.String(required=True, description="Tag of the image"),
+    },
+)
+
 
 jupyter_image_build = Model(
     "JupyterEnvironmentBuild",
