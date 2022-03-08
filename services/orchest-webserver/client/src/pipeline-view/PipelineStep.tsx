@@ -183,6 +183,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     forceUpdate();
   }, [dragCount, forceUpdate, dispatch, cursorControlledStep]);
 
+  const finishDragging = React.useCallback(() => {
+    savePositions();
+    resetDraggingVariables();
+    document.body.removeEventListener("mouseup", finishDragging);
+  }, [resetDraggingVariables, savePositions]);
+
   // handles all mouse up cases except "just finished dragging"
   // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
   // so this onMouseUp on the DOM won't work
@@ -201,16 +207,16 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     // this condition means user is just done dragging
     // we cannot clean up dragging variables here
     // skip resetDraggingVariables and let onClick take over (onClick is called right after onMouseUp)
-    if (dragCount.current === DRAG_CLICK_SENSITIVITY) return;
+    if (isMouseDown.current && dragCount.current === DRAG_CLICK_SENSITIVITY)
+      return;
+
+    // this happens if user started dragging on the edge (i.e. continue dragging without actually hovering on the step)
+    // and release their cursor on non-canvas elements (e.g. other steps, connections)
+    // dragging should be finished here, because onClick will not be fired (user didn't mouse down in the first place)
+    if (!isMouseDown.current) finishDragging();
 
     resetDraggingVariables();
   };
-
-  const finishDragging = React.useCallback(() => {
-    savePositions();
-    resetDraggingVariables();
-    document.body.removeEventListener("mouseup", finishDragging);
-  }, [resetDraggingVariables, savePositions]);
 
   React.useEffect(() => {
     // because user might accidentally start dragging while their cursor is not over this DOM element
