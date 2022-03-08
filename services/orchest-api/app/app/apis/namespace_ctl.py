@@ -40,12 +40,25 @@ class StartUpdate(Resource):
         return data, 201
 
 
+@api.route("/restart")
+class Restart(Resource):
+    @api.doc("orchest_api_restart")
+    def post(self):
+        update_pod_manifest = _get_restart_pod_manifest()
+        k8s_core_api.create_namespaced_pod(
+            _config.ORCHEST_NAMESPACE, update_pod_manifest
+        )
+
+        return {}, 201
+
+
 def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
     # K8S_TODO: enable once we have versioned images. The update-sidecar
     # should use the current version of the cluster given that's the
     # version of the update-pod that is started and of the client that
     # is getting the logs.
-    # current_version = k8s_core_api.read_namespace("orchest").metadata.labels.get(
+    # current_version = k8s_core_api.read_namespace("orchest")
+    # .metadata.labels.get(
     #     "version"
     # )
     current_version = "latest"
@@ -87,23 +100,18 @@ def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
     return manifest
 
 
-def _get_update_pod_manifest() -> dict:
-    # The update pod is of the same version of the cluster, it will stop
-    # the cluster then spawn an hidden-update pod which will update to
-    # the desired version.
-    # K8S_TODO: enable once we have versioned images.
-    # current_version = k8s_core_api.read_namespace("orchest").metadata.labels.get(
-    #     "version"
-    # )
-    current_version = "latest"
+def _get_orchest_ctl_pod_manifest(command_label: str) -> dict:
     with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
         manifest = yaml.safe_load(f)
 
-    manifest["metadata"].pop("generateName", None)
-    manifest["metadata"]["name"] = f"orchest-ctl-{uuid.uuid4()}"
-    labels = manifest["metadata"]["labels"]
-    labels["version"] = current_version
-    labels["command"] = "update"
+    # K8S_TODO: enable once we have versioned images.
+    # current_version = k8s_core_api.read_namespace("orchest")
+    # .metadata.labels.get(
+    #     "version"
+    # )
+    current_version = "latest"
+    manifest["metadata"]["labels"]["version"] = current_version
+    manifest["metadata"]["labels"]["command"] = command_label
 
     containers = manifest["spec"]["containers"]
     orchest_ctl_container = containers[0]
@@ -112,11 +120,39 @@ def _get_update_pod_manifest() -> dict:
         if env_var["name"] == "ORCHEST_VERSION":
             env_var["value"] = current_version
             break
+
+    # This is to know the name in advance.
+    manifest["metadata"].pop("generateName", None)
+    manifest["metadata"]["name"] = f"orchest-ctl-{uuid.uuid4()}"
+    return manifest
+
+
+def _get_update_pod_manifest() -> dict:
+    # The update pod is of the same version of the cluster, it will stop
+    # the cluster then spawn an hidden-update pod which will update to
+    # the desired version.
+    manifest = _get_orchest_ctl_pod_manifest("update")
+
+    containers = manifest["spec"]["containers"]
+    orchest_ctl_container = containers[0]
+
     orchest_ctl_container["command"] = ["/bin/bash", "-c"]
     # Make sure the sidecar is online before updating.
     orchest_ctl_container["args"] = [
         "while true; do nc -zvw1 update-sidecar 80 > /dev/null 2>&1 && orchest update "
         "&& break; sleep 1; done"
     ]
+
+    return manifest
+
+
+def _get_restart_pod_manifest() -> dict:
+    manifest = _get_orchest_ctl_pod_manifest("restart")
+
+    containers = manifest["spec"]["containers"]
+    orchest_ctl_container = containers[0]
+    orchest_ctl_container["command"] = ["/bin/bash", "-c"]
+    # Make sure the sidecar is online before updating.
+    orchest_ctl_container["args"] = ["orchest restart"]
 
     return manifest

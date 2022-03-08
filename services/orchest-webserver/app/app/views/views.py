@@ -183,6 +183,13 @@ def register_views(app, db):
             }
         )
 
+    @app.route("/async/restart", methods=["POST"])
+    def restart():
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl' "/restart"
+        )
+        return resp.content, resp.status_code, resp.headers.items()
+
     @app.route("/async/start-update", methods=["POST"])
     def start_update():
 
@@ -203,11 +210,6 @@ def register_views(app, db):
             )
         )
 
-        return ""
-
-    @app.route("/async/restart", methods=["POST"])
-    def restart_server():
-        # K8S_TODO: implement restart.
         return ""
 
     @app.route("/async/version", methods=["GET"])
