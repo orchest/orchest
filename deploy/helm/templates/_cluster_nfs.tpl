@@ -22,11 +22,22 @@ Get the name of the NFS Server.
 {{- end -}}
 
 {{/*
-Get the name of the NFS pvc storage class.
+Get the name of the NFS storage class.
 */}}
 {{- define "library.cluster.nfs.storageClass.name" -}}
   {{- if .Values.nfs.storageClass.name -}}
     {{ .Values.nfs.storageClass.name | trunc 63 | trimSuffix "-" }}
+  {{- else -}}
+    {{ "rook-nfs-share" }}
+  {{- end }}
+{{- end -}}
+
+{{/*
+Get the name of the NFS pvc storage class.
+*/}}
+{{- define "library.cluster.nfs.claim.storageClassName" -}}
+  {{- if .Values.nfs.claim.storageClassName -}}
+    {{ .Values.nfs.claim.storageClassName | trunc 63 | trimSuffix "-" }}
   {{- else -}}
     {{ "standard" }}
   {{- end }}

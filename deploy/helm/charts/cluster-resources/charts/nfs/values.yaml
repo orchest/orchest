@@ -5,9 +5,10 @@ rbacEnable: true
 nfs:
   name: rook-nfs
   storageClass:
-    name: standard
+    name: rook-nfs-share
     reclaimPolicy: Delete
-    mountOptions: []
+    mountOptions: []  
   claim:
+    storageClassName: standard
     name: rook-nfs-claim
     storage: 20Gi

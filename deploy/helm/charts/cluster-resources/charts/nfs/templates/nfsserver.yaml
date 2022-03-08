@@ -6,7 +6,7 @@ metadata:
 spec:
   replicas: 1
   exports:
-  - name: {{ include "library.cluster.nfs.name" . }}-share
+  - name: {{ include "library.cluster.nfs.storageClass.name" . }}
     server:
       accessMode: ReadWrite
       squash: "none"

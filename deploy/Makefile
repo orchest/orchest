@@ -26,23 +26,29 @@ CEPH_RESOURCES_TARGET := ${if ${ENABLE_ROOK_CEPH},ceph-resources,}
 
 # Orchest will install rook/nfs for managing on promise nfs server, if it is desired,
 # define ENABLE_ROOK_NFS env variable and set it to something (preferably TRUE)
-ROOK_NFS_TARGET := ${if ${ROOK_NFS_TARGET},rook-nfs,}
+ROOK_NFS_TARGET := ${if ${ENABLE_ROOK_NFS},rook-nfs,}
 
 # if rook-nfs is enable, we also enable nfs-resources target
-NFS_RESOURCES_TARGET := ${if ${ENABLE_ROOK_NFS},nfs-resources,}
+NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
 
 ORCHEST_PVC_BACKEND_TARGET := ${if ${NFS_RESOURCES_TARGET},${NFS_RESOURCES_TARGET},${CEPH_RESOURCES_TARGET}}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
-
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
 REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
 
 # Name of default file-system and block storage classes
-FILESYSTEM_STORAGE_CLASS := ${if ${CEPH_TARGET},ceph-filesystem,standard}
-BLOCK_STORAGE_CLASS := ${if ${CEPH_TARGET},ceph-block,standard}
+FILESYSTEM_STORAGE_CLASS := standard
+BLOCK_STORAGE_CLASS := standard
+
+ifeq (${ROOK_CEPH_TARGET},rook-ceph)
+  FILESYSTEM_STORAGE_CLASS := ceph-filesystem
+  BLOCK_STORAGE_CLASS := ceph-block
+else ifeq (${ROOK_NFS_TARGET},rook-nfs)
+  FILESYSTEM_STORAGE_CLASS := rook-nfs-storage-class
+endif
 
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
@@ -103,15 +109,19 @@ ROOK_CEPH_DEPLOY_CONFIG := rook-ceph \
 ROOK_NFS_IMAGE_TAGE := ${if ${ROOK_NFS_IMAGE_TAGE}, ${ROOK_NFS_IMAGE_TAGE},v1.7.3}
 ROOK_NFS_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_NFS_IMAGE_TAGE}
 ROOK_NFS_DEPLOY_CONFIG := rook-nfs \
-	${SHARED_DEPLOY_CONFIG} ${ROOK_NFS_IMAGE_TAG_CONFIG} --namespace ${ROOK_NFS_NAMESPACE} thirdparty/rook/rook-nfs
+						  --namespace ${ROOK_NFS_NAMESPACE} \
+						  ${SHARED_DEPLOY_CONFIG} \
+						  ${ROOK_NFS_IMAGE_TAG_CONFIG} thirdparty/rook/rook-nfs
 
 # nfs resources deplyment configs
 NFS_RSC_ENABLE_CONFIG := --set cluster-resources.nfs.enabled=true
-CLUSTER_RSC_NFS_DEPLOY_CONFIG := nfs-resources \
-								--namespace ${ROOK_NFS_NAMESPACE} \
-								${SHARED_DEPLOY_CONFIG}	\
-								${CLUSTER_RSC_ENABLE_CONFIG} \
-								${NFS_RSC_ENABLE_CONFIG} helm
+NFS_RSC_STORAGE_CLASS_NAME := --set cluster-resources.nfs.nfs.storageClass.name=${FILESYSTEM_STORAGE_CLASS}
+NFS_RSC_DEPLOY_CONFIG := nfs-resources \
+						--namespace ${ROOK_NFS_NAMESPACE} \
+						${SHARED_DEPLOY_CONFIG}	\
+						${NFS_RSC_STORAGE_CLASS_NAME} \
+						${CLUSTER_RSC_ENABLE_CONFIG} \
+						${NFS_RSC_ENABLE_CONFIG} helm
 
 # orchest Api deployment configs
 ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
@@ -260,15 +270,15 @@ nfs-resources: ./bin/nfs-resources
 
 .SECONDARY: ./bin/nfs-resources
 ./bin/nfs-resources: | create-bin rook-nfs
-	helm install ${CLUSTER_RSC_NFS_DEPLOY_CONFIG}
+	helm install ${NFS_RSC_DEPLOY_CONFIG}
 	touch $@	
 
 .PHONY: orchest-resources
 orchest-resources: ./bin/orchest-resources
 
 .SECONDARY: ./bin/orchest-resources
-./bin/orchest-resources: | create-bin
-	helm install ${ORCHEST_PVC_BACKEND_TARGET}
+./bin/orchest-resources: | create-bin ${ORCHEST_PVC_BACKEND_TARGET}
+	helm install ${ORCHEST_RSC_DEPLOY_CONFIG}
 	touch $@
 
 .PHONY: create-bin

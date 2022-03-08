@@ -9,4 +9,4 @@ spec:
   resources:
     requests:
       storage: {{ .Values.nfs.claim.storage }}
-  storageClassName: {{ include "library.cluster.nfs.storageClass.name" . }}
+  storageClassName: {{ include "library.cluster.nfs.claim.storageClassName" . }}
