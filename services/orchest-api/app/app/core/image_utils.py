@@ -102,8 +102,10 @@ def _get_image_build_workflow_manifest(
                         "args": [
                             f"--dockerfile={dockerfile_path}",
                             "--context=dir:///build-context",
-                            f"--destination={_config.REGISTRY_FQDN}/{image_name}:"
-                            f"{image_tag}",
+                            (
+                                f"--destination={_config.REGISTRY_FQDN}/{image_name}:"
+                                f"{image_tag}"
+                            ),
                             "--cleanup",
                             "--log-format=json",
                             "--reproducible",
@@ -419,10 +421,6 @@ def build_image(
             return "FAILURE"
 
         return "SUCCESS"
-
-
-def is_image_in_use(img_id: str) -> bool:
-    return True
 
 
 def delete_base_images_cache() -> None:

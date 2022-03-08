@@ -2,7 +2,7 @@ from flask import Blueprint
 from flask_restx import Api
 
 from app.apis.namespace_ctl import api as ns_ctl
-from app.apis.namespace_environment_image_builds import api as ns_env_builds
+from app.apis.namespace_environment_image_builds import api as ns_env_image_builds
 from app.apis.namespace_environment_images import api as ns_env_images
 from app.apis.namespace_environments import api as ns_envs
 from app.apis.namespace_info import api as ns_info
@@ -25,7 +25,7 @@ api = Api(
 )
 
 api.add_namespace(ns_ctl)
-api.add_namespace(ns_env_builds)
+api.add_namespace(ns_env_image_builds)
 api.add_namespace(ns_env_images)
 api.add_namespace(ns_envs)
 api.add_namespace(ns_info)

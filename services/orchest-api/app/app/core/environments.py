@@ -47,7 +47,7 @@ def _get_env_uuids_to_image_mappings(
         if env_uuid == "":
             raise self_errors.PipelineDefinitionNotValid("Undefined environment.")
 
-        # Note: here we are assuming that the database olds the truth,
+        # Note: here we are assuming that the database holds the truth,
         # and that if the record is in the database then the image is in
         # the registry.
         env_image = (
@@ -73,12 +73,9 @@ def _get_env_uuids_to_image_mappings(
 
 def _lock_environments(project_uuid: str, environment_uuids: Set[str]):
     for env_uuid in environment_uuids:
-        models.EnvironmentImage()
-        (
-            models.Environment.query.with_for_update()
-            .filter_by(project_uuid=project_uuid, uuid=env_uuid)
-            .one()
-        )
+        models.Environment.query.with_for_update().filter_by(
+            project_uuid=project_uuid, uuid=env_uuid
+        ).one()
 
 
 def lock_environment_images_for_run(

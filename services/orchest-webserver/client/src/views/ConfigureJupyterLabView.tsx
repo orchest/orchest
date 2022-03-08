@@ -259,7 +259,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               buildsKey="jupyter_image_builds"
               socketIONamespace={
                 appContext.state?.config
-                  .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
+                  .ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
               onUpdateBuild={setJupyterEnvironmentBuild}

@@ -26,8 +26,8 @@ class EnvironmentList(Resource):
     def get(self):
         """Get all environments."""
 
-        projects = models.Environment.query.all()
-        return {"environments": [proj.__dict__ for proj in projects]}, 200
+        environments = models.Environment.query.all()
+        return {"environments": [env.__dict__ for env in environments]}, 200
 
 
 @api.route("/<string:project_uuid>")
@@ -38,8 +38,10 @@ class ProjectEnvironmentList(Resource):
     def get(self, project_uuid):
         """Get all environments of a project."""
 
-        projects = models.Environment.query.filter_by(project_uuid=project_uuid).all()
-        return {"environments": [proj.__dict__ for proj in projects]}, 200
+        environments = models.Environment.query.filter_by(
+            project_uuid=project_uuid
+        ).all()
+        return {"environments": [env.__dict__ for env in environments]}, 200
 
     @api.doc("create_project_environment")
     @api.expect(schema.environment_post)

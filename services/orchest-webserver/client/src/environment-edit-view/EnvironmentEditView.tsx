@@ -470,7 +470,7 @@ const EnvironmentEditView: React.FC = () => {
                     buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment?.uuid}`}
                     buildsKey="environment_image_builds"
                     socketIONamespace={
-                      config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE
+                      config.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE
                     }
                     streamIdentity={`${projectUuid}-${environment?.uuid}`}
                     onUpdateBuild={setEnvironmentImageBuild}

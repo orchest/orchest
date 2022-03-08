@@ -184,7 +184,7 @@ def build_jupyter_image_task(task_uuid):
                 ),
                 identity="jupyter",
                 server=_config.ORCHEST_SOCKETIO_SERVER_ADDRESS,
-                namespace=_config.ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE,
+                namespace=_config.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE,
                 # note: using task.is_aborted() could be an option but
                 # it was giving some issues related to
                 # multithreading/processing, moreover, also just passing
