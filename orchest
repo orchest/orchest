@@ -55,13 +55,22 @@ image="orchest/orchest-ctl"
 
 set -e
 
+# This is needed because k8s labels follow this regex:
+# (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?').
+commands=("install" "start" "stop" "restart" "update" "status" "version")
+label="unrecognized"
+if [[ " ${commands[*]} " =~ " $1 " ]]; then
+    label=$1
+elif [ "$1"  == "--help" ]; then
+    label="help"
+fi
 # It's important that the "command" label is set right at creation time,
 # which allows to detect conflicting concurrent commands without race
 # conditions. Refer to config.STATUS_CHANGING_OPERATIONS if you plan
 # changes to this label. TODO: passing an argument containing @ will
 # break this.
 pod=$(sed -e "s@%IMAGE%@$image@g" -e "s@%VERSION%@$repo_version@g" \
--e "s@%COMMAND%@$1@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
+-e "s@%COMMAND%@$label@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
 minikube kubectl -- create -n orchest -o name -f -)
 
 # Make sure to cleanup the pod on exit.
