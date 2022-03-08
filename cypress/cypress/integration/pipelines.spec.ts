@@ -230,6 +230,9 @@ describe("pipelines", () => {
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
+        cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).should(
+          "exist"
+        );
         cy.findByTestId(TEST_ID.STEP_VIEW_IN_JUPYTERLAB).pipe(piped_click);
         waitForJupyterlab();
       });

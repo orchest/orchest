@@ -50,6 +50,7 @@ describe("interactive runs", () => {
       cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
         .scrollIntoView()
         .click({ force: true });
+      cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).should("exist");
       cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
         "not.exist"
       );
@@ -140,6 +141,9 @@ describe("interactive runs", () => {
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
+        cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).should(
+          "exist"
+        );
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );
@@ -197,6 +201,9 @@ describe("interactive runs", () => {
         cy.get(`[data-test-title=${SAMPLE_STEP_NAMES.ST1}]`)
           .scrollIntoView()
           .click({ force: true });
+        cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).should(
+          "exist"
+        );
         cy.findByTestId(TEST_ID.INTERACTIVE_RUN_RUN_INCOMING_STEPS).should(
           "not.exist"
         );

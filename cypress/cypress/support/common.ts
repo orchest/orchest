@@ -307,11 +307,13 @@ export function getJobProjectDirPath(
   return r;
 }
 
-export function setStepParameters(stepTitle, params) {
+export function setStepParameters(stepTitle: string, params) {
   cy.intercept("POST", /.*/).as("allPosts");
   cy.get(`[data-test-title=${stepTitle}]`)
     .scrollIntoView()
     .click({ force: true });
+
+  cy.findByTestId(TEST_ID.FILE_PICKER_FILE_PATH_TEXTFIELD).should("exist");
 
   // Delete the current content.
   cy.get(".CodeMirror-line")
