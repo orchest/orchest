@@ -18,7 +18,6 @@ const PipelineConnectionComponent: React.FC<{
   getPosition: (element: HTMLElement | undefined) => Position | null;
   eventVarsDispatch: React.Dispatch<EventVarsAction>;
   selected: boolean;
-  movedToTop: boolean;
   zIndexMax: React.MutableRefObject<number>;
   shouldUpdate: [boolean, boolean];
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
@@ -30,7 +29,6 @@ const PipelineConnectionComponent: React.FC<{
   getPosition,
   eventVarsDispatch,
   selected,
-  movedToTop,
   zIndexMax,
   startNodeUUID,
   endNodeUUID,
@@ -107,17 +105,8 @@ const PipelineConnectionComponent: React.FC<{
     if (shouldRedraw) redraw();
   }, [shouldRedraw]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // movedToTop: when associated step is selected
-  // shouldRedraw && isNew: user is creating
-  const shouldMoveToTop =
-    isNew ||
-    movedToTop ||
-    selected ||
-    [startNodeUUID, endNodeUUID].includes(cursorControlledStep);
-
-  // -1 is to ensure connection lines are beneath the step that is on focus (i.e. the top step amongst all).
-  // selected means that only THIS connection is selected, we just need to make it on top of everything
-  const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax, selected ? 0 : -1);
+  // only moved to top if user is creating a new connection
+  const zIndex = useUpdateZIndex(isNew, zIndexMax);
 
   const onClickFun = React.useCallback(
     (e) => {

@@ -138,7 +138,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     dispatch,
     mouseTracker,
     newConnection,
-    eventVars: { cursorControlledStep, selectedSteps, stepSelector },
+    eventVars: {
+      cursorControlledStep,
+      selectedSteps,
+      stepSelector,
+      selectedConnection,
+    },
   } = usePipelineEditorContext();
 
   const {
@@ -433,14 +438,17 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
           let endNodePosition = getPosition(endNode);
 
           const key = `${startNodeUUID}-${endNodeUUID}-interactive`;
+          const selected =
+            selectedConnection?.startNodeUUID === startNodeUUID &&
+            selectedConnection?.endNodeUUID === endNodeUUID;
 
           return (
             <InteractiveConnection
               key={key}
-              zIndexMax={zIndexMax}
               startNodeUUID={startNodeUUID}
               endNodeUUID={endNodeUUID}
               getPosition={getPosition}
+              selected={selected}
               stepDomRefs={stepDomRefs}
               startNodeX={startNodePosition.x}
               startNodeY={startNodePosition.y}

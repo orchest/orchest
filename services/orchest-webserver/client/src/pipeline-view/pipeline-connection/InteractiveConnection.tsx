@@ -1,29 +1,28 @@
 import { Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
-import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
 import { ConnectionLine } from "./ConnectionLine";
 
-export const InteractiveConnection: React.FC<{
+export const InteractiveConnection = ({
+  getPosition,
+  startNodeUUID,
+  endNodeUUID,
+  selected,
+  shouldUpdate,
+  stepDomRefs,
+  ...props
+}: {
   startNodeX: number;
   startNodeY: number;
   endNodeX: number | undefined;
   endNodeY: number | undefined;
-  zIndexMax: React.MutableRefObject<number>;
+  selected: boolean;
   startNodeUUID: string;
   endNodeUUID?: string;
   getPosition: (element: HTMLElement | undefined) => Position | null;
   shouldUpdate: [boolean, boolean];
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
-}> = ({
-  getPosition,
-  startNodeUUID,
-  endNodeUUID,
-  shouldUpdate,
-  zIndexMax,
-  stepDomRefs,
-  ...props
 }) => {
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
@@ -74,14 +73,14 @@ export const InteractiveConnection: React.FC<{
   const shouldRedrawSvg =
     !shouldTransform && (shouldUpdateStart || shouldUpdateEnd);
 
-  const zIndex = useUpdateZIndex(true, zIndexMax);
-
   React.useEffect(() => {
     if (shouldTransform) transform();
     if (shouldRedrawSvg) redraw();
   }, [shouldTransform, shouldRedrawSvg, redraw, transform]);
 
   const { className, width, height, drawn } = svgProperties;
+
+  const zIndex = -1;
 
   return (
     <div
@@ -91,7 +90,12 @@ export const InteractiveConnection: React.FC<{
       ref={containerRef}
       style={{ zIndex, ...transformProperty }}
     >
-      <ConnectionLine width={width} height={height} d={drawn} />
+      <ConnectionLine
+        width={width}
+        height={height}
+        d={drawn}
+        selected={selected}
+      />
     </div>
   );
 };

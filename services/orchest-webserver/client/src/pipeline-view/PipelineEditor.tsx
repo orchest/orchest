@@ -635,17 +635,6 @@ export const PipelineEditor: React.FC = () => {
     if (hasValue(eventVars.timestamp) && shouldSave) saveSteps(eventVars.steps);
   }, [saveSteps, eventVars.timestamp, eventVars.steps, shouldSave]);
 
-  const getShouldConnectionMovedToTop = React.useCallback(
-    (connectionKey: string) => {
-      const selectedWhenSelectorIsOff =
-        !eventVars.stepSelector.active &&
-        eventVars.selectedSteps.some((step) => connectionKey.includes(step));
-
-      return selectedWhenSelectorIsOff;
-    },
-    [eventVars.stepSelector, eventVars.selectedSteps]
-  );
-
   const [connections, interactiveConnections] = React.useMemo(() => {
     const nonInteractive: Connection[] = [];
     const interactive: Connection[] = [];
@@ -737,17 +726,12 @@ export const PipelineEditor: React.FC = () => {
 
             const key = `${startNodeUUID}-${endNodeUUID}-${hash.current}`;
 
-            const movedToTop =
-              eventVars.selectedSteps.length > 0 &&
-              getShouldConnectionMovedToTop(key);
-
             return (
               <PipelineConnection
                 key={key}
                 shouldRedraw={flushPage}
                 isNew={isNew}
                 selected={isSelected}
-                movedToTop={movedToTop}
                 startNodeUUID={startNodeUUID}
                 endNodeUUID={endNodeUUID}
                 zIndexMax={zIndexMax}
@@ -826,6 +810,7 @@ export const PipelineEditor: React.FC = () => {
                   <div className={"step-label"}>
                     {step.title}
                     <span className="filename">{step.file_path}</span>
+                    <span className="filename">{step.uuid}</span>
                   </div>
                 </div>
                 <ConnectionDot
