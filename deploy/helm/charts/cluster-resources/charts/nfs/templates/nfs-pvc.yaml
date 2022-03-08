@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "library.cluster.nfs.claim.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.nfs.claim.storage }}
+  storageClassName: {{ include "library.cluster.nfs.storageClass.name" . }}

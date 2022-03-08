@@ -1,7 +1,9 @@
 NAMESPACE := ${if ${NAMESPACE},${NAMESPACE},orchest}
 KUBECONFIG := ${if ${KUBECONFIG},--kubeconfig ${KUBECONFIG},}
 
-ROOK_NAMESPACE := ${if ${ROOK_NAMESPACE},${ROOK_NAMESPACE},rook-ceph}
+ROOK_CEPH_NAMESPACE := ${if ${ROOK_CEPH_NAMESPACE},${ROOK_CEPH_NAMESPACE},rook-ceph}
+
+ROOK_NFS_NAMESPACE := ${if ${ROOK_NFS_NAMESPACE},${ROOK_NFS_NAMESPACE},rook-nfs}
 
 DEFAULT_TAG := ${if ${DEFAULT_TAG},${DEFAULT_TAG},latest}
 
@@ -15,12 +17,21 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
-# Orchest will install rook for managing ceph by default, if it is not desired,
-# define DISABLE_ROOK env variable and set it to something (preferably FALSE)
-ROOK_TARGET := ${if ${DISABLE_ROOK},,rook}
+# Orchest will install rook/rook (rook-ceph) for managing ceph by, if it is desired,
+# define ENABLE_ROOK_CEPH env variable and set it to something (preferably TRUE)
+ROOK_CEPH_TARGET := ${if ${ENABLE_ROOK_CEPH},rook-ceph,}
 
-# if rook is disabled, we also diable ceph-resources target
-CEPH_TARGET := ${if ${DISABLE_ROOK},,ceph-resources}
+# if rook-ceph is enable, we also enable ceph-resources target
+CEPH_RESOURCES_TARGET := ${if ${ENABLE_ROOK_CEPH},ceph-resources,}
+
+# Orchest will install rook/nfs for managing on promise nfs server, if it is desired,
+# define ENABLE_ROOK_NFS env variable and set it to something (preferably TRUE)
+ROOK_NFS_TARGET := ${if ${ROOK_NFS_TARGET},rook-nfs,}
+
+# if rook-nfs is enable, we also enable nfs-resources target
+NFS_RESOURCES_TARGET := ${if ${ENABLE_ROOK_NFS},nfs-resources,}
+
+ORCHEST_PVC_BACKEND_TARGET := ${if ${NFS_RESOURCES_TARGET},${NFS_RESOURCES_TARGET},${CEPH_RESOURCES_TARGET}}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
 
@@ -65,7 +76,7 @@ CEPH_USE_ALL_DEVICES_CONFIG := --set cluster-resources.ceph.cephClusterSpec.stor
 CEPH_FILESYSTEM_CLASS_NAME := --set cluster-resources.ceph.cephFileSystems.storageClass.name=${FILESYSTEM_STORAGE_CLASS}
 CEPH_BLOCK_CLASS_NAME := --set cluster-resources.ceph.cephBlockPools.storageClass.name=${BLOCK_STORAGE_CLASS}
 CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
-								--namespace ${ROOK_NAMESPACE} \
+								--namespace ${ROOK_CEPH_NAMESPACE} \
 								${SHARED_DEPLOY_CONFIG}	\
 								${CLUSTER_RSC_ENABLE_CONFIG} \
 								${CEPH_RSC_ENABLE_CONFIG} \
@@ -82,11 +93,25 @@ ORCHEST_RSC_DEPLOY_CONFIG := orchest-resources \
 							${ORCHEST_RSC_USERDIR_STORAGE} \
 							${ORCHEST_RSC_ENABLE_CONFIG} helm
 
-# rook deplyment configs
-ROOK_IMAGE_TAGE := ${if ${ROOK_IMAGE_TAGE}, ${ROOK_IMAGE_TAGE},v1.8.2}
-ROOK_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_IMAGE_TAGE}
-ROOK_DEPLOY_CONFIG := rook \
-	${SHARED_DEPLOY_CONFIG} ${ROOK_IMAGE_TAG_CONFIG} --namespace ${ROOK_NAMESPACE} thirdparty/rook/rook-ceph
+# rook-ceph deplyment configs
+ROOK_CEPH_IMAGE_TAGE := ${if ${ROOK_CEPH_IMAGE_TAGE}, ${ROOK_CEPH_IMAGE_TAGE},v1.8.2}
+ROOK_CEPH_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_IMAGE_TAGE}
+ROOK_CEPH_DEPLOY_CONFIG := rook-ceph \
+	${SHARED_DEPLOY_CONFIG} ${ROOK_CEPH_IMAGE_TAG_CONFIG} --namespace ${ROOK_CEPH_NAMESPACE} thirdparty/rook/rook-ceph
+
+# rook-nfs deplyment configs
+ROOK_NFS_IMAGE_TAGE := ${if ${ROOK_NFS_IMAGE_TAGE}, ${ROOK_NFS_IMAGE_TAGE},v1.7.3}
+ROOK_NFS_IMAGE_TAG_CONFIG := --set image.tag=${ROOK_NFS_IMAGE_TAGE}
+ROOK_NFS_DEPLOY_CONFIG := rook-nfs \
+	${SHARED_DEPLOY_CONFIG} ${ROOK_NFS_IMAGE_TAG_CONFIG} --namespace ${ROOK_NFS_NAMESPACE} thirdparty/rook/rook-nfs
+
+# nfs resources deplyment configs
+NFS_RSC_ENABLE_CONFIG := --set cluster-resources.nfs.enabled=true
+CLUSTER_RSC_NFS_DEPLOY_CONFIG := nfs-resources \
+								--namespace ${ROOK_NFS_NAMESPACE} \
+								${SHARED_DEPLOY_CONFIG}	\
+								${CLUSTER_RSC_ENABLE_CONFIG} \
+								${NFS_RSC_ENABLE_CONFIG} helm
 
 # orchest Api deployment configs
 ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
@@ -197,19 +222,28 @@ cert-manager : ./bin/cert-manager
 	# sleep 30
 	touch $@
 
-.PHONY: rook
-rook: ./bin/rook
+.PHONY: rook-ceph
+rook-ceph: ./bin/rook-ceph
 
-.SECONDARY: ./bin/rook
-./bin/rook: | create-bin
-	helm install ${ROOK_DEPLOY_CONFIG}
+.SECONDARY: ./bin/rook-ceph
+./bin/rook-ceph: | create-bin
+	helm install ${ROOK_CEPH_DEPLOY_CONFIG}
+	touch $@
+
+
+.PHONY: rook-nfs
+rook-nfs: ./bin/rook-nfs
+
+.SECONDARY: ./bin/rook-nfs
+./bin/rook-nfs: | create-bin
+	helm install ${ROOK_NFS_DEPLOY_CONFIG}
 	touch $@
 
 .PHONY: registry-resources
 registry-resources: ./bin/registry-resources
 
 .SECONDARY: ./bin/registry-resources
-./bin/registry-resources: | create-bin cert-manager ${CEPH_TARGET}
+./bin/registry-resources: | create-bin cert-manager ${CEPH_RESOURCES_TARGET}
 	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
 
@@ -217,16 +251,24 @@ registry-resources: ./bin/registry-resources
 ceph-resources: ./bin/ceph-resources
 
 .SECONDARY: ./bin/ceph-resources
-./bin/ceph-resources: | create-bin ${ROOK_TARGET}
+./bin/ceph-resources: | create-bin ${ROOK_CEPH_TARGET}
 	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
 	touch $@
+
+.PHONY: nfs-resources
+nfs-resources: ./bin/nfs-resources
+
+.SECONDARY: ./bin/nfs-resources
+./bin/nfs-resources: | create-bin rook-nfs
+	helm install ${CLUSTER_RSC_NFS_DEPLOY_CONFIG}
+	touch $@	
 
 .PHONY: orchest-resources
 orchest-resources: ./bin/orchest-resources
 
 .SECONDARY: ./bin/orchest-resources
 ./bin/orchest-resources: | create-bin
-	helm install ${ORCHEST_RSC_DEPLOY_CONFIG}
+	helm install ${ORCHEST_PVC_BACKEND_TARGET}
 	touch $@
 
 .PHONY: create-bin
@@ -237,7 +279,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ${CEPH_TARGET} orchest-resources
+./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} orchest-resources
 	touch $@
 
 

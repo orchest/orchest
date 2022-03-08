@@ -1,0 +1,14 @@
+apiVersion: nfs.rook.io/v1alpha1
+kind: NFSServer
+metadata:
+  name: {{ include "library.cluster.nfs.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  exports:
+  - name: {{ include "library.cluster.nfs.name" . }}-share
+    server:
+      accessMode: ReadWrite
+      squash: "none"
+    persistentVolumeClaim:
+      claimName: {{ include "library.cluster.nfs.claim.name" . }}

@@ -1,9 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
+metadata:
   name: rook-nfs-operator
   labels:
     operator: rook
-    storage-backend: ceph-nfs
+    storage-backend: nfs
+    app: rook-nfs-operator
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"    
     {{- include "library.rook-nfs.labels" . | nindent 4 }}
 spec:
   replicas: 1
@@ -13,15 +16,18 @@ spec:
   template:
     metadata:
       labels:
+        operator: rook
+        storage-backend: nfs
         app: rook-nfs-operator
-        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"    
+        {{- include "library.rook-nfs.labels" . | nindent 8 }}
 {{- if .Values.annotations }}
       annotations:
 {{ toYaml .Values.annotations | indent 8 }}
 {{- end }}
     spec:
 {{- if .Values.rbacEnable }}
-      serviceAccountName: rook-ceph-system
+      serviceAccountName: rook-nfs-operator
 {{- end }}    
       containers:
       - name: rook-nfs-operator

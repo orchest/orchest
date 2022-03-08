@@ -14,7 +14,11 @@ dependencies:
   version: "0.0.1"
   repository: "file://charts/ceph"
   condition:  ceph.enabled
+- name: nfs
+  version: "0.0.1"
+  repository: "file://charts/nfs"
+  condition:  nfs.enabled  
 - name: orchest
   version: "0.0.1"
-  repository: "file://charts/ceph"
+  repository: "file://charts/orchest"
   condition:  orchest.enabled  
