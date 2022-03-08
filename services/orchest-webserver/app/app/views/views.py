@@ -186,7 +186,7 @@ def register_views(app, db):
     @app.route("/async/restart", methods=["POST"])
     def restart():
         resp = requests.post(
-            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl' "/restart"
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl/restart'
         )
         return resp.content, resp.status_code, resp.headers.items()
 
