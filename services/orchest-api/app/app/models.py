@@ -141,7 +141,6 @@ class EnvironmentImageBuild(BaseModel):
     """
 
     __tablename__ = "environment_image_builds"
-    __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
     project_uuid = db.Column(
@@ -162,6 +161,12 @@ class EnvironmentImageBuild(BaseModel):
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
+
+    __table_args__ = (
+        Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index(None, "project_uuid", "environment_uuid", image_tag.desc()),
+    )
 
     def __repr__(self):
         return (
@@ -208,9 +213,9 @@ class EnvironmentImage(BaseModel):
 
     __table_args__ = (
         # To find all images of the environment of a project.
-        Index("project_uuid", "environment_uuid"),
+        Index(None, "project_uuid", "environment_uuid"),
         # To find the latest tag.
-        Index("project_uuid", "environment_uuid", tag.desc()),
+        Index(None, "project_uuid", "environment_uuid", tag.desc()),
     )
 
     def __repr__(self):

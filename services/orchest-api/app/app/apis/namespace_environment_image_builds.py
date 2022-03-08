@@ -142,6 +142,14 @@ class EnvironmentImageBuild(Resource):
                 model=models.EnvironmentImageBuild,
                 filter_by=filter_by,
             )
+            if status_update["status"] == "SUCCESS":
+                db.session.add(
+                    models.EnvironmentImage(
+                        project_uuid=project_uuid,
+                        environment_uuid=environment_uuid,
+                        tag=int(image_tag),
+                    )
+                )
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -282,26 +290,19 @@ class CreateEnvironmentImageBuild(TwoPhaseFunction):
             )
             .one()
         )
-        lastest_env_image = (
-            models.EnvironmentImage.query.filter_by(
+        latest_environment_img_build = (
+            models.EnvironmentImageBuild.query.filter_by(
                 project_uuid=build_request["project_uuid"],
                 environment_uuid=build_request["environment_uuid"],
             )
-            .order_by(desc(models.EnvironmentImage.tag))
+            .order_by(desc(models.EnvironmentImageBuild.image_tag))
             .first()
         )
-        if lastest_env_image is None:
+        if latest_environment_img_build is None:
             image_tag = 1
         else:
-            image_tag = lastest_env_image.tag + 1
+            image_tag = latest_environment_img_build.image_tag + 1
 
-        db.session.add(
-            models.EnvironmentImage(
-                project_uuid=build_request["project_uuid"],
-                environment_uuid=build_request["environment_uuid"],
-                tag=image_tag,
-            )
-        )
         environment_image_build = {
             "celery_task_uuid": task_id,
             "project_uuid": build_request["project_uuid"],

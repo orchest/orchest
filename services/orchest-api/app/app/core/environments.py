@@ -55,7 +55,6 @@ def _get_env_uuids_to_image_mappings(
                 project_uuid=project_uuid,
                 environment_uuid=env_uuid,
             )
-            .filter(models.EnvironmentImage.build.has(status="SUCCESS"))
             .order_by(desc(models.EnvironmentImage.tag))
             .first()
         )
