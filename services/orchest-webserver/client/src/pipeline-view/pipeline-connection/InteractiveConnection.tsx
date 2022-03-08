@@ -68,15 +68,11 @@ export const InteractiveConnection = ({
     );
   }, [endNodeX, endNodeY, startNodeX, startNodeY, transform]);
 
-  const shouldTransform = shouldUpdateStart && shouldUpdateEnd;
-
-  const shouldRedrawSvg =
-    !shouldTransform && (shouldUpdateStart || shouldUpdateEnd);
+  const shouldRedrawSvg = shouldUpdateStart || shouldUpdateEnd;
 
   React.useEffect(() => {
-    if (shouldTransform) transform();
     if (shouldRedrawSvg) redraw();
-  }, [shouldTransform, shouldRedrawSvg, redraw, transform]);
+  }, [shouldRedrawSvg, redraw]);
 
   const { className, width, height, drawn } = svgProperties;
 
