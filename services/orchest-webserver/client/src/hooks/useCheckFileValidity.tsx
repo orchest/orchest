@@ -5,8 +5,7 @@ import {
   hasValue,
   HEADER,
 } from "@orchest/lib-utils";
-import React from "react";
-import { useAsync } from "./useAsync";
+import useSWR from "swr";
 
 export const pathValidator = (value: string) => {
   if (!hasValue(value)) return false;
@@ -26,7 +25,7 @@ export const isValidFile = async (
   path: string
 ) => {
   // only check file existence if it passes rule based validation
-  if (!pathValidator(path)) return false;
+  if (!project_uuid || !pipeline_uuid || !pathValidator(path)) return false;
   const response = await fetcher(
     `/async/project-files/exists/${project_uuid}/${pipeline_uuid}`,
     {
@@ -40,14 +39,27 @@ export const isValidFile = async (
   return hasValue(response);
 };
 
+/**
+ * checks if a file exists with the given path, poll per 1000 ms
+ * @param project_uuid
+ * @param pipeline_uuid
+ * @param path
+ * @returns boolean
+ */
 export const useCheckFileValidity = (
   project_uuid: string,
   pipeline_uuid: string,
   path: string
 ) => {
-  const { run, data = false } = useAsync<boolean>();
-  React.useEffect(() => {
-    run(isValidFile(project_uuid, pipeline_uuid, path));
-  }, [path, pipeline_uuid, project_uuid, run]);
+  // this is no the actual URL (path is part of the request body, not a path arg),
+  // but we use this as a unique cache key for swr
+  const cacheKey = `/async/project-files/exists/${project_uuid}/${pipeline_uuid}/${path}`;
+
+  const { data = false } = useSWR(
+    project_uuid && pipeline_uuid && path ? cacheKey : null,
+    () => isValidFile(project_uuid, pipeline_uuid, path),
+    { refreshInterval: 1000 }
+  );
+
   return data;
 };
