@@ -4,6 +4,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useHasChanged } from "@/hooks/useHasChanged";
 import { useHotKeys } from "@/hooks/useHotKeys";
 import type { Connection, PipelineJson, Step, StepsDict } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { layoutPipeline } from "@/utils/pipeline-layout";
 import { resolve } from "@/utils/resolve";
 import { filterServices, validatePipeline } from "@/utils/webserver-utils";
@@ -36,7 +37,6 @@ import {
 import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { CreateNextStepButton } from "./CreateNextStepButton";
-import { useCanvasOffset } from "./hooks/useCanvasOffset";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
@@ -104,7 +104,8 @@ export const PipelineEditor: React.FC = () => {
   const centerPipelineOrigin = React.useRef<() => void>();
   const canvasFuncRef = React.useRef<CanvasFunctions>();
 
-  const canvasOffset = useCanvasOffset(pipelineCanvasRef);
+  // we need to calculate the canvas offset every time for re-alignment after zoom in/out
+  const canvasOffset = getOffset(pipelineCanvasRef.current);
 
   const getPosition = React.useMemo(() => {
     return getNodeCenter(canvasOffset, eventVars.scaleFactor);
