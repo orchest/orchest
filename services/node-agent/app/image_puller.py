@@ -64,8 +64,7 @@ class ImagePuller(object):
                 # Create a pull task, with image_name which will
                 # be consumed by image puller tasks.
                 await queue.put(image_name)
-
-                await asyncio.sleep(self.interval)
+            await asyncio.sleep(self.interval)
 
     async def pull_image(self, queue: asyncio.Queue):
         """Pulls the image.
@@ -155,14 +154,17 @@ class ImagePuller(object):
         return self._aclient
 
     async def run(self):
+        try:
+            self.logger.info("Starting image puller.")
+            queue = asyncio.Queue()
 
-        self.logger.info("Starting image puller.")
-
-        queue = asyncio.Queue()
-
-        get_images_future = asyncio.ensure_future(self.get_image_names(queue))
-        pullers = [
-            asyncio.create_task(self.pull_image(queue)) for _ in range(self.threadiness)
-        ]
-
-        await asyncio.gather(*pullers, get_images_future)
+            get_images_task = asyncio.create_task(self.get_image_names(queue))
+            pullers = [
+                asyncio.create_task(self.pull_image(queue))
+                for _ in range(self.threadiness)
+            ]
+            await asyncio.gather(*pullers, get_images_task)
+        finally:
+            if self._aclient is not None:
+                await self._aclient.close()
+                self._aclient = None
