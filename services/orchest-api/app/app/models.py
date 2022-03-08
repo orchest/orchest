@@ -226,6 +226,19 @@ ForeignKeyConstraint(
     [
         EnvironmentImageBuild.project_uuid,
         EnvironmentImageBuild.environment_uuid,
+    ],
+    [
+        Environment.project_uuid,
+        Environment.uuid,
+    ],
+    ondelete="CASCADE",
+)
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
         EnvironmentImageBuild.image_tag,
     ],
     [
