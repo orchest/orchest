@@ -107,6 +107,15 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 orchest: initialize
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
+# usefull for debugging, not recommended to use without DEBUG=true enabled
+.PHONY: node-agent
+node-agent:
+	helm install node-agent \
+	--namespace ${NAMESPACE} \
+	${SHARED_DEPLOY_CONFIG} \
+	${NODE_AGENT_ENABLE_CONFIG} helm
+
+
 .PHONY: jupyter-eg
 jupyter-eg: ./bin/jupyter-eg
 

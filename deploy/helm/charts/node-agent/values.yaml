@@ -1,3 +1,9 @@
 images:
   pullPolicy: IfNotPresent
   name: orchest/node-agent:latest 
+
+imagePuller:
+  images:
+  - orchest/jupyter-enterprise-gateway:latest
+  - orchest/jupyter-server:latest
+  - orchest/session-sidecar:latest
