@@ -314,11 +314,16 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
     if (!hasValue(cursorControlledStep)) detectDraggingBehavior();
 
-    const shouldMoveWithCursor =
+    // user is dragging this step
+    const isBeingDragged = cursorControlledStep === uuid;
+    // multiple steps selected, user dragged one of the selected steps (but not the current one)
+    const shouldFollowControlledStep =
       selected &&
       !isSelectorActive &&
       hasValue(cursorControlledStep) &&
       selectedSteps.includes(cursorControlledStep);
+
+    const shouldMoveWithCursor = isBeingDragged || shouldFollowControlledStep;
 
     if (shouldMoveWithCursor) {
       setMetadata((current) => {
