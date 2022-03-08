@@ -13,6 +13,8 @@ Options:
     Show help.
   --nodes, -n <num_nodes>
     Number of Nodes in created Kubernetes cluster.
+  --cpus, -c <num_cpus>
+    Number of cpus for each node of the cluster.    
   --size, -s <size>
     Size of volume to be added to each node to be used by ceph-osds in mb
 ---------------------------------------------------------------------------------------------------
@@ -24,6 +26,7 @@ EOT
 # -------------------------------------------------------------------------------------------------
 
 num_nodes=3
+num_cpus=3
 size=15000M
 
 while [[ $# -gt 0 ]]; do
@@ -35,6 +38,10 @@ while [[ $# -gt 0 ]]; do
     ;;
     -n|--nodes)
       num_nodes=$2
+      shift
+    ;;
+    -c|--cpus)
+      num_cpus=$2
       shift
     ;;
     -s|--size)
@@ -72,7 +79,7 @@ minikube-status() {
 
 # Starts minikube with kvm driver
 minikube-start() {
-  minikube start --driver=kvm -n $1
+  minikube start --driver=kvm -n $1 --cpus $2 --memory 6144
 }
 
 # Stops minikube
@@ -108,7 +115,7 @@ fi
 
 
 minikube-status
-minikube-start ${num_nodes}
+minikube-start ${num_nodes} ${num_cpus}
 create-and-attach-volumes ${size}
 minikube-stop
 minikube start
