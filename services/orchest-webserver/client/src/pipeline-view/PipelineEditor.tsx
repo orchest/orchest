@@ -109,7 +109,9 @@ export const PipelineEditor: React.FC = () => {
 
   const getPosition = React.useMemo(() => {
     return getNodeCenter(canvasOffset, eventVars.scaleFactor);
-  }, [canvasOffset, eventVars.scaleFactor]);
+    // we need to memoize getPosition to prevent potential re-rendering,
+    // but we also need real-time canvasOffset for calculation
+  }, [JSON.stringify(canvasOffset), eventVars.scaleFactor]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [isHoverEditor, setIsHoverEditor] = React.useState(false);
   const { setScope } = useHotKeys(

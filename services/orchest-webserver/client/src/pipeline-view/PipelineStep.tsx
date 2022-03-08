@@ -331,10 +331,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
           current.position[1] + y,
         ] as [number, number];
         metadataPositions.current[uuid] = updatedPosition;
-        return {
-          ...current,
-          position: updatedPosition,
-        };
+        return { ...current, position: updatedPosition };
       });
     }
   }, [

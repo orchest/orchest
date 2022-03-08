@@ -119,15 +119,6 @@ export const getScaleCorrectedPosition = ({
   };
 };
 
-export const getPosition = (
-  element: HTMLElement | undefined,
-  parentOffset: Offset,
-  scaleFactor: number
-) => {
-  if (!element) return null;
-  return getNodeCenter(parentOffset, scaleFactor)(element);
-};
-
 function dfsWithSets<
   T extends Record<
     string,
