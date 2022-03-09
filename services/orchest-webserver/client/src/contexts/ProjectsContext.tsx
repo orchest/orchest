@@ -7,7 +7,6 @@ export const ProjectsContext = React.createContext<IProjectsContext>(null);
 export const useProjectsContext = () => React.useContext(ProjectsContext);
 
 type Action =
-  | { type: "pipelineClear" }
   | {
       type: "pipelineSet";
       payload: Partial<
@@ -60,12 +59,6 @@ const reducer = (
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
-    case "pipelineClear":
-      return {
-        ...state,
-        pipeline_uuid: undefined,
-        pipelineName: undefined,
-      };
     case "pipelineSet":
       return { ...state, pipelineFetchHash: uuidv4(), ...action.payload };
     case "pipelineSetSaveStatus":

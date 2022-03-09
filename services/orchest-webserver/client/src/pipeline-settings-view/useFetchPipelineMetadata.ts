@@ -42,11 +42,13 @@ export const useFetchPipelineMetadata = ({
     runUuid,
   });
 
+  /**
+   * Update ProjectsContext
+   */
   const initialized = React.useRef(false);
   React.useEffect(() => {
     if (!initialized.current && pipelineJson) {
       initialized.current = true;
-      // initialize all local states
       dispatch({
         type: "pipelineSet",
         payload: {
