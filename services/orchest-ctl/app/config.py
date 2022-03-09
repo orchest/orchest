@@ -27,6 +27,7 @@ ORCHEST_OPERATION_TO_STATUS_MAPPING = {
 
 DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = set(
     [
+        "auth-server",
         "celery-worker",
         "docker-registry",
         "file-manager",
@@ -36,6 +37,7 @@ DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = set(
 )
 
 ORCHEST_DEPLOYMENTS = [
+    "auth-server",
     "celery-worker",
     "docker-registry",
     "file-manager",
@@ -43,7 +45,6 @@ ORCHEST_DEPLOYMENTS = [
     "orchest-database",
     "orchest-webserver",
     "rabbitmq-server",
-    # Bit risky in chase of a name change? K8S_TODO: discuss.
     "argo-workflow-argo-workflows-server",
     "argo-workflow-argo-workflows-workflow-controller",
 ]
