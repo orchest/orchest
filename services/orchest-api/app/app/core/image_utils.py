@@ -55,7 +55,7 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                 {
                     "name": "kaniko-cache",
                     "hostPath": {
-                        "path": CONFIG_CLASS.BASE_IMAGES_CACHE,
+                        "path": CONFIG_CLASS.HOST_BASE_IMAGES_CACHE,
                         "type": "DirectoryOrCreate",
                     },
                 },
@@ -176,7 +176,7 @@ def _get_image_build_workflow_manifest(
                 {
                     "name": "kaniko-cache",
                     "hostPath": {
-                        "path": CONFIG_CLASS.BASE_IMAGES_CACHE,
+                        "path": CONFIG_CLASS.HOST_BASE_IMAGES_CACHE,
                         "type": "DirectoryOrCreate",
                     },
                 },

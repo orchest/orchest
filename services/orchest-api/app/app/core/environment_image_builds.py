@@ -199,12 +199,12 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         See the check_environment_correctness_function
     """
     # the project path we receive is relative to the projects directory
-    userdir_project_path = os.path.join("/userdir/projects", project_path)
+    userdir_project_path = os.path.join(_config.USERDIR_PROJECTS, project_path)
 
     # sanity checks, if not respected exception will be raised
     check_environment_correctness(project_uuid, environment_uuid, userdir_project_path)
 
-    env_builds_dir = "/userdir/.orchest/env-builds"
+    env_builds_dir = _config.USERDIR_ENV_IMG_BUILDS
     # Make a snapshot of the project state, used for the context.
     snapshot_path = f"{env_builds_dir}/{task_uuid}"
     if os.path.isdir(snapshot_path):

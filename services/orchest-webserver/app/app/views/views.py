@@ -2,7 +2,6 @@ import json
 import os
 import subprocess
 import uuid
-from pathlib import Path
 
 import requests
 import sqlalchemy
@@ -310,11 +309,6 @@ def register_views(app, db):
 
         setup_script_path = os.path.join(
             app.config["USER_DIR"], _config.JUPYTER_SETUP_SCRIPT
-        )
-
-        # K8S_TODO: remove this?
-        Path("/userdir/.orchest/user-configurations/jupyterlab").mkdir(
-            parents=True, exist_ok=True
         )
 
         if request.method == "POST":
