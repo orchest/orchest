@@ -107,7 +107,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     return return_code
 
 
-def install():
+def install(log_level: utils.LogLevel, cloud: bool):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
@@ -354,7 +354,7 @@ def _wait_deployments_to_be_ready(
         time.sleep(1)
 
 
-def start():
+def start(log_level: utils.LogLevel, cloud: bool):
     k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
@@ -390,6 +390,9 @@ def start():
         label="Start",
         show_eta=False,
     ) as progress_bar:
+        k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=True)
+        k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=True)
+
         k8sw.scale_up_orchest_deployments(
             [depl.metadata.name for depl in deployments_to_start]
         )

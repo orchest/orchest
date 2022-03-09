@@ -1,7 +1,9 @@
 import json
 import logging
 import os
+import sys
 import textwrap
+from enum import Enum
 from pathlib import Path
 
 import typer
@@ -78,3 +80,38 @@ def create_required_directories() -> None:
         _config.USERDIR_BASE_IMAGES_CACHE,
     ]:
         Path(path).mkdir(parents=True, exist_ok=True)
+
+
+class LogLevel(str, Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+
+
+def init_logger(verbosity=0):
+    """Initialize logger.
+
+    The logging module is used to output to STDOUT for the CLI.
+
+    Args:
+        verbosity: The level of verbosity to use. Corresponds to the
+        logging levels:
+            3 DEBUG
+            2 INFO
+            1 WARNING
+            0 ERROR
+
+    """
+    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
+    logging.basicConfig(level=levels[verbosity])
+
+    root = logging.getLogger()
+    if len(root.handlers) > 0:
+        h = root.handlers[0]
+        root.removeHandler(h)
+
+    formatter = logging.Formatter("%(levelname)s: %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formatter)
+    root.addHandler(handler)

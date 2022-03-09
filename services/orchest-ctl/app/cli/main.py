@@ -1,42 +1,27 @@
-import logging
-import sys
 from enum import Enum
 from typing import Optional
 
 import typer
 
 from app import orchest
-from app.cli import start as cli_start
-from app.utils import echo
+from app.utils import LogLevel, echo, init_logger
 
+__CLOUD_HELP_MESSAGE = (
+    "Starting Orchest with --cloud changes GUI functionality. For example "
+    "making it impossible to disable the authentication layer. Settings "
+    "that cannot be modified through the GUI because of this flag, as "
+    "all settings, can still be modified by changing the config.json "
+    "configuration file directly."
+)
 
-# TODO: utils.py
-def init_logger(verbosity=0):
-    """Initialize logger.
-
-    The logging module is used to output to STDOUT for the CLI.
-
-    Args:
-        verbosity: The level of verbosity to use. Corresponds to the
-        logging levels:
-            3 DEBUG
-            2 INFO
-            1 WARNING
-            0 ERROR
-
-    """
-    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-    logging.basicConfig(level=levels[verbosity])
-
-    root = logging.getLogger()
-    if len(root.handlers) > 0:
-        h = root.handlers[0]
-        root.removeHandler(h)
-
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    root.addHandler(handler)
+# __DEV_HELP_MESSAGE = (
+#     "Starting Orchest with --dev mounts the repository code from the "
+#     "filesystem (and thus adhering to branches) to the appropriate
+#     paths in " "the Docker containers. This allows for active code
+#     changes being " "reflected inside the application. Moreover,
+#     updating in dev mode " "makes it so that the git repository and
+#     the orchest-ctl image are" "not updated."
+# )
 
 
 def _default(
@@ -65,8 +50,6 @@ typer_app = typer.Typer(
     epilog="Run 'orchest COMMAND --help' for more information on a command.",
     callback=_default,
 )
-
-typer_app.add_typer(cli_start.typer_app, name="start")
 
 
 class Language(str, Enum):
@@ -103,6 +86,36 @@ def version(
 
 
 @typer_app.command()
+def start(
+    log_level: Optional[LogLevel] = typer.Option(
+        LogLevel.INFO,
+        "-l",
+        "--log-level",
+        show_default=False,
+        help="Log level inside the application.",
+    ),
+    cloud: bool = typer.Option(
+        False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
+    ),
+):
+    """
+    Start Orchest.
+
+    Alias:
+
+    \b
+        orchest start [OPTIONS]
+    """
+    # if dev:
+    #     logger.info(
+    #         "Starting Orchest with --dev. This mounts host directories
+    #         " "to monitor for source code changes."
+    #     )
+
+    orchest.start(log_level, cloud)
+
+
+@typer_app.command()
 def stop():
     """
     Shutdown Orchest.
@@ -132,19 +145,15 @@ def status(
 
 @typer_app.command()
 def install(
-    language: Language = typer.Option(
-        Language.python,
-        "--lang",
-        show_default=True,
-        help="Language dependencies to install.",
+    log_level: Optional[LogLevel] = typer.Option(
+        None,
+        "-l",
+        "--log-level",
+        show_default=False,
+        help="Log level inside the application.",
     ),
-    gpu: bool = typer.Option(
-        False,
-        show_default="--no-gpu",
-        help=(
-            "Whether to install GPU supported images corresponding"
-            " to the given language dependencies."
-        ),
+    cloud: bool = typer.Option(
+        False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
     ),
 ):
     """Install Orchest.
@@ -157,7 +166,7 @@ def install(
     # in other modes the permissions are fixed on start).
     # K8S_TODO: is this still needed?
     # fix_userdir_permissions()
-    orchest.install()
+    orchest.install(log_level, cloud)
 
 
 @typer_app.command()
@@ -178,18 +187,7 @@ def hidden_update():
 
 
 @typer_app.command()
-def restart(
-    port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
-    cloud: bool = typer.Option(
-        False,
-        show_default="--no-cloud",
-        help=cli_start.__CLOUD_HELP_MESSAGE,
-        hidden=True,
-    ),
-    dev: bool = typer.Option(
-        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
-    ),
-):
+def restart():
     """
     Restart Orchest.
     """

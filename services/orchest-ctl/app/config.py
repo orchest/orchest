@@ -49,6 +49,21 @@ ORCHEST_DEPLOYMENTS = [
     "argo-workflow-argo-workflows-workflow-controller",
 ]
 
+DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR = [
+    "auth-server",
+    "celery-worker",
+    "orchest-api",
+    "orchest-webserver",
+]
+
+DEPLOYMENTS_WITH_CLOUD_ENV_VAR = [
+    "auth-server",
+    "orchest-webserver",
+]
+
+for depl in DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR + DEPLOYMENTS_WITH_CLOUD_ENV_VAR:
+    assert depl in ORCHEST_DEPLOYMENTS
+
 WRAP_LINES = 72
 # Used to avoid outputting anything that isn't the desired json.
 JSON_MODE = False

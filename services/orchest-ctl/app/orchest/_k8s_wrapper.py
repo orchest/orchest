@@ -114,10 +114,60 @@ def _scale_orchest_deployments(
         t.get()
 
 
+def _get_deployment_container_env_var_patch(container_name: str, env_vars=dict) -> dict:
+    patch = {
+        "spec": {
+            "template": {
+                "spec": {
+                    "containers": [
+                        {
+                            "name": container_name,
+                            "env": [
+                                {"name": k, "value": v} for k, v in env_vars.items()
+                            ],
+                        }
+                    ]
+                }
+            }
+        }
+    }
+    return patch
+
+
 def set_orchest_cluster_version(version: str):
     k8s_core_api.patch_namespace(
         "orchest", {"metadata": {"labels": {"version": version}}}
     )
+
+
+def set_orchest_cluster_log_level(
+    logLevel: utils.LogLevel, patch_deployments: bool = False
+):
+    k8s_core_api.patch_namespace(
+        "orchest", {"metadata": {"labels": {"ORCHEST_LOG_LEVEL": logLevel.value}}}
+    )
+    if patch_deployments:
+        for depl in config.DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR:
+            k8s_apps_api.patch_namespaced_deployment(
+                depl,
+                "orchest",
+                _get_deployment_container_env_var_patch(
+                    depl, {"ORCHEST_LOG_LEVEL": logLevel.value}
+                ),
+            )
+
+
+def set_orchest_cluster_cloud_mode(cloud: bool, patch_deployments: bool = False):
+    k8s_core_api.patch_namespace(
+        "orchest", {"metadata": {"labels": {"CLOUD": str(cloud)}}}
+    )
+    if patch_deployments:
+        for depl in config.DEPLOYMENTS_WITH_CLOUD_ENV_VAR:
+            k8s_apps_api.patch_namespaced_deployment(
+                depl,
+                "orchest",
+                _get_deployment_container_env_var_patch(depl, {"CLOUD": str(cloud)}),
+            )
 
 
 def get_orchest_cluster_version() -> str:
