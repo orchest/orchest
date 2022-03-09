@@ -12,9 +12,10 @@ from sqlalchemy import or_, text
 from sqlalchemy.orm import query, undefer
 
 import app.models as models
+from _orchest.internals import config as _config
 from app import errors as self_errors
 from app import schema
-from app.connections import k8s_core_api
+from app.connections import db, k8s_core_api
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -205,3 +206,18 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     query = query.filter(or_(*filters))
 
     return query
+
+
+def get_jupyter_server_image_to_use() -> str:
+    has_customized_jupyter = db.session.query(
+        db.session.query(models.JupyterImageBuild).filter_by(status="SUCCESS").exists()
+    ).scalar()
+    if has_customized_jupyter:
+        registry_ip = k8s_core_api.read_namespaced_service(
+            _config.REGISTRY, _config.ORCHEST_NAMESPACE
+        ).spec.cluster_ip
+        return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:latest"
+    else:
+        # K8S_TODO: remove latest once we have versioned images on
+        # dockerhub.
+        return "orchest/jupyter-server:latest"

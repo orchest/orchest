@@ -10,7 +10,6 @@ from typing import Any, Dict, Tuple
 from _orchest.internals import config as _config
 from app import utils
 from app.connections import k8s_core_api
-from app.core import environments
 from app.types import SessionConfig, SessionType
 from config import CONFIG_CLASS
 
@@ -405,12 +404,6 @@ def _get_jupyter_server_deployment_service_manifest(
         },
     }
 
-    # Check if user tweaked JupyterLab image exists.
-    if environments.get_environment_image_id(_config.JUPYTER_IMAGE_NAME) is not None:
-        image = _config.JUPYTER_IMAGE_NAME
-    else:
-        image = "orchest/jupyter-server:latest"
-
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
         project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
     )
@@ -442,7 +435,7 @@ def _get_jupyter_server_deployment_service_manifest(
                     "containers": [
                         {
                             "name": metadata["name"],
-                            "image": image,
+                            "image": utils.get_jupyter_server_image_to_use(),
                             # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": [
@@ -676,6 +669,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
         project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
     )
+
     deployment_manifest = {
         "apiVersion": "apps/v1",
         "kind": "Deployment",

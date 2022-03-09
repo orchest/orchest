@@ -6,8 +6,8 @@ import yaml
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
-from app import models, schema, utils
-from app.connections import db, k8s_core_api
+from app import schema, utils
+from app.connections import k8s_core_api
 
 api = Namespace("ctl", description="Orchest-api internal control.")
 api = utils.register_schema(api)
@@ -62,24 +62,8 @@ class OrchestImagesToPrePull(Resource):
         pre_pull_orchest_images = [
             "orchest/jupyter-enterprise-gateway:latest",
             "orchest/session-sidecar:latest",
+            utils.get_jupyter_server_image_to_use(),
         ]
-        has_customized_jupyter = db.session.query(
-            db.session.query(models.JupyterImageBuild)
-            .filter_by(status="SUCCESS")
-            .exists()
-        ).scalar()
-        if has_customized_jupyter:
-            registry_ip = k8s_core_api.read_namespaced_service(
-                _config.REGISTRY, _config.ORCHEST_NAMESPACE
-            ).spec.cluster_ip
-            pre_pull_orchest_images.append(
-                f"{registry_ip}/orchest/{_config.JUPYTER_IMAGE_NAME}:latest"
-            )
-        else:
-            # K8S_TODO: remove latest once we have versioned images on
-            # dockerhub.
-            pre_pull_orchest_images.append("orchest/jupyter-server:latest")
-
         pre_pull_orchest_images = {"pre_pull_orchest_images": pre_pull_orchest_images}
 
         return pre_pull_orchest_images, 200
