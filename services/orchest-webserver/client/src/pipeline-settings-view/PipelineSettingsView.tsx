@@ -475,6 +475,16 @@ const PipelineSettingsView: React.FC = () => {
     pipelineJson?.settings?.data_passing_memory_size || ""
   );
 
+  const prettifyInputParameters = () => {
+    setInputParameters((current) => {
+      try {
+        return JSON.stringify(JSON.parse(current));
+      } catch (error) {
+        return current;
+      }
+    });
+  };
+
   return (
     <Layout>
       <div className="view-page pipeline-settings-view">
@@ -578,6 +588,7 @@ const PipelineSettingsView: React.FC = () => {
                             lineNumbers: true,
                             readOnly: isReadOnly,
                           }}
+                          onBlur={() => prettifyInputParameters()}
                           onBeforeChange={onChangePipelineParameters}
                         />
                         {(() => {
