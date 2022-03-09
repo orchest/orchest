@@ -57,12 +57,11 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     else:
         raise ValueError()
 
-    log_level = k8sw.get_orchest_log_level()
-    cloud = k8sw.get_orchest_cloud_mode() == "True"
-
     # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
     env["DISABLE_ROOK"] = "TRUE"
+    env["CLOUD"] = k8sw.get_orchest_cloud_mode()
+    env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
     process = subprocess.Popen(
         cmd,
         cwd="deploy",

@@ -146,7 +146,7 @@ def status(
 @typer_app.command()
 def install(
     log_level: Optional[LogLevel] = typer.Option(
-        None,
+        LogLevel.INFO,
         "-l",
         "--log-level",
         show_default=False,
