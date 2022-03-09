@@ -1,7 +1,7 @@
 from flask import abort
 from flask.globals import current_app
 from flask_restx import Namespace, Resource
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import models, schema
@@ -21,8 +21,8 @@ api = register_schema(api)
 @api.route("/latest/<string:project_uuid>/<string:environment_uuid>")
 @api.param("project_uuid", "uuid of the project")
 @api.param("environment_uuid", "uuid of the environment")
-class LatestEnvironmentImage(Resource):
-    @api.doc("get_latest_environment_image")
+class LatestProjectEnvironmentEnvironmentImage(Resource):
+    @api.doc("get_latest_project_environment_environment_image")
     @api.marshal_with(schema.environment_image, code=200)
     def get(self, project_uuid, environment_uuid):
         """Fetches the latest built image for an environment."""
@@ -37,6 +37,24 @@ class LatestEnvironmentImage(Resource):
         if env_image is None:
             abort(404, "No image for for this environment.")
         return env_image
+
+
+@api.route("/latest")
+class LatestEnvironmentImage(Resource):
+    @api.doc("get_latest_environment_image")
+    @api.marshal_with(schema.environment_images, code=200)
+    def get(self):
+        """Fetches the latest built images for all environments."""
+        latest_env_images = db.session.query(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            func.max(models.EnvironmentImage.tag).label("tag"),
+        ).group_by(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+        )
+        latest_env_images = [a for a in latest_env_images]
+        return {"environment_images": latest_env_images}, 200
 
 
 @api.route(
