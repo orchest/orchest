@@ -316,7 +316,7 @@ def adduser(
         echo("Token cannot be empty.", err=True)
         raise typer.Exit(code=1)
 
-    app.add_user(username, password, token, is_admin)
+    orchest.add_user(username, password, token, is_admin)
 
 
 @typer_app.command()

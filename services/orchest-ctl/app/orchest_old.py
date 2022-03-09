@@ -169,52 +169,6 @@ class OrchestApp:
     def debug(self, ext: bool, compress: bool):
         debug_dump(ext, compress)
 
-    def add_user(self, username, password, token, is_admin):
-        """Adds a new user to Orchest.
-
-        Args:
-            username:
-            password:
-            token:
-            is_admin:
-        """
-
-        ids, running_containers = self.resource_manager.get_containers(state="running")
-        auth_server_id = None
-        database_running = False
-        for id, container in zip(ids, running_containers):
-            if "postgres" in container:
-                database_running = True
-            if "auth-server" in container:
-                auth_server_id = id
-
-        if not database_running:
-            utils.echo("The orchest-database service needs to be running.", err=True)
-            raise typer.Exit(code=1)
-
-        if auth_server_id is None:
-            utils.echo("The auth-server service needs to be running.", err=True)
-            raise typer.Exit(code=1)
-
-        cmd = f"python add_user.py {username} {password}"
-        if token:
-            cmd += f" --token {token}"
-        if is_admin:
-            cmd += " --is_admin"
-
-        exit_code = self.docker_client.exec_runs([(auth_server_id, cmd)])[0]
-
-        if exit_code != 0:
-            utils.echo(
-                (
-                    "Non zero exit code whilst trying to add a user to "
-                    f"the auth-server: {exit_code}."
-                ),
-                err=True,
-            )
-
-        raise typer.Exit(code=exit_code)
-
     def run(self, job_name, project_name, pipeline_name, wait=False, rm=False):
         """Queues the pipeline as a one-time job."""
         # Orchest has to be running for this command to work, since we

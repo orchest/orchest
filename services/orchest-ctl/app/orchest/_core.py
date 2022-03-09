@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 import typer
 from kubernetes import client as k8s_client
+from kubernetes.stream import stream
 
 from app import config, utils
 from app.connections import k8s_core_api
@@ -387,3 +388,57 @@ def start():
 def restart():
     stop()
     start()
+
+
+def add_user(username: str, password: str, token: str, is_admin: str) -> None:
+    """Adds a new user to Orchest.
+
+    Args:
+        username:
+        password:
+        token:
+        is_admin:
+    """
+
+    db_depl, auth_server_depl = k8sw.get_orchest_deployments(
+        ["orchest-database", "auth-server"]
+    )
+
+    if db_depl is None or db_depl.status.ready_replicas != db_depl.spec.replicas:
+        utils.echo("The orchest-database service needs to be running.", err=True)
+        raise typer.Exit(code=1)
+
+    if (
+        auth_server_depl is None
+        or auth_server_depl.status.ready_replicas != auth_server_depl.spec.replicas
+    ):
+        utils.echo("The auth-server service needs to be running.", err=True)
+        raise typer.Exit(code=1)
+
+    pods = k8s_core_api.list_namespaced_pod(
+        config.ORCHEST_NAMESPACE, label_selector="app=auth-server"
+    )
+    if not pods:
+        utils.echo("Could not find auth-server pod.")
+        raise typer.Exit(code=1)
+    pod = pods[0]
+
+    args = ["add_user.py", username, password]
+    if token:
+        args.append("--token")
+        args.append(token)
+    if is_admin:
+        args.append("--admin")
+
+    resp = stream(
+        k8s_core_api.connect_get_namespaced_pod_exec,
+        pod.metadata.name,
+        config.ORCHEST_NAMESPACE,
+        command=["python"],
+        args=args,
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=False,
+    )
+    utils.echo(str(resp))
