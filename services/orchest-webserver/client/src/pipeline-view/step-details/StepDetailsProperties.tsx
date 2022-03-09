@@ -1,3 +1,5 @@
+import ProjectFilePicker from "@/components/ProjectFilePicker";
+import { PipelineStepState, Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -18,18 +20,25 @@ import {
   RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
+import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import ProjectFilePicker from "../components/ProjectFilePicker";
+
+export type ConnectionDict = Record<
+  string,
+  { title: string; file_path: string }
+>;
 
 const ConnectionItem = ({
-  connection: { name, uuid },
+  uuid,
+  title,
+  filePath,
 }: {
-  connection: { name: [string, string]; uuid: string };
+  uuid: string;
+  title: string;
+  filePath: string;
 }) => {
-  const [title, filePath] = name;
-
   return (
     <div className="connection-item" data-uuid={uuid}>
       <i className="material-icons">drag_indicator</i> <span>{title}</span>{" "}
@@ -44,31 +53,64 @@ const KERNEL_OPTIONS = [
   { value: "julia", label: "Julia" },
 ];
 
-const PipelineDetailsProperties: React.FC<{
-  [key: string]: any;
+export const StepDetailsProperties: React.FC<{
+  projectUuid: string;
+  pipelineUuid: string;
+  pipelineCwd: string;
+  readOnly: boolean;
+  connections: ConnectionDict;
+  step: PipelineStepState;
+  onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
-}> = (props) => {
-  const { $ } = window;
-
+}> = ({
+  projectUuid,
+  pipelineUuid,
+  pipelineCwd,
+  readOnly,
+  connections,
+  step,
+  onSave,
+  menuMaxWidth,
+}) => {
   const [state, setState] = React.useState({
     environmentOptions: [],
     // this is required to let users edit JSON (while typing the text will not be valid JSON)
-    editableParameters: JSON.stringify(props.step.parameters, null, 2),
-    autogenerateFilePath: props.step.file_path.length == 0,
+    editableParameters: JSON.stringify(step.parameters, null, 2),
+    autogenerateFilePath: step.file_path.length == 0,
   });
 
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [refManager] = React.useState(new RefManager());
+  const promiseManager = React.useMemo(() => new PromiseManager(), []);
+  const refManager = React.useMemo(() => new RefManager(), []);
 
-  const isNotebookStep =
-    extensionFromFilename(props.step.file_path) === "ipynb";
+  const isNotebookStep = extensionFromFilename(step.file_path) === "ipynb";
 
-  const fetchEnvironmentOptions = () => {
-    let environmentsEndpoint = `/store/environments/${props.project_uuid}`;
+  const onChangeEnvironment = React.useCallback(
+    (updatedEnvironmentUUID: string, updatedEnvironmentName: string) => {
+      onSave(
+        {
+          environment: updatedEnvironmentUUID,
+          kernel: { display_name: updatedEnvironmentName },
+        },
+        step.uuid
+      );
+      if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
+        let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
+
+        window.orchest.jupyter.setNotebookKernel(
+          collapseDoubleDots(pipelineCwd + step.file_path).slice(1),
+          kernelName
+        );
+      }
+    },
+    [onSave, pipelineCwd, step]
+  );
+
+  const fetchEnvironmentOptions = React.useCallback(() => {
+    let environmentsEndpoint = `/store/environments/${projectUuid}`;
 
     if (isNotebookStep) {
       environmentsEndpoint +=
-        "?language=" + kernelNameToLanguage(props.step.kernel.name);
+        "?language=" + kernelNameToLanguage(step.kernel.name);
     }
 
     let fetchEnvironmentOptionsPromise = makeCancelable(
@@ -85,7 +127,7 @@ const PipelineDetailsProperties: React.FC<{
         let currentEnvironmentInEnvironments = false;
 
         for (let environment of result) {
-          if (environment.uuid == props.step.environment) {
+          if (environment.uuid == step.environment) {
             currentEnvironmentInEnvironments = true;
           }
           environmentOptions.push({
@@ -110,7 +152,14 @@ const PipelineDetailsProperties: React.FC<{
       .catch((error) => {
         console.log(error);
       });
-  };
+  }, [
+    isNotebookStep,
+    onChangeEnvironment,
+    projectUuid,
+    promiseManager,
+    step.environment,
+    step.kernel.name,
+  ]);
 
   const onChangeFileName = (
     updatedFileName: string,
@@ -123,7 +172,7 @@ const PipelineDetailsProperties: React.FC<{
       }));
     }
 
-    props.onSave({ file_path: updatedFileName }, props.step.uuid);
+    onSave({ file_path: updatedFileName }, step.uuid);
   };
 
   const onChangeParameterJSON = (updatedParameterJSON) => {
@@ -133,56 +182,29 @@ const PipelineDetailsProperties: React.FC<{
     }));
 
     try {
-      props.onSave(
-        { parameters: JSON.parse(updatedParameterJSON) },
-        props.step.uuid,
-        true
-      );
+      onSave({ parameters: JSON.parse(updatedParameterJSON) }, step.uuid, true);
     } catch (err) {}
   };
 
-  const onChangeEnvironment = (
-    updatedEnvironmentUUID: string,
-    updatedEnvironmentName: string
-  ) => {
-    props.onSave(
-      {
-        environment: updatedEnvironmentUUID,
-        kernel: { display_name: updatedEnvironmentName },
-      },
-      props.step.uuid
-    );
-    if (updatedEnvironmentUUID !== "" && props.step["file_path"] !== "") {
-      let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
-
-      window.orchest.jupyter.setNotebookKernel(
-        collapseDoubleDots(props.pipelineCwd + props.step["file_path"]).slice(
-          1
-        ),
-        kernelName
-      );
-    }
-  };
-
   const onChangeKernel = (updatedKernel: string) => {
-    props.onSave({ kernel: { name: updatedKernel } }, props.step.uuid);
+    onSave({ kernel: { name: updatedKernel } }, step.uuid);
   };
 
-  const onChangeTitle = (updatedTitle) => {
-    props.onSave({ title: updatedTitle }, props.step.uuid);
+  const onChangeTitle = (updatedTitle: string) => {
+    onSave({ title: updatedTitle }, step.uuid);
   };
 
   const swapConnectionOrder = (oldConnectionIndex, newConnectionIndex) => {
     // check if there is work to do
     if (oldConnectionIndex != newConnectionIndex) {
       // note it's creating a reference
-      let connectionList = cloneDeep(props.step.incoming_connections);
+      let connectionList = cloneDeep(step.incoming_connections);
 
       let tmp = connectionList[oldConnectionIndex];
       connectionList.splice(oldConnectionIndex, 1);
       connectionList.splice(newConnectionIndex, 0, tmp);
 
-      props.onSave({ incoming_connections: connectionList }, props.step.uuid);
+      onSave({ incoming_connections: connectionList }, step.uuid);
     }
   };
 
@@ -298,7 +320,7 @@ const PipelineDetailsProperties: React.FC<{
   };
 
   React.useEffect(() => {
-    if (!props.readOnly) {
+    if (!readOnly) {
       // set focus on first field
       refManager.refs.titleTextField.focus();
     }
@@ -314,18 +336,18 @@ const PipelineDetailsProperties: React.FC<{
   React.useEffect(() => {
     if (state.autogenerateFilePath) {
       // Make sure the props have been updated
-      onChangeFileName(toValidFilename(props.step.title), true);
+      onChangeFileName(toValidFilename(step.title), true);
     }
-  }, [props?.step?.title]);
+  }, [step.title]);
 
   React.useEffect(() => {
     clearConnectionListener();
     setupConnectionListener();
-  }, [props.step]);
+  }, [step]);
 
   React.useEffect(() => fetchEnvironmentOptions(), [
-    props?.step?.file_path,
-    props?.step?.kernel?.name,
+    step.file_path,
+    step.kernel?.name,
   ]);
 
   return (
@@ -333,31 +355,31 @@ const PipelineDetailsProperties: React.FC<{
       <Stack direction="column" spacing={3}>
         <TextField
           autoFocus
-          value={props.step.title}
+          value={step.title}
           onChange={(e) => onChangeTitle(e.target.value)}
           label="Title"
-          disabled={props.readOnly}
+          disabled={readOnly}
           fullWidth
           ref={refManager.nrefs.titleTextField}
           data-test-id="step-title-textfield"
         />
-        {props.readOnly ? (
+        {readOnly ? (
           <TextField
-            value={props.step.file_path}
+            value={step.file_path}
             label="File name"
-            disabled={props.readOnly}
+            disabled={readOnly}
             fullWidth
             margin="normal"
             data-test-id="step-file-name-textfield"
           />
         ) : (
           <ProjectFilePicker
-            value={props.step.file_path}
-            project_uuid={props.project_uuid}
-            pipeline_uuid={props.pipeline_uuid}
-            step_uuid={props.step.uuid}
+            value={step.file_path}
+            project_uuid={projectUuid}
+            pipeline_uuid={pipelineUuid}
+            step_uuid={step.uuid}
             onChange={(value) => onChangeFileName(value, false)}
-            menuMaxWidth={props.menuMaxWidth}
+            menuMaxWidth={menuMaxWidth}
           />
         )}
         {isNotebookStep && (
@@ -367,8 +389,8 @@ const PipelineDetailsProperties: React.FC<{
               label="Kernel language"
               labelId="kernel-language-label"
               id="kernel-language"
-              value={props.step.kernel.name}
-              disabled={props.readOnly}
+              value={step.kernel.name}
+              disabled={readOnly}
               onChange={(e) => onChangeKernel(e.target.value)}
             >
               {KERNEL_OPTIONS.map((option) => {
@@ -387,8 +409,8 @@ const PipelineDetailsProperties: React.FC<{
             label="Kernel language"
             labelId="environment-label"
             id="environment"
-            value={props.step.environment}
-            disabled={props.readOnly}
+            value={step.environment}
+            disabled={readOnly}
             onChange={(e) => {
               const selected = state.environmentOptions.find(
                 (option) => option.value === e.target.value
@@ -420,7 +442,7 @@ const PipelineDetailsProperties: React.FC<{
               mode: "application/json",
               theme: "jupyter",
               lineNumbers: true,
-              readOnly: props.readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
+              readOnly: readOnly === true, // not sure whether CodeMirror accepts 'falsy' values
             }}
             onBeforeChange={(editor, data, value) => {
               onChangeParameterJSON(value);
@@ -437,7 +459,7 @@ const PipelineDetailsProperties: React.FC<{
           })()}
         </Box>
 
-        {props.step.incoming_connections.length != 0 && (
+        {step.incoming_connections.length != 0 && (
           <Box>
             <Typography
               component="h3"
@@ -451,13 +473,12 @@ const PipelineDetailsProperties: React.FC<{
               className="connection-list"
               ref={refManager.nrefs.connectionList}
             >
-              {props.step.incoming_connections.map((item: string) => (
+              {step.incoming_connections.map((startNodeUUID: string) => (
                 <ConnectionItem
-                  connection={{
-                    name: props.connections[item],
-                    uuid: item,
-                  }}
-                  key={item}
+                  title={connections[startNodeUUID].title}
+                  filePath={connections[startNodeUUID].file_path}
+                  uuid={startNodeUUID}
+                  key={startNodeUUID}
                 />
               ))}
             </div>
@@ -467,5 +488,3 @@ const PipelineDetailsProperties: React.FC<{
     </div>
   );
 };
-
-export default PipelineDetailsProperties;

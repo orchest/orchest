@@ -164,6 +164,7 @@ importers:
       formik: ^2.2.9
       framer-motion: 4.1.17
       hotkeys-js: ^3.8.7
+      immer: ^9.0.12
       isomorphic-unfetch: 3.1.0
       jest: ^27.4.5
       jest-junit: ^13.0.0
@@ -206,6 +207,7 @@ importers:
       formik: 2.2.9_react@17.0.2
       framer-motion: 4.1.17_react-dom@17.0.2+react@17.0.2
       hotkeys-js: 3.8.7
+      immer: 9.0.12
       isomorphic-unfetch: 3.1.0
       jquery: 3.6.0
       lodash.clonedeep: 4.5.0
@@ -4588,6 +4590,10 @@ packages:
     resolution: {integrity: sha512-BMpfD7PpiETpBl/A6S498BaIJ6Y/ABT93ETbby2fP00v4EbvPBXWEoaR1UBPKs3iR53pJY7EtZk5KACI57i1Uw==}
     engines: {node: '>= 4'}
     dev: true
+
+  /immer/9.0.12:
+    resolution: {integrity: sha512-lk7UNmSbAukB5B6dh9fnh5D0bJTOFKxVg2cyJWTYrWRfhLrLMBquONcUs3aFq507hNoIZEDDh8lb8UtOizSMhA==}
+    dev: false
 
   /import-fresh/3.3.0:
     resolution: {integrity: sha512-veYYhQa+D1QBKznvhUHxb8faxlrwUnxseDAbAp457E0wLNio2bOSKnjYDhMj+YiAq61xrMGhQk9iXVk5FzgQMw==}

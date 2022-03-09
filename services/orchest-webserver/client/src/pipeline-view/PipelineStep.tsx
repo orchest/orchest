@@ -1,11 +1,24 @@
-import { PipelineStepStatus } from "@/types";
-import { RefManager } from "@orchest/lib-utils";
-import * as React from "react";
+import { isValidFile } from "@/hooks/useCheckFileValidity";
+import { useForceUpdate } from "@/hooks/useForceUpdate";
+import {
+  Connection,
+  PipelineStepMetaData,
+  PipelineStepState,
+  PipelineStepStatus,
+  Position,
+} from "@/types";
+import Box from "@mui/material/Box";
+import { hasValue } from "@orchest/lib-utils";
+import classNames from "classnames";
+import React from "react";
+import { DRAG_CLICK_SENSITIVITY } from "./common";
+import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
+import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { useUpdateZIndex } from "./hooks/useZIndexMax";
+import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
 export const STEP_WIDTH = 190;
 export const STEP_HEIGHT = 105;
-
-export type TPipelineStepRef = any;
 
 export type ExecutionState = {
   finished_time?: Date;
@@ -13,131 +26,436 @@ export type ExecutionState = {
   started_time?: Date;
   status: PipelineStepStatus;
 };
-export interface IPipelineStepProps {
-  selected?: boolean;
-  step?: any;
-  onConnect: (sourcePipelineStepUUID: any, targetPipelineStepUUID: any) => void;
-  onClick: any;
-  onDoubleClick: any;
-  executionState?: ExecutionState;
-}
 
-const PipelineStep = (props: IPipelineStepProps, ref: TPipelineStepRef) => {
-  const [refManager] = React.useState(new RefManager());
+const stepStatusMapping: Record<string, JSX.Element> = {
+  SUCCESS: <span className="success">✓ </span>,
+  FAILURE: <span className="failure">✗ </span>,
+  ABORTED: <span className="aborted">❗ </span>,
+};
 
-  const updatePosition = (position: [number, number]) => {
-    // note: DOM update outside of normal React loop for performance
-    refManager.refs.container.style.transform =
-      "translateX(" + position[0] + "px) translateY(" + position[1] + "px)";
-  };
+export const StepStatus = ({ value }: { value: string }) => {
+  if (!stepStatusMapping[value]) return null;
+  return stepStatusMapping[value];
+};
 
-  const formatSeconds = (seconds) => {
-    // Hours, minutes and seconds
-    let hrs = ~~(seconds / 3600);
-    let mins = ~~((seconds % 3600) / 60);
-    let secs = ~~seconds % 60;
+const formatSeconds = (seconds: number) => {
+  // Hours, minutes and seconds
+  let hrs = ~~(seconds / 3600);
+  let mins = ~~((seconds % 3600) / 60);
+  let secs = ~~seconds % 60;
 
-    let ret = "";
-    if (hrs > 0) {
-      ret += hrs + "h ";
-    }
-    if (mins > 0) {
-      ret += mins + "m ";
-    }
-    ret += secs + "s";
-    return ret;
-  };
+  let ret = "";
+  if (hrs > 0) {
+    ret += hrs + "h ";
+  }
+  if (mins > 0) {
+    ret += mins + "m ";
+  }
+  ret += secs + "s";
+  return ret;
+};
 
-  React.useEffect(() => updatePosition(props.step.meta_data.position), []);
-
-  React.useImperativeHandle(ref, () => ({
-    updatePosition,
-    props,
-    refManager,
-  }));
-
+export const getStateText = (executionState: ExecutionState) => {
   let stateText = "Ready";
 
-  if (props.executionState.status === "SUCCESS") {
+  if (executionState.status === "SUCCESS") {
     let seconds = Math.round(
-      (props.executionState.finished_time - props.executionState.started_time) /
+      (executionState.finished_time.getTime() -
+        executionState.started_time.getTime()) /
         1000
     );
 
     stateText = "Completed (" + formatSeconds(seconds) + ")";
   }
-  if (props.executionState.status === "FAILURE") {
+  if (executionState.status === "FAILURE") {
     let seconds = 0;
 
-    if (props.executionState.started_time !== undefined) {
+    if (executionState.started_time !== undefined) {
       seconds = Math.round(
-        (props.executionState.finished_time -
-          props.executionState.started_time) /
+        (executionState.finished_time.getTime() -
+          executionState.started_time.getTime()) /
           1000
       );
     }
 
     stateText = "Failure (" + formatSeconds(seconds) + ")";
   }
-  if (props.executionState.status === "STARTED") {
+  if (executionState.status === "STARTED") {
     let seconds = 0;
 
-    if (props.executionState.started_time !== undefined) {
+    if (executionState.started_time !== undefined) {
       seconds = Math.round(
-        (props.executionState.server_time - props.executionState.started_time) /
+        (executionState.server_time.getTime() -
+          executionState.started_time.getTime()) /
           1000
       );
     }
 
     stateText = "Running (" + formatSeconds(seconds) + ")";
   }
-  if (props.executionState.status == "PENDING") {
+  if (executionState.status == "PENDING") {
     stateText = "Pending";
   }
-  if (props.executionState.status == "ABORTED") {
+  if (executionState.status == "ABORTED") {
     stateText = "Aborted";
   }
-
-  return (
-    <div
-      data-uuid={props.step.uuid}
-      data-test-title={props.step.title}
-      data-test-id={"pipeline-step"}
-      ref={refManager.nrefs.container}
-      className={[
-        "pipeline-step",
-        props.executionState.status,
-        props.selected && "selected",
-        props.step &&
-          props.step["meta_data"] &&
-          props.step["meta_data"]["hidden"] === true &&
-          "hidden",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <div className={"incoming-connections connection-point"}>
-        <div className="inner-dot"></div>
-      </div>
-      <div className={"execution-indicator"}>
-        {{
-          SUCCESS: <span className="success">✓ </span>,
-          FAILURE: <span className="failure">✗ </span>,
-          ABORTED: <span className="aborted">❗ </span>,
-        }[props.executionState.status] || null}
-        {stateText}
-      </div>
-      <div className="step-label-holder">
-        <div className={"step-label"}>
-          {props.step.title}
-          <span className="filename">{props.step.file_path}</span>
-        </div>
-      </div>
-      <div className={"outgoing-connections connection-point"}>
-        <div className="inner-dot"></div>
-      </div>
-    </div>
-  );
+  return stateText;
 };
 
-export default React.forwardRef(PipelineStep);
+const PipelineStepComponent = React.forwardRef(function PipelineStep(
+  {
+    data,
+    selected,
+    movedToTop,
+    isStartNodeOfNewConnection,
+    savePositions,
+    onDoubleClick,
+    // the cursor-controlled step also renders all the interactive connections, to ensure the precision of the positions
+    interactiveConnections,
+    getPosition,
+    children, // expose children, so that children doesn't re-render when step is being dragged
+  }: {
+    data: PipelineStepState;
+    selected: boolean;
+    movedToTop: boolean;
+    isStartNodeOfNewConnection: boolean;
+    savePositions: () => void;
+    onDoubleClick: (stepUUID: string) => void;
+    interactiveConnections: Connection[];
+    getPosition: (element: HTMLElement) => Position;
+    children: React.ReactNode;
+  },
+  ref: React.MutableRefObject<HTMLDivElement>
+) {
+  const [, forceUpdate] = useForceUpdate();
+  const {
+    metadataPositions,
+    projectUuid,
+    pipelineUuid,
+    stepDomRefs,
+    isReadOnly,
+    zIndexMax,
+    dispatch,
+    mouseTracker,
+    newConnection,
+    eventVars: {
+      cursorControlledStep,
+      selectedSteps,
+      stepSelector,
+      selectedConnection,
+    },
+  } = usePipelineEditorContext();
+
+  const {
+    pipelineCanvasState: { panningState },
+  } = usePipelineCanvasContext();
+
+  const isSelectorActive = stepSelector.active;
+  const disabledDragging = isReadOnly || panningState === "panning";
+
+  // only persist meta_data for manipulating location with a local state
+  // the rest will be updated together with pipelineJson (i.e. data)
+  const { uuid, title, meta_data, file_path } = data;
+  const [metadata, setMetadata] = React.useState<PipelineStepMetaData>(() => ({
+    ...meta_data,
+  }));
+
+  const isMouseDown = React.useRef(false);
+
+  const dragCount = React.useRef(0);
+
+  const isOnDragging = dragCount.current === DRAG_CLICK_SENSITIVITY;
+
+  const shouldMoveToTop =
+    isOnDragging ||
+    isMouseDown.current ||
+    movedToTop ||
+    (!isSelectorActive && (selected || cursorControlledStep === uuid));
+
+  const zIndex = useUpdateZIndex(shouldMoveToTop, zIndexMax);
+
+  const resetDraggingVariables = React.useCallback(() => {
+    if (hasValue(cursorControlledStep)) {
+      dispatch({
+        type: "SET_CURSOR_CONTROLLED_STEP",
+        payload: undefined,
+      });
+    }
+    isMouseDown.current = false;
+    dragCount.current = 0;
+    forceUpdate();
+  }, [dragCount, forceUpdate, dispatch, cursorControlledStep]);
+
+  const finishDragging = React.useCallback(() => {
+    savePositions();
+    resetDraggingVariables();
+    document.body.removeEventListener("mouseup", finishDragging);
+  }, [resetDraggingVariables, savePositions]);
+
+  // handles all mouse up cases except "just finished dragging"
+  // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
+  // so this onMouseUp on the DOM won't work
+  const onMouseUp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (isSelectorActive) {
+      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    }
+
+    if (newConnection.current) {
+      dispatch({ type: "MAKE_CONNECTION", payload: uuid });
+    }
+
+    // this condition means user is just done dragging
+    // we cannot clean up dragging variables here
+    // skip resetDraggingVariables and let onClick take over (onClick is called right after onMouseUp)
+    if (isMouseDown.current && isOnDragging) return;
+
+    // this happens if user started dragging on the edge (i.e. continue dragging without actually hovering on the step)
+    // and release their cursor on non-canvas elements (e.g. other steps, connections)
+    // dragging should be finished here, because onClick will not be fired (user didn't mouse down in the first place)
+    if (!isMouseDown.current) finishDragging();
+
+    resetDraggingVariables();
+  };
+
+  React.useEffect(() => {
+    // because user might accidentally start dragging while their cursor is not over this DOM element
+    // this mouse event listener is used to "finish" the dragging behavior
+    if (isMouseDown.current) {
+      document.body.addEventListener("mouseup", finishDragging);
+    }
+    return () => document.body.removeEventListener("mouseup", finishDragging);
+  }, [finishDragging]);
+
+  const onMouseDown = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      e.preventDefault();
+      isMouseDown.current = true;
+      forceUpdate();
+    },
+    [forceUpdate]
+  );
+
+  const onClick = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (e.detail === 1) {
+      // even user is actually dragging, React still sees it as a click
+      // maybe because cursor remains on the same position over the DOM
+      // we can intercept this "click" event and handle it as a "done-dragging" case
+      if (isOnDragging) {
+        finishDragging();
+        return;
+      }
+
+      const ctrlKeyPressed = e.ctrlKey || e.metaKey;
+
+      // if this step (and possibly other steps) are selected,
+      // press ctrl/cmd and select this step => remove this step from the selection
+      if (selected && ctrlKeyPressed) {
+        dispatch({ type: "DESELECT_STEPS", payload: [uuid] });
+        return;
+      }
+      // only need to re-render if step is not selected
+      if (!selected) {
+        dispatch({
+          type: "SELECT_STEPS",
+          payload: { uuids: [uuid], inclusive: ctrlKeyPressed },
+        });
+      }
+      if (selected) {
+        dispatch({ type: "SET_OPENED_STEP", payload: uuid });
+      }
+      resetDraggingVariables();
+    }
+    if (e.detail === 2) {
+      const valid = await isValidFile(projectUuid, pipelineUuid, file_path);
+      if (valid) onDoubleClick(uuid);
+    }
+  };
+
+  const onMouseLeave = React.useCallback(
+    (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // if cursor moves too fast, or move out of canvas, we need to remove the dragging state
+      isMouseDown.current = false;
+      savePositions();
+      if (selected) {
+        resetDraggingVariables();
+      }
+    },
+    [resetDraggingVariables, savePositions, selected]
+  );
+
+  const detectDraggingBehavior = React.useCallback(() => {
+    if (!isMouseDown.current) return;
+    if (dragCount.current < DRAG_CLICK_SENSITIVITY) {
+      dragCount.current += 1;
+      return;
+    }
+
+    if (!cursorControlledStep) {
+      dispatch({
+        type: "SET_CURSOR_CONTROLLED_STEP",
+        payload: uuid,
+      });
+    }
+  }, [cursorControlledStep, dispatch, uuid]);
+
+  const onMouseMove = React.useCallback(() => {
+    if (disabledDragging) {
+      resetDraggingVariables();
+      return;
+    }
+
+    if (!hasValue(cursorControlledStep)) detectDraggingBehavior();
+
+    // user is dragging this step
+    const isBeingDragged = cursorControlledStep === uuid;
+    // multiple steps selected, user dragged one of the selected steps (but not the current one)
+    const shouldFollowControlledStep =
+      selected &&
+      !isSelectorActive &&
+      hasValue(cursorControlledStep) &&
+      selectedSteps.includes(cursorControlledStep);
+
+    const shouldMoveWithCursor = isBeingDragged || shouldFollowControlledStep;
+
+    if (shouldMoveWithCursor) {
+      setMetadata((current) => {
+        const { x, y } = mouseTracker.current.delta;
+        const updatedPosition = [
+          current.position[0] + x,
+          current.position[1] + y,
+        ] as [number, number];
+        metadataPositions.current[uuid] = updatedPosition;
+        return { ...current, position: updatedPosition };
+      });
+    }
+  }, [
+    mouseTracker,
+    uuid,
+    isSelectorActive,
+    selected,
+    cursorControlledStep,
+    resetDraggingVariables,
+    disabledDragging,
+    selectedSteps,
+    metadataPositions,
+    detectDraggingBehavior,
+  ]);
+
+  // use mouseTracker to get mouse movements
+  // mutate the local metadata without update the central state in useEventVars
+  // ONLY selected steps are re-rendered, so we can get away from performance penalty
+  React.useEffect(() => {
+    document.body.addEventListener("mousemove", onMouseMove);
+    document.body.addEventListener("mouseleave", onMouseLeave);
+    return () => {
+      document.body.removeEventListener("mousemove", onMouseMove);
+      document.body.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [onMouseMove, onMouseLeave]);
+
+  const [x, y] = metadata.position;
+  const transform = `translateX(${x}px) translateY(${y}px)`;
+  const isCursorControlled = cursorControlledStep === uuid;
+
+  const [isHovering, setIsHovering] = React.useState(false);
+
+  const onMouseOverContainer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (newConnection.current) setIsHovering(true);
+  };
+  const onMouseOutContainer = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsHovering(false);
+  };
+
+  return (
+    <>
+      <Box
+        data-uuid={uuid}
+        data-test-title={title}
+        data-test-id={"pipeline-step"}
+        ref={ref}
+        className={classNames(
+          "pipeline-step",
+          (selected || isHovering) && "selected",
+          metadata.hidden && "hidden",
+          isStartNodeOfNewConnection && "creating-connection"
+        )}
+        style={{ transform, zIndex }}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onMouseOver={onMouseOverContainer}
+        onMouseOut={onMouseOutContainer}
+        onClick={onClick}
+      >
+        {children}
+      </Box>
+      {isCursorControlled && // the cursor-controlled step also renders all the interactive connections
+        interactiveConnections.map((connection) => {
+          if (!connection) return null;
+
+          const { startNodeUUID, endNodeUUID } = connection;
+          const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
+          const endNode = endNodeUUID
+            ? stepDomRefs.current[`${endNodeUUID}-incoming`]
+            : null;
+
+          // startNode is required
+          if (!startNode) return null;
+
+          // if the connection is attached to a selected step,
+          // the connection should update its start/end node, to move along with the step
+          const shouldUpdateStart =
+            cursorControlledStep === startNodeUUID ||
+            (selectedSteps.includes(startNodeUUID) &&
+              selectedSteps.includes(cursorControlledStep));
+
+          const shouldUpdateEnd =
+            cursorControlledStep === endNodeUUID ||
+            (selectedSteps.includes(endNodeUUID) &&
+              selectedSteps.includes(cursorControlledStep));
+
+          const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
+            boolean,
+            boolean
+          ];
+
+          let startNodePosition = getPosition(startNode);
+          let endNodePosition = getPosition(endNode);
+
+          const key = `${startNodeUUID}-${endNodeUUID}-interactive`;
+          const selected =
+            selectedConnection?.startNodeUUID === startNodeUUID &&
+            selectedConnection?.endNodeUUID === endNodeUUID;
+
+          return (
+            <InteractiveConnection
+              key={key}
+              startNodeUUID={startNodeUUID}
+              endNodeUUID={endNodeUUID}
+              getPosition={getPosition}
+              selected={selected}
+              stepDomRefs={stepDomRefs}
+              startNodeX={startNodePosition.x}
+              startNodeY={startNodePosition.y}
+              endNodeX={endNodePosition?.x}
+              endNodeY={endNodePosition?.y}
+              shouldUpdate={shouldUpdate}
+            />
+          );
+        })}
+    </>
+  );
+});
+
+export const PipelineStep = React.memo(PipelineStepComponent);

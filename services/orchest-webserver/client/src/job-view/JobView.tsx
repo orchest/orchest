@@ -209,7 +209,7 @@ const JobView: React.FC = () => {
     ) : null;
 
   return (
-    <Layout fullHeight>
+    <Layout>
       <>
         {!job ? (
           <LinearProgress />

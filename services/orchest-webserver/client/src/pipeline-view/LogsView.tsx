@@ -9,7 +9,9 @@ import { siteMap } from "@/Routes";
 import type {
   LogType,
   PipelineJson,
+  PipelineStepState,
   Step,
+  StepsDict,
   TViewPropsWithRequiredQueryArgs,
 } from "@/types";
 import {
@@ -64,8 +66,9 @@ const LogsView: React.FC = () => {
     type: LogType;
     logId: string;
   }>(null);
-  const [sortedSteps, setSortedSteps] = React.useState<Step[]>([]);
-  const [pipelineJson, setPipelineJson] = React.useState(undefined);
+  const [sortedSteps, setSortedSteps] = React.useState<PipelineStepState[]>(
+    undefined
+  );
   const [sio, setSio] = React.useState(undefined);
   const [job, setJob] = React.useState(undefined);
 
@@ -103,16 +106,18 @@ const LogsView: React.FC = () => {
     }
   };
 
-  const topologicalSort = (pipelineSteps) => {
+  const topologicalSort = (pipelineSteps: Record<string, Step>) => {
     let sortedStepKeys = [];
 
-    addOutgoingConnections(pipelineSteps);
+    const mutatedPipelineSteps = addOutgoingConnections(
+      pipelineSteps as StepsDict
+    );
 
-    let conditionalAdd = (step) => {
+    let conditionalAdd = (step: PipelineStepState) => {
       // add iff all parents are already in the sortedStepKeys
       let parentsAdded = true;
       for (let x = 0; x < step.incoming_connections.length; x++) {
-        if (sortedStepKeys.indexOf(step.incoming_connections[x]) == -1) {
+        if (sortedStepKeys.indexOf(step.incoming_connections[x]) === -1) {
           parentsAdded = false;
           break;
         }
@@ -124,12 +129,12 @@ const LogsView: React.FC = () => {
     };
 
     // Add self and children (breadth first)
-    let addSelfAndChildren = (step) => {
+    let addSelfAndChildren = (step: PipelineStepState) => {
       conditionalAdd(step);
 
       for (let x = 0; x < step.outgoing_connections.length; x++) {
         let childStepUUID = step.outgoing_connections[x];
-        let childStep = pipelineSteps[childStepUUID];
+        let childStep = mutatedPipelineSteps[childStepUUID];
 
         conditionalAdd(childStep);
       }
@@ -137,19 +142,19 @@ const LogsView: React.FC = () => {
       // Recurse down
       for (let x = 0; x < step.outgoing_connections.length; x++) {
         let childStepUUID = step.outgoing_connections[x];
-        addSelfAndChildren(pipelineSteps[childStepUUID]);
+        addSelfAndChildren(mutatedPipelineSteps[childStepUUID]);
       }
     };
 
     // Find roots
-    for (let stepUUID in pipelineSteps) {
-      let step = pipelineSteps[stepUUID];
+    for (let stepUUID in mutatedPipelineSteps) {
+      let step = mutatedPipelineSteps[stepUUID];
       if (step.incoming_connections.length == 0) {
         addSelfAndChildren(step);
       }
     }
 
-    return sortedStepKeys.map((stepUUID) => pipelineSteps[stepUUID]);
+    return sortedStepKeys.map((stepUUID) => mutatedPipelineSteps[stepUUID]);
   };
 
   const setHeaderComponent = (pipelineName: string) => {
@@ -184,7 +189,7 @@ const LogsView: React.FC = () => {
 
       if (result.success) {
         let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
-        setPipelineJson(fetchedPipeline);
+        // setPipelineJson(fetchedPipeline);
 
         let sortedSteps = topologicalSort(fetchedPipeline.steps);
         setSortedSteps(sortedSteps);
@@ -224,8 +229,7 @@ const LogsView: React.FC = () => {
     setSelectedLog({ type, logId: uuid });
   };
 
-  const hasLoaded =
-    pipelineJson && sortedSteps !== undefined && sio && (!jobUuid || job);
+  const hasLoaded = sortedSteps !== undefined && sio && (!jobUuid || job);
 
   const services = React.useMemo(() => {
     if (!hasLoaded) return {};
@@ -247,11 +251,7 @@ const LogsView: React.FC = () => {
 
   React.useEffect(() => {
     // Preselect first step, or service (if no step exists)
-    if (
-      pipelineJson !== undefined &&
-      pipelineJson !== undefined &&
-      !selectedLog
-    ) {
+    if (sortedSteps !== undefined && !selectedLog) {
       if (sortedSteps.length > 0) {
         setSelectedLog({
           type: "step",
