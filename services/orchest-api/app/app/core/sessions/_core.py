@@ -110,10 +110,11 @@ def launch(
 
     user_session_service_k8s_deployment_manifests = []
     user_session_service_k8s_service_manifests = []
+    user_session_service_k8s_ingress_manifests = []
     for service_config in session_config.get("services", {}).values():
         if session_type.value not in service_config["scope"]:
             continue
-        dep, serv = _manifests._get_user_service_deployment_service_manifest(
+        dep, serv, ingress = _manifests._get_user_service_deployment_service_manifest(
             session_uuid,
             session_config,
             service_config,
@@ -121,6 +122,7 @@ def launch(
         )
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
+        user_session_service_k8s_ingress_manifests.append(ingress)
 
     ns = _config.ORCHEST_NAMESPACE
 
@@ -175,6 +177,14 @@ def launch(
     for manifest in user_session_service_k8s_service_manifests:
         logger.info(f'Creating service {manifest["metadata"]["name"]}')
         k8s_core_api.create_namespaced_service(
+            ns,
+            manifest,
+        )
+
+    logger.info("Creating user session services k8s ingresses.")
+    for manifest in user_session_service_k8s_ingress_manifests:
+        logger.info(f'Creating ingress {manifest["metadata"]["name"]}')
+        k8s_networking_api.create_namespaced_ingress(
             ns,
             manifest,
         )
