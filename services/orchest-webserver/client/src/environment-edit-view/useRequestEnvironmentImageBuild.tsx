@@ -1,25 +1,27 @@
 import { useAsync } from "@/hooks/useAsync";
-import type { EnvironmentBuild } from "@/types";
+import type { EnvironmentImageBuild } from "@/types";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
-export const useRequestEnvironmentBuild = (url: string) => {
+export const useRequestEnvironmentImageBuild = (url: string) => {
   const {
-    data: newEnvironmentBuild,
+    data: newEnvironmentImageBuild,
     status,
     error: requestBuildError,
     run,
-  } = useAsync<EnvironmentBuild>();
+  } = useAsync<EnvironmentImageBuild>();
   const requestToBuild = React.useCallback(
     (project_uuid: string, environment_uuid: string) => {
       return run(
-        fetcher<{ environment_builds: EnvironmentBuild[] }>(url, {
+        fetcher<{ environment_image_builds: EnvironmentImageBuild[] }>(url, {
           method: "POST",
           headers: HEADER.JSON,
           body: JSON.stringify({
-            environment_build_requests: [{ environment_uuid, project_uuid }],
+            environment_image_build_requests: [
+              { environment_uuid, project_uuid },
+            ],
           }),
-        }).then((response) => response.environment_builds[0])
+        }).then((response) => response.environment_image_builds[0])
       );
     },
     [run, url]
@@ -30,7 +32,7 @@ export const useRequestEnvironmentBuild = (url: string) => {
   return {
     requestToBuild,
     isRequestingToBuild,
-    newEnvironmentBuild,
+    newEnvironmentImageBuild,
     requestBuildError,
   };
 };

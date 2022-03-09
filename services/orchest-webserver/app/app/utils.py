@@ -242,7 +242,7 @@ def delete_environment(app, project_uuid, environment_uuid):
     """
     url = (
         f"http://{app.config['ORCHEST_API_ADDRESS']}"
-        f"/api/environment-images/{project_uuid}/{environment_uuid}"
+        f"/api/environments/{project_uuid}/{environment_uuid}"
     )
     app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 

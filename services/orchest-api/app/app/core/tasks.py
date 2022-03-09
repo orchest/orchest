@@ -15,8 +15,8 @@ from _orchest.internals.utils import copytree, rmtree
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
-from app.core.environment_builds import build_environment_task
-from app.core.jupyter_builds import build_jupyter_task
+from app.core.environment_image_builds import build_environment_image_task
+from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
 from app.core.sessions import launch_noninteractive_session
 from app.types import PipelineDefinition, RunConfig
@@ -156,7 +156,7 @@ def start_non_interactive_pipeline_run(
             Example: {
                 'host_user_dir': '/home/../userdir',
                 'project_dir': '/home/../pipelines/uuid',
-                'env_uuid_to_image_mappings': {
+                'env_uuid_to_image': {
                     'b6527b0b-bfcc-4aff-91d1-37f9dfd5d8e8':
                         'sha256:61f82126945bb25dd85d6a5b122a1815df1c0c5f91621089cde0938be4f698d4'
                 }
@@ -205,13 +205,11 @@ def start_non_interactive_pipeline_run(
     # Note that run_config contains user_env_variables, which is of
     # interest for the session_config.
     session_config = copy.deepcopy(run_config)
-    session_config.pop("env_uuid_to_image_mappings")
+    session_config.pop("env_uuid_to_image")
     session_config.pop("run_endpoint")
     session_config["host_userdir"] = host_userdir
     session_config["services"] = pipeline_definition.get("services", {})
-    session_config["env_uuid_to_image_mappings"] = run_config[
-        "env_uuid_to_image_mappings"
-    ]
+    session_config["env_uuid_to_image"] = run_config["env_uuid_to_image"]
 
     with launch_noninteractive_session(
         session_uuid,
@@ -232,10 +230,11 @@ def start_non_interactive_pipeline_run(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_environment(
+def build_environment_image(
     self,
-    project_uuid,
-    environment_uuid,
+    project_uuid: str,
+    environment_uuid: str,
+    image_tag: str,
     project_path,
 ) -> str:
     """Builds an environment, pushing a new image to the registry.
@@ -250,8 +249,8 @@ def build_environment(
 
     """
 
-    return build_environment_task(
-        self.request.id, project_uuid, environment_uuid, project_path
+    return build_environment_image_task(
+        self.request.id, project_uuid, environment_uuid, image_tag, project_path
     )
 
 
@@ -259,7 +258,7 @@ def build_environment(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_jupyter(
+def build_jupyter_image(
     self,
 ) -> str:
     """Builds Jupyter image, pushing a new image to the registry.
@@ -269,7 +268,7 @@ def build_jupyter(
 
     """
 
-    return build_jupyter_task(self.request.id)
+    return build_jupyter_image_task(self.request.id)
 
 
 @celery.task(bind=True, base=AbortableTask)

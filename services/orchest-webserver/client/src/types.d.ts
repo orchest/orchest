@@ -62,8 +62,8 @@ export type OrchestConfig = {
   GPU_ENABLED_INSTANCE: boolean;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
-  ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
-  ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE: string;
   ORCHEST_WEB_URLS: {
     github: string;
     readthedocs: string;
@@ -156,15 +156,16 @@ export type CustomImage = Pick<
   "base_image" | "language" | "gpu_support"
 >;
 
-export type EnvironmentBuild = {
+export type EnvironmentImageBuild = {
   environment_uuid: string;
   finished_time: string;
   project_path: string;
   project_uuid: string;
+  image_tag: string;
   requested_time: string;
   started_time: string;
   status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
-  uuid: string;
+  celery_task_uuid: string;
 };
 
 export type PipelineStepStatus =

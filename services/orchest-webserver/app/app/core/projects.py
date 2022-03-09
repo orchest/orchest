@@ -24,7 +24,7 @@ from app.utils import (
     project_uuid_to_path,
     remove_project_jobs_directories,
 )
-from app.views.orchest_api import api_proxy_environment_builds
+from app.views.orchest_api import api_proxy_environment_image_builds
 
 
 class CreateProject(TwoPhaseFunction):
@@ -407,7 +407,7 @@ class ImportGitProject(TwoPhaseFunction):
 def build_environments(environment_uuids, project_uuid):
     project_path = project_uuid_to_path(project_uuid)
 
-    environment_build_requests = [
+    environment_image_build_requests = [
         {
             "project_uuid": project_uuid,
             "project_path": project_path,
@@ -416,8 +416,8 @@ def build_environments(environment_uuids, project_uuid):
         for environment_uuid in environment_uuids
     ]
 
-    return api_proxy_environment_builds(
-        environment_build_requests, current_app.config["ORCHEST_API_ADDRESS"]
+    return api_proxy_environment_image_builds(
+        environment_image_build_requests, current_app.config["ORCHEST_API_ADDRESS"]
     )
 
 

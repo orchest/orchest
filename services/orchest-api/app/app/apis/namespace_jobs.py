@@ -1,7 +1,7 @@
 import copy
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
@@ -296,7 +296,6 @@ class PipelineRunsList(Resource):
         job_runs_query = (
             models.NonInteractivePipelineRun.query.options(
                 noload(models.NonInteractivePipelineRun.pipeline_steps),
-                noload(models.NonInteractivePipelineRun.image_mappings),
                 undefer(models.NonInteractivePipelineRun.env_variables),
             )
             .filter_by(
@@ -799,12 +798,17 @@ class RunJob(TwoPhaseFunction):
         # Prepare data for _collateral.
         self.collateral_kwargs["job"] = job.as_dict()
 
-        mappings = {
-            mapping.orchest_environment_uuid: mapping.docker_img_id
-            for mapping in job.image_mappings
-        }
+        env_uuid_to_image = {}
+        for a in job.images_in_use:
+            env_uuid_to_image[a.environment_uuid] = (
+                _config.ENVIRONMENT_IMAGE_NAME.format(
+                    project_uuid=a.project_uuid, environment_uuid=a.environment_uuid
+                )
+                + f":{a.environment_image_tag}"
+            )
+
         run_config = job.pipeline_run_spec["run_config"]
-        run_config["env_uuid_to_image_mappings"] = mappings
+        run_config["env_uuid_to_image"] = env_uuid_to_image
         run_config["user_env_variables"] = job.env_variables
         self.collateral_kwargs["run_config"] = run_config
 
@@ -1004,23 +1008,22 @@ class CreateJob(TwoPhaseFunction):
         }
         db.session.add(models.Job(**job))
 
-        self.collateral_kwargs["project_uuid"] = job_spec["project_uuid"]
-        self.collateral_kwargs["job_uuid"] = job_spec["uuid"]
         spec = copy.deepcopy(job_spec["pipeline_run_spec"])
         spec["pipeline_definition"] = job_spec["pipeline_definition"]
         pipeline = construct_pipeline(**spec)
-        self.collateral_kwargs["environment_uuids"] = pipeline.get_environments()
-        return job
 
-    def _collateral(
-        self, project_uuid: str, job_uuid: str, environment_uuids: Set[str]
-    ):
         # This way all runs of a job will use the same environments. The
         # images to use will be retrieved through the JobImageMapping
         # model.
         environments.lock_environment_images_for_job(
-            job_uuid, project_uuid, environment_uuids
+            job_spec["uuid"], job_spec["project_uuid"], pipeline.get_environments()
         )
+
+        self.collateral_kwargs["job_uuid"] = job_spec["uuid"]
+        return job
+
+    def _collateral(self, job_uuid: str):
+        pass
 
     def _revert(self):
         models.Job.query.filter_by(

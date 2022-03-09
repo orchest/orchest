@@ -58,8 +58,8 @@ class Project(BaseModel):
     pipelines = db.relationship(
         "Pipeline", lazy="select", passive_deletes=True, cascade="all, delete"
     )
-    environment_builds = db.relationship(
-        "EnvironmentBuild", lazy="select", passive_deletes=True, cascade="all, delete"
+    environments = db.relationship(
+        "Environment", lazy="select", passive_deletes=True, cascade="all, delete"
     )
     interactive_sessions = db.relationship(
         "InteractiveSession", lazy="select", passive_deletes=True, cascade="all, delete"
@@ -115,41 +115,140 @@ class Pipeline(BaseModel):
     )
 
 
-class EnvironmentBuild(BaseModel):
-    """State of environment builds.
+class Environment(BaseModel):
+    __tablename__ = "environments"
 
-    Table meant to store the state of the build task of an environment,
-    i.e. when we need to build an image starting from a base image plus
-    optional sh code. This is not related to keeping track of
-    environments or images to decide if a project or pipeline can be
-    run.
-
-    """
-
-    __tablename__ = "environment_builds"
-    __table_args__ = (Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),)
-
-    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
-    uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     project_uuid = db.Column(
         db.String(36),
         db.ForeignKey("projects.uuid", ondelete="CASCADE"),
         primary_key=True,
+    )
+    uuid = db.Column(db.String(36), primary_key=True)
+
+    images = db.relationship(
+        "EnvironmentImage", lazy="select", passive_deletes=True, cascade="all, delete"
+    )
+
+    def __repr__(self):
+        return f"<Environment: {self.project_uuid}-{self.environment_uuid}>"
+
+
+class EnvironmentImageBuild(BaseModel):
+    """State of environment image builds.
+
+    There is a 1:1 mapping between an EnvironmentImage and an
+    EnvironmentImageBuild.
+    """
+
+    __tablename__ = "environment_image_builds"
+
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    project_uuid = db.Column(
+        db.String(36),
+        primary_key=True,
         index=True,
     )
-    environment_uuid = db.Column(db.String(36), nullable=False, index=True)
+    environment_uuid = db.Column(
+        db.String(36), nullable=False, index=True, primary_key=True
+    )
+    image_tag = db.Column(db.Integer, nullable=False, index=True, primary_key=True)
+    # To be able to cancel the task.
+    # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
+    celery_task_uuid = db.Column(db.String(36), primary_key=False, nullable=False)
+
     project_path = db.Column(db.String(4096), nullable=False, index=True)
     requested_time = db.Column(db.DateTime, unique=False, nullable=False)
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
 
+    __table_args__ = (
+        Index("uuid_proj_env_index", "project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index(None, "project_uuid", "environment_uuid", image_tag.desc()),
+    )
+
     def __repr__(self):
-        return f"<EnvironmentBuildTask: {self.uuid}>"
+        return (
+            f"<EnvironmentImageBuild: {self.project_uuid}-"
+            f"{self.environment_uuid}-{self.image_tag}>"
+        )
 
 
-class JupyterBuild(BaseModel):
-    """State of Jupyter builds.
+ForeignKeyConstraint(
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+    ],
+    [
+        Environment.project_uuid,
+        Environment.uuid,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class EnvironmentImage(BaseModel):
+    __tablename__ = "environment_images"
+
+    project_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+        # To find all images of a project.
+        index=True,
+    )
+    environment_uuid = db.Column(
+        db.String(36),
+        nullable=False,
+        primary_key=True,
+    )
+    # A new environment image record with a given tag will be created
+    # everytime an environment build is started, the tag only
+    # increments.
+    tag = db.Column(
+        db.Integer,
+        primary_key=True,
+    )
+
+    __table_args__ = (
+        # To find all images of the environment of a project.
+        Index(None, "project_uuid", "environment_uuid"),
+        # To find the latest tag.
+        Index(None, "project_uuid", "environment_uuid", tag.desc()),
+    )
+
+    def __repr__(self):
+        return (
+            "<EnvironmentImage: "
+            f"{self.project_uuid}-{self.environment_uuid}-{self.tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [EnvironmentImage.project_uuid, EnvironmentImage.environment_uuid],
+    [Environment.project_uuid, Environment.uuid],
+    ondelete="CASCADE",
+)
+
+
+ForeignKeyConstraint(
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    [
+        EnvironmentImageBuild.project_uuid,
+        EnvironmentImageBuild.environment_uuid,
+        EnvironmentImageBuild.image_tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class JupyterImageBuild(BaseModel):
+    """State of Jupyter image builds.
 
     Table meant to store the state of the build task of a
     Jupyter image, i.e. when a user wants to install a server side
@@ -157,7 +256,7 @@ class JupyterBuild(BaseModel):
 
     """
 
-    __tablename__ = "jupyter_builds"
+    __tablename__ = "jupyter_image_builds"
 
     # https://stackoverflow.com/questions/63164261/celery-task-id-max-length
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
@@ -167,7 +266,7 @@ class JupyterBuild(BaseModel):
     status = db.Column(db.String(15), unique=False, nullable=True)
 
     def __repr__(self):
-        return f"<JupyterBuildTask: {self.uuid}>"
+        return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
 
 
 class InteractiveSession(BaseModel):
@@ -203,10 +302,9 @@ class InteractiveSession(BaseModel):
         server_default="{}",
     )
 
-    # Orchest environments used as services.
-    image_mappings = db.relationship(
-        "InteractiveSessionImageMapping",
-        lazy="joined",
+    images_in_use = db.relationship(
+        "InteractiveSessionInUseImage",
+        lazy="select",
         passive_deletes=True,
         cascade="all, delete",
     )
@@ -354,13 +452,6 @@ class Job(BaseModel):
         ),
     )
 
-    image_mappings = db.relationship(
-        "JobImageMapping",
-        lazy="select",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-
     # The status of a job can be DRAFT, PENDING, STARTED, PAUSED
     # SUCCESS, ABORTED, FAILURE. Only recurring jobs can be PAUSED. Jobs
     # start as DRAFT, this indicates that the job has been created but
@@ -417,6 +508,13 @@ class Job(BaseModel):
         db.Integer, nullable=False, server_default=text("-1")
     )
 
+    images_in_use = db.relationship(
+        "JobInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
     def __repr__(self):
         return f"<Job: {self.uuid}>"
 
@@ -451,12 +549,6 @@ class PipelineRun(BaseModel):
 
     pipeline_steps = db.relationship(
         "PipelineRunStep",
-        lazy="joined",
-        passive_deletes=True,
-        cascade="all, delete",
-    )
-    image_mappings = db.relationship(
-        "PipelineRunImageMapping",
         lazy="joined",
         passive_deletes=True,
         cascade="all, delete",
@@ -644,84 +736,30 @@ class InteractivePipelineRun(PipelineRun):
         "polymorphic_identity": "InteractivePipelineRun",
     }
 
-
-class PipelineRunImageMapping(BaseModel):
-    """Stores mappings between a pipeline run and the environment
-     images it uses.
-
-    Used to understand if an image can be removed from the registry if
-    it's not used by a run which is PENDING or STARTED.  Currently, this
-    only references interactive runs.
-
-    """
-
-    __tablename__ = "pipeline_run_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("run_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("run_uuid", "docker_img_id"),
+    images_in_use = db.relationship(
+        "PipelineRunInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
     )
 
-    run_uuid = db.Column(
-        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
-        unique=False,
+
+class ClientHeartbeat(BaseModel):
+    """Clients heartbeat for idle checking."""
+
+    __tablename__ = "client_heartbeats"
+
+    id = db.Column(db.BigInteger, primary_key=True)
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
         nullable=False,
         index=True,
-        primary_key=True,
-    )
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    # Keep this column as docker_img_id until we work on the env
-    # images lifecycle.
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
+        server_default=func.now(),
     )
 
-    def __repr__(self):
-        return (
-            f"<PipelineRunImageMapping: {self.run_uuid} | "
-            f"{self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
 
-
-class JobImageMapping(BaseModel):
-    """Stores mappings between a job and the environment images it uses.
-
-    Used to understand if an image can be removed from the registry if
-    it's not used by a job which is PENDING or STARTED.
-
-    """
-
-    __tablename__ = "job_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("job_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("job_uuid", "docker_img_id"),
-    )
-
-    job_uuid = db.Column(
-        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
-        unique=False,
-        nullable=False,
-        index=True,
-        primary_key=True,
-    )
-    orchest_environment_uuid = db.Column(
-        db.String(36), unique=False, nullable=False, primary_key=True, index=True
-    )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
-    )
-
-    def __repr__(self):
-        return (
-            f"<JobImageMapping: {self.run_uuid} | "
-            f"{self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
-        )
-
-
-class InteractiveSessionImageMapping(BaseModel):
+class InteractiveSessionInUseImage(BaseModel):
     """Mappings between an interactive session and environment images.
 
     Used to understand if an image can be removed from the registry
@@ -730,11 +768,7 @@ class InteractiveSessionImageMapping(BaseModel):
     environment as a service.
     """
 
-    __tablename__ = "interactive_session_image_mappings"
-    __table_args__ = (
-        UniqueConstraint("project_uuid", "pipeline_uuid", "orchest_environment_uuid"),
-        UniqueConstraint("project_uuid", "pipeline_uuid", "docker_img_id"),
-    )
+    __tablename__ = "interactive_session_in_use_images"
 
     project_uuid = db.Column(
         db.String(36),
@@ -752,42 +786,157 @@ class InteractiveSessionImageMapping(BaseModel):
         primary_key=True,
     )
 
-    orchest_environment_uuid = db.Column(
+    environment_uuid = db.Column(
         db.String(36), unique=False, nullable=False, primary_key=True, index=True
     )
-    docker_img_id = db.Column(
-        db.String(), unique=False, nullable=False, primary_key=True, index=True
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
     )
 
     def __repr__(self):
         return (
-            f"<InteractiveSessionImageMapping: {self.project_uuid}-"
-            f"{self.pipeline_uuid} | {self.orchest_environment_uuid} | "
-            f"{self.docker_img_id}>"
+            f"<InteractiveSessionInUseImage: {self.project_uuid}-"
+            f"{self.pipeline_uuid} | {self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
         )
 
 
-# Necessary to have a single FK path from session to image mapping.
 ForeignKeyConstraint(
     [
-        InteractiveSessionImageMapping.project_uuid,
-        InteractiveSessionImageMapping.pipeline_uuid,
+        InteractiveSessionInUseImage.project_uuid,
+        InteractiveSessionInUseImage.pipeline_uuid,
     ],
     [InteractiveSession.project_uuid, InteractiveSession.pipeline_uuid],
     ondelete="CASCADE",
 )
+ForeignKeyConstraint(
+    [
+        InteractiveSessionInUseImage.project_uuid,
+        InteractiveSessionInUseImage.environment_uuid,
+        InteractiveSessionInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
 
 
-class ClientHeartbeat(BaseModel):
-    """Clients heartbeat for idle checking."""
+class JobInUseImage(BaseModel):
+    """Stores mappings between a job and the environment images it uses.
 
-    __tablename__ = "client_heartbeats"
+    Used to understand if an image can be removed from the registry if
+    it's not used by a job which is PENDING or STARTED.
 
-    id = db.Column(db.BigInteger, primary_key=True)
+    """
 
-    timestamp = db.Column(
-        TIMESTAMP(timezone=True),
+    __tablename__ = "job_in_use_images"
+
+    job_uuid = db.Column(
+        db.ForeignKey(Job.uuid, ondelete="CASCADE"),
+        unique=False,
         nullable=False,
         index=True,
-        server_default=func.now(),
+        primary_key=True,
     )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<JobInUseImage: {self.job_uuid} | "
+            f"{self.project_uuid} | "
+            f"{self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        JobInUseImage.project_uuid,
+        JobInUseImage.environment_uuid,
+        JobInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)
+
+
+class PipelineRunInUseImage(BaseModel):
+    """Mappings between a pipeline run and environment images it uses.
+
+    Used to understand if an image can be removed from the registry if
+    it's not used by a run which is PENDING or STARTED.  Currently, this
+    only references interactive runs.
+
+    """
+
+    __tablename__ = "pipeline_run_in_use_images"
+
+    run_uuid = db.Column(
+        db.ForeignKey(PipelineRun.uuid, ondelete="CASCADE"),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    project_uuid = db.Column(
+        db.String(36),
+        unique=False,
+        nullable=False,
+        index=True,
+        primary_key=True,
+    )
+
+    environment_uuid = db.Column(
+        db.String(36), unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    environment_image_tag = db.Column(
+        db.Integer, unique=False, nullable=False, primary_key=True, index=True
+    )
+
+    def __repr__(self):
+        return (
+            f"<PipelineRunInUseImage: {self.run_uuid} | "
+            f"{self.project_uuid} | "
+            f"{self.environment_uuid} | "
+            f"{self.environment_image_tag}>"
+        )
+
+
+ForeignKeyConstraint(
+    [
+        PipelineRunInUseImage.project_uuid,
+        PipelineRunInUseImage.environment_uuid,
+        PipelineRunInUseImage.environment_image_tag,
+    ],
+    [
+        EnvironmentImage.project_uuid,
+        EnvironmentImage.environment_uuid,
+        EnvironmentImage.tag,
+    ],
+    ondelete="CASCADE",
+)

@@ -16,12 +16,38 @@ Related docs:
 import argparse
 import os
 import sys
+import uuid
+from typing import Tuple
 
+import requests
 from kubernetes import client as k8s_client
 from kubernetes import config
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
+
+
+def _env_image_name_to_project_environment_uuid(image_name: str) -> Tuple[str, str]:
+    """Extracts a project/env uuid from an environment image name.
+
+    See ENVIRONMENT_IMAGE_NAME for the expected format, example:
+    orchest-env-ae400269-642f-42db-9db4-3be9e46ed344-61a86adf-7709-413b
+    -a449-86990e77f13f
+    """
+    prefix = "orchest-env-"
+    if not image_name.startswith(prefix):
+        raise ValueError()
+
+    image_name = image_name[len(prefix) :]
+    uuid4_length = 36
+    proj_uuid = image_name[:uuid4_length]
+    # Make sure it's a valid UUID.
+    uuid.UUID(proj_uuid)
+
+    image_name = image_name[uuid4_length + 1 :]
+    env_uuid = image_name[:uuid4_length]
+    uuid.UUID(env_uuid)
+    return proj_uuid, env_uuid
 
 
 def _get_kernel_pod_manifest(
@@ -32,7 +58,16 @@ def _get_kernel_pod_manifest(
         sys.exit(
             "ERROR - KERNEL_IMAGE not found in environment - kernel launch terminating!"
         )
-    image_name = os.environ["ORCHEST_REGISTRY"] + "/" + image_name
+    proj_uuid, env_uuid = _env_image_name_to_project_environment_uuid(image_name)
+    resp = requests.get(
+        "http://"
+        + _config.ORCHEST_API_ADDRESS
+        + f"/api/environment-images/latest/{proj_uuid}/{env_uuid}"
+    )
+    if resp.status_code != 200:
+        sys.exit("Failed to retrieve latest environment image version.")
+    tag = resp.json()["tag"]
+    image_name = f'{os.environ["ORCHEST_REGISTRY"]}/{image_name}:{tag}'
 
     kernel_username = os.environ.get("KERNEL_USERNAME")
     if kernel_username is None:

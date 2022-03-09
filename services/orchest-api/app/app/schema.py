@@ -79,6 +79,31 @@ projects = Model(
     {"projects": fields.List(fields.Nested(project), description="All projects")},
 )
 
+environment = Model(
+    "Environment",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "uuid": fields.String(required=True, description="UUID of environment"),
+    },
+)
+
+environment_post = Model(
+    "EnvironmentPost",
+    {
+        "uuid": fields.String(required=True, description="UUID of environment"),
+    },
+)
+
+environments = Model(
+    "Environments",
+    {
+        "environments": fields.List(
+            fields.Nested(environment), description="Environments"
+        )
+    },
+)
+
+
 service = Model(
     "Service",
     {
@@ -553,8 +578,8 @@ jobs = Model(
     },
 )
 
-environment_build = Model(
-    "EnvironmentBuild",
+environment_image_build = Model(
+    "EnvironmentImageBuild",
     {
         "uuid": fields.String(
             required=True, description="UUID of the environment build"
@@ -562,6 +587,9 @@ environment_build = Model(
         "project_uuid": fields.String(required=True, description="UUID of the project"),
         "environment_uuid": fields.String(
             required=True, description="UUID of the environment"
+        ),
+        "image_tag": fields.String(
+            required=True, description="Tag of the image to be built"
         ),
         "project_path": fields.String(required=True, description="Project path"),
         "requested_time": fields.String(
@@ -582,8 +610,8 @@ environment_build = Model(
 )
 
 
-environment_build_request = Model(
-    "EnvironmentBuildRequest",
+environment_image_build_request = Model(
+    "EnvironmentImageBuildRequest",
     {
         "project_uuid": fields.String(required=True, description="UUID of the project"),
         "environment_uuid": fields.String(
@@ -593,45 +621,56 @@ environment_build_request = Model(
     },
 )
 
-environment_build_requests = Model(
-    "EnvironmentBuildRequests",
+environment_image_build_requests = Model(
+    "EnvironmentImageBuildRequests",
     {
-        "environment_build_requests": fields.List(
-            fields.Nested(environment_build_request),
-            description="Collection of environment_build_request",
+        "environment_image_build_requests": fields.List(
+            fields.Nested(environment_image_build_request),
+            description="Collection of environment_image_build_request",
             unique=True,
         ),
     },
 )
 
-environment_builds = Model(
-    "EnvironmentBuilds",
+environment_image_builds = Model(
+    "EnvironmentImageBuilds",
     {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
+        "environment_image_builds": fields.List(
+            fields.Nested(environment_image_build),
+            description="Collection of environment_image_builds",
         ),
     },
 )
 
-environment_builds_requests_result = Model(
-    "EnvironmentBuildsPost",
+environment_image_builds_requests_result = Model(
+    "EnvironmentImageBuildsPost",
     {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
+        "environment_image_builds": fields.List(
+            fields.Nested(environment_image_build),
+            description="Collection of environment_image_builds",
         ),
         "failed_requests": fields.List(
-            fields.Nested(environment_build_request),
+            fields.Nested(environment_image_build_request),
             description="Collection of requests that could not be satisfied",
             unique=True,
         ),
     },
 )
 
+environment_image = Model(
+    "EnvironmentImage",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of environment"
+        ),
+        "tag": fields.String(required=True, description="Tag of the image"),
+    },
+)
 
-jupyter_build = Model(
-    "JupyterBuild",
+
+jupyter_image_build = Model(
+    "JupyterEnvironmentBuild",
     {
         "uuid": fields.String(required=True, description="UUID of the Jupyter build"),
         "requested_time": fields.String(
@@ -651,23 +690,23 @@ jupyter_build = Model(
     },
 )
 
-jupyter_builds = Model(
-    "JupyterBuilds",
+jupyter_image_builds = Model(
+    "JupyterEnvironmentBuilds",
     {
-        "jupyter_builds": fields.List(
-            fields.Nested(jupyter_build),
+        "jupyter_image_builds": fields.List(
+            fields.Nested(jupyter_image_build),
             required=True,
-            description="Collection of jupyter_builds",
+            description="Collection of jupyter_image_builds",
         ),
     },
 )
 
-jupyter_build_request_result = Model(
-    "JupyterBuildPost",
+jupyter_image_build_request_result = Model(
+    "JupyterEnvironmentBuildPost",
     {
-        "jupyter_build": fields.Nested(
-            jupyter_build,
-            description="Requested jupyter_build",
+        "jupyter_image_build": fields.Nested(
+            jupyter_image_build,
+            description="Requested jupyter_image_build",
         )
     },
 )
@@ -730,7 +769,7 @@ _idleness_check_result_details = Model(
         "active_clients": fields.Boolean(
             required=True,
         ),
-        "ongoing_environment_builds": fields.Boolean(
+        "ongoing_environment_image_builds": fields.Boolean(
             required=True,
         ),
         "ongoing_jupyterlab_builds": fields.Boolean(

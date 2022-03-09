@@ -2,7 +2,6 @@ from flask import request
 from flask.globals import current_app
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc
-from sqlalchemy.orm import lazyload
 
 import app.models as models
 from _orchest.internals import config as _config
@@ -12,7 +11,7 @@ from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.connections import db
 from app.core import environments, sessions
-from app.errors import JupyterBuildInProgressException
+from app.errors import JupyterEnvironmentBuildInProgressException
 from app.types import InteractiveSessionConfig, SessionType
 from app.utils import register_schema
 
@@ -58,8 +57,8 @@ class SessionList(Resource):
         try:
             with TwoPhaseExecutor(db.session) as tpe:
                 CreateInteractiveSession(tpe).transaction(session_config)
-        except JupyterBuildInProgressException:
-            return {"message": "JupyterBuildInProgress"}, 423
+        except JupyterEnvironmentBuildInProgressException:
+            return {"message": "JupyterEnvironmentBuildInProgress"}, 423
         except Exception as e:
             current_app.logger.error(e)
             return {"message": str(e)}, 500
@@ -141,38 +140,27 @@ class CreateInteractiveSession(TwoPhaseFunction):
     def _transaction(self, session_config: InteractiveSessionConfig):
 
         # Gate check to see if there is a Jupyter lab build active
-        latest_jupyter_build = models.JupyterBuild.query.order_by(
-            desc(models.JupyterBuild.requested_time)
+        latest_jupyter_image_build = models.JupyterImageBuild.query.order_by(
+            desc(models.JupyterImageBuild.requested_time)
         ).first()
 
-        if latest_jupyter_build is not None and latest_jupyter_build.status in [
-            "PENDING",
-            "STARTED",
-        ]:
-            raise JupyterBuildInProgressException()
+        if (
+            latest_jupyter_image_build is not None
+            and latest_jupyter_image_build.status
+            in [
+                "PENDING",
+                "STARTED",
+            ]
+        ):
+            raise JupyterEnvironmentBuildInProgressException()
 
-        # Make sure the service environments are there. This piece of
-        # code needs to be there to reject a session post if the
-        # referenced environments aren't there, since this is something
-        # the background task that is launching the session cannot do.
+        # Lock the orchest environment images that are used as services.
         env_as_services = set()
         prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
         for service in session_config.get("services", {}).values():
             img = service["image"]
             if img.startswith(prefix):
                 env_as_services.add(img.replace(prefix, ""))
-        try:
-            environments.get_env_uuids_to_image_id_mappings(
-                session_config["project_uuid"], env_as_services
-            )
-        except self_errors.ImageNotFound as e:
-            raise self_errors.ImageNotFound(
-                "Pipeline services were referencing environments for "
-                f"which an image does not exist, {e}."
-            )
-        except self_errors.PipelineDefinitionNotValid:
-            msg = "Please make sure every pipeline step is assigned an environment."
-            raise self_errors.PipelineDefinitionNotValid(msg)
 
         interactive_session = {
             "project_uuid": session_config["project_uuid"],
@@ -187,6 +175,24 @@ class CreateInteractiveSession(TwoPhaseFunction):
         }
         db.session.add(models.InteractiveSession(**interactive_session))
 
+        try:
+            env_uuid_to_image = (
+                environments.lock_environment_images_for_interactive_session(
+                    session_config["project_uuid"],
+                    session_config["pipeline_uuid"],
+                    env_as_services,
+                )
+            )
+        except self_errors.ImageNotFound as e:
+            raise self_errors.ImageNotFound(
+                "Pipeline services were referencing environments for "
+                f"which an image does not exist, {e}."
+            )
+        except self_errors.PipelineDefinitionNotValid:
+            msg = "Please make sure every pipeline step is assigned an environment."
+            raise self_errors.PipelineDefinitionNotValid(msg)
+        session_config["env_uuid_to_image"] = env_uuid_to_image
+
         session_uuid = (
             session_config["project_uuid"][:18] + session_config["pipeline_uuid"][:18]
         )
@@ -195,13 +201,9 @@ class CreateInteractiveSession(TwoPhaseFunction):
 
     @classmethod
     def _should_abort_session_start(cls, project_uuid, pipeline_uuid) -> bool:
-        session_entry = (
-            models.InteractiveSession.query.options(
-                lazyload(models.InteractiveSession.image_mappings)
-            )
-            .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
-            .one_or_none()
-        )
+        session_entry = models.InteractiveSession.query.filter_by(
+            project_uuid=project_uuid, pipeline_uuid=pipeline_uuid
+        ).one_or_none()
         # Has been stopped or is in the process of being stopped.
         return session_entry is None or session_entry.status != "LAUNCHING"
 
@@ -215,24 +217,6 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 project_uuid = session_config["project_uuid"]
                 pipeline_uuid = session_config["pipeline_uuid"]
 
-                env_as_services = set()
-                prefix = _config.ENVIRONMENT_AS_SERVICE_PREFIX
-                for service in session_config.get("services", {}).values():
-                    img = service["image"]
-                    if img.startswith(prefix):
-                        env_as_services.add(img.replace(prefix, ""))
-
-                # Lock the orchest environment images that are used
-                # as services.
-                env_uuid_image_id_mappings = (
-                    environments.lock_environment_images_for_session(
-                        project_uuid, pipeline_uuid, env_as_services
-                    )
-                )
-                session_config[
-                    "env_uuid_to_image_mappings"
-                ] = env_uuid_image_id_mappings
-
                 sessions.launch(
                     session_uuid,
                     SessionType.INTERACTIVE,
@@ -245,11 +229,7 @@ class CreateInteractiveSession(TwoPhaseFunction):
                 # with_for_update to avoid overwriting the state of a
                 # STOPPING instance.
                 session_entry = (
-                    models.InteractiveSession.query
-                    # The lazyload is because you can't lock for update
-                    # such a relationship (nullable FK).
-                    .options(lazyload(models.InteractiveSession.image_mappings))
-                    .with_for_update()
+                    models.InteractiveSession.query.with_for_update()
                     .populate_existing()
                     .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
                     .one_or_none()
@@ -309,10 +289,7 @@ class StopInteractiveSession(TwoPhaseFunction):
     ):
 
         session = (
-            models.InteractiveSession.query.options(
-                lazyload(models.InteractiveSession.image_mappings)
-            )
-            .with_for_update()
+            models.InteractiveSession.query.with_for_update()
             .populate_existing()
             .filter_by(project_uuid=project_uuid, pipeline_uuid=pipeline_uuid)
             .one_or_none()

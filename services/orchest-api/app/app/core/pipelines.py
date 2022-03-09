@@ -477,9 +477,7 @@ def _step_to_workflow_manifest_task(
                     "name": "image",
                     "value": registry_ip
                     + "/"
-                    + run_config["env_uuid_to_image_mappings"][
-                        step.properties["environment"]
-                    ],
+                    + run_config["env_uuid_to_image"][step.properties["environment"]],
                 },
                 {"name": "working_dir", "value": working_dir},
                 {

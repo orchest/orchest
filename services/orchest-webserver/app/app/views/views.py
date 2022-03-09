@@ -118,6 +118,14 @@ def register_views(app, db):
                 # use specified uuid if it's not keyword 'new'
                 if environment_uuid != "new":
                     e.uuid = environment_uuid
+                else:
+                    url = (
+                        f'http://{app.config["ORCHEST_API_ADDRESS"]}'
+                        f"/api/environments/{project_uuid}"
+                    )
+                    resp = requests.post(url, json={"uuid": e.uuid})
+                    if resp.status_code != 201:
+                        return {}, resp.status_code, resp.headers.items()
 
                 environment_dir = get_environment_directory(e.uuid, project_uuid)
 
@@ -167,8 +175,8 @@ def register_views(app, db):
         ]
 
         front_end_config_internal = [
-            "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE",
-            "ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE",
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 

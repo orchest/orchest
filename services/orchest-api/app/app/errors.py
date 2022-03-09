@@ -2,7 +2,7 @@ class SessionInProgressException(Exception):
     pass
 
 
-class JupyterBuildInProgressException(Exception):
+class JupyterEnvironmentBuildInProgressException(Exception):
     pass
 
 

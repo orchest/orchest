@@ -77,8 +77,8 @@ WEBSERVER_LOGS = "/orchest/services/orchest-webserver/app/orchest-webserver.log"
 # Networking
 ORCHEST_API_ADDRESS = "orchest-api"
 ORCHEST_SOCKETIO_SERVER_ADDRESS = "http://orchest-webserver"
-ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE = "/environment_builds"
-ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE = "/jupyter_builds"
+ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE = "/environment_image_builds"
+ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE = "/jupyter_image_builds"
 
 
 ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"

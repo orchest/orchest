@@ -17,17 +17,20 @@ from app.utils import (
 )
 
 
-def api_proxy_environment_builds(environment_build_requests, orchest_api_address):
+def api_proxy_environment_image_builds(
+    environment_image_build_requests, orchest_api_address
+):
     """
-    environment_build_requests: List[] of EnvironmentBuildRequest
-    EnvironmentBuildRequest = {
+    environment_image_build_requests: List[] of
+    EnvironmentImageBuildRequest:
+    EnvironmentImageBuildRequest = {
         project_uuid:str
         environment_uuid:str
         project_path:str
     }
     """
 
-    json_obj = {"environment_build_requests": environment_build_requests}
+    json_obj = {"environment_image_build_requests": environment_image_build_requests}
 
     return requests.post(
         "http://" + orchest_api_address + "/api/environment-builds/",
@@ -59,7 +62,9 @@ def register_orchest_api_views(app, db):
         + "/<project_uuid>/<environment_uuid>",
         methods=["GET"],
     )
-    def catch_api_proxy_environment_build_most_recent(project_uuid, environment_uuid):
+    def catch_api_proxy_environment_image_build_most_recent(
+        project_uuid, environment_uuid
+    ):
 
         resp = requests.get(
             "http://"
@@ -71,21 +76,31 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
-        "/catch/api-proxy/api/environment-builds/<environment_build_uuid>",
+        "/catch/api-proxy/api/environment-builds/<project_uuid>/<environment_uuid>/"
+        "<image_tag>",
         methods=["DELETE"],
     )
-    def catch_api_proxy_environment_build_delete(environment_build_uuid):
+    def catch_api_proxy_environment_image_build_delete(
+        project_uuid,
+        environment_uuid,
+        image_tag,
+    ):
 
         resp = requests.delete(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/environment-builds/%s" % (environment_build_uuid),
+            + "/api/environment-builds/%s/%s/%s"
+            % (project_uuid, environment_uuid, image_tag),
         )
 
         analytics.send_event(
             app,
             analytics.Event.ENVIRONMENT_BUILD_CANCEL,
-            {"environment_build_uuid": environment_build_uuid},
+            {
+                "project_uuid": project_uuid,
+                "environment_uuid": environment_uuid,
+                "image_tag": image_tag,
+            },
         )
         return resp.content, resp.status_code, resp.headers.items()
 
@@ -93,7 +108,7 @@ def register_orchest_api_views(app, db):
         "/catch/api-proxy/api/environment-builds/most-recent/<project_uuid>",
         methods=["GET"],
     )
-    def catch_api_proxy_environment_builds_most_recent(project_uuid):
+    def catch_api_proxy_environment_image_builds_most_recent(project_uuid):
 
         resp = requests.get(
             "http://"
@@ -104,22 +119,24 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/environment-builds", methods=["POST"])
-    def catch_api_proxy_environment_builds():
+    def catch_api_proxy_environment_image_builds():
 
-        environment_build_requests = request.json["environment_build_requests"]
+        environment_image_build_requests = request.json[
+            "environment_image_build_requests"
+        ]
 
-        for environment_build_request in environment_build_requests:
-            environment_build_request["project_path"] = project_uuid_to_path(
-                environment_build_request["project_uuid"]
+        for environment_image_build_request in environment_image_build_requests:
+            environment_image_build_request["project_path"] = project_uuid_to_path(
+                environment_image_build_request["project_uuid"]
             )
 
-        resp = api_proxy_environment_builds(
-            environment_build_requests, app.config["ORCHEST_API_ADDRESS"]
+        resp = api_proxy_environment_image_builds(
+            environment_image_build_requests, app.config["ORCHEST_API_ADDRESS"]
         )
 
-        for environment_build_request in environment_build_requests:
-            environment_uuid = environment_build_request["environment_uuid"]
-            project_uuid = environment_build_request["project_uuid"]
+        for environment_image_build_request in environment_image_build_requests:
+            environment_uuid = environment_image_build_request["environment_uuid"]
+            project_uuid = environment_image_build_request["project_uuid"]
             env = get_environment(environment_uuid, project_uuid)
             analytics.send_event(
                 app,
@@ -135,7 +152,7 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route(
-        "/catch/api-proxy/api/environment-images/in-use"
+        "/catch/api-proxy/api/environments/in-use"
         + "/<project_uuid>/<environment_uuid>",
         methods=["GET"],
     )
@@ -144,7 +161,7 @@ def register_orchest_api_views(app, db):
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/environment-images/in-use/%s/%s" % (project_uuid, environment_uuid),
+            + "/api/environments/in-use/%s/%s" % (project_uuid, environment_uuid),
         )
 
         return resp.content, resp.status_code, resp.headers.items()
@@ -164,7 +181,7 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds", methods=["POST"])
-    def catch_api_proxy_jupyter_builds_post():
+    def catch_api_proxy_jupyter_image_builds_post():
         resp = requests.post(
             "http://" + app.config["ORCHEST_API_ADDRESS"] + "/api/jupyter-builds/",
         )
@@ -172,7 +189,7 @@ def register_orchest_api_views(app, db):
         return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/catch/api-proxy/api/jupyter-builds/<build_uuid>", methods=["DELETE"])
-    def catch_api_proxy_jupyter_builds_delete(build_uuid):
+    def catch_api_proxy_jupyter_image_builds_delete(build_uuid):
         resp = requests.delete(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]
@@ -185,7 +202,7 @@ def register_orchest_api_views(app, db):
         "/catch/api-proxy/api/jupyter-builds/most-recent",
         methods=["GET"],
     )
-    def catch_api_proxy_jupyter_builds_most_recent():
+    def catch_api_proxy_jupyter_image_builds_most_recent():
         resp = requests.get(
             "http://"
             + app.config["ORCHEST_API_ADDRESS"]

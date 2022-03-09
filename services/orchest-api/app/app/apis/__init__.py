@@ -2,11 +2,12 @@ from flask import Blueprint
 from flask_restx import Api
 
 from app.apis.namespace_ctl import api as ns_ctl
-from app.apis.namespace_environment_builds import api as ns_env_builds
+from app.apis.namespace_environment_image_builds import api as ns_env_image_builds
 from app.apis.namespace_environment_images import api as ns_env_images
+from app.apis.namespace_environments import api as ns_envs
 from app.apis.namespace_info import api as ns_info
 from app.apis.namespace_jobs import api as ns_jobs
-from app.apis.namespace_jupyter_builds import api as ns_jupyter_builds
+from app.apis.namespace_jupyter_image_builds import api as ns_jupyter_image_builds
 from app.apis.namespace_pipelines import api as ns_pipelines
 from app.apis.namespace_projects import api as ns_projects
 from app.apis.namespace_runs import api as ns_runs
@@ -24,11 +25,12 @@ api = Api(
 )
 
 api.add_namespace(ns_ctl)
-api.add_namespace(ns_env_builds)
+api.add_namespace(ns_env_image_builds)
 api.add_namespace(ns_env_images)
+api.add_namespace(ns_envs)
 api.add_namespace(ns_info)
 api.add_namespace(ns_jobs)
-api.add_namespace(ns_jupyter_builds)
+api.add_namespace(ns_jupyter_image_builds)
 api.add_namespace(ns_pipelines)
 api.add_namespace(ns_projects)
 api.add_namespace(ns_runs)

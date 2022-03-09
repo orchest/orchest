@@ -254,6 +254,16 @@ class CreateInteractiveRun(TwoPhaseFunction):
         db.session.bulk_save_objects(pipeline_steps)
         run["pipeline_steps"] = pipeline_steps
 
+        try:
+            env_uuid_to_image = environments.lock_environment_images_for_run(
+                task_id,
+                project_uuid,
+                pipeline.get_environments(),
+            )
+        except self_errors.PipelineDefinitionNotValid:
+            msg = "Please make sure every pipeline step is assigned an environment."
+            raise self_errors.PipelineDefinitionNotValid(msg)
+
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["pipeline"] = pipeline
@@ -261,6 +271,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         self.collateral_kwargs["env_variables"] = get_proj_pip_env_variables(
             project_uuid, pipeline.properties["uuid"]
         )
+        self.collateral_kwargs["env_uuid_to_image"] = env_uuid_to_image
         return run
 
     def _collateral(
@@ -270,22 +281,14 @@ class CreateInteractiveRun(TwoPhaseFunction):
         pipeline: Pipeline,
         run_config: Dict[str, Any],
         env_variables: Dict[str, Any],
+        env_uuid_to_image: Dict[str, str],
         **kwargs,
     ):
-        try:
-            env_uuid_image_id_mappings = environments.lock_environment_images_for_run(
-                task_id,
-                project_uuid,
-                pipeline.get_environments(),
-            )
-        except self_errors.PipelineDefinitionNotValid:
-            msg = "Please make sure every pipeline step is assigned an environment."
-            raise self_errors.PipelineDefinitionNotValid(msg)
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
         celery = make_celery(current_app)
-        run_config["env_uuid_to_image_mappings"] = env_uuid_image_id_mappings
+        run_config["env_uuid_to_image"] = env_uuid_to_image
         run_config["user_env_variables"] = env_variables
         run_config["session_uuid"] = (
             project_uuid[:18] + pipeline.properties["uuid"][:18]

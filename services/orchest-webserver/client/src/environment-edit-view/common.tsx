@@ -6,7 +6,7 @@ export const LANGUAGE_MAP: Record<Language, string> = {
   julia: "Julia",
 };
 
-// Related to the analytics.py module, "environment_build_start" event,
+// Related to the analytics.py module, "environment_image_build_start" event,
 // which checks for the base image to start with "orchest/".
 export const DEFAULT_BASE_IMAGES: (CustomImage & { img_src: string })[] = [
   {

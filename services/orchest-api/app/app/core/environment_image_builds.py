@@ -13,13 +13,15 @@ from app.core.image_utils import build_image
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
-__ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_builds_logs"
+__ENV_BUILD_FULL_LOGS_DIRECTORY = "/tmp/environment_image_builds_logs"
 
 
-def update_environment_build_status(
+def update_environment_image_build_status(
     status: str,
     session: requests.sessions.Session,
-    environment_build_uuid,
+    project_uuid: str,
+    environment_uuid: str,
+    image_tag: str,
 ) -> Any:
     """Update environment build status."""
     data = {"status": status}
@@ -30,7 +32,7 @@ def update_environment_build_status(
 
     url = (
         f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}/environment-builds/"
-        f"{environment_build_uuid}"
+        f"{project_uuid}/{environment_uuid}/{image_tag}"
     )
 
     with session.put(url, json=data) as response:
@@ -256,7 +258,13 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
     }
 
 
-def build_environment_task(task_uuid, project_uuid, environment_uuid, project_path):
+def build_environment_image_task(
+    task_uuid: str,
+    project_uuid: str,
+    environment_uuid: str,
+    image_tag: str,
+    project_path: str,
+):
     """Function called by the celery task to build an environment.
 
     Builds an environment (image) given the arguments, the logs produced
@@ -267,6 +275,7 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
         task_uuid:
         project_uuid:
         environment_uuid:
+        image_tag:
         project_path:
 
     Returns:
@@ -275,7 +284,9 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
     with requests.sessions.Session() as session:
 
         try:
-            update_environment_build_status("STARTED", session, task_uuid)
+            update_environment_image_build_status(
+                "STARTED", session, project_uuid, environment_uuid, image_tag
+            )
 
             # Prepare the project snapshot with the correctly placed
             # dockerfile, scripts, etc.
@@ -300,13 +311,14 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
                     image_name,
+                    image_tag,
                     build_context,
                     user_logs_fo,
                     complete_logs_path,
                 ),
                 identity=f"{project_uuid}-{environment_uuid}",
                 server=_config.ORCHEST_SOCKETIO_SERVER_ADDRESS,
-                namespace=_config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE,
+                namespace=_config.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE,
                 # note: using task.is_aborted() could be an option but
                 # it was giving some issues related to
                 # multithreading/processing, moreover, also just passing
@@ -318,12 +330,16 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
             # Cleanup.
             rmtree(build_context["snapshot_path"])
 
-            update_environment_build_status(status, session, task_uuid)
+            update_environment_image_build_status(
+                status, session, project_uuid, environment_uuid, image_tag
+            )
 
         # Catch all exceptions because we need to make sure to set the
         # build state to failed.
         except Exception as e:
-            update_environment_build_status("FAILURE", session, task_uuid)
+            update_environment_image_build_status(
+                "FAILURE", session, project_uuid, environment_uuid, image_tag
+            )
             raise e
         finally:
             # We get here either because the task was successful or was
