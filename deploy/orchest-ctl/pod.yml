@@ -1,13 +1,17 @@
+# Note: this yaml file is used is used in the "orchest" script to create
+# the orchest-ctl pod, in "orchest-ctl" to create the hidden-update pod
+# and in "orchest-api" to create the orchest-ctl update pod for
+# the GUI update. See ORCHEST_CTL_POD_YAML_PATH.
 apiVersion: v1
 kind: Pod
 metadata:
   generateName: orchest-ctl-
   labels:
     app: orchest-ctl
-    version: %VERSION%
+    version: VERSION%
     # Refer to config.STATUS_CHANGING_OPERATIONS if you plan changes to
     # this label.
-    command: %COMMAND%
+    command: COMMAND%
 spec:
   containers:
   - command:
@@ -17,12 +21,12 @@ spec:
     - name: PYTHONUNBUFFERED
       value: "TRUE"
     - name: ORCHEST_VERSION
-      value: %VERSION%
+      value: VERSION%
     - name: POD_NAME
       valueFrom:
         fieldRef:
           fieldPath: metadata.name
-    image: %IMAGE%
+    image: IMAGE%
     imagePullPolicy: IfNotPresent
     name: orchest-ctl
     volumeMounts:

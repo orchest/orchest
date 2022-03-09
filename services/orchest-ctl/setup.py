@@ -9,6 +9,7 @@ setuptools.setup(
         "six>=1.13.0",
         "tqdm==4.53.0",
         "typer==0.4.0",
+        "PyYAML==6.0",
         "orchest-internals @ file://localhost/orchest/lib/python/orchest-internals",
     ],
     entry_points="""

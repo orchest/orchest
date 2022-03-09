@@ -1,8 +1,5 @@
 import json
-import logging
 import os
-import signal
-import time
 from datetime import datetime
 from typing import Any
 
@@ -12,7 +9,7 @@ from celery.contrib.abortable import AbortableAsyncResult
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, rmtree
 from app.connections import k8s_custom_obj_api
-from app.core.image_utils import build_image, cleanup_docker_artifacts
+from app.core.image_utils import build_image
 from app.core.sio_streamed_task import SioStreamedTask
 from config import CONFIG_CLASS
 
@@ -68,9 +65,9 @@ def write_environment_dockerfile(
 
     # Copy the entire context, that is, given the current use case, that
     # we are copying the project directory (from the snapshot) into the
-    # docker image that is to be built, this allows the user defined
-    # script defined through orchest to make use of files that are part
-    # of its project, e.g. a requirements.txt or other scripts.
+    # image that is to be built, this allows the user defined script
+    # defined through orchest to make use of files that are part of its
+    # project, e.g. a requirements.txt or other scripts.
     statements.append("COPY . .")
 
     # Permission statements.
@@ -90,9 +87,9 @@ def write_environment_dockerfile(
     )
 
     # Note: commands are concatenated with && because this way an
-    # exit_code != 0 will bubble up and cause the docker build to fail,
-    # as it should. The bash script is removed so that the user won't
-    # be able to see it after the build is done.
+    # exit_code != 0 will bubble up and cause the build to fail, as it
+    # should. The bash script is removed so that the user won't be able
+    # to see it after the build is done.
     rm_statement = (
         f"&& (if [ $(id -u) = 0 ]; then rm {bash_script}; else "
         f"sudo rm {bash_script}; fi)"
@@ -178,14 +175,14 @@ def check_environment_correctness(project_uuid, environment_uuid, project_path):
 
 
 def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_path):
-    """Prepares the docker build context for a given environment.
+    """Prepares the build context for a given environment.
 
-    Prepares the docker build context by taking a snapshot of the
-    project directory, and using this snapshot as a context in which the
-    ad-hoc docker file will be placed. This dockerfile is built in a way
-    to respect the environment properties (base image, user bash script,
+    Prepares the build context by taking a snapshot of the project
+    directory, and using this snapshot as a context in which the ad-hoc
+    docker file will be placed. This dockerfile is built in a way to
+    respect the environment properties (base image, user bash script,
     etc.) while also allowing to log only the messages that are related
-    to the user script while building the docker image.
+    to the user script while building the image.
 
     Args:
         task_uuid:
@@ -216,7 +213,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         snapshot_path, f".orchest/environments/{environment_uuid}"
     )
 
-    # build the docker file and move it to the context
+    # Build the docker file and move it to the context.
     with open(os.path.join(environment_path, "properties.json")) as json_file:
         environment_properties = json.load(json_file)
 
@@ -262,9 +259,9 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 def build_environment_task(task_uuid, project_uuid, environment_uuid, project_path):
     """Function called by the celery task to build an environment.
 
-    Builds an environment (docker image) given the arguments, the logs
-    produced by the user provided script are forwarded to a SocketIO
-    server and namespace defined in the orchest internals config.
+    Builds an environment (image) given the arguments, the logs produced
+    by the user provided script are forwarded to a SocketIO server and
+    namespace defined in the orchest internals config.
 
     Args:
         task_uuid:
@@ -286,8 +283,8 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 task_uuid, project_uuid, environment_uuid, project_path
             )
 
-            # Use the agreed upon pattern for the docker image name.
-            docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+            # Use the agreed upon pattern for the image name.
+            image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=project_uuid, environment_uuid=environment_uuid
             )
 
@@ -295,14 +292,14 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 os.mkdir(__ENV_BUILD_FULL_LOGS_DIRECTORY)
             # place the logs in the celery container
             complete_logs_path = os.path.join(
-                __ENV_BUILD_FULL_LOGS_DIRECTORY, docker_image_name
+                __ENV_BUILD_FULL_LOGS_DIRECTORY, image_name
             )
 
             status = SioStreamedTask.run(
                 # What we are actually running/doing in this task,
                 task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
-                    docker_image_name,
+                    image_name,
                     build_context,
                     user_logs_fo,
                     complete_logs_path,
@@ -345,49 +342,6 @@ def build_environment_task(task_uuid, project_uuid, environment_uuid, project_pa
                 "workflows",
                 f"image-build-task-{task_uuid}",
             )
-
-            filters = {
-                "label": [
-                    "_orchest_env_build_is_intermediate=1",
-                    f"_orchest_env_build_task_uuid={task_uuid}",
-                ]
-            }
-            if AbortableAsyncResult(task_uuid).is_aborted():
-                # Necessary to avoid the case where the abortion of a
-                # task comes too late, leaving a dangling image.
-                filters["label"].pop(0)
-
-            # Artifacts of this build (intermediate containers, images,
-            # etc.) The cleanup is done by another process to avoid
-            # keeping the celery task from resolving since some sleep
-            # time is involved. The reason for this is that there is a
-            # race condition in case an abortion happens extremely early
-            # in the build, making it so that it's very difficult to
-            # cleanup without "waiting" a bit. This is because we need
-            # to kill the child process which is building to cancel the
-            # build, but killing it too early makes it so that the
-            # artifacts take some time to become "visible" (thus)
-            # cleanable. I've opted for this solution to save time since
-            # we might be moving to a different containerization
-            # backend.
-            if os.fork() == 0:
-                for _ in range(10):
-                    time.sleep(0.5)
-                    try:
-                        cleanup_docker_artifacts(filters)
-                    except Exception as e:
-                        logging.error(e)
-                # To avoid running any celery code that would run once
-                # the task is done.
-                os.kill(os.getpid(), signal.SIGKILL)
-
-            # See if outdated images of this environment can be cleaned
-            # up.
-            url = (
-                f"{CONFIG_CLASS.ORCHEST_API_ADDRESS}"
-                f"/environment-images/dangling/{project_uuid}/{environment_uuid}"
-            )
-            session.delete(url)
 
     # The status of the Celery task is SUCCESS since it has finished
     # running. Not related to the actual state of the build, e.g.

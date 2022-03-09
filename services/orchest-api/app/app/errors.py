@@ -32,3 +32,7 @@ class ImageCachingFailedError(Exception):
 
 class ImageBuildFailedError(Exception):
     pass
+
+
+class ImageNotFound(Exception):
+    pass

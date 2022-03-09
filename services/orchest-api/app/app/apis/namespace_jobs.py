@@ -6,7 +6,6 @@ from typing import Any, Dict, List, Set, Tuple
 import requests
 from celery.contrib.abortable import AbortableAsyncResult
 from croniter import croniter
-from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal, reqparse
 from sqlalchemy import desc, func
@@ -16,11 +15,12 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from app import errors as self_errors
 from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
 from app.connections import db
-from app.core import environments, image_utils
+from app.core import environments
 from app.core.pipelines import Pipeline, construct_pipeline
 from app.utils import (
     fuzzy_filter_non_interactive_pipeline_runs,
@@ -61,10 +61,10 @@ class JobList(Resource):
 
         The environment images used by a job across its entire lifetime,
         and thus its runs, will be the same. This is done by locking the
-        actual resource (docker image) that is backing the environment,
-        so that a new build of the environment will not affect the job.
-        To actually queue the job you need to issue a PUT request for
-        the DRAFT job you create here. The PUT needs to contain the
+        actual resource (image) that is backing the environment, so that
+        a new build of the environment will not affect the job.  To
+        actually queue the job you need to issue a PUT request for the
+        DRAFT job you create here. The PUT needs to contain the
         `confirm_draft` key.
 
         """
@@ -804,7 +804,7 @@ class RunJob(TwoPhaseFunction):
             for mapping in job.image_mappings
         }
         run_config = job.pipeline_run_spec["run_config"]
-        run_config["env_uuid_docker_id_mappings"] = mappings
+        run_config["env_uuid_to_image_mappings"] = mappings
         run_config["user_env_variables"] = job.env_variables
         self.collateral_kwargs["run_config"] = run_config
 
@@ -936,12 +936,6 @@ class AbortJob(TwoPhaseFunction):
             # It is responsibility of the task to terminate by reading
             # its aborted status.
             res.abort()
-
-        if project_uuid is not None:
-            current_app.config["SCHEDULER"].add_job(
-                image_utils.process_stale_environment_images,
-                args=[project_uuid, False],
-            )
 
 
 class CreateJob(TwoPhaseFunction):
@@ -1187,7 +1181,7 @@ class UpdateJob(TwoPhaseFunction):
                     " pipeline steps are assigned an environment that exists"
                     " in the project."
                 )
-                raise errors.ImageNotFound(msg)
+                raise self_errors.ImageNotFound(msg)
 
             if job.schedule is None:
                 job.status = "PENDING"
@@ -1235,11 +1229,7 @@ class DeleteJob(TwoPhaseFunction):
         return True
 
     def _collateral(self, project_uuid: str):
-        if project_uuid is not None:
-            current_app.config["SCHEDULER"].add_job(
-                image_utils.process_stale_environment_images,
-                args=[project_uuid, False],
-            )
+        pass
 
 
 class DeleteJobPipelineRun(TwoPhaseFunction):
@@ -1383,11 +1373,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         return {"message": "Status was updated successfully"}, 200
 
     def _collateral(self, project_uuid: str, completed: bool):
-        if completed and project_uuid is not None:
-            current_app.config["SCHEDULER"].add_job(
-                image_utils.process_stale_environment_images,
-                args=[project_uuid, False],
-            )
+        pass
 
 
 class AbortJobPipelineRun(TwoPhaseFunction):

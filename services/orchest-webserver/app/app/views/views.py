@@ -4,7 +4,6 @@ import subprocess
 import uuid
 from pathlib import Path
 
-import docker
 import requests
 import sqlalchemy
 from flask import current_app, jsonify, request
@@ -16,9 +15,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
-from _orchest.internals.utils import run_orchest_ctl
 from app import analytics, error
-from app.config import CONFIG_CLASS as StaticConfig
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
@@ -186,25 +183,21 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/async/spawn-update-server", methods=["GET"])
-    def spawn_update_server():
+    @app.route("/async/restart", methods=["POST"])
+    def restart():
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl/restart'
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
-        client = docker.from_env()
+    @app.route("/async/start-update", methods=["POST"])
+    def start_update():
 
-        cmd = ["updateserver"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
-
-        return ""
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl'
+            "/start-update"
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
@@ -216,25 +209,6 @@ def register_views(app, db):
                 "client-heartbeat"
             )
         )
-
-        return ""
-
-    @app.route("/async/restart", methods=["POST"])
-    def restart_server():
-
-        client = docker.from_env()
-        cmd = ["restart"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
 
         return ""
 

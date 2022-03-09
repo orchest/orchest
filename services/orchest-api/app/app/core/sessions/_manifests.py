@@ -406,10 +406,7 @@ def _get_jupyter_server_deployment_service_manifest(
     }
 
     # Check if user tweaked JupyterLab image exists.
-    if (
-        environments.get_environment_image_docker_id(_config.JUPYTER_IMAGE_NAME)
-        is not None
-    ):
+    if environments.get_environment_image_id(_config.JUPYTER_IMAGE_NAME) is not None:
         image = _config.JUPYTER_IMAGE_NAME
     else:
         image = "orchest/jupyter-server:latest"
@@ -762,7 +759,7 @@ def _get_user_service_deployment_service_manifest(
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
     host_userdir = session_config["host_userdir"]
-    img_mappings = session_config["env_uuid_docker_id_mappings"]
+    img_mappings = session_config["env_uuid_to_image_mappings"]
     session_type = session_type.value
 
     # Get user configured environment variables

@@ -2,14 +2,10 @@
 
 from typing import Optional, Tuple
 
-import docker
 from flask import request
 from flask_restx import Namespace, Resource
 
-import app.models as models
-from _orchest.internals import config as _config
 from app import schema
-from app.connections import docker_client
 from app.utils import register_schema
 
 api = Namespace("validations", description="Validates system requirements")
@@ -21,7 +17,7 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
 
     Only passes if the condition below is satisfied:
         * The image: ``_config.ENVIRONMENT_IMAGE_NAME`` exists in the
-          docker namespace.
+        registry.
 
     Args:
         project_uuid: Project UUID for which the environment should
@@ -36,42 +32,7 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
         `action` is one of ["BUILD", "WAIT", "RETRY", None]
 
     """
-    # Check the docker namespace.
-    docker_image_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-        project_uuid=project_uuid, environment_uuid=env_uuid
-    )
     # K8S_TODO: fix.
-    return "pass", None
-    try:
-        # NOTE: using the orchest-env-* name is required to comply with
-        # the logic that makes environment images stale on update.
-        docker_client.images.get(docker_image_name)
-    except docker.errors.ImageNotFound:
-        # Check the build history for the environment to determine the
-        # action.
-        env_builds = models.EnvironmentBuild.query.filter_by(
-            project_uuid=project_uuid, environment_uuid=env_uuid
-        )
-        num_building_builds = env_builds.filter(
-            models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
-        ).count()
-
-        if num_building_builds > 0:
-            return "fail", "WAIT"
-
-        num_failed_builds = env_builds.filter(
-            models.EnvironmentBuild.status.in_(["FAILURE"])
-        ).count()
-        if num_failed_builds > 0:
-            return "fail", "RETRY"
-
-        return "fail", "BUILD"
-
-    except docker.errors.APIError:
-        # We cannot determine what happened, so better be safe than
-        # sorry.
-        return "fail", "RETRY"
-
     return "pass", None
 
 

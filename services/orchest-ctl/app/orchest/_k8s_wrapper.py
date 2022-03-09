@@ -7,11 +7,13 @@ async_req=True in the k8s python SDK that happens here.
 
 import os
 import time
-from typing import Dict, List, Optional, Union
+from typing import Container, Dict, Iterable, List, Optional, Union
 
 import typer
+import yaml
 from kubernetes import client as k8s_client
 
+from _orchest.internals import config as _config
 from app import config, utils
 from app.connections import k8s_apps_api, k8s_core_api
 
@@ -122,11 +124,24 @@ def get_orchest_cluster_version() -> str:
     return k8s_core_api.read_namespace("orchest").metadata.labels.get("version")
 
 
-def delete_orchest_ctl_pod():
-    """Deletes the pod in which this script is running
+def delete_orchest_ctl_pods():
+    """Deletes this pod and pods created by this pod.
 
     Used to avoid leaving dangling pods around.
     """
+    # The pod will try to terminate itself, this is for safety in case
+    # it does not work.
+    children_pods = k8s_core_api.list_namespaced_pod(
+        config.ORCHEST_NAMESPACE, label_selector=f'parent={os.environ["POD_NAME"]}'
+    )
+    for pod in children_pods.items:
+        try:
+            k8s_core_api.delete_namespaced_pod(
+                pod.metadata.name, config.ORCHEST_NAMESPACE
+            )
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
     k8s_core_api.delete_namespaced_pod(os.environ["POD_NAME"], "orchest")
 
 
@@ -136,17 +151,16 @@ def _get_ongoing_status_changing_pod() -> Optional[k8s_client.V1Pod]:
     This can be used to know what operation Orchest is undergoing, or
     if another, possibly confliting command can be run concurrently or
     not. This works by checking what's the oldest pod that is running a
-    status changing command or the update-server, which works as a
-    priority when it comes to conflicts.
+    status changing command, which works as a priority when it comes to
+    conflicts.
 
     Returns:
-        None if no instance of the update-server or orchest-ctl running
-        with state changing commands is not running. That instance pod
-        otherwise.
+        None if no instance of orchest-ctl running with state changing
+        commands is running. That instance pod otherwise.
 
     """
     pods = k8s_core_api.list_namespaced_pod(
-        config.ORCHEST_NAMESPACE, label_selector="app in (orchest-ctl, update-server)"
+        config.ORCHEST_NAMESPACE, label_selector="app=orchest-ctl"
     ).items
     pods = [
         p
@@ -192,7 +206,7 @@ _cleanup_pod_manifest = {
         # This is to avoid, in any case, a dangling pod leading to
         # stop/start errors.
         "generateName": "orchest-api-cleanup-",
-        "labels": {"app": "orchest-api-cleanup"},
+        "labels": {"app": "orchest-api-cleanup", "parent": os.environ["POD_NAME"]},
     },
     "spec": {
         "restartPolicy": "Never",
@@ -217,13 +231,6 @@ _cleanup_pod_manifest = {
                     {"name": "PYTHONUNBUFFERED", "value": "TRUE"},
                     {"name": "ORCHEST_GPU_ENABLED_INSTANCE", "value": "FALSE"},
                 ],
-                "volumeMounts": [{"name": "dockersock", "mountPath": "/var/run"}],
-            }
-        ],
-        "volumes": [
-            {
-                "name": "dockersock",
-                "hostPath": {"path": "/var/run", "type": "Directory"},
             }
         ],
     },
@@ -234,7 +241,7 @@ def orchest_cleanup() -> None:
     """Performs a cleanup that must be run on start and stop.
 
     It's implemented by spinning up a pod that will run the required
-    code. Requires the orchest-dabatase and the celery-worker services
+    code. Requires the orchest-database and the celery-worker services
     to be online.
     """
     manifest = _cleanup_pod_manifest
@@ -243,23 +250,12 @@ def orchest_cleanup() -> None:
     resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
     pod_name = resp.metadata.name
 
-    max_retries = 1000
-    status = None
-    while max_retries > 0:
-        max_retries = max_retries - 1
-        try:
-            resp = k8s_core_api.read_namespaced_pod(
-                name=pod_name, namespace=config.ORCHEST_NAMESPACE
-            )
-        except k8s_client.ApiException as e:
-            if e.status != 404:
-                raise
-            time.sleep(1)
-        else:
-            status = resp.status.phase
-            if status in ["Succeeded", "Failed", "Unknown"]:
-                break
-        time.sleep(1)
+    status = wait_for_pod_status(
+        pod_name,
+        ["Succeeded", "Failed", "Unknown"],
+        notify_progress_retries_period=50,
+        notify_progress_message="Still cleaning up resources...",
+    )
 
     if status is None or status in ["Failed", "Unknown"]:
         utils.echo(
@@ -268,3 +264,57 @@ def orchest_cleanup() -> None:
         )
 
     k8s_core_api.delete_namespaced_pod(pod_name, config.ORCHEST_NAMESPACE)
+
+
+def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
+    with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
+        manifest = yaml.safe_load(f)
+
+    labels = manifest["metadata"]["labels"]
+    labels["version"] = update_to_version
+    labels["command"] = "hidden-update"
+    labels["parent"] = os.environ["POD_NAME"]
+
+    spec = manifest["spec"]
+    spec["containers"][0]["image"] = f"orchest/orchest-ctl:{update_to_version}"
+    for env_var in spec["containers"][0]["env"]:
+        if env_var["name"] == "ORCHEST_VERSION":
+            env_var["value"] = update_to_version
+            break
+    return manifest
+
+
+def create_update_pod() -> k8s_client.V1Pod:
+    # K8S_TODO: query the update-info server once we moved to versioned
+    # images.
+    manifest = _get_orchest_ctl_update_post_manifest("latest")
+    r = k8s_core_api.create_namespaced_pod("orchest", manifest)
+    return r
+
+
+def wait_for_pod_status(
+    name: str,
+    expected_statuses: Union[Container[str], Iterable[str]],
+    max_retries: int = 999,
+    notify_progress_retries_period: int = 50,
+    notify_progress_message: str = "Still ongoing",
+) -> None:
+    status = None
+    while max_retries > 0:
+        max_retries = max_retries - 1
+        if max_retries % notify_progress_retries_period == 0:
+            utils.echo(notify_progress_message)
+        try:
+            resp = k8s_core_api.read_namespaced_pod(
+                name=name, namespace=config.ORCHEST_NAMESPACE
+            )
+        except k8s_client.ApiException as e:
+            if e.status != 404:
+                raise
+        else:
+            status = resp.status.phase
+            if status in expected_statuses:
+                return status
+        time.sleep(1)
+
+    return status

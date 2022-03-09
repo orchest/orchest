@@ -15,7 +15,6 @@ flask-script==2.0.6
 requests==2.25.0
 APScheduler==3.7.0
 nbformat==5.0.8
-docker>=4.3.0
 six>=1.13.0
 Werkzeug==0.16.0
 python-engineio==3.14.2

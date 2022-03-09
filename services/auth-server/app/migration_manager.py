@@ -5,7 +5,7 @@ from app import create_app
 from config import CONFIG_CLASS
 
 # Used to issue migration commands to a running service (container),
-# e.g. docker exec commands. See /scripts/migration_manager.sh for more
+# e.g. kubectl exec commands. See /scripts/migration_manager.sh for more
 # info.
 
 if __name__ == "__main__":

@@ -14,8 +14,7 @@ GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # lower value so that in conditions of high cpu contention core Orchest
 # services have priority, which helps in being responsive under high
 # load. This is only enforced when CPU cycles are constrained. For more
-# information, see
-# https://docs.docker.com/config/containers/resource_constraints/.
+# information, see the k8s docs about CPU SHARES.
 USER_CONTAINERS_CPU_SHARES = "500m"
 REGISTRY = "docker-registry"
 REGISTRY_FQDN = "docker-registry.orchest.svc.cluster.local"
@@ -110,10 +109,4 @@ MEMORY_SERVER_SOCK_PATH = os.path.join(PROJECT_DIR, ".orchest")
 SIDECAR_PORT = 1111
 
 ORCHEST_NAMESPACE = "orchest"
-
-# update-server
-
-# This is used to force docker to flush the logs buffer, which won't
-# happen without a newline. This way the update server knows when a
-# newline is "genuine" vs a newline being put there to flush the buffer.
-DOCKER_LOGS_BUFFER_FLUSH_FLAG = "F|!!!|\n"
+ORCHEST_CTL_POD_YAML_PATH = "/orchest/deploy/orchest-ctl/pod.yml"

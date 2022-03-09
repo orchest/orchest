@@ -34,10 +34,10 @@ dependencies:
   version: "0.0.1"
   repository: "file://charts/rabbitmq"
   condition: rabbitmq.enabled
-- name: update-server
+- name: update-sidecar 
   version: "0.0.1"
-  repository: "file://charts/update-server"
-  condition: update-server.enabled
+  repository: "file://charts/update-sidecar"
+  condition: update-sidecar.enabled
 - name: cluster-resources
   version: "0.0.1"
   repository: "file://charts/cluster-resources"

@@ -7,7 +7,6 @@ import typer
 
 from app import orchest
 from app.cli import start as cli_start
-from app.orchest_old import OrchestApp
 from app.utils import echo
 
 
@@ -68,8 +67,6 @@ typer_app = typer.Typer(
 )
 
 typer_app.add_typer(cli_start.typer_app, name="start")
-
-app = OrchestApp()
 
 
 class Language(str, Enum):
@@ -134,39 +131,6 @@ def status(
 
 
 @typer_app.command()
-def debug(
-    compress: bool = typer.Option(
-        False, "--compress", show_default=False, help="Compress the output directory."
-    ),
-    ext: bool = typer.Option(
-        False,
-        "--ext",
-        show_default=False,
-        help="Get extensive debug information.",
-    ),
-):
-    """
-    Create a debug dump.
-
-    The dump is saved in the working directory as 'debug-dump'. When
-    reporting a bug, it is best to: stop Orchest, start Orchest again,
-    reproduce the bug, then use this command.
-
-    The command does not need Orchest to be running when called, but
-    will produce a less inclusive dump if that is not the case.
-
-    Note: if Orchest was/has been running with --dev, then there is the
-    possibility of some user data getting into the dump due to the log
-    level being set to DEBUG.
-
-    Note: running with the '--ext' flag could include sensitive user
-    data.
-
-    """
-    app.debug(ext, compress)
-
-
-@typer_app.command()
 def install(
     language: Language = typer.Option(
         Language.python,
@@ -196,29 +160,21 @@ def install(
     orchest.install()
 
 
-# TODO: make mode in Mode type. Although it is "web" here
 @typer_app.command()
-def update(
-    mode: Optional[str] = typer.Option(None, hidden=True),
-    dev: bool = typer.Option(
-        False,
-        show_default="--no-dev",
-        help=(
-            "Don't update the git repo. Useful for development as"
-            " the 'master' branch does not need to be checked out."
-        ),
-    ),
-):
+def update():
     """
     Update Orchest.
-
-    For the update to succeed, make sure you have the 'master' branch
-    checked out.
 
     Note: when updating Orchest all running sessions and pipeline runs
     will be killed. Orchest can not be running during update.
     """
-    app.update(mode=mode, dev=dev)
+    orchest.update()
+
+
+@typer_app.command(hidden=True)
+def hidden_update():
+    """Do not use unless you know what you are doing."""
+    orchest._update()
 
 
 @typer_app.command()
@@ -239,27 +195,6 @@ def restart(
     """
 
     orchest.restart()
-
-
-@typer_app.command(hidden=True)
-def updateserver(
-    # Necessary to make it so that the update server restarts Orchest
-    # with the correct settings.
-    port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
-    cloud: bool = typer.Option(
-        False,
-        show_default="--no-cloud",
-        help=cli_start.__CLOUD_HELP_MESSAGE,
-        hidden=True,
-    ),
-    dev: bool = typer.Option(
-        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
-    ),
-):
-    """
-    Update Orchest through the update-server.
-    """
-    app._updateserver(port, cloud, dev)
 
 
 @typer_app.command(hidden=True)
@@ -317,53 +252,3 @@ def adduser(
         raise typer.Exit(code=1)
 
     orchest.add_user(username, password, token, is_admin)
-
-
-@typer_app.command()
-def run(
-    job_name: str = typer.Option(
-        ...,  # required
-        "--job",
-        help="Name of job to create.",
-    ),
-    project_name: str = typer.Option(
-        ...,  # required
-        "--project",
-        help="Name of project containing pipeline.",
-    ),
-    pipeline_name: str = typer.Option(
-        ...,  # required
-        "--pipeline",
-        help="Name of pipeline to run.",
-    ),
-    wait: bool = typer.Option(
-        False,
-        show_default="--no-wait",
-        help="Wait for the pipeline run to finish.",
-    ),
-    rm: bool = typer.Option(
-        False,
-        show_default="--no-rm",
-        help="Remove the job after it finishes running. Requires '--wait'.",
-    ),
-):
-    """
-    Queue a pipeline as a one-time job.
-
-    In order to use environments variables, you can define them through
-    the UI as project or pipeline level environment variables. Passing
-    them directly through the CLI is a potential security risk.
-
-    NOTE: Orchest has to be running for this to work.
-
-    Exit codes:
-
-    - 0: The job was successfully queued.
-
-    - 1: Something went wrong.
-    """
-    if rm and not wait:
-        echo("Using '--rm' requires '--wait'.")
-        raise typer.Exit(code=1)
-
-    app.run(job_name, project_name, pipeline_name, wait=wait, rm=rm)

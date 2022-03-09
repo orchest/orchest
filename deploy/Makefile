@@ -60,8 +60,8 @@ POSTGRES_ENABLE_CONFIG := --set postgres.enabled=true
 # rabbitmq deployment configs
 RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 
-# update-server deployment configs
-UPDATE_SERVER_ENABLE_CONFIG := --set update-server.enabled=true
+# update-sidecar service configs
+UPDATE_SIDECAR_ENABLE_CONFIG := --set update-sidecar.enabled=true
 
 # Orchest deployment configs
 ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
@@ -71,7 +71,7 @@ ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${ORCHEST_WEBSERVER_ENABLE_CONFIG} \
 						 ${POSTGRES_ENABLE_CONFIG} \
 						 ${RABBITMQ_ENABLE_CONFIG} \
-						 ${UPDATE_SERVER_ENABLE_CONFIG}
+						 ${UPDATE_SIDECAR_ENABLE_CONFIG}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} ${ORCHEST_ENABLE_CONFIG} helm 
@@ -151,6 +151,14 @@ initialize: ./bin/initialize
 rook:
 	helm install ${ROOK_DEPLOY_CONFIG}
 
-.PHONY: orchest_upgrade
-orchest_upgrade:
-	helm upgrade ${ORCHEST_DEPLOY_CONFIG}
+.PHONY: orchest-upgrade
+orchest-upgrade:
+	helm upgrade ${ORCHEST_DEPLOY_CONFIG} 
+
+.PHONY: argo-upgrade
+argo-upgrade:
+	helm upgrade ${ARGO_WORKFLOW_DEPLOY_CONFIG} 
+
+.PHONY: registry-upgrade
+registry-upgrade:
+	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG} 

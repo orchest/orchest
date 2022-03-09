@@ -23,7 +23,7 @@ postgres:
 rabbitmq:
   enabled: false
 
-update-server:
+update-sidecar:
   enabled: false
 
 cluster-resources:

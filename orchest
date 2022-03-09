@@ -69,8 +69,8 @@ fi
 # conditions. Refer to config.STATUS_CHANGING_OPERATIONS if you plan
 # changes to this label. TODO: passing an argument containing @ will
 # break this.
-pod=$(sed -e "s@%IMAGE%@$image@g" -e "s@%VERSION%@$repo_version@g" \
--e "s@%COMMAND%@$label@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
+pod=$(sed -e "s@IMAGE%@$image@g" -e "s@VERSION%@$repo_version@g" \
+-e "s@COMMAND%@$1@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
 minikube kubectl -- create -n orchest -o name -f -)
 
 # Make sure to cleanup the pod on exit.
