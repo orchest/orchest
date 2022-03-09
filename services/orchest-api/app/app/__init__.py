@@ -19,6 +19,7 @@ from sqlalchemy_utils import create_database, database_exists
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
+from app import utils
 from app.apis import blueprint as api
 from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
 from app.apis.namespace_jobs import AbortJob
@@ -29,7 +30,6 @@ from app.apis.namespace_jupyter_image_builds import (
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
-from app.core import environments
 from app.core.scheduler import Scheduler
 from app.models import (
     EnvironmentImageBuild,
@@ -227,8 +227,8 @@ def trigger_conditional_jupyter_image_build(app):
     else:
         return
 
-    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
-    if environments.get_environment_image_id(user_jupyer_server_image) is not None:
+    # If the image has already been built no need to build again.
+    if utils.get_jupyter_server_image_to_use() != "orchest/jupyter-server:latest":
         return
 
     try:
