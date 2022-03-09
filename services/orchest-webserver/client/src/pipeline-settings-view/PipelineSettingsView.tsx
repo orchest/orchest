@@ -472,7 +472,7 @@ const PipelineSettingsView: React.FC = () => {
     });
 
   const isMemorySizeValid = isValidMemorySize(
-    pipelineJson?.settings?.data_passing_memory_size || ""
+    settings?.data_passing_memory_size || ""
   );
 
   const prettifyInputParameters = () => {
@@ -540,7 +540,6 @@ const PipelineSettingsView: React.FC = () => {
                         <TextField
                           value={pipelineName}
                           margin="normal"
-                          multiline
                           onChange={(e) => setPipelineName(e.target.value)}
                           label="Pipeline name"
                           disabled={isReadOnly}
@@ -559,7 +558,6 @@ const PipelineSettingsView: React.FC = () => {
                         <TextField
                           value={pipelinePath}
                           margin="normal"
-                          multiline
                           onChange={(e) => setPipelinePath(e.target.value)}
                           label="Pipeline path"
                           disabled={isReadOnly || hasValue(session)}
@@ -649,7 +647,7 @@ const PipelineSettingsView: React.FC = () => {
                             disabled={isReadOnly}
                             control={
                               <Checkbox
-                                checked={pipelineJson?.settings?.auto_eviction}
+                                checked={settings?.auto_eviction}
                                 onChange={(e) => {
                                   onChangeEviction(e.target.checked);
                                 }}
@@ -669,20 +667,19 @@ const PipelineSettingsView: React.FC = () => {
                         )}
 
                         <TextField
-                          value={pipelineJson.settings.data_passing_memory_size}
+                          value={settings.data_passing_memory_size}
                           onChange={(e) =>
                             onChangeDataPassingMemorySize(e.target.value)
                           }
                           margin="normal"
                           label="Data passing memory size"
+                          error={!isMemorySizeValid}
+                          helperText={
+                            !isMemorySizeValid ? "Not a valid memory size." : ""
+                          }
                           disabled={isReadOnly}
                           data-test-id="pipeline-settings-configuration-memory-size"
                         />
-                        {!isMemorySizeValid && (
-                          <Alert severity="warning">
-                            Not a valid memory size.
-                          </Alert>
-                        )}
                       </Stack>
                       <div className="clear"></div>
                     </div>
