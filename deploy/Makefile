@@ -6,6 +6,8 @@ DEFAULT_TAG := ${if ${DEFAULT_TAG},${DEFAULT_TAG},latest}
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_API_TAG := ${if ${ORCHEST_API_TAG},${ORCHEST_API_TAG},${DEFAULT_TAG}}
+ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
+CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 
 # Orchest will install docker-registry by default, if it is not desired, 
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
@@ -16,7 +18,7 @@ REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
 ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
-	 --create-namespace --wait --atomic
+	 --create-namespace --wait --atomic 
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
@@ -74,7 +76,14 @@ ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${UPDATE_SIDECAR_ENABLE_CONFIG}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
-	${SHARED_DEPLOY_CONFIG} ${ORCHEST_ENABLE_CONFIG} helm 
+	${SHARED_DEPLOY_CONFIG} ${ORCHEST_ENABLE_CONFIG}  \
+	--set-string auth-server.CLOUD="${CLOUD}" \
+	--set-string orchest-webserver.CLOUD="${CLOUD}" \
+	--set-string auth-server.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	--set-string celery-worker.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	--set-string orchest-api.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	helm 
 
 ROOK_DEPLOY_CONFIG := rook \
 	${SHARED_DEPLOY_CONFIG} thirdparty/rook/rook-ceph -f values-override.yaml .

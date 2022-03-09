@@ -57,6 +57,9 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     else:
         raise ValueError()
 
+    log_level = k8sw.get_orchest_log_level()
+    cloud = k8sw.get_orchest_cloud_mode() == "True"
+
     # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
     env["DISABLE_ROOK"] = "TRUE"
@@ -124,6 +127,8 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     utils.echo(f"Installing Orchest {orchest_version}.")
 
+    k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
+    k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
     return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
 
     if return_code != 0:

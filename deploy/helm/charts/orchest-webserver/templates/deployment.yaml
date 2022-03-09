@@ -24,6 +24,10 @@ deployment
         ports:
         - containerPort: 80        
         env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "CLOUD"
+          value: "{{ .Values.CLOUD }}"
         - name: "ORCHEST_PORT"
           value: "8000"
         - name: "HOST_USER_DIR"

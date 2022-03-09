@@ -14,12 +14,12 @@ deployment
       - name: celery-worker
         image: orchest/celery-worker:latest
         env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
         - name: "MAX_JOB_RUNS_PARALLELISM"
           value: "1"
         - name: "MAX_INTERACTIVE_RUNS_PARALLELISM"
           value: "1"
-        - name: "ORCHEST_LOG_LEVEL"
-          value: "INFO"
         - name: "ORCHEST_HOST_GID"
           value: "1"
         - name: "ORCHEST_GPU_ENABLED_INSTANCE"

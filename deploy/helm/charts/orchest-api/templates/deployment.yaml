@@ -16,6 +16,8 @@ deployment
         ports:
         - containerPort: 80
         env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
         - name: "ORCHEST_HOST_GID"
           value: "1"
         - name: "PYTHONUNBUFFERED"

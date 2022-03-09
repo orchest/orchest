@@ -2,3 +2,5 @@
 # Service and port configuration
 service:
   port: 80
+
+ORCHEST_LOG_LEVEL: INFO
