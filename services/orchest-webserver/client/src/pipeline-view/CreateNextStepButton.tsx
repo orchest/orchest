@@ -52,8 +52,8 @@ export const CreateNextStepButton = ({
           incoming_connections: [],
           file_path: "",
           kernel: {
-            name: environment?.language,
-            display_name: environment?.name,
+            name: environment?.language || "python",
+            display_name: environment?.name || "Python",
           },
           environment: environment?.uuid,
           parameters: {},
