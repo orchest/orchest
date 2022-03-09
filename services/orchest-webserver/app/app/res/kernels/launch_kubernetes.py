@@ -62,7 +62,7 @@ def _get_kernel_pod_manifest(
     resp = requests.get(
         "http://"
         + _config.ORCHEST_API_ADDRESS
-        + f"/api/environment-images/{proj_uuid}/{env_uuid}/latest"
+        + f"/api/environment-images/latest/{proj_uuid}/{env_uuid}"
     )
     if resp.status_code != 200:
         sys.exit("Failed to retrieve latest environment image version.")

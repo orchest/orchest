@@ -18,7 +18,7 @@ api = Namespace("environment-images", description="Managing environment images")
 api = register_schema(api)
 
 
-@api.route("/<string:project_uuid>/<string:environment_uuid>/latest")
+@api.route("/latest/<string:project_uuid>/<string:environment_uuid>")
 @api.param("project_uuid", "uuid of the project")
 @api.param("environment_uuid", "uuid of the environment")
 class LatestEnvironmentImage(Resource):
