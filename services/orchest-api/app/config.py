@@ -30,10 +30,7 @@ class Config:
     # Image building.
     BUILD_IMAGE_LOG_TERMINATION_FLAG = "_ORCHEST_RESERVED_LOG_TERMINATION_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
-    # K8S_TODO this will likely need to be adjusted when it comes to
-    # integrating the distributed file system. This is the path where
-    # orchest currently resides in the node.
-    BASE_IMAGES_CACHE = "/var/lib/orchest/userdir/.orchest/base-images-cache"
+    HOST_BASE_IMAGES_CACHE = f"/var/lib/orchest{_config.USERDIR_BASE_IMAGES_CACHE}"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.

@@ -301,7 +301,7 @@ def delete_base_images_cache(self) -> str:
     operation and it avoids 1 layer of indirection.
     """
     try:
-        with os.scandir(CONFIG_CLASS.BASE_IMAGES_CACHE) as entries:
+        with os.scandir(_config.USERDIR_BASE_IMAGES_CACHE) as entries:
             for entry in entries:
                 rmtree(entry)
     except FileNotFoundError:

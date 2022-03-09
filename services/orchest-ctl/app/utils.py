@@ -6,6 +6,7 @@ from pathlib import Path
 
 import typer
 
+from _orchest.internals import config as _config
 from app import config
 from app.config import WRAP_LINES
 
@@ -68,12 +69,12 @@ def fix_userdir_permissions() -> None:
 
 def create_required_directories() -> None:
     for path in [
-        "/userdir/data",
-        "/userdir/jobs",
-        "/userdir/projects",
-        "/userdir/.orchest/env-builds",
-        "/userdir/.orchest/jupyter-builds-dir",
-        "/userdir/.orchest/user-configurations/jupyterlab",
-        "/userdir/.orchest/base-images-cache",
+        _config.USERDIR_DATA,
+        _config.USERDIR_JOBS,
+        _config.USERDIR_PROJECTS,
+        _config.USERDIR_ENV_IMG_BUILDS,
+        _config.USERDIR_JUPYTER_IMG_BUILDS,
+        _config.USERDIR_JUPYTERLAB,
+        _config.USERDIR_BASE_IMAGES_CACHE,
     ]:
         Path(path).mkdir(parents=True, exist_ok=True)

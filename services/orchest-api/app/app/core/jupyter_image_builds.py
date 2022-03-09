@@ -102,8 +102,7 @@ def prepare_build_context(task_uuid):
     """
     # the project path we receive is relative to the projects directory
     jupyterlab_setup_script = os.path.join("/userdir", _config.JUPYTER_SETUP_SCRIPT)
-
-    jupyter_image_builds_dir = "/userdir/.orchest/jupyter-builds-dir"
+    jupyter_image_builds_dir = _config.USERDIR_JUPYTER_IMG_BUILDS
     snapshot_path = f"{jupyter_image_builds_dir}/{task_uuid}"
 
     if os.path.isdir(snapshot_path):

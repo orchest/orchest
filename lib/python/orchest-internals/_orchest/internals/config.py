@@ -2,6 +2,15 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
+# Orchest directories that need to exist in the userdir.
+USERDIR_DATA = "/userdir/data"
+USERDIR_JOBS = "/userdir/jobs"
+USERDIR_PROJECTS = "/userdir/projects"
+USERDIR_ENV_IMG_BUILDS = "/userdir/.orchest/env-img-builds"
+USERDIR_JUPYTER_IMG_BUILDS = "/userdir/.orchest/jupyter-img-builds"
+USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
+USERDIR_BASE_IMAGES_CACHE = "/userdir/.orchest/base-images-cache"
+
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
