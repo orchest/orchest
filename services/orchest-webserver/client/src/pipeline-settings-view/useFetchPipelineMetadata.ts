@@ -1,5 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
@@ -7,6 +7,8 @@ import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
 import React from "react";
+import { usePipelineEnvVariables } from "./usePipelineEnvVariables";
+import { usePipelineProperty } from "./usePipelineProperty";
 
 export const useFetchPipelineMetadata = ({
   projectUuid,
@@ -19,7 +21,11 @@ export const useFetchPipelineMetadata = ({
   jobUuid?: string;
   runUuid?: string;
 }) => {
-  const { setAsSaved } = useAppContext();
+  const { dispatch } = useProjectsContext();
+
+  /**
+   * hooks for fetching data for initialization
+   */
 
   const { job } = useFetchJob(jobUuid);
   const { pipeline } = useFetchPipeline(
@@ -36,38 +42,53 @@ export const useFetchPipelineMetadata = ({
     runUuid,
   });
 
-  const pipelinePath =
-    job?.pipeline_run_spec.run_config.pipeline_path || pipeline?.path;
-
-  const pipelineName = job?.pipeline_name || pipelineJson?.name;
-
-  // Environment variables are fetched either from 1) pipeline 2) pipeline run
-  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
-
-  const fetchedEnvVariables = React.useMemo(() => {
-    if (pipeline || pipelineRun) {
-      return pipeline
-        ? pipeline.env_variables
-        : pipelineRun
-        ? pipelineRun.env_variables
-        : {};
-    }
-    return null;
-  }, [pipeline, pipelineRun]);
-
+  const initialized = React.useRef(false);
   React.useEffect(() => {
-    if (fetchedEnvVariables) {
-      const envVarArray = envVariablesDictToArray(fetchedEnvVariables);
-      _setEnvVariables(envVarArray);
+    if (!initialized.current && pipelineJson) {
+      initialized.current = true;
+      // initialize all local states
+      dispatch({
+        type: "pipelineSet",
+        payload: {
+          pipelineUuid,
+          projectUuid,
+          pipelineName: pipelineJson.name,
+        },
+      });
     }
-  }, [fetchedEnvVariables]);
+  }, [pipelineJson, pipelineUuid, projectUuid, initialized, dispatch]);
 
-  const setEnvVariables = React.useCallback(
-    (data: React.SetStateAction<EnvVarPair[]>) => {
-      _setEnvVariables(data);
-      setAsSaved(false);
-    },
-    [_setEnvVariables, setAsSaved]
+  /**
+   * hooks for persisting local mutations without changing the initial data
+   */
+
+  const [inputParameters, setInputParameters] = usePipelineProperty(
+    pipelineJson?.parameters
+      ? JSON.stringify(pipelineJson.parameters || {})
+      : null,
+    "{}"
+  );
+  const [pipelineName, setPipelineName] = usePipelineProperty(
+    job?.pipeline_name || pipelineJson?.name
+  );
+
+  const [pipelinePath, setPipelinePath] = usePipelineProperty(
+    job?.pipeline_run_spec.run_config.pipeline_path || pipeline?.path
+  );
+
+  const [services, setServices] = usePipelineProperty(
+    pipelineJson?.services,
+    {}
+  );
+
+  const [settings, setSettings] = usePipelineProperty(
+    pipelineJson?.settings,
+    {}
+  );
+
+  const { envVariables, setEnvVariables } = usePipelineEnvVariables(
+    pipeline,
+    pipelineRun
   );
 
   // fetch project env vars only if it's not a job or a pipeline run
@@ -82,8 +103,16 @@ export const useFetchPipelineMetadata = ({
     setEnvVariables,
     projectEnvVariables,
     pipelineName,
+    setPipelineName,
     pipelinePath,
+    setPipelinePath,
+    services,
+    setServices,
+    settings,
+    setSettings,
     pipelineJson,
     setPipelineJson,
+    inputParameters,
+    setInputParameters,
   };
 };
