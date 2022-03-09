@@ -174,6 +174,16 @@ def get_orchest_cluster_version() -> str:
     return k8s_core_api.read_namespace("orchest").metadata.labels.get("version")
 
 
+def get_orchest_log_level() -> str:
+    return k8s_core_api.read_namespace("orchest").metadata.labels.get(
+        "ORCHEST_LOG_LEVEL"
+    )
+
+
+def get_orchest_cloud_mode() -> str:
+    return k8s_core_api.read_namespace("orchest").metadata.labels.get("CLOUD")
+
+
 def delete_orchest_ctl_pods():
     """Deletes this pod and pods created by this pod.
 

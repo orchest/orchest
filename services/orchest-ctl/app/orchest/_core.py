@@ -413,8 +413,13 @@ def start(log_level: utils.LogLevel, cloud: bool):
 
 
 def restart():
+    log_level = k8sw.get_orchest_log_level()
+    level_to_str = {level.value: level for level in utils.LogLevel}
+    log_level = level_to_str.get(log_level, utils.LogLevel.INFO)
+    cloud = k8sw.get_orchest_cloud_mode() == "True"
+
     stop()
-    start()
+    start(log_level, cloud)
 
 
 def add_user(username: str, password: str, token: str, is_admin: str) -> None:
