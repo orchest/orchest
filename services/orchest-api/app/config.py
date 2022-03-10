@@ -28,9 +28,12 @@ class Config:
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # Image building.
-    BUILD_IMAGE_LOG_TERMINATION_FLAG = "_ORCHEST_RESERVED_LOG_TERMINATION_FLAG_"
+    BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
-    HOST_BASE_IMAGES_CACHE = f"/var/lib/orchest{_config.USERDIR_BASE_IMAGES_CACHE}"
+    HOST_KANIKO_BASE_IMAGES_CACHE = (
+        f"/var/lib/orchest{_config.USERDIR_KANIKO_BASE_IMAGES_CACHE}"
+    )
+    HOST_BUILDKIT_CACHE = f"/var/lib/orchest/{_config.USERDIR_BUILDKIT_CACHE}"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
