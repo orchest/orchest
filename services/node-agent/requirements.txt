@@ -1,1 +1,2 @@
 aiodocker==0.21.0
+aiohttp==3.7.4

@@ -23,10 +23,6 @@ spec:
         - --image-puller-interval=60
         - --image-puller-policy=IfNotPresent
         - --image-puller-retries=3
-        - --image-puller-images
-        {{- range .Values.imagePuller.images }}
-        - {{ . }}
-        {{- end }} 
         volumeMounts:
         - name: dockersock
           mountPath: "/var/run/docker.sock"

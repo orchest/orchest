@@ -24,8 +24,8 @@ if __name__ == "__main__":
         "--image-puller-interval",
         dest="image_puller_interval",
         nargs="?",
-        help="Specifies image puller interval in sec, default 60 sec.",
-        default=60,
+        help="Specifies image puller interval in sec, default 5 sec.",
+        default=5,
         type=int,
     )
     parser.add_argument(
@@ -52,10 +52,11 @@ if __name__ == "__main__":
         default=4,
     )
     parser.add_argument(
-        "--image-puller-images",
-        dest="image_puller_images",
-        nargs="+",
-        help="Specifies list of images to be pulled by image puller.",
+        "--orchest-api-host",
+        dest="orchest_api_host",
+        nargs="?",
+        help="The the orchest api host. default http://orchest-api:80",
+        default="http://orchest-api:80",
     )
 
     arguments = vars(parser.parse_args())
