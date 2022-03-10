@@ -191,7 +191,7 @@ def start_non_interactive_pipeline_run(
     run_config["session_type"] = "noninteractive"
     run_config["pipeline_uuid"] = pipeline_uuid
     run_config["project_uuid"] = project_uuid
-    run_config["project_dir"] = run_dir[1:]
+    run_config["project_dir"] = run_dir
     run_config["run_endpoint"] = f"jobs/{job_uuid}"
 
     # Overwrite the `pipeline.json`, that was copied from the snapshot,
