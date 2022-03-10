@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Optional
 
 import aiodocker
+import aiohttp
 
 
 class Policy(Enum):
@@ -18,9 +19,9 @@ class ImagePuller(object):
         image_puller_interval: int,
         image_puller_policy: Policy,
         image_puller_retries: int,
-        image_puller_images: list,
         image_puller_log_level: str,
         image_puller_threadiness: int,
+        orchest_api_host: str,
     ) -> None:
 
         """ImagePuller is started is responsible for pulling the
@@ -35,36 +36,56 @@ class ImagePuller(object):
             image_puller_policy (Policy): If the policy is
                 `IfNotPresent` the set of pulled image names is first
                 checked for existance, and pulls otherwise.
-            image_puller_images (list): The list of images to be pulled,
-                the image_names should include the tag and the
-                repository
             image_puller_log_level (str): The log level of the component
-
+            orchest_api_host (str): The orchet-api url to be used for
+                fetching image names
         """
 
         self.interval = image_puller_interval
         self.policy = image_puller_policy
         self.num_retries = image_puller_retries
-        self.images = image_puller_images
         self.threadiness = image_puller_threadiness
+        self.orchest_api_host = orchest_api_host
         self.logger = logging.getLogger("IMAGE_PULLER")
         self.logger.setLevel(image_puller_log_level)
 
         self._aclient: Optional[aiodocker.Docker] = None
 
     async def get_image_names(self, queue: asyncio.Queue):
-        """Get the image names for pulling.
+        """Fetches the image names by calling following endpoints
+        of the orchest-api.
+            1. /ctl/orchest-images-to-pre-pull
+            2. /environment-images/latest
         Args:
             queue: The queue to put the image names to, the queue will
             be consumed by puller tasks.
 
         """
-        while True:
-            for image_name in self.images:
-                # Create a pull task, with image_name which will
-                # be consumed by image puller tasks.
-                await queue.put(image_name)
-            await asyncio.sleep(self.interval)
+
+        endpoints = [
+            f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull",
+            f"{self.orchest_api_host}/api/environment-images/latest",
+        ]
+
+        async with aiohttp.ClientSession(trust_env=True) as session:
+            while True:
+                try:
+                    for endpoint in endpoints:
+                        async with session.get(endpoint) as response:
+                            response_json = await response.json()
+                            for image_names in response_json.values():
+                                # Add image_name to the queue to be
+                                # consumed by the pullers
+                                [
+                                    await queue.put(image_name)
+                                    for image_name in image_names
+                                ]
+                except Exception as ex:
+                    self.logger.error(
+                        f"Attempt to get image name from '{self.interval}' "
+                        f"encountered exception. Exception was: {ex}."
+                    )
+                await asyncio.sleep(self.interval)
 
     async def pull_image(self, queue: asyncio.Queue):
         """Pulls the image.
