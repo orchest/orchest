@@ -9,7 +9,7 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { FILE_MANAGER_ENDPOINT } from "./common";
 
-function ActionBar({
+export function ActionBar({
   uploadFiles,
   reload,
   rootFolder,
@@ -116,5 +116,3 @@ function ActionBar({
     </Box>
   );
 }
-
-export default ActionBar;

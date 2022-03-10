@@ -8,8 +8,7 @@ import MenuItem from "@mui/material/MenuItem";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useDropzone } from "react-dropzone";
-import "../App.css";
-import ActionBar from "./ActionBar";
+import { ActionBar } from "./ActionBar";
 import {
   baseNameFromPath,
   customFileGetter,
@@ -24,7 +23,7 @@ import {
   TreeNode,
   unpackCombinedPath,
 } from "./common";
-import FileTree from "./FileTree";
+import { FileTree } from "./FileTree";
 
 const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
   let pathComponents = contextMenuCombinedPath.split("/");
@@ -236,7 +235,10 @@ export function FileManager({
     setContextMenu(null);
   };
 
-  const handleToggle = (event, nodeIds) => {
+  const handleToggle = (
+    event: React.SyntheticEvent<Element, Event>,
+    nodeIds: string[]
+  ) => {
     if (!isDragging) {
       // Newly expanded Ids
       let expandedSet = new Set(expanded);
@@ -254,7 +256,10 @@ export function FileManager({
     }
   };
 
-  const handleSelect = (event, selected: string[]) => {
+  const handleSelect = (
+    event: React.SyntheticEvent<Element, Event>,
+    selected: string[]
+  ) => {
     if (onSelect) {
       onSelect(selected);
     }
@@ -309,7 +314,7 @@ export function FileManager({
     }
   };
 
-  const handleContextMenu = (combinedPath, event) => {
+  const handleContextMenu = (combinedPath: string, event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     setContextMenuPath(combinedPath);

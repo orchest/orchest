@@ -3,7 +3,13 @@ export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
 export const PROJECT_DIR_PATH = "/project-dir";
 export const ROOT_SEPARATOR = ":";
 
-export type TreeNode = { children: TreeNode[]; path: string };
+export type TreeNode = {
+  children: TreeNode[];
+  path: string;
+  // TODO: check these
+  type: "directory" | "file";
+  name: string;
+};
 
 export const searchTree = (
   path: string,
@@ -51,6 +57,51 @@ export const deriveParentPath = (path: string) => {
   return path.endsWith("/")
     ? path.split("/").slice(0, -2).join("/") + "/"
     : path.split("/").slice(0, -1).join("/") + "/";
+};
+
+export const generateTargetDescription = (path: string) => {
+  let parentPath = deriveParentPath(path);
+  let targetDescription = `'${baseNameFromPath(parentPath)}'`;
+  if (targetDescription === "''") {
+    targetDescription = "the root";
+  }
+  return targetDescription;
+};
+
+export const deduceRenameFromDragOperation = (
+  sourcePath: string,
+  targetPath: string
+) => {
+  if (sourcePath === targetPath) {
+    return [sourcePath, targetPath];
+  }
+  const sep = "/";
+  let isSourceDir = sourcePath.endsWith(sep);
+  let isTargetDir = targetPath.endsWith(sep);
+
+  let newPath: string;
+
+  let sourceBasename = baseNameFromPath(sourcePath);
+
+  // Check if target is child of sourceDir
+  if (targetPath.startsWith(sourcePath)) {
+    // Break out with no-op. Illegal move
+    return [sourcePath, sourcePath];
+  }
+
+  if (isTargetDir) {
+    newPath = targetPath + sourceBasename;
+  } else {
+    let targetParentDirPath =
+      targetPath.split(sep).slice(0, -1).join(sep) + sep;
+    newPath = targetParentDirPath + sourceBasename;
+  }
+
+  if (isSourceDir) {
+    newPath += sep;
+  }
+
+  return [sourcePath, newPath];
 };
 
 /**

@@ -10,10 +10,13 @@ import React from "react";
 import {
   baseNameFromPath,
   createCombinedPath,
+  deduceRenameFromDragOperation,
   deriveParentPath,
   FILE_MANAGER_ROOT_CLASS,
+  generateTargetDescription,
   PROJECT_DIR_PATH,
   ROOT_SEPARATOR,
+  TreeNode,
   unpackCombinedPath,
 } from "./common";
 import { getIcon, SVGFileIcon } from "./SVGFileIcon";
@@ -94,6 +97,19 @@ const TreeRow = ({
   setFileInRename,
   fileRenameNewName,
   setFileRenameNewName,
+}: {
+  handleContextMenu: (path: string, event: React.MouseEvent) => void;
+  treeNodes: TreeNode[];
+  handleRename: (oldPath: string, newPath: string) => void;
+  setIsDragging: (value: boolean) => void;
+  setDragItem: (dragItemData: { labelText: string; path: string }) => void;
+  root: string;
+  hoveredPath: string;
+  onOpen: () => void;
+  fileInRename: string;
+  setFileInRename: (value: string) => void;
+  fileRenameNewName: string;
+  setFileRenameNewName: (value: string) => void;
 }) => {
   return (
     <>
@@ -116,7 +132,7 @@ const TreeRow = ({
               )}
 
               <StyledFSTreeItem
-                onContextMenu={handleContextMenu.bind(undefined, combinedPath)}
+                onContextMenu={(e) => handleContextMenu(combinedPath, e)}
                 setIsDragging={setIsDragging}
                 setDragItem={setDragItem}
                 style={{
@@ -290,7 +306,7 @@ function StyledFSTreeItem({
   );
 }
 
-const FileTree = ({
+export const FileTree = ({
   fileTrees,
   treeRoots,
   expanded,
@@ -307,11 +323,37 @@ const FileTree = ({
   setFileInRename,
   fileRenameNewName,
   setFileRenameNewName,
+}: {
+  fileTrees: Record<string, TreeNode>;
+  treeRoots: string[];
+  expanded: string[];
+  handleToggle: (
+    event: React.SyntheticEvent<Element, Event>,
+    nodeIds: string[]
+  ) => void;
+  selected: string[];
+  handleSelect: (
+    event: React.SyntheticEvent<Element, Event>,
+    nodeIds: string[]
+  ) => void;
+  handleContextMenu: (path: string, e: React.MouseEvent) => void;
+  handleRename: (sourcePath: string, newPath: string) => void;
+  isDragging: boolean;
+  setIsDragging: (value: boolean) => void;
+  onDropOutside: (target: EventTarget, selection: string[]) => void;
+  onOpen: () => void;
+  fileInRename: string;
+  setFileInRename: (file: string) => void;
+  fileRenameNewName: string;
+  setFileRenameNewName: (value: string) => void;
 }) => {
   const INIT_OFFSET_X = 10;
   const INIT_OFFSET_Y = 10;
 
-  const [dragItem, setDragItem] = React.useState(undefined);
+  const [dragItem, setDragItem] = React.useState<{
+    labelText: string;
+    path: string;
+  }>(undefined);
   const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
   const [hoveredPath, setHoveredPath] = React.useState(undefined);
 
@@ -336,58 +378,13 @@ const FileTree = ({
     }
   }, []);
 
-  const deduceRenameFromDragOperation = React.useCallback(
-    (sourcePath, targetPath) => {
-      if (sourcePath === targetPath) {
-        return [sourcePath, targetPath];
-      }
-      const sep = "/";
-      let isSourceDir = sourcePath.endsWith(sep);
-      let isTargetDir = targetPath.endsWith(sep);
-
-      let newPath;
-
-      let sourceBasename = baseNameFromPath(sourcePath);
-
-      // Check if target is child of sourceDir
-      if (targetPath.startsWith(sourcePath)) {
-        // Break out with no-op. Illegal move
-        return [sourcePath, sourcePath];
-      }
-
-      if (isTargetDir) {
-        newPath = targetPath + sourceBasename;
-      } else {
-        let targetParentDirPath =
-          targetPath.split(sep).slice(0, -1).join(sep) + sep;
-        newPath = targetParentDirPath + sourceBasename;
-      }
-
-      if (isSourceDir) {
-        newPath += sep;
-      }
-
-      return [sourcePath, newPath];
-    },
-    []
-  );
-
   const draggingSelection = React.useMemo(() => {
     if (!dragItem) return false;
     return selected.includes(dragItem.path);
   }, [dragItem, selected]);
 
-  const generateTargetDescription = React.useCallback((path) => {
-    let parentPath = deriveParentPath(path);
-    let targetDescription = `'${baseNameFromPath(parentPath)}'`;
-    if (targetDescription === "''") {
-      targetDescription = "the root";
-    }
-    return targetDescription;
-  }, []);
-
   const handleMouseUp = React.useCallback(
-    (target) => {
+    (target: EventTarget) => {
       // Check if target element is inside file tree app
       if (!isInFileManager(target)) {
         if (onDropOutside) {
@@ -454,15 +451,13 @@ const FileTree = ({
       draggingSelection,
       filePathFromHTMLElement,
       isInFileManager,
-      generateTargetDescription,
-      deduceRenameFromDragOperation,
     ]
   );
 
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
     // while dragging.
-    setTimeout(() => {
+    window.setTimeout(() => {
       setDragOffset({
         x: 0,
         y: 0,
@@ -474,7 +469,7 @@ const FileTree = ({
   }, [setDragOffset, setIsDragging, setDragItem]);
 
   const triggerHandleMouseUp = React.useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       handleMouseUp(e.target);
       resetMove();
     },
@@ -482,7 +477,7 @@ const FileTree = ({
   );
 
   let mouseMoveHandler = React.useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (isDragging) {
         let path = filePathFromHTMLElement(e.target);
         if (path) {
@@ -501,14 +496,14 @@ const FileTree = ({
   );
 
   let mouseLeaveHandler = React.useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (isDragging) resetMove();
     },
     [isDragging, resetMove]
   );
 
   let mouseUpHandler = React.useCallback(
-    (e) => {
+    (e: MouseEvent) => {
       if (isDragging) {
         triggerHandleMouseUp(e);
       }
@@ -517,7 +512,7 @@ const FileTree = ({
   );
 
   let keyUpHandler = React.useCallback(
-    (e) => {
+    (e: KeyboardEvent) => {
       if (e.code === "Escape") {
         resetMove();
       }
@@ -533,16 +528,16 @@ const FileTree = ({
   });
 
   React.useEffect(() => {
-    let mouseMoveHandlerWrapper = (e) => {
+    let mouseMoveHandlerWrapper = (e: MouseEvent) => {
       listenerRefs.current.mouseMoveHandler(e);
     };
-    let mouseLeaveHandlerWrapper = (e) => {
+    let mouseLeaveHandlerWrapper = (e: MouseEvent) => {
       listenerRefs.current.mouseLeaveHandler(e);
     };
-    let mouseUpHandlerWrapper = (e) => {
+    let mouseUpHandlerWrapper = (e: MouseEvent) => {
       listenerRefs.current.mouseUpHandler(e);
     };
-    let keyUpHandlerWrapper = (e) => {
+    let keyUpHandlerWrapper = (e: KeyboardEvent) => {
       listenerRefs.current.keyUpHandler(e);
     };
 
@@ -654,5 +649,3 @@ const FileTree = ({
     </Box>
   );
 };
-
-export default FileTree;
