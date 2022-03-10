@@ -7,6 +7,14 @@ ROOK_NFS_NAMESPACE := ${if ${ROOK_NFS_NAMESPACE},${ROOK_NFS_NAMESPACE},rook-nfs}
 
 DEFAULT_TAG := ${if ${DEFAULT_TAG},${DEFAULT_TAG},latest}
 
+# If DEPEND_RESOURCES is set to FALSE, the orchest target is not dependent 
+# to orchest-resources target, thus orchest-resources must have been deployed already
+ifeq (${DEPEND_RESOURCES},FALSE)
+  ORCHEST_RESOURCES_TARGET := 
+else
+  ORCHEST_RESOURCES_TARGET := orchest-resources
+endif
+
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_API_TAG := ${if ${ORCHEST_API_TAG},${ORCHEST_API_TAG},${DEFAULT_TAG}}
@@ -186,7 +194,7 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry
 
 .PHONY: orchest
-orchest: initialize | orchest-resources
+orchest: initialize | ${ORCHEST_RESOURCES_TARGET}
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
 # usefull for debugging, not recommended to use without DEBUG=true enabled
@@ -289,7 +297,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} orchest-resources
+./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ${ORCHEST_RESOURCES_TARGET}
 	touch $@
 
 
