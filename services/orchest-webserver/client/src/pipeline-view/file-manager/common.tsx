@@ -222,7 +222,8 @@ export const mergeTrees = (subTree, tree) => {
 
 export const queryArgs = (obj: Record<string, string | number | boolean>) => {
   return Object.entries(obj).reduce((str, [key, value]) => {
-    return `${str}&${key}=${window.encodeURIComponent(value)}`;
+    const leadingCharts = str === "" ? str : `${str}&`;
+    return `${leadingCharts}${key}=${window.encodeURIComponent(value)}`;
   }, "");
 };
 

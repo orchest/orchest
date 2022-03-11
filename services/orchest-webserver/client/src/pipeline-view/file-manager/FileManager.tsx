@@ -491,6 +491,7 @@ export function FileManager({
         />
       )}
       <ActionBar
+        baseUrl={fileManagerBaseUrl}
         setExpanded={setExpanded}
         reload={reload}
         uploadFiles={uploadFiles}

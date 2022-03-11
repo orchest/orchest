@@ -7,14 +7,16 @@ import Box from "@mui/material/Box";
 import IconButton from "@mui/material/IconButton";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { FILE_MANAGER_ENDPOINT } from "./common";
+import { queryArgs } from "./common";
 
 export function ActionBar({
+  baseUrl,
   uploadFiles,
   reload,
   rootFolder,
   setExpanded,
 }: {
+  baseUrl: string;
   rootFolder: string;
   uploadFiles: (files: File[] | FileList) => void;
   reload: () => void;
@@ -39,9 +41,10 @@ export function ActionBar({
 
     try {
       await fetcher(
-        `${FILE_MANAGER_ENDPOINT}/create-dir?path=/${window.encodeURIComponent(
-          folderName
-        )}/&root=${window.encodeURIComponent(rootFolder)}`,
+        `${baseUrl}/create-dir?${queryArgs({
+          path: `/${folderName}/`,
+          root: rootFolder,
+        })}`,
         { method: "POST" }
       );
       reload();
