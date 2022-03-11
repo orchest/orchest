@@ -528,7 +528,7 @@ export function FileManager({
             anchorReference="anchorPosition"
             anchorPosition={
               contextMenu !== null
-                ? { top: contextMenu.x, left: contextMenu.y }
+                ? { top: contextMenu.y, left: contextMenu.x }
                 : undefined
             }
           >
