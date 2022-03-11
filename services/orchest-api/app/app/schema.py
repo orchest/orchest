@@ -668,6 +668,11 @@ environment_image = Model(
     },
 )
 
+environment_images = Model(
+    "EnvironmentImages",
+    {"environment_images": fields.List(fields.Nested(environment_image))},
+)
+
 
 jupyter_image_build = Model(
     "JupyterEnvironmentBuild",

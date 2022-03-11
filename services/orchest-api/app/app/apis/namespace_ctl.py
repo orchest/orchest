@@ -52,6 +52,23 @@ class Restart(Resource):
         return {}, 201
 
 
+@api.route("/orchest-images-to-pre-pull")
+class OrchestImagesToPrePull(Resource):
+    @api.doc("orchest_images_to_pre_pull")
+    def get(self):
+        """Orchest images to pre pull on all nodes for a better UX."""
+        # K8S_TODO: remove latest once we have versioned images on
+        # dockerhub.
+        pre_pull_orchest_images = [
+            "orchest/jupyter-enterprise-gateway:latest",
+            "orchest/session-sidecar:latest",
+            utils.get_jupyter_server_image_to_use(),
+        ]
+        pre_pull_orchest_images = {"pre_pull_orchest_images": pre_pull_orchest_images}
+
+        return pre_pull_orchest_images, 200
+
+
 def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
     # K8S_TODO: enable once we have versioned images. The update-sidecar
     # should use the current version of the cluster given that's the
