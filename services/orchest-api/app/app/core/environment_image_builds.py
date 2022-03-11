@@ -112,7 +112,7 @@ def write_environment_dockerfile(
         # Needed to inject the rm statement this way, black was
         # introducing an error.
         f"&& echo {flag} {rm_statement} "
-        # The || <error flag> allows to avoid kaniko errors logs making
+        # The || <error flag> allows to avoid builder errors logs making
         # into it the user logs and tell us that there has been an
         # error.
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
