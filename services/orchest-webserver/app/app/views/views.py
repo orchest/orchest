@@ -1039,9 +1039,11 @@ def register_views(app, db):
         else:
             return jsonify({"message": "File does not exists."}), 404
 
-    @app.route("/async/file-manager/delete", methods=["POST"])
-    def filemanager_delete():
-        root_dir_path = filemanager.root_from_request(request)
+    @app.route("/async/file-manager/delete/<project_uuid>", methods=["POST"])
+    def filemanager_delete(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
 
         if "path" not in request.args:
             return jsonify({"message": "Missing path query argument."}), 500
@@ -1061,9 +1063,11 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/duplicate", methods=["POST"])
-    def filemanager_duplicate():
-        root_dir_path = filemanager.root_from_request(request)
+    @app.route("/async/file-manager/duplicate/<project_uuid>", methods=["POST"])
+    def filemanager_duplicate(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
 
         if "path" not in request.args:
             return jsonify({"message": "Missing path query argument."}), 500
@@ -1088,9 +1092,11 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/create-dir", methods=["POST"])
-    def filemanager_create_dir():
-        root_dir_path = filemanager.root_from_request(request)
+    @app.route("/async/file-manager/create-dir/<project_uuid>", methods=["POST"])
+    def filemanager_create_dir(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
 
         if "path" not in request.args:
             return jsonify({"message": "Missing path query argument."}), 500
@@ -1120,10 +1126,12 @@ def register_views(app, db):
         os.makedirs(full_path, exist_ok=True)
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/upload", methods=["POST"])
-    def filemanager_upload():
+    @app.route("/async/file-manager/upload/<project_uuid>", methods=["POST"])
+    def filemanager_upload(project_uuid):
 
-        root_dir_path = filemanager.root_from_request(request)
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
 
         if "path" not in request.args:
             return jsonify({"message": "Missing path query argument."}), 500
@@ -1161,8 +1169,8 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/rename", methods=["POST"])
-    def filemanager_rename():
+    @app.route("/async/file-manager/rename/<project_uuid>", methods=["POST"])
+    def filemanager_rename(project_uuid):
 
         if (
             "oldPath" not in request.args
@@ -1175,7 +1183,12 @@ def register_views(app, db):
                 500,
             )
 
-        [old_root_path, new_root_path] = filemanager.old_new_roots_from_request(request)
+        old_root_path = filemanager.construct_root_dir_path(
+            request.args["oldRoot"], project_uuid
+        )
+        new_root_path = filemanager.construct_root_dir_path(
+            request.args["newRoot"], project_uuid
+        )
 
         oldPath = request.args.get("oldPath")[1:]
         newPath = request.args.get("newPath")[1:]
@@ -1187,9 +1200,11 @@ def register_views(app, db):
         except Exception:
             return jsonify({"message": "Failed to rename"}), 500
 
-    @app.route("/async/file-manager/download", methods=["GET"])
-    def filemanager_download():
-        root_dir_path = filemanager.root_from_request(request)
+    @app.route("/async/file-manager/download/<project_uuid>", methods=["GET"])
+    def filemanager_download(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
 
         if "path" not in request.args:
             return jsonify({"message": "No path was passed."}), 500
@@ -1211,9 +1226,11 @@ def register_views(app, db):
                 attachment_filename=os.path.basename(fp[:-1]) + ".zip",
             )
 
-    @app.route("/async/file-manager/browse")
-    def filemanager_browse():
-        root_dir_path = filemanager.root_from_request(request)
+    @app.route("/async/file-manager/browse/<project_uuid>", methods=["GET"])
+    def filemanager_browse(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
 
         # Path
         path_filter = "/"

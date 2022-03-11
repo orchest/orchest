@@ -1,10 +1,12 @@
 import logging
 import os
 import re
+from typing import Optional
 
 from flask import jsonify
 
 from _orchest.internals import config as _config
+from app.models import Project
 
 logger = logging.getLogger(__name__)
 
@@ -22,23 +24,21 @@ def allowed_file(filename):
     return True
 
 
-def root_from_request(request):
-    root = request.args.get("root", PROJECT_DIR_PATH)
+def construct_root_dir_path(root: Optional[str], project_uuid: str) -> str:
+    if root is None:
+        root = PROJECT_DIR_PATH
 
-    if root in ALLOWED_ROOTS:
-        return root
-    else:
-        raise ValueError("Received illegal root path.")
+    if root not in ALLOWED_ROOTS:
+        raise ValueError(f"Received illegal root path: {root}.")
 
+    project = Project.query.filter(Project.uuid == project_uuid).first()
 
-def old_new_roots_from_request(request):
-    old_root = request.args["oldRoot"]
-    new_root = request.args["newRoot"]
+    if root == PROJECT_DIR_PATH:
+        root = f"/userdir/projects/{project.path}"
+    else:  # We know it is "/data"
+        root = "/userdir/data"
 
-    if old_root in ALLOWED_ROOTS and new_root in ALLOWED_ROOTS:
-        return [old_root, new_root]
-    else:
-        raise ValueError("Received illegal root path.")
+    return root
 
 
 def find_unique_duplicate_filepath(fp):
