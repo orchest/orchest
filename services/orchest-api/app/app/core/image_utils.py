@@ -104,7 +104,7 @@ def _get_buildkit_image_build_workflow_manifest(
                     "name": "build-env",
                     "container": {
                         "name": "buildkitd",
-                        "image": "moby/buildkit:v0.10.0",
+                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
                         "command": ["buildctl-daemonless.sh"],
                         "args": [
                             "build",
