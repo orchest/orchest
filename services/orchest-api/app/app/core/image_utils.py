@@ -12,8 +12,31 @@ from app.celery_app import make_celery
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from config import CONFIG_CLASS
 
+# So that pushing to the registry is faster and it always uses the same
+# cache on disk.
+_registry_pod_affinity = {
+    "podAffinity": {
+        "requiredDuringSchedulingIgnoredDuringExecution": [
+            {
+                "labelSelector": {
+                    "matchExpressions": [
+                        {
+                            "key": "app",
+                            "operator": "In",
+                            "values": ["docker-registry"],
+                        }
+                    ]
+                },
+                "topologyKey": "kubernetes.io/hostname",
+            }
+        ]
+    }
+}
 
-def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> dict:
+
+def _get_kaniko_base_image_cache_workflow_manifest(
+    workflow_name, base_image: str
+) -> dict:
     manifest = {
         "apiVersion": "argoproj.io/v1alpha1",
         "kind": "Workflow",
@@ -38,11 +61,10 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                             },
                         ],
                     },
-                    # K8S_TODO: set to builder node once it exists.
-                    "nodeSelector": {"node-role.kubernetes.io/master": ""},
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
+                    "affinity": _registry_pod_affinity,
                 },
             ],
             # The celery task actually takes care of deleting the
@@ -156,11 +178,10 @@ def _get_buildkit_image_build_workflow_manifest(
                             },
                         ],
                     },
-                    # K8S_TODO: set to builder node once it exists.
-                    "nodeSelector": {"node-role.kubernetes.io/master": ""},
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
+                    "affinity": _registry_pod_affinity,
                 },
             ],
             # The celery task actually takes care of deleting the
@@ -277,11 +298,10 @@ def _get_kaniko_image_build_workflow_manifest(
                             },
                         ],
                     },
-                    # K8S_TODO: set to builder node once it exists.
-                    "nodeSelector": {"node-role.kubernetes.io/master": ""},
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
+                    "affinity": _registry_pod_affinity,
                 },
             ],
             # The celery task actually takes care of deleting the
@@ -338,7 +358,9 @@ def _cache_image(
 
     ns = _config.ORCHEST_NAMESPACE
     pod_name = f"image-cache-task-{task_uuid}"
-    manifest = _get_base_image_cache_workflow_manifest(pod_name, base_image=base_image)
+    manifest = _get_kaniko_base_image_cache_workflow_manifest(
+        pod_name, base_image=base_image
+    )
     k8s_custom_obj_api.create_namespaced_custom_object(
         "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
     )
