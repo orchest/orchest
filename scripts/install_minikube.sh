@@ -82,6 +82,12 @@ minikube-start() {
   minikube start --driver=kvm -n $1 --cpus $2 --memory 6144
 }
 
+# Starts minikube with kvm driver
+minikube-start() {
+  minikube addons enable ingress
+}
+
+
 # Stops minikube
 minikube-stop() {
   minikube stop
@@ -119,5 +125,6 @@ minikube-start ${num_nodes} ${num_cpus}
 create-and-attach-volumes ${size}
 minikube-stop
 minikube-start
+minikube-enable-ingress
 
 echo -n "end"
