@@ -1039,7 +1039,7 @@ def register_views(app, db):
         else:
             return jsonify({"message": "File does not exists."}), 404
 
-    @app.route("/async/file-manager/delete/<project_uuid>", methods=["POST"])
+    @app.route("/async/file-manager/<project_uuid>/delete", methods=["POST"])
     def filemanager_delete(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1063,7 +1063,7 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/duplicate/<project_uuid>", methods=["POST"])
+    @app.route("/async/file-manager/<project_uuid>/duplicate", methods=["POST"])
     def filemanager_duplicate(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1092,7 +1092,7 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/create-dir/<project_uuid>", methods=["POST"])
+    @app.route("/async/file-manager/<project_uuid>/create-dir", methods=["POST"])
     def filemanager_create_dir(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1126,7 +1126,7 @@ def register_views(app, db):
         os.makedirs(full_path, exist_ok=True)
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/upload/<project_uuid>", methods=["POST"])
+    @app.route("/async/file-manager/<project_uuid>/upload", methods=["POST"])
     def filemanager_upload(project_uuid):
 
         root_dir_path = filemanager.construct_root_dir_path(
@@ -1169,7 +1169,7 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/rename/<project_uuid>", methods=["POST"])
+    @app.route("/async/file-manager/<project_uuid>/rename", methods=["POST"])
     def filemanager_rename(project_uuid):
 
         if (
@@ -1200,7 +1200,7 @@ def register_views(app, db):
         except Exception:
             return jsonify({"message": "Failed to rename"}), 500
 
-    @app.route("/async/file-manager/download/<project_uuid>", methods=["GET"])
+    @app.route("/async/file-manager/<project_uuid>/download", methods=["GET"])
     def filemanager_download(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1226,7 +1226,7 @@ def register_views(app, db):
                 attachment_filename=os.path.basename(fp[:-1]) + ".zip",
             )
 
-    @app.route("/async/file-manager/browse/<project_uuid>", methods=["GET"])
+    @app.route("/async/file-manager/<project_uuid>/browse", methods=["GET"])
     def filemanager_browse(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid

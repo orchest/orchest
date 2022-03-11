@@ -1,3 +1,4 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Position } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress, {
@@ -33,10 +34,14 @@ const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
   return pathComponents.slice(-1)[0];
 };
 
-const downloadFile = (combinedPath: string, downloadLink: string) => {
+const downloadFile = (
+  url: string,
+  combinedPath: string,
+  downloadLink: string
+) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `${FILE_MANAGER_ENDPOINT}/download?${queryArgs({
+  let downloadUrl = `${url}/download?${queryArgs({
     path,
     root,
   })}`;
@@ -95,9 +100,11 @@ export function FileManager({
    * Define configuration constants
    */
   const DEFAULT_DEPTH = 3;
+  const containerRef = React.useRef<HTMLElement>();
   /**
    * State init
    */
+  const { projectUuid } = useCustomRoute();
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
   const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
   const [selected, setSelected] = React.useState<string[]>([]);
@@ -115,6 +122,7 @@ export function FileManager({
     string
   >();
 
+  const fileManagerBaseUrl = `${FILE_MANAGER_ENDPOINT}/${projectUuid}`;
   // Note, roots are assumed to always start with a / (absolute paths)
   const treeRoots = React.useMemo(() => [PROJECT_DIR_PATH, "/data"], []);
   const root = React.useMemo(() => getActiveRoot(selected, treeRoots), [
@@ -135,7 +143,10 @@ export function FileManager({
     const newFiles = await Promise.all(
       treeRoots.map(async (root) => {
         const file = await fetcher(
-          `${FILE_MANAGER_ENDPOINT}/browse?${queryArgs({ depth, root })}`
+          `${fileManagerBaseUrl}/browse?${queryArgs({
+            depth,
+            root,
+          })}`
         );
         return { key: root, file };
       })
@@ -148,7 +159,7 @@ export function FileManager({
     );
 
     setInProgress(false);
-  }, [expanded, treeRoots]);
+  }, [expanded, treeRoots, fileManagerBaseUrl]);
 
   const browsePath = React.useCallback(
     async (combinedPath) => {
@@ -157,7 +168,7 @@ export function FileManager({
 
       let { root, path } = unpackCombinedPath(combinedPath);
 
-      const url = `${FILE_MANAGER_ENDPOINT}/browse?${queryArgs({
+      const url = `${fileManagerBaseUrl}/browse?${queryArgs({
         path,
         root,
       })}`;
@@ -169,11 +180,13 @@ export function FileManager({
       setFileTrees(fileTrees);
       setInProgress(false);
     },
-    [fileTrees]
+    [fileTrees, fileManagerBaseUrl]
   );
 
   const uploadFiles = React.useCallback(
     async (files: File[] | FileList) => {
+      console.log("DEV", files);
+
       let progressTotal = files.length;
       const progressHolder = { progress: 0 };
       setInProgress(true);
@@ -196,7 +209,10 @@ export function FileManager({
           formData.append("file", file);
 
           await fetcher(
-            `${FILE_MANAGER_ENDPOINT}/upload?${queryArgs({ path, root })}`,
+            `${fileManagerBaseUrl}/upload?${queryArgs({
+              path,
+              root,
+            })}`,
             {
               method: "POST",
               headers: HEADER.FORM,
@@ -217,16 +233,22 @@ export function FileManager({
       reload();
       setInProgress(false);
     },
-    [reload, root]
+    [reload, root, fileManagerBaseUrl]
   );
 
-  const deleteFetch = React.useCallback((combinedPath) => {
-    let { root, path } = unpackCombinedPath(combinedPath);
-    return fetch(
-      `${FILE_MANAGER_ENDPOINT}/delete?${queryArgs({ path, root })}`,
-      { method: "POST" }
-    );
-  }, []);
+  const deleteFetch = React.useCallback(
+    (combinedPath) => {
+      let { root, path } = unpackCombinedPath(combinedPath);
+      return fetch(
+        `${fileManagerBaseUrl}/delete?${queryArgs({
+          path,
+          root,
+        })}`,
+        { method: "POST" }
+      );
+    },
+    [fileManagerBaseUrl]
+  );
 
   /**
    * Callback handlers
@@ -304,13 +326,13 @@ export function FileManager({
     if (selected.includes(contextMenuCombinedPath)) {
       selected.forEach((combinedPath, i) => {
         setTimeout(function () {
-          downloadFile(combinedPath, downloadLink);
+          downloadFile(fileManagerBaseUrl, combinedPath, downloadLink);
         }, i * 500);
         // Seems like multiple download invocations works with 500ms
         // Not the most reliable, might want to fall back to server side zip.
       });
     } else {
-      downloadFile(contextMenuCombinedPath, downloadLink);
+      downloadFile(fileManagerBaseUrl, contextMenuCombinedPath, downloadLink);
     }
   };
 
@@ -334,7 +356,10 @@ export function FileManager({
     let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
 
     await fetch(
-      `${FILE_MANAGER_ENDPOINT}/duplicate?${queryArgs({ path, root })}`,
+      `${fileManagerBaseUrl}/duplicate?${queryArgs({
+        path,
+        root,
+      })}`,
       { method: "POST" }
     );
     reload();
@@ -381,7 +406,7 @@ export function FileManager({
         });
       }
 
-      const url = `${FILE_MANAGER_ENDPOINT}/rename?${queryArgs({
+      const url = `${fileManagerBaseUrl}/rename?${queryArgs({
         oldPath,
         newPath,
         oldRoot,
@@ -391,7 +416,7 @@ export function FileManager({
       await fetcher(url, { method: "POST" });
       reload();
     },
-    [reload, expanded, selected]
+    [reload, expanded, selected, fileManagerBaseUrl]
   );
 
   /**
@@ -430,112 +455,107 @@ export function FileManager({
     contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");
 
   return (
-    <div
+    <Box
+      {...getRootProps({
+        onClick: (event) => {
+          event.stopPropagation();
+        },
+      })}
+      ref={containerRef}
       className={FILE_MANAGER_ROOT_CLASS}
-      style={{
-        display: "flex",
-        flexDirection: "column",
+      sx={{
         height: "100%",
-        width: "100%",
+        position: "relative",
+        width: "300px",
+        backgroundColor: (theme) => theme.palette.background.paper,
+        borderRight: (theme) => `1px solid ${theme.borderColor}`,
+        "::before": {
+          content: '" "',
+          position: "absolute",
+          width: "calc(100% - 4px)",
+          height: "calc(100% - 4px)",
+          pointerEvents: "none",
+          border: (theme) =>
+            isDragActive
+              ? `2px solid ${theme.palette.primary.main}`
+              : undefined,
+        },
       }}
     >
-      <Box
-        {...getRootProps({
-          onClick: (event) => {
-            event.stopPropagation();
-          },
-        })}
-        sx={{
-          height: "100%",
-          position: "relative",
-          "::before": {
-            content: '" "',
-            position: "absolute",
-            width: "calc(100% - 4px)",
-            height: "calc(100% - 4px)",
-            pointerEvents: "none",
-            border: (theme) =>
-              isDragActive
-                ? `2px solid ${theme.palette.primary.main}`
-                : undefined,
-          },
-        }}
-      >
-        <input {...getInputProps()} webkitdirectory="" directory="" />
-        {inProgress && (
-          <LinearProgress
-            sx={{ position: "absolute", width: "100%" }}
-            value={progress}
-            variant={progressType}
-          />
-        )}
-        <ActionBar
-          setExpanded={setExpanded}
-          reload={reload}
-          uploadFiles={uploadFiles}
-          rootFolder={root}
+      <input {...getInputProps()} webkitdirectory="" directory="" />
+      {inProgress && (
+        <LinearProgress
+          sx={{ position: "absolute", width: "100%" }}
+          value={progress}
+          variant={progressType}
         />
-        {allTreesHaveLoaded && (
-          <div
-            style={{
-              userSelect: "none",
-              whiteSpace: "nowrap",
-            }}
+      )}
+      <ActionBar
+        setExpanded={setExpanded}
+        reload={reload}
+        uploadFiles={uploadFiles}
+        rootFolder={root}
+      />
+      {allTreesHaveLoaded && (
+        <div
+          style={{
+            userSelect: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <FileTree
+            fileTrees={fileTrees}
+            treeRoots={treeRoots}
+            expanded={expanded}
+            selected={selected}
+            handleContextMenu={handleContextMenu}
+            handleSelect={handleSelect}
+            handleToggle={handleToggle}
+            handleRename={handleRename}
+            onOpen={onOpen}
+            onDropOutside={onDropOutside}
+            isDragging={isDragging}
+            setIsDragging={setIsDragging}
+            fileInRename={fileInRename}
+            setFileInRename={setFileInRename}
+            fileRenameNewName={fileRenameNewName}
+            setFileRenameNewName={setFileRenameNewName}
+          />
+          <Menu
+            open={contextMenu !== null}
+            onClose={handleClose}
+            anchorReference="anchorPosition"
+            anchorPosition={
+              contextMenu !== null
+                ? { top: contextMenu.x, left: contextMenu.y }
+                : undefined
+            }
           >
-            <FileTree
-              fileTrees={fileTrees}
-              treeRoots={treeRoots}
-              expanded={expanded}
-              selected={selected}
-              handleContextMenu={handleContextMenu}
-              handleSelect={handleSelect}
-              handleToggle={handleToggle}
-              handleRename={handleRename}
-              onOpen={onOpen}
-              onDropOutside={onDropOutside}
-              isDragging={isDragging}
-              setIsDragging={setIsDragging}
-              fileInRename={fileInRename}
-              setFileInRename={setFileInRename}
-              fileRenameNewName={fileRenameNewName}
-              setFileRenameNewName={setFileRenameNewName}
-            />
-            <Menu
-              open={contextMenu !== null}
-              onClose={handleClose}
-              anchorReference="anchorPosition"
-              anchorPosition={
-                contextMenu !== null
-                  ? { top: contextMenu.x, left: contextMenu.y }
-                  : undefined
-              }
-            >
-              {contextPathIsFile && (
-                <MenuItem dense onClick={handleContextEdit}>
-                  Edit
-                </MenuItem>
-              )}
-              {contextPathIsFile && (
-                <MenuItem dense onClick={handleContextView}>
-                  View
-                </MenuItem>
-              )}
-              <MenuItem dense onClick={handleContextRename}>
-                Rename
+            {contextPathIsFile && (
+              <MenuItem dense onClick={handleContextEdit}>
+                Edit
               </MenuItem>
-              <MenuItem dense onClick={handleDuplicate}>
-                Duplicate
+            )}
+            {contextPathIsFile && (
+              <MenuItem dense onClick={handleContextView}>
+                View
               </MenuItem>
-              <MenuItem dense onClick={handleDelete}>
-                Delete
-              </MenuItem>
-              <MenuItem dense onClick={handleDownload}>
-                Download
-              </MenuItem>
-            </Menu>
-          </div>
-        )}
-      </Box>
-    </div>
+            )}
+            <MenuItem dense onClick={handleContextRename}>
+              Rename
+            </MenuItem>
+            <MenuItem dense onClick={handleDuplicate}>
+              Duplicate
+            </MenuItem>
+            <MenuItem dense onClick={handleDelete}>
+              Delete
+            </MenuItem>
+            <MenuItem dense onClick={handleDownload}>
+              Download
+            </MenuItem>
+          </Menu>
+        </div>
+      )}
+    </Box>
   );
 }

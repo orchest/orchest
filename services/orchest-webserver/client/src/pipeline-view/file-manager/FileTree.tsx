@@ -1,10 +1,8 @@
-import { LogoIcon } from "@/components/common/icons/LogoIcon";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { TreeItem, TreeItemProps, TreeView } from "@mui/lab";
-import { treeItemClasses } from "@mui/lab/TreeItem";
+import TreeView from "@mui/lab/TreeView";
 import Box from "@mui/material/Box";
-import { styled, useTheme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import React from "react";
 import {
@@ -19,7 +17,7 @@ import {
   TreeNode,
   unpackCombinedPath,
 } from "./common";
-import { getIcon, SVGFileIcon } from "./SVGFileIcon";
+import { TreeItem } from "./TreeItem";
 
 const RenameField = ({
   fileInRename,
@@ -52,7 +50,7 @@ const RenameField = ({
           zIndex: 9,
           width: "calc(100% - 23px)",
           marginLeft: "23px",
-          backgroundColor: (theme) => theme.palette.grey[300],
+          backgroundColor: (theme) => theme.palette.grey[100],
         }}
         autoFocus
         inputProps={{
@@ -131,7 +129,7 @@ const TreeRow = ({
                 />
               )}
 
-              <StyledFSTreeItem
+              <TreeItem
                 onContextMenu={(e) => handleContextMenu(combinedPath, e)}
                 setIsDragging={setIsDragging}
                 setDragItem={setDragItem}
@@ -162,7 +160,7 @@ const TreeRow = ({
                   setFileRenameNewName={setFileRenameNewName}
                   handleRename={handleRename}
                 />
-              </StyledFSTreeItem>
+              </TreeItem>
             </div>
           );
         })}
@@ -182,7 +180,7 @@ const TreeRow = ({
                   combinedPath={combinedPath}
                 />
               )}
-              <StyledFSTreeItem
+              <TreeItem
                 onContextMenu={handleContextMenu.bind(undefined, combinedPath)}
                 setIsDragging={setIsDragging}
                 setDragItem={setDragItem}
@@ -202,109 +200,15 @@ const TreeRow = ({
   );
 };
 
-const StyledTreeItemRoot = styled(TreeItem)(({ theme }) => ({
-  [`& .${treeItemClasses.content}`]: {
-    padding: "0px 4px",
-    [`.${treeItemClasses.label}`]: {
-      paddingLeft: 0,
-      ["div"]: {
-        textOverflow: "ellipsis",
-        overflow: "hidden",
-      },
-    },
-    "&.Mui-focused, &.Mui-selected, &.Mui-selected.Mui-focused": {
-      backgroundColor: `var(--tree-view-bg-color, ${theme.palette.action.selected})`,
-      color: "var(--tree-view-color)",
-    },
-  },
-}));
+const isInFileManager = (element: HTMLElement) => {
+  if (element.classList.contains(FILE_MANAGER_ROOT_CLASS)) return true;
 
-function StyledFSTreeItem({
-  fileName,
-  path,
-  labelText,
-  setIsDragging,
-  setDragItem,
-  ...other
-}: TreeItemProps & {
-  fileName?: string;
-  labelText: string;
-  setIsDragging: (value: boolean) => void;
-  setDragItem: (dragItemData: { labelText: string; path: string }) => void;
-  path: string;
-  style: React.CSSProperties;
-}) {
-  const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
-    <LogoIcon size={22} />
-  ) : (
-    getIcon(fileName)
-  );
+  if (element.parentElement) {
+    return isInFileManager(element.parentElement);
+  }
 
-  // const { setIsDragging, setDragItem } = dragHandlers;
-  const DRAG_THRESHOLD = 5;
-
-  const [pressed, setPressed] = React.useState(false);
-  const [triggeredDragging, setTriggedDragging] = React.useState(false);
-  const cumulativeDrag = React.useRef({ drag: 0 });
-
-  const cancelMove = () => {
-    setPressed(false);
-    setTriggedDragging(false);
-    cumulativeDrag.current.drag = 0;
-  };
-
-  return (
-    <StyledTreeItemRoot
-      onMouseDown={() => {
-        setPressed(true);
-      }}
-      onMouseMove={(e) => {
-        if (pressed && !triggeredDragging) {
-          const normalizedDeltaX = e.movementX / window.devicePixelRatio;
-          const normalizedDeltaY = e.movementY / window.devicePixelRatio;
-          cumulativeDrag.current.drag +=
-            Math.abs(normalizedDeltaX) + Math.abs(normalizedDeltaY);
-
-          if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
-            setIsDragging(true);
-            setDragItem({ labelText, path });
-            setTriggedDragging(true);
-          }
-        }
-      }}
-      onMouseUp={() => {
-        cancelMove();
-      }}
-      onMouseLeave={() => {
-        cancelMove();
-      }}
-      label={
-        <Box sx={{ fontSize: (theme) => theme.typography.body2.fontSize }}>
-          {fileName && (
-            <div
-              style={{
-                position: "absolute",
-                overflow: "hidden",
-                height: "20px",
-                left: "-22px",
-                top: "0px",
-              }}
-            >
-              <SVGFileIcon icon={icon} />
-            </div>
-          )}
-          {labelText}
-        </Box>
-      }
-      sx={{
-        padding: "0px",
-        "--tree-view-color": (theme) => theme.palette.primary.main,
-        "--tree-view-bg-color": (theme) => theme.palette.grey[300],
-      }}
-      {...other}
-    />
-  );
-}
+  return false;
+};
 
 export const FileTree = ({
   fileTrees,
@@ -368,23 +272,13 @@ export const FileTree = ({
     }
   }, []);
 
-  const isInFileManager = React.useCallback((element) => {
-    if (element.classList.contains(FILE_MANAGER_ROOT_CLASS)) {
-      return true;
-    } else if (element.parentElement) {
-      return isInFileManager(element.parentElement);
-    } else {
-      return false;
-    }
-  }, []);
-
   const draggingSelection = React.useMemo(() => {
     if (!dragItem) return false;
     return selected.includes(dragItem.path);
   }, [dragItem, selected]);
 
   const handleMouseUp = React.useCallback(
-    (target: EventTarget) => {
+    (target: HTMLElement) => {
       // Check if target element is inside file tree app
       if (!isInFileManager(target)) {
         if (onDropOutside) {
@@ -450,7 +344,6 @@ export const FileTree = ({
       dragItem,
       draggingSelection,
       filePathFromHTMLElement,
-      isInFileManager,
     ]
   );
 
@@ -470,7 +363,7 @@ export const FileTree = ({
 
   const triggerHandleMouseUp = React.useCallback(
     (e: MouseEvent) => {
-      handleMouseUp(e.target);
+      handleMouseUp(e.target as HTMLElement);
       resetMove();
     },
     [handleMouseUp, resetMove]
@@ -583,7 +476,7 @@ export const FileTree = ({
           <Box
             sx={{
               padding: "1px 7px",
-              background: (theme) => theme.palette.grey[300],
+              background: (theme) => theme.palette.grey[100],
               color: (theme) => theme.palette.primary.main,
             }}
           >
@@ -608,7 +501,7 @@ export const FileTree = ({
         {treeRoots.map((root) => {
           let combinedPath = root + ROOT_SEPARATOR + "/";
           return (
-            <StyledFSTreeItem
+            <TreeItem
               fileName={""}
               path={""}
               setIsDragging={(isDragging) => {
@@ -642,7 +535,7 @@ export const FileTree = ({
                 setFileRenameNewName={setFileRenameNewName}
                 handleRename={handleRename}
               />
-            </StyledFSTreeItem>
+            </TreeItem>
           );
         })}
       </TreeView>
