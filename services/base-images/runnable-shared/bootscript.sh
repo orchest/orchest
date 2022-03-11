@@ -8,7 +8,7 @@
 umask 002
 
 if [ "$1" = "runnable" ]; then
-    /opt/conda/envs/orchestdependencies/bin/python run.py "$2" "$3"
+    /home/$NB_USER/venv/bin/python run.py "$2" "$3"
 else
     # In non-interactive shell the conda environment can not be
     # activated without initializing the shell. For some reason
