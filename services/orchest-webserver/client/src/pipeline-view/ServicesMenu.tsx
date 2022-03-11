@@ -1,5 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import { Service } from "@/types";
 import { getServiceURLs } from "@/utils/webserver-utils";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -29,11 +30,7 @@ export const ServicesMenu = ({
   anchor: React.MutableRefObject<Element>;
   services: Record<
     string,
-    {
-      ports: number[];
-      preserve_base_path: string;
-      name: string;
-    }
+    Pick<Service, "ports" | "preserve_base_path" | "name">
   > | null;
 }) => {
   const {

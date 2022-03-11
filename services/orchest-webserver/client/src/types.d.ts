@@ -340,13 +340,15 @@ export type PipelineMetaData = {
   name: string;
 };
 
+export type PipelineSettings = {
+  auto_eviction?: boolean;
+  data_passing_memory_size?: string;
+};
+
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
-  settings: {
-    auto_eviction?: boolean;
-    data_passing_memory_size?: string;
-  };
+  settings: PipelineSettings;
   steps: Record<string, Step>;
   uuid: string;
   version: string;
