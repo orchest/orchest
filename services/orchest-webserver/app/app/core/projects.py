@@ -6,7 +6,7 @@ import uuid
 from typing import Optional
 
 import requests
-from flask.globals import current_app
+from flask import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from _orchest.internals.utils import rmtree
@@ -423,6 +423,13 @@ def build_environments(environment_uuids, project_uuid):
 
 def build_environments_for_project(project_uuid):
     environments = get_environments(project_uuid)
+
+    for env in environments:
+        url = (
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+            f"/api/environments/{project_uuid}"
+        )
+        requests.post(url, json={"uuid": env.uuid})
 
     return build_environments(
         [environment.uuid for environment in environments], project_uuid
