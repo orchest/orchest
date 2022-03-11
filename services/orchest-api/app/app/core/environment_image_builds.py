@@ -108,7 +108,7 @@ def write_environment_dockerfile(
         # way of injecting the help message.
         f'RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
         f"&& echo {flag} "
-        f"&& bash {bash_script} "
+        f"&& bash < {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.
         f"&& echo {flag} {rm_statement} "
