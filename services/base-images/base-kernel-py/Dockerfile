@@ -15,7 +15,7 @@ RUN passwd -d $NB_USER && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/
 
 # Get Enterprise Gateway kernel files.
 WORKDIR /usr/local/bin
-RUN wget https://github.com/jupyter-server/enterprise_gateway/releases/download/v2.5.2/jupyter_enterprise_gateway_kernel_image_files-2.5.2.tar.gz -O kernel_image_files.tar.gz \
+RUN wget https://github.com/jupyter-server/enterprise_gateway/releases/download/v2.6.0/jupyter_enterprise_gateway_kernel_image_files-2.6.0.tar.gz -O kernel_image_files.tar.gz \
     && tar -xf kernel_image_files.tar.gz \
     && rm -rf kernel_image_files.tar.gz kernel-launchers/scala \
     && chown jovyan:users /usr/local/bin/bootstrap-kernel.sh \

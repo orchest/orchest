@@ -1,5 +1,5 @@
 # Ubuntu 20.04.1 LTS Focal
-FROM elyra/kernel-r:2.5.2
+FROM elyra/kernel-r:2.6.0
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # --------------------------------------------------
