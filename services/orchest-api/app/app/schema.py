@@ -32,29 +32,6 @@ def _session_base_url(s) -> str:
         return "/jupyter-server-" + s.project_uuid[:18] + s.pipeline_uuid[:18]
 
 
-session = Model(
-    "Session",
-    {
-        "project_uuid": fields.String(required=True, description="UUID of project"),
-        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "status": fields.String(required=True, description="Status of session"),
-        "base_url": fields.String(
-            required=True,
-            attribute=lambda s: _session_base_url(s),
-            description="Base URL",
-        ),
-    },
-)
-
-sessions = Model(
-    "Sessions",
-    {
-        "sessions": fields.List(
-            fields.Nested(session), description="Currently running sessions"
-        )
-    },
-)
-
 project = Model(
     "Project",
     {
@@ -177,6 +154,30 @@ service_description_wildcard = fields.Wildcard(fields.Nested(service_description
 service_descriptions = Model("Services", {"*": service_description_wildcard})
 
 services = Model("Services", {"*": service_wildcard})
+
+session = Model(
+    "Session",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
+        "status": fields.String(required=True, description="Status of session"),
+        "base_url": fields.String(
+            required=True,
+            attribute=lambda s: _session_base_url(s),
+            description="Base URL",
+        ),
+        "user_services": fields.Nested(services),
+    },
+)
+
+sessions = Model(
+    "Sessions",
+    {
+        "sessions": fields.List(
+            fields.Nested(session), description="Currently running sessions"
+        )
+    },
+)
 
 pipeline = Model(
     "Pipeline",

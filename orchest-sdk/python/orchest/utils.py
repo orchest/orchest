@@ -33,23 +33,12 @@ def get_step_uuid(pipeline: Pipeline) -> str:
         raise StepUUIDResolveError('Environment variable "KERNEL_ID" not present.')
 
     # Get JupyterLab sessions to resolve the step's UUID via the id of
-    # the running kernel and the step's associated file path.  Orchest
-    # API --jupyter_server_ip/port--> Jupyter sessions --notebook
-    # path--> UUID.
-    launches_url = (
-        f"http://orchest-api/api/sessions/"
-        f'{Config.PROJECT_UUID}/{pipeline.properties["uuid"]}'
+    # the running kernel and the step's associated file path.
+    session_uuid = Config.PROJECT_UUID[:18] + pipeline.properties["uuid"][:18]
+    jupyter_sessions = _request_json(
+        f"http://jupyter-server-{session_uuid}/jupyter-server-{session_uuid}/"
+        "api/sessions"
     )
-    launch_data = _request_json(launches_url)
-
-    # NOTE: the `proxy_prefix` already includes the "/" at the start
-    jupyter_api_url = "http://{ip}:{port}{proxy_prefix}/api/sessions"
-    jupyter_api_url = jupyter_api_url.format(
-        ip=launch_data["jupyter_server_ip"],
-        port=launch_data["notebook_server_info"]["port"],
-        proxy_prefix=launch_data["notebook_server_info"]["base_url"],
-    )
-    jupyter_sessions = _request_json(jupyter_api_url)
 
     for session in jupyter_sessions:
         if session["kernel"]["id"] == kernel_id:

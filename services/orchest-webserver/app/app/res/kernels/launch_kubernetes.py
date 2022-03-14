@@ -129,7 +129,7 @@ def _get_kernel_pod_manifest(
                     "image": image_name,
                     "env": env,
                     "ports": [{"name": "web", "containerPort": 80, "protocol": "TCP"}],
-                    "volume_mounts": vol_mounts,
+                    "volumeMounts": vol_mounts,
                 }
             ],
             "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},
