@@ -30,9 +30,30 @@ RUN mamba install --quiet --yes \
     'jupyter_client<7' \
     future \
     pycryptodomex && \
-    mamba clean --all && \
+    mamba clean --all -f -y && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
+
+# Install Python 3 packages for backwards compatibility.
+RUN mamba install --quiet --yes \
+    "beautifulsoup4" \
+    "conda-forge::blas=*=openblas" \
+    "cython" \
+    "dask" \
+    "ipympl"\
+    "matplotlib-base" \
+    "numba" \
+    "pandas" \
+    "scikit-learn" \
+    "scipy" \
+    "seaborn" \
+    "sqlalchemy" \
+    "statsmodels" \
+    "widgetsnbextension"\
+    "xlrd" \
+    && mamba clean --all -f -y \
+    && fix-permissions "${CONDA_DIR}" \
+    && fix-permissions "/home/${NB_USER}"
 
 # Get all Orchest requirements in place.
 COPY ./runnable-shared/runner/requirements* /orchest/services/base-images/runnable-shared/runner/

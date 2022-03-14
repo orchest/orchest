@@ -30,7 +30,7 @@ RUN mamba install --quiet --yes \
     future \
     pycryptodomex \
     && pip install --no-cache /tmp/jupyter_enterprise_gateway*.whl \
-    && mamba clean --all \
+    && mamba clean --all -f -y \
     && fix-permissions $CONDA_DIR \
     && fix-permissions /home/$NB_USER
 
