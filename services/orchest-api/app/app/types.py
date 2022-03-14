@@ -36,6 +36,8 @@ class ServiceDefinition(TypedDict):
     args: Optional[str]
     env_variables: Optional[Dict[str, str]]
     env_variables_inherit: Optional[List[str]]
+    exposed: bool
+    requires_authentication: bool
     image: str
     name: str
     ports: Optional[List[int]]

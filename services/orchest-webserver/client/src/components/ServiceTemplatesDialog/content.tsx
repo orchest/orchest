@@ -27,6 +27,7 @@ export const templates: ServiceTemplates = {
       },
       command: "bash",
       args: "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
+      exposed: true,
       image: "tensorflow/tensorflow",
       name: "tensorboard",
       ports: [6006],
@@ -47,6 +48,7 @@ export const templates: ServiceTemplates = {
       env_variables: {
         STREAMLIT_SERVER_BASE_URL_PATH: "$BASE_PATH_PREFIX_8501",
       },
+      exposed: true,
       image: "orchest/streamlit",
       name: "streamlit",
       ports: [8501],
@@ -64,6 +66,7 @@ export const templates: ServiceTemplates = {
       command: "bash",
       args:
         "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
+      exposed: true,
       image: "codercom/code-server:latest",
       name: "vscode",
       ports: [8080],
@@ -77,6 +80,7 @@ export const templates: ServiceTemplates = {
       env_variables: {
         POSTGRES_HOST_AUTH_METHOD: "trust",
       },
+      exposed: false,
       image: "postgres",
       name: "postgres",
       ports: [5432],
@@ -87,6 +91,7 @@ export const templates: ServiceTemplates = {
     label: "Redis",
     icon: <IconRedis />,
     config: {
+      exposed: false,
       image: "redis",
       name: "redis",
       ports: [6379],
@@ -97,6 +102,7 @@ export const templates: ServiceTemplates = {
     label: "Create custom service",
     icon: <IconDraftOutline />,
     config: {
+      exposed: false,
       image: "",
       name: "my-service",
       scope: ["interactive", "noninteractive"],
