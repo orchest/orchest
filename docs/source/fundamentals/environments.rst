@@ -66,7 +66,7 @@ includes the packages you need, simply follow the steps in the previous section.
 
    #!/bin/bash
 
-   # Get system level dependency for one of your packages.
+   # Get system level dependencies for one of your packages
    sudo apt-get install -y default-libmysqlclient-dev
 
    # Install a Python dependency using pip
