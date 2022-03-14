@@ -1,13 +1,24 @@
+import { IconButton } from "@/components/common/IconButton";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import { styled } from "@mui/material";
 import Box from "@mui/material/Box";
-import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { queryArgs } from "./common";
+
+const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
+  svg: {
+    width: 20,
+    height: 20,
+  },
+  padding: theme.spacing(0.5),
+}));
 
 export function ActionBar({
   baseUrl,
@@ -54,68 +65,68 @@ export function ActionBar({
     }
   };
 
-  const iconButtonStyles = {
-    svg: {
-      width: 20,
-      height: 20,
-    },
-    padding: "4px",
-  };
-
   return (
-    <Box
-      sx={{
-        display: "flex",
-        padding: "0.25em",
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "right",
-      }}
-    >
-      <Box>
-        <form style={{ display: "none" }}>
-          <input
-            type="file"
-            multiple
-            onChange={handleUploadFile}
-            ref={uploadFileRef}
-          />
-        </form>
-        <form style={{ display: "none" }}>
-          <input
-            type="file"
-            webkitdirectory=""
-            directory=""
-            onChange={handleUploadFolder}
-            ref={uploadFolderRef}
-          />
-        </form>
-        <IconButton
-          sx={iconButtonStyles}
-          onClick={() => {
-            uploadFileRef.current.click();
-          }}
-        >
-          <UploadFileIcon />
-        </IconButton>
-        <IconButton
-          sx={iconButtonStyles}
-          onClick={() => {
-            uploadFolderRef.current?.click();
-          }}
-        >
-          <DriveFolderUploadIcon />
-        </IconButton>
-        <IconButton sx={iconButtonStyles} onClick={() => createFolder()}>
-          <CreateNewFolderIcon />
-        </IconButton>
-        <IconButton sx={iconButtonStyles} onClick={() => reload()}>
-          <RefreshIcon />
-        </IconButton>
-        <IconButton sx={iconButtonStyles} onClick={() => setExpanded([])}>
-          <UnfoldLessIcon />
-        </IconButton>
-      </Box>
-    </Box>
+    <>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="flex-end"
+        sx={{ padding: (theme) => theme.spacing(0.5) }}
+      >
+        <Box>
+          <form style={{ display: "none" }}>
+            <input
+              type="file"
+              multiple
+              onChange={handleUploadFile}
+              ref={uploadFileRef}
+            />
+          </form>
+          <form style={{ display: "none" }}>
+            <input
+              type="file"
+              webkitdirectory=""
+              directory=""
+              onChange={handleUploadFolder}
+              ref={uploadFolderRef}
+            />
+          </form>
+          <FileManagerActionButton
+            onClick={() => {
+              uploadFileRef.current.click();
+            }}
+            title="Upload file"
+          >
+            <UploadFileIcon />
+          </FileManagerActionButton>
+          <FileManagerActionButton
+            onClick={() => {
+              uploadFolderRef.current?.click();
+            }}
+            title="Upload folder"
+          >
+            <DriveFolderUploadIcon />
+          </FileManagerActionButton>
+          <FileManagerActionButton title="Create file">
+            <NoteAddIcon />
+          </FileManagerActionButton>
+          <FileManagerActionButton
+            onClick={() => createFolder()}
+            title="Create folder"
+          >
+            <CreateNewFolderIcon />
+          </FileManagerActionButton>
+          <FileManagerActionButton title="Refresh" onClick={() => reload()}>
+            <RefreshIcon />
+          </FileManagerActionButton>
+          <FileManagerActionButton
+            title="Collapse all"
+            onClick={() => setExpanded([])}
+          >
+            <UnfoldLessIcon />
+          </FileManagerActionButton>
+        </Box>
+      </Stack>
+    </>
   );
 }

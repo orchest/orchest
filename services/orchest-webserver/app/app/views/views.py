@@ -1115,7 +1115,7 @@ def register_views(app, db):
                 500,
             )
 
-        # Make absolute path relavtie
+        # Make absolute path relative
         path = "/".join(path.split("/")[1:])
 
         full_path = os.path.join(root_dir_path, path)

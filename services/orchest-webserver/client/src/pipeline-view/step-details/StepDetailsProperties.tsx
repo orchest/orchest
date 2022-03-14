@@ -1,4 +1,4 @@
-import ProjectFilePicker from "@/components/ProjectFilePicker";
+import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
 import { PipelineStepState, Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
