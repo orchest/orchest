@@ -105,9 +105,10 @@ Non required fields
 **command**
     Service start command, e.g. what process the service will run.
 
-**entrypoint**
-    `command` and `entrypoint` are a 1:1 mapping to Docker, refer to the `Docker docs
-    <https://docs.docker.com/engine/reference/builder/#cmd>`_ for their difference and gotchas.
+**args**
+   Arguments to pass to the command. For example, if the `command` is
+   equal to ``bash``, `args` could be ``-c "echo hello"``. This would
+   be equivalent to ``bash -c "hello"``.
 
 **environment variables**
     Key-value pairs of environment variables. While project and pipeline environment variables are
@@ -164,8 +165,8 @@ Let's take, for example, the `Tensorboard` template. Normally, the command would
 ``tensorboard --logdir /data --bind_all`` but this would cause issues with file permissions on the
 host. In the `Tensorboard` template we solve this as follows:
 
-- setting the entrypoint as ``bash``
-- setting the service command as ``-c 'umask 002 && tensorboard --logdir /data --bind_all'``
+- setting the command as ``bash``
+- setting the service args as ``-c 'umask 002 && tensorboard --logdir /data --bind_all'``
 
 
 .. _Orchest environments as services:

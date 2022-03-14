@@ -33,7 +33,7 @@ class PipelineSettings(TypedDict):
 class ServiceDefinition(TypedDict):
     binds: Optional[Dict[str, Any]]  # "/project-dir", "/data" to path
     command: Optional[str]
-    entrypoint: Optional[str]
+    args: Optional[str]
     env_variables: Optional[Dict[str, str]]
     env_variables_inherit: Optional[List[str]]
     image: str

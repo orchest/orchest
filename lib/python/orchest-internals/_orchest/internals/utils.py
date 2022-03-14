@@ -440,7 +440,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         # Allowed scopes.
         all([sc in ["interactive", "noninteractive"] for sc in service["scope"]])
         and isinstance(service.get("command", ""), str)
-        and isinstance(service.get("entrypoint", ""), str)
+        and isinstance(service.get("args", ""), str)
         and isinstance(service.get("binds", {}), dict)
         and all(
             [
