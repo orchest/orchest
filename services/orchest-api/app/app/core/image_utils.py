@@ -12,8 +12,10 @@ from app.celery_app import make_celery
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from config import CONFIG_CLASS
 
-# So that pushing to the registry is faster and it always uses the same
-# cache on disk.
+# This way the builder pod is always scheduled on the same node as the
+# registry to have quicker pushes. Moreover, the fact that the builder
+# pod always runs on the same node allow us to make use of on disk cache
+# for layers, which is mounted as a volume.
 _registry_pod_affinity = {
     "podAffinity": {
         "requiredDuringSchedulingIgnoredDuringExecution": [
@@ -343,7 +345,7 @@ def _get_kaniko_image_build_workflow_manifest(
     return manifest
 
 
-def _log_(user_logs, all_logs, msg, newline=False):
+def _log(user_logs, all_logs, msg, newline=False):
     if newline:
         user_logs.writelines([msg, "\n"])
         all_logs.writelines([msg, "\n"])
@@ -375,10 +377,10 @@ def _build_image(
     IS_DEV = os.getenv("FLASK_ENV") == "development"
     if IS_DEV:
         msg = "Running in DEV mode, logs won't be filtered."
-        _log_(user_logs_file_object, complete_logs_file_object, msg, False)
+        _log(user_logs_file_object, complete_logs_file_object, msg, False)
 
     msg = "Starting worker...\n"
-    _log_(user_logs_file_object, complete_logs_file_object, msg, False)
+    _log(user_logs_file_object, complete_logs_file_object, msg, False)
     ns = _config.ORCHEST_NAMESPACE
     k8s_custom_obj_api.create_namespaced_custom_object(
         "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
@@ -397,10 +399,10 @@ def _build_image(
     )
     if needs_to_pull_base_image:
         msg = "Pulling base image..."
-        _log_(user_logs_file_object, complete_logs_file_object, msg, False)
+        _log(user_logs_file_object, complete_logs_file_object, msg, False)
 
     # Buildkit will add runtimes to commands, can't be deactivated atm.
-    runtime_regex = re.compile(r"#\d*\s\d*\.\d*\s")
+    runtime_regex = re.compile(r"^#\d*\s\d*\.\d*\s")
     flags_count = 0
     found_error_flag = False
     w = watch.Watch()
@@ -415,7 +417,7 @@ def _build_image(
         follow=True,
     ):
         if IS_DEV:
-            _log_(user_logs_file_object, complete_logs_file_object, event, True)
+            _log(user_logs_file_object, complete_logs_file_object, event, True)
             continue
 
         found_error_flag = event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG)
@@ -425,15 +427,15 @@ def _build_image(
             if event.endswith("RUN echo orchest"):
                 needs_to_pull_base_image = False
                 msg = "\nDone pulling base image."
-                _log_(user_logs_file_object, complete_logs_file_object, msg, True)
+                _log(user_logs_file_object, complete_logs_file_object, msg, True)
             else:
-                _log_(user_logs_file_object, complete_logs_file_object, ".", False)
+                _log(user_logs_file_object, complete_logs_file_object, ".", False)
                 time.sleep(1)
             continue
 
         if event.startswith("#") and event.endswith("CACHED"):
             msg = "Found cached layer."
-            _log_(user_logs_file_object, complete_logs_file_object, msg, True)
+            _log(user_logs_file_object, complete_logs_file_object, msg, True)
             continue
         elif event.endswith(CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG):
             flags_count += 1
@@ -451,7 +453,7 @@ def _build_image(
         match = runtime_regex.match(event)
         if match:
             event = event[len(match.group()) :]
-        _log_(user_logs_file_object, complete_logs_file_object, event, True)
+        _log(user_logs_file_object, complete_logs_file_object, event, True)
 
     # The loops exits for 3 reasons: found_ending_flag, found_error_flag
     # or the pod has stopped running.
@@ -463,11 +465,11 @@ def _build_image(
             "There was a problem building the image. The building script had a non 0 "
             "exit code, build failed.\n"
         )
-        _log_(user_logs_file_object, complete_logs_file_object, msg, False)
+        _log(user_logs_file_object, complete_logs_file_object, msg, False)
         raise errors.ImageBuildFailedError()
     else:
         msg = "Storing image..."
-        _log_(user_logs_file_object, complete_logs_file_object, msg, False)
+        _log(user_logs_file_object, complete_logs_file_object, msg, False)
         done = False
         while not done:
             try:
@@ -489,7 +491,7 @@ def _build_image(
             "/.success.txt"
         ).touch()
         msg = "Done!"
-        _log_(user_logs_file_object, complete_logs_file_object, msg, False)
+        _log(user_logs_file_object, complete_logs_file_object, msg, False)
 
 
 def build_image(

@@ -34,7 +34,7 @@ class Config:
     HOST_KANIKO_BASE_IMAGES_CACHE = (
         f"/var/lib/orchest{_config.USERDIR_KANIKO_BASE_IMAGES_CACHE}"
     )
-    HOST_BUILDKIT_CACHE = f"/var/lib/orchest/{_config.USERDIR_BUILDKIT_CACHE}"
+    HOST_BUILDKIT_CACHE = f"/var/lib/orchest{_config.USERDIR_BUILDKIT_CACHE}"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
