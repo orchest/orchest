@@ -109,23 +109,23 @@ Using a different Python version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 It might be the case that your code requires another Python version than we are offering. Luckily
 with environments it is easy to set up the Python version you require. Below follows an example of
-how to setup an environment to use Python 3.8 using conda:
+how to setup an environment to use Python 3.10 using mamba:
 
 .. code-block:: bash
 
    #!/bin/bash
-   # Install Python3.8 and get minimum set of dependencies.
-   conda create -y -n py38 python=3.8 future
-   conda install -y -n py38 ipykernel jupyter_client ipython_genutils pycryptodomex future
-   conda run -n py38 pip install orchest
+   # Install Python 3.10 and get minimum set of dependencies
+   mamba create -y -n py310 python=3.10 future
+   mamba install -y -n py310 ipykernel jupyter_client ipython_genutils pycryptodomex future "pyarrow<=4.0.0"
+   mamba run -n py310 pip install orchest
 
    # Set environment variables so that the new Python version is
    # used when executing the pipeline and inside kernels. The variables
    # are set here so that they are isolated within the environment.
    # NOTE: We are first overwriting the `.bashrc` file to make sure the
    # environment variables are unaffected by existing code in the file.
-   echo "export JUPYTER_PATH=/opt/conda/envs/py38/share/jupyter" > /home/jovyan/.bashrc
-   echo "export CONDA_ENV=py38" >> /home/jovyan/.bashrc
+   echo "export JUPYTER_PATH=/opt/conda/envs/py310/share/jupyter" > /home/jovyan/.bashrc
+   echo "export CONDA_ENV=py310" >> /home/jovyan/.bashrc
 
 Lastly, you need to set a project (or pipeline) :ref:`environment variable <environment variables>`
 to make sure that the ``.bashrc`` is actually sourced.
