@@ -96,7 +96,7 @@ const TreeRow = ({
   fileRenameNewName,
   setFileRenameNewName,
 }: {
-  handleContextMenu: (path: string, event: React.MouseEvent) => void;
+  handleContextMenu: (event: React.MouseEvent, path: string) => void;
   treeNodes: TreeNode[];
   handleRename: (oldPath: string, newPath: string) => void;
   setIsDragging: (value: boolean) => void;
@@ -130,7 +130,7 @@ const TreeRow = ({
               )}
 
               <TreeItem
-                onContextMenu={(e) => handleContextMenu(combinedPath, e)}
+                onContextMenu={(e) => handleContextMenu(e, combinedPath)}
                 setIsDragging={setIsDragging}
                 setDragItem={setDragItem}
                 style={{
@@ -181,7 +181,7 @@ const TreeRow = ({
                 />
               )}
               <TreeItem
-                onContextMenu={handleContextMenu.bind(undefined, combinedPath)}
+                onContextMenu={(e) => handleContextMenu(e, combinedPath)}
                 setIsDragging={setIsDragging}
                 setDragItem={setDragItem}
                 style={{ cursor: "context-menu" }}
@@ -240,7 +240,7 @@ export const FileTree = ({
     event: React.SyntheticEvent<Element, Event>,
     nodeIds: string[]
   ) => void;
-  handleContextMenu: (path: string, e: React.MouseEvent) => void;
+  handleContextMenu: (e: React.MouseEvent, path: string) => void;
   handleRename: (sourcePath: string, newPath: string) => void;
   isDragging: boolean;
   setIsDragging: (value: boolean) => void;

@@ -1,4 +1,6 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useDebounce } from "@/hooks/useDebounce";
 import { Position } from "@/types";
 import Box from "@mui/material/Box";
 import LinearProgress, {
@@ -6,6 +8,7 @@ import LinearProgress, {
 } from "@mui/material/LinearProgress";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
+import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { useDropzone } from "react-dropzone";
@@ -88,6 +91,7 @@ const createInvalidEntryFilter = ({
 
 type FileTrees = Record<string, TreeNode>;
 type ProgressType = LinearProgressProps["variant"];
+type ContextMenuType = "tree-item" | "background";
 
 export function FileManager({
   onSelect,
@@ -111,11 +115,16 @@ export function FileManager({
    * State init
    */
   const { projectUuid } = useCustomRoute();
+  const { setConfirm } = useAppContext();
+
+  // only show the progress if it takes longer than 125 ms
+  const [_inProgress, setInProgress] = React.useState(false);
+  const inProgress = useDebounce(_inProgress, 125);
+
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
   const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
   const [selected, setSelected] = React.useState<string[]>([]);
   const [isDragging, setIsDragging] = React.useState(false);
-  const [inProgress, setInProgress] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [fileInRename, setFileInRename] = React.useState<string>(undefined);
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
@@ -123,7 +132,10 @@ export function FileManager({
   const [progressType, setProgressType] = React.useState<ProgressType>(
     "determinate"
   );
-  const [contextMenu, setContextMenu] = React.useState<Position | null>(null);
+  const [contextMenu, setContextMenu] = React.useState<{
+    position: Position;
+    type: ContextMenuType;
+  } | null>(null);
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
     string
   >();
@@ -167,6 +179,11 @@ export function FileManager({
     setInProgress(false);
   }, [expanded, treeRoots, fileManagerBaseUrl]);
 
+  const collapseAll = () => {
+    setExpanded([]);
+    setContextMenu(null);
+  };
+
   const browsePath = React.useCallback(
     async (combinedPath) => {
       setProgressType("determinate");
@@ -191,8 +208,6 @@ export function FileManager({
 
   const uploadFiles = React.useCallback(
     async (files: File[] | FileList) => {
-      console.log("DEV", files);
-
       let progressTotal = files.length;
       const progressHolder = { progress: 0 };
       setInProgress(true);
@@ -296,31 +311,34 @@ export function FileManager({
     handleClose();
 
     if (selected.includes(contextMenuCombinedPath) && selected.length > 1) {
-      if (
-        window.confirm(
-          `Are you sure you want to delete ${selected.length} files?`
-        )
-      ) {
-        Promise.all(
-          selected.map((combinedPath) => deleteFetch(combinedPath))
-        ).then(() => {
-          reload();
-        });
-      }
-    } else {
-      if (
-        window.confirm(
-          `Are you sure you want to delete '${getBaseNameFromContextMenu(
-            contextMenuCombinedPath
-          )}'?`
-        )
-      ) {
-        deleteFetch(contextMenuCombinedPath).then(() => {
-          reload();
-        });
-      }
+      setConfirm(
+        "Warning",
+        `Are you sure you want to delete ${selected.length} files?`,
+        async (resolve) => {
+          await Promise.all(
+            selected.map((combinedPath) => deleteFetch(combinedPath))
+          );
+          await reload();
+          resolve(true);
+          return true;
+        }
+      );
+      return;
     }
-  }, [contextMenuCombinedPath, selected, reload, deleteFetch]);
+
+    setConfirm(
+      "Warning",
+      `Are you sure you want to delete '${getBaseNameFromContextMenu(
+        contextMenuCombinedPath
+      )}'?`,
+      async (resolve) => {
+        await deleteFetch(contextMenuCombinedPath);
+        await reload();
+        resolve(true);
+        return true;
+      }
+    );
+  }, [contextMenuCombinedPath, selected, reload, deleteFetch, setConfirm]);
 
   const handleDownload = () => {
     handleClose();
@@ -340,15 +358,22 @@ export function FileManager({
     }
   };
 
-  const handleContextMenu = (combinedPath: string, event: React.MouseEvent) => {
+  const handleContextMenu = (
+    event: React.MouseEvent,
+    combinedPath: string,
+    type: ContextMenuType = "tree-item"
+  ) => {
     event.preventDefault();
     event.stopPropagation();
     setContextMenuPath(combinedPath);
     setContextMenu(
       contextMenu === null
         ? {
-            x: event.clientX - 2,
-            y: event.clientY - 4,
+            position: {
+              x: event.clientX - 2,
+              y: event.clientY - 4,
+            },
+            type,
           }
         : null
     );
@@ -459,7 +484,7 @@ export function FileManager({
     contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");
 
   return (
-    <Box
+    <Stack
       {...getRootProps({
         onClick: (event) => {
           event.stopPropagation();
@@ -467,6 +492,7 @@ export function FileManager({
       })}
       ref={containerRef}
       className={FILE_MANAGER_ROOT_CLASS}
+      direction="column"
       sx={{
         height: "100%",
         position: "relative",
@@ -502,10 +528,23 @@ export function FileManager({
         rootFolder={root}
       />
       {allTreesHaveLoaded && (
-        <div
-          style={{
+        <Box
+          sx={{
             userSelect: "none",
             whiteSpace: "nowrap",
+            maxHeight: "100%",
+            overflowY: "auto",
+            flex: 1,
+          }}
+          onContextMenu={(e) => {
+            handleContextMenu(e, undefined, "background");
+          }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.detail === 1 && !(e.metaKey || e.ctrlKey)) {
+              setSelected([]);
+            }
           }}
         >
           <FileTree
@@ -532,35 +571,58 @@ export function FileManager({
             anchorReference="anchorPosition"
             anchorPosition={
               contextMenu !== null
-                ? { top: contextMenu.y, left: contextMenu.x }
+                ? {
+                    top: contextMenu?.position.y,
+                    left: contextMenu?.position.x,
+                  }
                 : undefined
             }
           >
-            {contextPathIsFile && (
-              <MenuItem dense onClick={handleContextEdit}>
-                Edit
-              </MenuItem>
+            {contextMenu?.type === "tree-item" && (
+              <>
+                {contextPathIsFile && (
+                  <MenuItem dense onClick={handleContextEdit}>
+                    Edit
+                  </MenuItem>
+                )}
+                {contextPathIsFile && (
+                  <MenuItem dense onClick={handleContextView}>
+                    View
+                  </MenuItem>
+                )}
+                <MenuItem dense onClick={handleContextRename}>
+                  Rename
+                </MenuItem>
+                <MenuItem dense onClick={handleDuplicate}>
+                  Duplicate
+                </MenuItem>
+                <MenuItem dense onClick={handleDelete}>
+                  Delete
+                </MenuItem>
+                <MenuItem dense onClick={handleDownload}>
+                  Download
+                </MenuItem>
+              </>
             )}
-            {contextPathIsFile && (
-              <MenuItem dense onClick={handleContextView}>
-                View
-              </MenuItem>
+            {contextMenu?.type === "background" && (
+              <>
+                <MenuItem dense onClick={collapseAll}>
+                  Collapse all
+                </MenuItem>
+                <MenuItem
+                  dense
+                  onClick={() => {
+                    reload();
+                    setContextMenu(null);
+                  }}
+                >
+                  Refresh
+                </MenuItem>
+              </>
             )}
-            <MenuItem dense onClick={handleContextRename}>
-              Rename
-            </MenuItem>
-            <MenuItem dense onClick={handleDuplicate}>
-              Duplicate
-            </MenuItem>
-            <MenuItem dense onClick={handleDelete}>
-              Delete
-            </MenuItem>
-            <MenuItem dense onClick={handleDownload}>
-              Download
-            </MenuItem>
           </Menu>
-        </div>
+        </Box>
       )}
-    </Box>
+    </Stack>
   );
 }

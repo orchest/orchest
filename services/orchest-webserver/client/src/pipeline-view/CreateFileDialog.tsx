@@ -120,16 +120,15 @@ export const CreateFileDialog = ({
 
   React.useEffect(() => {
     if (error) {
-      const message =
-        error.status === 409
-          ? "A file with this name already exists."
-          : error.message;
-
-      setAlert("Error", message, (resolve) => {
-        setError(null);
-        resolve(true);
-        return true;
-      });
+      setAlert(
+        "Error",
+        `Unable to create file. ${error.message}`,
+        (resolve) => {
+          setError(null);
+          resolve(true);
+          return true;
+        }
+      );
     }
   }, [setAlert, setError, error]);
 

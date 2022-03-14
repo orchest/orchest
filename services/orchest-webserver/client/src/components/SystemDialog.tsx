@@ -79,7 +79,7 @@ export const SystemDialog: React.FC = () => {
         <DialogContent>{promptMessage.content}</DialogContent>
         <DialogActions>
           {isCancellable && (
-            <Button color="secondary" onClick={cancel}>
+            <Button color="secondary" onClick={cancel} tabIndex={-1}>
               {promptMessage.cancelLabel || "Cancel"}
             </Button>
           )}

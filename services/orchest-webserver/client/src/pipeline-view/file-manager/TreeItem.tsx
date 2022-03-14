@@ -28,6 +28,7 @@ export function TreeItem({
   labelText,
   setIsDragging,
   setDragItem,
+  onContextMenu,
   ...other
 }: TreeItemProps & {
   fileName?: string;
@@ -80,6 +81,7 @@ export function TreeItem({
       onMouseLeave={() => {
         cancelMove();
       }}
+      onContextMenu={onContextMenu}
       label={
         <Box sx={{ fontSize: (theme) => theme.typography.body2.fontSize }}>
           {fileName && (
