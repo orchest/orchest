@@ -1,8 +1,10 @@
 import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
+import { useIsReadOnly } from "@/pipeline-view/hooks/useIsReadOnly";
 import { siteMap } from "@/Routes";
 import {
   getPipelineJSONEndpoint,
@@ -15,6 +17,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -35,6 +38,7 @@ const MODE_MAPPING = {
 const FilePreviewView: React.FC = () => {
   // global states
   const { setAlert } = useAppContext();
+  const { dispatch } = useProjectsContext();
   useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
 
   // data from route
@@ -42,13 +46,13 @@ const FilePreviewView: React.FC = () => {
     navigateTo,
     projectUuid,
     pipelineUuid,
-    isReadOnly,
     stepUuid,
     jobUuid,
     runUuid,
   } = useCustomRoute();
 
-  const isJobRun = jobUuid && runUuid;
+  const isJobRun = hasValue(jobUuid && runUuid);
+  const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid, isJobRun);
 
   // local states
   const [state, setState] = React.useState({
@@ -72,8 +76,10 @@ const FilePreviewView: React.FC = () => {
   const [promiseManager] = React.useState(new PromiseManager());
 
   const loadPipelineView = (e: React.MouseEvent) => {
+    const isJobRun = jobUuid && runUuid;
+
     navigateTo(
-      siteMap.pipeline.path,
+      isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path,
       {
         query: { projectUuid, pipelineUuid, jobUuid, runUuid },
         state: { isReadOnly },
@@ -101,6 +107,15 @@ const FilePreviewView: React.FC = () => {
       fetchPipelinePromise.promise
         .then((response) => {
           let pipelineJSON = JSON.parse(JSON.parse(response)["pipeline_json"]);
+
+          dispatch({
+            type: "pipelineSet",
+            payload: {
+              pipelineUuid,
+              projectUuid,
+              pipelineName: pipelineJSON.name,
+            },
+          });
 
           setState((prevState) => ({
             ...prevState,
@@ -183,7 +198,6 @@ const FilePreviewView: React.FC = () => {
           jobUuid,
           runUuid,
         },
-        state: { isReadOnly },
       },
       e
     );

@@ -7,6 +7,7 @@ import {
   PipelineJson,
   StepsDict,
 } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
@@ -127,11 +128,12 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuidFromRoute
   );
 
+  const isJobRun = hasValue(jobUuid && runUuidFromRoute);
   const isReadOnly = useIsReadOnly(
     projectUuid,
     jobUuid,
     runUuid,
-    isReadOnlyFromQueryString
+    isJobRun || isReadOnlyFromQueryString
   );
 
   const {
