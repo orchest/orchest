@@ -388,7 +388,7 @@ def _get_jupyter_server_deployment_service_manifest(
     session_uuid: str,
     session_config: SessionConfig,
     session_type: SessionType,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     project_relative_pipeline_path = session_config["pipeline_path"]
     host_project_dir = session_config["project_dir"]
@@ -488,7 +488,36 @@ def _get_jupyter_server_deployment_service_manifest(
             "ports": [{"port": 80, "targetPort": 8888}],
         },
     }
-    return deployment_manifest, service_manifest
+
+    ingress_manifest = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": metadata,
+        "spec": {
+            "ingressClassName": "nginx",
+            "rules": [
+                {
+                    "host": _config.ORCHEST_FQDN,
+                    "http": {
+                        "paths": [
+                            {
+                                "backend": {
+                                    "service": {
+                                        "name": f"jupyter-server-{session_uuid}",
+                                        "port": {"number": 80},
+                                    }
+                                },
+                                "path": f"/jupyter-server-{session_uuid}",
+                                "pathType": "Prefix",
+                            }
+                        ]
+                    },
+                }
+            ],
+        },
+    }
+
+    return deployment_manifest, service_manifest, ingress_manifest
 
 
 def _get_jupyter_enterprise_gateway_rbac_manifests(
@@ -790,7 +819,6 @@ def _get_user_service_deployment_service_manifest(
     for k, v in environment.items():
         env.append({"name": k, "value": v})
 
-    volumes = []
     volume_mounts = []
     sbinds = service_config.get("binds", {})
     volumes_dict, _ = _get_common_volumes_and_volume_mounts(
@@ -801,13 +829,9 @@ def _get_user_service_deployment_service_manifest(
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
     if "/data" in sbinds:
-        volumes.append(volumes_dict["data"])
-        volume_mounts.append({"name": "data", "mountPath": sbinds["/data"]})
+        volume_mounts.append(volume_mounts_dict["data"])
     if "/project-dir" in sbinds:
-        volumes.append(volumes_dict["project-dir"])
-        volume_mounts.append(
-            {"name": "project-dir", "mountPath": sbinds["/project-dir"]}
-        )
+        volume_mounts.append(volume_mounts_dict["project-dir"])
 
     # To support orchest environments as services.
     image = service_config["image"]
@@ -852,7 +876,9 @@ def _get_user_service_deployment_service_manifest(
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
-                    "volumes": volumes,
+                    "volumes": [
+                        volumes_dict["userdir-pvc"],
+                    ],
                     "containers": [
                         {
                             "name": metadata["name"],
@@ -871,14 +897,14 @@ def _get_user_service_deployment_service_manifest(
     # K8S_TODO: GUI & data changes to go from entrypoint and command
     # to command and args.
     if "entrypoint" in service_config:
-        deployment_manifest["spec"]["template"]["spec"]["containers"][0][
-            "command"
-        ] = service_config["entrypoint"]
+        deployment_manifest["spec"]["template"]["spec"]["containers"][0]["command"] = [
+            service_config["entrypoint"]
+        ]
 
     if "command" in service_config:
-        deployment_manifest["spec"]["template"]["spec"]["containers"][0][
-            "args"
-        ] = service_config["command"]
+        deployment_manifest["spec"]["template"]["spec"]["containers"][0]["args"] = [
+            service_config["command"]
+        ]
 
     service_manifest = {
         "apiVersion": "v1",
@@ -890,4 +916,44 @@ def _get_user_service_deployment_service_manifest(
             "ports": [{"port": port} for port in service_config["ports"]],
         },
     }
-    return deployment_manifest, service_manifest
+
+    ingress_url = (
+        "service-"
+        + service_config["name"]
+        + "-"
+        + project_uuid.split("-")[0]
+        + "-"
+        + pipeline_uuid.split("-")[0]
+    )
+    ingress_paths = []
+    for port in service_config.get("ports", []):
+        pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
+        ingress_paths.append(
+            {
+                "backend": {
+                    "service": {
+                        "name": metadata["name"],
+                        "port": {"number": port},
+                    }
+                },
+                "path": f"/{pbp}{ingress_url}_{port}",
+                "pathType": "Prefix",
+            }
+        )
+
+    ingress_manifest = {
+        "apiVersion": "networking.k8s.io/v1",
+        "kind": "Ingress",
+        "metadata": metadata,
+        "spec": {
+            "ingressClassName": "nginx",
+            "rules": [
+                {
+                    "host": _config.ORCHEST_FQDN,
+                    "http": {"paths": ingress_paths},
+                }
+            ],
+        },
+    }
+
+    return deployment_manifest, service_manifest, ingress_manifest
