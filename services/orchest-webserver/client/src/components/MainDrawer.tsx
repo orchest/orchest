@@ -140,14 +140,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
 
   const isSelected = (path: string, exact = false) => {
     const route = routes.find((route) => route.path === pathname);
-
-    // this is a special case, we use "/pipeline" to present the pipeline of a job run
-    // this means that user is still viewing a job, so "/jobs" should be selected
-    const isJobRun = pathname === "/pipeline" && jobUuid && runUuid;
-
-    const pathToMatch = isJobRun
-      ? "/jobs"
-      : route?.root || route?.path || pathname;
+    const pathToMatch = route?.root || route?.path || pathname;
 
     return (
       matchPath(pathToMatch, {

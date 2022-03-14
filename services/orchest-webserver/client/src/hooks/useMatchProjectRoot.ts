@@ -1,31 +1,26 @@
-import { siteMap } from "@/routingConfig";
+import { RouteData } from "@/routingConfig";
 import React from "react";
 import { matchPath } from "react-router-dom";
 import { useHistoryListener } from "./useCustomRoute";
 
-const projectRootPaths = [
-  siteMap.jobs.path,
-  siteMap.environments.path,
-  siteMap.pipelines.path,
-];
-
-const findRouteMatch = (paths: string[]) => {
-  for (const path of paths) {
+const findRouteMatch = (routes: Pick<RouteData, "path" | "root">[]) => {
+  for (const route of routes) {
     const match = matchPath(window.location.pathname, {
-      path,
+      path: route.path,
       exact: true,
     });
-    if (match) return match;
+    if (match) return route;
   }
   return null;
 };
 
-const useMatchProjectRoot = () => {
-  const [match, setMatch] = React.useState(findRouteMatch(projectRootPaths));
-  const findRootMatch = () => {
-    const found = findRouteMatch(projectRootPaths);
+const useMatchRoutePaths = (routes: Pick<RouteData, "path" | "root">[]) => {
+  const routesRef = React.useRef(routes);
+  const [match, setMatch] = React.useState(findRouteMatch(routesRef.current));
+  const findRootMatch = React.useCallback(() => {
+    const found = findRouteMatch(routesRef.current);
     setMatch(found);
-  };
+  }, [routesRef]);
   useHistoryListener({
     forward: findRootMatch,
     backward: findRootMatch,
@@ -34,4 +29,4 @@ const useMatchProjectRoot = () => {
   return match;
 };
 
-export { useMatchProjectRoot, projectRootPaths, findRouteMatch };
+export { useMatchRoutePaths };

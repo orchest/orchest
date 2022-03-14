@@ -44,7 +44,7 @@ type RouteName =
   | "help"
   | "notFound";
 
-type RouteData = {
+export type RouteData = {
   path: string;
   root?: string;
   component: React.FunctionComponent;
@@ -218,6 +218,34 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
   }),
   {} as Record<RouteName, RouteData>
 );
+
+export const projectRootPaths = [
+  siteMap.jobs.path,
+  siteMap.environments.path,
+  siteMap.pipelines.path,
+];
+
+export const withinProjectPaths = getOrderedRoutes().reduce<
+  Pick<RouteData, "path" | "root">[]
+>((all, curr) => {
+  // only include within-project paths
+  // i.e. if the context involves multiple projects, it should be excluded
+  if (
+    projectRootPaths.includes(curr.path) ||
+    projectRootPaths.includes(curr.root) ||
+    curr.path === "/project"
+    // projectsPaths.includes(curr.path)
+  ) {
+    return [
+      ...all,
+      {
+        path: curr.path,
+        root: curr.root,
+      },
+    ];
+  }
+  return all;
+}, [] as Pick<RouteData, "path" | "root">[]);
 
 const snakeCase = (str: string, divider = "_") =>
   str
