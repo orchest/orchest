@@ -632,28 +632,18 @@ def get_ipynb_template(language: str):
     return template_json
 
 
-def generate_ipynb_from_template(step, project_uuid):
+def generate_ipynb_from_template(kernel_name):
 
-    template_json = get_ipynb_template(step["kernel"]["name"].lower())
-    template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
-        "display_name"
-    ]
-    template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-        step["environment"]
-    )
+    template_json = get_ipynb_template(kernel_name)
 
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_file(
-    file_path, pipeline_json, pipeline_directory, project_uuid, step_uuid
-):
+def create_pipeline_file(file_path, pipeline_directory, kernel_name):
     """
     Note: this function does not assume that step['file_path']
     holds the value of file_path!
     """
-
-    step = pipeline_json["steps"][step_uuid]
 
     full_file_path = os.path.join(pipeline_directory, file_path)
     file_path_split = file_path.split(".")
@@ -668,13 +658,13 @@ def create_pipeline_file(
             file_content = ""
 
         if ext == "ipynb":
-            file_content = generate_ipynb_from_template(step, project_uuid)
+            file_content = generate_ipynb_from_template(kernel_name)
 
     elif ext == "ipynb":
         # Check for empty .ipynb, for which we also generate a
         # template notebook.
         if os.stat(full_file_path).st_size == 0:
-            file_content = generate_ipynb_from_template(step, project_uuid)
+            file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
         with open(full_file_path, "w") as file:

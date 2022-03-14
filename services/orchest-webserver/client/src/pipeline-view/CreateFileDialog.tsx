@@ -9,10 +9,10 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import FormControl from "@mui/material/FormControl";
+import Grid from "@mui/material/Grid";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import {
   ALLOWED_STEP_EXTENSIONS,
@@ -32,21 +32,25 @@ const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map((el, index) => {
   );
 });
 
+const KernelLanguage = {
+  python: "Python",
+  julia: "Julia",
+  r: "R",
+};
+
 export const CreateFileDialog = ({
   isOpen,
-  folderPath,
+  folderPath = "",
   onClose,
+  onSuccess,
   projectUuid,
-  pipelineUuid,
-  stepUuid,
   initialFileName,
 }: {
   isOpen: boolean;
-  folderPath: string;
+  folderPath?: string;
   onClose: () => void;
+  onSuccess: () => void;
   projectUuid: string;
-  pipelineUuid: string;
-  stepUuid: string;
   initialFileName?: string;
 }) => {
   // Global state
@@ -62,10 +66,11 @@ export const CreateFileDialog = ({
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
 
-  const fullProjectPath = `${folderPath}${fileName}${fileExtension}`;
+  const [kernelLanguage, setKernelLanguage] = React.useState<
+    keyof typeof KernelLanguage
+  >("python");
 
-  const onChangeNewFilenameExtension = (value: string) =>
-    setFileExtension(value);
+  const fullProjectPath = `${folderPath}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<
     void,
@@ -90,15 +95,16 @@ export const CreateFileDialog = ({
     }
 
     await run(
-      fetcher(
-        `/async/project-files/create/${projectUuid}/${pipelineUuid}/${stepUuid}`,
-        {
-          method: "POST",
-          headers: HEADER.JSON,
-          body: JSON.stringify({ file_path: fullProjectPath }),
-        }
-      )
+      fetcher(`/async/project-files/create/${projectUuid}`, {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({
+          file_path: fullProjectPath,
+          kernel_name: kernelLanguage,
+        }),
+      })
     );
+    onSuccess();
     onClose();
   };
 
@@ -132,6 +138,8 @@ export const CreateFileDialog = ({
       open={isOpen}
       onClose={onClose}
       data-test-id="project-file-picker-create-new-file-dialog"
+      maxWidth="md"
+      fullWidth
     >
       <form
         id="create-file"
@@ -148,50 +156,92 @@ export const CreateFileDialog = ({
               Supported file extensions are:&nbsp;
               {allowedExtensionsMarkup}.
             </div>
-            <Stack direction="row" spacing={2}>
-              <TextField
-                label="File name"
-                autoFocus
-                value={fileName}
-                fullWidth
-                disabled={isCreating}
-                onChange={(e) => setFileName(e.target.value)}
-                data-test-id="project-file-picker-file-name-textfield"
-              />
-              <FormControl fullWidth>
-                <InputLabel id="project-file-picker-file-extension-label">
-                  Extension
-                </InputLabel>
-                <Select
-                  label="Extension"
-                  labelId="project-file-picker-file-extension-label"
-                  id="project-file-picker-file-extension"
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <TextField
+                  label="File name"
+                  autoFocus
+                  value={fileName}
+                  fullWidth
                   disabled={isCreating}
-                  value={fileExtension}
-                  onChange={(e) => onChangeNewFilenameExtension(e.target.value)}
-                >
-                  {ALLOWED_STEP_EXTENSIONS.map((el) => {
-                    const value = `.${el}`;
-                    return (
-                      <MenuItem key={value} value={value}>
-                        {value}
-                      </MenuItem>
-                    );
-                  })}
-                </Select>
-              </FormControl>
-            </Stack>
-            <TextField
-              label="Path in project"
-              value={fullProjectPath}
-              fullWidth
-              margin="normal"
-              disabled
-            />
+                  onChange={(e) => setFileName(e.target.value)}
+                  data-test-id="project-file-picker-file-name-textfield"
+                />
+              </Grid>
+              <Grid item xs={fileExtension === ".ipynb" ? 3 : 6}>
+                <FormControl fullWidth>
+                  <InputLabel id="project-file-picker-file-extension-label">
+                    Extension
+                  </InputLabel>
+                  <Select
+                    label="Extension"
+                    labelId="project-file-picker-file-extension-label"
+                    id="project-file-picker-file-extension"
+                    disabled={isCreating}
+                    value={fileExtension}
+                    onChange={(e) => setFileExtension(e.target.value)}
+                  >
+                    {ALLOWED_STEP_EXTENSIONS.map((el) => {
+                      const value = `.${el}`;
+                      return (
+                        <MenuItem key={value} value={value}>
+                          {value}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {fileExtension === ".ipynb" && (
+                <Grid item xs={3}>
+                  <FormControl fullWidth>
+                    <InputLabel id="project-file-kernel-language-label">
+                      Kernel language
+                    </InputLabel>
+                    <Select
+                      label="Kernel language"
+                      labelId="project-file-kernel-language-label"
+                      id="project-file-kernel-language"
+                      disabled={isCreating}
+                      value={kernelLanguage}
+                      onChange={(e) =>
+                        setKernelLanguage(
+                          e.target.value as keyof typeof KernelLanguage
+                        )
+                      }
+                    >
+                      {Object.entries(KernelLanguage).map(([value, label]) => {
+                        return (
+                          <MenuItem key={value} value={value}>
+                            {label}
+                          </MenuItem>
+                        );
+                      })}
+                    </Select>
+                  </FormControl>
+                </Grid>
+              )}
+
+              <Grid item xs={12}>
+                <TextField
+                  label="Path in project"
+                  value={fullProjectPath}
+                  fullWidth
+                  margin="normal"
+                  disabled
+                />
+              </Grid>
+            </Grid>
           </div>
         </DialogContent>
         <DialogActions>
-          <Button startIcon={<CloseIcon />} color="secondary" onClick={onClose}>
+          <Button
+            startIcon={<CloseIcon />}
+            color="secondary"
+            onClick={onClose}
+            tabIndex={-1}
+          >
             Cancel
           </Button>
           <Button

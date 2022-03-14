@@ -989,13 +989,14 @@ def register_views(app, db):
         return jsonify(tree)
 
     @app.route(
-        "/async/project-files/create/<project_uuid>/<pipeline_uuid>/<step_uuid>",
+        "/async/project-files/create/<project_uuid>",
         methods=["POST"],
     )
-    def create_project_file(project_uuid, pipeline_uuid, step_uuid):
+    def create_project_file(project_uuid):
         """Create project file in specified directory within project."""
-
+        kernel_name = request.json.get("kernel_name")
         file_path = normalize_project_relative_path(request.json["file_path"])
+
         if not is_valid_project_relative_path(project_uuid, file_path):
             return (
                 jsonify(
@@ -1013,13 +1014,7 @@ def register_views(app, db):
         if os.path.isfile(file_path):
             return jsonify({"message": "File already exists."}), 409
         try:
-            create_pipeline_file(
-                file_path,
-                get_pipeline_json(pipeline_uuid, project_uuid),
-                project_dir,
-                project_uuid,
-                step_uuid,
-            )
+            create_pipeline_file(file_path, project_dir, kernel_name)
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error("Could not create file at %s. Error: %s" % (file_path, e))

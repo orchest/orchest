@@ -1,5 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
@@ -11,6 +11,7 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
+import { CreateFileDialog } from "../CreateFileDialog";
 import { queryArgs } from "./common";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
@@ -34,9 +35,14 @@ export function ActionBar({
   reload: () => void;
   setExpanded: (items: string[]) => void;
 }) {
-  const {
-    state: { pipelineUuid, projectUuid },
-  } = useProjectsContext();
+  const { projectUuid } = useCustomRoute();
+
+  const [isCreateFileDialogOpen, setIsCreateFileDialogOpen] = React.useState(
+    false
+  );
+  const openCreateFileDialog = () => setIsCreateFileDialogOpen(true);
+  const closeCreateFileDialog = () => setIsCreateFileDialogOpen(false);
+
   const uploadFileRef = React.useRef<HTMLInputElement>();
   const uploadFolderRef = React.useRef<HTMLInputElement>();
 
@@ -71,6 +77,12 @@ export function ActionBar({
 
   return (
     <>
+      <CreateFileDialog
+        isOpen={isCreateFileDialogOpen}
+        onClose={closeCreateFileDialog}
+        onSuccess={reload}
+        projectUuid={projectUuid}
+      />
       <Stack
         direction="row"
         alignItems="center"
@@ -113,19 +125,14 @@ export function ActionBar({
           </FileManagerActionButton>
           <FileManagerActionButton
             title="Create file"
-            onClick={() => {
-              window.alert("Waiting for the endpoint");
-            }}
+            onClick={openCreateFileDialog}
           >
             <NoteAddIcon />
           </FileManagerActionButton>
-          <FileManagerActionButton
-            onClick={() => createFolder()}
-            title="Create folder"
-          >
+          <FileManagerActionButton onClick={createFolder} title="Create folder">
             <CreateNewFolderIcon />
           </FileManagerActionButton>
-          <FileManagerActionButton title="Refresh" onClick={() => reload()}>
+          <FileManagerActionButton title="Refresh" onClick={reload}>
             <RefreshIcon />
           </FileManagerActionButton>
           <FileManagerActionButton

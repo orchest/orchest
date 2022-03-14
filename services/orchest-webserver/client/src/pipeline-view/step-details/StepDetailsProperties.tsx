@@ -377,7 +377,6 @@ export const StepDetailsProperties: React.FC<{
             value={step.file_path}
             project_uuid={projectUuid}
             pipeline_uuid={pipelineUuid}
-            step_uuid={step.uuid}
             onChange={(value) => onChangeFileName(value, false)}
             menuMaxWidth={menuMaxWidth}
           />
