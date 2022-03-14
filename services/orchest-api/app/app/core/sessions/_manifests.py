@@ -820,17 +820,22 @@ def _get_user_service_deployment_service_manifest(
         env.append({"name": k, "value": v})
 
     volume_mounts = []
+    volumes = []
     sbinds = service_config.get("binds", {})
     volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
         host_userdir,
         host_project_dir,
         project_relative_pipeline_path,
+        container_project_dir=sbinds.get("/project-dir", "/project-dir"),
+        container_data_dir=sbinds.get("/data", "/data"),
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
     if "/data" in sbinds:
+        volumes.append(volumes_dict["data"])
         volume_mounts.append(volume_mounts_dict["data"])
     if "/project-dir" in sbinds:
+        volumes.append(volumes_dict["project-dir"])
         volume_mounts.append(volume_mounts_dict["project-dir"])
 
     # To support orchest environments as services.
@@ -876,9 +881,7 @@ def _get_user_service_deployment_service_manifest(
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
-                    "volumes": [
-                        volumes_dict["project-dir"],
-                    ],
+                    "volumes": volumes,
                     "containers": [
                         {
                             "name": metadata["name"],
