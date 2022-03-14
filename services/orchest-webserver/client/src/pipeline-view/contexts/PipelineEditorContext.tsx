@@ -1,5 +1,7 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
+import { siteMap } from "@/Routes";
 import {
   Environment,
   IOrchestSession,
@@ -59,6 +61,7 @@ export type PipelineEditorContextType = {
   };
   sio: SocketIO;
   session: IOrchestSession;
+  openNotebook: (e: React.MouseEvent | undefined, filePath: string) => void;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -75,7 +78,10 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     jobUuid,
     runUuid: runUuidFromRoute,
     isReadOnly: isReadOnlyFromQueryString,
+    navigateTo,
   } = useCustomRoute();
+
+  const { setAlert } = useAppContext();
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
@@ -182,6 +188,31 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   React.useLayoutEffect(() => {
     if (shouldForceRerender) forceUpdate();
   }, [shouldForceRerender, forceUpdate]);
+  const openNotebook = React.useCallback(
+    (e: React.MouseEvent | undefined, filePath: string) => {
+      if (session?.status === "RUNNING") {
+        navigateTo(
+          siteMap.jupyterLab.path,
+          { query: { projectUuid, pipelineUuid, filePath } },
+          e
+        );
+        return;
+      }
+      if (session?.status === "LAUNCHING") {
+        setAlert(
+          "Error",
+          "Please wait for the session to start before opening the Notebook in Jupyter."
+        );
+        return;
+      }
+
+      setAlert(
+        "Error",
+        "Please start the session before opening the Notebook in Jupyter."
+      );
+    },
+    [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
+  );
 
   return (
     <PipelineEditorContext.Provider
@@ -211,6 +242,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         jobUuid,
         sio,
         session,
+        openNotebook,
       }}
     >
       {children}

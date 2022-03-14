@@ -125,15 +125,16 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     [centerPipelineOrigin, centerView]
   );
 
-  // const [panningState, setPanningState] = React.useState<
-  //   "ready-to-pan" | "panning" | "idle"
-  // >("idle");
-
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
 
       if (event.key === " " && !keysDown.has("Space")) {
+        // if any element is on focus, pressing space bar is equivalent to mouse click
+        // therefore it's needed to remove all "focus" state
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         setPipelineCanvasState({ panningState: "ready-to-pan" });
         keysDown.add("Space");
       }

@@ -85,6 +85,7 @@ export const PipelineEditor = () => {
     instantiateConnection,
     metadataPositions,
     session,
+    openNotebook,
   } = usePipelineEditorContext();
 
   const removeSteps = React.useCallback(
@@ -301,32 +302,6 @@ export const PipelineEditor = () => {
       ).slice(1);
     },
     [eventVars.steps]
-  );
-
-  const openNotebook = React.useCallback(
-    (e: React.MouseEvent | undefined, filePath: string) => {
-      if (session?.status === "RUNNING") {
-        navigateTo(
-          siteMap.jupyterLab.path,
-          { query: { projectUuid, pipelineUuid, filePath } },
-          e
-        );
-        return;
-      }
-      if (session?.status === "LAUNCHING") {
-        setAlert(
-          "Error",
-          "Please wait for the session to start before opening the Notebook in Jupyter."
-        );
-        return;
-      }
-
-      setAlert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
-    },
-    [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
   );
 
   const [isShowingServices, setIsShowingServices] = React.useState(false);
