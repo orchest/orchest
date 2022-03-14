@@ -33,27 +33,23 @@ def _get_common_volumes_and_volume_mounts(
 
     volumes["userdir-pvc"] = {
         "name": "userdir-pvc",
-        "persistentVolumeClaim":
-        {
-            "claimName" : userdir_pvc,
-            "readOnly": False
-        }
+        "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
     }
 
     volume_mounts["data"] = {
         "name": "userdir-pvc",
         "mountPath": container_data_dir,
-        "subPath": "data"
+        "subPath": "data",
     }
     volume_mounts["project-dir"] = {
         "name": "userdir-pvc",
         "mountPath": container_project_dir,
-        "subPath": relative_project_dir
+        "subPath": relative_project_dir,
     }
     volume_mounts["pipeline-file"] = {
         "name": "userdir-pvc",
         "mountPath": container_pipeline_path,
-        "subPath": relative_pipeline_path
+        "subPath": relative_pipeline_path,
     }
 
     return volumes, volume_mounts
@@ -83,20 +79,20 @@ def _get_jupyter_volumes_and_volume_mounts(
     volume_mounts["kernelspec"] = {
         "name": "userdir-pvc",
         "mountPath": "/usr/local/share/jupyter/kernels",
-        "subPath": source_kernelspecs
+        "subPath": source_kernelspecs,
     }
 
     # User configurations of the JupyterLab IDE.
     volume_mounts["jupyterlab-lab"] = {
         "name": "userdir-pvc",
         "mountPath": "/usr/local/share/jupyter/lab",
-        "subPath": ".orchest/user-configurations/jupyterlab/lab"
+        "subPath": ".orchest/user-configurations/jupyterlab/lab",
     }
 
     volume_mounts["jupyterlab-user-settings"] = {
         "name": "userdir-pvc",
         "mountPath": "/root/.jupyter/lab/user-settings",
-        "subPath": ".orchest/user-configurations/jupyterlab/user-settings"
+        "subPath": ".orchest/user-configurations/jupyterlab/user-settings",
     }
 
     return volumes, volume_mounts
@@ -796,7 +792,7 @@ def _get_user_service_deployment_service_manifest(
     volume_mounts = []
     volumes = []
     sbinds = service_config.get("binds", {})
-    volumes_dict, _ = _get_common_volumes_and_volume_mounts(
+    volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
         userdir_pvc,
         project_dir,
         pipeline_path,
