@@ -79,6 +79,7 @@ export const templates: ServiceTemplates = {
       },
       image: "postgres",
       name: "postgres",
+      ports: [5432],
       scope: ["interactive", "noninteractive"],
     },
   },
@@ -88,6 +89,7 @@ export const templates: ServiceTemplates = {
     config: {
       image: "redis",
       name: "redis",
+      ports: [6379],
       scope: ["interactive", "noninteractive"],
     },
   },
@@ -98,6 +100,7 @@ export const templates: ServiceTemplates = {
       image: "",
       name: "my-service",
       scope: ["interactive", "noninteractive"],
+      ports: [8000],
     },
   },
 };

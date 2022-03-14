@@ -92,7 +92,7 @@ service = Model(
         "command": fields.String(required=False, description="Command"),
         "args": fields.String(required=False, description="Args"),
         "ports": fields.List(
-            fields.String, required=False, description="List of service exposed ports"
+            fields.String, required=True, description="List of service exposed ports"
         ),
         "env_variables": fields.Raw(
             required=False,
