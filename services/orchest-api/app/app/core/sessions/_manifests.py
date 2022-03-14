@@ -8,6 +8,7 @@ import traceback
 from typing import Any, Dict, Tuple
 
 from _orchest.internals import config as _config
+from _orchest.internals.utils import get_userdir_relpath
 from app import utils
 from app.connections import k8s_core_api
 from app.types import SessionConfig, SessionType
@@ -17,9 +18,9 @@ logger = utils.get_logger()
 
 
 def _get_common_volumes_and_volume_mounts(
-    host_userdir: str,
-    host_project_dir: str,
-    project_relative_pipeline_path: str,
+    userdir_pvc: str,
+    project_dir: str,
+    pipeline_path: str,
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
@@ -27,51 +28,45 @@ def _get_common_volumes_and_volume_mounts(
     volumes = {}
     volume_mounts = {}
 
-    volumes["project-dir"] = {
-        "name": "project-dir",
-        "hostPath": {"path": host_project_dir},
+    relative_project_dir = get_userdir_relpath(project_dir)
+    relative_pipeline_path = os.path.join(relative_project_dir, pipeline_path)
+
+    volumes["userdir-pvc"] = {
+        "name": "userdir-pvc",
+        "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+    }
+
+    volume_mounts["data"] = {
+        "name": "userdir-pvc",
+        "mountPath": container_data_dir,
+        "subPath": "data",
     }
     volume_mounts["project-dir"] = {
-        "name": "project-dir",
+        "name": "userdir-pvc",
         "mountPath": container_project_dir,
-    }
-
-    volumes["pipeline-file"] = {
-        # This way the binding is persisted even if the pipeline file
-        # is moved, since the binding happens through inodes.
-        "name": "pipeline-file",
-        "hostPath": {
-            "path": os.path.join(host_project_dir, project_relative_pipeline_path)
-        },
+        "subPath": relative_project_dir,
     }
     volume_mounts["pipeline-file"] = {
-        "name": "pipeline-file",
+        "name": "userdir-pvc",
         "mountPath": container_pipeline_path,
+        "subPath": relative_pipeline_path,
     }
 
-    volumes["data"] = {
-        "name": "data",
-        "hostPath": {"path": os.path.join(host_userdir, "data")},
-    }
-    volume_mounts["data"] = {
-        "name": "data",
-        "mountPath": container_data_dir,
-    }
     return volumes, volume_mounts
 
 
 def _get_jupyter_volumes_and_volume_mounts(
     project_uuid: str,
-    host_userdir: str,
-    host_project_dir: str,
+    userdir_pvc: str,
+    project_dir: str,
     project_relative_pipeline_path: str,
     container_project_dir: str = _config.PROJECT_DIR,
     container_pipeline_path: str = _config.PIPELINE_FILE,
     container_data_dir: str = _config.DATA_DIR,
 ) -> Tuple[Dict[str, Dict], Dict[str, Dict]]:
     volumes, volume_mounts = _get_common_volumes_and_volume_mounts(
-        host_userdir,
-        host_project_dir,
+        userdir_pvc,
+        project_dir,
         project_relative_pipeline_path,
         container_project_dir,
         container_pipeline_path,
@@ -79,44 +74,27 @@ def _get_jupyter_volumes_and_volume_mounts(
     )
 
     source_kernelspecs = os.path.join(
-        host_userdir, _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
+        _config.KERNELSPECS_PATH.format(project_uuid=project_uuid)
     )
-    volumes["kernelspec"] = {
-        "name": "kernelspec",
-        "hostPath": {"path": source_kernelspecs},
-    }
     volume_mounts["kernelspec"] = {
-        "name": "kernelspec",
+        "name": "userdir-pvc",
         "mountPath": "/usr/local/share/jupyter/kernels",
+        "subPath": source_kernelspecs,
     }
 
     # User configurations of the JupyterLab IDE.
-    volumes["jupyterlab-lab"] = {
-        "name": "jupyterlab-lab",
-        "hostPath": {
-            "path": os.path.join(
-                host_userdir, ".orchest/user-configurations/jupyterlab/lab"
-            ),
-        },
-    }
     volume_mounts["jupyterlab-lab"] = {
-        "name": "jupyterlab-lab",
+        "name": "userdir-pvc",
         "mountPath": "/usr/local/share/jupyter/lab",
+        "subPath": ".orchest/user-configurations/jupyterlab/lab",
     }
 
-    volumes["jupyterlab-user-settings"] = {
-        "name": "jupyterlab-user-settings",
-        "hostPath": {
-            "path": os.path.join(
-                host_userdir,
-                ".orchest/user-configurations/jupyterlab/user-settings",
-            ),
-        },
-    }
     volume_mounts["jupyterlab-user-settings"] = {
-        "name": "jupyterlab-user-settings",
+        "name": "userdir-pvc",
         "mountPath": "/root/.jupyter/lab/user-settings",
+        "subPath": ".orchest/user-configurations/jupyterlab/user-settings",
     }
+
     return volumes, volume_mounts
 
 
@@ -127,9 +105,9 @@ def _get_memory_server_deployment_manifest(
 ) -> dict:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    project_relative_pipeline_path = session_config["pipeline_path"]
-    host_project_dir = session_config["project_dir"]
-    host_userdir = session_config["host_userdir"]
+    pipeline_path = session_config["pipeline_path"]
+    project_dir = session_config["project_dir"]
+    userdir_pvc = session_config["userdir_pvc"]
     session_type = session_type.value
 
     metadata = {
@@ -142,9 +120,9 @@ def _get_memory_server_deployment_manifest(
     }
 
     volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
-        host_userdir,
-        host_project_dir,
-        project_relative_pipeline_path,
+        userdir_pvc,
+        project_dir,
+        pipeline_path,
     )
 
     return {
@@ -170,8 +148,7 @@ def _get_memory_server_deployment_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["project-dir"],
-                        volumes_dict["pipeline-file"],
+                        volumes_dict["userdir-pvc"],
                         {"name": "dev-shm", "emptyDir": {"medium": "Memory"}},
                     ],
                     "containers": [
@@ -300,9 +277,9 @@ def _get_session_sidecar_deployment_manifest(
 ) -> dict:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    project_relative_pipeline_path = session_config["pipeline_path"]
-    host_project_dir = session_config["project_dir"]
-    host_userdir = session_config["host_userdir"]
+    pipeline_path = session_config["pipeline_path"]
+    project_dir = session_config["project_dir"]
+    userdir_pvc = session_config["userdir_pvc"]
     session_type = session_type.value
 
     metadata = {
@@ -315,9 +292,9 @@ def _get_session_sidecar_deployment_manifest(
     }
 
     volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
-        host_userdir,
-        host_project_dir,
-        project_relative_pipeline_path,
+        userdir_pvc,
+        project_dir,
+        pipeline_path,
     )
 
     return {
@@ -341,8 +318,7 @@ def _get_session_sidecar_deployment_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["project-dir"],
-                        volumes_dict["pipeline-file"],
+                        volumes_dict["userdir-pvc"],
                     ],
                     "containers": [
                         {
@@ -390,9 +366,9 @@ def _get_jupyter_server_deployment_service_manifest(
     session_type: SessionType,
 ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
-    project_relative_pipeline_path = session_config["pipeline_path"]
-    host_project_dir = session_config["project_dir"]
-    host_userdir = session_config["host_userdir"]
+    pipeline_path = session_config["pipeline_path"]
+    project_dir = session_config["project_dir"]
+    userdir_pvc = session_config["userdir_pvc"]
     session_type = session_type.value
 
     metadata = {
@@ -405,7 +381,7 @@ def _get_jupyter_server_deployment_service_manifest(
     }
 
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
-        project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
+        project_uuid, userdir_pvc, project_dir, pipeline_path
     )
     deployment_manifest = {
         "apiVersion": "apps/v1",
@@ -426,11 +402,7 @@ def _get_jupyter_server_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["project-dir"],
-                        volumes_dict["pipeline-file"],
-                        volumes_dict["data"],
-                        volumes_dict["jupyterlab-lab"],
-                        volumes_dict["jupyterlab-user-settings"],
+                        volumes_dict["userdir-pvc"],
                     ],
                     "containers": [
                         {
@@ -608,9 +580,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
 ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    project_relative_pipeline_path = session_config["pipeline_path"]
-    host_project_dir = session_config["project_dir"]
-    host_userdir = session_config["host_userdir"]
+    pipeline_path = session_config["pipeline_path"]
+    project_dir = session_config["project_dir"]
+    userdir_pvc = session_config["userdir_pvc"]
     session_type = session_type.value
 
     metadata = {
@@ -634,9 +606,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID",
         "ORCHEST_PIPELINE_PATH",
         "ORCHEST_PROJECT_UUID",
-        "ORCHEST_HOST_USER_DIR",
-        "ORCHEST_HOST_PROJECT_DIR",
-        "ORCHEST_HOST_PIPELINE_FILE",
+        "ORCHEST_USERDIR_PVC",
+        "ORCHEST_PROJECT_DIR",
+        "ORCHEST_PIPELINE_FILE",
         "ORCHEST_HOST_GID",
         "ORCHEST_SESSION_UUID",
         "ORCHEST_SESSION_TYPE",
@@ -678,11 +650,9 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         "ORCHEST_PIPELINE_UUID": pipeline_uuid,
         "ORCHEST_PIPELINE_PATH": _config.PIPELINE_FILE,
         "ORCHEST_PROJECT_UUID": project_uuid,
-        "ORCHEST_HOST_USER_DIR": host_userdir,
-        "ORCHEST_HOST_PROJECT_DIR": host_project_dir,
-        "ORCHEST_HOST_PIPELINE_FILE": os.path.join(
-            host_project_dir, project_relative_pipeline_path
-        ),
+        "ORCHEST_USERDIR_PVC": userdir_pvc,
+        "ORCHEST_PROJECT_DIR": project_dir,
+        "ORCHEST_PIPELINE_FILE": pipeline_path,
         "ORCHEST_HOST_GID": os.environ.get("ORCHEST_HOST_GID"),
         "ORCHEST_SESSION_UUID": session_uuid,
         "ORCHEST_SESSION_TYPE": session_type,
@@ -696,7 +666,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
     environment.extend(user_defined_env_vars)
 
     volumes_dict, volume_mounts_dict = _get_jupyter_volumes_and_volume_mounts(
-        project_uuid, host_userdir, host_project_dir, project_relative_pipeline_path
+        project_uuid, userdir_pvc, project_dir, pipeline_path
     )
 
     deployment_manifest = {
@@ -720,7 +690,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["kernelspec"],
+                        volumes_dict["userdir-pvc"],
                     ],
                     "containers": [
                         {
@@ -779,9 +749,9 @@ def _get_user_service_deployment_service_manifest(
     """
     project_uuid = session_config["project_uuid"]
     pipeline_uuid = session_config["pipeline_uuid"]
-    project_relative_pipeline_path = session_config["pipeline_path"]
-    host_project_dir = session_config["project_dir"]
-    host_userdir = session_config["host_userdir"]
+    pipeline_path = session_config["pipeline_path"]
+    project_dir = session_config["project_dir"]
+    userdir_pvc = session_config["userdir_pvc"]
     img_mappings = session_config["env_uuid_to_image"]
     session_type = session_type.value
 
@@ -823,11 +793,9 @@ def _get_user_service_deployment_service_manifest(
     volumes = []
     sbinds = service_config.get("binds", {})
     volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
-        host_userdir,
-        host_project_dir,
-        project_relative_pipeline_path,
-        container_project_dir=sbinds.get("/project-dir", "/project-dir"),
-        container_data_dir=sbinds.get("/data", "/data"),
+        userdir_pvc,
+        project_dir,
+        pipeline_path,
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.

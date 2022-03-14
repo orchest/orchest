@@ -6,3 +6,9 @@ service:
   port: 5432
 
 name: orchest-database 
+
+images:
+  pullPolicy: IfNotPresent   
+  registry: docker.io
+  name: postgres
+  tag: "13.1"  

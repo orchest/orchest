@@ -5,17 +5,14 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate
-        - name: config
-          hostPath:
-            path: /var/lib/orchest/config
-            type: DirectoryOrCreate
+        - name: config-pvc
+          persistentVolumeClaim:
+            claimName: config-pvc
+            readOnly: false
       containers:
       - name: auth-server
-        image: orchest/auth-server:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         {{ if .Values.service.port}}
         ports:
         - containerPort: {{ .Values.service.port }}
@@ -27,12 +24,14 @@ deployment
           value: "{{ .Values.CLOUD }}"
         - name: "HOST_OS"
           value: "linux"
+        {{ if .Values.enableDebug}}
+        - name: "ORCHEST_LOG_LEVEL"
+          value: DEBUG
+        {{ end }}
         - name: "PYTHONUNBUFFERED"
-          value: "TRUE"       
+          value: "TRUE"
         volumeMounts:
-         - name: userdir
-           mountPath: /userdir
-         - name: config
+         - name: config-pvc
            mountPath: /config
         startupProbe:
           exec:
