@@ -31,6 +31,7 @@ import ListSubheader from "@mui/material/ListSubheader";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -54,11 +55,12 @@ const LogsView: React.FC = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
-    isReadOnly,
     navigateTo,
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
+
+  const isJobRun = hasValue(jobUuid && runUuid);
 
   const [promiseManager] = React.useState(new PromiseManager());
 
@@ -214,14 +216,13 @@ const LogsView: React.FC = () => {
   };
 
   const close = () => {
-    navigateTo(siteMap.pipeline.path, {
+    navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
       query: {
         projectUuid,
         pipelineUuid,
         jobUuid,
         runUuid,
       },
-      state: { isReadOnly },
     });
   };
 

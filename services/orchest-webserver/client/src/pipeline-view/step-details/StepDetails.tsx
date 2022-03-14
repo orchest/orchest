@@ -224,7 +224,7 @@ const StepDetailsComponent: React.FC<{
             onClick={(e) => onOpenFilePreviewView(e, step.uuid)}
             onAuxClick={(e) => onOpenFilePreviewView(e, step.uuid)}
             data-test-id="step-view-file"
-            disabled={!fileExists}
+            disabled={!isReadOnly && !fileExists} // file exists endpoint doesn't consider job runs
           >
             View file
           </Button>

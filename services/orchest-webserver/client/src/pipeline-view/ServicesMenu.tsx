@@ -13,6 +13,7 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Menu from "@mui/material/Menu";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 const formatUrl = (url: string) => {
@@ -42,9 +43,13 @@ export const ServicesMenu = ({
     navigateTo,
   } = useCustomRoute();
 
+  const isJobRun = hasValue(jobUuid && runUuid);
+
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
-      siteMap.pipelineSettings.path,
+      isJobRun
+        ? siteMap.jobRunPipelineSettings.path
+        : siteMap.pipelineSettings.path,
       {
         query: {
           projectUuid,

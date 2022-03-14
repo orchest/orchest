@@ -1,4 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Environment,
   IOrchestSession,
@@ -7,6 +8,7 @@ import {
   PipelineJson,
   StepsDict,
 } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
@@ -127,11 +129,12 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuidFromRoute
   );
 
+  const isJobRun = hasValue(jobUuid && runUuidFromRoute);
   const isReadOnly = useIsReadOnly(
     projectUuid,
     jobUuid,
     runUuid,
-    isReadOnlyFromQueryString
+    isJobRun || isReadOnlyFromQueryString
   );
 
   const {
@@ -164,6 +167,19 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     document.body.addEventListener("mousemove", startTracking);
     return () => document.body.removeEventListener("mousemove", startTracking);
   }, [trackMouseMovement]);
+
+  // in read-only mode, PipelineEditor doesn't re-render after stepDomRefs collects all DOM elements of the steps
+  // we need to force re-render one more time to show the connection lines
+  const shouldForceRerender =
+    isReadOnly &&
+    eventVars.connections.length > 0 &&
+    Object.keys(stepDomRefs.current).length === 0;
+
+  const [, forceUpdate] = useForceUpdate();
+
+  React.useLayoutEffect(() => {
+    if (shouldForceRerender) forceUpdate();
+  }, [shouldForceRerender, forceUpdate]);
 
   return (
     <PipelineEditorContext.Provider

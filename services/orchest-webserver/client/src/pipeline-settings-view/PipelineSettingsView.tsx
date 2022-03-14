@@ -136,8 +136,8 @@ const PipelineSettingsView: React.FC = () => {
 
   const { getSession } = useSessionsContext();
 
-  const isReadOnly =
-    (hasValue(runUuid) && hasValue(jobUuid)) || isReadOnlyFromQueryString;
+  const isJobRun = hasValue(jobUuid && runUuid);
+  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
 
   // Fetching data
   const {
@@ -226,7 +226,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const closeSettings = () => {
-    navigateTo(siteMap.pipeline.path, {
+    navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
       query: {
         projectUuid,
         pipelineUuid,
