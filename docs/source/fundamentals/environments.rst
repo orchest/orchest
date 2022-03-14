@@ -69,11 +69,11 @@ includes the packages you need, simply follow the steps in the previous section.
    # Get system level dependencies for one of your packages
    sudo apt-get install -y default-libmysqlclient-dev
 
-   # Install a Python dependency using pip
-   pip install tensorflow
+   # Install any dependency using mamba or conda
+   mamba install -y spacy -c conda-forge
 
-   # Or, alternatively, install any dependency using conda
-   conda install -y spacy -c conda-forge
+   # Or, alternatively, install Python dependencies using pip
+   pip install black
 
 .. note::
    💡 The environments Orchest provides are based on the  `Jupyter Docker Stacks
@@ -82,10 +82,10 @@ includes the packages you need, simply follow the steps in the previous section.
    <https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html>`_. However, the
    JupyterLab kernel needs to be restarted if it was already running.
 
-.. warning::
-   🚨 Installing packages with conda is supported, but conda might need a long time to solve
-   the environment. To reduce this time, try pinning the exact versions of the packages you want,
-   or install `mamba <https://mamba.readthedocs.io/>`_ as a faster drop-in replacement to conda.
+.. note::
+   💡 `mamba <https://mamba.readthedocs.io/>`_ is a drop-in replacement to conda
+   that is more user friendly and faster. Installing packages with conda is also supported,
+   but conda might need a long time to solve the environment.
 
 Installing packages from a ``requirements.txt``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
