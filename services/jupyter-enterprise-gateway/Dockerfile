@@ -9,8 +9,8 @@ LABEL maintainer="Orchest B.V. https://www.orchest.io"
 #   externally (i.e. in Docker containers) and not inside the container
 #   running the EG itself.
 # - We don't use Spark so we don't need to install it.
-ADD https://raw.githubusercontent.com/jupyter-server/enterprise_gateway/v2.6.0/etc/docker/enterprise-gateway/start-enterprise-gateway.sh /usr/local/bin/
-ADD https://github.com/jupyter-server/enterprise_gateway/releases/download/v2.6.0/jupyter_enterprise_gateway-2.6.0-py3-none-any.whl /tmp/
+ADD https://raw.githubusercontent.com/jupyter-server/enterprise_gateway/v2.5.2/etc/docker/enterprise-gateway/start-enterprise-gateway.sh /usr/local/bin/
+ADD https://github.com/jupyter-server/enterprise_gateway/releases/download/v2.5.2/jupyter_enterprise_gateway-2.5.2-py3-none-any.whl /tmp/
 
 USER root
 
