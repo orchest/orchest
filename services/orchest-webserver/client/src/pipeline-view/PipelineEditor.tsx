@@ -239,7 +239,9 @@ export const PipelineEditor: React.FC = () => {
 
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
-      siteMap.pipelineSettings.path,
+      isJobRun
+        ? siteMap.jobRunPipelineSettings.path
+        : siteMap.pipelineSettings.path,
       {
         query: {
           projectUuid,
@@ -254,7 +256,7 @@ export const PipelineEditor: React.FC = () => {
 
   const openLogs = (e: React.MouseEvent) => {
     navigateTo(
-      siteMap.logs.path,
+      isJobRun ? siteMap.jobRunLogs.path : siteMap.logs.path,
       {
         query: {
           projectUuid,

@@ -35,6 +35,8 @@ type RouteName =
   | "jobs"
   | "job"
   | "jobRun"
+  | "jobRunPipelineSettings"
+  | "jobRunLogs"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -156,6 +158,20 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
       root: "/jobs",
       title: getTitle("Job Run"),
       component: PipelineView,
+    },
+    {
+      name: "jobRunPipelineSettings",
+      path: "/job-run/pipeline-settings",
+      root: "/jobs",
+      title: getTitle("Job Run Pipeline Settings"),
+      component: PipelineSettingsView,
+    },
+    {
+      name: "jobRunLogs",
+      path: "/job-run/logs",
+      root: "/jobs",
+      title: getTitle("Job Run Logs"),
+      component: LogsView,
     },
     {
       name: "editJob",
