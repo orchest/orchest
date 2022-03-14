@@ -15,7 +15,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useIsReadOnly } from "@/pipeline-view/hooks/useIsReadOnly";
 import { siteMap } from "@/Routes";
 import type {
   PipelineJson,
@@ -138,12 +137,7 @@ const PipelineSettingsView: React.FC = () => {
   const { getSession } = useSessionsContext();
 
   const isJobRun = hasValue(jobUuid && runUuid);
-  const isReadOnly = useIsReadOnly(
-    projectUuid,
-    jobUuid,
-    runUuid,
-    isJobRun || isReadOnlyFromQueryString
-  );
+  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
 
   // Fetching data
   const {

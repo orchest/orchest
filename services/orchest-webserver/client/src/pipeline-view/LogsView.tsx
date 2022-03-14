@@ -38,7 +38,6 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import io from "socket.io-client";
-import { useIsReadOnly } from "./hooks/useIsReadOnly";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -56,19 +55,12 @@ const LogsView: React.FC = () => {
     pipelineUuid,
     jobUuid,
     runUuid,
-    isReadOnly: isReadOnlyFromQueryString,
     navigateTo,
   } = useCustomRoute();
 
   const { getSession } = useSessionsContext();
 
   const isJobRun = hasValue(jobUuid && runUuid);
-  useIsReadOnly(
-    projectUuid,
-    jobUuid,
-    runUuid,
-    isJobRun || isReadOnlyFromQueryString
-  );
 
   const [promiseManager] = React.useState(new PromiseManager());
 

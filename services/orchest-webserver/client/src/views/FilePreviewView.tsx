@@ -4,7 +4,6 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { useIsReadOnly } from "@/pipeline-view/hooks/useIsReadOnly";
 import { siteMap } from "@/Routes";
 import {
   getPipelineJSONEndpoint,
@@ -49,10 +48,11 @@ const FilePreviewView: React.FC = () => {
     stepUuid,
     jobUuid,
     runUuid,
+    isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
   const isJobRun = hasValue(jobUuid && runUuid);
-  const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid, isJobRun);
+  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
 
   // local states
   const [state, setState] = React.useState({
