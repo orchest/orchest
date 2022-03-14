@@ -166,7 +166,9 @@ session = Model(
             attribute=lambda s: _session_base_url(s),
             description="Base URL",
         ),
-        "user_services": fields.Nested(services),
+        # The services model doesn't seem to work with restx on output,
+        # known issue. See other comments about restx and wildcards.
+        "user_services": fields.Raw(),
     },
 )
 
