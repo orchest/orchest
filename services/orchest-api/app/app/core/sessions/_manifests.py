@@ -887,6 +887,10 @@ def _get_user_service_deployment_service_manifest(
                             "imagePullPolicy": "IfNotPresent",
                             "env": env,
                             "volumeMounts": volume_mounts,
+                            "ports": [
+                                {"containerPort": port}
+                                for port in service_config["ports"]
+                            ],
                         }
                     ],
                 },
