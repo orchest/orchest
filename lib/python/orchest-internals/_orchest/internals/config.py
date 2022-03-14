@@ -88,9 +88,10 @@ ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"
 
 DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 
-# Install any dependencies you have in this shell script.
+# Install any dependencies you have in this shell script,
+# see https://docs.orchest.io/en/latest/fundamentals/environments.html#install-packages
 
-# E.g. pip install tensorflow
+# E.g. mamba install -y tensorflow
 
 """
 
