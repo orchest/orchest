@@ -1,6 +1,7 @@
 import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -15,6 +16,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -35,6 +37,7 @@ const MODE_MAPPING = {
 const FilePreviewView: React.FC = () => {
   // global states
   const { setAlert } = useAppContext();
+  const { dispatch } = useProjectsContext();
   useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
 
   // data from route
@@ -48,7 +51,7 @@ const FilePreviewView: React.FC = () => {
     runUuid,
   } = useCustomRoute();
 
-  const isJobRun = jobUuid && runUuid;
+  const isJobRun = hasValue(jobUuid && runUuid);
 
   // local states
   const [state, setState] = React.useState({
@@ -101,6 +104,15 @@ const FilePreviewView: React.FC = () => {
       fetchPipelinePromise.promise
         .then((response) => {
           let pipelineJSON = JSON.parse(JSON.parse(response)["pipeline_json"]);
+
+          dispatch({
+            type: "pipelineSet",
+            payload: {
+              pipelineUuid,
+              projectUuid,
+              pipelineName: pipelineJSON.name,
+            },
+          });
 
           setState((prevState) => ({
             ...prevState,

@@ -12,18 +12,14 @@ export const useIsReadOnly = (
   const { dispatch } = useProjectsContext();
   const { requestBuild } = useAppContext();
 
-  const [isReadOnly, _setIsReadOnly] = React.useState(initialValue);
+  const [isReadOnly, setIsReadOnly] = React.useState(initialValue);
 
-  const setIsReadOnly = React.useCallback(
-    (readOnly: boolean) => {
-      dispatch({
-        type: "SET_PIPELINE_IS_READONLY",
-        payload: readOnly,
-      });
-      _setIsReadOnly(readOnly);
-    },
-    [dispatch]
-  );
+  React.useEffect(() => {
+    dispatch({
+      type: "SET_PIPELINE_IS_READONLY",
+      payload: isReadOnly,
+    });
+  }, [dispatch, isReadOnly]);
 
   const hasActiveRun = runUuid && jobUuid;
   const isNonPipelineRun = !hasActiveRun && isReadOnly;
