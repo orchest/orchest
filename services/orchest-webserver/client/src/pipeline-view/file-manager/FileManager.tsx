@@ -95,6 +95,12 @@ export function FileManager({
   onOpen,
   onView,
   onEdit,
+}: {
+  onSelect: (selected: string[]) => void;
+  onDropOutside: (target: EventTarget, selection: string[]) => void;
+  onOpen: (filePath: string) => void;
+  onEdit: (filePath: string) => void;
+  onView: (filePath: string) => void;
 }) {
   /**
    * Define configuration constants
@@ -282,9 +288,7 @@ export function FileManager({
     event: React.SyntheticEvent<Element, Event>,
     selected: string[]
   ) => {
-    if (onSelect) {
-      onSelect(selected);
-    }
+    if (onSelect) onSelect(selected);
     setSelected(selected);
   };
 

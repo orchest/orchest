@@ -30,6 +30,7 @@ export type PipelineEditorContextType = {
   eventVars: EventVars;
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
+  pipelineCanvasRef: React.MutableRefObject<HTMLDivElement>;
   newConnection: React.MutableRefObject<NewConnection>;
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
@@ -57,7 +58,6 @@ export type PipelineEditorContextType = {
     endNodeUUID: string;
   };
   sio: SocketIO;
-
   session: IOrchestSession;
 };
 
@@ -76,6 +76,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuid: runUuidFromRoute,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
+
+  const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
   const {
     eventVars,
@@ -189,6 +191,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         eventVars,
         dispatch,
         stepDomRefs,
+        pipelineCanvasRef,
         newConnection,
         keysDown,
         trackMouseMovement,

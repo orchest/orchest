@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
@@ -33,6 +34,9 @@ export function ActionBar({
   reload: () => void;
   setExpanded: (items: string[]) => void;
 }) {
+  const {
+    state: { pipelineUuid, projectUuid },
+  } = useProjectsContext();
   const uploadFileRef = React.useRef<HTMLInputElement>();
   const uploadFolderRef = React.useRef<HTMLInputElement>();
 
@@ -107,7 +111,12 @@ export function ActionBar({
           >
             <DriveFolderUploadIcon />
           </FileManagerActionButton>
-          <FileManagerActionButton title="Create file">
+          <FileManagerActionButton
+            title="Create file"
+            onClick={() => {
+              window.alert("Waiting for the endpoint");
+            }}
+          >
             <NoteAddIcon />
           </FileManagerActionButton>
           <FileManagerActionButton

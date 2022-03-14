@@ -103,7 +103,7 @@ const TreeRow = ({
   setDragItem: (dragItemData: { labelText: string; path: string }) => void;
   root: string;
   hoveredPath: string;
-  onOpen: () => void;
+  onOpen: (filePath: string) => void;
   fileInRename: string;
   setFileInRename: (value: string) => void;
   fileRenameNewName: string;
@@ -245,7 +245,7 @@ export const FileTree = ({
   isDragging: boolean;
   setIsDragging: (value: boolean) => void;
   onDropOutside: (target: EventTarget, selection: string[]) => void;
-  onOpen: () => void;
+  onOpen: (filePath: string) => void;
   fileInRename: string;
   setFileInRename: (file: string) => void;
   fileRenameNewName: string;

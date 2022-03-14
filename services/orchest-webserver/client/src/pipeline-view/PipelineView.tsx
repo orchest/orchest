@@ -6,7 +6,7 @@ import React from "react";
 import { siteMap } from "../Routes";
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
-import { FileManager } from "./file-manager/FileManager";
+import { ProjectFileManager } from "./file-manager/ProjectFileManager";
 import { PipelineEditor } from "./PipelineEditor";
 
 const PipelineView = () => {
@@ -25,23 +25,7 @@ const PipelineView = () => {
       <PipelineEditorContextProvider>
         <PipelineCanvasContextProvider>
           <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-            <FileManager
-              onDropOutside={() => {
-                console.log("DEV onDropOutside");
-              }}
-              onEdit={() => {
-                console.log("DEV onEdit");
-              }}
-              onOpen={() => {
-                console.log("DEV onOpen");
-              }}
-              onSelect={() => {
-                console.log("DEV onSelect");
-              }}
-              onView={() => {
-                console.log("DEV onView");
-              }}
-            />
+            <ProjectFileManager />
             <PipelineEditor />
           </Stack>
         </PipelineCanvasContextProvider>
