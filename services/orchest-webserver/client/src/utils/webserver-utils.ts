@@ -58,6 +58,13 @@ export function validatePipeline(pipelineJson: PipelineJson) {
             "."
         );
       }
+      if (pipelineJson.services[serviceName].ports.length == 0) {
+        errors.push(
+          "Services require at least one port to be defined. Please check service: " +
+            serviceName +
+            "."
+        );
+      }
     }
   }
 

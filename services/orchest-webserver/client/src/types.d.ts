@@ -283,7 +283,7 @@ export type Service = {
   scope: ("interactive" | "noninteractive")[];
   args?: string;
   binds?: Record<string, string>;
-  ports?: number[];
+  ports: number[];
   command?: string;
   preserve_base_path?: boolean;
   env_variables?: Record<string, string>;
