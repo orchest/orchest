@@ -452,26 +452,25 @@ def add_user(username: str, password: str, token: str, is_admin: str) -> None:
         raise typer.Exit(code=1)
 
     pods = k8s_core_api.list_namespaced_pod(
-        config.ORCHEST_NAMESPACE, label_selector="app=auth-server"
+        config.ORCHEST_NAMESPACE, label_selector="app.kubernetes.io/name=auth-server"
     )
     if not pods:
         utils.echo("Could not find auth-server pod.")
         raise typer.Exit(code=1)
-    pod = pods[0]
+    pod = pods.items[0]
 
-    args = ["add_user.py", username, password]
+    command = ["python", "add_user.py", username, password]
     if token:
-        args.append("--token")
-        args.append(token)
+        command.append("--token")
+        command.append(token)
     if is_admin:
-        args.append("--admin")
+        command.append("--is_admin")
 
-    resp = stream(
+    resp = stream.stream(
         k8s_core_api.connect_get_namespaced_pod_exec,
         pod.metadata.name,
         config.ORCHEST_NAMESPACE,
-        command=["python"],
-        args=args,
+        command=command,
         stderr=True,
         stdin=False,
         stdout=True,
