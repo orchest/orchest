@@ -891,8 +891,7 @@ def register_views(app, db):
                     404,
                 )
             else:
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
+                pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
 
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
