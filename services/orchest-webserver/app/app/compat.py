@@ -36,6 +36,19 @@ def migrate_pipeline(pipeline):
             tmp.add(valid_var)
         service["env_variables_inherit"] = list(tmp)
 
+        # Can't use a get() with a default value because it would imply
+        # a different thing. Migrate from pre-k8s to k8s.
+        if "entrypoint" in service:
+            if "command" in service:
+                service["args"] = service["command"]
+                del service["command"]
+
+            service["command"] = service["entrypoint"]
+            del service["entrypoint"]
+        # Migrate from pre-k8s to k8s.
+        if not service.get("ports", []):
+            service["ports"] = [8080]
+
     for step in pipeline["steps"].values():
         if (
             "kernel" in step
