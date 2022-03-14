@@ -274,10 +274,10 @@ def _wait_deployments_to_be_stopped(
 ) -> None:
     pods = k8sw.get_orchest_deployments_pods(deployments)
     while pods:
+        time.sleep(1)
         tmp_pods = k8sw.get_orchest_deployments_pods(deployments)
         progress_bar.update(len(pods) - len(tmp_pods))
         pods = tmp_pods
-        time.sleep(1)
 
 
 def _wait_daemonsets_to_be_stopped(
@@ -285,10 +285,10 @@ def _wait_daemonsets_to_be_stopped(
 ) -> None:
     pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
     while pods:
+        time.sleep(1)
         tmp_pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
         progress_bar.update(len(pods) - len(tmp_pods))
         pods = tmp_pods
-        time.sleep(1)
 
 
 def stop():

@@ -38,16 +38,14 @@ ORCHEST_DEPLOYMENTS = [
     "argo-workflow-argo-workflows-workflow-controller",
 ]
 
-DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = set(
-    [
-        "auth-server",
-        "celery-worker",
-        "docker-registry",
-        "file-manager",
-        "orchest-api",
-        "orchest-webserver",
-    ]
-)
+DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = [
+    "auth-server",
+    "celery-worker",
+    "docker-registry",
+    "file-manager",
+    "orchest-api",
+    "orchest-webserver",
+]
 
 DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR = [
     "auth-server",
@@ -64,7 +62,7 @@ DEPLOYMENTS_WITH_CLOUD_ENV_VAR = [
 for depl in (
     DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR
     + DEPLOYMENTS_WITH_CLOUD_ENV_VAR
-    + list(DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION)
+    + DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION
 ):
     assert depl in ORCHEST_DEPLOYMENTS
 
