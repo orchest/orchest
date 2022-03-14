@@ -319,6 +319,9 @@ Full JSON Schema:
                 },
                 "type": "array"
               },
+              "exposed": {
+                "type": "boolean"
+              }
               "ports": {
                 "items": {
                   "type": [

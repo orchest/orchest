@@ -48,6 +48,11 @@ def migrate_pipeline(pipeline):
         # Migrate from pre-k8s to k8s.
         if not service.get("ports", []):
             service["ports"] = [8080]
+        # Migrate from pre-k8s to k8s.
+        service["exposed"] = service.get("exposed", False)
+        service["requires_authentication"] = service.get(
+            "requires_authentication", True
+        )
 
     for step in pipeline["steps"].values():
         if (

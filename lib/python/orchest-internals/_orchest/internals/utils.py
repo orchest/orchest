@@ -462,6 +462,8 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
             ]
         )
         and are_environment_variables_valid(service.get("env_variables", {}))
+        and isinstance(service.get("exposed"), bool)
+        and isinstance(service.get("requires_authentication", True), bool)
     )
 
 

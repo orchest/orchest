@@ -6,7 +6,7 @@ is done by deleting all pods with the given labels.
 import os
 import shlex
 import traceback
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
 from app import utils
@@ -761,7 +761,7 @@ def _get_user_service_deployment_service_manifest(
     session_config: SessionConfig,
     service_config: Dict[str, Any],
     session_type: SessionType,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], Optional[Dict[str, Any]]]:
     """Get deployment and service manifest for a user service.
 
     Args:
@@ -774,8 +774,9 @@ def _get_user_service_deployment_service_manifest(
             noninteractive.
 
     Returns:
-        Tuple of k8s deployment and service manifests to deploy this
-        user service in the session.
+        Tuple of k8s deployment, service and ingress manifests to deploy
+        this user service in the session. The ingress is None if
+        service.exposed is False.
 
     """
     project_uuid = session_config["project_uuid"]
@@ -923,43 +924,46 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    ingress_url = (
-        "service-"
-        + service_config["name"]
-        + "-"
-        + project_uuid.split("-")[0]
-        + "-"
-        + pipeline_uuid.split("-")[0]
-    )
-    ingress_paths = []
-    for port in service_config.get("ports", []):
-        pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
-        ingress_paths.append(
-            {
-                "backend": {
-                    "service": {
-                        "name": metadata["name"],
-                        "port": {"number": port},
-                    }
-                },
-                "path": f"/{pbp}{ingress_url}_{port}",
-                "pathType": "Prefix",
-            }
+    if service_config["exposed"]:
+        ingress_url = (
+            "service-"
+            + service_config["name"]
+            + "-"
+            + project_uuid.split("-")[0]
+            + "-"
+            + pipeline_uuid.split("-")[0]
         )
-
-    ingress_manifest = {
-        "apiVersion": "networking.k8s.io/v1",
-        "kind": "Ingress",
-        "metadata": metadata,
-        "spec": {
-            "ingressClassName": "nginx",
-            "rules": [
+        ingress_paths = []
+        for port in service_config.get("ports", []):
+            pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
+            ingress_paths.append(
                 {
-                    "host": _config.ORCHEST_FQDN,
-                    "http": {"paths": ingress_paths},
+                    "backend": {
+                        "service": {
+                            "name": metadata["name"],
+                            "port": {"number": port},
+                        }
+                    },
+                    "path": f"/{pbp}{ingress_url}_{port}",
+                    "pathType": "Prefix",
                 }
-            ],
-        },
-    }
+            )
+
+        ingress_manifest = {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": metadata,
+            "spec": {
+                "ingressClassName": "nginx",
+                "rules": [
+                    {
+                        "host": _config.ORCHEST_FQDN,
+                        "http": {"paths": ingress_paths},
+                    }
+                ],
+            },
+        }
+    else:
+        ingress_manifest = None
 
     return deployment_manifest, service_manifest, ingress_manifest

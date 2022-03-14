@@ -106,6 +106,10 @@ service = Model(
                 " or job env vars. These env vars supersede the service defined ones."
             ),
         ),
+        "exposed": fields.Boolean(
+            required=True,
+            description=("If the service should be reachable outside the cluster."),
+        ),
         "binds": fields.Raw(
             required=False, description=("Local fs to container mappings")
         ),

@@ -35,6 +35,8 @@ class ServiceDefinition(TypedDict):
     ports: Optional[List[int]]
     preserve_base_path: Optional[str]
     scope: List[str]  # interactive, noninteractive
+    exposed: bool
+    requires_authentication: bool
 
 
 class PipelineDefinition(TypedDict):

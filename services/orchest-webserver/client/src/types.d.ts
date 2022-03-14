@@ -288,6 +288,7 @@ export type Service = {
   preserve_base_path?: boolean;
   env_variables?: Record<string, string>;
   env_variables_inherit?: any[];
+  exposed: boolean;
   requires_authentication?: boolean;
   order?: number;
 };
