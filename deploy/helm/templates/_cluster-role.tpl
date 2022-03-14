@@ -8,7 +8,12 @@ metadata:
   labels:
     {{- include "library.labels.selector" . | nindent 4 }}
 rules:
-  - apiGroups: ["argoproj.io", "", "apps", "rbac.authorization.k8s.io"]
+  - apiGroups: 
+      - ""
+      - "argoproj.io"
+      - "apps"
+      - "networking.k8s.io"
+      - "rbac.authorization.k8s.io"
     resources:
       - workflows
       - deployments
@@ -16,6 +21,8 @@ rules:
       - deployments/status
       - services
       - services/status
+      - ingresses
+      - ingresses/status
       - namespaces
       - namespaces/status
       - pods
