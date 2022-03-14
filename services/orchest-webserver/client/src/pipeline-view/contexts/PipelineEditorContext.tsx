@@ -1,4 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
   Environment,
   IOrchestSession,
@@ -164,6 +165,19 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     document.body.addEventListener("mousemove", startTracking);
     return () => document.body.removeEventListener("mousemove", startTracking);
   }, [trackMouseMovement]);
+
+  // in read-only mode, PipelineEditor doesn't re-render after stepDomRefs collects all DOM elements of the steps
+  // we need to force re-render one more time to show the connection lines
+  const shouldForceRerender =
+    isReadOnly &&
+    eventVars.connections.length > 0 &&
+    Object.keys(stepDomRefs.current).length === 0;
+
+  const [, forceUpdate] = useForceUpdate();
+
+  React.useLayoutEffect(() => {
+    if (shouldForceRerender) forceUpdate();
+  }, [shouldForceRerender, forceUpdate]);
 
   return (
     <PipelineEditorContext.Provider
