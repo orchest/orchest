@@ -821,7 +821,7 @@ def _get_user_service_deployment_service_manifest(
 
     volume_mounts = []
     sbinds = service_config.get("binds", {})
-    volumes_dict, _ = _get_common_volumes_and_volume_mounts(
+    volumes_dict, volume_mounts_dict = _get_common_volumes_and_volume_mounts(
         host_userdir,
         host_project_dir,
         project_relative_pipeline_path,
@@ -877,7 +877,7 @@ def _get_user_service_deployment_service_manifest(
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "volumes": [
-                        volumes_dict["userdir-pvc"],
+                        volumes_dict["project-dir"],
                     ],
                     "containers": [
                         {
