@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  {{- include "library.metadata" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "library.labels.selector" . | nindent 8 }}
+  template:
+    metadata:
+      labels:
+        {{- include "library.labels.selector" . | nindent 8 }}
+    spec:
+      containers:
+      - name: node-agent
+        image: {{ .Values.images.name }}
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        command:
+        - python
+        - ./app/main.py
+        args:
+        - --image-puller-log-level=INFO
+        - --image-puller-interval=60
+        - --image-puller-policy=IfNotPresent
+        - --image-puller-retries=3
+        volumeMounts:
+        - name: dockersock
+          mountPath: "/var/run/docker.sock"
+      volumes:
+      - name: dockersock
+        hostPath:
+          path: /var/run/docker.sock

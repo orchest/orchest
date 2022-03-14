@@ -9,16 +9,16 @@ ORCHEST_API_TAG := ${if ${ORCHEST_API_TAG},${ORCHEST_API_TAG},${DEFAULT_TAG}}
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
 CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 
-# Orchest will install docker-registry by default, if it is not desired, 
+# Orchest will install docker-registry by default, if it is not desired,
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,./bin/docker-registry}
 
-# Orchest will install rook for managing ceph by default, if it is not desired, 
+# Orchest will install rook for managing ceph by default, if it is not desired,
 # define DISABLE_ROOK env variable and set it to something (preferably FALSE)
 ROOK_TARGET := ${if ${DISABLE_ROOK},,./bin/rook}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --namespace ${NAMESPACE} \
-	 --create-namespace --wait --atomic 
+	 --create-namespace --wait --atomic
 
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
@@ -65,6 +65,9 @@ RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 # update-sidecar service configs
 UPDATE_SIDECAR_ENABLE_CONFIG := --set update-sidecar.enabled=true
 
+# node-agent deployment configs
+NODE_AGENT_ENABLE_CONFIG := --set node-agent.enabled=true
+
 # Orchest deployment configs
 ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${AUTH_SERVER_ENABLE_CONFIG} \
@@ -73,6 +76,7 @@ ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
 						 ${ORCHEST_WEBSERVER_ENABLE_CONFIG} \
 						 ${POSTGRES_ENABLE_CONFIG} \
 						 ${RABBITMQ_ENABLE_CONFIG} \
+						 ${NODE_AGENT_ENABLE_CONFIG} \
 						 ${UPDATE_SIDECAR_ENABLE_CONFIG}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
@@ -83,7 +87,7 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	--set-string celery-worker.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string orchest-api.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
-	helm 
+	helm
 
 ROOK_DEPLOY_CONFIG := rook \
 	${SHARED_DEPLOY_CONFIG} thirdparty/rook/rook-ceph -f values-override.yaml .
@@ -97,15 +101,24 @@ ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 # Docker-registry deployment configs
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} \
-	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry	
+	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry
 
 .PHONY: orchest
 orchest: initialize
 	helm install ${ORCHEST_DEPLOY_CONFIG}
 
+# usefull for debugging, not recommended to use without DEBUG=true enabled
+.PHONY: node-agent
+node-agent:
+	helm install node-agent \
+	--namespace ${NAMESPACE} \
+	${SHARED_DEPLOY_CONFIG} \
+	${NODE_AGENT_ENABLE_CONFIG} helm
+
+
 .PHONY: jupyter-eg
 jupyter-eg: ./bin/jupyter-eg
-	
+
 .SECONDARY: ./bin/jupyter-eg
 ./bin/jupyter-eg: create-bin
 	helm install ${JUPYTER_EG_DEPLOY_CONFIG}
@@ -139,7 +152,7 @@ cert-manager : ./bin/cert-manager
 
 .PHONY: cluster-resources
 cluster-resources: ./bin/cluster-resources
-	
+
 .SECONDARY: ./bin/cluster-resources
 ./bin/cluster-resources: | create-bin cert-manager
 	helm install ${CLUSTER_RSC_DEPLOY_CONFIG}
@@ -153,7 +166,7 @@ create-bin:
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET} 
+./bin/initialize: create-bin | ./bin/argo-workflow ${REGISTRY_TARGET} ${ROOK_TARGET}
 	touch $@
 
 .PHONY: rook
@@ -162,12 +175,12 @@ rook:
 
 .PHONY: orchest-upgrade
 orchest-upgrade:
-	helm upgrade ${ORCHEST_DEPLOY_CONFIG} 
+	helm upgrade ${ORCHEST_DEPLOY_CONFIG}
 
 .PHONY: argo-upgrade
 argo-upgrade:
-	helm upgrade ${ARGO_WORKFLOW_DEPLOY_CONFIG} 
+	helm upgrade ${ARGO_WORKFLOW_DEPLOY_CONFIG}
 
 .PHONY: registry-upgrade
 registry-upgrade:
-	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG} 
+	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG}
