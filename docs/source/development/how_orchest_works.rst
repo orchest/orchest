@@ -288,7 +288,7 @@ Full JSON Schema:
               "command": {
                 "type": "string"
               },
-              "entrypoint": {
+              "args": {
                 "type": "string"
               },
               "scope": {

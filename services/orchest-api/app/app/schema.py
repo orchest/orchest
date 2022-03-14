@@ -90,7 +90,7 @@ service = Model(
             fields.String, required=True, description="interactive/noninteractive"
         ),
         "command": fields.String(required=False, description="Command"),
-        "entrypoint": fields.String(required=False, description="Entrypoint"),
+        "args": fields.String(required=False, description="Args"),
         "ports": fields.List(
             fields.String, required=False, description="List of service exposed ports"
         ),

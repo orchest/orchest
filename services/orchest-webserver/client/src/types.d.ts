@@ -281,10 +281,10 @@ export type Service = {
   image: string;
   name: string;
   scope: ("interactive" | "noninteractive")[];
-  entrypoint?: string;
+  args?: string;
   binds?: Record<string, string>;
   ports?: number[];
-  command: string;
+  command?: string;
   preserve_base_path?: boolean;
   env_variables?: Record<string, string>;
   env_variables_inherit?: any[];

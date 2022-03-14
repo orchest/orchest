@@ -902,17 +902,15 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    # K8S_TODO: GUI & data changes to go from entrypoint and command
-    # to command and args.
-    if "entrypoint" in service_config:
+    if "command" in service_config:
         deployment_manifest["spec"]["template"]["spec"]["containers"][0]["command"] = [
-            service_config["entrypoint"]
+            service_config["command"]
         ]
 
-    if "command" in service_config:
+    if "args" in service_config:
         deployment_manifest["spec"]["template"]["spec"]["containers"][0][
             "args"
-        ] = shlex.split(service_config["command"])
+        ] = shlex.split(service_config["args"])
 
     service_manifest = {
         "apiVersion": "v1",

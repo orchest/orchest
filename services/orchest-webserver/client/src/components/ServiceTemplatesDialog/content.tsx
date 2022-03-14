@@ -25,8 +25,8 @@ export const templates: ServiceTemplates = {
       binds: {
         "/data": "/data",
       },
-      entrypoint: "bash",
-      command: "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
+      command: "bash",
+      args: "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
       image: "tensorflow/tensorflow",
       name: "tensorboard",
       ports: [6006],
@@ -41,9 +41,9 @@ export const templates: ServiceTemplates = {
         "/data": "/data",
         "/project-dir": "/usr/src/app/src",
       },
-      command:
+      args:
         "-c 'umask 002 && touch /usr/src/app/src/streamlit.py && streamlit run src/streamlit.py'",
-      entrypoint: "bash",
+      command: "bash",
       env_variables: {
         STREAMLIT_SERVER_BASE_URL_PATH: "$BASE_PATH_PREFIX_8501",
       },
@@ -61,8 +61,8 @@ export const templates: ServiceTemplates = {
       binds: {
         "/project-dir": "/home/coder/code-server",
       },
-      entrypoint: "bash",
-      command:
+      command: "bash",
+      args:
         "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
       image: "codercom/code-server:latest",
       name: "vscode",
