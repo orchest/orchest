@@ -4,6 +4,7 @@ Note that pod labels are coupled with how we restart services, which
 is done by deleting all pods with the given labels.
 """
 import os
+import shlex
 import traceback
 from typing import Any, Dict, Tuple
 
@@ -909,9 +910,9 @@ def _get_user_service_deployment_service_manifest(
         ]
 
     if "command" in service_config:
-        deployment_manifest["spec"]["template"]["spec"]["containers"][0]["args"] = [
-            service_config["command"]
-        ]
+        deployment_manifest["spec"]["template"]["spec"]["containers"][0][
+            "args"
+        ] = shlex.split(service_config["command"])
 
     service_manifest = {
         "apiVersion": "v1",
