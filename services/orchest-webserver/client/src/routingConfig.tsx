@@ -37,6 +37,7 @@ type RouteName =
   | "jobRun"
   | "jobRunPipelineSettings"
   | "jobRunLogs"
+  | "jobRunFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -172,6 +173,13 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
       root: "/jobs",
       title: getTitle("Job Run Logs"),
       component: LogsView,
+    },
+    {
+      name: "jobRunFilePreview",
+      path: "/job-run/file-preview",
+      root: "/jobs",
+      title: getTitle("Job Run Step File Preview"),
+      component: FilePreviewView,
     },
     {
       name: "editJob",

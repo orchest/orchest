@@ -272,7 +272,7 @@ export const PipelineEditor: React.FC = () => {
   const onOpenFilePreviewView = React.useCallback(
     (e: React.MouseEvent, stepUuid: string) => {
       navigateTo(
-        siteMap.filePreview.path,
+        isJobRun ? siteMap.jobRunFilePreview.path : siteMap.filePreview.path,
         {
           query: {
             projectUuid,
