@@ -14,7 +14,7 @@ spec:
       containers:
       - name: node-agent
         image: {{ .Values.images.name }}
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         command:
         - python
         - ./app/main.py
