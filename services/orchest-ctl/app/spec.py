@@ -263,16 +263,6 @@ def get_reg_container_config(port: int, env: Optional[dict] = None) -> dict:
             },
             "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
         },
-        "file-manager": {
-            "Image": "orchest/file-manager:latest",
-            "HostConfig": {
-                "GroupAdd": [f'{env["ORCHEST_HOST_GID"]}'],
-                "Binds": [
-                    f'{env["HOST_USER_DIR"]}:/userdir',
-                ],
-            },
-            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
-        },
         "nginx-proxy": {
             "Image": "orchest/nginx-proxy:latest",
             "ExposedPorts": {"80/tcp": {}},
@@ -424,16 +414,6 @@ def update_container_config_with_dev(
                     + ":/orchest/services/auth-server/client",
                     # Internal library.
                     os.path.join(env["HOST_REPO_DIR"], "lib") + ":/orchest/lib",
-                ],
-            },
-        },
-        "file-manager": {
-            "HostConfig": {
-                "Binds": [
-                    os.path.join(
-                        env["HOST_REPO_DIR"], "services", "file-manager", "static"
-                    )
-                    + ":/custom-static",
                 ],
             },
         },

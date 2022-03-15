@@ -1,8 +1,0 @@
-{
-    "port": 80,
-    "baseURL": "/container-file-manager",
-    "address": "0.0.0.0",
-    "log": "stdout",
-    "database": "/database.db",
-    "root": "/userdir"
-}

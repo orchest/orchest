@@ -3,7 +3,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { toValidFilename } from "@/utils/toValidFilename";
 import DeviceHubIcon from "@mui/icons-material/DeviceHub";
-import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -45,11 +44,6 @@ const rootMenuItems: ItemData[] = [
     label: "Projects",
     icon: <FormatListBulletedIcon />,
     path: siteMap.projects.path,
-  },
-  {
-    label: "File manager",
-    icon: <FolderOpenIcon />,
-    path: siteMap.fileManager.path,
   },
   {
     label: "Settings",

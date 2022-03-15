@@ -22,7 +22,6 @@ health_check_command = {
         "wget localhost/login/server-config -T 2 -t 2 --spider"
     ),
     "orchest/celery-worker:latest": "celery -A app.core.tasks inspect ping",
-    "orchest/file-manager:latest": "wget localhost -T 2 -t 2 --spider",
     "postgres:13.1": "pg_isready --username postgres",
     "rabbitmq:3": (
         'su rabbitmq -c "/opt/rabbitmq/sbin/rabbitmq-diagnostics '

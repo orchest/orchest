@@ -8,7 +8,6 @@ export const ROOT_SEPARATOR = ":";
 export type TreeNode = {
   children: TreeNode[];
   path: string;
-  // TODO: check these
   type: "directory" | "file";
   name: string;
 };

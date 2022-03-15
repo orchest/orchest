@@ -61,7 +61,6 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "memory-server"
         "session-sidecar"
         "auth-server"
-        "file-manager"
     )
 fi
 
@@ -323,17 +322,6 @@ do
             -t "orchest/update-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-    if [ $IMG == "file-manager" ]; then
-
-        build_ctx=$DIR/../services/file-manager
-        build=(docker build --progress=plain \
-            -t "orchest/file-manager:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/file-manager/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi

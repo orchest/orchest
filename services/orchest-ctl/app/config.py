@@ -13,7 +13,6 @@ _minimal_orchest_images: List[str] = [
     "orchest/orchest-webserver:latest",
     "orchest/celery-worker:latest",
     "orchest/auth-server:latest",
-    "orchest/file-manager:latest",
     "orchest/nginx-proxy:latest",
     "rabbitmq:3",
     "postgres:13.1",
@@ -30,7 +29,6 @@ _on_start_images: List[Set[str]] = [
     set(
         [
             "postgres:13.1",
-            "orchest/file-manager:latest",
             "rabbitmq:3",
         ]
     ),
