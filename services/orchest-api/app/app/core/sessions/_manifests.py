@@ -345,6 +345,9 @@ def _get_session_sidecar_deployment_manifest(
                         volumes_dict["project-dir"],
                         volumes_dict["pipeline-file"],
                     ],
+                    # Using signal to handle sigterm doesn't work well
+                    # with threads.
+                    "terminationGracePeriodSeconds": 1,
                     "containers": [
                         {
                             "name": metadata["name"],
