@@ -166,20 +166,6 @@ def register_orchest_api_views(app, db):
 
         return resp.content, resp.status_code, resp.headers.items()
 
-    @app.route(
-        "/catch/api-proxy/api/environment-images/base-images-cache",
-        methods=["DELETE"],
-    )
-    def catch_api_environment_images_delete_base_images_cache():
-
-        resp = requests.delete(
-            "http://"
-            + app.config["ORCHEST_API_ADDRESS"]
-            + "/api/environment-images/base-images-cache"
-        )
-
-        return resp.content, resp.status_code, resp.headers.items()
-
     @app.route("/catch/api-proxy/api/jupyter-builds", methods=["POST"])
     def catch_api_proxy_jupyter_image_builds_post():
         resp = requests.post(

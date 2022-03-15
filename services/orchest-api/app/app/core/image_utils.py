@@ -3,12 +3,10 @@ import re
 import time
 from pathlib import Path
 
-from flask import current_app
 from kubernetes import watch
 
 from _orchest.internals import config as _config
 from app import errors, utils
-from app.celery_app import make_celery
 from app.connections import k8s_core_api, k8s_custom_obj_api
 from config import CONFIG_CLASS
 
@@ -537,16 +535,3 @@ def build_image(
             return "FAILURE"
 
         return "SUCCESS"
-
-
-def delete_base_images_cache() -> None:
-    """Deletes the base images cache through an async celery task.
-
-    The reason for this to be done through a celery-task is that the
-    orchest-api doesn't touch the filesystem as a constraint, moreover,
-    it provides race condition guarantees w.r.t. env/jupyter builds by
-    the fact that the task is put in the "builds" queue, and that the
-    concurrency level for builds is 1.
-    """
-    celery = make_celery(current_app)
-    celery.send_task("app.core.tasks.delete_base_images_cache")
