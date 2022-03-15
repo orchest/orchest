@@ -552,7 +552,6 @@ export const FileTree = ({
         selected={selected}
         onNodeSelect={handleSelect}
         onNodeToggle={handleToggle}
-        // onNodeFocus={(e, nodeId) => handleSelect(e, [nodeId])}
         multiSelect
       >
         {treeRoots.map((root) => {

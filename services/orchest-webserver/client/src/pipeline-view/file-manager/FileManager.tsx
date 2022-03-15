@@ -9,7 +9,7 @@ import LinearProgress, {
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
-import { fetcher, HEADER } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { useDropzone } from "react-dropzone";
 import { ActionBar } from "./ActionBar";
@@ -234,12 +234,9 @@ export function FileManager({
               path,
               root,
             })}`,
-            {
-              method: "POST",
-              headers: HEADER.FORM,
-              body: formData,
-            }
+            { method: "POST", body: formData }
           );
+
           progressHolder.progress += 1;
           let progressPercentage =
             (progressHolder.progress / progressTotal) * 100;
