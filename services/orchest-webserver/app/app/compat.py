@@ -92,11 +92,13 @@ _version_to_migration_function = {
 }
 
 # Make sure no forward version is repeated.
-__to_versions = [item[1] for item in _version_to_migration_function.items()]
+__to_versions = set([item[1] for item in _version_to_migration_function.items()])
 assert len(_version_to_migration_function) == len(__to_versions)
 # Make sure no migration function is repeated.
-__migration_functions = [item[0] for item in _version_to_migration_function.items()]
-assert len(__migration_functions) == len(__to_versions)
+__migration_functions = set(
+    [item[0] for item in _version_to_migration_function.items()]
+)
+assert len(_version_to_migration_function) == len(__migration_functions)
 
 
 def migrate_pipeline(pipeline: dict):
