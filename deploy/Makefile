@@ -7,10 +7,10 @@ ROOK_NFS_NAMESPACE := ${if ${ROOK_NFS_NAMESPACE},${ROOK_NFS_NAMESPACE},rook-nfs}
 
 ORCHEST_DEFAULT_TAG := ${if ${ORCHEST_DEFAULT_TAG},${ORCHEST_DEFAULT_TAG},latest}
 
-# If DEPEND_RESOURCES is set to FALSE, the orchest target is not dependent 
+# If DEPEND_RESOURCES is set to FALSE, the orchest target is not dependent
 # to orchest-resources target, thus orchest-resources must have been deployed already
 ifeq (${DEPEND_RESOURCES},FALSE)
-  ORCHEST_RESOURCES_TARGET := 
+  ORCHEST_RESOURCES_TARGET :=
 else
   ORCHEST_RESOURCES_TARGET := orchest-resources
 endif
@@ -187,7 +187,9 @@ RABBITMQ_TAG_CONFIG := ${if ${RABBITMQ_TAG},--set rabbitmq.images.tag=${RABBITMQ
 RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 RABBITMQ_CONFIG := ${RABBITMQ_TAG_CONFIG} \
 				   ${RABBITMQ_ENABLE_CONFIG}
-						 
+
+
+ORCHEST_FQND_CONFIG := ${if ${ORCHEST_FQND}, --set global.ingress.host=${ORCHEST_FQND},}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} \
@@ -200,6 +202,7 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	${NODE_AGENT_CONFIG} \
 	${POSTGRES_CONFIG} \
 	${RABBITMQ_CONFIG} \
+	${ORCHEST_FQND_CONFIG} \
 	--namespace ${NAMESPACE} \
 	--set-string auth-server.CLOUD="${CLOUD}" \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
@@ -307,7 +310,7 @@ nfs-resources: ./bin/nfs-resources
 .SECONDARY: ./bin/nfs-resources
 ./bin/nfs-resources: | create-bin rook-nfs
 	helm install ${NFS_RSC_DEPLOY_CONFIG}
-	touch $@	
+	touch $@
 
 .PHONY: orchest-resources
 orchest-resources: ./bin/orchest-resources
