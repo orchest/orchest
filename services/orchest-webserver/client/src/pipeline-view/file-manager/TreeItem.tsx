@@ -22,6 +22,8 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
   },
 }));
 
+const DRAG_THRESHOLD = 5;
+
 export function TreeItem({
   fileName,
   path,
@@ -43,8 +45,6 @@ export function TreeItem({
   ) : (
     getIcon(fileName)
   );
-
-  const DRAG_THRESHOLD = 5;
 
   const [pressed, setPressed] = React.useState(false);
   const [triggeredDragging, setTriggedDragging] = React.useState(false);
@@ -75,27 +75,23 @@ export function TreeItem({
           }
         }
       }}
-      onMouseUp={() => {
-        cancelMove();
-      }}
-      onMouseLeave={() => {
-        cancelMove();
-      }}
+      onMouseUp={cancelMove}
+      onMouseLeave={cancelMove}
       onContextMenu={onContextMenu}
       label={
         <Box sx={{ fontSize: (theme) => theme.typography.body2.fontSize }}>
           {fileName && (
-            <div
-              style={{
+            <Box
+              sx={{
                 position: "absolute",
                 overflow: "hidden",
-                height: "20px",
-                left: "-22px",
-                top: "0px",
+                height: (theme) => theme.spacing(2.5),
+                left: (theme) => theme.spacing(-2.75),
+                top: 0,
               }}
             >
               <SVGFileIcon icon={icon} />
-            </div>
+            </Box>
           )}
           {labelText}
         </Box>

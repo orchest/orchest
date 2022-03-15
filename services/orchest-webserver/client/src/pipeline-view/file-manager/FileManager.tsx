@@ -523,6 +523,7 @@ export function FileManager({
       <ActionBar
         baseUrl={fileManagerBaseUrl}
         setExpanded={setExpanded}
+        setSelected={setSelected}
         reload={reload}
         uploadFiles={uploadFiles}
         rootFolder={root}

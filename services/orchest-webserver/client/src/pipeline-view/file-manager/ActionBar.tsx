@@ -11,8 +11,8 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { CreateFileDialog } from "../CreateFileDialog";
 import { queryArgs } from "./common";
+import { CreateFileDialog } from "./CreateFileDialog";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
   svg: {
@@ -28,12 +28,14 @@ export function ActionBar({
   reload,
   rootFolder,
   setExpanded,
+  setSelected,
 }: {
   baseUrl: string;
   rootFolder: string;
   uploadFiles: (files: File[] | FileList) => void;
   reload: () => void;
   setExpanded: (items: string[]) => void;
+  setSelected: (items: string[]) => void;
 }) {
   const { projectUuid } = useCustomRoute();
 
@@ -80,7 +82,11 @@ export function ActionBar({
       <CreateFileDialog
         isOpen={isCreateFileDialogOpen}
         onClose={closeCreateFileDialog}
-        onSuccess={reload}
+        onSuccess={(fullFilePath: string) => {
+          console.log("DEV fullFilePath: ", fullFilePath);
+          setSelected([fullFilePath]);
+          reload();
+        }}
         projectUuid={projectUuid}
       />
       <Stack

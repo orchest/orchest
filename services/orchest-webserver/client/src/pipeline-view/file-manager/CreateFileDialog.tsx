@@ -22,6 +22,11 @@ import {
   HEADER,
 } from "@orchest/lib-utils";
 import React from "react";
+import {
+  PROJECT_DIR_PATH,
+  removeLeadingSymbols,
+  ROOT_SEPARATOR,
+} from "./common";
 
 const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map((el, index) => {
   return (
@@ -49,7 +54,7 @@ export const CreateFileDialog = ({
   isOpen: boolean;
   folderPath?: string;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (filePath: string) => void;
   projectUuid: string;
   initialFileName?: string;
 }) => {
@@ -70,7 +75,7 @@ export const CreateFileDialog = ({
     keyof typeof KernelLanguage
   >("python");
 
-  const fullProjectPath = `${folderPath}${fileName}${fileExtension}`;
+  const fullFilePath = `${folderPath}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<
     void,
@@ -80,7 +85,7 @@ export const CreateFileDialog = ({
   const onSubmitModal = async () => {
     if (isCreating) return;
     // validate extensions
-    let extension = extensionFromFilename(fullProjectPath);
+    let extension = extensionFromFilename(fullFilePath);
 
     if (!ALLOWED_STEP_EXTENSIONS.includes(extension)) {
       setAlert(
@@ -99,12 +104,15 @@ export const CreateFileDialog = ({
         method: "POST",
         headers: HEADER.JSON,
         body: JSON.stringify({
-          file_path: fullProjectPath,
-          kernel_name: kernelLanguage,
+          file_path: fullFilePath,
+          kernel_name: kernelLanguage, // BE will ignore this if the file is NOT .ipynb
         }),
+      }).then(() => {
+        const unifiedFilePath = removeLeadingSymbols(fullFilePath); // remove the leading "./" if any
+        const finalFilePath = `${PROJECT_DIR_PATH}${ROOT_SEPARATOR}/${unifiedFilePath}`;
+        onSuccess(finalFilePath);
       })
     );
-    onSuccess();
     onClose();
   };
 
@@ -225,7 +233,7 @@ export const CreateFileDialog = ({
               <Grid item xs={12}>
                 <TextField
                   label="Path in project"
-                  value={fullProjectPath}
+                  value={fullFilePath}
                   fullWidth
                   margin="normal"
                   disabled

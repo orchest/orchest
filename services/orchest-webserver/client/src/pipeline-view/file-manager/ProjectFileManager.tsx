@@ -11,14 +11,8 @@ import React from "react";
 import { getScaleCorrectedPosition } from "../common";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
+import { cleanFilePath, getStepFilePath } from "./common";
 import { FileManager } from "./FileManager";
-
-const cleanFilePath = (filePath: string) =>
-  filePath.replace(/^\/project-dir\:\//, "");
-
-// user might enter "./foo.ipynb", but it's equivalent to "foo.ipynb".
-// this function cleans up the leading "./"
-const getStepFilePath = (step: Step) => step.file_path.replace(/^\.\//, "");
 
 const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);
 

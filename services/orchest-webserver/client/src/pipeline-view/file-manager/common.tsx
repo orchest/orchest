@@ -1,3 +1,5 @@
+import { Step } from "@/types";
+
 export const FILE_MANAGER_ENDPOINT = "/async/file-manager";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
 export const PROJECT_DIR_PATH = "/project-dir";
@@ -278,3 +280,19 @@ export const searchTrees = ({
     return {};
   }
 };
+
+export const cleanFilePath = (filePath: string) =>
+  filePath.replace(/^\/project-dir\:\//, "");
+
+/**
+ * remove leading "./" of a file path
+ * @param filePath string
+ * @returns string
+ */
+export const removeLeadingSymbols = (filePath: string) =>
+  filePath.replace(/^\.\//, "");
+
+// user might enter "./foo.ipynb", but it's equivalent to "foo.ipynb".
+// this function cleans up the leading "./"
+export const getStepFilePath = (step: Step) =>
+  removeLeadingSymbols(step.file_path);

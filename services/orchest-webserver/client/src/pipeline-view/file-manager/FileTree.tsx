@@ -4,6 +4,7 @@ import TreeView from "@mui/lab/TreeView";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
+import produce from "immer";
 import React from "react";
 import {
   baseNameFromPath,
@@ -109,93 +110,103 @@ const TreeRow = ({
   fileRenameNewName: string;
   setFileRenameNewName: (value: string) => void;
 }) => {
+  const { directories, files } = React.useMemo(
+    () =>
+      treeNodes.reduce(
+        (all, node) => {
+          return produce(all, (draft) => {
+            if (node.type === "directory") draft.directories.push(node);
+            if (node.type === "file") draft.files.push(node);
+          });
+        },
+        { directories: [], files: [] }
+      ),
+    [treeNodes]
+  );
+
   return (
     <>
-      {treeNodes
-        .filter((e) => e.type === "directory")
-        .map((e) => {
-          const combinedPath = createCombinedPath(root, e.path);
+      {directories.map((e) => {
+        const combinedPath = createCombinedPath(root, e.path);
 
-          return (
-            <div style={{ position: "relative" }} key={combinedPath}>
-              {fileInRename === combinedPath && (
-                <RenameField
-                  fileInRename={fileInRename}
-                  setFileInRename={setFileInRename}
-                  handleRename={handleRename}
-                  fileRenameNewName={fileRenameNewName}
-                  setFileRenameNewName={setFileRenameNewName}
-                  combinedPath={combinedPath}
-                />
-              )}
-
-              <TreeItem
-                onContextMenu={(e) => handleContextMenu(e, combinedPath)}
-                setIsDragging={setIsDragging}
-                setDragItem={setDragItem}
-                style={{
-                  cursor: "context-menu",
-                  backgroundColor:
-                    hoveredPath === combinedPath
-                      ? "rgba(0, 0, 0, 0.04)"
-                      : undefined,
-                }}
-                key={combinedPath}
-                nodeId={combinedPath}
-                data-path={combinedPath}
-                path={combinedPath}
-                labelText={e.name}
-              >
-                <TreeRow
-                  handleContextMenu={handleContextMenu}
-                  treeNodes={e.children}
-                  setIsDragging={setIsDragging}
-                  setDragItem={setDragItem}
-                  root={root}
-                  hoveredPath={hoveredPath}
-                  onOpen={onOpen}
-                  fileInRename={fileInRename}
-                  setFileInRename={setFileInRename}
-                  fileRenameNewName={fileRenameNewName}
-                  setFileRenameNewName={setFileRenameNewName}
-                  handleRename={handleRename}
-                />
-              </TreeItem>
-            </div>
-          );
-        })}
-      {treeNodes
-        .filter((e) => e.type === "file")
-        .map((e) => {
-          const combinedPath = createCombinedPath(root, e.path);
-          return (
-            <div style={{ position: "relative" }} key={combinedPath}>
-              {fileInRename === combinedPath && (
-                <RenameField
-                  fileInRename={fileInRename}
-                  setFileInRename={setFileInRename}
-                  handleRename={handleRename}
-                  fileRenameNewName={fileRenameNewName}
-                  setFileRenameNewName={setFileRenameNewName}
-                  combinedPath={combinedPath}
-                />
-              )}
-              <TreeItem
-                onContextMenu={(e) => handleContextMenu(e, combinedPath)}
-                setIsDragging={setIsDragging}
-                setDragItem={setDragItem}
-                style={{ cursor: "context-menu" }}
-                key={combinedPath}
-                nodeId={combinedPath}
-                data-path={combinedPath}
-                path={combinedPath}
-                labelText={e.name}
-                fileName={e.name}
-                onDoubleClick={onOpen.bind(undefined, combinedPath)}
+        return (
+          <Box sx={{ position: "relative" }} key={combinedPath}>
+            {fileInRename === combinedPath && (
+              <RenameField
+                fileInRename={fileInRename}
+                setFileInRename={setFileInRename}
+                handleRename={handleRename}
+                fileRenameNewName={fileRenameNewName}
+                setFileRenameNewName={setFileRenameNewName}
+                combinedPath={combinedPath}
               />
-            </div>
-          );
-        })}
+            )}
+
+            <TreeItem
+              onContextMenu={(e) => handleContextMenu(e, combinedPath)}
+              setIsDragging={setIsDragging}
+              setDragItem={setDragItem}
+              style={{
+                cursor: "context-menu",
+                backgroundColor:
+                  hoveredPath === combinedPath
+                    ? "rgba(0, 0, 0, 0.04)"
+                    : undefined,
+              }}
+              key={combinedPath}
+              nodeId={combinedPath}
+              data-path={combinedPath}
+              path={combinedPath}
+              labelText={e.name}
+            >
+              <TreeRow
+                handleContextMenu={handleContextMenu}
+                treeNodes={e.children}
+                setIsDragging={setIsDragging}
+                setDragItem={setDragItem}
+                root={root}
+                hoveredPath={hoveredPath}
+                onOpen={onOpen}
+                fileInRename={fileInRename}
+                setFileInRename={setFileInRename}
+                fileRenameNewName={fileRenameNewName}
+                setFileRenameNewName={setFileRenameNewName}
+                handleRename={handleRename}
+              />
+            </TreeItem>
+          </Box>
+        );
+      })}
+      {files.map((e) => {
+        const combinedPath = createCombinedPath(root, e.path);
+        return (
+          <div style={{ position: "relative" }} key={combinedPath}>
+            {fileInRename === combinedPath && (
+              <RenameField
+                fileInRename={fileInRename}
+                setFileInRename={setFileInRename}
+                handleRename={handleRename}
+                fileRenameNewName={fileRenameNewName}
+                setFileRenameNewName={setFileRenameNewName}
+                combinedPath={combinedPath}
+              />
+            )}
+            <TreeItem
+              onContextMenu={(e) => handleContextMenu(e, combinedPath)}
+              setIsDragging={setIsDragging}
+              setDragItem={setDragItem}
+              style={{ cursor: "context-menu" }}
+              key={combinedPath}
+              nodeId={combinedPath}
+              data-path={combinedPath}
+              path={combinedPath}
+              labelText={e.name}
+              fileName={e.name}
+              onDoubleClick={onOpen.bind(undefined, combinedPath)}
+            />
+          </div>
+        );
+      })}
     </>
   );
 };
@@ -464,7 +475,7 @@ export const FileTree = ({
       }}
     >
       {isDragging && (
-        <div
+        <Box
           style={{
             position: "fixed",
             top: 0,
@@ -486,7 +497,7 @@ export const FileTree = ({
                 : selected.length
               : dragItem.labelText}
           </Box>
-        </div>
+        </Box>
       )}
       <TreeView
         aria-label="file system navigator"
@@ -499,7 +510,7 @@ export const FileTree = ({
         multiSelect
       >
         {treeRoots.map((root) => {
-          let combinedPath = root + ROOT_SEPARATOR + "/";
+          let combinedPath = `${root}${ROOT_SEPARATOR}/`;
           return (
             <TreeItem
               fileName={""}
@@ -517,6 +528,7 @@ export const FileTree = ({
                   hoveredPath === combinedPath
                     ? "rgba(0, 0, 0, 0.04)"
                     : undefined,
+                border: "2px dotted red",
               }}
               data-path={combinedPath}
               labelText={root === PROJECT_DIR_PATH ? "Project files" : root}
