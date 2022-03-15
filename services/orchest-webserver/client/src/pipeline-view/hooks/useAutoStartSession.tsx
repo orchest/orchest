@@ -23,35 +23,34 @@ export const useAutoStartSession = ({
 
   const [shouldAutoStart, setShouldAutoStart] = React.useState(false);
 
-  const hasNoSession = !sessionsIsLoading && !session;
   const toggleSessionPayload = React.useMemo(() => {
     return { pipelineUuid, projectUuid };
   }, [pipelineUuid, projectUuid]);
 
-  // check if auto-start should be enabled when mounted
-  // auto-start should only happen one time, since mounted
-  // because if user manually kill the session, auto-start shouldn't be triggered
+  const hasFired = React.useRef(false);
   React.useEffect(() => {
-    if (hasNoSession) setShouldAutoStart(true);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    // session already alive from beginning
+    if (!sessionsIsLoading && session) {
+      hasFired.current = true;
+    }
+
+    if (
+      !hasFired.current &&
+      isReadOnly !== true &&
+      !sessionsIsLoading &&
+      !session
+    ) {
+      hasFired.current = true;
+      setShouldAutoStart(true);
+    }
+  }, [sessionsIsLoading, session, isReadOnly, setShouldAutoStart, hasFired]);
 
   React.useEffect(() => {
-    if (
-      toggleSessionPayload &&
-      isReadOnly !== true &&
-      hasNoSession &&
-      shouldAutoStart
-    ) {
+    if (toggleSessionPayload && shouldAutoStart) {
       setShouldAutoStart(false);
       toggleSession(toggleSessionPayload);
     }
-  }, [
-    hasNoSession,
-    isReadOnly,
-    toggleSessionPayload,
-    toggleSession,
-    shouldAutoStart,
-  ]);
+  }, [toggleSessionPayload, toggleSession, shouldAutoStart]);
 
   /**
    * ! session related global side effect
