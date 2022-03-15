@@ -252,8 +252,6 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
     pod = _get_ongoing_status_changing_pod()
     if pod is None:
         return None
-    if pod.metadata.labels["app"] == "update-server":
-        return config.OrchestStatus.UPDATING
     else:
         cmd = pod.metadata.labels["command"]
         return config.ORCHEST_OPERATION_TO_STATUS_MAPPING[cmd]

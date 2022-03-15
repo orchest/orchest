@@ -179,7 +179,6 @@ def _get_memory_server_deployment_manifest(
                         {
                             "name": "memory-server",
                             "image": "orchest/memory-server:latest",
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
                                 {
@@ -352,7 +351,6 @@ def _get_session_sidecar_deployment_manifest(
                         {
                             "name": metadata["name"],
                             "image": "orchest/session-sidecar:latest",
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
                                 {
@@ -440,7 +438,6 @@ def _get_jupyter_server_deployment_service_manifest(
                         {
                             "name": metadata["name"],
                             "image": utils.get_jupyter_server_image_to_use(),
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
@@ -449,8 +446,6 @@ def _get_jupyter_server_deployment_service_manifest(
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
                             ],
-                            # K8S_TODO: will require changes based on
-                            # how ingress is implemented.
                             "args": [
                                 "--allow-root",
                                 "--port=8888",
@@ -479,8 +474,6 @@ def _get_jupyter_server_deployment_service_manifest(
         },
     }
 
-    # K8S_TODO: will require changes based on
-    # how ingress is implemented.
     service_manifest = {
         "apiVersion": "v1",
         "kind": "Service",
@@ -730,7 +723,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                         {
                             "name": metadata["name"],
                             "image": "orchest/jupyter-enterprise-gateway",
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": environment,
                             "volumeMounts": [
@@ -744,8 +736,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         },
     }
 
-    # K8S_TODO: will require changes based on how ingress is
-    # implemented.
     service_manifest = {
         "apiVersion": "v1",
         "kind": "Service",
@@ -891,7 +881,6 @@ def _get_user_service_deployment_service_manifest(
                         {
                             "name": metadata["name"],
                             "image": image,
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": env,
                             "volumeMounts": volume_mounts,

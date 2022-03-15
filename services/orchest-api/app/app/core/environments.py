@@ -8,27 +8,7 @@ from app import errors as self_errors
 from app.connections import db
 
 
-def get_environment_image_id(name_or_id: str):
-    # K8S_TODO: fix this, needs registry.
-    return None
-
-
-def get_env_uuids_missing_image(project_uuid: str, env_uuids: str) -> List[str]:
-    env_uuid_to_image = {
-        env_uuid: get_environment_image_id(
-            _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=env_uuid
-            )
-        )
-        for env_uuid in env_uuids
-    }
-    envs_missing_image = [
-        env_uuid for env_uuid, image_id in env_uuid_to_image.items() if image_id is None
-    ]
-    return envs_missing_image
-
-
-def _get_env_uuids_to_image_mappings(
+def get_env_uuids_to_image_mappings(
     project_uuid: str, env_uuids: Set[str]
 ) -> Dict[str, models.EnvironmentImage]:
     """Map each environment uuid to its latest image entry.
@@ -64,8 +44,13 @@ def _get_env_uuids_to_image_mappings(
         env_uuid for env_uuid, image in env_uuid_to_image.items() if image is None
     ]
     if len(envs_missing_image) > 0:
-        # Reference for later K8S_TODO.
-        raise self_errors.ImageNotFound(", ".join(envs_missing_image))
+        msg = (
+            "Some referenced environments do not exist in the project. The"
+            f"following environments do not exist: {envs_missing_image}.\n\n"
+            "Please make sure all pipeline steps and services are assigned an"
+            "environment that exists in the project."
+        )
+        raise self_errors.ImageNotFound(msg)
 
     return env_uuid_to_image
 
@@ -82,9 +67,7 @@ def lock_environment_images_for_run(
 ) -> Dict[str, str]:
 
     _lock_environments(project_uuid, environment_uuids)
-    env_uuid_to_image = _get_env_uuids_to_image_mappings(
-        project_uuid, environment_uuids
-    )
+    env_uuid_to_image = get_env_uuids_to_image_mappings(project_uuid, environment_uuids)
 
     env_uuid_to_image_name = {}
     run_image_mappings = []
@@ -113,9 +96,7 @@ def lock_environment_images_for_interactive_session(
 ) -> Dict[str, str]:
     """For user services using environment images as a base image."""
     _lock_environments(project_uuid, environment_uuids)
-    env_uuid_to_image = _get_env_uuids_to_image_mappings(
-        project_uuid, environment_uuids
-    )
+    env_uuid_to_image = get_env_uuids_to_image_mappings(project_uuid, environment_uuids)
 
     env_uuid_to_image_name = {}
     run_image_mappings = []
@@ -143,9 +124,7 @@ def lock_environment_images_for_job(
     job_uuid: str, project_uuid: str, environment_uuids: Set[str]
 ) -> Dict[str, str]:
     _lock_environments(project_uuid, environment_uuids)
-    env_uuid_to_image = _get_env_uuids_to_image_mappings(
-        project_uuid, environment_uuids
-    )
+    env_uuid_to_image = get_env_uuids_to_image_mappings(project_uuid, environment_uuids)
 
     env_uuid_to_image_name = {}
     run_image_mappings = []
