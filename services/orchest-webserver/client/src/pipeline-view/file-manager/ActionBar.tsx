@@ -83,7 +83,6 @@ export function ActionBar({
         isOpen={isCreateFileDialogOpen}
         onClose={closeCreateFileDialog}
         onSuccess={(fullFilePath: string) => {
-          console.log("DEV fullFilePath: ", fullFilePath);
           setSelected([fullFilePath]);
           reload();
         }}

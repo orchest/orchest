@@ -1,5 +1,6 @@
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
+import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import React from "react";
@@ -22,11 +23,11 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
   },
 }));
 
-const DRAG_THRESHOLD = 5;
+const DRAG_THRESHOLD = 3;
 
-export function TreeItem({
-  fileName,
-  path,
+export const TreeItem = ({
+  fileName = "",
+  path = "",
   labelText,
   setIsDragging,
   setDragItem,
@@ -34,12 +35,12 @@ export function TreeItem({
   ...other
 }: TreeItemProps & {
   fileName?: string;
+  path?: string;
   labelText: string;
-  setIsDragging: (value: boolean) => void;
-  setDragItem: (dragItemData: { labelText: string; path: string }) => void;
-  path: string;
-  style: React.CSSProperties;
-}) {
+  setIsDragging?: (value: boolean) => void;
+  setDragItem?: (dragItemData: { labelText: string; path: string }) => void;
+  sx: SxProps<Theme>;
+}) => {
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
     <OrchestFileIcon size={22} />
   ) : (
@@ -56,21 +57,23 @@ export function TreeItem({
     cumulativeDrag.current.drag = 0;
   };
 
+  const isDraggable = hasValue(setIsDragging) && hasValue(setDragItem);
+
   return (
     <StyledTreeItemRoot
       onMouseDown={() => {
-        setPressed(true);
+        if (isDraggable) setPressed(true);
       }}
       onMouseMove={(e) => {
-        if (pressed && !triggeredDragging) {
+        if (isDraggable && pressed && !triggeredDragging) {
           const normalizedDeltaX = e.movementX / window.devicePixelRatio;
           const normalizedDeltaY = e.movementY / window.devicePixelRatio;
           cumulativeDrag.current.drag +=
             Math.abs(normalizedDeltaX) + Math.abs(normalizedDeltaY);
 
           if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
-            setIsDragging(true);
-            setDragItem({ labelText, path });
+            if (setIsDragging) setIsDragging(true);
+            if (setDragItem) setDragItem({ labelText, path });
             setTriggedDragging(true);
           }
         }
@@ -99,4 +102,4 @@ export function TreeItem({
       {...other}
     />
   );
-}
+};

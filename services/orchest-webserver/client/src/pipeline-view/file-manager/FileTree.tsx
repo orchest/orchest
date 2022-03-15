@@ -1,18 +1,23 @@
+import { Code } from "@/components/common/Code";
+import { useAppContext } from "@/contexts/AppContext";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
 import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import produce from "immer";
 import React from "react";
 import {
   baseNameFromPath,
+  cleanFilePath,
   createCombinedPath,
   deduceRenameFromDragOperation,
   deriveParentPath,
   FILE_MANAGER_ROOT_CLASS,
   generateTargetDescription,
+  isNotebookFile,
   PROJECT_DIR_PATH,
   ROOT_SEPARATOR,
   TreeNode,
@@ -146,7 +151,7 @@ const TreeRow = ({
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               setIsDragging={setIsDragging}
               setDragItem={setDragItem}
-              style={{
+              sx={{
                 cursor: "context-menu",
                 backgroundColor:
                   hoveredPath === combinedPath
@@ -195,7 +200,7 @@ const TreeRow = ({
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               setIsDragging={setIsDragging}
               setDragItem={setDragItem}
-              style={{ cursor: "context-menu" }}
+              sx={{ cursor: "context-menu" }}
               key={combinedPath}
               nodeId={combinedPath}
               data-path={combinedPath}
@@ -230,6 +235,7 @@ export const FileTree = ({
   handleSelect,
   handleContextMenu,
   handleRename,
+  reload,
   isDragging,
   setIsDragging,
   onDropOutside,
@@ -252,7 +258,8 @@ export const FileTree = ({
     nodeIds: string[]
   ) => void;
   handleContextMenu: (e: React.MouseEvent, path: string) => void;
-  handleRename: (sourcePath: string, newPath: string) => void;
+  handleRename: (sourcePath: string, newPath: string) => Promise<void>;
+  reload: () => void;
   isDragging: boolean;
   setIsDragging: (value: boolean) => void;
   onDropOutside: (target: EventTarget, selection: string[]) => void;
@@ -264,6 +271,8 @@ export const FileTree = ({
 }) => {
   const INIT_OFFSET_X = 10;
   const INIT_OFFSET_Y = 10;
+
+  const { setConfirm, setAlert } = useAppContext();
 
   const [dragItem, setDragItem] = React.useState<{
     labelText: string;
@@ -283,77 +292,116 @@ export const FileTree = ({
     }
   }, []);
 
-  const draggingSelection = React.useMemo(() => {
-    if (!dragItem) return false;
-    return selected.includes(dragItem.path);
+  const dragItems = React.useMemo(() => {
+    if (!dragItem) return [];
+
+    const dragItemsSet = new Set(selected);
+    if (dragItem) dragItemsSet.add(dragItem.path);
+    return [...dragItemsSet];
   }, [dragItem, selected]);
 
   const handleMouseUp = React.useCallback(
     (target: HTMLElement) => {
-      // Check if target element is inside file tree app
+      // dropped outside of the tree view
       if (!isInFileManager(target)) {
-        if (onDropOutside) {
-          let dropSelection = draggingSelection ? selected : [dragItem.path];
-          onDropOutside(target, dropSelection);
-        }
-      } else {
-        let filePath = filePathFromHTMLElement(target);
-        if (!filePath) {
-          return;
+        onDropOutside(target, dragItems);
+        return;
+      }
+
+      let filePath = filePathFromHTMLElement(target);
+      if (!filePath) return;
+
+      // dropped inside of the tree view
+      if (dragItems.length > 0) {
+        const { allowed, disallowed } = dragItems.reduce(
+          (all, curr) => {
+            const changes =
+              isNotebookFile(curr) && /^\/data\:/.test(filePath)
+                ? { disallowed: [...all.disallowed, curr] }
+                : { allowed: [...all.allowed, curr] };
+
+            return { ...all, ...changes };
+          },
+          { allowed: [] as string[], disallowed: [] as string[] }
+        );
+
+        if (disallowed.length > 0) {
+          setAlert(
+            "Warning",
+            <Stack spacing={2} direction="column">
+              <Box>
+                <Code>{"/data"}</Code> cannot contain Notebook files. The
+                following files will remain in their current location:
+              </Box>
+              <ul>
+                {disallowed.map((file) => (
+                  <Box key={file}>
+                    <Code>{cleanFilePath(file)}</Code>
+                  </Box>
+                ))}
+              </ul>
+            </Stack>
+          );
         }
 
-        if (draggingSelection && selected.length > 0) {
-          let deducedPaths = selected.map((path) =>
-            deduceRenameFromDragOperation(path, filePath)
-          );
-          // Check if any path changes
-          if (
-            !deducedPaths
-              .map(([sourcePath, newPath]) => sourcePath === newPath)
-              .every((x) => x === true)
-          ) {
-            let targetDescription = generateTargetDescription(
-              deducedPaths[0][1]
+        const deducedPaths = allowed.map((path) =>
+          deduceRenameFromDragOperation(path, filePath)
+        );
+        const hasPathChanged = deducedPaths.some(
+          ([sourcePath, newPath]) => sourcePath !== newPath
+        );
+        // Check if any path changes
+        if (hasPathChanged) {
+          let targetDescription = generateTargetDescription(deducedPaths[0][1]);
+          const confirmMessage =
+            allowed.length > 1
+              ? `Do you want move ${allowed.length} files to ${targetDescription}?`
+              : `Do you want move '${baseNameFromPath(
+                  deducedPaths[0][0]
+                )}' to ${targetDescription}?`;
+
+          setConfirm("Warning", confirmMessage, async (resolve) => {
+            await Promise.all(
+              deducedPaths.map(([sourcePath, newPath]) => {
+                return handleRename(sourcePath, newPath);
+              })
             );
-            const confirmMessage =
-              selected.length > 1
-                ? `Do you want move ${selected.length} files to ${targetDescription}?`
-                : `Do you want move '${baseNameFromPath(
-                    deducedPaths[0][0]
-                  )}' to ${targetDescription}?`;
-
-            if (window.confirm(confirmMessage)) {
-              deducedPaths.forEach(([sourcePath, newPath]) => {
-                handleRename(sourcePath, newPath);
-              });
-            }
-          }
-        } else {
-          let [sourcePath, newPath] = deduceRenameFromDragOperation(
-            dragItem.path,
-            filePath
-          );
-          if (sourcePath !== newPath) {
-            let targetDescription = generateTargetDescription(newPath);
-            if (
-              window.confirm(
-                `Do you want move '${baseNameFromPath(
-                  sourcePath
-                )}' to ${targetDescription}?`
-              )
-            ) {
-              handleRename(sourcePath, newPath);
-            }
-          }
+            reload();
+            resolve(true);
+            return true;
+          });
         }
+        return;
+      }
+
+      let [sourcePath, newPath] = deduceRenameFromDragOperation(
+        dragItem.path,
+        filePath
+      );
+      if (sourcePath !== newPath) {
+        let targetDescription = generateTargetDescription(newPath);
+        setConfirm(
+          "Warning",
+          `Do you want move '${baseNameFromPath(
+            sourcePath
+          )}' to ${targetDescription}?`,
+          async (resolve) => {
+            await handleRename(sourcePath, newPath);
+            reload();
+            resolve(true);
+            return true;
+          }
+        );
       }
     },
     [
       handleRename,
-      selected,
+      setConfirm,
+      setAlert,
+      reload,
       onDropOutside,
       dragItem,
-      draggingSelection,
+      dragItems,
       filePathFromHTMLElement,
     ]
   );
@@ -400,6 +448,7 @@ export const FileTree = ({
   );
 
   let mouseLeaveHandler = React.useCallback(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     (e: MouseEvent) => {
       if (isDragging) resetMove();
     },
@@ -408,9 +457,7 @@ export const FileTree = ({
 
   let mouseUpHandler = React.useCallback(
     (e: MouseEvent) => {
-      if (isDragging) {
-        triggerHandleMouseUp(e);
-      }
+      if (isDragging) triggerHandleMouseUp(e);
     },
     [isDragging, triggerHandleMouseUp]
   );
@@ -476,11 +523,8 @@ export const FileTree = ({
     >
       {isDragging && (
         <Box
+          sx={{ position: "fixed", top: 0, left: 0, zIndex: 999 }}
           style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            zIndex: 999,
             transform: `translateX(${dragOffset.x}px) translateY(${dragOffset.y}px)`,
           }}
         >
@@ -491,11 +535,9 @@ export const FileTree = ({
               color: (theme) => theme.palette.primary.main,
             }}
           >
-            {draggingSelection
-              ? selected.length === 1
-                ? baseNameFromPath(selected[0])
-                : selected.length
-              : dragItem.labelText}
+            {dragItems.length === 1
+              ? baseNameFromPath(dragItems[0])
+              : dragItems.length}
           </Box>
         </Box>
       )}
@@ -507,28 +549,20 @@ export const FileTree = ({
         selected={selected}
         onNodeSelect={handleSelect}
         onNodeToggle={handleToggle}
+        // onNodeFocus={(e, nodeId) => handleSelect(e, [nodeId])}
         multiSelect
       >
         {treeRoots.map((root) => {
           let combinedPath = `${root}${ROOT_SEPARATOR}/`;
           return (
             <TreeItem
-              fileName={""}
-              path={""}
-              setIsDragging={(isDragging) => {
-                console.log("DEV isDragging: ", isDragging);
-              }}
-              setDragItem={({ labelText, path }) => {
-                console.log("DEV labelText: ", labelText, ", path: ", path);
-              }}
               key={root}
               nodeId={root}
-              style={{
+              sx={{
                 backgroundColor:
                   hoveredPath === combinedPath
                     ? "rgba(0, 0, 0, 0.04)"
                     : undefined,
-                border: "2px dotted red",
               }}
               data-path={combinedPath}
               labelText={root === PROJECT_DIR_PATH ? "Project files" : root}

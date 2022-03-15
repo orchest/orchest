@@ -11,10 +11,8 @@ import React from "react";
 import { getScaleCorrectedPosition } from "../common";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
-import { cleanFilePath, getStepFilePath } from "./common";
+import { cleanFilePath, getStepFilePath, isNotebookFile } from "./common";
 import { FileManager } from "./FileManager";
-
-const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);
 
 export const ProjectFileManager = () => {
   const { setAlert } = useAppContext();
@@ -127,11 +125,6 @@ export const ProjectFileManager = () => {
       }}
       onOpen={(filePath) => {
         openNotebook(undefined, cleanFilePath(filePath));
-      }}
-      onSelect={(filePath) => {
-        console.log("DEV onSelect", filePath);
-        // TODO: check if it's notebook file
-        // disallow it to be moved to /data
       }}
       onView={(filePath) => {
         const foundStep = Object.values(pipelineJson.steps).find((step) => {

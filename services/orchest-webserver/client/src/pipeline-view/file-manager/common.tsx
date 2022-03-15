@@ -296,3 +296,5 @@ export const removeLeadingSymbols = (filePath: string) =>
 // this function cleans up the leading "./"
 export const getStepFilePath = (step: Step) =>
   removeLeadingSymbols(step.file_path);
+
+export const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);

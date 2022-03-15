@@ -100,7 +100,7 @@ export function FileManager({
   onView,
   onEdit,
 }: {
-  onSelect: (selected: string[]) => void;
+  onSelect?: (selected: string[]) => void;
   onDropOutside: (target: EventTarget, selection: string[]) => void;
   onOpen: (filePath: string) => void;
   onEdit: (filePath: string) => void;
@@ -443,9 +443,8 @@ export function FileManager({
       })}`;
 
       await fetcher(url, { method: "POST" });
-      reload();
     },
-    [reload, expanded, selected, fileManagerBaseUrl]
+    [expanded, selected, fileManagerBaseUrl]
   );
 
   /**
@@ -543,6 +542,7 @@ export function FileManager({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            // click away should clean up selected items
             if (e.detail === 1 && !(e.metaKey || e.ctrlKey)) {
               setSelected([]);
             }
@@ -557,6 +557,7 @@ export function FileManager({
             handleSelect={handleSelect}
             handleToggle={handleToggle}
             handleRename={handleRename}
+            reload={reload}
             onOpen={onOpen}
             onDropOutside={onDropOutside}
             isDragging={isDragging}
