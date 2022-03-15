@@ -18,8 +18,7 @@ jobs:
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      # BUILD_TAG: ${{ github.event.client_payload.build_tag }}
-      BUILD_TAG: "latest"
+      BUILD_TAG: ${{ github.event.client_payload.build_tag }}
 
     strategy:
       matrix:
