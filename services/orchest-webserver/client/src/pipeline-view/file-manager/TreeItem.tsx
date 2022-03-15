@@ -31,7 +31,7 @@ export const TreeItem = ({
   path = "",
   labelText,
   setIsDragging,
-  setDragItem,
+  setDragFile,
   onContextMenu,
   ...other
 }: TreeItemProps & {
@@ -39,7 +39,7 @@ export const TreeItem = ({
   path?: string;
   labelText: string;
   setIsDragging?: (value: boolean) => void;
-  setDragItem?: (dragItemData: { labelText: string; path: string }) => void;
+  setDragFile?: (dragItemData: { labelText: string; path: string }) => void;
   sx: SxProps<Theme>;
 }) => {
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
@@ -58,7 +58,7 @@ export const TreeItem = ({
     cumulativeDrag.current.drag = 0;
   };
 
-  const isDraggable = hasValue(setIsDragging) && hasValue(setDragItem);
+  const isDraggable = hasValue(setIsDragging) && hasValue(setDragFile);
 
   return (
     <StyledTreeItemRoot
@@ -74,7 +74,7 @@ export const TreeItem = ({
 
           if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
             if (setIsDragging) setIsDragging(true);
-            if (setDragItem) setDragItem({ labelText, path });
+            if (setDragFile) setDragFile({ labelText, path });
             setTriggedDragging(true);
           }
         }

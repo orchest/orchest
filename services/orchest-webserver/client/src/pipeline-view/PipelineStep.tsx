@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
@@ -14,6 +15,7 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { cleanFilePath } from "./file-manager/common";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -128,6 +130,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   ref: React.MutableRefObject<HTMLDivElement>
 ) {
   const [, forceUpdate] = useForceUpdate();
+  const { setAlert } = useAppContext();
   const {
     metadataPositions,
     projectUuid,
@@ -144,6 +147,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       stepSelector,
       selectedConnection,
     },
+    selectedFiles,
+    dragFile,
+    setDragFile,
   } = usePipelineEditorContext();
 
   const {
@@ -198,6 +204,18 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const onMouseUp = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (dragFile) {
+      if (selectedFiles.length > 1) {
+        setAlert("Error", "Unable to assign multiple files to a single step.");
+        return;
+      }
+      dispatch({
+        type: "ASSIGN_FILE_TO_STEP",
+        payload: { stepUuid: uuid, filePath: cleanFilePath(dragFile.path) },
+      });
+      setDragFile(undefined);
+    }
 
     if (isSelectorActive) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
@@ -381,6 +399,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   return (
     <>
       <Box
+        data-type="step"
         data-uuid={uuid}
         data-test-title={title}
         data-test-id={"pipeline-step"}

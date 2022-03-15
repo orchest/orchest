@@ -62,6 +62,21 @@ export type PipelineEditorContextType = {
   sio: SocketIO;
   session: IOrchestSession;
   openNotebook: (e: React.MouseEvent | undefined, filePath: string) => void;
+  selectedFiles: string[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
+  dragFile: {
+    labelText: string;
+    path: string;
+  };
+  setDragFile: React.Dispatch<
+    React.SetStateAction<
+      | {
+          labelText: string;
+          path: string;
+        }
+      | undefined
+    >
+  >;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -84,6 +99,12 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   const { setAlert } = useAppContext();
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
+
+  const [selectedFiles, setSelectedFiles] = React.useState<string[]>([]);
+  const [dragFile, setDragFile] = React.useState<{
+    labelText: string;
+    path: string;
+  }>(undefined);
 
   const {
     eventVars,
@@ -243,6 +264,10 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         sio,
         session,
         openNotebook,
+        selectedFiles,
+        setSelectedFiles,
+        dragFile,
+        setDragFile,
       }}
     >
       {children}

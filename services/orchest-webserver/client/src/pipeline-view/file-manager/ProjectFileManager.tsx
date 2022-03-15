@@ -98,8 +98,8 @@ export const ProjectFileManager = () => {
     ]
   );
 
-  const onDropOutside = React.useCallback(
-    (target: EventTarget, selected: string[], dropPosition: Position) => {
+  const createStepsWithFiles = React.useCallback(
+    (selected: string[], dropPosition: Position) => {
       const { forbidden, allowed } = selected.reduce(
         (all, curr) => {
           const foundStep = allNotebookFileSteps.find((step) => {
@@ -164,6 +164,18 @@ export const ProjectFileManager = () => {
       environment?.uuid,
       setAlert,
     ]
+  );
+
+  const onDropOutside = React.useCallback(
+    (target: EventTarget, selected: string[], dropPosition: Position) => {
+      // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
+      // here we only handle "create a new step".
+      const targetElement = target as HTMLElement;
+      if (targetElement.id === "pipeline-canvas") {
+        createStepsWithFiles(selected, dropPosition);
+      }
+    },
+    [createStepsWithFiles]
   );
 
   return (

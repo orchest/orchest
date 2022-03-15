@@ -11,6 +11,7 @@ import TextField from "@mui/material/TextField";
 import { fetcher } from "@orchest/lib-utils";
 import produce from "immer";
 import React from "react";
+import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import {
   baseNameFromPath,
   cleanFilePath,
@@ -101,7 +102,7 @@ const TreeRow = ({
   treeNodes,
   handleRename,
   setIsDragging,
-  setDragItem,
+  setDragFile,
   root,
   hoveredPath,
   onOpen,
@@ -109,18 +110,12 @@ const TreeRow = ({
   treeNodes: TreeNode[];
   handleRename: (oldPath: string, newPath: string) => void;
   setIsDragging: (value: boolean) => void;
-  setDragItem: (dragItemData: { labelText: string; path: string }) => void;
+  setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   root: string;
   hoveredPath: string;
   onOpen: (filePath: string) => void;
 }) => {
-  const {
-    handleContextMenu,
-    fileInRename,
-    setFileInRename,
-    fileRenameNewName,
-    setFileRenameNewName,
-  } = useFileManagerContext();
+  const { handleContextMenu, fileInRename } = useFileManagerContext();
   const { directories, files } = React.useMemo(
     () =>
       treeNodes.reduce(
@@ -152,7 +147,7 @@ const TreeRow = ({
             <TreeItem
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               setIsDragging={setIsDragging}
-              setDragItem={setDragItem}
+              setDragFile={setDragFile}
               sx={{
                 cursor: "context-menu",
                 backgroundColor:
@@ -169,7 +164,7 @@ const TreeRow = ({
               <TreeRow
                 treeNodes={e.children}
                 setIsDragging={setIsDragging}
-                setDragItem={setDragItem}
+                setDragFile={setDragFile}
                 root={root}
                 hoveredPath={hoveredPath}
                 onOpen={onOpen}
@@ -192,7 +187,7 @@ const TreeRow = ({
             <TreeItem
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               setIsDragging={setIsDragging}
-              setDragItem={setDragItem}
+              setDragFile={setDragFile}
               sx={{ cursor: "context-menu" }}
               key={combinedPath}
               nodeId={combinedPath}
@@ -225,7 +220,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   treeRoots,
   expanded,
   handleToggle,
-  selected,
   onRename,
   reload,
   isDragging,
@@ -241,7 +235,6 @@ export const FileTree = React.memo(function FileTreeComponent({
     event: React.SyntheticEvent<Element, Event>,
     nodeIds: string[]
   ) => void;
-  selected: string[];
   onRename: (oldPath: string, newPath: string) => void;
   reload: () => void;
   isDragging: boolean;
@@ -257,11 +250,13 @@ export const FileTree = React.memo(function FileTreeComponent({
   const INIT_OFFSET_Y = 10;
 
   const { setConfirm, setAlert } = useAppContext();
+  const {
+    setSelectedFiles,
+    selectedFiles,
+    dragFile,
+    setDragFile,
+  } = usePipelineEditorContext();
 
-  const [dragItem, setDragItem] = React.useState<{
-    labelText: string;
-    path: string;
-  }>(undefined);
   const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
   const [hoveredPath, setHoveredPath] = React.useState(undefined);
 
@@ -276,13 +271,13 @@ export const FileTree = React.memo(function FileTreeComponent({
     }
   }, []);
 
-  const dragItems = React.useMemo(() => {
-    if (!dragItem) return [];
+  const dragFiles = React.useMemo(() => {
+    if (!dragFile) return [];
 
-    const dragItemsSet = new Set(selected);
-    if (dragItem) dragItemsSet.add(dragItem.path);
-    return [...dragItemsSet];
-  }, [dragItem, selected]);
+    const dragFilesSet = new Set(selectedFiles);
+    if (dragFile) dragFilesSet.add(dragFile.path);
+    return [...dragFilesSet];
+  }, [dragFile, selectedFiles]);
 
   const { getDropPosition, handleSelect } = useFileManagerContext();
 
@@ -320,7 +315,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     (target: HTMLElement) => {
       // dropped outside of the tree view
       if (!isInFileManager(target)) {
-        onDropOutside(target, dragItems, getDropPosition());
+        onDropOutside(target, dragFiles, getDropPosition());
         return;
       }
 
@@ -328,8 +323,8 @@ export const FileTree = React.memo(function FileTreeComponent({
       if (!filePath) return;
 
       // dropped inside of the tree view
-      if (dragItems.length > 0) {
-        const { allowed, disallowed } = dragItems.reduce(
+      if (dragFiles.length > 0) {
+        const { allowed, disallowed } = dragFiles.reduce(
           (all, curr) => {
             const changes =
               isNotebookFile(curr) && /^\/data\:/.test(filePath)
@@ -391,7 +386,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       }
 
       let [sourcePath, newPath] = deduceRenameFromDragOperation(
-        dragItem.path,
+        dragFile.path,
         filePath
       );
       if (sourcePath !== newPath) {
@@ -415,8 +410,8 @@ export const FileTree = React.memo(function FileTreeComponent({
       setAlert,
       reload,
       onDropOutside,
-      dragItem,
-      dragItems,
+      dragFile,
+      dragFiles,
       filePathFromHTMLElement,
       getDropPosition,
     ]
@@ -426,15 +421,12 @@ export const FileTree = React.memo(function FileTreeComponent({
     // Needs to be delayed to prevent tree toggle
     // while dragging.
     window.setTimeout(() => {
-      setDragOffset({
-        x: 0,
-        y: 0,
-      });
+      setDragOffset({ x: 0, y: 0 });
       setIsDragging(false);
       setHoveredPath(undefined);
-      setDragItem(undefined);
+      setDragFile(undefined);
     }, 1);
-  }, [setDragOffset, setIsDragging, setDragItem]);
+  }, [setDragOffset, setIsDragging, setDragFile]);
 
   const triggerHandleMouseUp = React.useCallback(
     (e: MouseEvent) => {
@@ -551,9 +543,9 @@ export const FileTree = React.memo(function FileTreeComponent({
               color: (theme) => theme.palette.primary.main,
             }}
           >
-            {dragItems.length === 1
-              ? baseNameFromPath(dragItems[0])
-              : dragItems.length}
+            {dragFiles.length === 1
+              ? baseNameFromPath(dragFiles[0])
+              : dragFiles.length}
           </Box>
         </Box>
       )}
@@ -562,7 +554,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         defaultCollapseIcon={<ExpandMoreIcon />}
         defaultExpandIcon={<ChevronRightIcon />}
         expanded={expanded}
-        selected={selected}
+        selected={selectedFiles}
         onNodeSelect={handleSelect}
         onNodeToggle={handleToggle}
         multiSelect
@@ -584,7 +576,7 @@ export const FileTree = React.memo(function FileTreeComponent({
             >
               <TreeRow
                 setIsDragging={setIsDragging}
-                setDragItem={setDragItem}
+                setDragFile={setDragFile}
                 treeNodes={fileTrees[root].children}
                 hoveredPath={hoveredPath}
                 root={root}

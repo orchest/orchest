@@ -77,8 +77,6 @@ export const FileManagerContextProvider: React.FC<{
   baseUrl: string;
   reload: () => Promise<void>;
   onSelect?: (selected: string[]) => void;
-  // onDropOutside: (target: EventTarget, selection: string[]) => void;
-  // onOpen: (filePath: string) => void;
   onEdit: (filePath: string) => void;
   onView: (filePath: string) => void;
   setContextMenu: React.Dispatch<
@@ -101,11 +99,12 @@ export const FileManagerContextProvider: React.FC<{
     mouseTracker,
     eventVars,
     pipelineCanvasRef,
+    selectedFiles,
+    setSelectedFiles,
   } = usePipelineEditorContext();
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
     string
   >();
-  const [selected, setSelected] = React.useState<string[]>([]);
   const [fileInRename, setFileInRename] = React.useState<string>(undefined);
   const [fileRenameNewName, setFileRenameNewName] = React.useState("");
 
@@ -150,7 +149,7 @@ export const FileManagerContextProvider: React.FC<{
   const handleSelect = React.useCallback(
     (event: React.SyntheticEvent<Element, Event>, selected: string[]) => {
       if (onSelect) onSelect(selected);
-      setSelected(selected);
+      setSelectedFiles(selected);
     },
     [onSelect]
   );
@@ -193,13 +192,18 @@ export const FileManagerContextProvider: React.FC<{
   const handleDelete = React.useCallback(() => {
     handleClose();
 
-    if (selected.includes(contextMenuCombinedPath) && selected.length > 1) {
+    if (
+      selectedFiles.includes(contextMenuCombinedPath) &&
+      selectedFiles.length > 1
+    ) {
       setConfirm(
         "Warning",
-        `Are you sure you want to delete ${selected.length} files?`,
+        `Are you sure you want to delete ${selectedFiles.length} files?`,
         async (resolve) => {
           await Promise.all(
-            selected.map((combinedPath) => deleteFetch(baseUrl, combinedPath))
+            selectedFiles.map((combinedPath) =>
+              deleteFetch(baseUrl, combinedPath)
+            )
           );
           await reload();
           resolve(true);
@@ -223,7 +227,7 @@ export const FileManagerContextProvider: React.FC<{
     );
   }, [
     contextMenuCombinedPath,
-    selected,
+    selectedFiles,
     baseUrl,
     reload,
     setConfirm,
@@ -235,8 +239,8 @@ export const FileManagerContextProvider: React.FC<{
 
     const downloadLink = getBaseNameFromContextMenu(contextMenuCombinedPath);
 
-    if (selected.includes(contextMenuCombinedPath)) {
-      selected.forEach((combinedPath, i) => {
+    if (selectedFiles.includes(contextMenuCombinedPath)) {
+      selectedFiles.forEach((combinedPath, i) => {
         setTimeout(function () {
           downloadFile(baseUrl, combinedPath, downloadLink);
         }, i * 500);
@@ -246,7 +250,7 @@ export const FileManagerContextProvider: React.FC<{
     } else {
       downloadFile(baseUrl, contextMenuCombinedPath, downloadLink);
     }
-  }, [baseUrl, contextMenuCombinedPath, handleClose, selected]);
+  }, [baseUrl, contextMenuCombinedPath, handleClose, selectedFiles]);
 
   return (
     <FileManagerContext.Provider
