@@ -143,7 +143,11 @@ class DeleteEnvironment(TwoPhaseFunction):
             project_uuid, environment_uuid
         )
 
-        # K8S_TODO: for every image, delete it.
+        # K8S_TODO: for every image, delete it. This todo is not about
+        # deleting the image entry from the db, which wil be cascade
+        # deleted, but about setting up a ~DeleteImage~ operation that
+        # will take care of deleting the image from the registry etc.
+        # Something to do for the environment image lifecycle PR.
 
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["environment_uuid"] = environment_uuid
