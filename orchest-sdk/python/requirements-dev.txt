@@ -1,3 +1,4 @@
 pandas
-pyarrow==4.0.0
+pyarrow==7.0.0
 requests==2.22.0
+pytest
