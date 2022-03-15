@@ -108,7 +108,7 @@ Non required fields
 **args**
    Arguments to pass to the command. For example, if the `command` is
    equal to ``bash``, `args` could be ``-c "echo hello"``. This would
-   be equivalent to ``bash -c "hello"``.
+   be equivalent to ``bash -c "echo hello"``.
 
 **environment variables**
     Key-value pairs of environment variables. While project and pipeline environment variables are
