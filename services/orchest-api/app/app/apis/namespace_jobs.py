@@ -15,7 +15,6 @@ import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
-from app import errors as self_errors
 from app import schema
 from app.apis.namespace_runs import AbortPipelineRun
 from app.celery_app import make_celery
@@ -1164,27 +1163,15 @@ class UpdateJob(TwoPhaseFunction):
 
             # Make sure all environments still exist, that is, the
             # pipeline is not referring non-existing environments.
-            # K8S_TODO: fix
-            # pipeline_def = job.pipeline_definition
-            # environment_uuids = set(
-            #    [
-            # step["environment"] for
-            # step in pipeline_def["steps"].values()]
-            # )
-            # env_uuids_missing_image = get_env_uuids_missing_image(
-            #     job.project_uuid, environment_uuids
-            # )
-            env_uuids_missing_image = []
-            if env_uuids_missing_image:
-                env_uuids_missing_image = ", ".join(env_uuids_missing_image)
-                msg = (
-                    "Pipeline references environments that do not exist in the"
-                    f" project. The following environments do not exist:"
-                    f" [{env_uuids_missing_image}].\n\n Please make sure all"
-                    " pipeline steps are assigned an environment that exists"
-                    " in the project."
-                )
-                raise self_errors.ImageNotFound(msg)
+            pipeline_def = job.pipeline_definition
+            pipeline_def_environment_uuids = [
+                step["environment"] for step in pipeline_def["steps"].values()
+            ]
+            # Implicitly make use of this to raise an exception if some
+            # environment is lacking an image.
+            environments.get_env_uuids_to_image_mappings(
+                job.project_uuid, set(pipeline_def_environment_uuids)
+            )
 
             if job.schedule is None:
                 job.status = "PENDING"
