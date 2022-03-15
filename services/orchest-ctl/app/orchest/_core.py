@@ -270,9 +270,12 @@ def status(output_json: bool = False):
 
 
 def _wait_deployments_to_be_stopped(
-    deployments: List[k8s_client.V1Deployment], progress_bar
+    deployments: List[k8s_client.V1Deployment],
+    progress_bar,
+    pods: Optional[List[k8s_client.V1Pod]] = None,
 ) -> None:
-    pods = k8sw.get_orchest_deployments_pods(deployments)
+    if pods is None:
+        pods = k8sw.get_orchest_deployments_pods(deployments)
     while pods:
         time.sleep(1)
         tmp_pods = k8sw.get_orchest_deployments_pods(deployments)
@@ -281,9 +284,12 @@ def _wait_deployments_to_be_stopped(
 
 
 def _wait_daemonsets_to_be_stopped(
-    daemonsets: List[k8s_client.V1DaemonSet], progress_bar
+    daemonsets: List[k8s_client.V1DaemonSet],
+    progress_bar,
+    pods: Optional[List[k8s_client.V1Pod]] = None,
 ) -> None:
-    pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
+    if pods is None:
+        pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
     while pods:
         time.sleep(1)
         tmp_pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
@@ -319,7 +325,7 @@ def stop():
     for daem_name, daem in zip(config.ORCHEST_DAEMONSETS, daemonsets):
         if daem is None:
             missing_daemonsets.append(daem_name)
-        elif daem.spec.desired_number_scheduled > 0:
+        elif daem.status.desired_number_scheduled > 0:
             running_daemonsets.append(daem)
     if missing_daemonsets:
         utils.echo(
@@ -359,8 +365,10 @@ def stop():
         k8sw.scale_down_orchest_deployments(
             [depl.metadata.name for depl in pre_cleanup_deployments_to_stop]
         )
-        _wait_daemonsets_to_be_stopped(running_daemonsets, progress_bar)
-        _wait_deployments_to_be_stopped(pre_cleanup_deployments_to_stop, progress_bar)
+        _wait_daemonsets_to_be_stopped(running_daemonsets, progress_bar, daemonset_pods)
+        _wait_deployments_to_be_stopped(
+            pre_cleanup_deployments_to_stop, progress_bar, deployments_pods
+        )
 
         k8sw.orchest_cleanup()
 
@@ -432,7 +440,7 @@ def start(log_level: utils.LogLevel, cloud: bool):
     for daem_name, daem in zip(config.ORCHEST_DAEMONSETS, daemonsets):
         if daem is None:
             missing_daemonsets.append(daem_name)
-        elif daem.spec.desired_number_scheduled == 0:
+        elif daem.status.desired_number_scheduled == 0:
             daemonsets_to_start.append(daem)
     if missing_daemonsets:
         utils.echo(

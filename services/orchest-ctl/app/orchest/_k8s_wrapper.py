@@ -188,12 +188,12 @@ def scale_up_orchest_daemonsets(daemonsets: Optional[List[str]] = None) -> None:
         t = k8s_apps_api.patch_namespaced_daemon_set(
             name,
             config.ORCHEST_NAMESPACE,
-            patch=[
+            body=[
                 {
                     "op": "remove",
                     "path": (
                         "/spec/template/spec/nodeSelector/"
-                        + {config.DAEMONSET_SCALING_FLAG}
+                        + config.DAEMONSET_SCALING_FLAG
                     ),
                 }
             ],
@@ -219,7 +219,7 @@ def scale_down_orchest_daemonsets(daemonsets: Optional[List[str]] = None) -> Non
         t = k8s_apps_api.patch_namespaced_daemon_set(
             name,
             config.ORCHEST_NAMESPACE,
-            patch={
+            body={
                 "spec": {
                     "template": {
                         "spec": {
