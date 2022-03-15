@@ -2,6 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useAsync } from "@/hooks/useAsync";
 import { useDebounce } from "@/hooks/useDebounce";
+import { useForceUpdate } from "@/hooks/useForceUpdate";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { useMounted } from "@/hooks/useMounted";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -511,7 +512,7 @@ export const DataTable = <T extends Record<string, any>>({
     }
   }, [run, fetcher, debouncedSearchTerm, page, rowsPerPage]);
 
-  const [shouldUpdate, forceUpdate] = React.useReducer((x: number) => x + 1, 0);
+  const [shouldUpdate, forceUpdate] = useForceUpdate();
 
   React.useEffect(() => {
     setPage((current) => {

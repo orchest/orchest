@@ -65,10 +65,9 @@ To keep Orchest's disk footprint to a minimal you can use the following best pra
   directory and would copy data in your project directory for every pipeline run, consuming large
   amounts of storage. The smaller the size of your project directory, the smaller the size of your
   jobs.
-* Do you have many pipeline runs as part of jobs? You can periodically delete old pipeline runs of
-  your jobs. Currently you will have to do this through the *File manager* but in the future (see
-  `#601 <https://github.com/orchest/orchest/issues/601>`_) this will become possible through the UI
-  directly.
+* Do you have many pipeline runs as part of jobs? You can configure your job to only retain a
+  number of pipeline runs and automatically delete the older ones. Steps: (1) edit an existing job
+  or create a new one, (2) go to *pipeline runs*, and (3) select *auto clean-up*.
 
 Use a GPU in Orchest
 --------------------

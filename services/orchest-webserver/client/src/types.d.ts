@@ -255,27 +255,51 @@ export type Job = {
 };
 
 export type Step = {
+  uuid: string;
+  title: string;
+  incoming_connections: string[];
   environment: string;
   file_path: string;
-  incoming_connections: string[];
-  kernel: { display_name: string; name: string };
+  kernel: { display_name?: string; name?: string };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
-  title: string;
-  uuid: string;
 };
+
+export type MouseTracker = {
+  client: Position;
+  prev: Position;
+  delta: Position;
+  unscaledPrev: Position;
+  unscaledDelta: Position;
+};
+
+export type Connection = {
+  startNodeUUID: string;
+  endNodeUUID?: string;
+};
+
+export type NewConnection = Connection & {
+  xEnd?: number;
+  yEnd?: number;
+};
+
+export type Position = { x: number; y: number };
 
 export type LogType = "step" | "service";
 
-export type IPipelineStepState = Step & {
-  outgoing_connections?: string[];
-  meta_data: {
-    hidden: boolean;
-    position: [number, number];
-    _drag_count: number;
-    _dragged: boolean;
-  };
+export type PipelineStepMetaData = {
+  hidden: boolean;
+  position: [number, number];
 };
+
+export type PipelineStepState = Step & {
+  outgoing_connections?: string[];
+  meta_data?: PipelineStepMetaData;
+};
+
+export type StepsDict = Record<string, PipelineStepState>;
+
+export type Offset = { top: number; left: number };
 
 export type Service = {
   image: string;
@@ -313,13 +337,15 @@ export type PipelineMetaData = {
   name: string;
 };
 
+export type PipelineSettings = {
+  auto_eviction?: boolean;
+  data_passing_memory_size?: string;
+};
+
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
-  settings: {
-    auto_eviction?: boolean;
-    data_passing_memory_size?: string;
-  };
+  settings: PipelineSettings;
   steps: Record<string, Step>;
   uuid: string;
   version: string;

@@ -2,14 +2,15 @@ import { useInterval } from "@/hooks/use-interval";
 import { LogType } from "@/types";
 import Box from "@mui/material/Box";
 import { RefManager, uuidv4 } from "@orchest/lib-utils";
-import * as React from "react";
+import React from "react";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
+import { SocketIO } from "./hooks/useSocketIO";
 
 const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
 export interface ILogViewerProps {
-  sio: Record<"on" | "off" | "emit", any>;
+  sio: SocketIO;
   pipelineUuid: string;
   projectUuid: string;
   jobUuid: string;

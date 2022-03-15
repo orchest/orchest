@@ -307,12 +307,14 @@ export function getJobProjectDirPath(
   return r;
 }
 
-export function setStepParameters(stepTitle, params) {
-  cy.intercept("POST", /.*/).as("allPosts");
+export function setStepParameters(stepTitle: string, params) {
+  cy.intercept("POST", /async\/project-files\/exists/).as("fileExists");
   cy.get(`[data-test-title=${stepTitle}]`)
     .scrollIntoView()
     .click({ force: true });
+  cy.wait("@fileExists");
 
+  cy.intercept("POST", /.*/).as("allPosts");
   // Delete the current content.
   cy.get(".CodeMirror-line")
     .first()

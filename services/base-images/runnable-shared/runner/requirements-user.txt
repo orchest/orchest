@@ -1,1 +1,3 @@
+# Required by `jupyterlab-widgets` extension
+ipywidgets
 -e ../../../../orchest-sdk/python/

@@ -1,3 +1,4 @@
+# Needs to be at least 6.0.0 so that the kernel supports debugging.
 ipykernel==6.6.0
 ipython==7.31.1
 nbconvert==6.3.0

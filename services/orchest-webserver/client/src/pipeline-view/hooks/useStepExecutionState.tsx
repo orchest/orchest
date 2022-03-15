@@ -5,7 +5,7 @@ import { serverTimeToDate } from "@/utils/webserver-utils";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { MutatorCallback, useSWRConfig } from "swr";
-import { ExecutionState } from "./PipelineStep";
+import { ExecutionState } from "../PipelineStep";
 
 const STATUS_POLL_FREQUENCY = 1000;
 
@@ -26,6 +26,9 @@ export const convertStepsToObject = (pipelineRun: PipelineRun) => {
   }, {} as StepExecutionStateObj);
 };
 
+/**
+ * a poller hook that checks run status
+ */
 export const useStepExecutionState = (
   url: string | null,
   callback: (status: TStatus) => void
