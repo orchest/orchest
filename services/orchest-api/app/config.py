@@ -1,4 +1,5 @@
 import datetime
+import os
 
 from _orchest.internals import config as _config
 
@@ -8,6 +9,7 @@ class Config:
     DEBUG = False
     TESTING = False
 
+    ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
     # must be uppercase
     SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/orchest_api"
 

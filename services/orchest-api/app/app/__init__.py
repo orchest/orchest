@@ -228,7 +228,7 @@ def trigger_conditional_jupyter_image_build(app):
         return
 
     # If the image has already been built no need to build again.
-    if utils.get_jupyter_server_image_to_use() != "orchest/jupyter-server:latest":
+    if not utils.get_jupyter_server_image_to_use().startswith("orchest/jupyter-server"):
         return
 
     try:

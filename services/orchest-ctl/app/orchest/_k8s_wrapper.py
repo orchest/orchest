@@ -396,7 +396,7 @@ _cleanup_pod_manifest = {
         "containers": [
             {
                 "name": "orchest-api-cleanup",
-                "image": f'orchest/orchest-api:{os.environ["ORCHEST_VERSION"]}',
+                "image": f"orchest/orchest-api:{config.ORCHEST_VERSION}",
                 "command": ["/bin/sh", "-c"],
                 # Make sure the database is compatible with the code.
                 "args": ["python migration_manager.py db migrate && python cleanup.py"],
@@ -426,8 +426,9 @@ def orchest_cleanup() -> None:
     to be online.
     """
     manifest = _cleanup_pod_manifest
-    # K8S_TODO: fix this once we move to versioned images.
-    manifest["spec"]["containers"][0]["image"] = "orchest/orchest-api:latest"
+    manifest["spec"]["containers"][0][
+        "image"
+    ] = f"orchest/orchest-api:{config.ORCHEST_VERSION}"
     resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
     pod_name = resp.metadata.name
 
@@ -458,10 +459,6 @@ def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
 
     spec = manifest["spec"]
     spec["containers"][0]["image"] = f"orchest/orchest-ctl:{update_to_version}"
-    for env_var in spec["containers"][0]["env"]:
-        if env_var["name"] == "ORCHEST_VERSION":
-            env_var["value"] = update_to_version
-            break
     return manifest
 
 

@@ -56,7 +56,7 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
 
     """
     statements = []
-    statements.append("FROM orchest/jupyter-server:latest")
+    statements.append(f"FROM orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -133,7 +133,7 @@ def prepare_build_context(task_uuid):
 
     return {
         "snapshot_path": snapshot_path,
-        "base_image": "orchest/jupyter-server:latest",
+        "base_image": f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}",
         "dockerfile_path": dockerfile_name,
     }
 

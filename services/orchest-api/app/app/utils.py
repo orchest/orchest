@@ -16,6 +16,7 @@ from _orchest.internals import config as _config
 from app import errors as self_errors
 from app import schema
 from app.connections import db, k8s_core_api
+from config import CONFIG_CLASS
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -218,6 +219,4 @@ def get_jupyter_server_image_to_use() -> str:
         ).spec.cluster_ip
         return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:latest"
     else:
-        # K8S_TODO: remove latest once we have versioned images on
-        # dockerhub.
-        return "orchest/jupyter-server:latest"
+        return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"

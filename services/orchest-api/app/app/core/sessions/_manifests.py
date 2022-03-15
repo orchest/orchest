@@ -154,7 +154,9 @@ def _get_memory_server_deployment_manifest(
                     "containers": [
                         {
                             "name": "memory-server",
-                            "image": "orchest/memory-server:latest",
+                            "image": (
+                                f"orchest/memory-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+                            ),
                             # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
@@ -323,7 +325,10 @@ def _get_session_sidecar_deployment_manifest(
                     "containers": [
                         {
                             "name": metadata["name"],
-                            "image": "orchest/session-sidecar:latest",
+                            "image": (
+                                "orchest/session-sidecar:"
+                                + CONFIG_CLASS.ORCHEST_VERSION
+                            ),
                             # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
@@ -695,7 +700,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     "containers": [
                         {
                             "name": metadata["name"],
-                            "image": "orchest/jupyter-enterprise-gateway",
+                            "image": (
+                                "orchest/jupyter-enterprise-gateway:"
+                                + CONFIG_CLASS.ORCHEST_VERSION
+                            ),
                             # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": environment,
