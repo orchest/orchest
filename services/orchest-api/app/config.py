@@ -31,10 +31,6 @@ class Config:
     IMAGE_BUILDER_IMAGE = "moby/buildkit:v0.10.0"
     BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
-    HOST_KANIKO_BASE_IMAGES_CACHE = (
-        f"/var/lib/orchest{_config.USERDIR_KANIKO_BASE_IMAGES_CACHE}"
-    )
-    HOST_BUILDKIT_CACHE = f"/var/lib/orchest{_config.USERDIR_BUILDKIT_CACHE}"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.

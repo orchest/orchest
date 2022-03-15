@@ -23,6 +23,9 @@ postgres:
 rabbitmq:
   enabled: false
 
+node-agent:
+  enabled: false
+
 update-sidecar:
   enabled: false
 

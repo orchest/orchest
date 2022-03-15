@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "library.cluster.orchest.userdir.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: {{ .Values.userdir.storage }}
+  storageClassName: {{ include "library.cluster.orchest.filesystem.storageClass" . }}

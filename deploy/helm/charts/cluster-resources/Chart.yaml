@@ -5,3 +5,20 @@ version: 0.0.1
 icon: https://github.com/orchest/orchest/blob/master/docs/source/img/logo.png
 sources:
   - https://github.com/orchest/orchest/tree/master/services/auth-server
+dependencies:
+- name: registry
+  version: "0.0.1"
+  repository: "file://charts/registry"
+  condition: registry.enabled
+- name: ceph
+  version: "0.0.1"
+  repository: "file://charts/ceph"
+  condition:  ceph.enabled
+- name: nfs
+  version: "0.0.1"
+  repository: "file://charts/nfs"
+  condition:  nfs.enabled  
+- name: orchest
+  version: "0.0.1"
+  repository: "file://charts/orchest"
+  condition:  orchest.enabled  

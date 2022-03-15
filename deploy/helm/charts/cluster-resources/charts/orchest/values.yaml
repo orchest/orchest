@@ -1,0 +1,15 @@
+filesystem:
+  storageClass: standard
+
+userdir:
+  name: userdir-pvc
+  storage: 20Gi
+
+config:
+  name: config-pvc
+  storage: 10Mi
+
+imagebuildercache:
+  name: image-builder-cache-pvc
+  storage: 10Gi
+

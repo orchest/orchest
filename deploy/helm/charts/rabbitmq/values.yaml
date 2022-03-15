@@ -4,3 +4,9 @@ name: rabbitmq-server
 service:
   #Default port for rabbitmq
   port: 5672
+
+images:
+  pullPolicy: IfNotPresent     
+  registry: docker.io
+  name: rabbitmq
+  tag: "3"  

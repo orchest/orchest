@@ -25,17 +25,6 @@ ORCHEST_OPERATION_TO_STATUS_MAPPING = {
 }
 
 
-DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = set(
-    [
-        "auth-server",
-        "celery-worker",
-        "docker-registry",
-        "file-manager",
-        "orchest-api",
-        "orchest-webserver",
-    ]
-)
-
 ORCHEST_DEPLOYMENTS = [
     "auth-server",
     "celery-worker",
@@ -47,6 +36,15 @@ ORCHEST_DEPLOYMENTS = [
     "rabbitmq-server",
     "argo-workflow-argo-workflows-server",
     "argo-workflow-argo-workflows-workflow-controller",
+]
+
+DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = [
+    "auth-server",
+    "celery-worker",
+    "docker-registry",
+    "file-manager",
+    "orchest-api",
+    "orchest-webserver",
 ]
 
 DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR = [
@@ -61,8 +59,16 @@ DEPLOYMENTS_WITH_CLOUD_ENV_VAR = [
     "orchest-webserver",
 ]
 
-for depl in DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR + DEPLOYMENTS_WITH_CLOUD_ENV_VAR:
+for depl in (
+    DEPLOYMENTS_WITH_ORCHEST_LOG_LEVEL_ENV_VAR
+    + DEPLOYMENTS_WITH_CLOUD_ENV_VAR
+    + DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION
+):
     assert depl in ORCHEST_DEPLOYMENTS
+
+ORCHEST_DAEMONSETS = ["node-agent"]
+
+DAEMONSET_SCALING_FLAG = "ORCHEST-RESERVED-DAEMONSET-SCALING-FLAG"
 
 WRAP_LINES = 72
 # Used to avoid outputting anything that isn't the desired json.

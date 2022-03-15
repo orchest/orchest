@@ -1,0 +1,14 @@
+## If true, create & use RBAC resources
+##
+rbacEnable: true
+
+nfs:
+  name: rook-nfs
+  storageClass:
+    name: rook-nfs-share
+    reclaimPolicy: Delete
+    mountOptions: []  
+  claim:
+    storageClassName: standard
+    name: rook-nfs-claim
+    storage: 20Gi

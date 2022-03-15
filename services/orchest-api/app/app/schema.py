@@ -32,29 +32,6 @@ def _session_base_url(s) -> str:
         return "/jupyter-server-" + s.project_uuid[:18] + s.pipeline_uuid[:18]
 
 
-session = Model(
-    "Session",
-    {
-        "project_uuid": fields.String(required=True, description="UUID of project"),
-        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "status": fields.String(required=True, description="Status of session"),
-        "base_url": fields.String(
-            required=True,
-            attribute=lambda s: _session_base_url(s),
-            description="Base URL",
-        ),
-    },
-)
-
-sessions = Model(
-    "Sessions",
-    {
-        "sessions": fields.List(
-            fields.Nested(session), description="Currently running sessions"
-        )
-    },
-)
-
 project = Model(
     "Project",
     {
@@ -178,6 +155,32 @@ service_descriptions = Model("Services", {"*": service_description_wildcard})
 
 services = Model("Services", {"*": service_wildcard})
 
+session = Model(
+    "Session",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
+        "status": fields.String(required=True, description="Status of session"),
+        "base_url": fields.String(
+            required=True,
+            attribute=lambda s: _session_base_url(s),
+            description="Base URL",
+        ),
+        # The services model doesn't seem to work with restx on output,
+        # known issue. See other comments about restx and wildcards.
+        "user_services": fields.Raw(),
+    },
+)
+
+sessions = Model(
+    "Sessions",
+    {
+        "sessions": fields.List(
+            fields.Nested(session), description="Currently running sessions"
+        )
+    },
+)
+
 pipeline = Model(
     "Pipeline",
     {
@@ -213,10 +216,10 @@ session_config = Model(
             required=True, description="Path to pipeline file"
         ),
         "project_dir": fields.String(
-            required=True, description="Path to pipeline files"
+            required=True, description="Path to project files"
         ),
-        "host_userdir": fields.String(
-            required=True, description="Host path to userdir"
+        "userdir_pvc": fields.String(
+            required=True, description="Name of the userdir pvc"
         ),
         "services": fields.Nested(services),
     },
@@ -384,9 +387,9 @@ non_interactive_run_config = pipeline_run_config.inherit(
     {
         # Needed for the celery-worker to set the new project-dir for
         # jobs. Note that the `orchest-webserver` has this value
-        # stored in the ENV variable `HOST_USER_DIR`.
-        "host_user_dir": fields.String(
-            required=True, description="Path to the /userdir on the host"
+        # stored in the ENV variable `USERDIR_PVC`.
+        "userdir_pvc": fields.String(
+            required=True, description="Name of the userdir pvc"
         ),
     },
 )

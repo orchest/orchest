@@ -62,6 +62,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "session-sidecar"
         "auth-server"
         "file-manager"
+        "node-agent"
     )
 fi
 
@@ -346,6 +347,17 @@ do
             -t "orchest/file-manager:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/file-manager/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "node-agent" ]; then
+
+        build_ctx=$DIR/../services/node-agent
+        build=(docker build --progress=plain \
+            -t "orchest/node-agent:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/node-agent/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi

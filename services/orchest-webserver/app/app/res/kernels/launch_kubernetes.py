@@ -87,9 +87,9 @@ def _get_kernel_pod_manifest(
     }
 
     vols, vol_mounts = get_step_and_kernel_volumes_and_volume_mounts(
-        host_user_dir=os.environ.get("ORCHEST_HOST_USER_DIR"),
-        host_project_dir=os.environ.get("ORCHEST_HOST_PROJECT_DIR"),
-        host_pipeline_file=os.environ.get("ORCHEST_HOST_PIPELINE_FILE"),
+        userdir_pvc=os.environ.get("ORCHEST_USERDIR_PVC"),
+        project_dir=os.environ.get("ORCHEST_PROJECT_DIR"),
+        pipeline_file=os.environ.get("ORCHEST_PIPELINE_FILE"),
         container_project_dir=_config.PROJECT_DIR,
         container_pipeline_file=_config.PIPELINE_FILE,
     )
@@ -129,7 +129,7 @@ def _get_kernel_pod_manifest(
                     "image": image_name,
                     "env": env,
                     "ports": [{"name": "web", "containerPort": 80, "protocol": "TCP"}],
-                    "volume_mounts": vol_mounts,
+                    "volumeMounts": vol_mounts,
                 }
             ],
             "resources": {"requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}},

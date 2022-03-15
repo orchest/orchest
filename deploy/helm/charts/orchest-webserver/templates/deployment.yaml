@@ -5,24 +5,25 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate
-        - name: config
-          hostPath:
-            path: /var/lib/orchest/config
-            type: DirectoryOrCreate
-        #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not    
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
+        - name: config-pvc
+          persistentVolumeClaim:
+            claimName: config-pvc
+            readOnly: false
+        #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not
         - name: repo
           hostPath:
             path: /var/lib/orchest/repo
             type: DirectoryOrCreate
       containers:
       - name: orchest-webserver
-        image: orchest/orchest-webserver:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         ports:
-        - containerPort: 80        
+        - containerPort: 80
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
@@ -30,8 +31,8 @@ deployment
           value: "{{ .Values.CLOUD }}"
         - name: "ORCHEST_PORT"
           value: "8000"
-        - name: "HOST_USER_DIR"
-          value: "/var/lib/orchest/userdir"
+        - name: "USERDIR_PVC"
+          value: "userdir-pvc"
         - name: "HOST_CONFIG_DIR"
           value: "/var/lib/orchest/config"
         - name: "HOST_REPO_DIR"
@@ -45,9 +46,9 @@ deployment
         - name: "ORCHEST_GPU_ENABLED_INSTANCE"
           value: "FALSE"
         volumeMounts:
-         - name: userdir
+         - name: userdir-pvc
            mountPath: /userdir
-         - name: config
+         - name: config-pvc
            mountPath: /config
          - name: repo
            mountPath: /orchest-host
