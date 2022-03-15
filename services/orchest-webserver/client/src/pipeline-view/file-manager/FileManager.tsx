@@ -213,46 +213,48 @@ export function FileManager({
       setProgressType("determinate");
 
       // ensure that we are handling File[] instead of FileList
-      const promises = Array.from(files).map(async (file) => {
-        try {
-          // Derive folder to upload the file to if webkitRelativePath includes a slash
-          // (means the file was uploaded as a folder through drag or folder file selection)
+      const promises = Array.from(files).map(
+        async (file: File & { path?: string }) => {
+          try {
+            // Derive folder to upload the file to if webkitRelativePath includes a slash
+            // (means the file was uploaded as a folder through drag or folder file selection)
 
-          // Note: either file.path and file.webkitRelativePath will be available
-          // so we need to process either case
-          const isUploadedAsFolder =
-            /.+\/.+/.test(file.path) ||
-            (file.webkitRelativePath !== undefined &&
-              file.webkitRelativePath.includes("/"));
+            // Note: either file.path and file.webkitRelativePath will be available
+            // so we need to process either case
+            const isUploadedAsFolder =
+              /.+\/.+/.test(file.path) ||
+              (file.webkitRelativePath !== undefined &&
+                file.webkitRelativePath.includes("/"));
 
-          let path = !isUploadedAsFolder
-            ? "/"
-            : `/${(file.webkitRelativePath || file.path)
-                .split("/")
-                .slice(0, -1)
-                .filter((value) => value.length > 0)
-                .join("/")}/`;
+            let path = !isUploadedAsFolder
+              ? "/"
+              : `/${(file.webkitRelativePath || file.path)
+                  .split("/")
+                  .slice(0, -1)
+                  .filter((value) => value.length > 0)
+                  .join("/")}/`;
 
-          let formData = new FormData();
-          formData.append("file", file);
+            let formData = new FormData();
+            formData.append("file", file);
 
-          await fetcher(
-            `${fileManagerBaseUrl}/upload?${queryArgs({
-              path,
-              root,
-            })}`,
-            { method: "POST", body: formData }
-          );
+            await fetcher(
+              `${fileManagerBaseUrl}/upload?${queryArgs({
+                path,
+                root,
+              })}`,
+              { method: "POST", body: formData }
+            );
 
-          progressHolder.progress += 1;
-          let progressPercentage =
-            (progressHolder.progress / progressTotal) * 100;
-          setProgress(progressPercentage);
-        } catch (error) {
-          console.error(error);
-          alert(error.message);
+            progressHolder.progress += 1;
+            let progressPercentage =
+              (progressHolder.progress / progressTotal) * 100;
+            setProgress(progressPercentage);
+          } catch (error) {
+            console.error(error);
+            alert(error.message);
+          }
         }
-      });
+      );
 
       await Promise.all(promises);
       reload();
