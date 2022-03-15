@@ -172,42 +172,6 @@ async function processFileEntry(entry: FileSystemFileEntry) {
   return file;
 }
 
-export async function customFileGetter(e: React.DragEvent<HTMLElement>) {
-  let files = [];
-  let futureAwaits = [];
-  let promises = [];
-
-  let length = e.dataTransfer.items.length;
-  for (let i = 0; i < length; i++) {
-    let entry = e.dataTransfer.items[i].webkitGetAsEntry();
-
-    if (!entry) continue;
-
-    if (isDirectoryEntry(entry)) {
-      promises.push(
-        traverseDirectory(entry, async (entry) => {
-          if (entry.isFile) {
-            futureAwaits.push(processFileEntry(entry));
-          }
-        })
-      );
-      continue;
-    }
-
-    if (isFileEntry(entry)) files.push(await processFileEntry(entry));
-  }
-
-  // Await traversals
-  await Promise.all(promises);
-
-  // Await file() generators
-  for (let x = 0; x < futureAwaits.length; x++) {
-    files.push(await futureAwaits[x]);
-  }
-
-  return files;
-}
-
 export const mergeTrees = (subTree, tree) => {
   // Modifies tree
   // subTree root path

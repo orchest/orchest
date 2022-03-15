@@ -15,7 +15,6 @@ import { useDropzone } from "react-dropzone";
 import { ActionBar } from "./ActionBar";
 import {
   baseNameFromPath,
-  customFileGetter,
   FILE_MANAGER_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
   getActiveRoot,
@@ -218,13 +217,21 @@ export function FileManager({
         try {
           // Derive folder to upload the file to if webkitRelativePath includes a slash
           // (means the file was uploaded as a folder through drag or folder file selection)
+
+          // Note: either file.path and file.webkitRelativePath will be available
+          // so we need to process either case
           const isUploadedAsFolder =
-            file.webkitRelativePath !== undefined &&
-            file.webkitRelativePath.includes("/");
+            /.+\/.+/.test(file.path) ||
+            (file.webkitRelativePath !== undefined &&
+              file.webkitRelativePath.includes("/"));
 
           let path = !isUploadedAsFolder
             ? "/"
-            : `/${file.webkitRelativePath.split("/").slice(0, -1).join("/")}/`;
+            : `/${(file.webkitRelativePath || file.path)
+                .split("/")
+                .slice(0, -1)
+                .filter((value) => value.length > 0)
+                .join("/")}/`;
 
           let formData = new FormData();
           formData.append("file", file);
@@ -454,10 +461,16 @@ export function FileManager({
   /**
    * Final component init
    */
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: uploadFiles,
-    getFilesFromEvent: customFileGetter,
-  });
+  const {
+    acceptedFiles,
+    getRootProps,
+    getInputProps,
+    isDragActive,
+  } = useDropzone();
+
+  React.useEffect(() => {
+    if (acceptedFiles.length > 0) uploadFiles(acceptedFiles);
+  }, [uploadFiles, acceptedFiles]);
 
   React.useEffect(() => {
     reload();
@@ -507,10 +520,11 @@ export function FileManager({
           position: "absolute",
           width: "calc(100% - 4px)",
           height: "calc(100% - 4px)",
+          margin: "2px",
           pointerEvents: "none",
           border: (theme) =>
             isDragActive
-              ? `2px solid ${theme.palette.primary.main}`
+              ? `2px dotted ${theme.palette.primary.light}`
               : undefined,
         },
       }}
