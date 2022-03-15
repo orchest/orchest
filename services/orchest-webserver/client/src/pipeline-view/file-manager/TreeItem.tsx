@@ -3,6 +3,7 @@ import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getIcon, SVGFileIcon } from "./SVGFileIcon";
 

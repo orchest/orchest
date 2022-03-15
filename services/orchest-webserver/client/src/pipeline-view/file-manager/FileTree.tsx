@@ -258,7 +258,11 @@ export const FileTree = ({
     nodeIds: string[]
   ) => void;
   handleContextMenu: (e: React.MouseEvent, path: string) => void;
-  handleRename: (sourcePath: string, newPath: string) => Promise<void>;
+  handleRename: (
+    sourcePath: string,
+    newPath: string,
+    skipReload?: boolean
+  ) => Promise<void>;
   reload: () => void;
   isDragging: boolean;
   setIsDragging: (value: boolean) => void;
@@ -363,7 +367,7 @@ export const FileTree = ({
           setConfirm("Warning", confirmMessage, async (resolve) => {
             await Promise.all(
               deducedPaths.map(([sourcePath, newPath]) => {
-                return handleRename(sourcePath, newPath);
+                return handleRename(sourcePath, newPath, true);
               })
             );
             reload();
@@ -387,7 +391,6 @@ export const FileTree = ({
           )}' to ${targetDescription}?`,
           async (resolve) => {
             await handleRename(sourcePath, newPath);
-            reload();
             resolve(true);
             return true;
           }

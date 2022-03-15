@@ -115,7 +115,7 @@ export function FileManager({
    * State init
    */
   const { projectUuid } = useCustomRoute();
-  const { setConfirm } = useAppContext();
+  const { setConfirm, setAlert } = useAppContext();
 
   // only show the progress if it takes longer than 125 ms
   const [_inProgress, setInProgress] = React.useState(false);
@@ -410,8 +410,10 @@ export function FileManager({
     onEdit(contextMenuCombinedPath);
   };
 
+  // by default, handleRename will reload
+  // when moving multiple files, we manually call reload after Promise.all
   const handleRename = React.useCallback(
-    async (oldCombinedPath, newCombinedPath) => {
+    async (oldCombinedPath, newCombinedPath, skipReload = false) => {
       let { root: oldRoot, path: oldPath } = unpackCombinedPath(
         oldCombinedPath
       );
@@ -442,9 +444,14 @@ export function FileManager({
         newRoot,
       })}`;
 
-      await fetcher(url, { method: "POST" });
+      try {
+        await fetcher(url, { method: "POST" });
+        if (!skipReload) reload();
+      } catch (error) {
+        setAlert("Error", `Failed to rename file ${oldPath}. ${error.message}`);
+      }
     },
-    [expanded, selected, fileManagerBaseUrl]
+    [expanded, selected, fileManagerBaseUrl, reload, setAlert]
   );
 
   /**
