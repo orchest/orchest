@@ -87,12 +87,12 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
             process.poll()
             return_code = process.returncode
 
-            _wait_daemonsets_to_be_ready(
-                [d for d in k8sw.get_orchest_daemonsets() if d is not None],
+            _wait_deployments_to_be_ready(
+                config.ORCHEST_DEPLOYMENTS,
                 progress_bar,
             )
-            _wait_deployments_to_be_ready(
-                [d for d in k8sw.get_orchest_deployments() if d is not None],
+            _wait_daemonsets_to_be_ready(
+                config.ORCHEST_DAEMONSETS,
                 progress_bar,
             )
 
@@ -270,7 +270,7 @@ def status(output_json: bool = False):
 
 
 def _wait_deployments_to_be_stopped(
-    deployments: List[k8s_client.V1Deployment],
+    deployments: List[str],
     progress_bar,
     pods: Optional[List[k8s_client.V1Pod]] = None,
 ) -> None:
@@ -284,7 +284,7 @@ def _wait_deployments_to_be_stopped(
 
 
 def _wait_daemonsets_to_be_stopped(
-    daemonsets: List[k8s_client.V1DaemonSet],
+    daemonsets: List[str],
     progress_bar,
     pods: Optional[List[k8s_client.V1Pod]] = None,
 ) -> None:
@@ -350,62 +350,69 @@ def stop():
         else:
             post_cleanup_deployments_to_stop.append(depl)
 
-    deployments_pods = k8sw.get_orchest_deployments_pods(running_deployments)
     daemonset_pods = k8sw.get_orchest_daemonsets_pods(running_daemonsets)
+    running_daemonsets = [d.metadata.name for d in running_daemonsets]
+    pre_cleanup_deployments_to_stop = [
+        d.metadata.name for d in pre_cleanup_deployments_to_stop
+    ]
+    post_cleanup_deployments_to_stop = [
+        d.metadata.name for d in post_cleanup_deployments_to_stop
+    ]
+    pre_cleanup_deployment_pods = k8sw.get_orchest_deployments_pods(
+        pre_cleanup_deployments_to_stop
+    )
+    post_cleanup_deployment_pods = k8sw.get_orchest_deployments_pods(
+        post_cleanup_deployments_to_stop
+    )
     with typer.progressbar(
         # + 1 for UX and to account for the previous actions.
-        length=len(deployments_pods) + len(daemonset_pods) + 1,
+        length=len(pre_cleanup_deployment_pods)
+        + len(post_cleanup_deployment_pods)
+        + len(daemonset_pods)
+        + 1,
         label="Shutdown",
         show_eta=False,
     ) as progress_bar:
         progress_bar.update(1)
-        k8sw.scale_down_orchest_daemonsets(
-            [daem.metadata.name for daem in running_daemonsets]
-        )
-        k8sw.scale_down_orchest_deployments(
-            [depl.metadata.name for depl in pre_cleanup_deployments_to_stop]
+        k8sw.scale_down_orchest_daemonsets(running_daemonsets)
+        k8sw.scale_down_orchest_deployments(pre_cleanup_deployments_to_stop)
+        _wait_deployments_to_be_stopped(
+            pre_cleanup_deployments_to_stop, progress_bar, pre_cleanup_deployment_pods
         )
         _wait_daemonsets_to_be_stopped(running_daemonsets, progress_bar, daemonset_pods)
-        _wait_deployments_to_be_stopped(
-            pre_cleanup_deployments_to_stop, progress_bar, deployments_pods
-        )
 
         k8sw.orchest_cleanup()
 
-        k8sw.scale_down_orchest_deployments(
-            [depl.metadata.name for depl in post_cleanup_deployments_to_stop]
+        k8sw.scale_down_orchest_deployments(post_cleanup_deployments_to_stop)
+        _wait_deployments_to_be_stopped(
+            post_cleanup_deployments_to_stop, progress_bar, post_cleanup_deployment_pods
         )
-        _wait_deployments_to_be_stopped(post_cleanup_deployments_to_stop, progress_bar)
 
     utils.echo("Shutdown successful.")
 
 
-def _wait_deployments_to_be_ready(
-    deployments: List[k8s_client.V1Deployment], progress_bar
-) -> None:
+def _wait_deployments_to_be_ready(deployments: List[str], progress_bar) -> None:
     while deployments:
-        depl_names = [depl.metadata.name for depl in deployments]
-        tmp_deployments_to_start = [
-            d
-            for d in k8sw.get_orchest_deployments(depl_names)
-            if d is not None and d.status.ready_replicas != d.spec.replicas
-        ]
+        tmp_deployments_to_start = []
+        for name, depl in zip(deployments, k8sw.get_orchest_deployments(deployments)):
+            if depl is None or depl.status.ready_replicas != depl.spec.replicas:
+                tmp_deployments_to_start.append(name)
+
         progress_bar.update(len(deployments) - len(tmp_deployments_to_start))
         deployments = tmp_deployments_to_start
         time.sleep(1)
 
 
-def _wait_daemonsets_to_be_ready(
-    daemonsets: List[k8s_client.V1DaemonSet], progress_bar
-) -> None:
+def _wait_daemonsets_to_be_ready(daemonsets: List[str], progress_bar) -> None:
     while daemonsets:
-        daems_names = [daem.metadata.name for daem in daemonsets]
-        tmp_daemonsets_to_start = [
-            d
-            for d in k8sw.get_orchest_daemonsets(daems_names)
-            if d is not None
-            and d.status.number_ready != d.status.desired_number_scheduled
-        ]
+        tmp_daemonsets_to_start = []
+        for name, daem in zip(daemonsets, k8sw.get_orchest_daemonsets(daemonsets)):
+            if (
+                daem is None
+                or daem.status.number_ready != daem.status.desired_number_scheduled
+            ):
+                tmp_daemonsets_to_start.append(name)
+
         progress_bar.update(len(daemonsets) - len(tmp_daemonsets_to_start))
         daemonsets = tmp_daemonsets_to_start
         time.sleep(1)
@@ -457,6 +464,8 @@ def start(log_level: utils.LogLevel, cloud: bool):
         utils.echo("Orchest is already running.")
         return
 
+    deployments_to_start = [d.metadata.name for d in deployments_to_start]
+    daemonsets_to_start = [d.metadata.name for d in daemonsets_to_start]
     utils.echo("Starting...")
     with typer.progressbar(
         # + 1 for scaling, +1 for userdir permissions.
@@ -467,12 +476,8 @@ def start(log_level: utils.LogLevel, cloud: bool):
         k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=True)
         k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=True)
 
-        k8sw.scale_up_orchest_daemonsets(
-            [daem.metadata.name for daem in daemonsets_to_start]
-        )
-        k8sw.scale_up_orchest_deployments(
-            [depl.metadata.name for depl in deployments_to_start]
-        )
+        k8sw.scale_up_orchest_daemonsets(daemonsets_to_start)
+        k8sw.scale_up_orchest_deployments(deployments_to_start)
         progress_bar.update(1)
 
         # Do this after scaling but before waiting for all deployments
