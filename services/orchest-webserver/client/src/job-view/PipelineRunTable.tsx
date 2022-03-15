@@ -160,7 +160,7 @@ export const PipelineRunTable: React.FC<{
     }
 
     navigateTo(
-      siteMap.pipeline.path,
+      siteMap.jobRun.path,
       {
         query: {
           projectUuid: pipelineRun.project_uuid,

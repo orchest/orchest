@@ -1,4 +1,4 @@
-import { IPipelineStepState, PipelineJson } from "@/types";
+import { PipelineStepState, StepsDict } from "@/types";
 import {
   coordCenter,
   dagStratify,
@@ -8,10 +8,7 @@ import {
   sugiyama,
 } from "d3-dag";
 import cloneDeep from "lodash.clonedeep";
-import {
-  addOutgoingConnections,
-  clearOutgoingConnections,
-} from "./webserver-utils";
+import { addOutgoingConnections } from "./webserver-utils";
 
 type Component = {
   uuid: string;
@@ -175,10 +172,10 @@ const layoutComponent = (
 };
 
 const traverseGraph = (
-  step: IPipelineStepState,
-  allSteps: { [uuid: string]: IPipelineStepState },
+  step: PipelineStepState,
+  allSteps: { [uuid: string]: PipelineStepState },
   seenNodes: Set<string>,
-  component: IPipelineStepState[]
+  component: PipelineStepState[]
 ) => {
   step.outgoing_connections.forEach((stepUuid) => {
     if (!seenNodes.has(stepUuid)) {
@@ -203,21 +200,17 @@ const traverseGraph = (
  *
  * Sorted by the number of nodes in descending order.
  */
-const collectComponents = (pipelineJson) => {
-  // Augment pipelineJson
-  addOutgoingConnections(pipelineJson.steps);
-
+const collectComponents = (steps: StepsDict) => {
   // Traverse graph
   let seenNodes: Set<string> = new Set();
   let components: { uuid: string; incoming_connections: string[] }[][] = [];
 
-  Object.keys(pipelineJson.steps).forEach((stepUuid) => {
-    let step = pipelineJson.steps[stepUuid];
-
+  Object.entries(steps).forEach(([stepUuid, step]) => {
     if (!seenNodes.has(stepUuid)) {
-      let graphNodes = [step];
+      const stepCopy = { ...step };
+      let graphNodes = [stepCopy];
       seenNodes.add(stepUuid);
-      traverseGraph(step, pipelineJson.steps, seenNodes, graphNodes);
+      traverseGraph(stepCopy, steps, seenNodes, graphNodes);
 
       components.push(graphNodes);
     }
@@ -226,14 +219,11 @@ const collectComponents = (pipelineJson) => {
   // Sort components (big to small)
   components.sort((a, b) => b.length - a.length);
 
-  // Remove annotations after being done with them
-  clearOutgoingConnections(pipelineJson.steps);
-
   return components;
 };
 
 export const layoutPipeline = (
-  pipelineJson: PipelineJson,
+  steps: StepsDict,
   nodeRadius: number,
   scaleX: number,
   scaleY: number,
@@ -242,9 +232,11 @@ export const layoutPipeline = (
   verticalGraphMargin: number,
   stepHeight: number
 ) => {
-  const _pipelineJson = cloneDeep(pipelineJson);
+  const stepsCopy = cloneDeep(steps);
 
-  const components = collectComponents(_pipelineJson);
+  addOutgoingConnections(stepsCopy);
+
+  const components = collectComponents(stepsCopy);
 
   // layout each component top left
   let laidOutComponents = components.map((component) =>
@@ -267,10 +259,10 @@ export const layoutPipeline = (
     // Write node positions to _pipelineJson
     Object.entries(laidOutComponent).forEach((component) => {
       const [stepUuid, node] = component;
-      _pipelineJson.steps[stepUuid].meta_data.position[0] = node.x;
-      _pipelineJson.steps[stepUuid].meta_data.position[1] = node.y;
+      stepsCopy[stepUuid].meta_data.position[0] = node.x;
+      stepsCopy[stepUuid].meta_data.position[1] = node.y;
     });
   }
 
-  return _pipelineJson;
+  return stepsCopy;
 };

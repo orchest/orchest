@@ -1,5 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import { Service } from "@/types";
 import { getServiceURLs } from "@/utils/webserver-utils";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -12,6 +13,7 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Menu from "@mui/material/Menu";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 const formatUrl = (url: string) => {
@@ -29,11 +31,7 @@ export const ServicesMenu = ({
   anchor: React.MutableRefObject<Element>;
   services: Record<
     string,
-    {
-      ports: number[];
-      preserve_base_path: string;
-      name: string;
-    }
+    Pick<Service, "ports" | "preserve_base_path" | "name">
   > | null;
 }) => {
   const {
@@ -45,9 +43,13 @@ export const ServicesMenu = ({
     navigateTo,
   } = useCustomRoute();
 
+  const isJobRun = hasValue(jobUuid && runUuid);
+
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
-      siteMap.pipelineSettings.path,
+      isJobRun
+        ? siteMap.jobRunPipelineSettings.path
+        : siteMap.pipelineSettings.path,
       {
         query: {
           projectUuid,

@@ -22,7 +22,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 import { useLocation, useRouteMatch } from "react-router-dom";
 import { IconButton } from "./common/IconButton";
-import ProjectSelector from "./ProjectSelector";
+import { ProjectSelector } from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
 
 export const HeaderBar = ({

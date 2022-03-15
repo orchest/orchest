@@ -10,7 +10,6 @@ import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import ServiceForm from "@/components/ServiceForm";
 import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
-import { ServiceTemplate } from "@/components/ServiceTemplatesDialog/content";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -37,7 +36,6 @@ import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices
 import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
-import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -64,10 +62,13 @@ import {
   uuidv4,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
-import cloneDeep from "lodash.clonedeep";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
-import { getOrderValue } from "./common";
+import {
+  generatePipelineJsonForSaving,
+  getOrderValue,
+  instantiateNewService,
+} from "./common";
 import { useFetchPipelineMetadata } from "./useFetchPipelineMetadata";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
@@ -135,8 +136,8 @@ const PipelineSettingsView: React.FC = () => {
 
   const { getSession } = useSessionsContext();
 
-  const isReadOnly =
-    (hasValue(runUuid) && hasValue(jobUuid)) || isReadOnlyFromQueryString;
+  const isJobRun = hasValue(jobUuid && runUuid);
+  const isReadOnly = isJobRun || isReadOnlyFromQueryString;
 
   // Fetching data
   const {
@@ -144,41 +145,23 @@ const PipelineSettingsView: React.FC = () => {
     envVariables,
     setEnvVariables,
     pipelinePath,
+    setPipelinePath,
+    services,
+    setServices,
+    settings,
+    setSettings,
     pipelineJson,
-    setPipelineJson,
+    pipelineName,
+    setPipelineName,
+    inputParameters,
+    setInputParameters,
   } = useFetchPipelineMetadata({ projectUuid, pipelineUuid, jobUuid, runUuid });
 
-  React.useEffect(() => {
-    if (pipelineJson) {
-      dispatch({
-        type: "pipelineSet",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-        },
-      });
-    }
-  }, [pipelineJson, pipelineUuid, projectUuid, dispatch]);
-
   // local states
-  const [inputParameters, setInputParameters] = React.useState<string>(
-    JSON.stringify({}, null, 2)
-  );
 
-  React.useEffect(() => {
-    if (pipelineJson) {
-      setInputParameters(JSON.stringify(pipelineJson.parameters));
-      dispatch({
-        type: "pipelineSet",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-        },
-      });
-    }
-  }, [pipelineJson, pipelineUuid, projectUuid, dispatch]);
+  const allServiceNames = React.useMemo(() => {
+    return new Set(Object.values(services || {}).map((s) => s.name));
+  }, [services]);
 
   const [tabIndex, setTabIndex] = React.useState<number>(
     tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
@@ -199,45 +182,24 @@ const PipelineSettingsView: React.FC = () => {
     setEnvVarsChanged(false);
   }
 
-  const promiseManagerRef = React.useRef(new PromiseManager());
+  const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
   const hasLoaded =
     pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
 
   // If the component has loaded, attach the resize listener
-  const overflowListener = React.useRef(new OverflowListener());
+  const overflowListener = React.useMemo(() => new OverflowListener(), []);
   React.useEffect(() => {
     if (hasLoaded) {
-      overflowListener.current.attach();
+      overflowListener.attach();
     }
-  }, [hasLoaded]);
-
-  const addServiceFromTemplate = (service: ServiceTemplate["config"]) => {
-    let clonedService = cloneDeep(service);
-
-    const services = pipelineJson?.services || {};
-
-    const allNames = new Set(Object.values(services).map((s) => s.name));
-
-    let count = 0;
-    // assuming that user won't have more than 100 instances of the same service
-    while (count < 100) {
-      const newName = `${clonedService.name}${count === 0 ? "" : count}`;
-      if (!allNames.has(newName)) {
-        clonedService.name = newName;
-        break;
-      }
-      count += 1;
-    }
-
-    onChangeService(uuidv4(), clonedService);
-  };
+  }, [hasLoaded, overflowListener]);
 
   const onChangeService = (uuid: string, service: Service) => {
-    setPipelineJson((current) => {
+    setServices((current) => {
       // Maintain client side order key
       if (service.order === undefined) service.order = getOrderValue();
-      current.services[uuid] = service;
+      current[uuid] = service;
       return current;
     });
 
@@ -245,10 +207,10 @@ const PipelineSettingsView: React.FC = () => {
     setAsSaved(false);
   };
 
-  const deleteService = async (serviceName: string) => {
-    setPipelineJson((current) => {
-      delete current.services[serviceName];
-      return current;
+  const deleteService = async (serviceUuid: string) => {
+    setServices((current) => {
+      const { [serviceUuid]: serviceToRemove, ...remainder } = current; // eslint-disable-line @typescript-eslint/no-unused-vars
+      return remainder;
     });
 
     setServicesChanged(true);
@@ -264,7 +226,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const closeSettings = () => {
-    navigateTo(siteMap.pipeline.path, {
+    navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
       query: {
         projectUuid,
         pipelineUuid,
@@ -275,62 +237,23 @@ const PipelineSettingsView: React.FC = () => {
     });
   };
 
-  const onChangeName = (value: string) => {
-    setPipelineJson((current) => ({ ...current, name: value }));
-    setAsSaved(false);
-  };
-
-  const onChangePipelineParameters = (editor, data, value) => {
+  const onChangePipelineParameters = (editor, data, value: string) => {
     setInputParameters(value);
-
-    try {
-      const parametersJSON = JSON.parse(value);
-      setPipelineJson((current) => ({
-        ...current,
-        parameters: parametersJSON,
-      }));
-
-      setAsSaved(false);
-    } catch (err) {}
   };
 
   const onChangeDataPassingMemorySize = (value: string) => {
-    setPipelineJson((current) => {
-      return {
-        ...current,
-        settings: { ...current.settings, data_passing_memory_size: value },
-      };
+    setSettings((current) => {
+      return { ...current, data_passing_memory_size: value };
     });
-    setAsSaved(false);
   };
 
   const onChangeEviction = (value: boolean) => {
-    setPipelineJson((current) => {
-      return {
-        ...current,
-        settings: { ...current.settings, auto_eviction: value },
-      };
+    setSettings((current) => {
+      return { ...current, auto_eviction: value };
     });
-
-    setAsSaved(false);
   };
 
-  const cleanPipelineJson = (
-    pipelineJson: PipelineJson
-  ): Omit<PipelineJson, "order"> => {
-    let pipelineCopy = cloneDeep(pipelineJson);
-    for (let uuid in pipelineCopy.services) {
-      const serviceName = pipelineCopy.services[uuid].name;
-      delete pipelineCopy.services[uuid].order;
-      pipelineCopy.services[serviceName] = {
-        ...pipelineCopy.services[uuid],
-      };
-      delete pipelineCopy.services[uuid];
-    }
-    return pipelineCopy;
-  };
-
-  const validateServiceEnvironmentVariables = (pipeline: any) => {
+  const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
     for (let serviceName in pipeline.services) {
       let service = pipeline.services[serviceName];
 
@@ -351,20 +274,25 @@ const PipelineSettingsView: React.FC = () => {
     return true;
   };
 
-  const saveGeneralForm = async (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const saveGeneralForm = async () => {
+    // do not mutate the original pipelineJson
+    // put all mutations together for saving
+    const updatedPipelineJson = generatePipelineJsonForSaving({
+      pipelineJson,
+      inputParameters,
+      pipelineName,
+      services,
+      settings,
+    });
 
-    // Remove order property from services
-    let cleanedPipelineJson = cleanPipelineJson(pipelineJson);
-
-    let validationResult = validatePipeline(cleanedPipelineJson);
+    let validationResult = validatePipeline(updatedPipelineJson);
     if (!validationResult.valid) {
       setAlert("Error", validationResult.errors[0]);
       return;
     }
 
     // Validate environment variables of services
-    if (!validateServiceEnvironmentVariables(cleanedPipelineJson)) {
+    if (!validateServiceEnvironmentVariables(updatedPipelineJson)) {
       return;
     }
 
@@ -389,7 +317,7 @@ const PipelineSettingsView: React.FC = () => {
     }
 
     let formData = new FormData();
-    formData.append("pipeline_json", JSON.stringify(cleanedPipelineJson));
+    formData.append("pipeline_json", JSON.stringify(updatedPipelineJson));
 
     Promise.allSettled([
       makeRequest(
@@ -403,7 +331,7 @@ const PipelineSettingsView: React.FC = () => {
             // Sync name changes with the global context
             dispatch({
               type: "pipelineSet",
-              payload: { pipelineName: pipelineJson?.name },
+              payload: { pipelineName },
             });
           }
         })
@@ -418,7 +346,10 @@ const PipelineSettingsView: React.FC = () => {
         }),
       makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
         type: "json",
-        content: { env_variables: envVariablesObj.value },
+        content: {
+          env_variables: envVariablesObj.value,
+          path: !session ? pipelinePath : undefined, // path cannot be changed when there is an active session
+        },
       }).catch((response) => {
         setAlert("Error", "Could not save: environment variables");
         console.error(response);
@@ -440,7 +371,7 @@ const PipelineSettingsView: React.FC = () => {
           "PUT",
           `/catch/api-proxy/api/sessions/${projectUuid}/${pipelineUuid}`
         ),
-        promiseManagerRef.current
+        promiseManager
       );
 
       restartPromise.promise
@@ -514,37 +445,45 @@ const PipelineSettingsView: React.FC = () => {
     },
   ];
 
-  const serviceRows: DataTableRow<ServiceRow>[] = !pipelineJson
-    ? []
-    : Object.entries(pipelineJson.services)
-        .sort((a, b) => a[1].order - b[1].order)
-        .map(([key, service]) => {
-          return {
-            uuid: key,
-            name: service.name,
-            scope: service.scope
-              .map((scopeAsString) => scopeMap[scopeAsString])
-              .join(", "),
-            remove: key,
-            details: (
-              <ServiceForm
-                key={key}
-                serviceUuid={key}
-                service={service}
-                services={pipelineJson.services}
-                disabled={isReadOnly}
-                updateService={(updated) => onChangeService(key, updated)}
-                pipeline_uuid={pipelineUuid}
-                project_uuid={projectUuid}
-                run_uuid={runUuid}
-              />
-            ),
-          };
-        });
+  const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
+    .sort((a, b) => a[1].order - b[1].order)
+    .map(([key, service]) => {
+      return {
+        uuid: key,
+        name: service.name,
+        scope: service.scope
+          .map((scopeAsString) => scopeMap[scopeAsString])
+          .join(", "),
+        remove: key,
+        details: (
+          <ServiceForm
+            key={key}
+            serviceUuid={key}
+            service={service}
+            services={services}
+            disabled={isReadOnly}
+            updateService={(updated) => onChangeService(key, updated)}
+            pipeline_uuid={pipelineUuid}
+            project_uuid={projectUuid}
+            run_uuid={runUuid}
+          />
+        ),
+      };
+    });
 
   const isMemorySizeValid = isValidMemorySize(
-    pipelineJson?.settings?.data_passing_memory_size || ""
+    settings?.data_passing_memory_size || ""
   );
+
+  const prettifyInputParameters = () => {
+    setInputParameters((current) => {
+      try {
+        return JSON.stringify(JSON.parse(current));
+      } catch (error) {
+        return current;
+      }
+    });
+  };
 
   return (
     <Layout>
@@ -599,10 +538,9 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="column">
                         <TextField
-                          value={pipelineJson?.name}
+                          value={pipelineName}
                           margin="normal"
-                          multiline
-                          onChange={(e) => onChangeName(e.target.value)}
+                          onChange={(e) => setPipelineName(e.target.value)}
                           label="Pipeline name"
                           disabled={isReadOnly}
                           fullWidth
@@ -617,11 +555,20 @@ const PipelineSettingsView: React.FC = () => {
                         <h3>Path</h3>
                       </div>
                       <div className="column">
-                        <Box sx={{ width: "100%" }}>
-                          <Code sx={{ wordBreak: "break-word" }}>
-                            {pipelinePath}
-                          </Code>
-                        </Box>
+                        <TextField
+                          value={pipelinePath}
+                          margin="normal"
+                          onChange={(e) => setPipelinePath(e.target.value)}
+                          label="Pipeline path"
+                          disabled={isReadOnly || hasValue(session)}
+                          helperText={
+                            session
+                              ? "You need to stop session before changing pipeline path"
+                              : ""
+                          }
+                          fullWidth
+                          data-test-id="pipeline-settings-configuration-pipeline-path"
+                        />
                       </div>
                       <div className="clear"></div>
                     </div>
@@ -639,6 +586,7 @@ const PipelineSettingsView: React.FC = () => {
                             lineNumbers: true,
                             readOnly: isReadOnly,
                           }}
+                          onBlur={() => prettifyInputParameters()}
                           onBeforeChange={onChangePipelineParameters}
                         />
                         {(() => {
@@ -699,7 +647,7 @@ const PipelineSettingsView: React.FC = () => {
                             disabled={isReadOnly}
                             control={
                               <Checkbox
-                                checked={pipelineJson?.settings?.auto_eviction}
+                                checked={settings?.auto_eviction}
                                 onChange={(e) => {
                                   onChangeEviction(e.target.checked);
                                 }}
@@ -719,20 +667,19 @@ const PipelineSettingsView: React.FC = () => {
                         )}
 
                         <TextField
-                          value={pipelineJson.settings.data_passing_memory_size}
+                          value={settings.data_passing_memory_size}
                           onChange={(e) =>
                             onChangeDataPassingMemorySize(e.target.value)
                           }
                           margin="normal"
                           label="Data passing memory size"
+                          error={!isMemorySizeValid}
+                          helperText={
+                            !isMemorySizeValid ? "Not a valid memory size." : ""
+                          }
                           disabled={isReadOnly}
                           data-test-id="pipeline-settings-configuration-memory-size"
                         />
-                        {!isMemorySizeValid && (
-                          <Alert severity="warning">
-                            Not a valid memory size.
-                          </Alert>
-                        )}
                       </Stack>
                       <div className="clear"></div>
                     </div>
@@ -860,9 +807,13 @@ const PipelineSettingsView: React.FC = () => {
                   </CustomAlert>
                   {!isReadOnly && (
                     <ServiceTemplatesDialog
-                      onSelection={(template) =>
-                        addServiceFromTemplate(template)
-                      }
+                      onSelection={(template) => {
+                        const newService = instantiateNewService(
+                          allServiceNames,
+                          template
+                        );
+                        onChangeService(uuidv4(), newService);
+                      }}
                     />
                   )}
                 </Stack>

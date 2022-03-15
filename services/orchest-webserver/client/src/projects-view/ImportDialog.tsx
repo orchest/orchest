@@ -50,7 +50,7 @@ const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
 };
 
 const getProjectNameFromUrl = (importUrl: string) => {
-  const matchGithubRepoName = importUrl.match(/\/([^\/]+)$/);
+  const matchGithubRepoName = importUrl.match(/\/([^\/]+)\/?$/);
   return matchGithubRepoName ? matchGithubRepoName[1] : "";
 };
 
