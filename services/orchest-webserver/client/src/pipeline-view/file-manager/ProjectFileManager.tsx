@@ -2,15 +2,12 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
-import { Step } from "@/types";
-import { getOffset } from "@/utils/jquery-replacement";
+import { Position, Step } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { uuidv4 } from "@orchest/lib-utils";
+import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import { getScaleCorrectedPosition } from "../common";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { cleanFilePath, getStepFilePath, isNotebookFile } from "./common";
 import { FileManager } from "./FileManager";
 
@@ -18,11 +15,8 @@ export const ProjectFileManager = () => {
   const { setAlert } = useAppContext();
   const { navigateTo, jobUuid } = useCustomRoute();
   const {
-    mouseTracker,
-    pipelineCanvasRef,
     environments,
     dispatch,
-    eventVars,
     openNotebook,
     projectUuid,
     pipelineUuid,
@@ -41,120 +35,143 @@ export const ProjectFileManager = () => {
     }, [] as Step[]);
   }, [pipelineJson]);
 
-  const isJobRun = jobUuid && runUuid;
-  const jobRunQueryArgs = React.useMemo(() => ({ jobUuid, runUuid }), [
-    jobUuid,
-    runUuid,
-  ]);
+  const { isJobRun, jobRunQueryArgs } = React.useMemo(() => {
+    return {
+      isJobRun: hasValue(jobUuid) && hasValue(runUuid),
+      jobRunQueryArgs: { jobUuid, runUuid },
+    };
+  }, [jobUuid, runUuid]);
 
   const environment = environments.length > 0 ? environments[0] : null;
 
+  const onEdit = React.useCallback(
+    (filePath) => {
+      openNotebook(undefined, cleanFilePath(filePath));
+    },
+    [openNotebook]
+  );
+
+  const onOpen = React.useCallback(
+    (filePath) => {
+      openNotebook(undefined, cleanFilePath(filePath));
+    },
+    [openNotebook]
+  );
+
+  const onView = React.useCallback(
+    (filePath) => {
+      const foundStep = Object.values(pipelineJson.steps).find((step) => {
+        return step.file_path.replace(/^\.\//, "") === cleanFilePath(filePath);
+      });
+
+      if (!foundStep) {
+        setAlert(
+          "Warning",
+          <div>
+            <Code>{cleanFilePath(filePath)}</Code> is not yet used in this
+            pipeline. To preview the file, you need to assign this file to a
+            step first.
+          </div>
+        );
+        return;
+      }
+
+      navigateTo(siteMap.filePreview.path, {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          stepUuid: foundStep.uuid,
+          ...(isJobRun ? jobRunQueryArgs : undefined),
+        },
+        state: { isReadOnly },
+      });
+    },
+    [
+      isJobRun,
+      isReadOnly,
+      jobRunQueryArgs,
+      navigateTo,
+      pipelineJson?.steps,
+      pipelineUuid,
+      projectUuid,
+      setAlert,
+    ]
+  );
+
+  const onDropOutside = React.useCallback(
+    (target: EventTarget, selected: string[], dropPosition: Position) => {
+      const { forbidden, allowed } = selected.reduce(
+        (all, curr) => {
+          const foundStep = allNotebookFileSteps.find((step) => {
+            return step.file_path === cleanFilePath(curr);
+          });
+
+          return foundStep
+            ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
+            : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
+        },
+        { forbidden: [], allowed: [] }
+      );
+
+      if (forbidden.length > 0) {
+        setAlert(
+          "Warning",
+          <Stack spacing={2} direction="column">
+            <Box>
+              Following Notebook files have already been used in the pipeline.
+              Assigning the same Notebook file to multiple steps is not
+              supported. Please convert to a script to re-use file across
+              pipeline steps.
+            </Box>
+            <ul>
+              {forbidden.map((file) => (
+                <Box key={file}>
+                  <Code>{cleanFilePath(file)}</Code>
+                </Box>
+              ))}
+            </ul>
+          </Stack>
+        );
+      }
+
+      allowed.forEach((filePath) => {
+        dispatch({
+          type: "CREATE_STEP",
+          payload: {
+            title: "",
+            uuid: uuidv4(),
+            incoming_connections: [],
+            file_path: filePath,
+            kernel: {
+              name: environment?.language || "python",
+              display_name: environment?.name || "Python",
+            },
+            environment: environment?.uuid,
+            parameters: {},
+            meta_data: {
+              position: [dropPosition.x, dropPosition.y],
+              hidden: false,
+            },
+          },
+        });
+      });
+    },
+    [
+      allNotebookFileSteps,
+      dispatch,
+      environment?.language,
+      environment?.name,
+      environment?.uuid,
+      setAlert,
+    ]
+  );
+
   return (
     <FileManager
-      onDropOutside={(props, selected) => {
-        const clientPosition = {
-          x: mouseTracker.current.client.x - STEP_WIDTH / 2,
-          y: mouseTracker.current.client.y - STEP_HEIGHT / 2,
-        };
-        const { x, y } = getScaleCorrectedPosition({
-          offset: getOffset(pipelineCanvasRef.current),
-          position: clientPosition,
-          scaleFactor: eventVars.scaleFactor,
-        });
-
-        const position = [x, y] as [number, number];
-
-        const { forbidden, allowed } = selected.reduce(
-          (all, curr) => {
-            const foundStep = allNotebookFileSteps.find((step) => {
-              return step.file_path === cleanFilePath(curr);
-            });
-
-            return foundStep
-              ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
-              : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
-          },
-          { forbidden: [], allowed: [] }
-        );
-
-        if (forbidden.length > 0) {
-          setAlert(
-            "Warning",
-            <Stack spacing={2} direction="column">
-              <Box>
-                Following Notebook files have already been used in the pipeline.
-                Assigning the same Notebook file to multiple steps is not
-                supported. Please convert to a script to re-use file across
-                pipeline steps.
-              </Box>
-              <ul>
-                {forbidden.map((file) => (
-                  <Box key={file}>
-                    <Code>{cleanFilePath(file)}</Code>
-                  </Box>
-                ))}
-              </ul>
-            </Stack>
-          );
-        }
-
-        allowed.forEach((filePath) => {
-          dispatch({
-            type: "CREATE_STEP",
-            payload: {
-              title: "",
-              uuid: uuidv4(),
-              incoming_connections: [],
-              file_path: filePath,
-              kernel: {
-                name: environment?.language || "python",
-                display_name: environment?.name || "Python",
-              },
-              environment: environment?.uuid,
-              parameters: {},
-              meta_data: {
-                position,
-                hidden: false,
-              },
-            },
-          });
-        });
-      }}
-      onEdit={(filePath) => {
-        openNotebook(undefined, cleanFilePath(filePath));
-      }}
-      onOpen={(filePath) => {
-        openNotebook(undefined, cleanFilePath(filePath));
-      }}
-      onView={(filePath) => {
-        const foundStep = Object.values(pipelineJson.steps).find((step) => {
-          return (
-            step.file_path.replace(/^\.\//, "") === cleanFilePath(filePath)
-          );
-        });
-
-        if (!foundStep) {
-          setAlert(
-            "Warning",
-            <div>
-              <Code>{cleanFilePath(filePath)}</Code> is not yet used in this
-              pipeline. To preview the file, you need to assign this file to a
-              step first.
-            </div>
-          );
-          return;
-        }
-
-        navigateTo(siteMap.filePreview.path, {
-          query: {
-            projectUuid,
-            pipelineUuid,
-            stepUuid: foundStep.uuid,
-            ...(isJobRun ? jobRunQueryArgs : undefined),
-          },
-          state: { isReadOnly },
-        });
-      }}
+      onDropOutside={onDropOutside}
+      onEdit={onEdit}
+      onOpen={onOpen}
+      onView={onView}
     />
   );
 };
