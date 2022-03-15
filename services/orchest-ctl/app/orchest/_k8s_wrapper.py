@@ -67,7 +67,7 @@ def get_orchest_deployments_pods(
         deployments = [d for d in get_orchest_deployments(deployments) if d is not None]
     elif not all(isinstance(depl, k8s_client.V1Deployment) for depl in deployments):
         raise ValueError(
-            "Deployments should either all be of type string or of type V1Deployments."
+            "Deployments should either all be of type string or of type V1Deployment."
         )
 
     threads = []
@@ -88,12 +88,78 @@ def get_orchest_deployments_pods(
     return pods
 
 
+def get_orchest_daemonsets_pods(
+    daemonsets: Optional[Union[List[str], List[k8s_client.V1DaemonSet]]] = None,
+) -> List[Optional[k8s_client.V1Pod]]:
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+
+    if all(isinstance(daem, str) for daem in daemonsets):
+        daemonsets = [d for d in get_orchest_daemonsets(daemonsets) if d is not None]
+    elif not all(isinstance(daem, k8s_client.V1DaemonSet) for daem in daemonsets):
+        raise ValueError(
+            "Daemonsets should either all be of type string or of type V1Daemonset."
+        )
+
+    threads = []
+    for daem in daemonsets:
+        t = k8s_core_api.list_namespaced_pod(
+            config.ORCHEST_NAMESPACE,
+            label_selector=_match_labels_to_label_selector(
+                daem.spec.selector.match_labels
+            ),
+            async_req=True,
+        )
+        threads.append(t)
+
+    pods = []
+    for t in threads:
+        depl_pods = t.get()
+        pods.extend(depl_pods.items)
+    return pods
+
+
 def scale_up_orchest_deployments(deployments: Optional[List[str]] = None):
     _scale_orchest_deployments(deployments, 1)
 
 
 def scale_down_orchest_deployments(deployments: Optional[List[str]] = None):
     _scale_orchest_deployments(deployments, 0)
+
+
+def get_orchest_daemonsets(
+    daemonsets: Optional[List[str]] = None,
+) -> List[Optional[k8s_client.V1DaemonSet]]:
+    """Returns Daemonsets objects given their name.
+
+    Args:
+        deployments: Names of daemonsets to retrieve. If not passed or
+            None, config.ORCHEST_DAEMONSETS will be used.
+
+    Return:
+        List of Daemonsets objects, returned in the same order as the
+        given deployments argument.
+    """
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+    threads = []
+    for name in daemonsets:
+        t = k8s_apps_api.read_namespaced_daemon_set(
+            name, config.ORCHEST_NAMESPACE, async_req=True
+        )
+        threads.append(t)
+
+    responses = []
+    for t in threads:
+        try:
+            daemonset = t.get()
+            responses.append(daemonset)
+        except k8s_client.ApiException as e:
+            if e.status == 404:
+                responses.append(None)
+            else:
+                raise
+    return responses
 
 
 def _scale_orchest_deployments(
@@ -107,6 +173,61 @@ def _scale_orchest_deployments(
             name,
             config.ORCHEST_NAMESPACE,
             {"spec": {"replicas": replicas}},
+            async_req=True,
+        )
+        threads.append(t)
+    for t in threads:
+        t.get()
+
+
+def scale_up_orchest_daemonsets(daemonsets: Optional[List[str]] = None) -> None:
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+    threads = []
+    for name in daemonsets:
+        t = k8s_apps_api.patch_namespaced_daemon_set(
+            name,
+            config.ORCHEST_NAMESPACE,
+            body=[
+                {
+                    "op": "remove",
+                    "path": (
+                        "/spec/template/spec/nodeSelector/"
+                        + config.DAEMONSET_SCALING_FLAG
+                    ),
+                }
+            ],
+            async_req=True,
+        )
+        threads.append(t)
+
+    for t in threads:
+        try:
+            t.get()
+        except k8s_client.ApiException as e:
+            # The daemonset was already running, i.e. there was no
+            # nodeSelector flag set.
+            if e.status != 422:
+                raise e
+
+
+def scale_down_orchest_daemonsets(daemonsets: Optional[List[str]] = None) -> None:
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+    threads = []
+    for name in daemonsets:
+        t = k8s_apps_api.patch_namespaced_daemon_set(
+            name,
+            config.ORCHEST_NAMESPACE,
+            body={
+                "spec": {
+                    "template": {
+                        "spec": {
+                            "nodeSelector": {config.DAEMONSET_SCALING_FLAG: "true"}
+                        }
+                    }
+                }
+            },
             async_req=True,
         )
         threads.append(t)

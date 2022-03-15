@@ -11,10 +11,11 @@ spec:
       labels:
         {{- include "library.labels.selector" . | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: 1
       containers:
       - name: node-agent
         image: {{ .Values.images.name }}
-        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        imagePullPolicy: IfNotPresent
         command:
         - python
         - ./app/main.py
