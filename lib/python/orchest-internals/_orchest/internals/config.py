@@ -9,7 +9,8 @@ USERDIR_PROJECTS = "/userdir/projects"
 USERDIR_ENV_IMG_BUILDS = "/userdir/.orchest/env-img-builds"
 USERDIR_JUPYTER_IMG_BUILDS = "/userdir/.orchest/jupyter-img-builds"
 USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
-USERDIR_BASE_IMAGES_CACHE = "/userdir/.orchest/base-images-cache"
+USERDIR_KANIKO_BASE_IMAGES_CACHE = "/userdir/.orchest/kaniko-base-images-cache"
+USERDIR_BUILDKIT_CACHE = "/userdir/.orchest/buildkit-cache"
 
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
@@ -121,3 +122,6 @@ SIDECAR_PORT = 1111
 
 ORCHEST_NAMESPACE = "orchest"
 ORCHEST_CTL_POD_YAML_PATH = "/orchest/deploy/orchest-ctl/pod.yml"
+ORCHEST_UPDATE_INFO_URL = (
+    "https://update-info.orchest.io/api/orchest/update-info/v2?version={version}"
+)

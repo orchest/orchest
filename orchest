@@ -45,6 +45,9 @@ if [ "$1"  == "install" ]; then
     rm -rf "${DIR}/deploy/bin" > /dev/null
     make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
     echo "Running orchest-ctl."
+elif ! minikube kubectl get namespace orchest > /dev/null 2>&1 ; then
+    echo "You need to install Orchest before running other commands."
+    exit 1
 fi
 
 # Script and dependencies, i.e. yaml files.

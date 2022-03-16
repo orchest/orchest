@@ -10,13 +10,13 @@ Get the name of the userdir pvc.
 {{- end -}}
 
 {{/*
-Get the name of the kaniko pvc.
+Get the name of the image builder pvc.
 */}}
-{{- define "library.cluster.orchest.kanikocache.name" -}}
-  {{- if .Values.kanikocache.name -}}
-    {{ .Values.kanikocache.name | trunc 63 | trimSuffix "-" }}
+{{- define "library.cluster.orchest.imagebuildercache.name" -}}
+  {{- if .Values.imagebuildercache.name -}}
+    {{ .Values.imagebuildercache.name | trunc 63 | trimSuffix "-" }}
   {{- else -}}
-    {{ "kaniko-cache-pvc" }}
+    {{ "image-builder-cache-pvc" }}
   {{- end }}
 {{- end -}}
 

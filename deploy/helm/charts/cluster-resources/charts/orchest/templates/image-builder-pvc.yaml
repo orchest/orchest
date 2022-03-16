@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "library.cluster.orchest.kanikocache.name" . }}
+  name: {{ include "library.cluster.orchest.imagebuildercache.name" . }}
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:

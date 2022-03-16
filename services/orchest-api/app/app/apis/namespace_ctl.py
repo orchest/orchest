@@ -61,6 +61,9 @@ class OrchestImagesToPrePull(Resource):
         pre_pull_orchest_images = [
             f"orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",
             f"orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
+            # This image is only used in the builder node, pull it
+            # anyway through the daemonset? (it's around 50 MB).
+            CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
             utils.get_jupyter_server_image_to_use(),
         ]
         pre_pull_orchest_images = {"pre_pull_orchest_images": pre_pull_orchest_images}

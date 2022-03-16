@@ -5,7 +5,9 @@ from typing import Optional, Tuple
 from flask import request
 from flask_restx import Namespace, Resource
 
-from app import schema
+from app import errors as self_errors
+from app import models, schema
+from app.core import environments
 from app.utils import register_schema
 
 api = Namespace("validations", description="Validates system requirements")
@@ -32,7 +34,29 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
         `action` is one of ["BUILD", "WAIT", "RETRY", None]
 
     """
-    # K8S_TODO: fix.
+    try:
+        environments.get_env_uuids_to_image_mappings(project_uuid, set(env_uuid))
+    except self_errors.ImageNotFound:
+        # Check the build history for the environment to determine the
+        # action.
+        env_builds = models.EnvironmentBuild.query.filter_by(
+            project_uuid=project_uuid, environment_uuid=env_uuid
+        )
+        num_building_builds = env_builds.filter(
+            models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+        ).count()
+
+        if num_building_builds > 0:
+            return "fail", "WAIT"
+
+        num_failed_builds = env_builds.filter(
+            models.EnvironmentBuild.status.in_(["FAILURE"])
+        ).count()
+        if num_failed_builds > 0:
+            return "fail", "RETRY"
+
+        return "fail", "BUILD"
+
     return "pass", None
 
 

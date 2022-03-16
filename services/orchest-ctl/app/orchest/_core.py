@@ -64,7 +64,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
     env["ORCHEST_DEFAULT_TAG"] = config.ORCHEST_VERSION
     # This way the command will only interact with orchest resources,
-    # and not their dependencies (vpcs, etc.).
+    # and not their dependencies (pvcs, etc.).
     env["DEPEND_RESOURCES"] = "FALSE"
     process = subprocess.Popen(
         cmd,
@@ -223,8 +223,7 @@ def status(output_json: bool = False):
 
     Note:
         This is not race condition free, given that a status changing
-        command could start after our read. K8S_TODO: we could try
-        multiple times if the cluster looks unhealthy, discuss.
+        command could start after our read.
     """
     config.JSON_MODE = output_json
     utils.echo("Checking for ongoing status changes...")
@@ -486,8 +485,9 @@ def start(log_level: utils.LogLevel, cloud: bool):
 
         # Do this after scaling but before waiting for all deployments
         # to be ready so that those can happen concurrently.
-        logger.info("Setting 'userdir/' permissions.")
-        utils.fix_userdir_permissions()
+        if not cloud:
+            logger.info("Setting 'userdir/' permissions.")
+            utils.fix_userdir_permissions()
         progress_bar.update(1)
 
         _wait_daemonsets_to_be_ready(daemonsets_to_start, progress_bar)
@@ -639,7 +639,9 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
-    # K8S_TODO: delete user-built jupyter images.
+    # K8S_TODO: delete user-built jupyter images. Perhaps another
+    # `cleanup` operation that runs on update? Seems like something for
+    # the env lifecycle PR
     orchest_version = os.environ.get("ORCHEST_VERSION")
     if orchest_version is None:
         utils.echo(

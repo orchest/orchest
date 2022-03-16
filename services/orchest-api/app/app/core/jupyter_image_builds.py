@@ -57,6 +57,9 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
     """
     statements = []
     statements.append(f"FROM orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}")
+    # Create a layer (apparently helps with buildkit caching base image
+    # layers). Also helps with logs (see _build_image).
+    statements.append("RUN echo orchest")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -65,17 +68,17 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
     # exit_code != 0 will bubble up and cause the build to fail, as it
     # should. The bash script is removed so that the user won't be able
     # to see it after the build is done.
-    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
-        f"RUN bash {bash_script} "
+        f"RUN echo {flag} && bash < {bash_script} "
         "&& build_path_ext=/jupyterlab-orchest-build/extensions "
         "&& userdir_path_ext=/usr/local/share/jupyter/lab/extensions "
         "&& if [ -d $userdir_path_ext ] && [ -d $build_path_ext ]; then "
         "cp -rfT $userdir_path_ext $build_path_ext &> /dev/null ; fi "
-        f'&& echo "{flag}" '
+        f"&& echo {flag} "
         f"&& rm {bash_script} "
-        # The || <error flag> allows to avoid kaniko errors logs making
+        # The || <error flag> allows to avoid builder errors logs making
         # into it the user logs and tell us that there has been an
         # error.
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
@@ -204,14 +207,7 @@ def build_jupyter_image_task(task_uuid):
             raise e
         finally:
             # We get here either because the task was successful or was
-            # aborted, in any case, delete the workflows.
-            k8s_custom_obj_api.delete_namespaced_custom_object(
-                "argoproj.io",
-                "v1alpha1",
-                _config.ORCHEST_NAMESPACE,
-                "workflows",
-                f"image-cache-task-{task_uuid}",
-            )
+            # aborted, in any case, delete the workflow.
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",

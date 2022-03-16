@@ -48,8 +48,7 @@ class Config:
             "orchest_examples_data.json"
         ),
         "orchest_update_info_json": (
-            "https://update-info.orchest.io/api/orchest/update-info/v2"
-            f'?version={os.getenv("ORCHEST_VERSION")}'
+            _config.ORCHEST_UPDATE_INFO_URL.format(version=os.getenv("ORCHEST_VERSION"))
         ),
     }
 

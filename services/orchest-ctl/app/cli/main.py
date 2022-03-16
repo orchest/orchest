@@ -161,11 +161,6 @@ def install(
     Installation might take some time depending on your network
     bandwidth.
     """
-    # Make sure the permissions of the userdir are correctly set in case
-    # Orchest will always be started using `--cloud` in the future (as
-    # in other modes the permissions are fixed on start).
-    # K8S_TODO: is this still needed?
-    # fix_userdir_permissions()
     orchest.install(log_level, cloud)
 
 
