@@ -5,7 +5,7 @@ ROOK_CEPH_NAMESPACE := ${if ${ROOK_CEPH_NAMESPACE},${ROOK_CEPH_NAMESPACE},rook-c
 
 ROOK_NFS_NAMESPACE := ${if ${ROOK_NFS_NAMESPACE},${ROOK_NFS_NAMESPACE},rook-nfs}
 
-DEFAULT_TAG := ${if ${DEFAULT_TAG},${DEFAULT_TAG},latest}
+ORCHEST_DEFAULT_TAG := ${if ${ORCHEST_DEFAULT_TAG},${ORCHEST_DEFAULT_TAG},latest}
 
 # If DEPEND_RESOURCES is set to FALSE, the orchest target is not dependent 
 # to orchest-resources target, thus orchest-resources must have been deployed already
@@ -17,7 +17,6 @@ endif
 
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
-ORCHEST_API_TAG := ${if ${ORCHEST_API_TAG},${ORCHEST_API_TAG},${DEFAULT_TAG}}
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
 CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 
@@ -132,46 +131,75 @@ NFS_RSC_DEPLOY_CONFIG := nfs-resources \
 						${NFS_RSC_ENABLE_CONFIG} helm
 
 # orchest Api deployment configs
+ORCHEST_API_TAG := ${if ${ORCHEST_API_TAG},${ORCHEST_API_TAG},${ORCHEST_DEFAULT_TAG}}
+ORCHEST_API_TAG_CONFIG := --set orchest-api.images.tag=${ORCHEST_API_TAG}
 ORCHEST_API_ENABLE_CONFIG := --set orchest-api.enabled=true
+ORCHEST_API_CONFIG := ${ORCHEST_API_TAG_CONFIG} \
+					  ${ORCHEST_API_ENABLE_CONFIG}
 
 # auth-server deployment configs
+AUTH_SERVER_TAG := ${if ${AUTH_SERVER_TAG},${AUTH_SERVER_TAG},${ORCHEST_DEFAULT_TAG}}
+AUTH_SERVER_TAG_CONFIG := --set auth-server.images.tag=${AUTH_SERVER_TAG}
 AUTH_SERVER_ENABLE_CONFIG := --set auth-server.enabled=true
+AUTH_SERVER_CONFIG := ${AUTH_SERVER_TAG_CONFIG} \
+					  ${AUTH_SERVER_ENABLE_CONFIG}
 
 # celery-worker deployment configs
+CELERY_WORKER_TAG := ${if ${CELERY_WORKER_TAG},${CELERY_WORKER_TAG},${ORCHEST_DEFAULT_TAG}}
+CELERY_WORKER_TAG_CONFIG := --set celery-worker.images.tag=${CELERY_WORKER_TAG}
 CELERY_WORKER_ENABLE_CONFIG := --set celery-worker.enabled=true
+CELERY_WORKER_CONFIG := ${CELERY_WORKER_TAG_CONFIG} \
+						${CELERY_WORKER_ENABLE_CONFIG}
 
 # file-manager deployment configs
+FILE_MANAGER_TAG := ${if ${FILE_MANAGER_TAG},${FILE_MANAGER_TAG},${ORCHEST_DEFAULT_TAG}}
+FILE_MANAGER_TAG_CONFIG := --set file-manager.images.tag=${FILE_MANAGER_TAG}
 FILE_MANAGER_ENABLE_CONFIG := --set file-manager.enabled=true
+FILE_MANAGER_CONFIG := ${FILE_MANAGER_TAG_CONFIG} \
+					   ${FILE_MANAGER_ENABLE_CONFIG}
 
 # orchest-webserver deployment configs
+ORCHEST_WEBSERVER_TAG := ${if ${ORCHEST_WEBSERVER_TAG},${ORCHEST_WEBSERVER_TAG},${ORCHEST_DEFAULT_TAG}}
+ORCHEST_WEBSERVER_TAG_CONFIG := --set orchest-webserver.images.tag=${ORCHEST_WEBSERVER_TAG}
 ORCHEST_WEBSERVER_ENABLE_CONFIG := --set orchest-webserver.enabled=true
-
-# postgres deployment configs
-POSTGRES_ENABLE_CONFIG := --set postgres.enabled=true
-
-# rabbitmq deployment configs
-RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
+ORCHEST_WEBSERVER_CONFIG := ${ORCHEST_WEBSERVER_TAG_CONFIG} \
+							${ORCHEST_WEBSERVER_ENABLE_CONFIG}
 
 # update-sidecar service configs
 UPDATE_SIDECAR_ENABLE_CONFIG := --set update-sidecar.enabled=true
+UPDATE_SIDECAR_CONFIG := ${UPDATE_SIDECAR_ENABLE_CONFIG}
 
 # node-agent deployment configs
+NODE_AGENT_TAG := ${if ${NODE_AGENT_TAG},${NODE_AGENT_TAG},${ORCHEST_DEFAULT_TAG}}
+NODE_AGENT_TAG_CONFIG := --set node-agent.images.tag=${NODE_AGENT_TAG}
 NODE_AGENT_ENABLE_CONFIG := --set node-agent.enabled=true
+NODE_AGENT_CONFIG := ${NODE_AGENT_TAG_CONFIG} \
+					 ${NODE_AGENT_ENABLE_CONFIG}
 
-# Orchest deployment configs
-ORCHEST_ENABLE_CONFIG := ${ORCHEST_API_ENABLE_CONFIG} \
-						 ${AUTH_SERVER_ENABLE_CONFIG} \
-						 ${CELERY_WORKER_ENABLE_CONFIG} \
-						 ${FILE_MANAGER_ENABLE_CONFIG} \
-						 ${ORCHEST_WEBSERVER_ENABLE_CONFIG} \
-						 ${POSTGRES_ENABLE_CONFIG} \
-						 ${RABBITMQ_ENABLE_CONFIG} \
-						 ${NODE_AGENT_ENABLE_CONFIG} \
-						 ${UPDATE_SIDECAR_ENABLE_CONFIG}
+# postgres deployment configs
+POSTGRES_TAG_CONFIG := ${if ${POSTGRES_TAG},--set postgres.images.tag=${POSTGRES_TAG},}
+POSTGRES_ENABLE_CONFIG := --set postgres.enabled=true
+POSTGRES_CONFIG := ${POSTGRES_TAG_CONFIG} \
+				   ${POSTGRES_ENABLE_CONFIG}
+
+# rabbitmq deployment configs
+RABBITMQ_TAG_CONFIG := ${if ${RABBITMQ_TAG},--set rabbitmq.images.tag=${RABBITMQ_TAG},}
+RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
+RABBITMQ_CONFIG := ${RABBITMQ_TAG_CONFIG} \
+				   ${RABBITMQ_ENABLE_CONFIG}
+						 
 
 ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} \
-	${ORCHEST_ENABLE_CONFIG} \
+	${ORCHEST_API_CONFIG} \
+	${AUTH_SERVER_CONFIG} \
+	${CELERY_WORKER_CONFIG} \
+	${FILE_MANAGER_CONFIG} \
+	${UPDATE_SIDECAR_CONFIG} \
+	${ORCHEST_WEBSERVER_CONFIG} \
+	${NODE_AGENT_CONFIG} \
+	${POSTGRES_CONFIG} \
+	${RABBITMQ_CONFIG} \
 	--namespace ${NAMESPACE} \
 	--set-string auth-server.CLOUD="${CLOUD}" \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
