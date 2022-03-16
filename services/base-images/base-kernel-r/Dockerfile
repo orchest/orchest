@@ -1,11 +1,12 @@
-# Ubuntu 18.04.1 LTS Bionic
+# Ubuntu 20.04.1 LTS Focal
 FROM elyra/kernel-r:2.5.2
 LABEL maintainer="Orchest B.V. https://www.orchest.io"
 
 # --------------------------------------------------
 # All lines below are the same for all base-kernel-* images that we
-# have. Due to how Docker works we sadly have to copy it into every
-# Dockerfile (instead of a DRY solution), you can read more here:
+# have (except for the base-kernel-py). Due to how Docker works
+# we sadly have to copy it into every Dockerfile (instead of a DRY
+# solution), you can read more here:
 # https://github.com/moby/moby/issues/3378
 # --------------------------------------------------
 USER root
@@ -25,16 +26,17 @@ RUN chown $NB_USER -R /orchest/orchest-sdk \
 
 USER $NB_USER
 
-# Install requirements.
+# Install requirements on base environment
 WORKDIR /orchest/services/base-images/runnable-shared/runner
 RUN pip install -r requirements-user.txt
-# Install Orchest dependencies in our own environment
-RUN conda create -y python=$(python --version | tr -d "Python ") -n orchestdependencies \
-    # requirements.txt includes local install and thus we need to use pip
-    && eval "$(conda shell.bash hook)" \
-    && conda activate orchestdependencies \
-    && pip install -r requirements.txt \
-    && conda deactivate
+
+# Install Orchest dependencies in our own environment so they are
+# completely isolated from user dependencies. Use a venv instead
+# of conda environment because it is much smaller.
+RUN python -m venv /home/$NB_USER/venv \
+    && source /home/$NB_USER/venv/bin/activate \
+    && pip install -r requirements.txt --no-cache \
+    && deactivate
 
 # Get application files.
 COPY ./runnable-shared/runner /orchest/services/base-images/runnable-shared/runner

@@ -1,18 +1,18 @@
 import { ConfirmDispatcher } from "@/contexts/AppContext";
+import $ from "jquery";
 import { tryUntilTrue } from "../utils/webserver-utils";
 
 class Jupyter {
-  jupyterHolder: any;
+  jupyterHolder: JQuery<HTMLElement>;
   iframe: any;
   baseAddress: string;
   reloadOnShow: boolean;
-  showCheckInterval: any;
+  showCheckInterval: number;
   pendingKernelChanges: any;
   iframeHasLoaded: boolean;
   setConfirm: ConfirmDispatcher;
 
-  constructor(jupyterHolderJEl, setConfirm: ConfirmDispatcher) {
-    // @ts-ignore
+  constructor(jupyterHolderJEl: HTMLElement, setConfirm: ConfirmDispatcher) {
     this.jupyterHolder = $(jupyterHolderJEl);
     this.iframe = undefined;
     this.baseAddress = "";
@@ -54,18 +54,18 @@ class Jupyter {
 
     this.fixJupyterRenderingGlitch();
 
-    clearInterval(this.showCheckInterval);
-    this.showCheckInterval = setInterval(() => {
+    window.clearInterval(this.showCheckInterval);
+    this.showCheckInterval = window.setInterval(() => {
       if (this.iframeHasLoaded) {
         this._unhide();
-        clearInterval(this.showCheckInterval);
+        window.clearInterval(this.showCheckInterval);
       }
     }, 10);
   }
 
   hide() {
     this.jupyterHolder.addClass("hidden");
-    clearInterval(this.showCheckInterval);
+    window.clearInterval(this.showCheckInterval);
   }
 
   unload() {
@@ -168,7 +168,7 @@ class Jupyter {
     return this.pendingKernelChanges[`${notebook}-${kernel}`] === true;
   }
 
-  setKernelChangePending(notebook, kernel, value) {
+  setKernelChangePending(notebook: string, kernel: string, value) {
     this.pendingKernelChanges[`${notebook}-${kernel}`] = value;
   }
 

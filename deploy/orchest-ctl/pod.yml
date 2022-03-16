@@ -42,7 +42,7 @@ spec:
   serviceAccountName: orchest-ctl
   # Needed to run fix_userdir_permissions.
   volumes:
-    - name: userdir
-      hostPath:
-        path: /var/lib/orchest/userdir
-        type: DirectoryOrCreate
+    - name: userdir-pvc
+      persistentVolumeClaim:
+        claimName: userdir-pvc
+        readOnly: false

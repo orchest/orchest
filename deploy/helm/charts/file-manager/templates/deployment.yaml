@@ -5,19 +5,20 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: userdir
-          hostPath:
-            path: /var/lib/orchest/userdir
-            type: DirectoryOrCreate                     
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
       containers:
       - name: file-manager
-        image: orchest/file-manager:latest
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
         {{ if .Values.service.port}}
         ports:
         - containerPort: {{ .Values.service.port }}
         {{ end }}
         volumeMounts:
-         - name: userdir
+         - name: userdir-pvc
            mountPath: /userdir
         readinessProbe:
           httpGet:

@@ -1,0 +1,15 @@
+filesystem:
+  storageClass: standard
+
+userdir:
+  name: userdir-pvc
+  storage: 20Gi
+
+config:
+  name: config-pvc
+  storage: 10Mi
+
+kanikocache:
+  name: kaniko-cache-pvc
+  storage: 10Gi
+

@@ -4,6 +4,7 @@ from flask import current_app
 from kubernetes import watch
 
 from _orchest.internals import config as _config
+from _orchest.internals.utils import get_userdir_relpath
 from app import errors, utils
 from app.celery_app import make_celery
 from app.connections import k8s_core_api, k8s_custom_obj_api
@@ -30,7 +31,7 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
                         ],
                         "volumeMounts": [
                             {
-                                "name": "kaniko-cache",
+                                "name": "kaniko-cache-pvc",
                                 "mountPath": "/cache",
                             },
                         ],
@@ -53,10 +54,10 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "kaniko-cache",
-                    "hostPath": {
-                        "path": CONFIG_CLASS.HOST_BASE_IMAGES_CACHE,
-                        "type": "DirectoryOrCreate",
+                    "name": "kaniko-cache-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName": "kaniko-cache-pvc",
+                        "readOnly": False,
                     },
                 },
             ],
@@ -66,7 +67,7 @@ def _get_base_image_cache_workflow_manifest(workflow_name, base_image: str) -> d
 
 
 def _get_image_build_workflow_manifest(
-    workflow_name, image_name, image_tag, build_context_host_path, dockerfile_path
+    workflow_name, image_name, image_tag, build_context_path, dockerfile_path
 ) -> dict:
     """Returns a workflow manifest given the arguments.
 
@@ -74,7 +75,7 @@ def _get_image_build_workflow_manifest(
         workflow_name: Name with which the workflow will be run.
         image_name: Name of the resulting image, can include repository
             and tags.
-        build_context_host_path: Path on the host where the build
+        build_context_path: Path on the container where the build
             context is to be found.
         dockerfile_path: Path to the dockerfile, relative to the
             context.
@@ -135,9 +136,13 @@ def _get_image_build_workflow_manifest(
                             "--single-snapshot",
                         ],
                         "volumeMounts": [
-                            {"name": "build-context", "mountPath": "/build-context"},
                             {
-                                "name": "kaniko-cache",
+                                "name": "userdir-pvc",
+                                "mountPath": "/build-context",
+                                "subPath": get_userdir_relpath(build_context_path),
+                            },
+                            {
+                                "name": "kaniko-cache-pvc",
                                 "mountPath": "/cache",
                                 "readOnly": True,
                             },
@@ -167,17 +172,15 @@ def _get_image_build_workflow_manifest(
             "restartPolicy": "Never",
             "volumes": [
                 {
-                    "name": "build-context",
-                    "hostPath": {
-                        "path": build_context_host_path,
-                        "type": "DirectoryOrCreate",
+                    "name": "userdir-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName": "userdir-pvc",
                     },
                 },
                 {
-                    "name": "kaniko-cache",
-                    "hostPath": {
-                        "path": CONFIG_CLASS.HOST_BASE_IMAGES_CACHE,
-                        "type": "DirectoryOrCreate",
+                    "name": "kaniko-cache-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName": "kaniko-cache-pvc",
                     },
                 },
                 {
@@ -286,7 +289,7 @@ def _build_image(
         pod_name,
         image_name,
         image_tag,
-        build_context["snapshot_host_path"],
+        build_context["snapshot_path"],
         build_context["dockerfile_path"],
     )
 

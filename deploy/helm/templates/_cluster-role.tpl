@@ -1,6 +1,6 @@
 {{/*
 */}}
-{{- define "library.cluster.roles" }}
+{{- define "library.cluster.roles" -}}
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -39,4 +39,4 @@ rules:
       - update
       - delete
       - patch
-{{- end }}
+{{- end -}}

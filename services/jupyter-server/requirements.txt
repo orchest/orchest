@@ -1,1 +1,4 @@
 jupyterlab==3.3.0
+jupyterlab-git==0.34.2
+# Requires `ipywidgets` to be installed in the kernels.
+jupyterlab-widgets==1.0.2

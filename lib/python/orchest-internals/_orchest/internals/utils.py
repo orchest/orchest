@@ -350,18 +350,18 @@ def get_environment_capabilities(environment_uuid, project_uuid):
 
 
 def get_step_and_kernel_volumes_and_volume_mounts(
-    host_user_dir: str,
-    host_project_dir: str,
-    host_pipeline_file: str,
+    userdir_pvc: str,
+    project_dir: str,
+    pipeline_file: str,
     container_project_dir: str,
     container_pipeline_file: str,
 ) -> Tuple[List[dict], List[dict]]:
     """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
-        host_user_dir:
-        host_project_dir:
-        host_pipeline_file:
+        userdir_pvc:
+        project_dir:
+        pipeline_file:
         container_project_dir:
         container_pipeline_file:
 
@@ -373,18 +373,40 @@ def get_step_and_kernel_volumes_and_volume_mounts(
     volumes = []
     volume_mounts = []
 
-    volumes.append({"name": "project-dir", "hostPath": {"path": host_project_dir}})
-    volume_mounts.append({"name": "project-dir", "mountPath": container_project_dir})
-
-    volumes.append({"name": "pipeline-file", "hostPath": {"path": host_pipeline_file}})
-    volume_mounts.append(
-        {"name": "pipeline-file", "mountPath": container_pipeline_file}
-    )
+    relative_project_dir = get_userdir_relpath(project_dir)
+    relative_pipeline_path = os.path.join(relative_project_dir, pipeline_file)
 
     volumes.append(
-        {"name": "data", "hostPath": {"path": os.path.join(host_user_dir, "data")}}
+        {
+            "name": "userdir-pvc",
+            "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+        }
     )
-    volume_mounts.append({"name": "data", "mountPath": "/data"})
+
+    volume_mounts.append(
+        {"name": "userdir-pvc", "mountPath": "/data", "subPath": "data"}
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": "/userdir/projects",
+            "subPath": relative_project_dir,
+        }
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": container_project_dir,
+            "subPath": relative_project_dir,
+        }
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": container_pipeline_file,
+            "subPath": relative_pipeline_path,
+        }
+    )
 
     return volumes, volume_mounts
 
@@ -532,3 +554,7 @@ def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
     )
     if exit_code != 0:
         raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
+
+
+def get_userdir_relpath(path):
+    return os.path.relpath(path, "/userdir")

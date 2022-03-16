@@ -1,10 +1,15 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, Service } from "@/types";
+import { PipelineJson, PipelineStepState, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
-import { extensionFromFilename, makeRequest } from "@orchest/lib-utils";
+import {
+  extensionFromFilename,
+  hasValue,
+  makeRequest,
+} from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
 import { format, parseISO } from "date-fns";
+import $ from "jquery";
 import cloneDeep from "lodash.clonedeep";
 import pascalcase from "pascalcase";
 
@@ -108,42 +113,46 @@ export function filterServices(
   return servicesCopy;
 }
 
-export function addOutgoingConnections(
-  steps: Record<
+/**
+ * Augment incoming_connections with outgoing_connections to be able
+ * to traverse from root nodes. Reset outgoing_connections state.
+ * Note: this function mutates the original steps object
+ * @param steps
+ * @returns stepsWithOutgoingConnections
+ */
+export function addOutgoingConnections<
+  T extends Record<
     string,
-    { incoming_connections: string[]; outgoing_connections?: string[] }
+    Pick<PipelineStepState, "incoming_connections" | "outgoing_connections">
   >
-) {
-  /* Augment incoming_connections with outgoing_connections to be able
-  to traverse from root nodes. Reset outgoing_connections state.
-  Notes: modifies 'steps' object that's passed in
-  */
-
+>(steps: T) {
   Object.keys(steps).forEach((stepUuid) => {
     // Every step NEEDs to have an `.outgoing_connections` defined.
     steps[stepUuid].outgoing_connections =
       steps[stepUuid].outgoing_connections || [];
 
     steps[stepUuid].incoming_connections.forEach((incomingConnectionUuid) => {
-      if (!steps[incomingConnectionUuid].outgoing_connections) {
-        steps[incomingConnectionUuid].outgoing_connections = [];
-      }
-      steps[incomingConnectionUuid].outgoing_connections.push(stepUuid);
+      const outgoingConnections = new Set(
+        steps[incomingConnectionUuid].outgoing_connections || []
+      );
+      outgoingConnections.add(stepUuid);
+      steps[incomingConnectionUuid].outgoing_connections = [
+        ...outgoingConnections,
+      ];
     });
   });
+  return steps;
 }
 
-export function clearOutgoingConnections(steps: {
-  [stepUuid: string]: {
-    outgoing_connections?: string[];
-  };
-}) {
-  // Notes: modifies 'steps' object that's passed in
-  for (let stepUuid in steps) {
-    if (steps[stepUuid] && steps[stepUuid].outgoing_connections !== undefined) {
-      delete steps[stepUuid].outgoing_connections;
-    }
-  }
+export function clearOutgoingConnections<
+  T,
+  K extends Omit<T, "outgoing_connections">
+>(steps: T): K {
+  return Object.entries(steps).reduce((newObj, [stepUuid, step]) => {
+    const { outgoing_connections, ...cleanStep } = step; // eslint-disable-line @typescript-eslint/no-unused-vars
+
+    return { ...newObj, [stepUuid]: cleanStep };
+  }, {} as K);
 }
 
 export function getServiceURLs(
@@ -348,21 +357,30 @@ export function getPipelineJSONEndpoint(
   if (!pipeline_uuid || !project_uuid) return "";
   let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
 
-  if (job_uuid) {
-    pipelineURL += `?job_uuid=${job_uuid}`;
-  }
+  const queryArgs = { job_uuid, pipeline_run_uuid };
+  // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
+  // i.e. a job run requires both uuid's
+  const queryString = job_uuid
+    ? Object.entries(queryArgs)
+        .map(([key, value]) => {
+          if (!value) return null;
+          return `${key}=${value}`;
+        })
+        .filter((value) => hasValue(value))
+        .join("&")
+    : "";
 
-  if (pipeline_run_uuid) {
-    pipelineURL += `&pipeline_run_uuid=${pipeline_run_uuid}`;
-  }
-  return pipelineURL;
+  return queryString ? `${pipelineURL}?${queryString}` : pipelineURL;
 }
 
-export function getPipelineStepParents(stepUUID: string, pipelineJSON) {
+export function getPipelineStepParents(
+  stepUUID: string,
+  pipelineJSON: PipelineJson
+) {
   let incomingConnections = [];
-  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if ((step as any).uuid == stepUUID) {
-      incomingConnections = (step as any).incoming_connections;
+  for (let step of Object.values(pipelineJSON.steps)) {
+    if (step.uuid === stepUUID) {
+      incomingConnections = step.incoming_connections;
       break;
     }
   }

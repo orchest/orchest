@@ -163,7 +163,10 @@ You can expect the build to finish in roughly 15 minutes.
    git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Check out the version you would like to build.
-   git checkout v2021.11.2
+   git checkout v2022.03.0
+
+   # Create the Docker network on which all Orchest services will run.
+   docker network create orchest
 
    # Build Orchest's Docker containers from source (in parallel).
    scripts/build_container.sh

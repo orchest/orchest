@@ -1,8 +1,8 @@
 // @ts-check
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useMatchProjectRoot } from "@/hooks/useMatchProjectRoot";
-import { siteMap } from "@/routingConfig";
+import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
+import { siteMap, withinProjectPaths } from "@/routingConfig";
 import type { Project } from "@/types";
 import FormControl from "@mui/material/FormControl";
 import InputBase from "@mui/material/InputBase";
@@ -32,18 +32,20 @@ const CustomInput = styled(InputBase)(({ theme }) => ({
   },
 }));
 
-const ProjectSelector = () => {
+export const ProjectSelector = () => {
   const { state, dispatch } = useProjectsContext();
   const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
-  const matchProjectRoot = useMatchProjectRoot();
+  // if current view only involves ONE project, ProjectSelector would appear
+  const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
-  const [promiseManager] = React.useState(new PromiseManager());
+  const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
   const onChangeProject = (uuid: string) => {
     if (uuid) {
-      const path = matchProjectRoot
-        ? matchProjectRoot.path
+      const path = matchWithinProjectPaths
+        ? matchWithinProjectPaths.root || matchWithinProjectPaths.path
         : siteMap.pipelines.path;
+
       navigateTo(path, { query: { projectUuid: uuid } });
     }
   };
@@ -88,15 +90,15 @@ const ProjectSelector = () => {
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
     // in case that project is deleted
-    if (matchProjectRoot) fetchProjects();
+    if (matchWithinProjectPaths) fetchProjects();
 
     return () => {
       promiseManager.cancelCancelablePromises();
     };
-  }, [matchProjectRoot]);
+  }, [matchWithinProjectPaths]);
 
   React.useEffect(() => {
-    if (state.hasLoadedProjects && matchProjectRoot) {
+    if (state.hasLoadedProjects && matchWithinProjectPaths) {
       const invalidProjectUuid = !validateProjectUuid(
         projectUuidFromRoute,
         state.projects
@@ -114,9 +116,13 @@ const ProjectSelector = () => {
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchProjectRoot, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, state.hasLoadedProjects]);
 
-  if (!matchProjectRoot || !state.projects || state.projects.length === 0)
+  if (
+    !matchWithinProjectPaths ||
+    !state.projects ||
+    state.projects.length === 0
+  )
     return null;
 
   return (
@@ -167,5 +173,3 @@ const ProjectSelector = () => {
     </FormControl>
   );
 };
-
-export default ProjectSelector;

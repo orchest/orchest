@@ -24,14 +24,11 @@ def get_pipeline_path(
     project_uuid,
     job_uuid=None,
     pipeline_run_uuid=None,
-    host_path=False,
     pipeline_path=None,
 ):
     """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid)
@@ -42,27 +39,25 @@ def get_pipeline_path(
         return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and job_uuid is not None:
         return os.path.join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
             pipeline_run_uuid,
             pipeline_path,
         )
     elif job_uuid is not None:
         return os.path.join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
             "snapshot",
             pipeline_path,
         )
 
 
-def get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path=False):
+def get_job_directory(pipeline_uuid, project_uuid, job_uuid):
     """Job directory contains:
     snapshot/
     <pipeline_run_uuid>/<project copy>
     """
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     return os.path.join(USER_DIR, "jobs", project_uuid, pipeline_uuid, job_uuid)
 
@@ -72,7 +67,6 @@ def get_pipeline_directory(
     project_uuid,
     job_uuid=None,
     pipeline_run_uuid=None,
-    host_path=False,
 ):
     """Returns path to directory with the pipeline definition file."""
 
@@ -82,20 +76,17 @@ def get_pipeline_directory(
             project_uuid,
             job_uuid,
             pipeline_run_uuid,
-            host_path,
         )
     )[0]
 
 
-def get_project_directory(project_uuid, host_path=False):
+def get_project_directory(project_uuid):
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 
-def get_project_snapshot_size(project_uuid, host_path=False):
+def get_project_snapshot_size(project_uuid):
     """Returns the snapshot size for a project in MB."""
 
     def get_size(path, skip_dirs):
@@ -109,7 +100,7 @@ def get_project_snapshot_size(project_uuid, host_path=False):
 
         return size
 
-    project_dir = get_project_directory(project_uuid, host_path=host_path)
+    project_dir = get_project_directory(project_uuid)
 
     # This does not count towards size for snapshots.
     # NOTE: For optimization purposes we might have to also ignore the
@@ -128,9 +119,9 @@ def project_exists(project_uuid):
     ).count() == 0 or not os.path.isdir(get_project_directory(project_uuid))
 
 
-def get_environment_directory(environment_uuid, project_uuid, host_path=False):
+def get_environment_directory(environment_uuid, project_uuid):
     return os.path.join(
-        get_project_directory(project_uuid, host_path),
+        get_project_directory(project_uuid),
         ".orchest",
         "environments",
         environment_uuid,

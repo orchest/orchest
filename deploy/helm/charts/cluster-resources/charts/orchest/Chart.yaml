@@ -1,0 +1,5 @@
+apiVersion: v2
+description: The helm chart for orchest global resources, user-dir pvc.
+name: orchest
+version: 0.0.1
+icon: https://github.com/orchest/orchest/blob/master/docs/source/img/logo.png

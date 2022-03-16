@@ -11,6 +11,7 @@ spec:
       labels:
         {{- include "library.labels.selector" . | nindent 8 }}
     spec:
+      terminationGracePeriodSeconds: 1
       containers:
       - name: node-agent
         image: {{ .Values.images.name }}

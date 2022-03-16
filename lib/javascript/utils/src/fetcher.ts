@@ -1,6 +1,7 @@
 export type FetchError = {
-  status: number;
+  status?: number;
   message: string;
+  body?: any;
 };
 
 export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {

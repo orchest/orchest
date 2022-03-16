@@ -1,0 +1,12 @@
+
+registry:
+  enabled: false
+
+ceph:
+  enabled: false
+
+nfs:
+  enabled: false  
+
+orchest:
+  enabled: false
