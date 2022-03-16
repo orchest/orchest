@@ -189,7 +189,7 @@ RABBITMQ_CONFIG := ${RABBITMQ_TAG_CONFIG} \
 				   ${RABBITMQ_ENABLE_CONFIG}
 
 
-ORCHEST_FQND_CONFIG := ${if ${ORCHEST_FQND}, --set global.ingress.host=${ORCHEST_FQND},}
+ORCHEST_FQDN_CONFIG := ${if ${ORCHEST_FQDN}, --set global.ingress.host=${ORCHEST_FQDN},}
 
 ORCHEST_DEPLOY_CONFIG := orchest \
 	${SHARED_DEPLOY_CONFIG} \
@@ -202,7 +202,7 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	${NODE_AGENT_CONFIG} \
 	${POSTGRES_CONFIG} \
 	${RABBITMQ_CONFIG} \
-	${ORCHEST_FQND_CONFIG} \
+	${ORCHEST_FQDN_CONFIG} \
 	--namespace ${NAMESPACE} \
 	--set-string auth-server.CLOUD="${CLOUD}" \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
