@@ -17,6 +17,8 @@ deployment
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "ORCHEST_FQDN"
+          value: "{{ .Values.global.ingress.host }}"
         - name: "MAX_JOB_RUNS_PARALLELISM"
           value: "1"
         - name: "MAX_INTERACTIVE_RUNS_PARALLELISM"

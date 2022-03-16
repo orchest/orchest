@@ -27,6 +27,8 @@ deployment
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "ORCHEST_FQDN"
+          value: "{{ .Values.global.ingress.host }}"
         - name: "CLOUD"
           value: "{{ .Values.CLOUD }}"
         - name: "ORCHEST_PORT"
