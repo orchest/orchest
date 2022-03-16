@@ -122,7 +122,8 @@ def launch(
         )
         user_session_service_k8s_deployment_manifests.append(dep)
         user_session_service_k8s_service_manifests.append(serv)
-        user_session_service_k8s_ingress_manifests.append(ingress)
+        if ingress is not None:
+            user_session_service_k8s_ingress_manifests.append(ingress)
 
     ns = _config.ORCHEST_NAMESPACE
 

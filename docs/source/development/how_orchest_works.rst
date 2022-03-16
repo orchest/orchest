@@ -288,7 +288,7 @@ Full JSON Schema:
               "command": {
                 "type": "string"
               },
-              "entrypoint": {
+              "args": {
                 "type": "string"
               },
               "scope": {
@@ -319,6 +319,9 @@ Full JSON Schema:
                 },
                 "type": "array"
               },
+              "exposed": {
+                "type": "boolean"
+              }
               "ports": {
                 "items": {
                   "type": [

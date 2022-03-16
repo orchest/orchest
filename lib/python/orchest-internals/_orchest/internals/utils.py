@@ -462,7 +462,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         # Allowed scopes.
         all([sc in ["interactive", "noninteractive"] for sc in service["scope"]])
         and isinstance(service.get("command", ""), str)
-        and isinstance(service.get("entrypoint", ""), str)
+        and isinstance(service.get("args", ""), str)
         and isinstance(service.get("binds", {}), dict)
         and all(
             [
@@ -484,6 +484,8 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
             ]
         )
         and are_environment_variables_valid(service.get("env_variables", {}))
+        and isinstance(service.get("exposed"), bool)
+        and isinstance(service.get("requires_authentication", True), bool)
     )
 
 
