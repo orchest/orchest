@@ -127,6 +127,12 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     utils.echo(f"Installing Orchest {orchest_version}.")
 
+    logger.info("Creating the required directories.")
+    utils.create_required_directories()
+
+    logger.info("Setting 'userdir/' permissions.")
+    utils.fix_userdir_permissions()
+
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
     return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
@@ -138,12 +144,6 @@ def install(log_level: utils.LogLevel, cloud: bool):
             err=True,
         )
         raise typer.Exit(return_code)
-
-    logger.info("Setting 'userdir/' permissions.")
-    utils.fix_userdir_permissions()
-
-    logger.info("Creating the required directories.")
-    utils.create_required_directories()
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
