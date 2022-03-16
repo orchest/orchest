@@ -252,8 +252,8 @@ export const searchTrees = ({
   }
 };
 
-export const cleanFilePath = (filePath: string) =>
-  filePath.replace(/^\/project-dir\:\//, "");
+export const cleanFilePath = (filePath: string, newPath = "") =>
+  filePath.replace(/^\/project-dir\:\//, newPath);
 
 /**
  * remove leading "./" of a file path
@@ -275,6 +275,7 @@ export const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);
  * from all the other allowed files
  */
 export const validateFiles = (
+  currentStepUuid: string,
   steps: Record<string, Step> | undefined,
   selectedFiles: string[]
 ) => {
@@ -297,7 +298,10 @@ export const validateFiles = (
           allowedExtension.toLowerCase() === fileExtension.toLowerCase()
       );
       const usedNotebookFiles = allNotebookFileSteps.find((step) => {
-        return step.file_path === cleanFilePath(curr);
+        return (
+          step.file_path === cleanFilePath(curr) &&
+          currentStepUuid !== step.uuid // assigning the same file to the same step is allowed
+        );
       });
 
       return usedNotebookFiles
@@ -323,3 +327,25 @@ export const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map(
     );
   }
 );
+
+export const findFirstDiffIndex = (a: string, b: string) => {
+  let i = 0;
+  if (a === b) return -1;
+  while (a[i] === b[i]) i++;
+  return i;
+};
+
+export const getRelativePathTo = (filePath: string, targetFolder: string) => {
+  const cleanFilePath = filePath.replace(/^\//, "");
+  const cleanTargetFolder = targetFolder.replace(/^\//, "");
+  const firstDiffIndex = findFirstDiffIndex(cleanFilePath, cleanTargetFolder);
+
+  const upLevels = cleanTargetFolder
+    .substring(firstDiffIndex)
+    .split("/")
+    .filter((value) => value).length;
+
+  const leadingString = "../".repeat(upLevels);
+
+  return `${leadingString}${cleanFilePath.substring(firstDiffIndex)}`;
+};

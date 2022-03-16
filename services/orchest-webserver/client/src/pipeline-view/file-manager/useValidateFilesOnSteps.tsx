@@ -16,51 +16,57 @@ export const useValidateFilesOnSteps = () => {
   const { pipelineJson } = usePipelineEditorContext();
   const { selectedFiles } = useFileManagerContext();
 
-  const getApplicableStepFiles = React.useCallback(() => {
-    const { usedNotebookFiles, forbidden, allowed } = validateFiles(
-      pipelineJson?.steps,
-      selectedFiles
-    );
-    if (forbidden.length > 0) {
-      setAlert(
-        "Warning",
-        <Stack spacing={2} direction="column">
-          <Box>
-            {`Supported file extensions are: `}
-            {allowedExtensionsMarkup}
-            {`Unable to apply following files to a step:`}
-          </Box>
-          <ul>
-            {forbidden.map((file) => (
-              <Box key={file}>
-                <Code>{cleanFilePath(file)}</Code>
-              </Box>
-            ))}
-          </ul>
-        </Stack>
+  const getApplicableStepFiles = React.useCallback(
+    (stepUuid: string) => {
+      const { usedNotebookFiles, forbidden, allowed } = validateFiles(
+        stepUuid,
+        pipelineJson?.steps,
+        selectedFiles
       );
-    }
-    if (usedNotebookFiles.length > 0) {
-      setAlert(
-        "Warning",
-        <Stack spacing={2} direction="column">
-          <Box>
-            Following Notebook files have already been used in the pipeline.
-            Assigning the same Notebook file to multiple steps is not supported.
-            Please convert to a script to re-use file across pipeline steps.
-          </Box>
-          <ul>
-            {usedNotebookFiles.map((file) => (
-              <Box key={file}>
-                <Code>{cleanFilePath(file)}</Code>
-              </Box>
-            ))}
-          </ul>
-        </Stack>
-      );
-    }
-    return { usedNotebookFiles, forbidden, allowed };
-  }, [pipelineJson?.steps, selectedFiles, setAlert]);
+
+      if (forbidden.length > 0) {
+        setAlert(
+          "Warning",
+          <Stack spacing={2} direction="column">
+            <Box>
+              {`Supported file extensions are: `}
+              {allowedExtensionsMarkup}
+              {`Unable to apply following files to a step:`}
+            </Box>
+            <ul>
+              {forbidden.map((file) => (
+                <Box key={file}>
+                  <Code>{cleanFilePath(file)}</Code>
+                </Box>
+              ))}
+            </ul>
+          </Stack>
+        );
+      }
+      if (usedNotebookFiles.length > 0) {
+        setAlert(
+          "Warning",
+          <Stack spacing={2} direction="column">
+            <Box>
+              Following Notebook files have already been used in the pipeline.
+              Assigning the same Notebook file to multiple steps is not
+              supported. Please convert to a script to re-use file across
+              pipeline steps.
+            </Box>
+            <ul>
+              {usedNotebookFiles.map((file) => (
+                <Box key={file}>
+                  <Code>{cleanFilePath(file)}</Code>
+                </Box>
+              ))}
+            </ul>
+          </Stack>
+        );
+      }
+      return { usedNotebookFiles, forbidden, allowed };
+    },
+    [pipelineJson?.steps, selectedFiles, setAlert]
+  );
 
   return getApplicableStepFiles;
 };

@@ -15,7 +15,7 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { cleanFilePath } from "./file-manager/common";
+import { cleanFilePath, getRelativePathTo } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
@@ -137,6 +137,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     metadataPositions,
     projectUuid,
     pipelineUuid,
+    pipelineCwd,
     stepDomRefs,
     isReadOnly,
     zIndexMax,
@@ -214,7 +215,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         return;
       }
 
-      const { forbidden, usedNotebookFiles } = getApplicableStepFiles();
+      const { forbidden, usedNotebookFiles } = getApplicableStepFiles(uuid);
       if (forbidden.length + usedNotebookFiles.length > 0) {
         resetMove();
         return;
@@ -222,7 +223,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
       dispatch({
         type: "ASSIGN_FILE_TO_STEP",
-        payload: { stepUuid: uuid, filePath: cleanFilePath(dragFile.path) },
+        payload: {
+          stepUuid: uuid,
+          filePath: getRelativePathTo(
+            cleanFilePath(dragFile.path),
+            pipelineCwd
+          ),
+        },
       });
       resetMove();
     }
