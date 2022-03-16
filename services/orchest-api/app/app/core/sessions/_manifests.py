@@ -912,6 +912,8 @@ def _get_user_service_deployment_service_manifest(
 
         ingress_metadata = copy.deepcopy(metadata)
         if service_config.get("requires_authentication", True):
+            # Needs to be the FQDN since the ingress ngin pod lives in
+            # a different namespace.
             auth_url = (
                 f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
             )
