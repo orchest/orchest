@@ -44,6 +44,7 @@ if [ "$1"  == "install" ]; then
     echo "Creating orchest-namespace and installing dependencies."
     rm -rf "${DIR}/deploy/bin" > /dev/null
     make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
+    echo "Running orchest-ctl."
 fi
 
 # Script and dependencies, i.e. yaml files.
