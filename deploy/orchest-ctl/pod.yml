@@ -30,7 +30,7 @@ spec:
     imagePullPolicy: IfNotPresent
     name: orchest-ctl
     volumeMounts:
-      - name: userdir
+      - name: userdir-pvc
         mountPath: /userdir
   restartPolicy: Never
   # Concurrent orchest-ctl pods are supported, but some important

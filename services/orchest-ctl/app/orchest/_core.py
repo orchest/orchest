@@ -62,6 +62,9 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
+    # This way the command will only interact with orchest resources,
+    # and not their dependencies (vpcs, etc.).
+    env["DEPEND_RESOURCES"] = "FALSE"
     process = subprocess.Popen(
         cmd,
         cwd="deploy",
