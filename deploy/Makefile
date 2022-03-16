@@ -187,10 +187,6 @@ RABBITMQ_TAG_CONFIG := ${if ${RABBITMQ_TAG},--set rabbitmq.images.tag=${RABBITMQ
 RABBITMQ_ENABLE_CONFIG := --set rabbitmq.enabled=true
 RABBITMQ_CONFIG := ${RABBITMQ_TAG_CONFIG} \
 				   ${RABBITMQ_ENABLE_CONFIG}
-
-# Orchest deployment configs
-ORCHEST_ENABLE_CONFIG := ${} \
-						 ${} \
 						 
 
 ORCHEST_DEPLOY_CONFIG := orchest \
