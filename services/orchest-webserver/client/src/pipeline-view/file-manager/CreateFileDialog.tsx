@@ -62,10 +62,6 @@ export const CreateFileDialog = ({
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
 
-  const [kernelLanguage, setKernelLanguage] = React.useState<
-    keyof typeof KernelLanguage
-  >("python");
-
   const fullFilePath = `${folderPath}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<
@@ -96,7 +92,7 @@ export const CreateFileDialog = ({
         headers: HEADER.JSON,
         body: JSON.stringify({
           file_path: fullFilePath,
-          kernel_name: kernelLanguage, // BE will ignore this if the file is NOT .ipynb
+          kernel_name: "python", // BE will ignore this if the file is NOT .ipynb
         }),
       }).then(() => {
         const unifiedFilePath = removeLeadingSymbols(fullFilePath); // remove the leading "./" if any
@@ -136,7 +132,7 @@ export const CreateFileDialog = ({
       open={isOpen}
       onClose={onClose}
       data-test-id="file-manager-create-new-file-dialog"
-      maxWidth="md"
+      maxWidth="sm"
       fullWidth
     >
       <form
@@ -166,7 +162,7 @@ export const CreateFileDialog = ({
                   data-test-id="file-manager-file-name-textfield"
                 />
               </Grid>
-              <Grid item xs={fileExtension === ".ipynb" ? 3 : 6}>
+              <Grid item xs={6}>
                 <FormControl fullWidth>
                   <InputLabel id="file-manager-file-extension-label">
                     Extension
@@ -190,37 +186,6 @@ export const CreateFileDialog = ({
                   </Select>
                 </FormControl>
               </Grid>
-
-              {fileExtension === ".ipynb" && (
-                <Grid item xs={3}>
-                  <FormControl fullWidth>
-                    <InputLabel id="project-file-kernel-language-label">
-                      Kernel language
-                    </InputLabel>
-                    <Select
-                      label="Kernel language"
-                      labelId="project-file-kernel-language-label"
-                      id="project-file-kernel-language"
-                      disabled={isCreating}
-                      value={kernelLanguage}
-                      onChange={(e) =>
-                        setKernelLanguage(
-                          e.target.value as keyof typeof KernelLanguage
-                        )
-                      }
-                    >
-                      {Object.entries(KernelLanguage).map(([value, label]) => {
-                        return (
-                          <MenuItem key={value} value={value}>
-                            {label}
-                          </MenuItem>
-                        );
-                      })}
-                    </Select>
-                  </FormControl>
-                </Grid>
-              )}
-
               <Grid item xs={12}>
                 <TextField
                   label="Path in project"
