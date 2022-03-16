@@ -252,7 +252,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         });
       }
     },
-    [isDragging, setDragOffset, filePathFromHTMLElement]
+    [isDragging, setDragOffset, filePathFromHTMLElement, setHoveredPath]
   );
 
   let mouseLeaveHandler = React.useCallback(

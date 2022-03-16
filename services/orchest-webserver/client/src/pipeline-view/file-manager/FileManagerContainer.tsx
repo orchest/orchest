@@ -1,10 +1,10 @@
 import Box from "@mui/material/Box";
 import React from "react";
+import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
-export const FileManagerContainer: React.FC<{
-  setSelected: React.Dispatch<React.SetStateAction<string[]>>;
-}> = ({ children, setSelected }) => {
+export const FileManagerContainer: React.FC = ({ children }) => {
+  const { setSelectedFiles } = useFileManagerContext();
   const { handleContextMenu } = useFileManagerLocalContext();
   return (
     <Box
@@ -23,7 +23,7 @@ export const FileManagerContainer: React.FC<{
         e.stopPropagation();
         // click away should clean up selected items
         if (e.detail === 1 && !(e.metaKey || e.ctrlKey)) {
-          setSelected([]);
+          setSelectedFiles([]);
         }
       }}
     >

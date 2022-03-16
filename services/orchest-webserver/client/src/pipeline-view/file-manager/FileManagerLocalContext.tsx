@@ -132,7 +132,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       if (onSelect) onSelect(selected);
       setSelectedFiles(selected);
     },
-    [onSelect]
+    [onSelect, setSelectedFiles]
   );
 
   const handleClose = React.useCallback(() => {

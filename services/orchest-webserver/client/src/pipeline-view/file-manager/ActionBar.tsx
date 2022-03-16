@@ -13,6 +13,7 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { queryArgs } from "./common";
 import { CreateFileDialog } from "./CreateFileDialog";
+import { useFileManagerContext } from "./FileManagerContext";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
   svg: {
@@ -28,16 +29,15 @@ export function ActionBar({
   reload,
   rootFolder,
   setExpanded,
-  setSelected,
 }: {
   baseUrl: string;
   rootFolder: string;
   uploadFiles: (files: File[] | FileList) => void;
   reload: () => void;
   setExpanded: (items: string[]) => void;
-  setSelected: (items: string[]) => void;
 }) {
   const { projectUuid } = useCustomRoute();
+  const { setSelectedFiles } = useFileManagerContext();
 
   const [isCreateFileDialogOpen, setIsCreateFileDialogOpen] = React.useState(
     false
@@ -83,7 +83,7 @@ export function ActionBar({
         isOpen={isCreateFileDialogOpen}
         onClose={closeCreateFileDialog}
         onSuccess={(fullFilePath: string) => {
-          setSelected([fullFilePath]);
+          setSelectedFiles([fullFilePath]);
           reload();
         }}
         projectUuid={projectUuid}

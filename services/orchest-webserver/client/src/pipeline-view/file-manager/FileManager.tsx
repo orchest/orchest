@@ -98,7 +98,11 @@ export function FileManager({
    * States
    */
   const { projectUuid } = useCustomRoute();
-  const { isDragging } = useFileManagerContext();
+  const {
+    isDragging,
+    selectedFiles,
+    setSelectedFiles,
+  } = useFileManagerContext();
 
   const containerRef = React.useRef<HTMLElement>();
 
@@ -108,7 +112,6 @@ export function FileManager({
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
   const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
-  const [selected, setSelected] = React.useState<string[]>([]);
   const [progress, setProgress] = React.useState(0);
 
   const [progressType, setProgressType] = React.useState<ProgressType>(
@@ -124,8 +127,8 @@ export function FileManager({
   );
   // Note, roots are assumed to always start with a / (absolute paths)
   const treeRoots = React.useMemo(() => [PROJECT_DIR_PATH, "/data"], []);
-  const root = React.useMemo(() => getActiveRoot(selected, treeRoots), [
-    selected,
+  const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
+    selectedFiles,
     treeRoots,
   ]);
 
@@ -292,10 +295,10 @@ export function FileManager({
       fileTrees,
     });
     // Check expansion/selection based
-    let [newSelect, foundInvalidSelect] = filterInvalidEntries(selected);
+    let [newSelect, foundInvalidSelect] = filterInvalidEntries(selectedFiles);
     let [newExpanded, foundInvalidExpanded] = filterInvalidEntries(expanded);
     if (foundInvalidSelect) {
-      setSelected(newSelect);
+      setSelectedFiles(newSelect);
     }
     if (foundInvalidExpanded) {
       setExpanded(newExpanded);
@@ -308,9 +311,9 @@ export function FileManager({
 
   const onRename = React.useCallback(
     (oldPath: string, newPath: string) => {
-      if (!selected.includes(newPath)) {
-        setSelected((selected) => {
-          return [...selected, newPath];
+      if (!selectedFiles.includes(newPath)) {
+        setSelectedFiles((current) => {
+          return [...current, newPath];
         });
       }
 
@@ -321,7 +324,7 @@ export function FileManager({
         });
       }
     },
-    [expanded, selected]
+    [expanded, selectedFiles, setSelectedFiles]
   );
 
   return (
@@ -371,13 +374,12 @@ export function FileManager({
         <ActionBar
           baseUrl={fileManagerBaseUrl}
           setExpanded={setExpanded}
-          setSelected={setSelected}
           reload={reload}
           uploadFiles={uploadFiles}
           rootFolder={root}
         />
         {allTreesHaveLoaded && (
-          <FileManagerContainer setSelected={setSelected}>
+          <FileManagerContainer>
             <FileTree
               baseUrl={fileManagerBaseUrl}
               fileTrees={fileTrees}
