@@ -576,8 +576,9 @@ def update() -> None:
       print them
     """
     k8sw.abort_if_unsafe()
+    update_pod_manifest = k8sw.get_update_pod_manifest()
     stop()
-    pod = k8sw.create_update_pod()
+    pod = k8s_core_api.create_namespaced_pod("orchest", update_pod_manifest)
 
     status = k8sw.wait_for_pod_status(
         pod.metadata.name,

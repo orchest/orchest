@@ -458,7 +458,7 @@ def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
     return manifest
 
 
-def create_update_pod() -> k8s_client.V1Pod:
+def get_update_pod_manifest() -> dict:
     current_version = get_orchest_cluster_version()
     resp = requests.get(
         _config.ORCHEST_UPDATE_INFO_URL.format(version=current_version), timeout=5
@@ -469,12 +469,11 @@ def create_update_pod() -> k8s_client.V1Pod:
 
     latest_version = resp.json()["latest_version"]
     if latest_version == current_version:
-        utils.echo("Orchest is already on the latest version.")
+        utils.echo("Orchest is already at the latest version.")
         raise typer.Exit(0)
 
     manifest = _get_orchest_ctl_update_post_manifest(latest_version)
-    r = k8s_core_api.create_namespaced_pod("orchest", manifest)
-    return r
+    return manifest
 
 
 def wait_for_pod_status(
