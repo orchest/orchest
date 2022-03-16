@@ -22,7 +22,7 @@ import {
   TreeNode,
   unpackCombinedPath,
 } from "./common";
-import { useFileManagerContext } from "./FileManagerContext";
+import { FileTrees, useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 import { TreeRow } from "./TreeRow";
@@ -37,9 +37,31 @@ const isInFileManager = (element: HTMLElement) => {
   return false;
 };
 
+const findFileViaPath = (path: string, fileTrees: FileTrees) => {
+  // example: /project-dir:/hallo-wereld/folder/my-file.py
+  const [root, filePathStr] = path.split(":");
+  const filePath = filePathStr.split("/").filter((value) => value !== "");
+  let head = fileTrees[root];
+
+  for (let token of filePath) {
+    const found = head.children.find((item) => item.name === token);
+    if (!found) break;
+    head = found;
+  }
+  return head;
+};
+
+const hasNotebookFiles = (node: TreeNode) => {
+  if (node.type === "file") return isNotebookFile(node.name);
+  if (node.type === "directory" && node.children.length === 0) return false;
+  for (let child of node.children) {
+    if (hasNotebookFiles(child)) return true;
+  }
+  return false;
+};
+
 export const FileTree = React.memo(function FileTreeComponent({
   baseUrl,
-  fileTrees,
   treeRoots,
   expanded,
   handleToggle,
@@ -49,7 +71,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   onOpen,
 }: {
   baseUrl: string;
-  fileTrees: Record<string, TreeNode>;
   treeRoots: string[];
   expanded: string[];
   handleToggle: (
@@ -77,6 +98,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     setIsDragging,
     resetMove,
+    fileTrees,
   } = useFileManagerContext();
   const { getDropPosition, handleSelect } = useFileManagerLocalContext();
 
@@ -142,38 +164,29 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       // dropped inside of the tree view
       if (dragFiles.length > 0) {
-        const { allowed, disallowed } = dragFiles.reduce(
-          (all, curr) => {
-            const changes =
-              isNotebookFile(curr) && /^\/data\:/.test(filePath)
-                ? { disallowed: [...all.disallowed, curr] }
-                : { allowed: [...all.allowed, curr] };
+        // if user attempts to move .ipynb files to /data
+        if (/^\/data\:/.test(filePath)) {
+          const foundPathWithNotebookFiles = dragFiles.find((dragFilePath) => {
+            const foundFile = findFileViaPath(dragFilePath, fileTrees);
+            return hasNotebookFiles(foundFile);
+          });
 
-            return { ...all, ...changes };
-          },
-          { allowed: [] as string[], disallowed: [] as string[] }
-        );
-
-        if (disallowed.length > 0) {
-          setAlert(
-            "Warning",
-            <Stack spacing={2} direction="column">
-              <Box>
-                <Code>{"/data"}</Code> cannot contain Notebook files. The
-                following files will remain in their current location:
-              </Box>
-              <ul>
-                {disallowed.map((file) => (
-                  <Box key={file}>
-                    <Code>{cleanFilePath(file)}</Code>
-                  </Box>
-                ))}
-              </ul>
-            </Stack>
-          );
+          if (foundPathWithNotebookFiles) {
+            setAlert(
+              "Warning",
+              <Stack spacing={2} direction="column">
+                <Box>
+                  <Code>{"/data"}</Code> cannot contain Notebook files. Please
+                  make sure that there are no Notebook files in the following
+                  path: <Code>{cleanFilePath(foundPathWithNotebookFiles)}</Code>
+                </Box>
+              </Stack>
+            );
+            return;
+          }
         }
 
-        const deducedPaths = allowed.map((path) =>
+        const deducedPaths = dragFiles.map((path) =>
           deduceRenameFromDragOperation(path, filePath)
         );
         const hasPathChanged = deducedPaths.some(
@@ -183,10 +196,10 @@ export const FileTree = React.memo(function FileTreeComponent({
         if (hasPathChanged) {
           let targetDescription = generateTargetDescription(deducedPaths[0][1]);
           const confirmMessage =
-            allowed.length > 1 ? (
+            dragFiles.length > 1 ? (
               <>
                 {`Do you want move `}
-                {allowed.length}
+                {dragFiles.length}
                 {` files to `}
                 {targetDescription} ?
               </>
@@ -240,6 +253,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       onDropOutside,
       dragFile,
       dragFiles,
+      fileTrees,
       filePathFromHTMLElement,
       getDropPosition,
     ]

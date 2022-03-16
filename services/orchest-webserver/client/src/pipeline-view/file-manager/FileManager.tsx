@@ -74,7 +74,6 @@ const createInvalidEntryFilter = ({
   return [uniqueArr.filter((e) => !invalid.has(e)), foundInvalid];
 };
 
-type FileTrees = Record<string, TreeNode>;
 type ProgressType = LinearProgressProps["variant"];
 const DEFAULT_DEPTH = 3;
 
@@ -98,6 +97,8 @@ export function FileManager({
     isDragging,
     selectedFiles,
     setSelectedFiles,
+    fileTrees,
+    setFileTrees,
   } = useFileManagerContext();
 
   const containerRef = React.useRef<HTMLElement>();
@@ -106,7 +107,6 @@ export function FileManager({
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
   const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
   const [progress, setProgress] = React.useState(0);
 
@@ -157,7 +157,7 @@ export function FileManager({
     );
 
     setInProgress(false);
-  }, [expanded, treeRoots, fileManagerBaseUrl]);
+  }, [expanded, treeRoots, fileManagerBaseUrl, setFileTrees]);
 
   const collapseAll = () => {
     setExpanded([]);
@@ -183,7 +183,7 @@ export function FileManager({
       setFileTrees(fileTrees);
       setInProgress(false);
     },
-    [fileTrees, fileManagerBaseUrl]
+    [fileTrees, fileManagerBaseUrl, setFileTrees]
   );
 
   const uploadFiles = React.useCallback(
@@ -378,7 +378,6 @@ export function FileManager({
           <FileManagerContainer>
             <FileTree
               baseUrl={fileManagerBaseUrl}
-              fileTrees={fileTrees}
               treeRoots={treeRoots}
               expanded={expanded}
               onRename={onRename}

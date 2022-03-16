@@ -1,10 +1,13 @@
 import { Position } from "@/types";
 import React from "react";
+import type { TreeNode } from "./common";
 
 type DragFile = {
   labelText: string;
   path: string;
 };
+
+export type FileTrees = Record<string, TreeNode>;
 
 export type FileManagerContextType = {
   selectedFiles: string[];
@@ -18,6 +21,8 @@ export type FileManagerContextType = {
   isDragging: boolean;
   setIsDragging: React.Dispatch<React.SetStateAction<boolean>>;
   resetMove: () => void;
+  fileTrees: FileTrees;
+  setFileTrees: React.Dispatch<React.SetStateAction<FileTrees>>;
 };
 
 export const FileManagerContext = React.createContext<FileManagerContextType>(
@@ -50,6 +55,8 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
   );
   const [isDragging, setIsDragging] = React.useState(false);
 
+  const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
+
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
     // while dragging.
@@ -75,6 +82,8 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         isDragging,
         setIsDragging,
         resetMove,
+        fileTrees,
+        setFileTrees,
       }}
     >
       {children}
