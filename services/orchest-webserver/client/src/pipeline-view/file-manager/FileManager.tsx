@@ -84,11 +84,7 @@ export function FileManager({
   ...props
 }: {
   onSelect?: (selected: string[]) => void;
-  onDropOutside: (
-    target: EventTarget,
-    selection: string[],
-    dropPosition: Position
-  ) => void;
+  onDropOutside: (target: EventTarget, dropPosition: Position) => void;
   onOpen: (filePath: string) => void;
   onEdit: (filePath: string) => void;
   onView: (filePath: string) => void;

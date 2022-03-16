@@ -2,14 +2,15 @@ import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
-import { Position, Step } from "@/types";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
+import { Position } from "@/types";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { cleanFilePath, getStepFilePath, isNotebookFile } from "./common";
+import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
+import { cleanFilePath } from "./common";
 import { FileManager } from "./FileManager";
+import { useFileManagerContext } from "./FileManagerContext";
+import { useValidateFilesOnSteps } from "./useValidateFilesOnSteps";
 
 export const ProjectFileManager = () => {
   const { setAlert } = useAppContext();
@@ -26,15 +27,7 @@ export const ProjectFileManager = () => {
     getOnCanvasPosition,
   } = usePipelineEditorContext();
 
-  const allNotebookFileSteps = React.useMemo(() => {
-    return Object.values(pipelineJson?.steps || {}).reduce((all, step) => {
-      const filePath = getStepFilePath(step);
-      if (isNotebookFile(filePath)) {
-        return [...all, { ...step, file_path: filePath }];
-      }
-      return all;
-    }, [] as Step[]);
-  }, [pipelineJson]);
+  const { selectedFiles } = useFileManagerContext();
 
   const { isJobRun, jobRunQueryArgs } = React.useMemo(() => {
     return {
@@ -99,41 +92,11 @@ export const ProjectFileManager = () => {
     ]
   );
 
+  const getApplicableStepFiles = useValidateFilesOnSteps();
+
   const createStepsWithFiles = React.useCallback(
     (selected: string[], dropPosition: Position) => {
-      const { forbidden, allowed } = selected.reduce(
-        (all, curr) => {
-          const foundStep = allNotebookFileSteps.find((step) => {
-            return step.file_path === cleanFilePath(curr);
-          });
-
-          return foundStep
-            ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
-            : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
-        },
-        { forbidden: [], allowed: [] }
-      );
-
-      if (forbidden.length > 0) {
-        setAlert(
-          "Warning",
-          <Stack spacing={2} direction="column">
-            <Box>
-              Following Notebook files have already been used in the pipeline.
-              Assigning the same Notebook file to multiple steps is not
-              supported. Please convert to a script to re-use file across
-              pipeline steps.
-            </Box>
-            <ul>
-              {forbidden.map((file) => (
-                <Box key={file}>
-                  <Code>{cleanFilePath(file)}</Code>
-                </Box>
-              ))}
-            </ul>
-          </Stack>
-        );
-      }
+      const { allowed } = getApplicableStepFiles();
 
       allowed.forEach((filePath) => {
         dispatch({
@@ -158,26 +121,29 @@ export const ProjectFileManager = () => {
       });
     },
     [
-      allNotebookFileSteps,
       dispatch,
+      getApplicableStepFiles,
       environment?.language,
       environment?.name,
       environment?.uuid,
-      setAlert,
     ]
   );
 
   const onDropOutside = React.useCallback(
-    (target: EventTarget, selected: string[], dropPosition: Position) => {
+    (target: EventTarget, dropPosition: Position) => {
       // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
       // here we only handle "create a new step".
       const targetElement = target as HTMLElement;
       if (targetElement.id === "pipeline-canvas") {
-        createStepsWithFiles(selected, dropPosition);
+        createStepsWithFiles(selectedFiles, dropPosition);
       }
     },
-    [createStepsWithFiles]
+    [createStepsWithFiles, selectedFiles]
   );
+
+  const getDropPosition = React.useCallback(() => {
+    return getOnCanvasPosition({ x: STEP_WIDTH / 2, y: STEP_HEIGHT / 2 });
+  }, [getOnCanvasPosition]);
 
   return (
     <FileManager
@@ -185,7 +151,7 @@ export const ProjectFileManager = () => {
       onEdit={onEdit}
       onOpen={onOpen}
       onView={onView}
-      getDropPosition={getOnCanvasPosition}
+      getDropPosition={getDropPosition}
     />
   );
 };

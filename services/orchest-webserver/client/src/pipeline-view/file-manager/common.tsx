@@ -1,4 +1,6 @@
+import { Code } from "@/components/common/Code";
 import { Step } from "@/types";
+import React from "react";
 
 export const FILE_MANAGER_ENDPOINT = "/async/file-manager";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
@@ -62,11 +64,13 @@ export const deriveParentPath = (path: string) => {
 
 export const generateTargetDescription = (path: string) => {
   let parentPath = deriveParentPath(path);
-  let targetDescription = `'${baseNameFromPath(parentPath)}'`;
-  if (targetDescription === "''") {
-    targetDescription = "the root";
-  }
-  return targetDescription;
+  let nameFromPath = baseNameFromPath(parentPath);
+
+  return (
+    <Code>
+      {nameFromPath === "project-dir" ? "Project files" : nameFromPath}
+    </Code>
+  );
 };
 
 export const deduceRenameFromDragOperation = (
@@ -261,3 +265,36 @@ export const getStepFilePath = (step: Step) =>
   removeLeadingSymbols(step.file_path);
 
 export const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);
+
+/**
+ * Notebook files cannot be reused in the same pipeline, this function separate Notebook files that are already in use
+ * from all the other allowed files
+ */
+export const validateFiles = (
+  steps: Record<string, Step> | undefined,
+  selectedFiles: string[]
+) => {
+  const allNotebookFileSteps = Object.values(steps || {}).reduce(
+    (all, step) => {
+      const filePath = getStepFilePath(step);
+      if (isNotebookFile(filePath)) {
+        return [...all, { ...step, file_path: filePath }];
+      }
+      return all;
+    },
+    [] as Step[]
+  );
+
+  return selectedFiles.reduce(
+    (all, curr) => {
+      const foundStep = allNotebookFileSteps.find((step) => {
+        return step.file_path === cleanFilePath(curr);
+      });
+
+      return foundStep
+        ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
+        : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
+    },
+    { forbidden: [], allowed: [] }
+  );
+};

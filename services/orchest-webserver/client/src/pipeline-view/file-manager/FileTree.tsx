@@ -58,11 +58,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   ) => void;
   onRename: (oldPath: string, newPath: string) => void;
   reload: () => void;
-  onDropOutside: (
-    target: EventTarget,
-    selection: string[],
-    dropPosition: Position
-  ) => void;
+  onDropOutside: (target: EventTarget, dropPosition: Position) => void;
   onOpen: (filePath: string) => void;
 }) {
   const INIT_OFFSET_X = 10;
@@ -137,7 +133,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     (target: HTMLElement) => {
       // dropped outside of the tree view
       if (!isInFileManager(target)) {
-        onDropOutside(target, dragFiles, getDropPosition());
+        onDropOutside(target, getDropPosition());
         return;
       }
 
@@ -187,11 +183,21 @@ export const FileTree = React.memo(function FileTreeComponent({
         if (hasPathChanged) {
           let targetDescription = generateTargetDescription(deducedPaths[0][1]);
           const confirmMessage =
-            allowed.length > 1
-              ? `Do you want move ${allowed.length} files to ${targetDescription}?`
-              : `Do you want move '${baseNameFromPath(
-                  deducedPaths[0][0]
-                )}' to ${targetDescription}?`;
+            allowed.length > 1 ? (
+              <>
+                {`Do you want move `}
+                {allowed.length}
+                {` files to `}
+                {targetDescription} ?
+              </>
+            ) : (
+              <>
+                {`Do you want move `}
+                <Code>{baseNameFromPath(deducedPaths[0][0])}</Code>
+                {` to `}
+                {targetDescription} ?
+              </>
+            );
 
           setConfirm("Warning", confirmMessage, async (resolve) => {
             await Promise.all(
@@ -371,6 +377,7 @@ export const FileTree = React.memo(function FileTreeComponent({
           let combinedPath = `${root}${ROOT_SEPARATOR}/`;
           return (
             <TreeItem
+              disableDragging
               key={root}
               nodeId={root}
               sx={{

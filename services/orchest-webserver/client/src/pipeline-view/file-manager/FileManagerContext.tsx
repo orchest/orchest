@@ -27,7 +27,19 @@ export const FileManagerContext = React.createContext<FileManagerContextType>(
 export const useFileManagerContext = () => React.useContext(FileManagerContext);
 
 export const FileManagerContextProvider: React.FC = ({ children }) => {
-  const [selectedFiles, setSelectedFiles] = React.useState<string[]>([]);
+  const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
+
+  const setSelectedFiles = React.useCallback(
+    (stateAction: React.SetStateAction<string[]>) => {
+      _setSelectedFiles((current) => {
+        const updated =
+          stateAction instanceof Function ? stateAction(current) : stateAction;
+        return [...new Set(updated)]; // ensure no duplication
+      });
+    },
+    []
+  );
+
   const [dragFile, setDragFile] = React.useState<{
     labelText: string;
     path: string;

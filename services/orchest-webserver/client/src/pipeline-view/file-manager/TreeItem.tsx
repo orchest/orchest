@@ -3,8 +3,8 @@ import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
+import { useFileManagerContext } from "./FileManagerContext";
 import { getIcon, SVGFileIcon } from "./SVGFileIcon";
 
 const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
@@ -27,21 +27,25 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
 const DRAG_THRESHOLD = 3;
 
 export const TreeItem = ({
+  disableDragging,
   fileName = "",
   path = "",
   labelText,
-  setIsDragging,
-  setDragFile,
   onContextMenu,
   ...other
 }: TreeItemProps & {
+  disableDragging?: boolean;
   fileName?: string;
   path?: string;
   labelText: string;
-  setIsDragging?: (value: boolean) => void;
-  setDragFile?: (dragItemData: { labelText: string; path: string }) => void;
   sx: SxProps<Theme>;
 }) => {
+  const {
+    setSelectedFiles,
+    setIsDragging,
+    setDragFile,
+  } = useFileManagerContext();
+
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
     <OrchestFileIcon size={22} />
   ) : (
@@ -58,23 +62,22 @@ export const TreeItem = ({
     cumulativeDrag.current.drag = 0;
   };
 
-  const isDraggable = hasValue(setIsDragging) && hasValue(setDragFile);
-
   return (
     <StyledTreeItemRoot
       onMouseDown={() => {
-        if (isDraggable) setPressed(true);
+        if (!disableDragging) setPressed(true);
       }}
       onMouseMove={(e) => {
-        if (isDraggable && pressed && !triggeredDragging) {
+        if (!disableDragging && pressed && !triggeredDragging) {
           const normalizedDeltaX = e.movementX / window.devicePixelRatio;
           const normalizedDeltaY = e.movementY / window.devicePixelRatio;
           cumulativeDrag.current.drag +=
             Math.abs(normalizedDeltaX) + Math.abs(normalizedDeltaY);
 
           if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
-            if (setIsDragging) setIsDragging(true);
-            if (setDragFile) setDragFile({ labelText, path });
+            setIsDragging(true);
+            setDragFile({ labelText, path });
+            setSelectedFiles((current) => [...current, path]);
             setTriggedDragging(true);
           }
         }

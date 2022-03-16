@@ -17,6 +17,7 @@ import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { cleanFilePath } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
+import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -197,6 +198,8 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     document.body.removeEventListener("mouseup", finishDragging);
   }, [resetDraggingVariables, savePositions]);
 
+  const getApplicableStepFiles = useValidateFilesOnSteps();
+
   // handles all mouse up cases except "just finished dragging"
   // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
   // so this onMouseUp on the DOM won't work
@@ -207,8 +210,16 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     if (dragFile) {
       if (selectedFiles.length > 1) {
         setAlert("Error", "Unable to assign multiple files to a single step.");
+        resetMove();
         return;
       }
+
+      const { forbidden } = getApplicableStepFiles();
+      if (forbidden.length > 0) {
+        resetMove();
+        return;
+      }
+
       dispatch({
         type: "ASSIGN_FILE_TO_STEP",
         payload: { stepUuid: uuid, filePath: cleanFilePath(dragFile.path) },

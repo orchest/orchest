@@ -128,8 +128,6 @@ export const TreeRow = ({
 
             <TreeItem
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
-              setIsDragging={setIsDragging}
-              setDragFile={setDragFile}
               sx={{
                 cursor: "context-menu",
                 backgroundColor:
@@ -168,8 +166,6 @@ export const TreeRow = ({
             )}
             <TreeItem
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
-              setIsDragging={setIsDragging}
-              setDragFile={setDragFile}
               sx={{ cursor: "context-menu" }}
               key={combinedPath}
               nodeId={combinedPath}

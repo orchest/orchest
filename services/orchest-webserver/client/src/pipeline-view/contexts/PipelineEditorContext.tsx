@@ -26,7 +26,6 @@ import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
 import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
-import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 export type PipelineEditorContextType = {
   projectUuid: string;
@@ -66,7 +65,7 @@ export type PipelineEditorContextType = {
   sio: SocketIO;
   session: IOrchestSession;
   openNotebook: (e: React.MouseEvent | undefined, filePath: string) => void;
-  getOnCanvasPosition: () => Position;
+  getOnCanvasPosition: (offset: Position) => Position;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -219,19 +218,22 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
   );
 
-  const getOnCanvasPosition = React.useCallback((): Position => {
-    const clientPosition = {
-      x: mouseTracker.current.client.x - STEP_WIDTH / 2,
-      y: mouseTracker.current.client.y - STEP_HEIGHT / 2,
-    };
-    const { x, y } = getScaleCorrectedPosition({
-      offset: getOffset(pipelineCanvasRef.current),
-      position: clientPosition,
-      scaleFactor: eventVars.scaleFactor,
-    });
+  const getOnCanvasPosition = React.useCallback(
+    (offset: Position = { x: 0, y: 0 }): Position => {
+      const clientPosition = {
+        x: mouseTracker.current.client.x - offset.x,
+        y: mouseTracker.current.client.y - offset.y,
+      };
+      const { x, y } = getScaleCorrectedPosition({
+        offset: getOffset(pipelineCanvasRef.current),
+        position: clientPosition,
+        scaleFactor: eventVars.scaleFactor,
+      });
 
-    return { x, y };
-  }, [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]);
+      return { x, y };
+    },
+    [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]
+  );
 
   return (
     <PipelineEditorContext.Provider
