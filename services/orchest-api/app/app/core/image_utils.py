@@ -371,7 +371,7 @@ def _build_image(
         image_tag,
         build_context["snapshot_path"],
         build_context["dockerfile_path"],
-        cache_key=build_context["base_image"],
+        cache_key=build_context["base_image"].split(":")[0],
     )
 
     IS_DEV = os.getenv("FLASK_ENV") == "development"
