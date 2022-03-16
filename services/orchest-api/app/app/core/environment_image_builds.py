@@ -61,6 +61,7 @@ def write_environment_dockerfile(
 
     """
     statements = []
+
     statements.append(f"FROM {base_image}")
     # Create a layer (apparently helps with buildkit caching base image
     # layers). Also helps with logs (see _build_image).
@@ -233,8 +234,14 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         bash_script_name = (
             f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
         )
+
+        base_image = environment_properties["base_image"]
+        # Temporary workaround for common.tsx not using the orchest
+        # version.
+        if ":" not in base_image:
+            base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
         write_environment_dockerfile(
-            environment_properties["base_image"],
+            base_image,
             project_uuid,
             environment_uuid,
             _config.PROJECT_DIR,
@@ -259,7 +266,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     return {
         "snapshot_path": snapshot_path,
-        "base_image": environment_properties["base_image"],
+        "base_image": base_image,
         "dockerfile_path": dockerfile_name,
     }
 
