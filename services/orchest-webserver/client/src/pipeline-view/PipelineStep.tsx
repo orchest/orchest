@@ -149,12 +149,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       selectedConnection,
     },
   } = usePipelineEditorContext();
-  const {
-    selectedFiles,
-    dragFile,
-    setDragFile,
-    resetMove,
-  } = useFileManagerContext();
+  const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
   const {
     pipelineCanvasState: { panningState },
@@ -392,7 +387,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const onMouseOverContainer = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (newConnection.current) setIsHovering(true);
+    if (newConnection.current || dragFile) setIsHovering(true);
   };
   const onMouseOutContainer = (e: React.MouseEvent) => {
     e.preventDefault();
