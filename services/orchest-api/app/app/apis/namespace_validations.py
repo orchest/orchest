@@ -35,7 +35,7 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
 
     """
     try:
-        environments.get_env_uuids_to_image_mappings(project_uuid, set(env_uuid))
+        environments.get_env_uuids_to_image_mappings(project_uuid, {env_uuid})
     except self_errors.ImageNotFound:
         # Check the build history for the environment to determine the
         # action.
