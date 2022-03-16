@@ -78,10 +78,12 @@ type ProgressType = LinearProgressProps["variant"];
 const DEFAULT_DEPTH = 3;
 
 export function FileManager({
+  isReadOnly,
   onOpen,
   onDropOutside,
   ...props
 }: {
+  isReadOnly?: boolean;
   onSelect?: (selected: string[]) => void;
   onDropOutside: (target: EventTarget, dropPosition: Position) => void;
   onOpen: (filePath: string) => void;
@@ -326,6 +328,7 @@ export function FileManager({
   return (
     <FileManagerLocalContextProvider
       reload={reload}
+      isReadOnly={isReadOnly}
       setContextMenu={setContextMenu}
       baseUrl={fileManagerBaseUrl}
       {...props}

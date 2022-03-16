@@ -6,6 +6,7 @@ import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
+  isReadOnly?: boolean;
   getDropPosition: () => Position;
   handleClose: () => void;
   handleContextMenu: (
@@ -73,6 +74,7 @@ const downloadFile = (
 
 export const FileManagerLocalContextProvider: React.FC<{
   baseUrl: string;
+  isReadOnly: boolean;
   reload: () => Promise<void>;
   onSelect?: (selected: string[]) => void;
   onEdit: (filePath: string) => void;
@@ -86,6 +88,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   getDropPosition: () => Position;
 }> = ({
   children,
+  isReadOnly,
   onSelect,
   onView,
   onEdit,
@@ -140,9 +143,10 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [setContextMenu]);
 
   const handleContextEdit = React.useCallback(() => {
+    if (isReadOnly) return;
     handleClose();
     onEdit(contextMenuCombinedPath);
-  }, [contextMenuCombinedPath, handleClose, onEdit]);
+  }, [contextMenuCombinedPath, handleClose, onEdit, isReadOnly]);
 
   const handleContextView = React.useCallback(() => {
     handleClose();
@@ -150,12 +154,16 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [contextMenuCombinedPath, handleClose, onView]);
 
   const handleContextRename = React.useCallback(() => {
+    if (isReadOnly) return;
+
     handleClose();
     setFileInRename(contextMenuCombinedPath);
     setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, handleClose]);
+  }, [contextMenuCombinedPath, handleClose, isReadOnly]);
 
   const handleDuplicate = React.useCallback(async () => {
+    if (isReadOnly) return;
+
     handleClose();
 
     let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
@@ -164,9 +172,11 @@ export const FileManagerLocalContextProvider: React.FC<{
       method: "POST",
     });
     reload();
-  }, [baseUrl, contextMenuCombinedPath, handleClose, reload]);
+  }, [baseUrl, contextMenuCombinedPath, handleClose, reload, isReadOnly]);
 
   const handleDelete = React.useCallback(() => {
+    if (isReadOnly) return;
+
     handleClose();
 
     if (
@@ -209,6 +219,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     reload,
     setConfirm,
     handleClose,
+    isReadOnly,
   ]);
 
   const handleDownload = React.useCallback(() => {
@@ -232,6 +243,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   return (
     <FileManagerLocalContext.Provider
       value={{
+        isReadOnly,
         getDropPosition,
         handleClose,
         handleContextMenu,

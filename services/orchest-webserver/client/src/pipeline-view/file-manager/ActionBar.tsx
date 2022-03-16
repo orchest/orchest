@@ -13,6 +13,7 @@ import React from "react";
 import { CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
 import { useFileManagerContext } from "./FileManagerContext";
+import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
   svg: {
@@ -37,6 +38,7 @@ export function ActionBar({
 }) {
   const { projectUuid } = useCustomRoute();
   const { setSelectedFiles } = useFileManagerContext();
+  const { isReadOnly } = useFileManagerLocalContext();
 
   const [isCreateFileDialogOpen, setIsCreateFileDialogOpen] = React.useState(
     false
@@ -66,7 +68,7 @@ export function ActionBar({
   return (
     <>
       <CreateFileDialog
-        isOpen={isCreateFileDialogOpen}
+        isOpen={!isReadOnly && isCreateFileDialogOpen}
         onClose={closeCreateFileDialog}
         onSuccess={(fullFilePath: string) => {
           setSelectedFiles([fullFilePath]);
@@ -76,7 +78,7 @@ export function ActionBar({
       />
       <CreateFolderDialog
         baseUrl={baseUrl}
-        isOpen={isCreateFolderDialogOpen}
+        isOpen={!isReadOnly && isCreateFolderDialogOpen}
         onClose={closeCreateFolderDialog}
         root={rootFolder}
         onSuccess={() => {
@@ -90,51 +92,55 @@ export function ActionBar({
         sx={{ padding: (theme) => theme.spacing(0.5) }}
       >
         <Box>
-          <form style={{ display: "none" }}>
-            <input
-              type="file"
-              multiple
-              onChange={handleUploadFile}
-              ref={uploadFileRef}
-            />
-          </form>
-          <form style={{ display: "none" }}>
-            <input
-              type="file"
-              webkitdirectory=""
-              directory=""
-              onChange={handleUploadFolder}
-              ref={uploadFolderRef}
-            />
-          </form>
-          <FileManagerActionButton
-            onClick={() => {
-              uploadFileRef.current.click();
-            }}
-            title="Upload file"
-          >
-            <UploadFileIcon />
-          </FileManagerActionButton>
-          <FileManagerActionButton
-            onClick={() => {
-              uploadFolderRef.current?.click();
-            }}
-            title="Upload folder"
-          >
-            <DriveFolderUploadIcon />
-          </FileManagerActionButton>
-          <FileManagerActionButton
-            title="Create file"
-            onClick={openCreateFileDialog}
-          >
-            <NoteAddIcon />
-          </FileManagerActionButton>
-          <FileManagerActionButton
-            onClick={openCreateFolderDialog}
-            title="Create folder"
-          >
-            <CreateNewFolderIcon />
-          </FileManagerActionButton>
+          {!isReadOnly && (
+            <>
+              <form style={{ display: "none" }}>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleUploadFile}
+                  ref={uploadFileRef}
+                />
+              </form>
+              <form style={{ display: "none" }}>
+                <input
+                  type="file"
+                  webkitdirectory=""
+                  directory=""
+                  onChange={handleUploadFolder}
+                  ref={uploadFolderRef}
+                />
+              </form>
+              <FileManagerActionButton
+                onClick={() => {
+                  uploadFileRef.current.click();
+                }}
+                title="Upload file"
+              >
+                <UploadFileIcon />
+              </FileManagerActionButton>
+              <FileManagerActionButton
+                onClick={() => {
+                  uploadFolderRef.current?.click();
+                }}
+                title="Upload folder"
+              >
+                <DriveFolderUploadIcon />
+              </FileManagerActionButton>
+              <FileManagerActionButton
+                title="Create file"
+                onClick={openCreateFileDialog}
+              >
+                <NoteAddIcon />
+              </FileManagerActionButton>
+              <FileManagerActionButton
+                onClick={openCreateFolderDialog}
+                title="Create folder"
+              >
+                <CreateNewFolderIcon />
+              </FileManagerActionButton>
+            </>
+          )}
           <FileManagerActionButton title="Refresh" onClick={reload}>
             <RefreshIcon />
           </FileManagerActionButton>

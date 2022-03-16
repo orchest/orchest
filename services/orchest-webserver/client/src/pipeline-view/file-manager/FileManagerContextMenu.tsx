@@ -15,6 +15,7 @@ export const FileManagerContextMenu: React.FC<{
   metadata: ContextMenuMetadata;
 }> = ({ metadata, children }) => {
   const {
+    isReadOnly,
     handleClose,
     handleContextEdit,
     handleContextView,
@@ -44,8 +45,8 @@ export const FileManagerContextMenu: React.FC<{
     >
       {metadata?.type === "tree" && (
         <>
-          {contextPathIsFile && (
-            <MenuItem dense onClick={handleContextEdit}>
+          {!isReadOnly && contextPathIsFile && (
+            <MenuItem dense disabled={isReadOnly} onClick={handleContextEdit}>
               Edit
             </MenuItem>
           )}
@@ -54,15 +55,23 @@ export const FileManagerContextMenu: React.FC<{
               View
             </MenuItem>
           )}
-          <MenuItem dense onClick={handleContextRename}>
-            Rename
-          </MenuItem>
-          <MenuItem dense onClick={handleDuplicate}>
-            Duplicate
-          </MenuItem>
-          <MenuItem dense onClick={handleDelete}>
-            Delete
-          </MenuItem>
+          {!isReadOnly && (
+            <>
+              <MenuItem
+                dense
+                disabled={isReadOnly}
+                onClick={handleContextRename}
+              >
+                Rename
+              </MenuItem>
+              <MenuItem dense disabled={isReadOnly} onClick={handleDuplicate}>
+                Duplicate
+              </MenuItem>
+              <MenuItem dense disabled={isReadOnly} onClick={handleDelete}>
+                Delete
+              </MenuItem>
+            </>
+          )}
           <MenuItem dense onClick={handleDownload}>
             Download
           </MenuItem>

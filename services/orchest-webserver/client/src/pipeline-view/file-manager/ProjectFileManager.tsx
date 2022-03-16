@@ -147,6 +147,7 @@ export const ProjectFileManager = () => {
 
   return (
     <FileManager
+      isReadOnly={isReadOnly}
       onDropOutside={onDropOutside}
       onEdit={onEdit}
       onOpen={onOpen}

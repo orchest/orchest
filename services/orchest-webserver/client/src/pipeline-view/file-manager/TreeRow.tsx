@@ -97,7 +97,11 @@ export const TreeRow = ({
   hoveredPath: string;
   onOpen: (filePath: string) => void;
 }) => {
-  const { handleContextMenu, fileInRename } = useFileManagerLocalContext();
+  const {
+    handleContextMenu,
+    fileInRename,
+    isReadOnly,
+  } = useFileManagerLocalContext();
   const { directories, files } = React.useMemo(
     () =>
       treeNodes.reduce(
@@ -127,6 +131,7 @@ export const TreeRow = ({
             )}
 
             <TreeItem
+              disableDragging={isReadOnly}
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               sx={{
                 cursor: "context-menu",
@@ -165,6 +170,7 @@ export const TreeRow = ({
               />
             )}
             <TreeItem
+              disableDragging={isReadOnly}
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               sx={{ cursor: "context-menu" }}
               key={combinedPath}
@@ -173,7 +179,7 @@ export const TreeRow = ({
               path={combinedPath}
               labelText={e.name}
               fileName={e.name}
-              onDoubleClick={onOpen.bind(undefined, combinedPath)}
+              onDoubleClick={() => !isReadOnly && onOpen(combinedPath)}
             />
           </div>
         );
