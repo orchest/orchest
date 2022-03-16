@@ -9,7 +9,7 @@ config:
   name: config-pvc
   storage: 10Mi
 
-kanikocache:
-  name: kaniko-cache-pvc
+imagebuildercache:
+  name: image-builder-cache-pvc
   storage: 10Gi
 

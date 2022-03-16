@@ -8,6 +8,7 @@ from flask_restx import Namespace, Resource
 from _orchest.internals import config as _config
 from app import schema, utils
 from app.connections import k8s_core_api
+from config import CONFIG_CLASS
 
 api = Namespace("ctl", description="Orchest-api internal control.")
 api = utils.register_schema(api)
@@ -57,9 +58,12 @@ class OrchestImagesToPrePull(Resource):
     @api.doc("orchest_images_to_pre_pull")
     def get(self):
         """Orchest images to pre pull on all nodes for a better UX."""
-        # K8S_TODO: remove latest once we have versioned images on
-        # dockerhub.
         pre_pull_orchest_images = [
+            # This image is only used in the builder node, pull it
+            # anyway through the daemonset? (it's around 50 MB).
+            CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
+            # K8S_TODO: remove latest once we have versioned images on
+            # dockerhub.
             "orchest/jupyter-enterprise-gateway:latest",
             "orchest/session-sidecar:latest",
             utils.get_jupyter_server_image_to_use(),
