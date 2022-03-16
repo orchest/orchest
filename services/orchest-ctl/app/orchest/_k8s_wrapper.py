@@ -426,9 +426,6 @@ def orchest_cleanup() -> None:
     to be online.
     """
     manifest = _cleanup_pod_manifest
-    manifest["spec"]["containers"][0][
-        "image"
-    ] = f"orchest/orchest-api:{config.ORCHEST_VERSION}"
     resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
     pod_name = resp.metadata.name
 
