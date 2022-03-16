@@ -35,11 +35,16 @@ fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# Make sure the orchest namespace exists. Necessary only if Orchest is
-# being installed.
-minikube kubectl -- create namespace orchest  > /dev/null 2>&1
-
-
+# Make sure the orchest namespace exists and that orchest-resources
+# dependencies are installed. This is needed, for example, to create
+# vpcs before deploying orchest-ctl. K8S_TODO: don't silence stderr,
+# and make it so that repeating "make orchest-resources" will not
+# produce an error.
+if [ "$1"  == "install" ]; then
+    echo "Creating orchest-namespace and installing dependencies."
+    rm -rf "${DIR}/deploy/bin" > /dev/null
+    make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
+fi
 
 # Script and dependencies, i.e. yaml files.
 repo_version=$(git describe --tags --abbrev=0)
