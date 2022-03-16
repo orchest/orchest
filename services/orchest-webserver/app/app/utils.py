@@ -525,11 +525,11 @@ def copy(source: str, target: str, ignore_errors: bool = False) -> None:
 
     """
     exit_code = subprocess.call(
-        f"cp {source} {target}", stderr=subprocess.STDOUT, shell=True
+        f"cp '{source}' '{target}'", stderr=subprocess.STDOUT, shell=True
     )
     if exit_code != 0 and not ignore_errors:
         raise OSError(
-            f"Failed to run 'cp {source} {target}' with exit code: {exit_code}."
+            f"Failed to run `cp '{source}' '{target}'` with exit code: {exit_code}."
         )
 
 
@@ -560,14 +560,14 @@ def copytree(source: str, target: str, respect_gitignore: bool = True):
     copy_cmd = ["rsync", "-aWHAX"]
     # NOTE: source has trailing `/`
     if respect_gitignore and os.path.isfile(f"{source}.gitignore"):
-        copy_cmd += [f"--exclude-from={source}.gitignore"]
-    copy_cmd += [f"{source} {target}"]
+        copy_cmd += [f"--exclude-from='{source}.gitignore'"]
+    copy_cmd += [f"'{source}' '{target}'"]
 
     exit_code = subprocess.call(
         " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
     )
     if exit_code != 0:
-        raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
+        raise OSError(f"Failed to copy '{source}' to '{target}', :{exit_code}.")
 
 
 def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):
