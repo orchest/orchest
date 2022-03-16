@@ -39,18 +39,18 @@ def validate_environment(project_uuid: str, env_uuid: str) -> Tuple[str, Optiona
     except self_errors.ImageNotFound:
         # Check the build history for the environment to determine the
         # action.
-        env_builds = models.EnvironmentBuild.query.filter_by(
+        env_builds = models.EnvironmentImageBuild.query.filter_by(
             project_uuid=project_uuid, environment_uuid=env_uuid
         )
         num_building_builds = env_builds.filter(
-            models.EnvironmentBuild.status.in_(["PENDING", "STARTED"])
+            models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
         ).count()
 
         if num_building_builds > 0:
             return "fail", "WAIT"
 
         num_failed_builds = env_builds.filter(
-            models.EnvironmentBuild.status.in_(["FAILURE"])
+            models.EnvironmentImageBuild.status.in_(["FAILURE"])
         ).count()
         if num_failed_builds > 0:
             return "fail", "RETRY"
