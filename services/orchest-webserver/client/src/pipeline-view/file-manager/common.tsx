@@ -1,5 +1,9 @@
 import { Code } from "@/components/common/Code";
 import { Step } from "@/types";
+import {
+  ALLOWED_STEP_EXTENSIONS,
+  extensionFromFilename,
+} from "@orchest/lib-utils";
 import React from "react";
 
 export const FILE_MANAGER_ENDPOINT = "/async/file-manager";
@@ -287,14 +291,35 @@ export const validateFiles = (
 
   return selectedFiles.reduce(
     (all, curr) => {
-      const foundStep = allNotebookFileSteps.find((step) => {
+      const fileExtension = extensionFromFilename(curr);
+      const isAllowed = ALLOWED_STEP_EXTENSIONS.some(
+        (allowedExtension) =>
+          allowedExtension.toLowerCase() === fileExtension.toLowerCase()
+      );
+      const usedNotebookFiles = allNotebookFileSteps.find((step) => {
         return step.file_path === cleanFilePath(curr);
       });
 
-      return foundStep
+      return usedNotebookFiles
+        ? {
+            ...all,
+            usedNotebookFiles: [...all.usedNotebookFiles, cleanFilePath(curr)],
+          }
+        : !isAllowed
         ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
         : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
     },
-    { forbidden: [], allowed: [] }
+    { usedNotebookFiles: [], forbidden: [], allowed: [] }
   );
 };
+
+export const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map(
+  (el, index) => {
+    return (
+      <span key={el}>
+        <Code>.{el}</Code>
+        {index < ALLOWED_STEP_EXTENSIONS.length - 1 ? <>&nbsp;, </> : ""}
+      </span>
+    );
+  }
+);

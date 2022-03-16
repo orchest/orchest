@@ -1,4 +1,3 @@
-import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import AddIcon from "@mui/icons-material/Add";
@@ -23,19 +22,11 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import {
+  allowedExtensionsMarkup,
   PROJECT_DIR_PATH,
   removeLeadingSymbols,
   ROOT_SEPARATOR,
 } from "./common";
-
-const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map((el, index) => {
-  return (
-    <span key={el}>
-      <Code>.{el}</Code>
-      {index < ALLOWED_STEP_EXTENSIONS.length - 1 ? <>&nbsp;, </> : ""}
-    </span>
-  );
-});
 
 const KernelLanguage = {
   python: "Python",

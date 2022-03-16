@@ -160,13 +160,9 @@ export const FileManagerLocalContextProvider: React.FC<{
 
     let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
 
-    await fetch(
-      `${baseUrl}/duplicate?${queryArgs({
-        path,
-        root,
-      })}`,
-      { method: "POST" }
-    );
+    await fetch(`${baseUrl}/duplicate?${queryArgs({ path, root })}`, {
+      method: "POST",
+    });
     reload();
   }, [baseUrl, contextMenuCombinedPath, handleClose, reload]);
 

@@ -214,8 +214,8 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         return;
       }
 
-      const { forbidden } = getApplicableStepFiles();
-      if (forbidden.length > 0) {
+      const { forbidden, usedNotebookFiles } = getApplicableStepFiles();
+      if (forbidden.length + usedNotebookFiles.length > 0) {
         resetMove();
         return;
       }

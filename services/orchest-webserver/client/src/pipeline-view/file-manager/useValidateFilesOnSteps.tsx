@@ -4,7 +4,11 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { cleanFilePath, validateFiles } from "./common";
+import {
+  allowedExtensionsMarkup,
+  cleanFilePath,
+  validateFiles,
+} from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 
 export const useValidateFilesOnSteps = () => {
@@ -13,7 +17,7 @@ export const useValidateFilesOnSteps = () => {
   const { selectedFiles } = useFileManagerContext();
 
   const getApplicableStepFiles = React.useCallback(() => {
-    const { forbidden, allowed } = validateFiles(
+    const { usedNotebookFiles, forbidden, allowed } = validateFiles(
       pipelineJson?.steps,
       selectedFiles
     );
@@ -22,9 +26,9 @@ export const useValidateFilesOnSteps = () => {
         "Warning",
         <Stack spacing={2} direction="column">
           <Box>
-            Following Notebook files have already been used in the pipeline.
-            Assigning the same Notebook file to multiple steps is not supported.
-            Please convert to a script to re-use file across pipeline steps.
+            {`Supported file extensions are: `}
+            {allowedExtensionsMarkup}
+            {`Unable to apply following files to a step:`}
           </Box>
           <ul>
             {forbidden.map((file) => (
@@ -36,7 +40,26 @@ export const useValidateFilesOnSteps = () => {
         </Stack>
       );
     }
-    return { forbidden, allowed };
+    if (usedNotebookFiles.length > 0) {
+      setAlert(
+        "Warning",
+        <Stack spacing={2} direction="column">
+          <Box>
+            Following Notebook files have already been used in the pipeline.
+            Assigning the same Notebook file to multiple steps is not supported.
+            Please convert to a script to re-use file across pipeline steps.
+          </Box>
+          <ul>
+            {usedNotebookFiles.map((file) => (
+              <Box key={file}>
+                <Code>{cleanFilePath(file)}</Code>
+              </Box>
+            ))}
+          </ul>
+        </Stack>
+      );
+    }
+    return { usedNotebookFiles, forbidden, allowed };
   }, [pipelineJson?.steps, selectedFiles, setAlert]);
 
   return getApplicableStepFiles;
