@@ -1,4 +1,5 @@
 images:
   pullPolicy: IfNotPresent
-  name: orchest/node-agent:latest 
+  name: orchest/node-agent
+  tag: latest
 
