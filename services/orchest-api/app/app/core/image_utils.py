@@ -1,7 +1,5 @@
 import os
 import re
-import time
-from pathlib import Path
 
 from kubernetes import watch
 
@@ -371,7 +369,7 @@ def _build_image(
         image_tag,
         build_context["snapshot_path"],
         build_context["dockerfile_path"],
-        cache_key=build_context["base_image"],
+        cache_key=build_context["base_image"].split(":")[0],
     )
 
     IS_DEV = os.getenv("FLASK_ENV") == "development"
@@ -393,13 +391,7 @@ def _build_image(
         max_retries=100,
     )
 
-    # Tells us if we can expect base image layers to be in the cache.
-    needs_to_pull_base_image = not os.path.exists(
-        f'{_config.USERDIR_BUILDKIT_CACHE}/{build_context["base_image"]}/.success.txt'
-    )
-    if needs_to_pull_base_image:
-        msg = "Pulling base image..."
-        _log(user_logs_file_object, complete_logs_file_object, msg, False)
+    _log(user_logs_file_object, complete_logs_file_object, "Building image...", True)
 
     # Buildkit will add runtimes to commands, can't be deactivated atm.
     runtime_regex = re.compile(r"^#\d*\s\d*\.\d*\s")
@@ -423,15 +415,6 @@ def _build_image(
         found_error_flag = event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG)
         if found_error_flag:
             break
-        if needs_to_pull_base_image:
-            if event.endswith("RUN echo orchest"):
-                needs_to_pull_base_image = False
-                msg = "\nDone pulling base image."
-                _log(user_logs_file_object, complete_logs_file_object, msg, True)
-            else:
-                _log(user_logs_file_object, complete_logs_file_object, ".", False)
-                time.sleep(1)
-            continue
 
         if event.startswith("#") and event.endswith("CACHED"):
             msg = "Found cached layer."
@@ -484,12 +467,6 @@ def _build_image(
             else:
                 user_logs_file_object.write("\n")
                 done = True
-        # Tells us if we can expect base image layers to be in the
-        # cache.
-        Path(
-            f'{_config.USERDIR_BUILDKIT_CACHE}/{build_context["base_image"]}'
-            "/.success.txt"
-        ).touch()
         msg = "Done!"
         _log(user_logs_file_object, complete_logs_file_object, msg, False)
 

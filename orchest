@@ -44,6 +44,7 @@ if [ "$1"  == "install" ]; then
     echo "Creating orchest-namespace and installing dependencies."
     rm -rf "${DIR}/deploy/bin" > /dev/null
     make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
+    echo "Running orchest-ctl."
 elif ! minikube kubectl get namespace orchest > /dev/null 2>&1 ; then
     echo "You need to install Orchest before running other commands."
     exit 1
@@ -54,8 +55,6 @@ repo_version=$(git describe --tags --abbrev=0)
 # The deployment.
 cluster_version=$(minikube kubectl -- get namespace orchest -o \
     jsonpath='{.metadata.labels.version}')
-# K8S_TODO: fix this once we actually stop using latest.
-cluster_version=test
 
 # Will be empty only if Orchest has not been installed yet.
 if [ -n "$cluster_version" ]; then
@@ -79,8 +78,6 @@ fi
 minikube kubectl -- apply -f "$DIR/deploy/orchest-ctl/rbac" > /dev/null
 
 image="orchest/orchest-ctl:${repo_version}"
-# K8S_TODO: fix this once we actually stop using latest.
-image="orchest/orchest-ctl"
 
 set -e
 

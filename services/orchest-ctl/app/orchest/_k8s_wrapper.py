@@ -395,7 +395,7 @@ _cleanup_pod_manifest = {
         "containers": [
             {
                 "name": "orchest-api-cleanup",
-                "image": f'orchest/orchest-api:{os.environ["ORCHEST_VERSION"]}',
+                "image": f"orchest/orchest-api:{config.ORCHEST_VERSION}",
                 "command": ["/bin/sh", "-c"],
                 # Make sure the database is compatible with the code.
                 "args": ["python migration_manager.py db migrate && python cleanup.py"],
@@ -425,8 +425,6 @@ def orchest_cleanup() -> None:
     to be online.
     """
     manifest = _cleanup_pod_manifest
-    # K8S_TODO: fix this once we move to versioned images.
-    manifest["spec"]["containers"][0]["image"] = "orchest/orchest-api:latest"
     resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
     pod_name = resp.metadata.name
 
@@ -457,14 +455,10 @@ def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
 
     spec = manifest["spec"]
     spec["containers"][0]["image"] = f"orchest/orchest-ctl:{update_to_version}"
-    for env_var in spec["containers"][0]["env"]:
-        if env_var["name"] == "ORCHEST_VERSION":
-            env_var["value"] = update_to_version
-            break
     return manifest
 
 
-def create_update_pod() -> k8s_client.V1Pod:
+def get_update_pod_manifest() -> dict:
     current_version = get_orchest_cluster_version()
     resp = requests.get(
         _config.ORCHEST_UPDATE_INFO_URL.format(version=current_version), timeout=5
@@ -475,12 +469,11 @@ def create_update_pod() -> k8s_client.V1Pod:
 
     latest_version = resp.json()["latest_version"]
     if latest_version == current_version:
-        utils.echo("Orchest is already on the latest version.")
+        utils.echo("Orchest is already at the latest version.")
         raise typer.Exit(0)
 
     manifest = _get_orchest_ctl_update_post_manifest(latest_version)
-    r = k8s_core_api.create_namespaced_pod("orchest", manifest)
-    return r
+    return manifest
 
 
 def wait_for_pod_status(

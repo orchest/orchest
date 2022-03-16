@@ -59,13 +59,11 @@ class OrchestImagesToPrePull(Resource):
     def get(self):
         """Orchest images to pre pull on all nodes for a better UX."""
         pre_pull_orchest_images = [
+            f"orchest/jupyter-enterprise-gateway:{CONFIG_CLASS.ORCHEST_VERSION}",
+            f"orchest/session-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
             # This image is only used in the builder node, pull it
             # anyway through the daemonset? (it's around 50 MB).
             CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
-            # K8S_TODO: remove latest once we have versioned images on
-            # dockerhub.
-            "orchest/jupyter-enterprise-gateway:latest",
-            "orchest/session-sidecar:latest",
             utils.get_jupyter_server_image_to_use(),
         ]
         pre_pull_orchest_images = {"pre_pull_orchest_images": pre_pull_orchest_images}
@@ -74,15 +72,6 @@ class OrchestImagesToPrePull(Resource):
 
 
 def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
-    # K8S_TODO: enable once we have versioned images. The update-sidecar
-    # should use the current version of the cluster given that's the
-    # version of the update-pod that is started and of the client that
-    # is getting the logs.
-    # current_version = k8s_core_api.read_namespace("orchest")
-    # .metadata.labels.get(
-    #     "version"
-    # )
-    current_version = "latest"
     manifest = {
         "apiVersion": "v1",
         "kind": "Pod",
@@ -107,7 +96,7 @@ def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
                         {"name": "UPDATE_POD_NAME", "value": update_pod_name},
                         {"name": "TOKEN", "value": token},
                     ],
-                    "image": f"orchest/update-sidecar:{current_version}",
+                    "image": f"orchest/update-sidecar:{CONFIG_CLASS.ORCHEST_VERSION}",
                     "imagePullPolicy": "IfNotPresent",
                     "name": "update-sidecar",
                 }
@@ -125,21 +114,17 @@ def _get_orchest_ctl_pod_manifest(command_label: str) -> dict:
     with open(_config.ORCHEST_CTL_POD_YAML_PATH, "r") as f:
         manifest = yaml.safe_load(f)
 
-    # K8S_TODO: enable once we have versioned images.
-    # current_version = k8s_core_api.read_namespace("orchest")
-    # .metadata.labels.get(
-    #     "version"
-    # )
-    current_version = "latest"
-    manifest["metadata"]["labels"]["version"] = current_version
+    manifest["metadata"]["labels"]["version"] = CONFIG_CLASS.ORCHEST_VERSION
     manifest["metadata"]["labels"]["command"] = command_label
 
     containers = manifest["spec"]["containers"]
     orchest_ctl_container = containers[0]
-    orchest_ctl_container["image"] = f"orchest/orchest-ctl:{current_version}"
+    orchest_ctl_container[
+        "image"
+    ] = f"orchest/orchest-ctl:{CONFIG_CLASS.ORCHEST_VERSION}"
     for env_var in orchest_ctl_container["env"]:
         if env_var["name"] == "ORCHEST_VERSION":
-            env_var["value"] = current_version
+            env_var["value"] = CONFIG_CLASS.ORCHEST_VERSION
             break
 
     # This is to know the name in advance.

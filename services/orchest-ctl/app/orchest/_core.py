@@ -62,6 +62,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
+    env["ORCHEST_DEFAULT_TAG"] = config.ORCHEST_VERSION
     # This way the command will only interact with orchest resources,
     # and not their dependencies (pvcs, etc.).
     env["DEPEND_RESOURCES"] = "FALSE"
@@ -126,6 +127,12 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     utils.echo(f"Installing Orchest {orchest_version}.")
 
+    logger.info("Creating the required directories.")
+    utils.create_required_directories()
+
+    logger.info("Setting 'userdir/' permissions.")
+    utils.fix_userdir_permissions()
+
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
     return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
@@ -137,12 +144,6 @@ def install(log_level: utils.LogLevel, cloud: bool):
             err=True,
         )
         raise typer.Exit(return_code)
-
-    logger.info("Setting 'userdir/' permissions.")
-    utils.fix_userdir_permissions()
-
-    logger.info("Creating the required directories.")
-    utils.create_required_directories()
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
@@ -575,8 +576,9 @@ def update() -> None:
       print them
     """
     k8sw.abort_if_unsafe()
+    update_pod_manifest = k8sw.get_update_pod_manifest()
     stop()
-    pod = k8sw.create_update_pod()
+    pod = k8s_core_api.create_namespaced_pod("orchest", update_pod_manifest)
 
     status = k8sw.wait_for_pod_status(
         pod.metadata.name,
