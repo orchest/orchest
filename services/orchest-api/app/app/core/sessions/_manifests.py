@@ -3,6 +3,7 @@
 Note that pod labels are coupled with how we restart services, which
 is done by deleting all pods with the given labels.
 """
+import copy
 import os
 import traceback
 from typing import Any, Dict, Tuple
@@ -916,8 +917,8 @@ def _get_user_service_deployment_service_manifest(
             }
         )
 
-    ingress_metadata = metadata
-    if service_config.get("requires_authentication", False) is True:
+    ingress_metadata = copy.deepcopy(metadata)
+    if service_config.get("requires_authentication", True):
         auth_url = (
             f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
         )
