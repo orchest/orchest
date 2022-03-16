@@ -508,10 +508,10 @@ def rmtree(path, ignore_errors=False):
 
     """
     exit_code = subprocess.call(
-        f"rm -rf -- {path}", stderr=subprocess.STDOUT, shell=True
+        f"rm -rf -- '{path}'", stderr=subprocess.STDOUT, shell=True
     )
     if exit_code != 0 and not ignore_errors:
-        raise OSError(f"Failed to rm {path}: {exit_code}.")
+        raise OSError(f"Failed to remove '{path}': {exit_code}.")
 
 
 def copy(source: str, target: str, ignore_errors: bool = False) -> None:
