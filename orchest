@@ -25,7 +25,6 @@ if $MINIKUBE_MODE && ! minikube addons list | grep "ingress " | grep "enabled" >
         exit
     fi
 fi
-exit
 
 namespace_state=$(minikube kubectl -- get namespace orchest -o \
     jsonpath={.status.phase} 2> /dev/null)
