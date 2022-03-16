@@ -9,6 +9,7 @@ import os
 import time
 from typing import Container, Dict, Iterable, List, Optional, Union
 
+import requests
 import typer
 import yaml
 from kubernetes import client as k8s_client
@@ -373,8 +374,6 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
     pod = _get_ongoing_status_changing_pod()
     if pod is None:
         return None
-    if pod.metadata.labels["app"] == "update-server":
-        return config.OrchestStatus.UPDATING
     else:
         cmd = pod.metadata.labels["command"]
         return config.ORCHEST_OPERATION_TO_STATUS_MAPPING[cmd]
@@ -466,9 +465,20 @@ def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
 
 
 def create_update_pod() -> k8s_client.V1Pod:
-    # K8S_TODO: query the update-info server once we moved to versioned
-    # images.
-    manifest = _get_orchest_ctl_update_post_manifest("latest")
+    current_version = get_orchest_cluster_version()
+    resp = requests.get(
+        _config.ORCHEST_UPDATE_INFO_URL.format(version=current_version), timeout=5
+    )
+    if resp.status_code != 200:
+        utils.echo("Failed to retrieve latest Orchest version information.")
+        raise typer.Exit(1)
+
+    latest_version = resp.json()["latest_version"]
+    if latest_version == current_version:
+        utils.echo("Orchest is already on the latest version.")
+        raise typer.Exit(0)
+
+    manifest = _get_orchest_ctl_update_post_manifest(latest_version)
     r = k8s_core_api.create_namespaced_pod("orchest", manifest)
     return r
 

@@ -304,7 +304,7 @@ class _Anonymizer:
 
 def _anonymize_service_definition(definition: dict) -> dict:
     definition.pop("command", None)
-    definition.pop("entrypoint", None)
+    definition.pop("args", None)
     definition.pop("env_variables", None)
     definition.pop("env_variables_inherit", None)
 

@@ -444,7 +444,6 @@ def _step_to_workflow_manifest_task(
                     "name": "main",
                     "env": env_variables,
                     "restartPolicy": "Never",
-                    # K8S_TODO: fix this.
                     "imagePullPolicy": "IfNotPresent",
                 }
             ]

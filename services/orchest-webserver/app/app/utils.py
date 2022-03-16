@@ -275,7 +275,7 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
             pipeline_json = json.load(json_file)
 
             # Apply pipeline migrations
-            pipeline_json = migrate_pipeline(pipeline_json)
+            migrate_pipeline(pipeline_json)
 
             return pipeline_json
     except Exception as e:
