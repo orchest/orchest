@@ -1,36 +1,23 @@
-import { useAppContext } from "@/contexts/AppContext";
 import { Position } from "@/types";
-import { getOffset } from "@/utils/jquery-replacement";
 import React from "react";
-import { getScaleCorrectedPosition } from "../common";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
-import { baseNameFromPath, queryArgs, unpackCombinedPath } from "./common";
-import { ContextMenuType } from "./FileManagerContextMenu";
+
+type DragFile = {
+  labelText: string;
+  path: string;
+};
 
 export type FileManagerContextType = {
-  getDropPosition: () => Position;
-  handleClose: () => void;
-  handleContextMenu: (
-    event: React.MouseEvent,
-    combinedPath: string,
-    type?: ContextMenuType
-  ) => void;
-  handleSelect: (
-    event: React.SyntheticEvent<Element, Event>,
-    selected: string[]
-  ) => void;
-  handleContextEdit: () => void;
-  handleContextView: () => void;
-  handleDelete: () => void;
-  handleDownload: () => void;
-  handleDuplicate: () => Promise<void>;
-  handleContextRename: () => void;
-  contextMenuCombinedPath: string;
-  fileInRename: string;
-  setFileInRename: React.Dispatch<React.SetStateAction<string>>;
-  fileRenameNewName: string;
-  setFileRenameNewName: React.Dispatch<React.SetStateAction<string>>;
+  selectedFiles: string[];
+  setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
+  dragFile: DragFile;
+  setDragFile: React.Dispatch<React.SetStateAction<DragFile | undefined>>;
+  dragOffset: Position;
+  setDragOffset: React.Dispatch<React.SetStateAction<Position>>;
+  hoveredPath: string;
+  setHoveredPath: React.Dispatch<React.SetStateAction<string>>;
+  isDragging: boolean;
+  setIsDragging: React.Dispatch<React.SetStateAction<boolean>>;
+  resetMove: () => void;
 };
 
 export const FileManagerContext = React.createContext<FileManagerContextType>(
@@ -39,237 +26,43 @@ export const FileManagerContext = React.createContext<FileManagerContextType>(
 
 export const useFileManagerContext = () => React.useContext(FileManagerContext);
 
-const deleteFetch = (baseUrl: string, combinedPath: string) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
-  return fetch(`${baseUrl}/delete?${queryArgs({ path, root })}`, {
-    method: "POST",
-  });
-};
-
-const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
-  let pathComponents = contextMenuCombinedPath.split("/");
-  if (contextMenuCombinedPath.endsWith("/")) {
-    pathComponents = pathComponents.slice(0, -1);
-  }
-  return pathComponents.slice(-1)[0];
-};
-
-const downloadFile = (
-  url: string,
-  combinedPath: string,
-  downloadLink: string
-) => {
-  let { root, path } = unpackCombinedPath(combinedPath);
-
-  let downloadUrl = `${url}/download?${queryArgs({
-    path,
-    root,
-  })}`;
-  const a = document.createElement("a");
-  a.href = downloadUrl;
-  a.download = downloadLink;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-};
-
-export const FileManagerContextProvider: React.FC<{
-  baseUrl: string;
-  reload: () => Promise<void>;
-  onSelect?: (selected: string[]) => void;
-  onEdit: (filePath: string) => void;
-  onView: (filePath: string) => void;
-  setContextMenu: React.Dispatch<
-    React.SetStateAction<{
-      position: Position;
-      type: ContextMenuType;
-    }>
-  >;
-}> = ({
-  children,
-  onSelect,
-  onView,
-  onEdit,
-  baseUrl,
-  reload,
-  setContextMenu,
-}) => {
-  const { setConfirm } = useAppContext();
-  const {
-    mouseTracker,
-    eventVars,
-    pipelineCanvasRef,
-    selectedFiles,
-    setSelectedFiles,
-  } = usePipelineEditorContext();
-  const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
-    string
-  >();
-  const [fileInRename, setFileInRename] = React.useState<string>(undefined);
-  const [fileRenameNewName, setFileRenameNewName] = React.useState("");
-
-  const getDropPosition = React.useCallback((): Position => {
-    const clientPosition = {
-      x: mouseTracker.current.client.x - STEP_WIDTH / 2,
-      y: mouseTracker.current.client.y - STEP_HEIGHT / 2,
-    };
-    const { x, y } = getScaleCorrectedPosition({
-      offset: getOffset(pipelineCanvasRef.current),
-      position: clientPosition,
-      scaleFactor: eventVars.scaleFactor,
-    });
-
-    return { x, y };
-  }, [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]);
-
-  const handleContextMenu = React.useCallback(
-    (
-      event: React.MouseEvent,
-      combinedPath: string,
-      type: ContextMenuType = "tree"
-    ) => {
-      event.preventDefault();
-      event.stopPropagation();
-      setContextMenuPath(combinedPath);
-      setContextMenu((current) => {
-        return current === null
-          ? {
-              position: {
-                x: event.clientX - 2,
-                y: event.clientY - 4,
-              },
-              type,
-            }
-          : null;
-      });
-    },
-    [setContextMenu]
+export const FileManagerContextProvider: React.FC = ({ children }) => {
+  const [selectedFiles, setSelectedFiles] = React.useState<string[]>([]);
+  const [dragFile, setDragFile] = React.useState<{
+    labelText: string;
+    path: string;
+  }>(undefined);
+  const [dragOffset, setDragOffset] = React.useState<Position>({ x: 0, y: 0 });
+  const [hoveredPath, setHoveredPath] = React.useState<string | undefined>(
+    undefined
   );
+  const [isDragging, setIsDragging] = React.useState(false);
 
-  const handleSelect = React.useCallback(
-    (event: React.SyntheticEvent<Element, Event>, selected: string[]) => {
-      if (onSelect) onSelect(selected);
-      setSelectedFiles(selected);
-    },
-    [onSelect]
-  );
-
-  const handleClose = React.useCallback(() => {
-    setContextMenu(null);
-  }, [setContextMenu]);
-
-  const handleContextEdit = React.useCallback(() => {
-    handleClose();
-    onEdit(contextMenuCombinedPath);
-  }, [contextMenuCombinedPath, handleClose, onEdit]);
-
-  const handleContextView = React.useCallback(() => {
-    handleClose();
-    onView(contextMenuCombinedPath);
-  }, [contextMenuCombinedPath, handleClose, onView]);
-
-  const handleContextRename = React.useCallback(() => {
-    handleClose();
-    setFileInRename(contextMenuCombinedPath);
-    setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, handleClose]);
-
-  const handleDuplicate = React.useCallback(async () => {
-    handleClose();
-
-    let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
-
-    await fetch(
-      `${baseUrl}/duplicate?${queryArgs({
-        path,
-        root,
-      })}`,
-      { method: "POST" }
-    );
-    reload();
-  }, [baseUrl, contextMenuCombinedPath, handleClose, reload]);
-
-  const handleDelete = React.useCallback(() => {
-    handleClose();
-
-    if (
-      selectedFiles.includes(contextMenuCombinedPath) &&
-      selectedFiles.length > 1
-    ) {
-      setConfirm(
-        "Warning",
-        `Are you sure you want to delete ${selectedFiles.length} files?`,
-        async (resolve) => {
-          await Promise.all(
-            selectedFiles.map((combinedPath) =>
-              deleteFetch(baseUrl, combinedPath)
-            )
-          );
-          await reload();
-          resolve(true);
-          return true;
-        }
-      );
-      return;
-    }
-
-    setConfirm(
-      "Warning",
-      `Are you sure you want to delete '${getBaseNameFromContextMenu(
-        contextMenuCombinedPath
-      )}'?`,
-      async (resolve) => {
-        await deleteFetch(baseUrl, contextMenuCombinedPath);
-        await reload();
-        resolve(true);
-        return true;
-      }
-    );
-  }, [
-    contextMenuCombinedPath,
-    selectedFiles,
-    baseUrl,
-    reload,
-    setConfirm,
-    handleClose,
-  ]);
-
-  const handleDownload = React.useCallback(() => {
-    handleClose();
-
-    const downloadLink = getBaseNameFromContextMenu(contextMenuCombinedPath);
-
-    if (selectedFiles.includes(contextMenuCombinedPath)) {
-      selectedFiles.forEach((combinedPath, i) => {
-        setTimeout(function () {
-          downloadFile(baseUrl, combinedPath, downloadLink);
-        }, i * 500);
-        // Seems like multiple download invocations works with 500ms
-        // Not the most reliable, might want to fall back to server side zip.
-      });
-    } else {
-      downloadFile(baseUrl, contextMenuCombinedPath, downloadLink);
-    }
-  }, [baseUrl, contextMenuCombinedPath, handleClose, selectedFiles]);
+  const resetMove = React.useCallback(() => {
+    // Needs to be delayed to prevent tree toggle
+    // while dragging.
+    window.setTimeout(() => {
+      setDragOffset({ x: 0, y: 0 });
+      setIsDragging(false);
+      setHoveredPath(undefined);
+      setDragFile(undefined);
+    }, 1);
+  }, [setDragOffset, setIsDragging, setDragFile, setHoveredPath]);
 
   return (
     <FileManagerContext.Provider
       value={{
-        getDropPosition,
-        handleClose,
-        handleContextMenu,
-        handleSelect,
-        handleContextEdit,
-        handleContextView,
-        handleDelete,
-        handleDownload,
-        handleDuplicate,
-        handleContextRename,
-        contextMenuCombinedPath,
-        fileInRename,
-        setFileInRename,
-        fileRenameNewName,
-        setFileRenameNewName,
+        selectedFiles,
+        setSelectedFiles,
+        dragFile,
+        setDragFile,
+        dragOffset,
+        setDragOffset,
+        hoveredPath,
+        setHoveredPath,
+        isDragging,
+        setIsDragging,
+        resetMove,
       }}
     >
       {children}

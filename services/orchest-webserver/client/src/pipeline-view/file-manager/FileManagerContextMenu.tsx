@@ -2,7 +2,7 @@ import { Position } from "@/types";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import React from "react";
-import { useFileManagerContext } from "./FileManagerContext";
+import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
 
@@ -23,7 +23,7 @@ export const FileManagerContextMenu: React.FC<{
     handleDelete,
     handleDownload,
     contextMenuCombinedPath,
-  } = useFileManagerContext();
+  } = useFileManagerLocalContext();
 
   const contextPathIsFile =
     contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");

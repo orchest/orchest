@@ -23,6 +23,7 @@ export const ProjectFileManager = () => {
     isReadOnly,
     pipelineJson,
     runUuid,
+    getOnCanvasPosition,
   } = usePipelineEditorContext();
 
   const allNotebookFileSteps = React.useMemo(() => {
@@ -184,6 +185,7 @@ export const ProjectFileManager = () => {
       onEdit={onEdit}
       onOpen={onOpen}
       onView={onView}
+      getDropPosition={getOnCanvasPosition}
     />
   );
 };

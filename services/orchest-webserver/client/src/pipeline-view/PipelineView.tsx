@@ -6,6 +6,7 @@ import React from "react";
 import { siteMap } from "../Routes";
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
+import { FileManagerContextProvider } from "./file-manager/FileManagerContext";
 import { ProjectFileManager } from "./file-manager/ProjectFileManager";
 import { PipelineEditor } from "./PipelineEditor";
 
@@ -23,12 +24,14 @@ const PipelineView = () => {
   return (
     <Layout disablePadding>
       <PipelineEditorContextProvider>
-        <PipelineCanvasContextProvider>
-          <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-            <ProjectFileManager />
-            <PipelineEditor />
-          </Stack>
-        </PipelineCanvasContextProvider>
+        <FileManagerContextProvider>
+          <PipelineCanvasContextProvider>
+            <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
+              <ProjectFileManager />
+              <PipelineEditor />
+            </Stack>
+          </PipelineCanvasContextProvider>
+        </FileManagerContextProvider>
       </PipelineEditorContextProvider>
     </Layout>
   );

@@ -1,11 +1,11 @@
 import Box from "@mui/material/Box";
 import React from "react";
-import { useFileManagerContext } from "./FileManagerContext";
+import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export const FileManagerContainer: React.FC<{
   setSelected: React.Dispatch<React.SetStateAction<string[]>>;
 }> = ({ children, setSelected }) => {
-  const { handleContextMenu } = useFileManagerContext();
+  const { handleContextMenu } = useFileManagerLocalContext();
   return (
     <Box
       sx={{

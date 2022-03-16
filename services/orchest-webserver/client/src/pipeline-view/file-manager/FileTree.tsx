@@ -6,16 +6,11 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { useTheme } from "@mui/material/styles";
-import TextField from "@mui/material/TextField";
 import { fetcher } from "@orchest/lib-utils";
-import produce from "immer";
 import React from "react";
-import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import {
   baseNameFromPath,
   cleanFilePath,
-  createCombinedPath,
   deduceRenameFromDragOperation,
   deriveParentPath,
   FILE_MANAGER_ROOT_CLASS,
@@ -28,181 +23,9 @@ import {
   unpackCombinedPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
+import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
-
-const RenameField = ({
-  handleRename,
-  combinedPath,
-}: {
-  handleRename: (oldPath: string, newPath: string) => void;
-  combinedPath: string;
-}) => {
-  const {
-    fileInRename,
-    setFileInRename,
-    fileRenameNewName,
-    setFileRenameNewName,
-  } = useFileManagerContext();
-  const textFieldRef = React.useRef(null);
-  const theme = useTheme();
-
-  React.useEffect(() => {
-    if (textFieldRef.current) {
-      textFieldRef.current.focus();
-    }
-  }, [fileInRename]);
-
-  return (
-    <form
-      noValidate
-      autoComplete="off"
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-    >
-      <TextField
-        sx={{
-          position: "absolute",
-          zIndex: 9,
-          width: "calc(100% - 23px)",
-          marginLeft: "23px",
-          backgroundColor: (theme) => theme.palette.grey[100],
-        }}
-        autoFocus
-        inputProps={{
-          style: { fontSize: theme.typography.body2.fontSize, padding: 0 },
-        }}
-        inputRef={textFieldRef}
-        variant="standard"
-        value={fileRenameNewName}
-        onKeyDown={(e) => {
-          if (e.code === "Escape") {
-            setFileInRename(undefined);
-          } else if (e.code === "Enter") {
-            let isFolder = combinedPath.endsWith("/");
-            let { root, path } = unpackCombinedPath(combinedPath);
-            let newPath =
-              deriveParentPath(path) +
-              fileRenameNewName +
-              (isFolder ? "/" : "");
-            let newCombinedPath = createCombinedPath(root, newPath);
-            handleRename(combinedPath, newCombinedPath);
-            setFileInRename(undefined);
-          }
-        }}
-        onChange={(e) => {
-          setFileRenameNewName(e.target.value);
-        }}
-      />
-    </form>
-  );
-};
-
-const TreeRow = ({
-  treeNodes,
-  handleRename,
-  setIsDragging,
-  setDragFile,
-  root,
-  hoveredPath,
-  onOpen,
-}: {
-  treeNodes: TreeNode[];
-  handleRename: (oldPath: string, newPath: string) => void;
-  setIsDragging: (value: boolean) => void;
-  setDragFile: (dragFileData: { labelText: string; path: string }) => void;
-  root: string;
-  hoveredPath: string;
-  onOpen: (filePath: string) => void;
-}) => {
-  const { handleContextMenu, fileInRename } = useFileManagerContext();
-  const { directories, files } = React.useMemo(
-    () =>
-      treeNodes.reduce(
-        (all, node) => {
-          return produce(all, (draft) => {
-            if (node.type === "directory") draft.directories.push(node);
-            if (node.type === "file") draft.files.push(node);
-          });
-        },
-        { directories: [], files: [] }
-      ),
-    [treeNodes]
-  );
-
-  return (
-    <>
-      {directories.map((e) => {
-        const combinedPath = createCombinedPath(root, e.path);
-
-        return (
-          <Box sx={{ position: "relative" }} key={combinedPath}>
-            {fileInRename === combinedPath && (
-              <RenameField
-                handleRename={handleRename}
-                combinedPath={combinedPath}
-              />
-            )}
-
-            <TreeItem
-              onContextMenu={(e) => handleContextMenu(e, combinedPath)}
-              setIsDragging={setIsDragging}
-              setDragFile={setDragFile}
-              sx={{
-                cursor: "context-menu",
-                backgroundColor:
-                  hoveredPath === combinedPath
-                    ? "rgba(0, 0, 0, 0.04)"
-                    : undefined,
-              }}
-              key={combinedPath}
-              nodeId={combinedPath}
-              data-path={combinedPath}
-              path={combinedPath}
-              labelText={e.name}
-            >
-              <TreeRow
-                treeNodes={e.children}
-                setIsDragging={setIsDragging}
-                setDragFile={setDragFile}
-                root={root}
-                hoveredPath={hoveredPath}
-                onOpen={onOpen}
-                handleRename={handleRename}
-              />
-            </TreeItem>
-          </Box>
-        );
-      })}
-      {files.map((e) => {
-        const combinedPath = createCombinedPath(root, e.path);
-        return (
-          <div style={{ position: "relative" }} key={combinedPath}>
-            {fileInRename === combinedPath && (
-              <RenameField
-                handleRename={handleRename}
-                combinedPath={combinedPath}
-              />
-            )}
-            <TreeItem
-              onContextMenu={(e) => handleContextMenu(e, combinedPath)}
-              setIsDragging={setIsDragging}
-              setDragFile={setDragFile}
-              sx={{ cursor: "context-menu" }}
-              key={combinedPath}
-              nodeId={combinedPath}
-              data-path={combinedPath}
-              path={combinedPath}
-              labelText={e.name}
-              fileName={e.name}
-              onDoubleClick={onOpen.bind(undefined, combinedPath)}
-            />
-          </div>
-        );
-      })}
-    </>
-  );
-};
+import { TreeRow } from "./TreeRow";
 
 const isInFileManager = (element: HTMLElement) => {
   if (element.classList.contains(FILE_MANAGER_ROOT_CLASS)) return true;
@@ -222,8 +45,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   handleToggle,
   onRename,
   reload,
-  isDragging,
-  setIsDragging,
   onDropOutside,
   onOpen,
 }: {
@@ -237,8 +58,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   ) => void;
   onRename: (oldPath: string, newPath: string) => void;
   reload: () => void;
-  isDragging: boolean;
-  setIsDragging: (value: boolean) => void;
   onDropOutside: (
     target: EventTarget,
     selection: string[],
@@ -250,15 +69,20 @@ export const FileTree = React.memo(function FileTreeComponent({
   const INIT_OFFSET_Y = 10;
 
   const { setConfirm, setAlert } = useAppContext();
+
   const {
-    setSelectedFiles,
     selectedFiles,
     dragFile,
     setDragFile,
-  } = usePipelineEditorContext();
-
-  const [dragOffset, setDragOffset] = React.useState({ x: 0, y: 0 });
-  const [hoveredPath, setHoveredPath] = React.useState(undefined);
+    dragOffset,
+    setDragOffset,
+    hoveredPath,
+    setHoveredPath,
+    isDragging,
+    setIsDragging,
+    resetMove,
+  } = useFileManagerContext();
+  const { getDropPosition, handleSelect } = useFileManagerLocalContext();
 
   const filePathFromHTMLElement = React.useCallback((element) => {
     let dataPath = element.getAttribute("data-path");
@@ -278,8 +102,6 @@ export const FileTree = React.memo(function FileTreeComponent({
     if (dragFile) dragFilesSet.add(dragFile.path);
     return [...dragFilesSet];
   }, [dragFile, selectedFiles]);
-
-  const { getDropPosition, handleSelect } = useFileManagerContext();
 
   // by default, handleRename will reload
   // when moving multiple files, we manually call reload after Promise.all
@@ -417,34 +239,12 @@ export const FileTree = React.memo(function FileTreeComponent({
     ]
   );
 
-  const resetMove = React.useCallback(() => {
-    // Needs to be delayed to prevent tree toggle
-    // while dragging.
-    window.setTimeout(() => {
-      setDragOffset({ x: 0, y: 0 });
-      setIsDragging(false);
-      setHoveredPath(undefined);
-      setDragFile(undefined);
-    }, 1);
-  }, [setDragOffset, setIsDragging, setDragFile]);
-
-  const triggerHandleMouseUp = React.useCallback(
-    (e: MouseEvent) => {
-      handleMouseUp(e.target as HTMLElement);
-      resetMove();
-    },
-    [handleMouseUp, resetMove]
-  );
-
   let mouseMoveHandler = React.useCallback(
     (e: MouseEvent) => {
       if (isDragging) {
         let path = filePathFromHTMLElement(e.target);
         if (path) {
-          if (!path.endsWith("/")) {
-            path = deriveParentPath(path);
-          }
-          setHoveredPath(path);
+          setHoveredPath(!path.endsWith("/") ? deriveParentPath(path) : path);
         }
         setDragOffset({
           x: e.clientX + INIT_OFFSET_X,
@@ -461,6 +261,14 @@ export const FileTree = React.memo(function FileTreeComponent({
       if (isDragging) resetMove();
     },
     [isDragging, resetMove]
+  );
+
+  const triggerHandleMouseUp = React.useCallback(
+    (e: MouseEvent) => {
+      handleMouseUp(e.target as HTMLElement);
+      resetMove();
+    },
+    [handleMouseUp, resetMove]
   );
 
   let mouseUpHandler = React.useCallback(

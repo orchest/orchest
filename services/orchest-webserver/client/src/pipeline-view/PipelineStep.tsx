@@ -16,6 +16,7 @@ import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { cleanFilePath } from "./file-manager/common";
+import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -147,10 +148,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       stepSelector,
       selectedConnection,
     },
+  } = usePipelineEditorContext();
+  const {
     selectedFiles,
     dragFile,
     setDragFile,
-  } = usePipelineEditorContext();
+    resetMove,
+  } = useFileManagerContext();
 
   const {
     pipelineCanvasState: { panningState },
@@ -214,7 +218,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         type: "ASSIGN_FILE_TO_STEP",
         payload: { stepUuid: uuid, filePath: cleanFilePath(dragFile.path) },
       });
-      setDragFile(undefined);
+      resetMove();
     }
 
     if (isSelectorActive) {

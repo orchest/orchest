@@ -8,11 +8,14 @@ import {
   MouseTracker,
   NewConnection,
   PipelineJson,
+  Position,
   StepsDict,
 } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
+import { getScaleCorrectedPosition } from "../common";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import {
   EventVars,
@@ -23,6 +26,7 @@ import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
 import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
+import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 
 export type PipelineEditorContextType = {
   projectUuid: string;
@@ -62,21 +66,7 @@ export type PipelineEditorContextType = {
   sio: SocketIO;
   session: IOrchestSession;
   openNotebook: (e: React.MouseEvent | undefined, filePath: string) => void;
-  selectedFiles: string[];
-  setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
-  dragFile: {
-    labelText: string;
-    path: string;
-  };
-  setDragFile: React.Dispatch<
-    React.SetStateAction<
-      | {
-          labelText: string;
-          path: string;
-        }
-      | undefined
-    >
-  >;
+  getOnCanvasPosition: () => Position;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -99,12 +89,6 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   const { setAlert } = useAppContext();
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
-
-  const [selectedFiles, setSelectedFiles] = React.useState<string[]>([]);
-  const [dragFile, setDragFile] = React.useState<{
-    labelText: string;
-    path: string;
-  }>(undefined);
 
   const {
     eventVars,
@@ -235,6 +219,20 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
   );
 
+  const getOnCanvasPosition = React.useCallback((): Position => {
+    const clientPosition = {
+      x: mouseTracker.current.client.x - STEP_WIDTH / 2,
+      y: mouseTracker.current.client.y - STEP_HEIGHT / 2,
+    };
+    const { x, y } = getScaleCorrectedPosition({
+      offset: getOffset(pipelineCanvasRef.current),
+      position: clientPosition,
+      scaleFactor: eventVars.scaleFactor,
+    });
+
+    return { x, y };
+  }, [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]);
+
   return (
     <PipelineEditorContext.Provider
       value={{
@@ -264,10 +262,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         sio,
         session,
         openNotebook,
-        selectedFiles,
-        setSelectedFiles,
-        dragFile,
-        setDragFile,
+        getOnCanvasPosition,
       }}
     >
       {children}

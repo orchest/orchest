@@ -23,11 +23,12 @@ import {
   unpackCombinedPath,
 } from "./common";
 import { FileManagerContainer } from "./FileManagerContainer";
-import { FileManagerContextProvider } from "./FileManagerContext";
+import { useFileManagerContext } from "./FileManagerContext";
 import {
   ContextMenuMetadata,
   FileManagerContextMenu,
 } from "./FileManagerContextMenu";
+import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
 
 /**
@@ -91,11 +92,13 @@ export function FileManager({
   onOpen: (filePath: string) => void;
   onEdit: (filePath: string) => void;
   onView: (filePath: string) => void;
+  getDropPosition: () => Position;
 }) {
   /**
    * States
    */
   const { projectUuid } = useCustomRoute();
+  const { isDragging } = useFileManagerContext();
 
   const containerRef = React.useRef<HTMLElement>();
 
@@ -106,7 +109,6 @@ export function FileManager({
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
   const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
   const [selected, setSelected] = React.useState<string[]>([]);
-  const [isDragging, setIsDragging] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
 
   const [progressType, setProgressType] = React.useState<ProgressType>(
@@ -323,7 +325,7 @@ export function FileManager({
   );
 
   return (
-    <FileManagerContextProvider
+    <FileManagerLocalContextProvider
       reload={reload}
       setContextMenu={setContextMenu}
       baseUrl={fileManagerBaseUrl}
@@ -381,14 +383,11 @@ export function FileManager({
               fileTrees={fileTrees}
               treeRoots={treeRoots}
               expanded={expanded}
-              selected={selected}
               onRename={onRename}
               handleToggle={handleToggle}
               reload={reload}
               onOpen={onOpen}
               onDropOutside={onDropOutside}
-              isDragging={isDragging}
-              setIsDragging={setIsDragging}
             />
             <FileManagerContextMenu metadata={contextMenu}>
               {contextMenu?.type === "background" && (
@@ -411,6 +410,6 @@ export function FileManager({
           </FileManagerContainer>
         )}
       </Stack>
-    </FileManagerContextProvider>
+    </FileManagerLocalContextProvider>
   );
 }
