@@ -9,10 +9,9 @@ import UploadFileIcon from "@mui/icons-material/UploadFile";
 import { styled } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { queryArgs } from "./common";
 import { CreateFileDialog } from "./CreateFileDialog";
+import { CreateFolderDialog } from "./CreateFolderDialog";
 import { useFileManagerContext } from "./FileManagerContext";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
@@ -45,6 +44,13 @@ export function ActionBar({
   const openCreateFileDialog = () => setIsCreateFileDialogOpen(true);
   const closeCreateFileDialog = () => setIsCreateFileDialogOpen(false);
 
+  const [
+    isCreateFolderDialogOpen,
+    setIsCreateFolderDialogOpen,
+  ] = React.useState(false);
+  const openCreateFolderDialog = () => setIsCreateFolderDialogOpen(true);
+  const closeCreateFolderDialog = () => setIsCreateFolderDialogOpen(false);
+
   const uploadFileRef = React.useRef<HTMLInputElement>();
   const uploadFolderRef = React.useRef<HTMLInputElement>();
 
@@ -57,26 +63,6 @@ export function ActionBar({
     uploadFiles(e.target.files);
   };
 
-  const createFolder = async () => {
-    let folderName = window.prompt("Enter the desired folder name");
-
-    if (!folderName) return;
-
-    try {
-      await fetcher(
-        `${baseUrl}/create-dir?${queryArgs({
-          path: `/${folderName}/`,
-          root: rootFolder,
-        })}`,
-        { method: "POST" }
-      );
-      reload();
-    } catch (error) {
-      console.error(error);
-      alert(error.message);
-    }
-  };
-
   return (
     <>
       <CreateFileDialog
@@ -87,6 +73,15 @@ export function ActionBar({
           reload();
         }}
         projectUuid={projectUuid}
+      />
+      <CreateFolderDialog
+        baseUrl={baseUrl}
+        isOpen={isCreateFolderDialogOpen}
+        onClose={closeCreateFolderDialog}
+        root={rootFolder}
+        onSuccess={() => {
+          reload();
+        }}
       />
       <Stack
         direction="row"
@@ -134,7 +129,10 @@ export function ActionBar({
           >
             <NoteAddIcon />
           </FileManagerActionButton>
-          <FileManagerActionButton onClick={createFolder} title="Create folder">
+          <FileManagerActionButton
+            onClick={openCreateFolderDialog}
+            title="Create folder"
+          >
             <CreateNewFolderIcon />
           </FileManagerActionButton>
           <FileManagerActionButton title="Refresh" onClick={reload}>

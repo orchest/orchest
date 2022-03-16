@@ -135,7 +135,7 @@ export const CreateFileDialog = ({
     <Dialog
       open={isOpen}
       onClose={onClose}
-      data-test-id="project-file-picker-create-new-file-dialog"
+      data-test-id="file-manager-create-new-file-dialog"
       maxWidth="md"
       fullWidth
     >
@@ -163,18 +163,18 @@ export const CreateFileDialog = ({
                   fullWidth
                   disabled={isCreating}
                   onChange={(e) => setFileName(e.target.value)}
-                  data-test-id="project-file-picker-file-name-textfield"
+                  data-test-id="file-manager-file-name-textfield"
                 />
               </Grid>
               <Grid item xs={fileExtension === ".ipynb" ? 3 : 6}>
                 <FormControl fullWidth>
-                  <InputLabel id="project-file-picker-file-extension-label">
+                  <InputLabel id="file-manager-file-extension-label">
                     Extension
                   </InputLabel>
                   <Select
                     label="Extension"
-                    labelId="project-file-picker-file-extension-label"
-                    id="project-file-picker-file-extension"
+                    labelId="file-manager-file-extension-label"
+                    id="file-manager-file-extension"
                     disabled={isCreating}
                     value={fileExtension}
                     onChange={(e) => setFileExtension(e.target.value)}
@@ -248,7 +248,7 @@ export const CreateFileDialog = ({
             type="submit"
             form="create-file"
             disabled={isCreating}
-            data-test-id="project-file-picker-create-file"
+            data-test-id="file-manager-create-file"
           >
             Create file
           </Button>
