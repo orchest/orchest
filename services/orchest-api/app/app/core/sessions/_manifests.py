@@ -916,10 +916,19 @@ def _get_user_service_deployment_service_manifest(
             }
         )
 
+    ingress_metadata = metadata
+    if service_config.get("requires_authentication", False) is True:
+        auth_url = (
+            f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
+        )
+        ingress_metadata["annotations"] = {
+            "nginx.ingress.kubernetes.io/auth-url": auth_url,
+        }
+
     ingress_manifest = {
         "apiVersion": "networking.k8s.io/v1",
         "kind": "Ingress",
-        "metadata": metadata,
+        "metadata": ingress_metadata,
         "spec": {
             "ingressClassName": "nginx",
             "rules": [
