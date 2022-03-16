@@ -8,5 +8,5 @@ spec:
     - ReadWriteOnce
   resources:
     requests:
-      storage: {{ .Values.config.storage }}
+      storage: {{ .Values.imagebuildercache.storage }}
   storageClassName: {{ include "library.cluster.orchest.filesystem.storageClass" . }}

@@ -11,5 +11,5 @@ config:
 
 imagebuildercache:
   name: image-builder-cache-pvc
-  storage: 10Gi
+  storage: 20Gi
 
