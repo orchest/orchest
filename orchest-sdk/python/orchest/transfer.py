@@ -1141,9 +1141,6 @@ def output(
 ) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
-    It first tries to output to memory and if it does not fit in memory,
-    then disk will be used.
-
     Note:
         Calling :meth:`output` multiple times within the same step
         will overwrite the output, even when using a different output
