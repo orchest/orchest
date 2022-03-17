@@ -416,8 +416,10 @@ const PipelineSettingsView: React.FC = () => {
             inputProps={{ "aria-label": "Expose service" }}
             disabled={isReadOnly}
             checked={row.exposed}
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              e.preventDefault();
               e.stopPropagation();
               const value = e.target.checked;
               const service = services[row.uuid];
