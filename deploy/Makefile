@@ -15,6 +15,19 @@ else
   ORCHEST_RESOURCES_TARGET := orchest-resources
 endif
 
+ifeq (${ENABLE_ROOK_NFS},TRUE)
+	ifeq (${ENABLE_ROOK_CEPH},TRUE)
+		$(error Both CEPH and NFS can not be enabled at the same time)
+	endif
+endif
+
+ifeq (${ENABLE_ROOK_NFS},)
+	ifeq (${ENABLE_ROOK_CEPH},)
+		# Storage provider is not defined, ROOK_NFS will be used by default
+		ENABLE_ROOK_NFS := TRUE
+	endif
+endif
+
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
