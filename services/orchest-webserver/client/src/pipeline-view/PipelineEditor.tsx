@@ -101,7 +101,6 @@ export const PipelineEditor: React.FC = () => {
 
   const pipelineViewportRef = React.useRef<HTMLDivElement>();
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
-  const centerPipelineOrigin = React.useRef<() => void>();
   const canvasFuncRef = React.useRef<CanvasFunctions>();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -409,11 +408,6 @@ export const PipelineEditor: React.FC = () => {
     },
     [eventVars.openedStep, notebookFilePath, openNotebook, pipelineCwd]
   );
-
-  // const centerView = React.useCallback(() => {
-  //   resetPipelineCanvas();
-  //   dispatch({ type: "SET_SCALE_FACTOR", payload: DEFAULT_SCALE_FACTOR });
-  // }, [dispatch, resetPipelineCanvas]);
 
   const recalibrate = React.useCallback(() => {
     // ensure that connections are re-rendered against the final positions of the steps
@@ -855,7 +849,7 @@ export const PipelineEditor: React.FC = () => {
                 // NOTE: onClick also listens to space bar press when button is focused
                 // it causes issue when user press space bar to navigate the canvas
                 // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                centerPipelineOrigin.current();
+                canvasFuncRef.current.centerPipelineOrigin();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
                   payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
@@ -867,7 +861,7 @@ export const PipelineEditor: React.FC = () => {
             <IconButton
               title="Zoom in"
               onPointerDown={() => {
-                centerPipelineOrigin.current();
+                canvasFuncRef.current.centerPipelineOrigin();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
                   payload: Math.min(eventVars.scaleFactor + 0.25, 2),
