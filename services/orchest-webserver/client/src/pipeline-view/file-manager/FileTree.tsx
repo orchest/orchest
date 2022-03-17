@@ -15,7 +15,7 @@ import {
   deriveParentPath,
   FILE_MANAGER_ROOT_CLASS,
   generateTargetDescription,
-  isNotebookFile,
+  isFileByExtension,
   PROJECT_DIR_PATH,
   queryArgs,
   ROOT_SEPARATOR,
@@ -51,11 +51,11 @@ const findFileViaPath = (path: string, fileTrees: FileTrees) => {
   return head;
 };
 
-const hasNotebookFiles = (node: TreeNode) => {
-  if (node.type === "file") return isNotebookFile(node.name);
+const containsFilesByExtension = (extensions: string[], node: TreeNode) => {
+  if (node.type === "file") return isFileByExtension(extensions, node.name);
   if (node.type === "directory" && node.children.length === 0) return false;
   for (let child of node.children) {
-    if (hasNotebookFiles(child)) return true;
+    if (containsFilesByExtension(extensions, child)) return true;
   }
   return false;
 };
@@ -158,21 +158,27 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const handleDropInside = React.useCallback(
     (filePath: string) => {
-      // if user attempts to move .ipynb files to /data
+      // if user attempts to move .ipynb or .orchest files to /data
       if (/^\/data\:/.test(filePath)) {
-        const foundPathWithNotebookFiles = dragFiles.find((dragFilePath) => {
+        const foundPathWithForbiddenFiles = dragFiles.find((dragFilePath) => {
           const foundFile = findFileViaPath(dragFilePath, fileTrees);
-          return hasNotebookFiles(foundFile);
+          return containsFilesByExtension(["ipynb", "orchest"], foundFile);
         });
 
-        if (foundPathWithNotebookFiles) {
+        if (foundPathWithForbiddenFiles) {
           setAlert(
             "Warning",
             <Stack spacing={2} direction="column">
               <Box>
-                <Code>{"/data"}</Code> cannot contain Notebook files. Please
-                make sure that there are no Notebook files in the following
-                path: <Code>{cleanFilePath(foundPathWithNotebookFiles)}</Code>
+                Notebook files (<Code>{".ipynb"}</Code>) or Pipeline files (
+                <Code>{".orchest"}</Code>){` are not allowed in `}
+                <Code>{"/data"}</Code>.
+              </Box>
+              <Box>
+                Please check the following path:
+                <Code>
+                  Project files/{cleanFilePath(foundPathWithForbiddenFiles)}
+                </Code>
               </Box>
             </Stack>
           );

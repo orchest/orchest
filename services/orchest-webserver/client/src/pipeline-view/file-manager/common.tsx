@@ -268,7 +268,10 @@ export const removeLeadingSymbols = (filePath: string) =>
 export const getStepFilePath = (step: Step) =>
   removeLeadingSymbols(step.file_path);
 
-export const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);
+export const isFileByExtension = (extensions: string[], filePath: string) => {
+  const regex = new RegExp(`\.(${extensions.join("|")})$`, "i");
+  return regex.test(filePath);
+};
 
 /**
  * Notebook files cannot be reused in the same pipeline, this function separate Notebook files that are already in use
@@ -282,7 +285,7 @@ export const validateFiles = (
   const allNotebookFileSteps = Object.values(steps || {}).reduce(
     (all, step) => {
       const filePath = getStepFilePath(step);
-      if (isNotebookFile(filePath)) {
+      if (isFileByExtension(["ipynb"], filePath)) {
         return [...all, { ...step, file_path: filePath }];
       }
       return all;
