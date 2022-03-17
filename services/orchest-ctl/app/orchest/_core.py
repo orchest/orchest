@@ -503,10 +503,15 @@ def start(log_level: utils.LogLevel, cloud: bool):
         _wait_daemonsets_to_be_ready(daemonsets_to_start, progress_bar)
         _wait_deployments_to_be_ready(deployments_to_start, progress_bar)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    host_names = k8sw.get_host_names()
+    if host_names:
+        utils.echo(
+            "Orchest is running, you can reach it locally by mapping the cluster ip "
+            f"('minikube ip') to the following entries: {host_names} in your "
+            "/etc/hosts file."
+        )
+    else:
+        utils.echo("Orchest is running.")
 
 
 def restart():
