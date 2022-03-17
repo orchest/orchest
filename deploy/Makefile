@@ -294,8 +294,10 @@ cert-manager : ./bin/cert-manager
 .SECONDARY: ./bin/cert-manager
 ./bin/cert-manager: | create-bin
 	kubectl apply -f thirdparty/cert-manager
-	# TODO, This is a hack, evaluate using wait
-	# sleep 30
+	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
+	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-cainjector -n cert-manager
+	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager -n cert-manager
+
 	touch $@
 
 .PHONY: rook-ceph
