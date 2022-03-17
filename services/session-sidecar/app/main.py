@@ -79,12 +79,15 @@ def follow_service_logs(service):
                 return
             else:  # Pending
                 logging.info(f"{service} is pending.")
-                msg = pod.get("message", "")
-                if "ImagePullBackOff" in msg or "ErrImagePull" in msg:
-                    logging.info(f"{service} image pull failed.")
-                    log_file.write("Image pull failed.")
-                    log_file.flush()
-                    return
+                # Based on the state of the service it may return an
+                # object without a get apparently.
+                if hasattr(pod, "get"):
+                    msg = pod.get("message", "")
+                    if "ImagePullBackOff" in msg or "ErrImagePull" in msg:
+                        logging.info(f"{service} image pull failed.")
+                        log_file.write("Image pull failed.")
+                        log_file.flush()
+                        return
             time.sleep(1)
 
         logging.info(f"Getting logs from service {service}, pod {pod.metadata.name}.")
