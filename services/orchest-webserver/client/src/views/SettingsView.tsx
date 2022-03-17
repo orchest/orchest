@@ -448,7 +448,7 @@ const SettingsView: React.FC = () => {
                 return (
                   <>
                     <LinearProgress className="push-down" />
-                    <p>This can take up to 30 seconds.</p>
+                    <p>This can take up to 1 minute.</p>
                   </>
                 );
               }
