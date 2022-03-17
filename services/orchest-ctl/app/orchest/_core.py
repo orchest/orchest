@@ -61,10 +61,10 @@ def _run_helm_with_progress_bar(
 
     # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
-    if injected_env_vars is not None:
-        # Put the update before the rest so that these env vars cannot
-        # be overwritten by coincidence.
-        env.update(injected_env_vars)
+    # Put the update before the rest so that these env vars cannot be
+    # overwritten by coincidence.
+    for k, v in injected_env_vars.items():
+        env[k] = str(v)
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
@@ -666,7 +666,12 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
-    return_code = _run_helm_with_progress_bar(HelmMode.UPGRADE)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.UPGRADE,
+        # Preserve the current values, i.e. avoid helm overwriting them
+        # with default values.
+        utils.get_celery_parallelism_level(),
+    )
     if return_code != 0:
         utils.echo(
             f"There was an error while updating Orchest, exit code: {return_code} .",

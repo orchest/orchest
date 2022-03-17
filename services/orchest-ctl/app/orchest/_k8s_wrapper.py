@@ -245,7 +245,8 @@ def _get_deployment_container_env_var_patch(container_name: str, env_vars=dict) 
                         {
                             "name": container_name,
                             "env": [
-                                {"name": k, "value": v} for k, v in env_vars.items()
+                                {"name": k, "value": str(v)}
+                                for k, v in env_vars.items()
                             ],
                         }
                     ]
