@@ -913,21 +913,25 @@ def _get_user_service_deployment_service_manifest(
                             "port": {"number": port},
                         }
                     },
-                    "path": f"/{pbp}{ingress_url}_{port}",
+                    "path": f"/{pbp}{ingress_url}_{port}(/|$)(.*)",
                     "pathType": "Prefix",
                 }
             )
 
         ingress_metadata = copy.deepcopy(metadata)
+        ingress_metadata["annotations"] = {
+            "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+        }
+
         if service_config.get("requires_authentication", True):
             # Needs to be the FQDN since the ingress ngin pod lives in
             # a different namespace.
             auth_url = (
                 f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
             )
-            ingress_metadata["annotations"] = {
-                "nginx.ingress.kubernetes.io/auth-url": auth_url,
-            }
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-url"
+            ] = auth_url
 
         ingress_manifest = {
             "apiVersion": "networking.k8s.io/v1",
