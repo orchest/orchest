@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional
 
 import typer
+import validators
 
 from app import orchest
 from app.utils import LogLevel, echo, init_logger
@@ -143,6 +144,12 @@ def status(
     orchest.status(output_json=json)
 
 
+def _validate_fqdn(fqdn: str) -> str:
+    if not validators.domain(fqdn):
+        raise typer.BadParameter(f"{fqdn} is not a valid domain.")
+    return fqdn
+
+
 @typer_app.command()
 def install(
     log_level: Optional[LogLevel] = typer.Option(
@@ -165,6 +172,7 @@ def install(
             "to 'www.localorchest.io' in your /etc/hosts file. To do that, you can use "
             "'minikube ip' to get the cluster ip."
         ),
+        callback=_validate_fqdn,
     ),
 ):
     """Install Orchest.
@@ -172,6 +180,7 @@ def install(
     Installation might take some time depending on your network
     bandwidth.
     """
+
     orchest.install(log_level, cloud, fqdn)
 
 
