@@ -34,6 +34,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
+import Checkbox from "@mui/material/Checkbox";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
@@ -396,11 +397,36 @@ const PipelineSettingsView: React.FC = () => {
     }
   };
 
-  type ServiceRow = { name: string; scope: string; remove: string };
+  type ServiceRow = {
+    name: string;
+    scope: string;
+    exposed: boolean;
+    remove: string;
+  };
 
   const columns: DataTableColumn<ServiceRow>[] = [
     { id: "name", label: "Service" },
     { id: "scope", label: "Scope" },
+    {
+      id: "exposed",
+      label: "Exposed",
+      render: function ServiceExposedButton(row) {
+        return (
+          <Checkbox
+            inputProps={{ "aria-label": "Expose service" }}
+            disabled={isReadOnly}
+            checked={row.exposed}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const value = e.target.checked;
+              const service = services[row.uuid];
+              onChangeService(row.uuid, { ...service, exposed: value });
+            }}
+          />
+        );
+      },
+    },
     {
       id: "remove",
       label: "Delete",
@@ -440,22 +466,23 @@ const PipelineSettingsView: React.FC = () => {
 
   const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
     .sort((a, b) => a[1].order - b[1].order)
-    .map(([key, service]) => {
+    .map(([uuid, service]) => {
       return {
-        uuid: key,
+        uuid,
         name: service.name,
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
-        remove: key,
+        exposed: service.exposed,
+        remove: uuid,
         details: (
           <ServiceForm
-            key={key}
-            serviceUuid={key}
+            key={uuid}
+            serviceUuid={uuid}
             service={service}
             services={services}
             disabled={isReadOnly}
-            updateService={(updated) => onChangeService(key, updated)}
+            updateService={(updated) => onChangeService(uuid, updated)}
             pipeline_uuid={pipelineUuid}
             project_uuid={projectUuid}
             run_uuid={runUuid}
