@@ -18,6 +18,8 @@ endif
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
+MAX_INTERACTIVE_RUNS_PARALLELISM := ${if ${MAX_INTERACTIVE_RUNS_PARALLELISM},${MAX_INTERACTIVE_RUNS_PARALLELISM},1}
+MAX_JOB_RUNS_PARALLELISM := ${if ${MAX_JOB_RUNS_PARALLELISM},${MAX_JOB_RUNS_PARALLELISM},1}
 CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 
 # Orchest will install docker-registry by default, if it is not desired,
@@ -208,6 +210,8 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
 	--set-string auth-server.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string celery-worker.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	--set celery-worker.MAX_INTERACTIVE_RUNS_PARALLELISM="${MAX_INTERACTIVE_RUNS_PARALLELISM}" \
+	--set celery-worker.MAX_JOB_RUNS_PARALLELISM="${MAX_JOB_RUNS_PARALLELISM}" \
 	--set-string orchest-api.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	helm

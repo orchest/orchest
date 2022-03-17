@@ -3,6 +3,8 @@ service:
   port: 80
 
 ORCHEST_LOG_LEVEL: INFO
+MAX_INTERACTIVE_RUNS_PARALLELISM: 1
+MAX_JOB_RUNS_PARALLELISM: 1
 
 images:
   pullPolicy: IfNotPresent
