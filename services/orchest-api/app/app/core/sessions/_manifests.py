@@ -804,11 +804,11 @@ def _get_user_service_deployment_service_manifest(
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
     if "/data" in sbinds:
-        volumes.append(volumes_dict["data"])
         volume_mounts.append(volume_mounts_dict["data"])
     if "/project-dir" in sbinds:
-        volumes.append(volumes_dict["project-dir"])
         volume_mounts.append(volume_mounts_dict["project-dir"])
+    if "/data" in sbinds or "/project-dir" in sbinds:
+        volumes.append(volumes_dict["userdir-pvc"])
 
     # To support orchest environments as services.
     image = service_config["image"]
