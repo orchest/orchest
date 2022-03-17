@@ -352,3 +352,14 @@ export const getRelativePathTo = (filePath: string, targetFolder: string) => {
 
   return `${leadingString}${cleanFilePath.substring(firstDiffIndex)}`;
 };
+
+export const filePathFromHTMLElement = (element: HTMLElement) => {
+  let dataPath = element.getAttribute("data-path");
+  if (dataPath) {
+    return dataPath;
+  } else if (element.parentElement) {
+    return filePathFromHTMLElement(element.parentElement);
+  } else {
+    return undefined;
+  }
+};

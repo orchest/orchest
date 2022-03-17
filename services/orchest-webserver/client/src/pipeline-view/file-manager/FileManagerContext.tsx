@@ -1,4 +1,3 @@
-import { Position } from "@/types";
 import React from "react";
 import type { TreeNode } from "./common";
 
@@ -9,13 +8,18 @@ type DragFile = {
 
 export type FileTrees = Record<string, TreeNode>;
 
+export type FilePathChange = {
+  oldRoot: string;
+  oldPath: string;
+  newRoot: string;
+  newPath: string;
+};
+
 export type FileManagerContextType = {
   selectedFiles: string[];
   setSelectedFiles: React.Dispatch<React.SetStateAction<string[]>>;
   dragFile: DragFile;
   setDragFile: React.Dispatch<React.SetStateAction<DragFile | undefined>>;
-  dragOffset: Position;
-  setDragOffset: React.Dispatch<React.SetStateAction<Position>>;
   hoveredPath: string;
   setHoveredPath: React.Dispatch<React.SetStateAction<string>>;
   isDragging: boolean;
@@ -23,6 +27,10 @@ export type FileManagerContextType = {
   resetMove: () => void;
   fileTrees: FileTrees;
   setFileTrees: React.Dispatch<React.SetStateAction<FileTrees>>;
+  filePathChanges: FilePathChange[] | undefined;
+  setFilePathChanges: React.Dispatch<
+    React.SetStateAction<FilePathChange[] | undefined>
+  >;
 };
 
 export const FileManagerContext = React.createContext<FileManagerContextType>(
@@ -49,7 +57,6 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
     labelText: string;
     path: string;
   }>(undefined);
-  const [dragOffset, setDragOffset] = React.useState<Position>({ x: 0, y: 0 });
   const [hoveredPath, setHoveredPath] = React.useState<string | undefined>(
     undefined
   );
@@ -57,16 +64,19 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
 
+  const [filePathChanges, setFilePathChanges] = React.useState<
+    FilePathChange[]
+  >(undefined);
+
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
     // while dragging.
     window.setTimeout(() => {
-      setDragOffset({ x: 0, y: 0 });
       setIsDragging(false);
       setHoveredPath(undefined);
       setDragFile(undefined);
     }, 1);
-  }, [setDragOffset, setIsDragging, setDragFile, setHoveredPath]);
+  }, [setIsDragging, setDragFile, setHoveredPath]);
 
   return (
     <FileManagerContext.Provider
@@ -75,8 +85,6 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         setSelectedFiles,
         dragFile,
         setDragFile,
-        dragOffset,
-        setDragOffset,
         hoveredPath,
         setHoveredPath,
         isDragging,
@@ -84,6 +92,8 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         resetMove,
         fileTrees,
         setFileTrees,
+        filePathChanges,
+        setFilePathChanges,
       }}
     >
       {children}

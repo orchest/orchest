@@ -12,7 +12,7 @@ import {
   baseNameFromPath,
   cleanFilePath,
   deduceRenameFromDragOperation,
-  deriveParentPath,
+  filePathFromHTMLElement,
   FILE_MANAGER_ROOT_CLASS,
   generateTargetDescription,
   isFileByExtension,
@@ -22,6 +22,7 @@ import {
   TreeNode,
   unpackCombinedPath,
 } from "./common";
+import { DragIndicator } from "./DragIndicator";
 import { FileTrees, useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
@@ -82,37 +83,19 @@ export const FileTree = React.memo(function FileTreeComponent({
   onDropOutside: (target: EventTarget, dropPosition: Position) => void;
   onOpen: (filePath: string) => void;
 }) {
-  const INIT_OFFSET_X = 10;
-  const INIT_OFFSET_Y = 10;
-
   const { setConfirm, setAlert } = useAppContext();
 
   const {
     selectedFiles,
     dragFile,
     setDragFile,
-    dragOffset,
-    setDragOffset,
     hoveredPath,
-    setHoveredPath,
     isDragging,
     setIsDragging,
-    resetMove,
     fileTrees,
     setFilePathChanges,
   } = useFileManagerContext();
   const { getDropPosition, handleSelect } = useFileManagerLocalContext();
-
-  const filePathFromHTMLElement = React.useCallback((element) => {
-    let dataPath = element.getAttribute("data-path");
-    if (dataPath) {
-      return dataPath;
-    } else if (element.parentElement) {
-      return filePathFromHTMLElement(element.parentElement);
-    } else {
-      return undefined;
-    }
-  }, []);
 
   const dragFiles = React.useMemo(() => {
     if (!dragFile) return [];
@@ -252,132 +235,13 @@ export const FileTree = React.memo(function FileTreeComponent({
         handleDropInside(targetFilePath);
       }
     },
-    [
-      onDropOutside,
-      dragFiles,
-      filePathFromHTMLElement,
-      getDropPosition,
-      handleDropInside,
-    ]
+    [onDropOutside, dragFiles, getDropPosition, handleDropInside]
   );
-
-  let mouseMoveHandler = React.useCallback(
-    (e: MouseEvent) => {
-      if (isDragging) {
-        let path = filePathFromHTMLElement(e.target);
-        if (path) {
-          setHoveredPath(!path.endsWith("/") ? deriveParentPath(path) : path);
-        }
-        setDragOffset({
-          x: e.clientX + INIT_OFFSET_X,
-          y: e.clientY + INIT_OFFSET_Y,
-        });
-      }
-    },
-    [isDragging, setDragOffset, filePathFromHTMLElement, setHoveredPath]
-  );
-
-  let mouseLeaveHandler = React.useCallback(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    (e: MouseEvent) => {
-      if (isDragging) resetMove();
-    },
-    [isDragging, resetMove]
-  );
-
-  const triggerHandleMouseUp = React.useCallback(
-    (e: MouseEvent) => {
-      handleMouseUp(e.target as HTMLElement);
-      resetMove();
-    },
-    [handleMouseUp, resetMove]
-  );
-
-  let mouseUpHandler = React.useCallback(
-    (e: MouseEvent) => {
-      if (isDragging) triggerHandleMouseUp(e);
-    },
-    [isDragging, triggerHandleMouseUp]
-  );
-
-  let keyUpHandler = React.useCallback(
-    (e: KeyboardEvent) => {
-      if (e.code === "Escape") {
-        resetMove();
-      }
-    },
-    [resetMove]
-  );
-
-  let listenerRefs = React.useRef({
-    mouseMoveHandler,
-    mouseLeaveHandler,
-    mouseUpHandler,
-    keyUpHandler,
-  });
-
-  React.useEffect(() => {
-    let mouseMoveHandlerWrapper = (e: MouseEvent) => {
-      listenerRefs.current.mouseMoveHandler(e);
-    };
-    let mouseLeaveHandlerWrapper = (e: MouseEvent) => {
-      listenerRefs.current.mouseLeaveHandler(e);
-    };
-    let mouseUpHandlerWrapper = (e: MouseEvent) => {
-      listenerRefs.current.mouseUpHandler(e);
-    };
-    let keyUpHandlerWrapper = (e: KeyboardEvent) => {
-      listenerRefs.current.keyUpHandler(e);
-    };
-
-    document.body.addEventListener("mousemove", mouseMoveHandlerWrapper);
-    document.body.addEventListener("mouseleave", mouseLeaveHandlerWrapper);
-    document.body.addEventListener("mouseup", mouseUpHandlerWrapper);
-    document.body.addEventListener("keyup", keyUpHandlerWrapper);
-
-    return () => {
-      document.body.removeEventListener("mousemove", mouseMoveHandlerWrapper);
-      document.body.removeEventListener("mouseleave", mouseLeaveHandlerWrapper);
-      document.body.removeEventListener("mouseup", mouseUpHandlerWrapper);
-      document.body.removeEventListener("keyup", keyUpHandlerWrapper);
-    };
-  }, []);
-
-  React.useEffect(() => {
-    listenerRefs.current.mouseMoveHandler = mouseMoveHandler;
-    listenerRefs.current.mouseLeaveHandler = mouseLeaveHandler;
-    listenerRefs.current.mouseUpHandler = mouseUpHandler;
-    listenerRefs.current.keyUpHandler = keyUpHandler;
-  }, [mouseMoveHandler, mouseLeaveHandler, mouseUpHandler, keyUpHandler]);
 
   return (
-    <Box
-      onMouseDown={(e) => {
-        setDragOffset({
-          x: e.clientX + INIT_OFFSET_X,
-          y: e.clientY + INIT_OFFSET_Y,
-        });
-      }}
-    >
+    <>
       {isDragging && (
-        <Box
-          sx={{ position: "fixed", top: 0, left: 0, zIndex: 999 }}
-          style={{
-            transform: `translateX(${dragOffset.x}px) translateY(${dragOffset.y}px)`,
-          }}
-        >
-          <Box
-            sx={{
-              padding: "1px 7px",
-              background: (theme) => theme.palette.grey[100],
-              color: (theme) => theme.palette.primary.main,
-            }}
-          >
-            {dragFiles.length === 1
-              ? baseNameFromPath(dragFiles[0])
-              : dragFiles.length}
-          </Box>
-        </Box>
+        <DragIndicator dragFiles={dragFiles} handleMouseUp={handleMouseUp} />
       )}
       <TreeView
         aria-label="file system navigator"
@@ -418,6 +282,6 @@ export const FileTree = React.memo(function FileTreeComponent({
           );
         })}
       </TreeView>
-    </Box>
+    </>
   );
 });
