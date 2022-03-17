@@ -17,7 +17,7 @@ export const useValidateFilesOnSteps = () => {
   const { selectedFiles } = useFileManagerContext();
 
   const getApplicableStepFiles = React.useCallback(
-    (stepUuid: string) => {
+    (stepUuid?: string) => {
       const { usedNotebookFiles, forbidden, allowed } = validateFiles(
         stepUuid,
         pipelineJson?.steps,

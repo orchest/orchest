@@ -1,4 +1,7 @@
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
+import { useAppContext } from "@/contexts/AppContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
 import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
@@ -45,6 +48,9 @@ export const TreeItem = ({
     setIsDragging,
     setDragFile,
   } = useFileManagerContext();
+  const { pipelineUuid, projectUuid } = useCustomRoute();
+  const { setConfirm } = useAppContext();
+  const { getSession, toggleSession } = useSessionsContext();
 
   const icon = !fileName ? undefined : fileName.endsWith(".orchest") ? (
     <OrchestFileIcon size={22} />
@@ -75,6 +81,25 @@ export const TreeItem = ({
             Math.abs(normalizedDeltaX) + Math.abs(normalizedDeltaY);
 
           if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
+            const session = getSession({
+              pipelineUuid,
+              projectUuid,
+            });
+            if (path.endsWith(".orchest") && session) {
+              setConfirm(
+                "Warning",
+                "Before moving pipeline file (.orchest), you need to stop session. Do you want to continue?",
+                {
+                  confirmLabel: "Stop session",
+                  onConfirm: async (resolve) => {
+                    toggleSession({ pipelineUuid, projectUuid });
+                    resolve(true);
+                    return true;
+                  },
+                }
+              );
+              return;
+            }
             setIsDragging(true);
             setDragFile({ labelText, path });
             setSelectedFiles((current) => [...current, path]);

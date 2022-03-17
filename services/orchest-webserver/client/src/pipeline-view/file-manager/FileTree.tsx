@@ -38,7 +38,7 @@ const isInFileManager = (element: HTMLElement) => {
 };
 
 const findFileViaPath = (path: string, fileTrees: FileTrees) => {
-  // example: /project-dir:/hallo-wereld/folder/my-file.py
+  // example: /project-dir:/hello-world/folder/my-file.py
   const [root, filePathStr] = path.split(":");
   const filePath = filePathStr.split("/").filter((value) => value !== "");
   let head = fileTrees[root];
@@ -99,6 +99,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     setIsDragging,
     resetMove,
     fileTrees,
+    setFilePathChanges,
   } = useFileManagerContext();
   const { getDropPosition, handleSelect } = useFileManagerLocalContext();
 
@@ -143,12 +144,90 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       try {
         await fetcher(url, { method: "POST" });
-        if (!skipReload) reload();
+        if (!skipReload) {
+          setFilePathChanges([{ oldPath, newPath, oldRoot, newRoot }]);
+          reload();
+        }
+        return { oldPath, newPath, oldRoot, newRoot };
       } catch (error) {
         setAlert("Error", `Failed to rename file ${oldPath}. ${error.message}`);
       }
     },
-    [onRename, baseUrl, reload, setAlert]
+    [onRename, baseUrl, reload, setAlert, setFilePathChanges]
+  );
+
+  const handleDropInside = React.useCallback(
+    (filePath: string) => {
+      // if user attempts to move .ipynb files to /data
+      if (/^\/data\:/.test(filePath)) {
+        const foundPathWithNotebookFiles = dragFiles.find((dragFilePath) => {
+          const foundFile = findFileViaPath(dragFilePath, fileTrees);
+          return hasNotebookFiles(foundFile);
+        });
+
+        if (foundPathWithNotebookFiles) {
+          setAlert(
+            "Warning",
+            <Stack spacing={2} direction="column">
+              <Box>
+                <Code>{"/data"}</Code> cannot contain Notebook files. Please
+                make sure that there are no Notebook files in the following
+                path: <Code>{cleanFilePath(foundPathWithNotebookFiles)}</Code>
+              </Box>
+            </Stack>
+          );
+          return;
+        }
+      }
+
+      const deducedPaths = dragFiles.map((path) =>
+        deduceRenameFromDragOperation(path, filePath)
+      );
+      const hasPathChanged = deducedPaths.some(
+        ([sourcePath, newPath]) => sourcePath !== newPath
+      );
+      // Check if any path changes
+      if (hasPathChanged) {
+        let targetDescription = generateTargetDescription(deducedPaths[0][1]);
+        const confirmMessage =
+          dragFiles.length > 1 ? (
+            <>
+              {`Do you want move `}
+              {dragFiles.length}
+              {` files to `}
+              {targetDescription} ?
+            </>
+          ) : (
+            <>
+              {`Do you want move `}
+              <Code>{baseNameFromPath(deducedPaths[0][0])}</Code>
+              {` to `}
+              {targetDescription} ?
+            </>
+          );
+
+        setConfirm("Warning", confirmMessage, async (resolve) => {
+          const newFilePathChanges = await Promise.all(
+            deducedPaths.map(([sourcePath, newPath]) => {
+              return handleRename(sourcePath, newPath, true);
+            })
+          );
+          setFilePathChanges(newFilePathChanges);
+          reload();
+          resolve(true);
+          return true;
+        });
+      }
+    },
+    [
+      dragFiles,
+      fileTrees,
+      handleRename,
+      reload,
+      setAlert,
+      setConfirm,
+      setFilePathChanges,
+    ]
   );
 
   const handleMouseUp = React.useCallback(
@@ -159,103 +238,20 @@ export const FileTree = React.memo(function FileTreeComponent({
         return;
       }
 
-      let filePath = filePathFromHTMLElement(target);
-      if (!filePath) return;
+      let targetFilePath = filePathFromHTMLElement(target);
+      if (!targetFilePath) return;
 
       // dropped inside of the tree view
       if (dragFiles.length > 0) {
-        // if user attempts to move .ipynb files to /data
-        if (/^\/data\:/.test(filePath)) {
-          const foundPathWithNotebookFiles = dragFiles.find((dragFilePath) => {
-            const foundFile = findFileViaPath(dragFilePath, fileTrees);
-            return hasNotebookFiles(foundFile);
-          });
-
-          if (foundPathWithNotebookFiles) {
-            setAlert(
-              "Warning",
-              <Stack spacing={2} direction="column">
-                <Box>
-                  <Code>{"/data"}</Code> cannot contain Notebook files. Please
-                  make sure that there are no Notebook files in the following
-                  path: <Code>{cleanFilePath(foundPathWithNotebookFiles)}</Code>
-                </Box>
-              </Stack>
-            );
-            return;
-          }
-        }
-
-        const deducedPaths = dragFiles.map((path) =>
-          deduceRenameFromDragOperation(path, filePath)
-        );
-        const hasPathChanged = deducedPaths.some(
-          ([sourcePath, newPath]) => sourcePath !== newPath
-        );
-        // Check if any path changes
-        if (hasPathChanged) {
-          let targetDescription = generateTargetDescription(deducedPaths[0][1]);
-          const confirmMessage =
-            dragFiles.length > 1 ? (
-              <>
-                {`Do you want move `}
-                {dragFiles.length}
-                {` files to `}
-                {targetDescription} ?
-              </>
-            ) : (
-              <>
-                {`Do you want move `}
-                <Code>{baseNameFromPath(deducedPaths[0][0])}</Code>
-                {` to `}
-                {targetDescription} ?
-              </>
-            );
-
-          setConfirm("Warning", confirmMessage, async (resolve) => {
-            await Promise.all(
-              deducedPaths.map(([sourcePath, newPath]) => {
-                return handleRename(sourcePath, newPath, true);
-              })
-            );
-            reload();
-            resolve(true);
-            return true;
-          });
-        }
-        return;
-      }
-
-      let [sourcePath, newPath] = deduceRenameFromDragOperation(
-        dragFile.path,
-        filePath
-      );
-      if (sourcePath !== newPath) {
-        let targetDescription = generateTargetDescription(newPath);
-        setConfirm(
-          "Warning",
-          `Do you want move '${baseNameFromPath(
-            sourcePath
-          )}' to ${targetDescription}?`,
-          async (resolve) => {
-            await handleRename(sourcePath, newPath);
-            resolve(true);
-            return true;
-          }
-        );
+        handleDropInside(targetFilePath);
       }
     },
     [
-      handleRename,
-      setConfirm,
-      setAlert,
-      reload,
       onDropOutside,
-      dragFile,
       dragFiles,
-      fileTrees,
       filePathFromHTMLElement,
       getDropPosition,
+      handleDropInside,
     ]
   );
 

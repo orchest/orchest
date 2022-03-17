@@ -275,7 +275,7 @@ export const isNotebookFile = (filePath: string) => /\.ipynb$/.test(filePath);
  * from all the other allowed files
  */
 export const validateFiles = (
-  currentStepUuid: string,
+  currentStepUuid: string | undefined,
   steps: Record<string, Step> | undefined,
   selectedFiles: string[]
 ) => {
