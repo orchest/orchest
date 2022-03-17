@@ -31,7 +31,7 @@ ifeq (${ENABLE_HOSTPATH},TRUE)
 endif
 
 ifeq ($(shell expr ${DEFINED_STORAGES} \> 1),1)
-	$(error More than one Storagr Provider is defined)
+	$(error More than one Storage Provider is defined)
 endif
 
 #If no storage is provided, use NFS 
