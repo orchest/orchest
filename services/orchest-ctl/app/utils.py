@@ -125,7 +125,7 @@ def get_orchest_config() -> dict:
     return config
 
 
-def get_celery_parallelism_level() -> dict:
+def get_celery_parallelism_level_from_config() -> dict:
     orc_config = get_orchest_config()
     runs_k = "MAX_INTERACTIVE_RUNS_PARALLELISM"
     jobs_k = "MAX_JOB_RUNS_PARALLELISM"

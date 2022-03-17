@@ -521,3 +521,13 @@ def get_host_names() -> List[str]:
         for rule in r.spec.rules:
             hosts.add(rule.host)
     return sorted(hosts)
+
+
+def sync_celery_parallelism_from_config() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "celery-worker",
+        "orchest",
+        _get_deployment_container_env_var_patch(
+            "celery-worker", utils.get_celery_parallelism_level_from_config()
+        ),
+    )

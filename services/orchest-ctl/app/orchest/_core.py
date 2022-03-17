@@ -486,6 +486,7 @@ def start(log_level: utils.LogLevel, cloud: bool):
         label="Start",
         show_eta=False,
     ) as progress_bar:
+        k8sw.sync_celery_parallelism_from_config()
         k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=True)
         k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=True)
 
@@ -670,7 +671,7 @@ def _update() -> None:
         HelmMode.UPGRADE,
         # Preserve the current values, i.e. avoid helm overwriting them
         # with default values.
-        utils.get_celery_parallelism_level(),
+        utils.get_celery_parallelism_level_from_config(),
     )
     if return_code != 0:
         utils.echo(
