@@ -15,18 +15,58 @@ else
   ORCHEST_RESOURCES_TARGET := orchest-resources
 endif
 
+DEFINED_STORAGES := 0
+
+# If More than one storage is defined print hout an error and exit.
 ifeq (${ENABLE_ROOK_NFS},TRUE)
-	ifeq (${ENABLE_ROOK_CEPH},TRUE)
-		$(error Both CEPH and NFS can not be enabled at the same time)
-	endif
+	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
 endif
 
-ifeq (${ENABLE_ROOK_NFS},)
-	ifeq (${ENABLE_ROOK_CEPH},)
-		# Storage provider is not defined, ROOK_NFS will be used by default
-		ENABLE_ROOK_NFS := TRUE
-	endif
+ifeq (${ENABLE_ROOK_CEPH},TRUE)
+	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
 endif
+
+ifeq (${ENABLE_HOSTPATH},TRUE)
+	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
+endif
+
+ifeq ($(shell expr ${DEFINED_STORAGES} \> 1),1)
+	$(error More than one Storagr Provider is defined)
+endif
+
+#If no storage is provided, use NFS 
+ifeq (${DEFINED_STORAGES},0)
+	ENABLE_ROOK_NFS := TRUE
+	$(error More)
+endif
+
+# Orchest will install rook/rook (rook-ceph) for managing ceph, if it is desired,
+# define ENABLE_ROOK_CEPH env variable and set it to TRUE
+ROOK_CEPH_TARGET := ${if ${ENABLE_ROOK_CEPH},rook-ceph,}
+
+# if rook-ceph is enable, we also enable ceph-resources target
+CEPH_RESOURCES_TARGET := ${if ${ENABLE_ROOK_CEPH},ceph-resources,}
+
+
+# Orchest will install rook/nfs for managing on promise nfs server, if it is desired,
+# define ENABLE_ROOK_NFS env variable and set it to TRUE
+ROOK_NFS_TARGET := ${if ${ENABLE_ROOK_NFS},rook-nfs,}
+
+# if rook-nfs is enable, we also enable nfs-resources target
+NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
+
+ifeq (${ENABLE_HOSTPATH},TRUE)
+  FILESYSTEM_STORAGE_CLASS := standard
+  BLOCK_STORAGE_CLASS := standard
+else ifeq (${ROOK_CEPH_TARGET},rook-ceph)
+  FILESYSTEM_STORAGE_CLASS := ceph-filesystem
+  BLOCK_STORAGE_CLASS := ceph-block
+else ifeq (${ROOK_NFS_TARGET},rook-nfs)
+  FILESYSTEM_STORAGE_CLASS := rook-nfs-storage-class
+endif
+
+ORCHEST_PVC_BACKEND_TARGET := ${if ${NFS_RESOURCES_TARGET},${NFS_RESOURCES_TARGET},${CEPH_RESOURCES_TARGET}}
+
 
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
@@ -37,38 +77,12 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
-# Orchest will install rook/rook (rook-ceph) for managing ceph by, if it is desired,
-# define ENABLE_ROOK_CEPH env variable and set it to something (preferably TRUE)
-ROOK_CEPH_TARGET := ${if ${ENABLE_ROOK_CEPH},rook-ceph,}
-
-# if rook-ceph is enable, we also enable ceph-resources target
-CEPH_RESOURCES_TARGET := ${if ${ENABLE_ROOK_CEPH},ceph-resources,}
-
-# Orchest will install rook/nfs for managing on promise nfs server, if it is desired,
-# define ENABLE_ROOK_NFS env variable and set it to something (preferably TRUE)
-ROOK_NFS_TARGET := ${if ${ENABLE_ROOK_NFS},rook-nfs,}
-
-# if rook-nfs is enable, we also enable nfs-resources target
-NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
-
-ORCHEST_PVC_BACKEND_TARGET := ${if ${NFS_RESOURCES_TARGET},${NFS_RESOURCES_TARGET},${CEPH_RESOURCES_TARGET}}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
 REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
-
-# Name of default file-system and block storage classes
-FILESYSTEM_STORAGE_CLASS := standard
-BLOCK_STORAGE_CLASS := standard
-
-ifeq (${ROOK_CEPH_TARGET},rook-ceph)
-  FILESYSTEM_STORAGE_CLASS := ceph-filesystem
-  BLOCK_STORAGE_CLASS := ceph-block
-else ifeq (${ROOK_NFS_TARGET},rook-nfs)
-  FILESYSTEM_STORAGE_CLASS := rook-nfs-storage-class
-endif
 
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
@@ -355,4 +369,8 @@ argo-upgrade:
 
 .PHONY: registry-upgrade
 registry-upgrade:
+	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG}
+
+.PHONY: check-storage
+check-storage:
 	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG}
