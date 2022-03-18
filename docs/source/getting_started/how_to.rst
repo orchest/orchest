@@ -213,3 +213,12 @@ HTTPS:
 .. tip::
    👉 Refer to ``AUTH_ENABLED`` in the :ref:`Orchest settings section <orchest settings>` to enable
    the authentication.
+
+Migrate to Kubernetes
+---------------------
+The moment we have moved to a Kubernetes backed Orchest version (and deprecated the Docker based
+version), we will update this section of the documentation to include steps on how to migrate your
+current deployment to a Kubernetes based one.
+
+Just know that we are super excited to make the Kubernetes version available part of the open core
+and we are invested to provide a smooth migration experience 🔥

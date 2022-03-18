@@ -105,10 +105,10 @@ export const OnboardingDialog: React.FC = () => {
     setSlide,
   } = useOnboardingDialogCarousel();
 
-  const onClose = (loadQuickstart = false) => {
+  const onCompleteOnboarding = () => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide({ index: 0, direction: 0 });
-      if (loadQuickstart && hasQuickstart) {
+      if (!hasImportUrl && hasQuickstart) {
         navigateTo(siteMap.pipeline.path, {
           query: {
             projectUuid: quickstart.project_uuid,
@@ -223,7 +223,7 @@ export const OnboardingDialog: React.FC = () => {
                             </CodeHeader>
                             <CodeWindow>
                               <CodeList role="list">
-                                {item.code.lines.map((line, i) => (
+                                {item.code.lines.map((line) => (
                                   <CodeListItem key={line}>{line}</CodeListItem>
                                 ))}
                               </CodeList>
@@ -287,7 +287,7 @@ export const OnboardingDialog: React.FC = () => {
                         : "Get Started",
                       variant: "contained",
                       color: "primary",
-                      onClick: () => onClose(hasQuickstart),
+                      onClick: onCompleteOnboarding,
                       "data-test-id": hasQuickstart
                         ? "onboarding-complete-with-quickstart"
                         : "onboarding-complete-without-quickstart",

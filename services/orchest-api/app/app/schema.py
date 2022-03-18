@@ -680,6 +680,11 @@ environment_images = Model(
     {"environment_images": fields.List(fields.Nested(environment_image))},
 )
 
+environment_images_to_pre_pull = Model(
+    "EnvironmentImagesToPrepull",
+    {"pre_pull_images": fields.List(fields.String(required=True))},
+)
+
 
 jupyter_image_build = Model(
     "JupyterEnvironmentBuild",

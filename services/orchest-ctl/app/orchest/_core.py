@@ -59,7 +59,6 @@ def _run_helm_with_progress_bar(
     else:
         raise ValueError()
 
-    # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
     if injected_env_vars is not None:
         # Put the update before the rest so that these env vars cannot
