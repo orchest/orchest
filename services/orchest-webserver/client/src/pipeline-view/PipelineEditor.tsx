@@ -384,11 +384,6 @@ export const PipelineEditor = () => {
     [eventVars.openedStep, notebookFilePath, openNotebook, pipelineCwd]
   );
 
-  // const centerView = React.useCallback(() => {
-  //   resetPipelineCanvas();
-  //   dispatch({ type: "SET_SCALE_FACTOR", payload: DEFAULT_SCALE_FACTOR });
-  // }, [dispatch, resetPipelineCanvas]);
-
   const recalibrate = React.useCallback(() => {
     // ensure that connections are re-rendered against the final positions of the steps
     setPipelineJson((value) => value, true);

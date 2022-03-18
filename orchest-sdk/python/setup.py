@@ -13,7 +13,7 @@ setuptools.setup(
     name="orchest",
     version=about["__version__"],
     packages=setuptools.find_packages(),
-    install_requires=["pyarrow>=1.0.0,<=4.0.0", "requests>=1.0.0"],
+    install_requires=["pyarrow>=1.0.0,<8.0", "requests>=1.0.0"],
     # Metadata to display on PyPI.
     author="Rick Lamers",
     author_email="rick@orchest.io",

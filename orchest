@@ -19,6 +19,13 @@ fi
 function update_orchest_ctl {
     # Update orchest-ctl to latest before performing update
     $SUDO_PREFIX docker pull orchest/orchest-ctl:latest
+
+    if [ $? -ne 0 ]; then
+        echo "Orchest has migrated to Kubernetes and needs to be manually migrated."
+        echo "Please follow these steps to migrate to a new version of Orchest:"
+        echo "https://docs.orchest.io/en/stable/getting_started/how_to.html#migrate-to-kubernetes"
+        exit 0
+    fi
 }
 
 # Before running an update, update the orchest-ctl as the latest

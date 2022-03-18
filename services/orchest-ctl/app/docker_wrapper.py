@@ -141,14 +141,20 @@ class DockerWrapper:
                 present and thus replacing it.
 
         """
-        return asyncio.run(
-            self._pull_images(
-                images,
-                prog_bar=prog_bar,
-                mode=mode,
-                force=force,
+        try:
+            return asyncio.run(
+                self._pull_images(
+                    images,
+                    prog_bar=prog_bar,
+                    mode=mode,
+                    force=force,
+                )
             )
-        )
+        except aiodocker.exceptions.DockerError:
+            raise ValueError(
+                "At least one of the given 'images' does not exist and"
+                " could therefore not be pulled."
+            )
 
     async def _does_image_exist(self, image: str) -> bool:
         try:
