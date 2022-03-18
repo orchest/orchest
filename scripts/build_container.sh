@@ -208,7 +208,7 @@ do
     if [ $IMG == "jupyter-server" ]; then
 
         build_ctx=$DIR/../services/jupyter-server
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/jupyter-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-server/Dockerfile \
@@ -222,7 +222,7 @@ do
     if [ $IMG == "jupyter-enterprise-gateway" ]; then
 
         build_ctx=$DIR/../services/jupyter-enterprise-gateway
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/jupyter-enterprise-gateway:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/jupyter-enterprise-gateway/Dockerfile \
@@ -234,7 +234,7 @@ do
     if [ $IMG == "celery-worker" ]; then
 
         build_ctx=$DIR/../services/orchest-api
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/celery-worker:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile_celery \
@@ -248,7 +248,7 @@ do
     if [ $IMG == "base-kernel-py" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/base-kernel-py:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -260,7 +260,7 @@ do
     if [ $IMG == "base-kernel-julia" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/base-kernel-julia:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-julia/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -272,7 +272,7 @@ do
     if [ $IMG == "base-kernel-py-gpu" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/base-kernel-py-gpu:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-py-gpu/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -284,7 +284,7 @@ do
     if [ $IMG == "base-kernel-r" ]; then
 
         build_ctx=$DIR/../services/base-images
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/base-kernel-r:$BUILD_TAG" \
             -f $DIR/../services/base-images/base-kernel-r/Dockerfile \
             --no-cache=$NO_CACHE \
@@ -296,7 +296,7 @@ do
     if [ $IMG == "orchest-api" ]; then
 
         build_ctx=$DIR/../services/orchest-api
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/orchest-api:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
@@ -307,7 +307,7 @@ do
     if [ $IMG == "orchest-ctl" ]; then
 
         build_ctx=$DIR/../services/orchest-ctl
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/orchest-ctl:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-ctl/Dockerfile \
@@ -318,7 +318,7 @@ do
     if [ $IMG == "update-server" ]; then
 
         build_ctx=$DIR/../services/update-server
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/update-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/update-server/Dockerfile \
@@ -329,7 +329,7 @@ do
     if [ $IMG == "orchest-webserver" ]; then
 
         build_ctx=$DIR/../services/orchest-webserver
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/orchest-webserver:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-webserver/Dockerfile \
@@ -339,7 +339,7 @@ do
 
     if [ $IMG == "nginx-proxy" ]; then
         build_ctx=$DIR/../services/nginx-proxy
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/nginx-proxy:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/nginx-proxy/Dockerfile \
@@ -350,7 +350,7 @@ do
     if [ $IMG == "auth-server" ]; then
 
         build_ctx=$DIR/../services/auth-server
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/auth-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
@@ -361,7 +361,7 @@ do
     # installs orchest-sdk
     if [ $IMG == "memory-server" ]; then
         build_ctx=$DIR/../services/memory-server
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/memory-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/memory-server/Dockerfile \
@@ -371,7 +371,7 @@ do
 
     if [ $IMG == "session-sidecar" ]; then
         build_ctx=$DIR/../services/session-sidecar
-        build=(docker build --progress=plain \
+        build=(docker build --platform linux/amd64 --progress=plain \
             -t "orchest/session-sidecar:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/session-sidecar/Dockerfile \

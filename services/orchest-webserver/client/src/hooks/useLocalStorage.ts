@@ -33,9 +33,9 @@ export const useLocalStorage = <T>(key: string, defaultValue: T) => {
           const valueToStore =
             value instanceof Function ? value(current) : value;
           cachedItemString.current = JSON.stringify(valueToStore);
+          window.localStorage.setItem(privateKey, cachedItemString.current);
           return valueToStore;
         });
-        window.localStorage.setItem(privateKey, cachedItemString.current);
       } catch (error) {
         console.log(error);
       }
