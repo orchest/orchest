@@ -390,7 +390,7 @@ def get_step_and_kernel_volumes_and_volume_mounts(
         {
             "name": "userdir-pvc",
             "mountPath": "/userdir/projects",
-            "subPath": relative_project_dir,
+            "subPath": "projects",
         }
     )
     volume_mounts.append(

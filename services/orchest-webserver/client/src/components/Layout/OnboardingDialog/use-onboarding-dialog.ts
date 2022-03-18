@@ -4,16 +4,12 @@ import { useImportUrl } from "@/hooks/useImportUrl";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
 
 export const useOnboardingDialog = () => {
-  const { data: state, mutate: setState } = useSWR(
-    "useOnboardingDialog",
-    null,
-    {
-      initialData: { isOpen: false, shouldFetchQuickstart: false },
-    }
-  );
+  const [state, setState] = React.useState({
+    isOpen: false,
+    shouldFetchQuickstart: false,
+  });
   const { dispatch } = useAppContext();
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",
@@ -35,29 +31,29 @@ export const useOnboardingDialog = () => {
         };
   const hasQuickstart = typeof quickstart !== "undefined";
 
-  const setIsOnboardingDialogOpen = (
-    isOpen: boolean,
-    onOpen?: (value: boolean) => void
-  ) => {
-    if (isOpen) {
-      setState({ isOpen: true, shouldFetchQuickstart: true });
-    } else {
-      setState((prevState) => ({ ...prevState, isOpen: false }));
+  const setIsOnboardingDialogOpen = React.useCallback(
+    (isOpen: boolean, onOpen?: (value: boolean) => void) => {
+      if (isOpen) {
+        setState({ isOpen: true, shouldFetchQuickstart: true });
+      } else {
+        setState((prevState) => ({ ...prevState, isOpen: false }));
 
-      // update localstorage
-      setHasCompletedOnboarding(true);
-      // update app context
-      dispatch({ type: "SET_HAS_COMPLETED_ONBOARDING", payload: true });
-      // Wait for Dialog transition to finish before resetting position.
-      // This way we avoid showing the slides animating back to the start.
+        // update localstorage
+        setHasCompletedOnboarding(true);
+        // update app context
+        dispatch({ type: "SET_HAS_COMPLETED_ONBOARDING", payload: true });
+        // Wait for Dialog transition to finish before resetting position.
+        // This way we avoid showing the slides animating back to the start.
 
-      setState((prevState) => ({
-        ...prevState,
-        shouldFetchQuickstart: false,
-      }));
-      onOpen && onOpen(false);
-    }
-  };
+        setState((prevState) => ({
+          ...prevState,
+          shouldFetchQuickstart: false,
+        }));
+        onOpen && onOpen(false);
+      }
+    },
+    [dispatch, setHasCompletedOnboarding]
+  );
 
   React.useEffect(() => {
     dispatch({
@@ -65,13 +61,13 @@ export const useOnboardingDialog = () => {
       payload: hasCompletedOnboarding,
     });
     if (!hasCompletedOnboarding) setIsOnboardingDialogOpen(true);
-  }, []);
+  }, [dispatch, hasCompletedOnboarding, setIsOnboardingDialogOpen]);
 
   return {
     isOnboardingDialogOpen: state?.isOpen,
     setIsOnboardingDialogOpen,
     quickstart,
-    hasImportUrl: hasValue(importUrl),
+    hasImportUrl: hasValue(importUrl) && importUrl !== "",
     hasQuickstart,
   };
 };
