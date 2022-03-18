@@ -26,8 +26,8 @@ The Makefile is configured to do the most common actions and it can be configure
    deployed, the default value is `orchest`
 2. `KUBECONFIG` the location of the k8s configuration file, the default value is `~/.kube/config`
 3. `DEBUG` if specified, helm is executed with `--debug --dry-run`
-4. `DEPEND_RESOURCES` if setted to `FALSE` the `orchest` target is not dependent on
-   `orchest-resources` target
+4. `DEPEND_RESOURCES` if set to `FALSE` the `orchest` target is not dependent on `orchest-resources`
+   target
 5. `ROOK_CEPH_NAMESPACE` is the namespace for the deployment of rook/ceph. default : `rook-ceph`
 6. `ROOK_NFS_NAMESPACE` the deployment namespace of rook/nfs, default: `rook-nfs`
 7. `ENABLE_ROOK_NFS` enables the rook-nfs as a storage provider (if no storage is enabled, the
