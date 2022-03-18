@@ -26,7 +26,6 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
-import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
@@ -455,10 +454,8 @@ const PipelineSettingsView: React.FC = () => {
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
-        exposed: service.exposed ? <CheckOutlinedIcon /> : null,
-        authenticationRequired: service.requires_authentication ? (
-          <CheckOutlinedIcon />
-        ) : null,
+        exposed: service.exposed ? "Yes" : "No",
+        authenticationRequired: service.requires_authentication ? "Yes" : "No",
         remove: uuid,
         details: (
           <ServiceForm

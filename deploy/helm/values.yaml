@@ -1,6 +1,6 @@
 global:
   ingress:
-    host: www.localorchest.io
+    host: localorchest.io
 
 auth-server:
   enabled: false
