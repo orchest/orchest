@@ -59,6 +59,7 @@ from app.utils import (
     pipeline_set_notebook_kernels,
     project_entity_counts,
     project_exists,
+    preprocess_script,
     serialize_environment_to_disk,
 )
 
@@ -118,7 +119,7 @@ def register_views(app, db):
                     name=environment_json["name"],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
-                    setup_script=environment_json["setup_script"],
+                    setup_script=preprocess_script(environment_json["setup_script"]),
                     base_image=environment_json["base_image"],
                     gpu_support=environment_json["gpu_support"],
                 )
@@ -340,7 +341,7 @@ def register_views(app, db):
             setup_script = request.form.get("setup_script")
             try:
                 with open(setup_script_path, "w") as f:
-                    f.write(setup_script)
+                    f.write(preprocess_script(setup_script))
 
             except IOError as io_error:
                 current_app.logger.error("Failed to write setup_script %s" % io_error)

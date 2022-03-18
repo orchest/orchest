@@ -120,7 +120,7 @@ def get_project_snapshot_size(project_uuid, host_path=False):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024 ** 2)
+    return get_size(project_dir, skip_dirs) / (1024**2)
 
 
 def project_exists(project_uuid):
@@ -183,6 +183,17 @@ def get_environments(project_uuid, language=None):
         current_app.logger.error(e)
 
     return environments
+
+
+def preprocess_script(script):
+    """
+    This preprocesses bash scripts
+    that come from the client.
+
+    Make sure it only contains UNIX style line endings to make
+    sure the script can run without issues.
+    """
+    return script.replace("\r\n", "\n")
 
 
 def serialize_environment_to_disk(environment, env_directory):
