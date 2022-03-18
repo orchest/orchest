@@ -60,10 +60,11 @@ def _run_helm_with_progress_bar(
         raise ValueError()
 
     env = os.environ.copy()
+    # Put the update before the rest so that these env vars cannot be
+    # overwritten by coincidence.
     if injected_env_vars is not None:
-        # Put the update before the rest so that these env vars cannot
-        # be overwritten by coincidence.
-        env.update(injected_env_vars)
+        for k, v in injected_env_vars.items():
+            env[k] = str(v)
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
@@ -485,6 +486,7 @@ def start(log_level: utils.LogLevel, cloud: bool):
         label="Start",
         show_eta=False,
     ) as progress_bar:
+        k8sw.sync_celery_parallelism_from_config()
         k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=True)
         k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=True)
 
@@ -665,7 +667,12 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
-    return_code = _run_helm_with_progress_bar(HelmMode.UPGRADE)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.UPGRADE,
+        # Preserve the current values, i.e. avoid helm overwriting them
+        # with default values.
+        utils.get_celery_parallelism_level_from_config(),
+    )
     if return_code != 0:
         utils.echo(
             f"There was an error while updating Orchest, exit code: {return_code} .",

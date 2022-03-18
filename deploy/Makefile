@@ -17,6 +17,11 @@ endif
 
 DEFINED_STORAGES := 0
 
+ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
+MAX_INTERACTIVE_RUNS_PARALLELISM := ${if ${MAX_INTERACTIVE_RUNS_PARALLELISM},${MAX_INTERACTIVE_RUNS_PARALLELISM},1}
+MAX_JOB_RUNS_PARALLELISM := ${if ${MAX_JOB_RUNS_PARALLELISM},${MAX_JOB_RUNS_PARALLELISM},1}
+CLOUD := ${if ${CLOUD},${CLOUD},"False"}
+
 # If More than one storage is defined print hout an error and exit.
 ifeq (${ENABLE_ROOK_NFS},TRUE)
 	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
@@ -235,6 +240,8 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
 	--set-string auth-server.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string celery-worker.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	--set celery-worker.MAX_INTERACTIVE_RUNS_PARALLELISM="${MAX_INTERACTIVE_RUNS_PARALLELISM}" \
+	--set celery-worker.MAX_JOB_RUNS_PARALLELISM="${MAX_JOB_RUNS_PARALLELISM}" \
 	--set-string orchest-api.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	helm
