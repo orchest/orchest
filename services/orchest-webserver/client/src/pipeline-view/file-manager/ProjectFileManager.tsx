@@ -1,13 +1,18 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/Routes";
 import { Position } from "@/types";
 import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
-import { cleanFilePath, getFilePathForDragFile } from "./common";
+import {
+  cleanFilePath,
+  getFilePathForDragFile,
+  isFileByExtension,
+} from "./common";
 import { FileManager } from "./FileManager";
 import { useFileManagerContext } from "./FileManagerContext";
 import { useValidateFilesOnSteps } from "./useValidateFilesOnSteps";
@@ -27,6 +32,8 @@ export const ProjectFileManager = () => {
     runUuid,
     getOnCanvasPosition,
   } = usePipelineEditorContext();
+
+  const { pipelines } = useFetchPipelines(projectUuid);
 
   const { selectedFiles } = useFileManagerContext();
 
@@ -48,9 +55,22 @@ export const ProjectFileManager = () => {
 
   const onOpen = React.useCallback(
     (filePath) => {
+      const foundPipeline = isFileByExtension(["orchest"], filePath)
+        ? pipelines.find(
+            (pipeline) => pipeline.path === cleanFilePath(filePath)
+          )
+        : null;
+
+      if (foundPipeline) {
+        navigateTo(siteMap.pipeline.path, {
+          query: { projectUuid, pipelineUuid: foundPipeline.uuid },
+        });
+        return;
+      }
+
       openNotebook(undefined, cleanFilePath(filePath));
     },
-    [openNotebook]
+    [openNotebook, pipelines, navigateTo, projectUuid]
   );
 
   const onView = React.useCallback(
@@ -123,6 +143,7 @@ export const ProjectFileManager = () => {
     },
     [
       dispatch,
+      pipelineCwd,
       getApplicableStepFiles,
       environment?.language,
       environment?.name,

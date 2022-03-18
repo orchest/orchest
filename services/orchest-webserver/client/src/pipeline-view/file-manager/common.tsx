@@ -269,7 +269,12 @@ export const getStepFilePath = (step: Step) =>
   removeLeadingSymbols(step.file_path);
 
 export const isFileByExtension = (extensions: string[], filePath: string) => {
-  const regex = new RegExp(`\.(${extensions.join("|")})$`, "i");
+  const regex = new RegExp(
+    `\.(${extensions
+      .map((extension) => extension.replace(/^\./, "")) // in case user add a leading dot
+      .join("|")})$`,
+    "i"
+  );
   return regex.test(filePath);
 };
 
