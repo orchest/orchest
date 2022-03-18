@@ -371,11 +371,8 @@ export const filePathFromHTMLElement = (element: HTMLElement) => {
 
 const dataFolderRegex = /^\/data\:\//;
 
-const getFilePathInDataFolder = (dragFilePath: string, pipelineCwd: string) =>
-  "../../" + // the level diff between /data and project dir, data is at /, project is /projects/,
-  getRelativePathTo("/", pipelineCwd) + // the distance between root and project root
-  "data/" +
-  dragFilePath.replace(dataFolderRegex, "");
+const getFilePathInDataFolder = (dragFilePath: string) =>
+  "/data/" + dragFilePath.replace(dataFolderRegex, "");
 
 export const getFilePathForDragFile = (
   dragFilePath: string,
@@ -383,6 +380,6 @@ export const getFilePathForDragFile = (
 ) => {
   const isFromDataFolder = dataFolderRegex.test(dragFilePath);
   return isFromDataFolder
-    ? getFilePathInDataFolder(dragFilePath, pipelineCwd)
+    ? getFilePathInDataFolder(dragFilePath)
     : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
 };
