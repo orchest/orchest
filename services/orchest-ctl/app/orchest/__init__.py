@@ -12,6 +12,7 @@ from app.orchest._core import (
     start,
     status,
     stop,
+    uninstall,
     update,
     version,
 )
