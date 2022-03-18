@@ -25,11 +25,11 @@ class Config:
     POSTHOG_HOST = "https://analytics.orchest.io"
 
     POLL_ORCHEST_EXAMPLES_JSON = True
-    ORCHEST_EXAMPLES_JSON_PATH = "orchest_examples_data.json"
+    ORCHEST_EXAMPLES_JSON_PATH = "/userdir/.orchest/orchest_examples_data.json"
     ORCHEST_EXAMPLES_JSON_POLL_INTERVAL = 60
 
     POLL_ORCHEST_UPDATE_INFO_JSON = True
-    ORCHEST_UPDATE_INFO_JSON_PATH = "orchest_update_info.json"
+    ORCHEST_UPDATE_INFO_JSON_PATH = "/userdir/.orchest/orchest_update_info.json"
     ORCHEST_UPDATE_INFO_JSON_POLL_INTERVAL = 60
 
     # TODO: point readthedocs to stable instead of latest once stable
