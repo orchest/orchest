@@ -23,7 +23,11 @@ import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
 import { useFormik } from "formik";
 import React from "react";
-import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
+import {
+  DEFAULT_BASE_IMAGES,
+  GPU_SUPPORT_ENABLED,
+  LANGUAGE_MAP,
+} from "./common";
 
 export const CustomImageDialog = ({
   isOpen,
@@ -155,57 +159,59 @@ export const CustomImageDialog = ({
               can be used. This only affects pipeline steps that point to a
               Notebook.
             </Alert>
-            <Stack direction="column">
-              <FormGroup>
-                <FormControlLabel
-                  label="GPU support"
-                  data-test-id="pipeline-settings-configuration-memory-eviction"
-                  name="gpu_support"
-                  control={
-                    <Checkbox
-                      checked={values.gpu_support}
-                      onChange={handleChange}
-                    />
-                  }
-                />
-              </FormGroup>
-              {values.gpu_support && (
-                <Alert severity="info" tabIndex={-1}>
-                  {config.GPU_ENABLED_INSTANCE && (
-                    <>
-                      If enabled, the environment will request GPU capabilities
-                      when in use.
-                    </>
-                  )}
-                  {!config.GPU_ENABLED_INSTANCE &&
-                    (config.CLOUD ? (
+            {GPU_SUPPORT_ENABLED && (
+              <Stack direction="column">
+                <FormGroup>
+                  <FormControlLabel
+                    label="GPU support"
+                    data-test-id="pipeline-settings-configuration-memory-eviction"
+                    name="gpu_support"
+                    control={
+                      <Checkbox
+                        checked={values.gpu_support}
+                        onChange={handleChange}
+                      />
+                    }
+                  />
+                </FormGroup>
+                {values.gpu_support && (
+                  <Alert severity="info" tabIndex={-1}>
+                    {config.GPU_ENABLED_INSTANCE && (
                       <>
-                        This instance is not configured with a GPU. Change the
-                        instance type to a GPU enabled one if you need GPU
-                        pass-through. Steps using this environment will work
-                        regardless, but no GPU pass-through will take place.
+                        If enabled, the environment will request GPU
+                        capabilities when in use.
                       </>
-                    ) : (
-                      <>
-                        {`Could not detect a GPU. Check out `}
-                        <Link
-                          target="_blank"
-                          href={`${config.ORCHEST_WEB_URLS.readthedocs}/getting_started/installation.html#gpu-support`}
-                          rel="noopener noreferrer"
-                          tabIndex={-1}
-                        >
-                          the documentation
-                        </Link>
-                        {` to make sure Orchest is properly configured for
+                    )}
+                    {!config.GPU_ENABLED_INSTANCE &&
+                      (config.CLOUD ? (
+                        <>
+                          This instance is not configured with a GPU. Change the
+                          instance type to a GPU enabled one if you need GPU
+                          pass-through. Steps using this environment will work
+                          regardless, but no GPU pass-through will take place.
+                        </>
+                      ) : (
+                        <>
+                          {`Could not detect a GPU. Check out `}
+                          <Link
+                            target="_blank"
+                            href={`${config.ORCHEST_WEB_URLS.readthedocs}/getting_started/installation.html#gpu-support`}
+                            rel="noopener noreferrer"
+                            tabIndex={-1}
+                          >
+                            the documentation
+                          </Link>
+                          {` to make sure Orchest is properly configured for
                         environments with GPU support. In particular, make sure
                         the selected base image supports GPU pass through. Steps
                         using this environment will work regardless, but no GPU
                         pass-through will take place.`}
-                      </>
-                    ))}
-                </Alert>
-              )}
-            </Stack>
+                        </>
+                      ))}
+                  </Alert>
+                )}
+              </Stack>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>

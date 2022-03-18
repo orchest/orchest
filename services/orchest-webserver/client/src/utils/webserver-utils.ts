@@ -101,7 +101,7 @@ export function validatePipeline(pipelineJson: PipelineJson) {
 }
 
 export function filterServices(
-  services: Record<string, any>,
+  services: Record<string, Partial<Service>>,
   scope: "noninteractive" | "interactive"
 ) {
   let servicesCopy = cloneDeep(services);
@@ -156,7 +156,7 @@ export function clearOutgoingConnections<
 }
 
 export function getServiceURLs(
-  service: Pick<Service, "ports" | "preserve_base_path" | "name">,
+  service: Partial<Service>,
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
