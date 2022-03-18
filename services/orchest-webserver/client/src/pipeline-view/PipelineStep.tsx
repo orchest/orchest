@@ -15,7 +15,7 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
-import { cleanFilePath, getRelativePathTo } from "./file-manager/common";
+import { getFilePathForDragFile } from "./file-manager/common";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
@@ -104,21 +104,6 @@ export const getStateText = (executionState: ExecutionState) => {
     stateText = "Aborted";
   }
   return stateText;
-};
-
-const dataFolderRegex = /^\/data\:\//;
-
-const getFilePathInDataFolder = (dragFilePath: string, pipelineCwd: string) =>
-  "../../" + // the level diff between /data and project dir, data is at /, project is /projects/,
-  getRelativePathTo("/", pipelineCwd) + // the distance between root and project root
-  "data/" +
-  dragFilePath.replace(dataFolderRegex, "");
-
-const getFilePathForDragFile = (dragFilePath: string, pipelineCwd: string) => {
-  const isFromDataFolder = dataFolderRegex.test(dragFilePath);
-  return isFromDataFolder
-    ? getFilePathInDataFolder(dragFilePath, pipelineCwd)
-    : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
 };
 
 const PipelineStepComponent = React.forwardRef(function PipelineStep(

@@ -7,7 +7,7 @@ import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
-import { cleanFilePath } from "./common";
+import { cleanFilePath, getFilePathForDragFile } from "./common";
 import { FileManager } from "./FileManager";
 import { useFileManagerContext } from "./FileManagerContext";
 import { useValidateFilesOnSteps } from "./useValidateFilesOnSteps";
@@ -21,6 +21,7 @@ export const ProjectFileManager = () => {
     openNotebook,
     projectUuid,
     pipelineUuid,
+    pipelineCwd,
     isReadOnly,
     pipelineJson,
     runUuid,
@@ -105,7 +106,7 @@ export const ProjectFileManager = () => {
             title: "",
             uuid: uuidv4(),
             incoming_connections: [],
-            file_path: filePath,
+            file_path: getFilePathForDragFile(filePath, pipelineCwd),
             kernel: {
               name: environment?.language || "python",
               display_name: environment?.name || "Python",
