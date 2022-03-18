@@ -1,7 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { Position } from "@/types";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -79,7 +78,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   handleToggle,
   onRename,
   reload,
-  onDropOutside,
   onOpen,
 }: {
   baseUrl: string;
@@ -91,7 +89,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   ) => void;
   onRename: (oldPath: string, newPath: string) => void;
   reload: () => void;
-  onDropOutside: (target: EventTarget, dropPosition: Position) => void;
   onOpen: (filePath: string) => void;
 }) {
   const { setConfirm, setAlert } = useAppContext();
@@ -279,8 +276,8 @@ export const FileTree = React.memo(function FileTreeComponent({
   const handleMouseUp = React.useCallback(
     (target: HTMLElement) => {
       // dropped outside of the tree view
+      // PipelineViewport will take care of the operation
       if (!isInFileManager(target)) {
-        onDropOutside(target);
         return;
       }
 
@@ -292,7 +289,8 @@ export const FileTree = React.memo(function FileTreeComponent({
         handleDropInside(targetFilePath);
       }
     },
-    [onDropOutside, dragFiles, handleDropInside]
+
+    [dragFiles, handleDropInside]
   );
 
   return (

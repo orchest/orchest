@@ -3,34 +3,22 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/Routes";
-import { Position } from "@/types";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
-import {
-  cleanFilePath,
-  getFilePathForDragFile,
-  isFileByExtension,
-  isFromDataFolder,
-} from "./common";
+import { cleanFilePath, isFileByExtension, isFromDataFolder } from "./common";
 import { FileManager } from "./FileManager";
-import { useValidateFilesOnSteps } from "./useValidateFilesOnSteps";
 
 export const ProjectFileManager = () => {
   const { setAlert, setConfirm } = useAppContext();
   const { navigateTo, jobUuid } = useCustomRoute();
   const {
-    environments,
-    dispatch,
     openNotebook,
     projectUuid,
     pipelineUuid,
-    pipelineCwd,
     isReadOnly,
     pipelineJson,
     runUuid,
-    getOnCanvasPosition,
   } = usePipelineEditorContext();
 
   const { pipelines } = useFetchPipelines(projectUuid);
@@ -41,8 +29,6 @@ export const ProjectFileManager = () => {
       jobRunQueryArgs: { jobUuid, runUuid },
     };
   }, [jobUuid, runUuid]);
-
-  const environment = environments.length > 0 ? environments[0] : null;
 
   const onEdit = React.useCallback(
     (filePath) => {
@@ -156,67 +142,9 @@ export const ProjectFileManager = () => {
     ]
   );
 
-  const getApplicableStepFiles = useValidateFilesOnSteps();
-
-  const createStepsWithFiles = React.useCallback(
-    (dropPosition: Position) => {
-      const { allowed } = getApplicableStepFiles();
-
-      allowed.forEach((filePath) => {
-        dispatch({
-          type: "CREATE_STEP",
-          payload: {
-            title: "",
-            uuid: uuidv4(),
-            incoming_connections: [],
-            file_path: getFilePathForDragFile(filePath, pipelineCwd),
-            kernel: {
-              name: environment?.language || "python",
-              display_name: environment?.name || "Python",
-            },
-            environment: environment?.uuid,
-            parameters: {},
-            meta_data: {
-              position: [dropPosition.x, dropPosition.y],
-              hidden: false,
-            },
-          },
-        });
-      });
-    },
-    [
-      dispatch,
-      pipelineCwd,
-      getApplicableStepFiles,
-      environment?.language,
-      environment?.name,
-      environment?.uuid,
-    ]
-  );
-
-  const onDropOutside = React.useCallback(
-    (target: EventTarget) => {
-      // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
-      // here we only handle "create a new step".
-      const targetElement = target as HTMLElement;
-      if (["pipeline-viewport", "pipeline-canvas"].includes(targetElement.id)) {
-        const dropPosition = getOnCanvasPosition({
-          x: STEP_WIDTH / 2,
-          y: STEP_HEIGHT / 2,
-        });
-
-        console.log("DEV ", dropPosition);
-
-        createStepsWithFiles(dropPosition);
-      }
-    },
-    [createStepsWithFiles, getOnCanvasPosition]
-  );
-
   return (
     <FileManager
       isReadOnly={isReadOnly}
-      onDropOutside={onDropOutside}
       onEdit={onEdit}
       onOpen={onOpen}
       onView={onView}

@@ -1,6 +1,5 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useDebounce } from "@/hooks/useDebounce";
-import { Position } from "@/types";
 import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
@@ -80,12 +79,10 @@ const DEFAULT_DEPTH = 3;
 export function FileManager({
   isReadOnly,
   onOpen,
-  onDropOutside,
   ...props
 }: {
   isReadOnly?: boolean;
   onSelect?: (selected: string[]) => void;
-  onDropOutside: (target: EventTarget, dropPosition: Position) => void;
   onOpen: (filePath: string) => void;
   onEdit: (filePath: string) => void;
   onView: (filePath: string) => void;
@@ -347,7 +344,6 @@ export function FileManager({
               handleToggle={handleToggle}
               reload={reload}
               onOpen={onOpen}
-              onDropOutside={onDropOutside}
             />
             <FileManagerContextMenu metadata={contextMenu}>
               {contextMenu?.type === "background" && (
