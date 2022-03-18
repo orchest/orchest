@@ -252,8 +252,8 @@ export const searchTrees = ({
   }
 };
 
-export const cleanFilePath = (filePath: string, newPath = "") =>
-  filePath.replace(/^\/project-dir\:\//, newPath);
+export const cleanFilePath = (filePath: string) =>
+  filePath.replace(/^\/project-dir\:\//, "").replace(/^\/data\:\//, "/data/");
 
 /**
  * remove leading "./" of a file path
@@ -369,13 +369,13 @@ export const filePathFromHTMLElement = (element: HTMLElement) => {
   }
 };
 
-const dataFolderRegex = /^\/data\:\//;
+const dataFolderRegex = /^\/data\:?\//;
 
 export const isFromDataFolder = (filePath: string) =>
   dataFolderRegex.test(filePath);
 
 const getFilePathInDataFolder = (dragFilePath: string) =>
-  "/data/" + dragFilePath.replace(dataFolderRegex, "");
+  cleanFilePath(dragFilePath);
 
 export const getFilePathForDragFile = (
   dragFilePath: string,
