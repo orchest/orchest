@@ -8,6 +8,9 @@ import { ResizeBar } from "../components/ResizeBar";
 import { useResizeWidth } from "../hooks/useResizeWidth";
 import { FILE_MANAGER_ROOT_CLASS } from "./common";
 
+const DEFAULT_FILE_MANAGER_WIDTH = 300;
+const MIN_FILE_MANAGER_WIDTH = 180;
+
 export const FileManagerContainer = React.forwardRef<
   typeof Stack,
   StackProps & {
@@ -29,7 +32,7 @@ export const FileManagerContainer = React.forwardRef<
 
   const [storedPanelWidth, setStoredPanelWidth] = useLocalStorage(
     "pipelineFileManager.panelWidth",
-    300
+    DEFAULT_FILE_MANAGER_WIDTH
   );
 
   const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
@@ -38,7 +41,10 @@ export const FileManagerContainer = React.forwardRef<
     (positionX: React.MutableRefObject<{ prev: number; delta: number }>) => {
       const { left } = getOffset((localRef.current as unknown) as HTMLElement);
       // Offset 5 pixels to get cursor above drag handler (to show appropriate mouse cursor)
-      let newPanelWidth = Math.max(300, positionX.current.prev + 5 - left);
+      let newPanelWidth = Math.max(
+        MIN_FILE_MANAGER_WIDTH,
+        positionX.current.prev + 5 - left
+      );
 
       setPanelWidth(Math.min(newPanelWidth, window.innerWidth - 100));
     },
@@ -71,7 +77,7 @@ export const FileManagerContainer = React.forwardRef<
         }
       }}
       className={FILE_MANAGER_ROOT_CLASS}
-      style={{ minWidth: `${panelWidth}px` }}
+      style={{ minWidth: `${panelWidth}px`, maxWidth: `${panelWidth}px` }}
       sx={{
         display: "flex",
         flexDirection: "column",
