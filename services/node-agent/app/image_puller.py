@@ -127,7 +127,6 @@ class ImagePuller(object):
                         f"exception - retrying. Exception was: {ex}."
                     )
             queue.task_done()
-            self._curr_pulling_imgs.remove(image_name)
 
     async def image_exists(self, image_name: str) -> bool:
         """Checks for the existence of the named image using
@@ -168,6 +167,8 @@ class ImagePuller(object):
             await self.aclient().images.pull(image_name)
         except aiodocker.DockerError:
             result = False
+        finally:
+            self._curr_pulling_imgs.remove(image_name)
         t1 = time.time()
         if result is True:
             self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
