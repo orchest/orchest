@@ -45,7 +45,10 @@ const ImageOption: React.FC<{
               top: (theme) => theme.spacing(2),
               right: (theme) => theme.spacing(2.5),
               fontSize: (theme) => theme.typography.caption.fontSize,
-              color: (theme) => theme.palette.primary.dark,
+              color: (theme) =>
+                !disabled
+                  ? theme.palette.primary.dark
+                  : theme.palette.grey[700],
             }}
           >
             GPU
