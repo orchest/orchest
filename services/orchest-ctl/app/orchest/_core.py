@@ -683,3 +683,19 @@ def _update() -> None:
     k8sw.set_orchest_cluster_version(orchest_version)
 
     utils.echo("Update was successful, Orchest is running.")
+
+
+def uninstall():
+    k8sw.abort_if_unsafe()
+    utils.echo("Uninstalling Orchest...", nl=False)
+    k8s_core_api.delete_namespace("orchest")
+    while True:
+        try:
+            k8s_core_api.read_namespace("orchest")
+        except k8s_client.ApiException as e:
+            if e.status == 404:
+                utils.echo("\nSuccess.")
+                return
+            raise e
+        utils.echo(".", nl=False)
+        time.sleep(1)

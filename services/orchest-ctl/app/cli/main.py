@@ -210,6 +210,15 @@ def restart():
     orchest.restart()
 
 
+@typer_app.command()
+def uninstall():
+    """
+    Uninstall Orchest.
+    """
+
+    orchest.uninstall()
+
+
 @typer_app.command(hidden=True)
 def adduser(
     username: str = typer.Argument(..., help="Name of the user to add."),

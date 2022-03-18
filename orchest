@@ -83,7 +83,7 @@ set -e
 
 # This is needed because k8s labels follow this regex:
 # (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?').
-commands=("install" "start" "stop" "restart" "update" "status" "version")
+commands=("install" "start" "stop" "restart" "update" "status" "version" "uninstall")
 label="unrecognized"
 if [[ " ${commands[*]} " =~ " $1 " ]]; then
     label=$1
