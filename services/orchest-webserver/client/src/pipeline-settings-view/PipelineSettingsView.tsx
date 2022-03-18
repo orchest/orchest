@@ -199,8 +199,7 @@ const PipelineSettingsView: React.FC = () => {
     setServices((current) => {
       // Maintain client side order key
       if (service.order === undefined) service.order = getOrderValue();
-      current[uuid] = service;
-      return current;
+      return { ...current, [uuid]: service };
     });
 
     setServicesChanged(true);

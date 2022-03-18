@@ -5,7 +5,9 @@ import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
 import { useFetchProject } from "@/hooks/useFetchProject";
+import { Service } from "@/types";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEnvVariables } from "./usePipelineEnvVariables";
 import { usePipelineProperty } from "./usePipelineProperty";
@@ -79,7 +81,12 @@ export const useFetchPipelineMetadata = ({
   );
 
   const [services, setServices] = usePipelineProperty(
-    pipelineJson?.services,
+    // use temporary uuid for easier FE manipulation, will be cleaned up when saving
+    pipelineJson?.services
+      ? (Object.values(pipelineJson?.services).reduce((all, curr) => {
+          return { ...all, [uuidv4()]: curr };
+        }, {}) as Record<string, Service>)
+      : undefined,
     {}
   );
 
