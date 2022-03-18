@@ -9,7 +9,6 @@ export type PipelineCanvasState = {
   pipelineStepsHolderOffsetLeft: number;
   pipelineStepsHolderOffsetTop: number;
   pipelineOffset: [number, number];
-  origin: [number, number];
   panningState: PanningState;
 };
 let initialState: PipelineCanvasState = {
@@ -17,7 +16,6 @@ let initialState: PipelineCanvasState = {
   pipelineStepsHolderOffsetLeft: 0,
   pipelineStepsHolderOffsetTop: 0,
   pipelineOffset: INITIAL_PIPELINE_POSITION,
-  origin: [0, 0],
   panningState: "idle",
 };
 

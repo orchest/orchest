@@ -7,7 +7,6 @@ import { ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
   isReadOnly?: boolean;
-  getDropPosition: () => Position;
   handleClose: () => void;
   handleContextMenu: (
     event: React.MouseEvent,
@@ -85,7 +84,6 @@ export const FileManagerLocalContextProvider: React.FC<{
       type: ContextMenuType;
     }>
   >;
-  getDropPosition: () => Position;
 }> = ({
   children,
   isReadOnly,
@@ -95,7 +93,6 @@ export const FileManagerLocalContextProvider: React.FC<{
   baseUrl,
   reload,
   setContextMenu,
-  getDropPosition,
 }) => {
   const { setConfirm } = useAppContext();
   const { selectedFiles, setSelectedFiles } = useFileManagerContext();
@@ -244,7 +241,6 @@ export const FileManagerLocalContextProvider: React.FC<{
     <FileManagerLocalContext.Provider
       value={{
         isReadOnly,
-        getDropPosition,
         handleClose,
         handleContextMenu,
         handleSelect,

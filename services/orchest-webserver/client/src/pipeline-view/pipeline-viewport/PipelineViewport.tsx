@@ -49,7 +49,6 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       panningState,
       pipelineOffset,
       pipelineOrigin,
-      origin,
       pipelineStepsHolderOffsetLeft,
       pipelineStepsHolderOffsetTop,
     },
@@ -345,6 +344,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
   return (
     <div
+      id="pipeline-viewport"
       className={classNames(
         "pipeline-steps-outer-holder",
         panningState,

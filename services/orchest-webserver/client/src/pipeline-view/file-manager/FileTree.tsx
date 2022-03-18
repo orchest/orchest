@@ -108,7 +108,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     fileTrees,
     setFilePathChanges,
   } = useFileManagerContext();
-  const { getDropPosition, handleSelect } = useFileManagerLocalContext();
+  const { handleSelect } = useFileManagerLocalContext();
 
   const dragFiles = React.useMemo(() => {
     if (!dragFile) return [];
@@ -280,7 +280,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     (target: HTMLElement) => {
       // dropped outside of the tree view
       if (!isInFileManager(target)) {
-        onDropOutside(target, getDropPosition());
+        onDropOutside(target);
         return;
       }
 
@@ -292,7 +292,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         handleDropInside(targetFilePath);
       }
     },
-    [onDropOutside, dragFiles, getDropPosition, handleDropInside]
+    [onDropOutside, dragFiles, handleDropInside]
   );
 
   return (

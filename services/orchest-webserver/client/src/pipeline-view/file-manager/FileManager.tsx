@@ -89,7 +89,6 @@ export function FileManager({
   onOpen: (filePath: string) => void;
   onEdit: (filePath: string) => void;
   onView: (filePath: string) => void;
-  getDropPosition: () => Position;
 }) {
   /**
    * States

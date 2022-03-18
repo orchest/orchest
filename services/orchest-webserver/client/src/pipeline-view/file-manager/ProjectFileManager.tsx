@@ -15,7 +15,6 @@ import {
   isFromDataFolder,
 } from "./common";
 import { FileManager } from "./FileManager";
-import { useFileManagerContext } from "./FileManagerContext";
 import { useValidateFilesOnSteps } from "./useValidateFilesOnSteps";
 
 export const ProjectFileManager = () => {
@@ -35,8 +34,6 @@ export const ProjectFileManager = () => {
   } = usePipelineEditorContext();
 
   const { pipelines } = useFetchPipelines(projectUuid);
-
-  const { selectedFiles } = useFileManagerContext();
 
   const { isJobRun, jobRunQueryArgs } = React.useMemo(() => {
     return {
@@ -162,7 +159,7 @@ export const ProjectFileManager = () => {
   const getApplicableStepFiles = useValidateFilesOnSteps();
 
   const createStepsWithFiles = React.useCallback(
-    (selected: string[], dropPosition: Position) => {
+    (dropPosition: Position) => {
       const { allowed } = getApplicableStepFiles();
 
       allowed.forEach((filePath) => {
@@ -198,20 +195,23 @@ export const ProjectFileManager = () => {
   );
 
   const onDropOutside = React.useCallback(
-    (target: EventTarget, dropPosition: Position) => {
+    (target: EventTarget) => {
       // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
       // here we only handle "create a new step".
       const targetElement = target as HTMLElement;
-      if (targetElement.id === "pipeline-canvas") {
-        createStepsWithFiles(selectedFiles, dropPosition);
+      if (["pipeline-viewport", "pipeline-canvas"].includes(targetElement.id)) {
+        const dropPosition = getOnCanvasPosition({
+          x: STEP_WIDTH / 2,
+          y: STEP_HEIGHT / 2,
+        });
+
+        console.log("DEV ", dropPosition);
+
+        createStepsWithFiles(dropPosition);
       }
     },
-    [createStepsWithFiles, selectedFiles]
+    [createStepsWithFiles, getOnCanvasPosition]
   );
-
-  const getDropPosition = React.useCallback(() => {
-    return getOnCanvasPosition({ x: STEP_WIDTH / 2, y: STEP_HEIGHT / 2 });
-  }, [getOnCanvasPosition]);
 
   return (
     <FileManager
@@ -220,7 +220,6 @@ export const ProjectFileManager = () => {
       onEdit={onEdit}
       onOpen={onOpen}
       onView={onView}
-      getDropPosition={getDropPosition}
     />
   );
 };
