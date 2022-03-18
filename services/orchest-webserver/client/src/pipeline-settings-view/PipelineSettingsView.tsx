@@ -26,6 +26,7 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
@@ -396,11 +397,19 @@ const PipelineSettingsView: React.FC = () => {
     }
   };
 
-  type ServiceRow = { name: string; scope: string; remove: string };
+  type ServiceRow = {
+    name: string;
+    scope: string;
+    exposed: React.ReactNode;
+    authenticationRequired: React.ReactNode;
+    remove: string;
+  };
 
   const columns: DataTableColumn<ServiceRow>[] = [
     { id: "name", label: "Service" },
     { id: "scope", label: "Scope" },
+    { id: "exposed", label: "Exposed" },
+    { id: "authenticationRequired", label: "Authentication required" },
     {
       id: "remove",
       label: "Delete",
@@ -440,22 +449,26 @@ const PipelineSettingsView: React.FC = () => {
 
   const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
     .sort((a, b) => a[1].order - b[1].order)
-    .map(([key, service]) => {
+    .map(([uuid, service]) => {
       return {
-        uuid: key,
+        uuid,
         name: service.name,
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
-        remove: key,
+        exposed: service.exposed ? <CheckOutlinedIcon /> : null,
+        authenticationRequired: service.requires_authentication ? (
+          <CheckOutlinedIcon />
+        ) : null,
+        remove: uuid,
         details: (
           <ServiceForm
-            key={key}
-            serviceUuid={key}
+            key={uuid}
+            serviceUuid={uuid}
             service={service}
             services={services}
             disabled={isReadOnly}
-            updateService={(updated) => onChangeService(key, updated)}
+            updateService={(updated) => onChangeService(uuid, updated)}
             pipeline_uuid={pipelineUuid}
             project_uuid={projectUuid}
             run_uuid={runUuid}

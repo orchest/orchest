@@ -16,7 +16,7 @@ from kubernetes import client as k8s_client
 
 from _orchest.internals import config as _config
 from app import config, utils
-from app.connections import k8s_apps_api, k8s_core_api
+from app.connections import k8s_apps_api, k8s_core_api, k8s_netw_api
 
 
 def get_orchest_deployments(
@@ -245,7 +245,8 @@ def _get_deployment_container_env_var_patch(container_name: str, env_vars=dict) 
                         {
                             "name": container_name,
                             "env": [
-                                {"name": k, "value": v} for k, v in env_vars.items()
+                                {"name": k, "value": str(v)}
+                                for k, v in env_vars.items()
                             ],
                         }
                     ]
@@ -502,3 +503,31 @@ def wait_for_pod_status(
         time.sleep(1)
 
     return status
+
+
+def get_host_names() -> List[str]:
+    """Returns the host names under which Orchest is reachable locally.
+
+    Each entry needs to be mapped to the cluster ip in the /etc/hosts
+    file.
+    """
+    hosts = set()
+    try:
+        r = k8s_netw_api.read_namespaced_ingress("orchest-webserver", "orchest")
+    except k8s_client.ApiException as e:
+        if e.status != 404:
+            raise e
+    else:
+        for rule in r.spec.rules:
+            hosts.add(rule.host)
+    return sorted(hosts)
+
+
+def sync_celery_parallelism_from_config() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "celery-worker",
+        "orchest",
+        _get_deployment_container_env_var_patch(
+            "celery-worker", utils.get_celery_parallelism_level_from_config()
+        ),
+    )

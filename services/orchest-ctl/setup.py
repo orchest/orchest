@@ -12,6 +12,7 @@ setuptools.setup(
         "PyYAML==6.0",
         "orchest-internals @ file://localhost/orchest/lib/python/orchest-internals",
         "requests==2.27.1",
+        "validators==0.18.2",
     ],
     entry_points="""
         [console_scripts]

@@ -384,18 +384,28 @@ const ServiceForm: React.FC<{
                   </FormGroup>
                 </Stack>
                 <Stack direction="column" flex={1}>
-                  <FormSectionTitle title="Require authentication for the exposed service endpoints.">
-                    Authentication required
+                  <FormSectionTitle title="Exposed service endpoints">
+                    Exposed service endpoints
                   </FormSectionTitle>
                   <FormGroup>
+                    <FormControlLabel
+                      label="Exposed"
+                      disabled={props.disabled || hasServiceNameError}
+                      control={
+                        <Checkbox
+                          checked={props.service.exposed}
+                          onChange={(e) => {
+                            handleServiceChange("exposed", e.target.checked);
+                          }}
+                        />
+                      }
+                    />
                     <FormControlLabel
                       label="Authentication required"
                       disabled={props.disabled || hasServiceNameError}
                       control={
                         <Checkbox
-                          checked={
-                            props.service.requires_authentication !== false
-                          }
+                          checked={props.service.requires_authentication}
                           onChange={(e) => {
                             handleServiceChange(
                               "requires_authentication",
