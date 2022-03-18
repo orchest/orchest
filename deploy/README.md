@@ -37,7 +37,7 @@ The Makefile is configured to do the most common actions and it can be configure
    clusters.
 10. `ORCHEST_DEFAULT_TAG` the default container tag of `orchest-api`, `orchest-webserver`,
     `auth-server`, `file-manager`, `node-agent` and `celery worker`, if specified, the tags of all
-    mentioned components will be adjusted accordingly. default: `latest`
+    mentioned components will be adjusted accordingly. default: `k8s-beta`
 11. `ORCHEST_API_TAG` defines the tag of `orchest-api`, if not defined, falls back to
     `ORCHEST_DEFAULT_TAG`
 12. `AUTH_SERVER_TAG` defines the tag of `auth-server`, if not defined, falls back to
