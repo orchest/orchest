@@ -6,11 +6,11 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useOnboardingDialog = () => {
-  const [state, setState] = React.useState({
-    isOpen: false,
-    shouldFetchQuickstart: false,
-  });
-  const { dispatch } = useAppContext();
+  const {
+    state: { isShowingOnboarding },
+    dispatch,
+  } = useAppContext();
+
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage(
     "onboarding_completed",
     false
@@ -33,11 +33,8 @@ export const useOnboardingDialog = () => {
 
   const setIsOnboardingDialogOpen = React.useCallback(
     (isOpen: boolean, onOpen?: (value: boolean) => void) => {
-      if (isOpen) {
-        setState({ isOpen: true, shouldFetchQuickstart: true });
-      } else {
-        setState((prevState) => ({ ...prevState, isOpen: false }));
-
+      dispatch({ type: "SET_IS_SHOWING_ONBOARDING", payload: isOpen });
+      if (!isOpen) {
         // update localstorage
         setHasCompletedOnboarding(true);
         // update app context
@@ -45,10 +42,6 @@ export const useOnboardingDialog = () => {
         // Wait for Dialog transition to finish before resetting position.
         // This way we avoid showing the slides animating back to the start.
 
-        setState((prevState) => ({
-          ...prevState,
-          shouldFetchQuickstart: false,
-        }));
         onOpen && onOpen(false);
       }
     },
@@ -64,7 +57,7 @@ export const useOnboardingDialog = () => {
   }, [dispatch, hasCompletedOnboarding, setIsOnboardingDialogOpen]);
 
   return {
-    isOnboardingDialogOpen: state?.isOpen,
+    isOnboardingDialogOpen: isShowingOnboarding,
     setIsOnboardingDialogOpen,
     quickstart,
     hasImportUrl: hasValue(importUrl) && importUrl !== "",
