@@ -17,6 +17,7 @@ import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
+import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
 import {
   checkHeartbeat,
@@ -273,6 +274,26 @@ const SettingsView: React.FC = () => {
   return (
     <Layout>
       <div className={"view-page orchest-settings"}>
+        {config.CLOUD !== true && (
+          <Alert
+            severity="warning"
+            sx={{
+              marginBottom: (theme) => theme.spacing(3),
+            }}
+          >
+            {`Deprecation Warning: The Docker based version of Orchest will soon
+            be deprecated in favor of the Kubernetes backed version and will not
+            receive any further updates. Please refer to the `}
+            <Link
+              href="https://docs.orchest.io/en/stable/getting_started/how_to.html#migrate-to-kubernetes"
+              target="_blank"
+              rel="noreferrer"
+            >
+              docs
+            </Link>
+            {`\ for migration steps.`}
+          </Alert>
+        )}
         <PageTitle>Orchest settings</PageTitle>
         <div className="push-down">
           <div>

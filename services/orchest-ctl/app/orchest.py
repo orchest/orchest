@@ -54,7 +54,18 @@ class OrchestApp:
 
         utils.echo("Installing Orchest...")
         logger.info("Pulling images:\n" + "\n".join(missing_images))
-        self.docker_client.pull_images(missing_images, prog_bar=True)
+        try:
+            self.docker_client.pull_images(missing_images, prog_bar=True)
+        except ValueError:
+            utils.echo("\n")
+            utils.echo(
+                "Orchest has migrated from a Docker based install to"
+                " a Kubernetes backed one. Installing through the CLI is"
+                " no longer possible. Instead you need to build Orchest"
+                " from source: `scripts/build_containers.sh`. Or use a more"
+                " up-to-date version."
+            )
+            raise typer.Exit(code=1)
 
         utils.echo(
             "Checking whether all containers are running the same version of Orchest."
@@ -150,12 +161,26 @@ class OrchestApp:
         pulled_images = self.resource_manager.get_images()
         to_pull_images = set(config.ORCHEST_IMAGES["minimal"]) | set(pulled_images)
         logger.info("Updating images:\n" + "\n".join(to_pull_images))
-        self.docker_client.pull_images(
-            to_pull_images,
-            prog_bar=True,
-            mode=mode,
-            force=True,
-        )
+        try:
+            self.docker_client.pull_images(
+                to_pull_images,
+                prog_bar=True,
+                mode=mode,
+                force=True,
+            )
+        except ValueError:
+            utils.echo("\n")
+            utils.echo(
+                "Orchest has migrated from a Docker based install to"
+                " a Kubernetes backed one. Updating is no longer possible."
+                " Instead follow the steps to migrate to Kubernetes:"
+            )
+            utils.echo(
+                "\thttps://docs.orchest.io/en/stable/getting_started/how_to.html"
+                "#migrate-to-kubernetes",
+                wrap=False,
+            )
+            raise typer.Exit(code=1)
 
         # Add a tag to user environment images to mark them for removal.
         # The orchest-api will deal with the rest of the logic related
