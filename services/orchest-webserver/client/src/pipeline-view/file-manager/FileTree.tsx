@@ -7,7 +7,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import {
   baseNameFromPath,
@@ -96,7 +96,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 }) {
   const { setConfirm, setAlert } = useAppContext();
 
-  const { projectUuid } = useCustomRoute();
+  const { projectUuid, pipelineUuid } = useCustomRoute();
 
   const {
     selectedFiles,
@@ -131,15 +131,25 @@ export const FileTree = React.memo(function FileTreeComponent({
 
       onRename(oldCombinedPath, newCombinedPath);
 
-      const url = `${baseUrl}/rename?${queryArgs({
-        oldPath,
-        newPath,
-        oldRoot,
-        newRoot,
-      })}`;
-
       try {
-        await fetcher(url, { method: "POST" });
+        if (newPath.endsWith(".orchest")) {
+          await fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+            method: "PUT",
+            headers: HEADER.JSON,
+            body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // cannot contain the leading slash
+          });
+        } else {
+          await fetcher(
+            `${baseUrl}/rename?${queryArgs({
+              oldPath,
+              newPath,
+              oldRoot,
+              newRoot,
+            })}`,
+            { method: "POST" }
+          );
+        }
+
         if (!skipReload) {
           setFilePathChanges([{ oldPath, newPath, oldRoot, newRoot }]);
           reload();
@@ -149,7 +159,15 @@ export const FileTree = React.memo(function FileTreeComponent({
         setAlert("Error", `Failed to rename file ${oldPath}. ${error.message}`);
       }
     },
-    [onRename, baseUrl, reload, setAlert, setFilePathChanges]
+    [
+      onRename,
+      baseUrl,
+      reload,
+      setAlert,
+      setFilePathChanges,
+      pipelineUuid,
+      projectUuid,
+    ]
   );
 
   const moveFiles = React.useCallback(

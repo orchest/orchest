@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -88,7 +89,10 @@ export const TreeItem = ({
             if (path.endsWith(".orchest") && session) {
               setConfirm(
                 "Warning",
-                "Before moving pipeline file (.orchest), you need to stop session. Do you want to continue?",
+                <>
+                  Before moving <Code>.orchest</Code> files, you need to stop
+                  session. Do you want to continue?
+                </>,
                 {
                   confirmLabel: "Stop session",
                   onConfirm: async (resolve) => {
