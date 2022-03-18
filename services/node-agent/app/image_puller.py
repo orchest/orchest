@@ -64,7 +64,7 @@ class ImagePuller(object):
 
         endpoints = [
             f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull",
-            f"{self.orchest_api_host}/api/environment-images/latest",
+            f"{self.orchest_api_host}/api/environment-images/to-pre-pull",
         ]
 
         async with aiohttp.ClientSession(trust_env=True) as session:
@@ -73,13 +73,10 @@ class ImagePuller(object):
                     for endpoint in endpoints:
                         async with session.get(endpoint) as response:
                             response_json = await response.json()
-                            for image_names in response_json.values():
+                            for image_name in response_json["pre_pull_images"]:
                                 # Add image_name to the queue to be
                                 # consumed by the pullers
-                                [
-                                    await queue.put(image_name)
-                                    for image_name in image_names
-                                ]
+                                await queue.put(image_name)
                 except Exception as ex:
                     self.logger.error(
                         f"Attempt to get image name from '{self.interval}' "
