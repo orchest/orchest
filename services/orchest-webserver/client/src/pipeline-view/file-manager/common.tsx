@@ -80,7 +80,7 @@ export const generateTargetDescription = (path: string) => {
 export const deduceRenameFromDragOperation = (
   sourcePath: string,
   targetPath: string
-) => {
+): [string, string] => {
   if (sourcePath === targetPath) {
     return [sourcePath, targetPath];
   }

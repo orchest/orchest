@@ -171,51 +171,52 @@ export const FileTree = React.memo(function FileTreeComponent({
   );
 
   const moveFiles = React.useCallback(
-    (targetPath: string) => {
-      const deducedPaths = dragFiles.map((path) =>
-        deduceRenameFromDragOperation(path, targetPath)
-      );
-      const hasPathChanged = deducedPaths.some(
-        ([sourcePath, newPath]) => sourcePath !== newPath
-      );
-      // Check if any path changes
-      if (hasPathChanged) {
-        let targetDescription = generateTargetDescription(deducedPaths[0][1]);
-        const confirmMessage =
-          dragFiles.length > 1 ? (
-            <>
-              {`Do you want move `}
-              {dragFiles.length}
-              {` files to `}
-              {targetDescription} ?
-            </>
-          ) : (
-            <>
-              {`Do you want move `}
-              <Code>{baseNameFromPath(deducedPaths[0][0])}</Code>
-              {` to `}
-              {targetDescription} ?
-            </>
-          );
+    (deducedPaths: [string, string][]) => {
+      const [sourcePath, targetPath] = deducedPaths[0];
+      let targetDescription = generateTargetDescription(targetPath);
+      const confirmMessage =
+        dragFiles.length > 1 ? (
+          <>
+            {`Do you want move `}
+            {dragFiles.length}
+            {` files to `}
+            {targetDescription} ?
+          </>
+        ) : (
+          <>
+            {`Do you want move `}
+            <Code>{baseNameFromPath(sourcePath)}</Code>
+            {` to `}
+            {targetDescription} ?
+          </>
+        );
 
-        setConfirm("Warning", confirmMessage, async (resolve) => {
-          const newFilePathChanges = await Promise.all(
-            deducedPaths.map(([sourcePath, newPath]) => {
-              return handleRename(sourcePath, newPath, true);
-            })
-          );
-          setFilePathChanges(newFilePathChanges);
-          reload();
-          resolve(true);
-          return true;
-        });
-      }
+      setConfirm("Warning", confirmMessage, async (resolve) => {
+        const newFilePathChanges = await Promise.all(
+          deducedPaths.map(([sourcePath, newPath]) => {
+            return handleRename(sourcePath, newPath, true);
+          })
+        );
+        setFilePathChanges(newFilePathChanges);
+        reload();
+        resolve(true);
+        return true;
+      });
     },
     [dragFiles, handleRename, reload, setConfirm, setFilePathChanges]
   );
 
   const handleDropInside = React.useCallback(
     async (targetPath: string) => {
+      const deducedPaths = dragFiles.map((path) =>
+        deduceRenameFromDragOperation(path, targetPath)
+      );
+      const hasPathChanged = deducedPaths.some(
+        ([sourcePath, newPath]) => sourcePath !== newPath
+      );
+
+      if (!hasPathChanged) return;
+
       // if user attempts to move .ipynb or .orchest files to /data
       if (isFromDataFolder(targetPath)) {
         const foundPathWithForbiddenFiles = await Promise.all(
@@ -245,8 +246,14 @@ export const FileTree = React.memo(function FileTreeComponent({
                 <Code>{"/data"}</Code>. Do you want to proceed?
               </Box>
             </Stack>,
-            (resolve) => {
-              moveFiles(targetPath);
+            async (resolve) => {
+              const newFilePathChanges = await Promise.all(
+                deducedPaths.map(([sourcePath, newPath]) => {
+                  return handleRename(sourcePath, newPath, true);
+                })
+              );
+              setFilePathChanges(newFilePathChanges);
+              reload();
               resolve(true);
               return true;
             }
@@ -255,9 +262,18 @@ export const FileTree = React.memo(function FileTreeComponent({
         }
       }
 
-      moveFiles(targetPath);
+      moveFiles(deducedPaths);
     },
-    [dragFiles, fileTrees, setConfirm, projectUuid, moveFiles]
+    [
+      dragFiles,
+      fileTrees,
+      setConfirm,
+      projectUuid,
+      moveFiles,
+      handleRename,
+      reload,
+      setFilePathChanges,
+    ]
   );
 
   const handleMouseUp = React.useCallback(
