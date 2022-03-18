@@ -8,11 +8,10 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { FileWithPath, useDropzone } from "react-dropzone";
+import { FileWithPath } from "react-dropzone";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGER_ENDPOINT,
-  FILE_MANAGER_ROOT_CLASS,
   getActiveRoot,
   isCombinedPathChildLess,
   mergeTrees,
@@ -30,6 +29,7 @@ import {
 } from "./FileManagerContextMenu";
 import { FileManagerLocalContextProvider } from "./FileManagerLocalContext";
 import { FileTree } from "./FileTree";
+import { FileTreeContainer } from "./FileTreeContainer";
 
 /**
  * this function determines if the given file is a file uploaded via useDropzone
@@ -103,7 +103,7 @@ export function FileManager({
     setFileTrees,
   } = useFileManagerContext();
 
-  const containerRef = React.useRef<HTMLElement>();
+  const containerRef = React.useRef<typeof Stack>();
 
   // only show the progress if it takes longer than 125 ms
   const [_inProgress, setInProgress] = React.useState(false);
@@ -272,16 +272,6 @@ export function FileManager({
   /**
    * Final component init
    */
-  const {
-    acceptedFiles,
-    getRootProps,
-    getInputProps,
-    isDragActive,
-  } = useDropzone();
-
-  React.useEffect(() => {
-    if (acceptedFiles.length > 0) uploadFiles(acceptedFiles);
-  }, [uploadFiles, acceptedFiles]);
 
   React.useEffect(() => {
     reload();
@@ -333,36 +323,7 @@ export function FileManager({
       baseUrl={fileManagerBaseUrl}
       {...props}
     >
-      <Stack
-        {...getRootProps({
-          onClick: (event) => {
-            event.stopPropagation();
-          },
-        })}
-        ref={containerRef}
-        className={FILE_MANAGER_ROOT_CLASS}
-        direction="column"
-        sx={{
-          height: "100%",
-          position: "relative",
-          width: "300px",
-          backgroundColor: (theme) => theme.palette.background.paper,
-          borderRight: (theme) => `1px solid ${theme.borderColor}`,
-          "::before": {
-            content: '" "',
-            position: "absolute",
-            width: "calc(100% - 4px)",
-            height: "calc(100% - 4px)",
-            margin: "2px",
-            pointerEvents: "none",
-            border: (theme) =>
-              isDragActive
-                ? `2px dotted ${theme.palette.primary.light}`
-                : undefined,
-          },
-        }}
-      >
-        <input {...getInputProps()} webkitdirectory="" directory="" />
+      <FileManagerContainer ref={containerRef} uploadFiles={uploadFiles}>
         {inProgress && (
           <LinearProgress
             sx={{ position: "absolute", width: "100%" }}
@@ -378,7 +339,7 @@ export function FileManager({
           rootFolder={root}
         />
         {allTreesHaveLoaded && (
-          <FileManagerContainer>
+          <FileTreeContainer>
             <FileTree
               baseUrl={fileManagerBaseUrl}
               treeRoots={treeRoots}
@@ -407,9 +368,9 @@ export function FileManager({
                 </>
               )}
             </FileManagerContextMenu>
-          </FileManagerContainer>
+          </FileTreeContainer>
         )}
-      </Stack>
+      </FileManagerContainer>
     </FileManagerLocalContextProvider>
   );
 }
