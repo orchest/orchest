@@ -26,6 +26,7 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import CheckOutlinedIcon from "@mui/icons-material/CheckOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
@@ -34,7 +35,6 @@ import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
@@ -400,35 +400,16 @@ const PipelineSettingsView: React.FC = () => {
   type ServiceRow = {
     name: string;
     scope: string;
-    exposed: boolean;
+    exposed: React.ReactNode;
+    authenticationRequired: React.ReactNode;
     remove: string;
   };
 
   const columns: DataTableColumn<ServiceRow>[] = [
     { id: "name", label: "Service" },
     { id: "scope", label: "Scope" },
-    {
-      id: "exposed",
-      label: "Exposed",
-      render: function ServiceExposedButton(row) {
-        return (
-          <Checkbox
-            inputProps={{ "aria-label": "Expose service" }}
-            disabled={isReadOnly}
-            checked={row.exposed}
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-              e.stopPropagation();
-              const value = e.target.checked;
-              const service = services[row.uuid];
-              onChangeService(row.uuid, { ...service, exposed: value });
-            }}
-          />
-        );
-      },
-    },
+    { id: "exposed", label: "Exposed" },
+    { id: "authenticationRequired", label: "Authentication required" },
     {
       id: "remove",
       label: "Delete",
@@ -475,7 +456,10 @@ const PipelineSettingsView: React.FC = () => {
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
-        exposed: service.exposed,
+        exposed: service.exposed ? <CheckOutlinedIcon /> : null,
+        authenticationRequired: service.requires_authentication ? (
+          <CheckOutlinedIcon />
+        ) : null,
         remove: uuid,
         details: (
           <ServiceForm
