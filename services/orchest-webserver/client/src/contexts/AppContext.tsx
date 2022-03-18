@@ -87,6 +87,7 @@ type AppContextState = {
   promptMessages: PromptMessage[];
   buildRequest?: BuildRequest;
   hasUnsavedChanges: boolean;
+  isShowingOnboarding: boolean;
   // we already store hasCompletedOnboarding in localstorage, which is enough for most cases,
   // but when first-time user already wants to import a project, we want to
   // 1. show onboarding dialog (at the root level)
@@ -98,6 +99,10 @@ type AppContextState = {
 };
 
 type Action =
+  | {
+      type: "SET_IS_SHOWING_ONBOARDING";
+      payload: boolean;
+    }
   | {
       type: "SET_PROMPT_MESSAGES";
       payload: PromptMessage[];
@@ -178,6 +183,9 @@ const reducer = (state: AppContextState, _action: AppContextAction) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
+    case "SET_IS_SHOWING_ONBOARDING": {
+      return { ...state, isShowingOnboarding: action.payload };
+    }
     case "SET_PROMPT_MESSAGES": {
       return { ...state, promptMessages: action.payload };
     }
@@ -222,6 +230,7 @@ const initialState: AppContextState = {
   isLoaded: false,
   hasUnsavedChanges: false,
   hasCompletedOnboarding: false,
+  isShowingOnboarding: false,
 };
 
 type ConfirmHandler = (
