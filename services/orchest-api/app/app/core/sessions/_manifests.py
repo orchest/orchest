@@ -927,6 +927,9 @@ def _get_user_service_deployment_service_manifest(
             ingress_metadata["annotations"][
                 "nginx.ingress.kubernetes.io/auth-url"
             ] = auth_url
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-signin"
+            ] = "/login"
 
         ingress_manifest = {
             "apiVersion": "networking.k8s.io/v1",

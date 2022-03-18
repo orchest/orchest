@@ -5,9 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     nginx.ingress.kubernetes.io/auth-url: {{ include "library.service.auth" . }}
+    nginx.ingress.kubernetes.io/auth-signin: /login
 spec:
   rules:
-    - host: {{ include "library.ingress.host" . }} 
+    - host: {{ include "library.ingress.host" . }}
       http:
         paths:
           - path: /container-file-manager
