@@ -800,6 +800,8 @@ def _get_user_service_deployment_service_manifest(
         userdir_pvc,
         project_dir,
         pipeline_path,
+        container_project_dir=sbinds.get("/project-dir", _config.PROJECT_DIR),
+        container_data_dir=sbinds.get("/data", _config.DATA_DIR),
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
