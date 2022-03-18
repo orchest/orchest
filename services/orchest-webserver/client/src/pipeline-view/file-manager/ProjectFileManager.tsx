@@ -64,7 +64,7 @@ export const ProjectFileManager = () => {
           "Notice",
           <>
             This file cannot be opened from within <Code>/data</Code>. Please
-            move it to <Code>Project files</Code>
+            move it to <Code>Project files</Code>.
           </>
         );
         return;

@@ -1,5 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Position } from "@/types";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -15,6 +16,7 @@ import {
   FILE_MANAGER_ROOT_CLASS,
   generateTargetDescription,
   isFileByExtension,
+  isFromDataFolder,
   PROJECT_DIR_PATH,
   queryArgs,
   ROOT_SEPARATOR,
@@ -51,13 +53,22 @@ const findFileViaPath = (path: string, fileTrees: FileTrees) => {
   return head;
 };
 
-const containsFilesByExtension = (extensions: string[], node: TreeNode) => {
+const containsFilesByExtension = async (
+  projectUuid: string,
+  extensions: string[],
+  node: TreeNode
+) => {
   if (node.type === "file") return isFileByExtension(extensions, node.name);
-  if (node.type === "directory" && node.children.length === 0) return false;
-  for (let child of node.children) {
-    if (containsFilesByExtension(extensions, child)) return true;
+  if (node.type === "directory") {
+    const response = await fetcher<{ files: string[] }>(
+      `/async/file-manager/${projectUuid}/extension-search?${queryArgs({
+        path: node.path,
+        extensions: extensions.join(","),
+      })}`
+    );
+
+    return response.files.length > 0;
   }
-  return false;
 };
 
 export const FileTree = React.memo(function FileTreeComponent({
@@ -83,6 +94,8 @@ export const FileTree = React.memo(function FileTreeComponent({
   onOpen: (filePath: string) => void;
 }) {
   const { setConfirm, setAlert } = useAppContext();
+
+  const { projectUuid } = useCustomRoute();
 
   const {
     selectedFiles,
@@ -139,9 +152,9 @@ export const FileTree = React.memo(function FileTreeComponent({
   );
 
   const moveFiles = React.useCallback(
-    (filePath: string) => {
+    (targetPath: string) => {
       const deducedPaths = dragFiles.map((path) =>
-        deduceRenameFromDragOperation(path, filePath)
+        deduceRenameFromDragOperation(path, targetPath)
       );
       const hasPathChanged = deducedPaths.some(
         ([sourcePath, newPath]) => sourcePath !== newPath
@@ -183,22 +196,29 @@ export const FileTree = React.memo(function FileTreeComponent({
   );
 
   const handleDropInside = React.useCallback(
-    (filePath: string) => {
+    async (targetPath: string) => {
       // if user attempts to move .ipynb or .orchest files to /data
-      if (/^\/data\:/.test(filePath)) {
-        // TODO: send request to BE
-        const foundPathWithForbiddenFiles = dragFiles.find((dragFilePath) => {
-          const foundFile = findFileViaPath(dragFilePath, fileTrees);
-          return containsFilesByExtension(["ipynb", "orchest"], foundFile);
-        });
+      if (isFromDataFolder(targetPath)) {
+        const foundPathWithForbiddenFiles = await Promise.all(
+          dragFiles.map((dragFilePath) => {
+            const foundFile = findFileViaPath(dragFilePath, fileTrees);
+            return containsFilesByExtension(
+              projectUuid,
+              ["ipynb", "orchest"],
+              foundFile
+            );
+          })
+        );
 
-        if (foundPathWithForbiddenFiles) {
+        if (foundPathWithForbiddenFiles.some((response) => response)) {
           setConfirm(
             "Warning",
             <Stack spacing={2} direction="column">
               <Box>
-                You are trying to move Notebook files (<Code>{".ipynb"}</Code>)
-                or Pipeline files (<Code>{".orchest"}</Code>){` into `}
+                You are trying to move <Code>{".ipynb"}</Code>
+                {` or `}
+                <Code>{".orchest"}</Code>
+                {` files into `}
                 <Code>{"/data"}</Code> folder.
               </Box>
               <Box>
@@ -207,7 +227,7 @@ export const FileTree = React.memo(function FileTreeComponent({
               </Box>
             </Stack>,
             (resolve) => {
-              moveFiles(filePath);
+              moveFiles(targetPath);
               resolve(true);
               return true;
             }
@@ -216,9 +236,9 @@ export const FileTree = React.memo(function FileTreeComponent({
         }
       }
 
-      moveFiles(filePath);
+      moveFiles(targetPath);
     },
-    [dragFiles, fileTrees, setConfirm, moveFiles]
+    [dragFiles, fileTrees, setConfirm, projectUuid, moveFiles]
   );
 
   const handleMouseUp = React.useCallback(
