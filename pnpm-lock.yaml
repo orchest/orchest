@@ -110,7 +110,7 @@ importers:
       esbuild: 0.13.4
       react: ^17.0.2
       react-dom: ^17.0.2
-      sass-bin: ^1.42.3
+      sass-bin: ^1.43.2
       typescript: 4.5.4
     dependencies:
       '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
@@ -125,7 +125,7 @@ importers:
       '@types/react': 17.0.3
       '@types/react-dom': 17.0.11
       esbuild: 0.13.4
-      sass-bin: 1.42.3
+      sass-bin: 1.43.2
       typescript: 4.5.4
 
   services/orchest-webserver/client:
@@ -182,7 +182,7 @@ importers:
       react-minimal-pie-chart: 8.2.0
       react-router-dom: ^5.3.0
       react-use-intercom: ^1.4.0
-      sass-bin: ^1.42.3
+      sass-bin: ^1.43.2
       seti-icons: ^0.0.4
       socket.io-client: ^2.3.0
       swr: 1.1.2
@@ -1567,8 +1567,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
-      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       '@mui/base': 5.0.0-alpha.59_ba191c0052acfa37659f3ba04a2d9405
       '@mui/system': 5.2.3_98944ee4dd5f6cfd31442cef9ca2b57e
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -1634,8 +1634,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
-      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -1678,8 +1678,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_@types+react@17.0.3+react@17.0.2
-      '@emotion/styled': 11.6.0_bedc7262e6a7b013f53ed3b41373c0c1
+      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
+      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
       '@mui/private-theming': 5.2.3_@types+react@17.0.3+react@17.0.2
       '@mui/styled-engine': 5.2.0_3ca9f49da28f3590cbe49aab51aa421d
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -7268,26 +7268,10 @@ packages:
       walker: 1.0.8
     dev: true
 
-  /sass-bin-darwin-64/1.42.3:
-    resolution: {integrity: sha512-4R20F2z3n6tj5ylYvO/sGRHc9xHs7iW6603DcrKXi7Bad6hCgDPt04nRXvPT52PdR7ClKT7vKMm4l3b7b7CVWw==}
-    cpu: [x64]
-    os: [darwin]
-    requiresBuild: true
-    dev: true
-    optional: true
-
   /sass-bin-darwin-64/1.43.2:
     resolution: {integrity: sha512-zJDZ27k2yZIQAUUH2NpkgM3w1LH3LH1FpNL7ISKn09C3PY6G7ZcUwuBbkejx14IVgTZzzfLYgpYWNZN3kVzGig==}
     cpu: [x64, arm64]
     os: [darwin]
-    dev: true
-    optional: true
-
-  /sass-bin-linux-32/1.42.3:
-    resolution: {integrity: sha512-YV3mI3svGOZ+AxlPv9I4QjnSxMfMGWs20jBmAYAGHrKsQ2EGBsy69kF0yRIJH7v41HTukvotjXN280kjSGtk3g==}
-    cpu: [ia32]
-    os: [linux]
-    requiresBuild: true
     dev: true
     optional: true
 
@@ -7298,26 +7282,10 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin-linux-64/1.42.3:
-    resolution: {integrity: sha512-uNCdtCmeH2GQeuJRQ8ssDPGRq63OEAftMOYxZYa1MvSXHQoJ7V1rJE1zfuiMRuMZ5QDY+k6e1Du3K67fSLZ9LA==}
-    cpu: [x64]
-    os: [linux]
-    requiresBuild: true
-    dev: true
-    optional: true
-
   /sass-bin-linux-64/1.43.2:
     resolution: {integrity: sha512-Zz1ocodJcfQ6egrSDQB+Q3LeiJp36lebFi00MLtLAQjK4B7Isy/KW9S08hCKau87gvyl3O55RANAUuUVV++G+w==}
     cpu: [x64]
     os: [linux]
-    dev: true
-    optional: true
-
-  /sass-bin-windows-32/1.42.3:
-    resolution: {integrity: sha512-bXWtR4qi3rWCyTAkJRjrdoDA5LdpPdM4wld95y4O3/lxic1jl6W/v02VJu+t00xx9mHRJB4HpQc75/+pxdKgKQ==}
-    cpu: [ia32]
-    os: [win32]
-    requiresBuild: true
     dev: true
     optional: true
 
@@ -7328,31 +7296,12 @@ packages:
     dev: true
     optional: true
 
-  /sass-bin-windows-64/1.42.3:
-    resolution: {integrity: sha512-fkoxe4D0Lc/leCc0ghHORwAr0bEKJJlrL9QHWbCBoHTA73Ui+wCdx9+0WOEvM+SNyDRwiy00eFhtCPALyA2q/A==}
-    cpu: [x64]
-    os: [win32]
-    requiresBuild: true
-    dev: true
-    optional: true
-
   /sass-bin-windows-64/1.43.2:
     resolution: {integrity: sha512-39nRoEaFC/Gc5MW0xtwxTBgtiJJ3oWXCX1uc0AA5ctUoTNTWjVwJSzDc/43+2OG86ZC3j2mW3bf+p9+4QDvx3w==}
     cpu: [x64]
     os: [win32]
     dev: true
     optional: true
-
-  /sass-bin/1.42.3:
-    resolution: {integrity: sha512-CDw5q8/ZfhYaqZIU4eBkTSM+JjwbEKtRorWCORCJSW4fh2z6f42eD/ATj0V2p3iOHOiYQP+A3hRvNoARGWKKmw==}
-    hasBin: true
-    optionalDependencies:
-      sass-bin-darwin-64: 1.42.3
-      sass-bin-linux-32: 1.42.3
-      sass-bin-linux-64: 1.42.3
-      sass-bin-windows-32: 1.42.3
-      sass-bin-windows-64: 1.42.3
-    dev: true
 
   /sass-bin/1.43.2:
     resolution: {integrity: sha512-wChX+zBsPI/kODQ2YahhM9zh4sDRZX97EPRsIqUmaloaaKI/cVu5k22tgnYJnSRji72bqc98MaXSN91IZtv5UQ==}
