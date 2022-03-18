@@ -12,6 +12,7 @@ import {
   cleanFilePath,
   getFilePathForDragFile,
   isFileByExtension,
+  isFromDataFolder,
 } from "./common";
 import { FileManager } from "./FileManager";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -55,6 +56,20 @@ export const ProjectFileManager = () => {
 
   const onOpen = React.useCallback(
     (filePath) => {
+      if (
+        isFromDataFolder(filePath) &&
+        isFileByExtension(["orchest", "ipynb"], filePath)
+      ) {
+        setAlert(
+          "Notice",
+          <>
+            This file cannot be opened from within <Code>/data</Code>. Please
+            move it to <Code>Project files</Code>
+          </>
+        );
+        return;
+      }
+
       const foundPipeline = isFileByExtension(["orchest"], filePath)
         ? pipelines.find(
             (pipeline) => pipeline.path === cleanFilePath(filePath)
@@ -87,7 +102,7 @@ export const ProjectFileManager = () => {
       }
 
       if (foundPipeline && foundPipeline.uuid === pipelineUuid) {
-        setAlert("Notice", <div>This pipeline is already open.</div>);
+        setAlert("Notice", "This pipeline is already open.");
         return;
       }
 

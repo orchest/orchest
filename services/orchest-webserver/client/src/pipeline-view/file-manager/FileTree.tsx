@@ -10,7 +10,6 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import {
   baseNameFromPath,
-  cleanFilePath,
   deduceRenameFromDragOperation,
   filePathFromHTMLElement,
   FILE_MANAGER_ROOT_CLASS,
@@ -139,36 +138,8 @@ export const FileTree = React.memo(function FileTreeComponent({
     [onRename, baseUrl, reload, setAlert, setFilePathChanges]
   );
 
-  const handleDropInside = React.useCallback(
+  const moveFiles = React.useCallback(
     (filePath: string) => {
-      // if user attempts to move .ipynb or .orchest files to /data
-      if (/^\/data\:/.test(filePath)) {
-        const foundPathWithForbiddenFiles = dragFiles.find((dragFilePath) => {
-          const foundFile = findFileViaPath(dragFilePath, fileTrees);
-          return containsFilesByExtension(["ipynb", "orchest"], foundFile);
-        });
-
-        if (foundPathWithForbiddenFiles) {
-          setAlert(
-            "Warning",
-            <Stack spacing={2} direction="column">
-              <Box>
-                Notebook files (<Code>{".ipynb"}</Code>) or Pipeline files (
-                <Code>{".orchest"}</Code>){` are not allowed in `}
-                <Code>{"/data"}</Code>.
-              </Box>
-              <Box>
-                Please check the following path:
-                <Code>
-                  Project files/{cleanFilePath(foundPathWithForbiddenFiles)}
-                </Code>
-              </Box>
-            </Stack>
-          );
-          return;
-        }
-      }
-
       const deducedPaths = dragFiles.map((path) =>
         deduceRenameFromDragOperation(path, filePath)
       );
@@ -208,15 +179,46 @@ export const FileTree = React.memo(function FileTreeComponent({
         });
       }
     },
-    [
-      dragFiles,
-      fileTrees,
-      handleRename,
-      reload,
-      setAlert,
-      setConfirm,
-      setFilePathChanges,
-    ]
+    [dragFiles, handleRename, reload, setConfirm, setFilePathChanges]
+  );
+
+  const handleDropInside = React.useCallback(
+    (filePath: string) => {
+      // if user attempts to move .ipynb or .orchest files to /data
+      if (/^\/data\:/.test(filePath)) {
+        // TODO: send request to BE
+        const foundPathWithForbiddenFiles = dragFiles.find((dragFilePath) => {
+          const foundFile = findFileViaPath(dragFilePath, fileTrees);
+          return containsFilesByExtension(["ipynb", "orchest"], foundFile);
+        });
+
+        if (foundPathWithForbiddenFiles) {
+          setConfirm(
+            "Warning",
+            <Stack spacing={2} direction="column">
+              <Box>
+                You are trying to move Notebook files (<Code>{".ipynb"}</Code>)
+                or Pipeline files (<Code>{".orchest"}</Code>){` into `}
+                <Code>{"/data"}</Code> folder.
+              </Box>
+              <Box>
+                {`Please note that these files cannot be opened within `}
+                <Code>{"/data"}</Code>. Do you want to proceed?
+              </Box>
+            </Stack>,
+            (resolve) => {
+              moveFiles(filePath);
+              resolve(true);
+              return true;
+            }
+          );
+          return;
+        }
+      }
+
+      moveFiles(filePath);
+    },
+    [dragFiles, fileTrees, setConfirm, moveFiles]
   );
 
   const handleMouseUp = React.useCallback(

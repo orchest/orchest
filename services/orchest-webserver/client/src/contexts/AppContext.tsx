@@ -266,24 +266,27 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   ) => {
     // NOTE: consumer could either provide a callback function for onConfirm (for most use cases), or provide an object for more detailed config
     return new Promise<boolean>((resolve) => {
-      const confirmHandler = !callbackOrParams
+      const hasCustomOnConfirm =
+        callbackOrParams instanceof Function || callbackOrParams?.onConfirm;
+
+      const confirmHandler = !hasCustomOnConfirm
         ? () => defaultOnConfirm(resolve)
         : callbackOrParams instanceof Function
         ? () => callbackOrParams(resolve)
         : () => callbackOrParams.onConfirm(resolve);
 
-      const cancelHandler =
-        !callbackOrParams || callbackOrParams instanceof Function
-          ? () => defaultOnCancel(resolve)
-          : () => callbackOrParams.onCancel(resolve);
+      const hasCustomOnCancel = callbackOrParams?.onCancel;
+      const cancelHandler = !hasCustomOnCancel
+        ? () => defaultOnCancel(resolve)
+        : () => callbackOrParams.onCancel(resolve);
 
       const confirmLabel =
-        callbackOrParams instanceof Function
+        !callbackOrParams || callbackOrParams instanceof Function
           ? "Confirm"
           : callbackOrParams?.confirmLabel || "Confirm";
 
       const cancelLabel =
-        callbackOrParams instanceof Function
+        !callbackOrParams || callbackOrParams instanceof Function
           ? "Cancel"
           : callbackOrParams?.cancelLabel || "Cancel";
 

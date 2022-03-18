@@ -371,6 +371,9 @@ export const filePathFromHTMLElement = (element: HTMLElement) => {
 
 const dataFolderRegex = /^\/data\:\//;
 
+export const isFromDataFolder = (filePath: string) =>
+  dataFolderRegex.test(filePath);
+
 const getFilePathInDataFolder = (dragFilePath: string) =>
   "/data/" + dragFilePath.replace(dataFolderRegex, "");
 
@@ -378,8 +381,7 @@ export const getFilePathForDragFile = (
   dragFilePath: string,
   pipelineCwd: string
 ) => {
-  const isFromDataFolder = dataFolderRegex.test(dragFilePath);
-  return isFromDataFolder
+  return isFromDataFolder(dragFilePath)
     ? getFilePathInDataFolder(dragFilePath)
     : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
 };
