@@ -37,7 +37,8 @@ export const FileManagerContainer = React.forwardRef<
   const onDragging = React.useCallback(
     (positionX: React.MutableRefObject<{ prev: number; delta: number }>) => {
       const { left } = getOffset((localRef.current as unknown) as HTMLElement);
-      let newPanelWidth = Math.max(300, positionX.current.prev - left);
+      // Offset 5 pixels to get cursor above drag handler (to show appropriate mouse cursor)
+      let newPanelWidth = Math.max(300, positionX.current.prev + 5 - left);
 
       setPanelWidth(Math.min(newPanelWidth, window.innerWidth - 100));
     },
