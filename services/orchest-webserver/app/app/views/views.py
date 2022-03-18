@@ -4,6 +4,7 @@ import os
 import subprocess
 import uuid
 import zipfile
+import pathlib
 
 import docker
 import requests
@@ -1221,6 +1222,51 @@ def register_views(app, db):
                 as_attachment=True,
                 attachment_filename=os.path.basename(fp[:-1]) + ".zip",
             )
+
+    @app.route("/async/file-manager/<project_uuid>/extension-search", methods=["GET"])
+    def filemanager_extension_search(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "No path was passed."}), 500
+
+        if "extensions" not in request.args:
+            return jsonify({"message": "No path was passed."}), 500
+
+        path_filter = request.args.get("path")
+        if not path_filter.endswith("/") or not path_filter.startswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "The path query argument should always"
+                            " start and end with a forward-slash: /"
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        extensions = request.args.get("extensions").split(",")
+
+        # Make absolute path relative
+        path_filter = path_filter[1:]
+        app.logger.info("Path filter %s" % path_filter)
+
+        matches = []
+
+        for extension in extensions:
+            matches += list(
+                pathlib.Path(os.path.join(root_dir_path, path_filter)).glob(
+                    "**/*.{}".format(extension)
+                )
+            )
+
+        return jsonify(
+            {"files": [os.path.relpath(str(match), root_dir_path) for match in matches]}
+        )
 
     @app.route("/async/file-manager/<project_uuid>/browse", methods=["GET"])
     def filemanager_browse(project_uuid):

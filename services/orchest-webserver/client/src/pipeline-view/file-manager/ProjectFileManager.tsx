@@ -18,7 +18,7 @@ import { useFileManagerContext } from "./FileManagerContext";
 import { useValidateFilesOnSteps } from "./useValidateFilesOnSteps";
 
 export const ProjectFileManager = () => {
-  const { setAlert } = useAppContext();
+  const { setAlert, setConfirm } = useAppContext();
   const { navigateTo, jobUuid } = useCustomRoute();
   const {
     environments,
@@ -57,14 +57,36 @@ export const ProjectFileManager = () => {
     (filePath) => {
       const foundPipeline = isFileByExtension(["orchest"], filePath)
         ? pipelines.find(
-            (pipeline) => pipeline.path === cleanFilePath(filePath)
-          )
+          (pipeline) => pipeline.path === cleanFilePath(filePath)
+        )
         : null;
 
-      if (foundPipeline) {
-        navigateTo(siteMap.pipeline.path, {
-          query: { projectUuid, pipelineUuid: foundPipeline.uuid },
-        });
+      if (foundPipeline && foundPipeline.uuid !== pipelineUuid) {
+        setConfirm("Confirm", <>
+          Are you sure you want to open pipeline <b>{foundPipeline.name}</b>?
+        </>, {
+          onConfirm: async (resolve) => {
+            navigateTo(siteMap.pipeline.path, {
+              query: { projectUuid, pipelineUuid: foundPipeline.uuid },
+            });
+            resolve(true);
+            return true;
+          },
+          onCancel: async (resolve) => {
+            resolve(false);
+            return false;
+          },
+          confirmLabel: "Open pipeline",
+          cancelLabel: "Cancel",
+        })
+        return;
+      } else {
+        setAlert(
+          "Notice",
+          <div>
+            This pipeline is already open.
+          </div>
+        );
         return;
       }
 
