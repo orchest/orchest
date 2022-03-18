@@ -14,7 +14,7 @@ Options:
   --nodes, -n <num_nodes>
     Number of Nodes in created Kubernetes cluster.
   --cpus, -c <num_cpus>
-    Number of cpus for each node of the cluster.    
+    Number of cpus for each node of the cluster.
   --size, -s <size>
     Size of volume to be added to each node to be used by ceph-osds in mb
 ---------------------------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ log() {
 # looks for $1 in the $PATH
 find-binary() {
   if which "$1" >/dev/null; then
-    echo -n "${1}" 
+    echo -n "${1}"
   fi
 }
 
@@ -80,13 +80,8 @@ minikube-status() {
 # Starts minikube with kvm driver
 minikube-start() {
   minikube start --driver=kvm -n $1 --cpus $2 --memory 6144
-}
-
-# Starts minikube with kvm driver
-minikube-start() {
   minikube addons enable ingress
 }
-
 
 # Stops minikube
 minikube-stop() {
@@ -102,7 +97,7 @@ create-and-attach-volumes() {
   for node in ${nodes[@]}; do
     volume=~/.minikube/machines/${node}/minikube.qcow2
     sudo qemu-img create -f qcow2 ${volume} ${size} -o preallocation=full
-    virsh attach-disk --domain ${node} ${volume} --target vdb --persistent --config --live
+    sudo virsh attach-disk --domain ${node} ${volume} --target vdb --persistent --config --live
   done
 }
 
@@ -125,6 +120,5 @@ minikube-start ${num_nodes} ${num_cpus}
 create-and-attach-volumes ${size}
 minikube-stop
 minikube-start
-minikube-enable-ingress
 
 echo -n "end"
