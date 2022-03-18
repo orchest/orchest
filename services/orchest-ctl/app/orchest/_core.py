@@ -254,10 +254,12 @@ def status(output_json: bool = False):
                 replicas = depl.spec.replicas
                 if replicas > 0:
                     running_deployments.add(depl_name)
+                    if replicas != depl.status.available_replicas:
+                        unhealthy_deployments.add(depl_name)
                 else:
                     stopped_deployments.add(depl_name)
-                if replicas != depl.status.available_replicas:
-                    unhealthy_deployments.add(depl_name)
+                    if depl.status.available_replicas not in [0, None]:
+                        unhealthy_deployments.add(depl_name)
         # Given that there are no ongoing status changes, Orchest can't
         # have both stopped and running deployments.  Assume that, if at
         # least 1 deployment is running, the ones which are not are
