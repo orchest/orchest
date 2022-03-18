@@ -49,7 +49,9 @@ class HelmMode(str, Enum):
     UPGRADE = "Update"
 
 
-def _run_helm_with_progress_bar(mode: HelmMode) -> None:
+def _run_helm_with_progress_bar(
+    mode: HelmMode, injected_env_vars: Optional[Dict[str, str]] = None
+) -> None:
     if mode == HelmMode.INSTALL:
         cmd = "make orchest"
     elif mode == HelmMode.UPGRADE:
@@ -58,12 +60,18 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
         raise ValueError()
 
     env = os.environ.copy()
+    if injected_env_vars is not None:
+        # Put the update before the rest so that these env vars cannot
+        # be overwritten by coincidence.
+        env.update(injected_env_vars)
+    env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
     env["ORCHEST_DEFAULT_TAG"] = config.ORCHEST_VERSION
     # This way the command will only interact with orchest resources,
     # and not their dependencies (pvcs, etc.).
     env["DEPEND_RESOURCES"] = "FALSE"
+
     process = subprocess.Popen(
         cmd,
         cwd="deploy",
@@ -108,7 +116,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     return return_code
 
 
-def install(log_level: utils.LogLevel, cloud: bool):
+def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
@@ -133,7 +141,9 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
-    return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.INSTALL, injected_env_vars={"ORCHEST_FQDN": fqdn}
+    )
 
     if return_code != 0:
         utils.echo(
@@ -145,11 +155,12 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
     utils.echo("Installation was successful.")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    utils.echo(
+        f"Orchest is running with a FQDN equal to {fqdn}. To access it locally, add an "
+        "entry to your /etc/hosts file mapping the cluster ip (`minikube ip`) to "
+        f"'{fqdn}'."
+    )
 
 
 def _echo_version(
@@ -491,10 +502,15 @@ def start(log_level: utils.LogLevel, cloud: bool):
         _wait_daemonsets_to_be_ready(daemonsets_to_start, progress_bar)
         _wait_deployments_to_be_ready(deployments_to_start, progress_bar)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    host_names = k8sw.get_host_names()
+    if host_names:
+        utils.echo(
+            "Orchest is running, you can reach it locally by mapping the cluster ip "
+            f"('minikube ip') to the following entries: {host_names} in your "
+            "/etc/hosts file."
+        )
+    else:
+        utils.echo("Orchest is running.")
 
 
 def restart():
@@ -659,8 +675,4 @@ def _update() -> None:
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Update was successful.")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    utils.echo("Update was successful, Orchest is running.")
