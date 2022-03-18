@@ -138,6 +138,7 @@ export const ContainerImagesRadioGroup = ({
                   src={`${img_src}`}
                   alt={isUnavailable ? "Temporarily unavailable" : base_image}
                   loading="lazy"
+                  sx={isUnavailable ? { filter: "grayscale(100%)" } : undefined}
                 />
               </ImageOption>
             </Grid>
