@@ -1,7 +1,7 @@
 import { getOrderValue } from "@/pipeline-settings-view/common";
 import { PipelineJson } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { fetcher, uuidv4 } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { MutatorCallback } from "swr/dist/types";
@@ -53,14 +53,6 @@ export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
         if (pipelineObj.services === undefined) {
           pipelineObj.services = {};
         }
-
-        // use temporary uuid for easier FE manipulation, will be cleaned up when saving
-        pipelineObj.services = Object.values(pipelineObj.services).reduce(
-          (all, curr) => {
-            return { ...all, [uuidv4()]: curr };
-          },
-          {}
-        );
 
         // Augment services with order key
         for (let service in pipelineObj.services) {
