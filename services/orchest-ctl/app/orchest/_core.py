@@ -63,8 +63,9 @@ def _run_helm_with_progress_bar(
     env = os.environ.copy()
     # Put the update before the rest so that these env vars cannot be
     # overwritten by coincidence.
-    for k, v in injected_env_vars.items():
-        env[k] = str(v)
+    if injected_env_vars is not None:
+        for k, v in injected_env_vars.items():
+            env[k] = str(v)
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
