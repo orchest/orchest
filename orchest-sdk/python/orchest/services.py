@@ -51,15 +51,7 @@ def _generate_urls(service) -> Dict[str, Any]:
     service = copy.deepcopy(service)
     service.pop("scope", None)
 
-    container_name = (
-        ("internal-" if not service.get("ports", []) else "")
-        + "service-"
-        + service["name"]
-        + "-"
-        + Config.PROJECT_UUID.split("-")[0]
-        + "-"
-        + session_uuid.split("-")[0]
-    )
+    container_name = "service-" + service["name"] + "-" + session_uuid
 
     external_urls = {}
     base_paths = {}

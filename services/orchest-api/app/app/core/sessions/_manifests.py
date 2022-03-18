@@ -896,14 +896,7 @@ def _get_user_service_deployment_service_manifest(
     }
 
     if service_config["exposed"]:
-        ingress_url = (
-            "service-"
-            + service_config["name"]
-            + "-"
-            + project_uuid.split("-")[0]
-            + "-"
-            + pipeline_uuid.split("-")[0]
-        )
+        ingress_url = "service-" + service_config["name"] + "-" + session_uuid
         ingress_paths = []
         for port in service_config.get("ports", []):
             pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""

@@ -165,11 +165,14 @@ export function getServiceURLs(
     return [];
   }
 
-  let serviceUuid = runUuid || pipelineUuid;
-
   let pbpPrefix = "";
   if (service.preserve_base_path) {
     pbpPrefix = "pbp-";
+  }
+
+  let sessionUuid = runUuid;
+  if (!sessionUuid) {
+    sessionUuid = projectUuid.slice(0, 18) + pipelineUuid.slice(0, 18);
   }
 
   return service.ports.map(
@@ -180,9 +183,7 @@ export function getServiceURLs(
       "service-" +
       service.name +
       "-" +
-      projectUuid.split("-")[0] +
-      "-" +
-      serviceUuid.split("-")[0] +
+      sessionUuid +
       "_" +
       port +
       "/"
