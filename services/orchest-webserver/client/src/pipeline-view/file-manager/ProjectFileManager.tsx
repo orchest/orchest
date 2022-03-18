@@ -57,42 +57,51 @@ export const ProjectFileManager = () => {
     (filePath) => {
       const foundPipeline = isFileByExtension(["orchest"], filePath)
         ? pipelines.find(
-          (pipeline) => pipeline.path === cleanFilePath(filePath)
-        )
+            (pipeline) => pipeline.path === cleanFilePath(filePath)
+          )
         : null;
 
       if (foundPipeline && foundPipeline.uuid !== pipelineUuid) {
-        setConfirm("Confirm", <>
-          Are you sure you want to open pipeline <b>{foundPipeline.name}</b>?
-        </>, {
-          onConfirm: async (resolve) => {
-            navigateTo(siteMap.pipeline.path, {
-              query: { projectUuid, pipelineUuid: foundPipeline.uuid },
-            });
-            resolve(true);
-            return true;
-          },
-          onCancel: async (resolve) => {
-            resolve(false);
-            return false;
-          },
-          confirmLabel: "Open pipeline",
-          cancelLabel: "Cancel",
-        })
-        return;
-      } else {
-        setAlert(
-          "Notice",
-          <div>
-            This pipeline is already open.
-          </div>
+        setConfirm(
+          "Confirm",
+          <>
+            Are you sure you want to open pipeline <b>{foundPipeline.name}</b>?
+          </>,
+          {
+            onConfirm: async (resolve) => {
+              navigateTo(siteMap.pipeline.path, {
+                query: { projectUuid, pipelineUuid: foundPipeline.uuid },
+              });
+              resolve(true);
+              return true;
+            },
+            onCancel: async (resolve) => {
+              resolve(false);
+              return false;
+            },
+            confirmLabel: "Open pipeline",
+            cancelLabel: "Cancel",
+          }
         );
+        return;
+      }
+
+      if (foundPipeline && foundPipeline.uuid === pipelineUuid) {
+        setAlert("Notice", <div>This pipeline is already open.</div>);
         return;
       }
 
       openNotebook(undefined, cleanFilePath(filePath));
     },
-    [openNotebook, pipelines, navigateTo, projectUuid]
+    [
+      openNotebook,
+      pipelines,
+      navigateTo,
+      projectUuid,
+      pipelineUuid,
+      setAlert,
+      setConfirm,
+    ]
   );
 
   const onView = React.useCallback(
