@@ -800,6 +800,8 @@ def _get_user_service_deployment_service_manifest(
         userdir_pvc,
         project_dir,
         pipeline_path,
+        container_project_dir=sbinds.get("/project-dir", _config.PROJECT_DIR),
+        container_data_dir=sbinds.get("/data", _config.DATA_DIR),
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
@@ -894,14 +896,7 @@ def _get_user_service_deployment_service_manifest(
     }
 
     if service_config["exposed"]:
-        ingress_url = (
-            "service-"
-            + service_config["name"]
-            + "-"
-            + project_uuid.split("-")[0]
-            + "-"
-            + pipeline_uuid.split("-")[0]
-        )
+        ingress_url = "service-" + service_config["name"] + "-" + session_uuid
         ingress_paths = []
         for port in service_config.get("ports", []):
             pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
@@ -913,21 +908,25 @@ def _get_user_service_deployment_service_manifest(
                             "port": {"number": port},
                         }
                     },
-                    "path": f"/{pbp}{ingress_url}_{port}",
+                    "path": f"/{pbp}{ingress_url}_{port}(/|$)(.*)",
                     "pathType": "Prefix",
                 }
             )
 
         ingress_metadata = copy.deepcopy(metadata)
+        ingress_metadata["annotations"] = {
+            "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+        }
+
         if service_config.get("requires_authentication", True):
             # Needs to be the FQDN since the ingress ngin pod lives in
             # a different namespace.
             auth_url = (
                 f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
             )
-            ingress_metadata["annotations"] = {
-                "nginx.ingress.kubernetes.io/auth-url": auth_url,
-            }
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-url"
+            ] = auth_url
 
         ingress_manifest = {
             "apiVersion": "networking.k8s.io/v1",
