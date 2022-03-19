@@ -6,8 +6,8 @@ import React from "react";
 import { siteMap } from "../Routes";
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
+import { FileManager } from "./file-manager/FileManager";
 import { FileManagerContextProvider } from "./file-manager/FileManagerContext";
-import { ProjectFileManager } from "./file-manager/ProjectFileManager";
 import { PipelineEditor } from "./PipelineEditor";
 
 const PipelineView = () => {
@@ -27,7 +27,7 @@ const PipelineView = () => {
         <FileManagerContextProvider>
           <PipelineCanvasContextProvider>
             <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-              <ProjectFileManager />
+              <FileManager />
               <PipelineEditor />
             </Stack>
           </PipelineCanvasContextProvider>

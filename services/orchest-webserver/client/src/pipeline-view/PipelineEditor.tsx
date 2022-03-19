@@ -38,6 +38,7 @@ import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { CreateNextStepButton } from "./CreateNextStepButton";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
+import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import {
@@ -85,8 +86,9 @@ export const PipelineEditor = () => {
     instantiateConnection,
     metadataPositions,
     session,
-    openNotebook,
   } = usePipelineEditorContext();
+
+  const openNotebook = useOpenNoteBook();
 
   const removeSteps = React.useCallback(
     (uuids: string[]) => {

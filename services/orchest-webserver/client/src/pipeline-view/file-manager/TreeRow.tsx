@@ -1,3 +1,4 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import Box from "@mui/material/Box";
 import { useTheme } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
@@ -98,10 +99,9 @@ export const TreeRow = ({
   onOpen: (filePath: string) => void;
 }) => {
   const {
-    handleContextMenu,
-    fileInRename,
-    isReadOnly,
-  } = useFileManagerLocalContext();
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
+  const { handleContextMenu, fileInRename } = useFileManagerLocalContext();
   const { directories, files } = React.useMemo(
     () =>
       treeNodes.reduce(
@@ -131,7 +131,7 @@ export const TreeRow = ({
             )}
 
             <TreeItem
-              disableDragging={isReadOnly}
+              disableDragging={pipelineIsReadOnly}
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               sx={{
                 cursor: "context-menu",
@@ -170,7 +170,7 @@ export const TreeRow = ({
               />
             )}
             <TreeItem
-              disableDragging={isReadOnly}
+              disableDragging={pipelineIsReadOnly}
               onContextMenu={(e) => handleContextMenu(e, combinedPath)}
               sx={{ cursor: "context-menu" }}
               key={combinedPath}
@@ -179,7 +179,7 @@ export const TreeRow = ({
               path={combinedPath}
               labelText={e.name}
               fileName={e.name}
-              onDoubleClick={() => !isReadOnly && onOpen(combinedPath)}
+              onDoubleClick={() => !pipelineIsReadOnly && onOpen(combinedPath)}
             />
           </div>
         );

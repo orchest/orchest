@@ -1,4 +1,5 @@
 import { IconButton } from "@/components/common/IconButton";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
@@ -16,29 +17,22 @@ import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 const FileManagerActionButton = styled(IconButton)(({ theme }) => ({
-  svg: {
-    width: 20,
-    height: 20,
-  },
+  svg: { width: 20, height: 20 },
   padding: theme.spacing(0.5),
 }));
 
 export function ActionBar({
-  baseUrl,
   uploadFiles,
-  reload,
   rootFolder,
   setExpanded,
 }: {
-  baseUrl: string;
   rootFolder: string;
   uploadFiles: (files: File[] | FileList) => void;
-  reload: () => void;
   setExpanded: (items: string[]) => void;
 }) {
   const { projectUuid } = useCustomRoute();
   const { setSelectedFiles } = useFileManagerContext();
-  const { isReadOnly } = useFileManagerLocalContext();
+  const { reload } = useFileManagerLocalContext();
 
   const [isCreateFileDialogOpen, setIsCreateFileDialogOpen] = React.useState(
     false
@@ -65,10 +59,14 @@ export function ActionBar({
     uploadFiles(e.target.files);
   };
 
+  const {
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
+
   return (
     <>
       <CreateFileDialog
-        isOpen={!isReadOnly && isCreateFileDialogOpen}
+        isOpen={!pipelineIsReadOnly && isCreateFileDialogOpen}
         onClose={closeCreateFileDialog}
         onSuccess={(fullFilePath: string) => {
           setSelectedFiles([fullFilePath]);
@@ -77,8 +75,7 @@ export function ActionBar({
         projectUuid={projectUuid}
       />
       <CreateFolderDialog
-        baseUrl={baseUrl}
-        isOpen={!isReadOnly && isCreateFolderDialogOpen}
+        isOpen={!pipelineIsReadOnly && isCreateFolderDialogOpen}
         onClose={closeCreateFolderDialog}
         root={rootFolder}
         onSuccess={() => {
@@ -92,7 +89,7 @@ export function ActionBar({
         sx={{ padding: (theme) => theme.spacing(0.5) }}
       >
         <Box>
-          {!isReadOnly && (
+          {!pipelineIsReadOnly && (
             <>
               <form style={{ display: "none" }}>
                 <input

@@ -76,21 +76,17 @@ const createInvalidEntryFilter = ({
 type ProgressType = LinearProgressProps["variant"];
 const DEFAULT_DEPTH = 3;
 
-export function FileManager({
-  isReadOnly,
-  onOpen,
-  ...props
-}: {
-  isReadOnly?: boolean;
-  onSelect?: (selected: string[]) => void;
-  onOpen: (filePath: string) => void;
-  onEdit: (filePath: string) => void;
-  onView: (filePath: string) => void;
-}) {
+export function FileManager() {
   /**
    * States
    */
   const { projectUuid } = useCustomRoute();
+
+  const baseUrl = React.useMemo(
+    () => `${FILE_MANAGER_ENDPOINT}/${projectUuid}`,
+    [projectUuid]
+  );
+
   const {
     isDragging,
     selectedFiles,
@@ -115,10 +111,6 @@ export function FileManager({
     null
   );
 
-  const fileManagerBaseUrl = React.useMemo(
-    () => `${FILE_MANAGER_ENDPOINT}/${projectUuid}`,
-    [projectUuid]
-  );
   // Note, roots are assumed to always start with a / (absolute paths)
   const treeRoots = React.useMemo(() => [PROJECT_DIR_PATH, "/data"], []);
   const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
@@ -139,7 +131,7 @@ export function FileManager({
     const newFiles = await Promise.all(
       treeRoots.map(async (root) => {
         const file = await fetcher(
-          `${fileManagerBaseUrl}/browse?${queryArgs({
+          `${baseUrl}/browse?${queryArgs({
             depth,
             root,
           })}`
@@ -155,7 +147,7 @@ export function FileManager({
     );
 
     setInProgress(false);
-  }, [expanded, treeRoots, fileManagerBaseUrl, setFileTrees]);
+  }, [expanded, treeRoots, baseUrl, setFileTrees]);
 
   const collapseAll = () => {
     setExpanded([]);
@@ -169,7 +161,7 @@ export function FileManager({
 
       let { root, path } = unpackCombinedPath(combinedPath);
 
-      const url = `${fileManagerBaseUrl}/browse?${queryArgs({
+      const url = `${baseUrl}/browse?${queryArgs({
         path,
         root,
       })}`;
@@ -181,7 +173,7 @@ export function FileManager({
       setFileTrees(fileTrees);
       setInProgress(false);
     },
-    [fileTrees, fileManagerBaseUrl, setFileTrees]
+    [fileTrees, baseUrl, setFileTrees]
   );
 
   const uploadFiles = React.useCallback(
@@ -215,7 +207,7 @@ export function FileManager({
             formData.append("file", file);
 
             await fetcher(
-              `${fileManagerBaseUrl}/upload?${queryArgs({
+              `${baseUrl}/upload?${queryArgs({
                 path,
                 root,
               })}`,
@@ -237,7 +229,7 @@ export function FileManager({
       reload();
       setInProgress(false);
     },
-    [reload, root, fileManagerBaseUrl]
+    [reload, root, baseUrl]
   );
 
   /**
@@ -313,11 +305,9 @@ export function FileManager({
 
   return (
     <FileManagerLocalContextProvider
+      baseUrl={baseUrl}
       reload={reload}
-      isReadOnly={isReadOnly}
       setContextMenu={setContextMenu}
-      baseUrl={fileManagerBaseUrl}
-      {...props}
     >
       <FileManagerContainer ref={containerRef} uploadFiles={uploadFiles}>
         {inProgress && (
@@ -328,22 +318,18 @@ export function FileManager({
           />
         )}
         <ActionBar
-          baseUrl={fileManagerBaseUrl}
           setExpanded={setExpanded}
-          reload={reload}
           uploadFiles={uploadFiles}
           rootFolder={root}
         />
         {allTreesHaveLoaded && (
           <FileTreeContainer>
             <FileTree
-              baseUrl={fileManagerBaseUrl}
+              baseUrl={baseUrl}
               treeRoots={treeRoots}
               expanded={expanded}
               onRename={onRename}
               handleToggle={handleToggle}
-              reload={reload}
-              onOpen={onOpen}
             />
             <FileManagerContextMenu metadata={contextMenu}>
               {contextMenu?.type === "background" && (

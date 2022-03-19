@@ -1,6 +1,8 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchPipelines } from "@/hooks/useFetchPipelines";
+import { siteMap } from "@/Routes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -8,8 +10,10 @@ import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
+import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
 import {
   baseNameFromPath,
+  cleanFilePath,
   deduceRenameFromDragOperation,
   filePathFromHTMLElement,
   FILE_MANAGER_ROOT_CLASS,
@@ -77,8 +81,6 @@ export const FileTree = React.memo(function FileTreeComponent({
   expanded,
   handleToggle,
   onRename,
-  reload,
-  onOpen,
 }: {
   baseUrl: string;
   treeRoots: string[];
@@ -88,12 +90,10 @@ export const FileTree = React.memo(function FileTreeComponent({
     nodeIds: string[]
   ) => void;
   onRename: (oldPath: string, newPath: string) => void;
-  reload: () => void;
-  onOpen: (filePath: string) => void;
 }) {
   const { setConfirm, setAlert } = useAppContext();
 
-  const { projectUuid, pipelineUuid } = useCustomRoute();
+  const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
   const {
     selectedFiles,
@@ -105,7 +105,77 @@ export const FileTree = React.memo(function FileTreeComponent({
     fileTrees,
     setFilePathChanges,
   } = useFileManagerContext();
-  const { handleSelect } = useFileManagerLocalContext();
+
+  const { handleSelect, reload } = useFileManagerLocalContext();
+
+  const openNotebook = useOpenNoteBook();
+
+  const { pipelines } = useFetchPipelines(projectUuid);
+
+  const onOpen = React.useCallback(
+    (filePath) => {
+      if (
+        isFromDataFolder(filePath) &&
+        isFileByExtension(["orchest", "ipynb"], filePath)
+      ) {
+        setAlert(
+          "Notice",
+          <>
+            This file cannot be opened from within <Code>/data</Code>. Please
+            move it to <Code>Project files</Code>.
+          </>
+        );
+        return;
+      }
+
+      const foundPipeline = isFileByExtension(["orchest"], filePath)
+        ? pipelines.find(
+            (pipeline) => pipeline.path === cleanFilePath(filePath)
+          )
+        : null;
+
+      if (foundPipeline && foundPipeline.uuid !== pipelineUuid) {
+        setConfirm(
+          "Confirm",
+          <>
+            Are you sure you want to open pipeline <b>{foundPipeline.name}</b>?
+          </>,
+          {
+            onConfirm: async (resolve) => {
+              navigateTo(siteMap.pipeline.path, {
+                query: { projectUuid, pipelineUuid: foundPipeline.uuid },
+              });
+              resolve(true);
+              return true;
+            },
+            onCancel: async (resolve) => {
+              resolve(false);
+              return false;
+            },
+            confirmLabel: "Open pipeline",
+            cancelLabel: "Cancel",
+          }
+        );
+        return;
+      }
+
+      if (foundPipeline && foundPipeline.uuid === pipelineUuid) {
+        setAlert("Notice", "This pipeline is already open.");
+        return;
+      }
+
+      openNotebook(undefined, cleanFilePath(filePath));
+    },
+    [
+      pipelines,
+      projectUuid,
+      pipelineUuid,
+      setAlert,
+      setConfirm,
+      navigateTo,
+      openNotebook,
+    ]
+  );
 
   const dragFiles = React.useMemo(() => {
     if (!dragFile) return [];

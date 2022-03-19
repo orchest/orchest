@@ -1,5 +1,6 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
@@ -10,23 +11,22 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
-import { queryArgs } from "./common";
+import { FILE_MANAGER_ENDPOINT, queryArgs } from "./common";
 
 export const CreateFolderDialog = ({
   isOpen,
   root = "",
   onClose,
   onSuccess,
-  baseUrl,
 }: {
   isOpen: boolean;
   root?: string;
   onClose: () => void;
   onSuccess: () => void;
-  baseUrl: string;
 }) => {
   // Global state
   const { setAlert } = useAppContext();
+  const { projectUuid } = useCustomRoute();
 
   // local states
 
@@ -42,7 +42,7 @@ export const CreateFolderDialog = ({
 
     await run(
       fetcher(
-        `${baseUrl}/create-dir?${queryArgs({
+        `${FILE_MANAGER_ENDPOINT}/${projectUuid}/create-dir?${queryArgs({
           path: `/${folderPath}/`,
           root,
         })}`,

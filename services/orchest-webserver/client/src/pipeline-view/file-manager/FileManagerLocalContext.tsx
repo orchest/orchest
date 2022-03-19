@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { Position } from "@/types";
 import React from "react";
 import { baseNameFromPath, queryArgs, unpackCombinedPath } from "./common";
@@ -6,7 +7,8 @@ import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
-  isReadOnly?: boolean;
+  baseUrl: string;
+  reload: () => Promise<void>;
   handleClose: () => void;
   handleContextMenu: (
     event: React.MouseEvent,
@@ -17,17 +19,20 @@ export type FileManagerLocalContextType = {
     event: React.SyntheticEvent<Element, Event>,
     selected: string[]
   ) => void;
-  handleContextEdit: () => void;
-  handleContextView: () => void;
   handleDelete: () => void;
   handleDownload: () => void;
-  handleDuplicate: () => Promise<void>;
   handleContextRename: () => void;
   contextMenuCombinedPath: string;
   fileInRename: string;
   setFileInRename: React.Dispatch<React.SetStateAction<string>>;
   fileRenameNewName: string;
   setFileRenameNewName: React.Dispatch<React.SetStateAction<string>>;
+  setContextMenu: React.Dispatch<
+    React.SetStateAction<{
+      position: Position;
+      type: ContextMenuType;
+    }>
+  >;
 };
 
 export const FileManagerLocalContext = React.createContext<
@@ -73,28 +78,16 @@ const downloadFile = (
 
 export const FileManagerLocalContextProvider: React.FC<{
   baseUrl: string;
-  isReadOnly: boolean;
   reload: () => Promise<void>;
-  onSelect?: (selected: string[]) => void;
-  onEdit: (filePath: string) => void;
-  onView: (filePath: string) => void;
   setContextMenu: React.Dispatch<
     React.SetStateAction<{
       position: Position;
       type: ContextMenuType;
     }>
   >;
-}> = ({
-  children,
-  isReadOnly,
-  onSelect,
-  onView,
-  onEdit,
-  baseUrl,
-  reload,
-  setContextMenu,
-}) => {
+}> = ({ children, baseUrl, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
+
   const { selectedFiles, setSelectedFiles } = useFileManagerContext();
 
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
@@ -129,50 +122,29 @@ export const FileManagerLocalContextProvider: React.FC<{
 
   const handleSelect = React.useCallback(
     (event: React.SyntheticEvent<Element, Event>, selected: string[]) => {
-      if (onSelect) onSelect(selected);
       setSelectedFiles(selected);
     },
-    [onSelect, setSelectedFiles]
+    [setSelectedFiles]
   );
 
   const handleClose = React.useCallback(() => {
     setContextMenu(null);
   }, [setContextMenu]);
 
-  const handleContextEdit = React.useCallback(() => {
-    if (isReadOnly) return;
-    handleClose();
-    onEdit(contextMenuCombinedPath);
-  }, [contextMenuCombinedPath, handleClose, onEdit, isReadOnly]);
-
-  const handleContextView = React.useCallback(() => {
-    handleClose();
-    onView(contextMenuCombinedPath);
-  }, [contextMenuCombinedPath, handleClose, onView]);
+  const {
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
-    if (isReadOnly) return;
+    if (pipelineIsReadOnly) return;
 
     handleClose();
     setFileInRename(contextMenuCombinedPath);
     setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
-  }, [contextMenuCombinedPath, handleClose, isReadOnly]);
-
-  const handleDuplicate = React.useCallback(async () => {
-    if (isReadOnly) return;
-
-    handleClose();
-
-    let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
-
-    await fetch(`${baseUrl}/duplicate?${queryArgs({ path, root })}`, {
-      method: "POST",
-    });
-    reload();
-  }, [baseUrl, contextMenuCombinedPath, handleClose, reload, isReadOnly]);
+  }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
 
   const handleDelete = React.useCallback(() => {
-    if (isReadOnly) return;
+    if (pipelineIsReadOnly) return;
 
     handleClose();
 
@@ -216,7 +188,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     reload,
     setConfirm,
     handleClose,
-    isReadOnly,
+    pipelineIsReadOnly,
   ]);
 
   const handleDownload = React.useCallback(() => {
@@ -240,21 +212,20 @@ export const FileManagerLocalContextProvider: React.FC<{
   return (
     <FileManagerLocalContext.Provider
       value={{
-        isReadOnly,
+        baseUrl,
+        reload,
         handleClose,
         handleContextMenu,
         handleSelect,
-        handleContextEdit,
-        handleContextView,
         handleDelete,
         handleDownload,
-        handleDuplicate,
         handleContextRename,
         contextMenuCombinedPath,
         fileInRename,
         setFileInRename,
         fileRenameNewName,
         setFileRenameNewName,
+        setContextMenu,
       }}
     >
       {children}
