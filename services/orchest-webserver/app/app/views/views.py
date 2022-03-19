@@ -1,10 +1,10 @@
 import io
 import json
 import os
+import pathlib
 import subprocess
 import uuid
 import zipfile
-import pathlib
 
 import docker
 import requests
@@ -58,11 +58,11 @@ from app.utils import (
     is_valid_project_relative_path,
     normalize_project_relative_path,
     pipeline_set_notebook_kernels,
+    preprocess_script,
     project_entity_counts,
     project_exists,
-    preprocess_script,
-    serialize_environment_to_disk,
     resolve_absolute_path,
+    serialize_environment_to_disk,
 )
 
 
@@ -771,9 +771,7 @@ def register_views(app, db):
                 if step_file_path.startswith("/"):
                     file_path = resolve_absolute_path(step_file_path)
                 else:
-                    file_path = os.path.join(
-                        pipeline_dir, step_file_path
-                    )
+                    file_path = os.path.join(pipeline_dir, step_file_path)
 
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
@@ -851,7 +849,9 @@ def register_views(app, db):
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
                 if not step["file_path"].startswith("/"):
-                    step["file_path"] = normalize_project_relative_path(step["file_path"])
+                    step["file_path"] = normalize_project_relative_path(
+                        step["file_path"]
+                    )
 
             errors = check_pipeline_correctness(pipeline_json)
             if errors:
@@ -1038,7 +1038,7 @@ def register_views(app, db):
         # Allowed absolute prefixes
         path = request.json["path"]
         file_path = None
-        
+
         if path.startswith("/"):
             file_path = resolve_absolute_path(path)
             if file_path is None:

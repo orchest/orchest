@@ -120,7 +120,7 @@ def get_project_snapshot_size(project_uuid, host_path=False):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024**2)
+    return get_size(project_dir, skip_dirs) / (1024 ** 2)
 
 
 def project_exists(project_uuid):
@@ -839,14 +839,16 @@ def resolve_absolute_path(abs_path):
     """
     prefix_map = {"/data": "/userdir/data"}
     allowed_prefixes = list(prefix_map.keys())
-    matching_prefixes = [prefix for prefix in allowed_prefixes if abs_path.startswith(prefix)]
-    
+    matching_prefixes = [
+        prefix for prefix in allowed_prefixes if abs_path.startswith(prefix)
+    ]
+
     if len(matching_prefixes) == 0:
         return
 
     prefix = matching_prefixes[0]
 
-    file_path = abs_path[len(prefix):]
+    file_path = abs_path[len(prefix) :]
     file_path = prefix_map[prefix] + file_path
     return file_path
 
