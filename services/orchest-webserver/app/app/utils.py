@@ -830,6 +830,27 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
     return new_path_abs.startswith(project_path)
 
 
+def resolve_absolute_path(abs_path):
+    """
+    This function resolves absolute paths of pipeline steps
+    to the filesystem layout of the orchest-webserver.
+
+    Currently only /data is supported.
+    """
+    prefix_map = {"/data": "/userdir/data"}
+    allowed_prefixes = list(prefix_map.keys())
+    matching_prefixes = [prefix for prefix in allowed_prefixes if abs_path.startswith(prefix)]
+    
+    if len(matching_prefixes) == 0:
+        return
+
+    prefix = matching_prefixes[0]
+
+    file_path = abs_path[len(prefix):]
+    file_path = prefix_map[prefix] + file_path
+    return file_path
+
+
 _DEFAULT_ORCHEST_EXAMPLES_JSON = {
     "creation_time": datetime.utcnow().isoformat(),
     "entries": [],

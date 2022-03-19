@@ -62,6 +62,7 @@ from app.utils import (
     project_exists,
     preprocess_script,
     serialize_environment_to_disk,
+    resolve_absolute_path,
 )
 
 
@@ -765,9 +766,15 @@ def register_views(app, db):
                 pipeline_json = json.load(json_file)
 
             try:
-                file_path = os.path.join(
-                    pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"]
-                )
+                step_file_path = pipeline_json["steps"][step_uuid]["file_path"]
+
+                if step_file_path.startswith("/"):
+                    file_path = resolve_absolute_path(step_file_path)
+                else:
+                    file_path = os.path.join(
+                        pipeline_dir, step_file_path
+                    )
+
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
             except Exception as e:
@@ -843,7 +850,8 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
-                step["file_path"] = normalize_project_relative_path(step["file_path"])
+                if not step["file_path"].startswith("/"):
+                    step["file_path"] = normalize_project_relative_path(step["file_path"])
 
             errors = check_pipeline_correctness(pipeline_json)
             if errors:
@@ -1027,10 +1035,20 @@ def register_views(app, db):
     def project_file_exists(project_uuid, pipeline_uuid):
         """Check whether file exists"""
 
-        pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
-        file_path = normalize_project_relative_path(request.json["relative_path"])
-        file_path = os.path.join(pipeline_dir, file_path)
-
+        # Allowed absolute prefixes
+        path = request.json["path"]
+        file_path = None
+        
+        if path.startswith("/"):
+            file_path = resolve_absolute_path(path)
+            if file_path is None:
+                return jsonify({"message": "Illegal file path prefix."}), 500
+        elif not path.startswith("/"):
+            pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(pipeline_dir, file_path)
+        else:
+            return jsonify({"message": "Illegal file path prefix."}), 500
         if os.path.isfile(file_path):
             return jsonify({"message": "File exists."})
         else:

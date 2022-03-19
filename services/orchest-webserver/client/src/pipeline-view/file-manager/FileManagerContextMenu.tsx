@@ -9,7 +9,7 @@ import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
-import { cleanFilePath, queryArgs, unpackCombinedPath } from "./common";
+import { cleanFilePath, queryArgs, unpackCombinedPath, PROJECT_DIR_PATH} from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
@@ -114,6 +114,7 @@ export const FileManagerContextMenu: React.FC<{
     setAlert,
   ]);
 
+  const rootIsProject = contextMenuCombinedPath ? contextMenuCombinedPath.startsWith(PROJECT_DIR_PATH) : false;
   const contextPathIsFile =
     contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");
 
@@ -133,7 +134,7 @@ export const FileManagerContextMenu: React.FC<{
     >
       {metadata?.type === "tree" && (
         <>
-          {!isReadOnly && contextPathIsFile && (
+          {!isReadOnly && contextPathIsFile && rootIsProject && (
             <MenuItem dense disabled={isReadOnly} onClick={handleContextEdit}>
               Edit
             </MenuItem>
