@@ -62,14 +62,18 @@ NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
 ifeq (${ENABLE_HOSTPATH},TRUE)
   FILESYSTEM_STORAGE_CLASS := standard
   BLOCK_STORAGE_CLASS := standard
+  ORCHEST_PVC_BACKEND_TARGET := 
+  STORAGE_CTL_TARGET := 
 else ifeq (${ROOK_CEPH_TARGET},rook-ceph)
   FILESYSTEM_STORAGE_CLASS := ceph-filesystem
   BLOCK_STORAGE_CLASS := ceph-block
+  ORCHEST_PVC_BACKEND_TARGET := ceph-resources
+  STORAGE_CTL_TARGET := rook-ceph
 else ifeq (${ROOK_NFS_TARGET},rook-nfs)
   FILESYSTEM_STORAGE_CLASS := rook-nfs-storage-class
+  ORCHEST_PVC_BACKEND_TARGET := nfs-resources
+  STORAGE_CTL_TARGET := rook-nfs
 endif
-
-ORCHEST_PVC_BACKEND_TARGET := ${if ${NFS_RESOURCES_TARGET},${NFS_RESOURCES_TARGET},${CEPH_RESOURCES_TARGET}}
 
 
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
@@ -80,7 +84,6 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 # Orchest will install docker-registry by default, if it is not desired,
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
-
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
 
@@ -257,9 +260,16 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} \
 	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry
 
+###############################################
+################### TARGETS ###################
+###############################################
 .PHONY: orchest
 orchest: initialize | ${ORCHEST_RESOURCES_TARGET}
 	helm install ${ORCHEST_DEPLOY_CONFIG}
+
+.PHONY: clean-orchest
+clean-orchest:
+	helm uninstall orchest --namespace ${NAMESPACE} --wait
 
 # usefull for debugging, not recommended to use without DEBUG=true enabled
 .PHONY: node-agent
@@ -269,6 +279,9 @@ node-agent:
 	${SHARED_DEPLOY_CONFIG} \
 	${NODE_AGENT_ENABLE_CONFIG} helm
 
+.PHONY: clean-node-agent
+clean-node-agent:
+	helm uninstall node-agent --namespace ${NAMESPACE} --wait
 
 .PHONY: jupyter-eg
 jupyter-eg: ./bin/jupyter-eg
@@ -278,6 +291,11 @@ jupyter-eg: ./bin/jupyter-eg
 	helm install ${JUPYTER_EG_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-jupyter-eg
+clean-jupyter-eg:
+	helm uninstall jupyter-eg --namespace ${NAMESPACE} --wait
+	rm ./bin/jupyter-eg
+
 .PHONY: argo-workflow
 argo-workflow: ./bin/argo-workflow
 
@@ -286,6 +304,11 @@ argo-workflow: ./bin/argo-workflow
 	helm install ${ARGO_WORKFLOW_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-argo-workflow
+clean-argo-workflow:
+	helm uninstall argo-workflow --namespace ${NAMESPACE} --wait
+	rm ./bin/argo-workflow
+
 .PHONY: docker-registry
 docker-registry : ./bin/docker-registry
 
@@ -293,6 +316,11 @@ docker-registry : ./bin/docker-registry
 ./bin/docker-registry: | create-bin registry-resources
 	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
 	touch $@
+
+.PHONY: clean-docker-registry
+clean-docker-registry:
+	helm uninstall registry --namespace ${NAMESPACE} --wait
+	rm ./bin/docker-registry	
 
 .PHONY: cert-manager
 cert-manager : ./bin/cert-manager
@@ -306,6 +334,11 @@ cert-manager : ./bin/cert-manager
 
 	touch $@
 
+.PHONY: clean-cert-manager
+clean-cert-manager:
+	kubectl delete -f thirdparty/cert-manager	
+	rm ./bin/cert-manager
+
 .PHONY: rook-ceph
 rook-ceph: ./bin/rook-ceph
 
@@ -314,6 +347,10 @@ rook-ceph: ./bin/rook-ceph
 	helm install ${ROOK_CEPH_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-rook-ceph
+clean-rook-ceph:
+	helm uninstall rook-ceph --namespace ${ROOK_CEPH_NAMESPACE} --wait
+	rm ./bin/rook-ceph
 
 .PHONY: rook-nfs
 rook-nfs: ./bin/rook-nfs
@@ -323,6 +360,11 @@ rook-nfs: ./bin/rook-nfs
 	helm install ${ROOK_NFS_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-rook-nfs
+clean-rook-nfs:
+	helm uninstall rook-nfs --namespace ${ROOK_NFS_NAMESPACE} --wait
+	rm ./bin/rook-nfs
+
 .PHONY: registry-resources
 registry-resources: ./bin/registry-resources
 
@@ -330,6 +372,11 @@ registry-resources: ./bin/registry-resources
 ./bin/registry-resources: | create-bin cert-manager ${CEPH_RESOURCES_TARGET}
 	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
+
+.PHONY: clean-registry-resources
+clean-registry-resources:
+	helm uninstall registry-resources --namespace ${NAMESPACE} --wait
+	rm ./bin/registry-resources
 
 .PHONY: ceph-resources
 ceph-resources: ./bin/ceph-resources
@@ -339,6 +386,11 @@ ceph-resources: ./bin/ceph-resources
 	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-ceph-resources
+clean-ceph-resources:
+	helm uninstall ceph-resources --namespace ${ROOK_CEPH_NAMESPACE} --wait
+	rm ./bin/ceph-resources
+
 .PHONY: nfs-resources
 nfs-resources: ./bin/nfs-resources
 
@@ -347,13 +399,41 @@ nfs-resources: ./bin/nfs-resources
 	helm install ${NFS_RSC_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-nfs-resources
+clean-nfs-resources:
+	helm uninstall nfs-resources --namespace ${ROOK_NFS_NAMESPACE} --wait
+	rm ./bin/nfs-resources
+
 .PHONY: orchest-resources
 orchest-resources: ./bin/orchest-resources
 
 .SECONDARY: ./bin/orchest-resources
 ./bin/orchest-resources: | create-bin ${ORCHEST_PVC_BACKEND_TARGET}
 	helm install ${ORCHEST_RSC_DEPLOY_CONFIG}
-	touch $@
+	@touch $@
+
+.PHONY: clean-orchest-resources
+clean-orchest-resources:
+	helm uninstall orchest-resources --namespace ${NAMESPACE} --wait
+	rm ./bin/orchest-resources
+
+# Dummy clean target
+.PHONY: celan-
+clean-:
+	@echo "noting here fellas"
+
+# clean-all is meant to bring the cluster to its initial state, but currently it 
+# does not delete cert-manager and registry certificates, because the second 
+# cert-manager complains about unknown authority and can not create new certificates.
+.PHONY: celan-all
+clean-all: clean-orchest
+clean-all: clean-${ORCHEST_RESOURCES_TARGET} 
+clean-all: clean-${ORCHEST_PVC_BACKEND_TARGET}
+clean-all: clean-${STORAGE_CTL_TARGET} 
+clean-all: clean-argo-workflow
+clean-all: clean-${REGISTRY_TARGET} 
+#clean-all: clean-registry-resources
+#clean-all: clean-cert-manager 
 
 .PHONY: create-bin
 create-bin:
@@ -364,7 +444,6 @@ initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
 ./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ${ORCHEST_RESOURCES_TARGET}
-	touch $@
 
 
 .PHONY: orchest-upgrade
@@ -377,8 +456,4 @@ argo-upgrade:
 
 .PHONY: registry-upgrade
 registry-upgrade:
-	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG}
-
-.PHONY: check-storage
-check-storage:
 	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG}
