@@ -4,6 +4,7 @@ Note that pod labels are coupled with how we restart services, which
 is done by deleting all pods with the given labels.
 """
 import copy
+import json
 import os
 import shlex
 import traceback
@@ -759,6 +760,23 @@ def _get_user_service_deployment_service_manifest(
     img_mappings = session_config["env_uuid_to_image"]
     session_type = session_type.value
 
+    # Template section
+    is_pbp_enabled = service_config.get("preserve_base_path", False)
+    ingress_url = "service-" + service_config["name"] + "-" + session_uuid
+    if is_pbp_enabled:
+        ingress_url = "pbp-" + ingress_url
+
+    # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
+    # this substitution happens after service_config["name"] is read,
+    # so that JSON entry does not support $BASE_PATH_PREFIX
+    # substitution.  This allows the user to specify
+    # $BASE_PATH_PREFIX as the value of an env variable, so that
+    # the base path can be passsed dynamically to the service.
+    service_str = json.dumps(service_config)
+    service_str = service_str.replace("$BASE_PATH_PREFIX", ingress_url)
+    service_config = json.loads(service_str)
+    # End template section
+
     # Get user configured environment variables
     try:
         if session_type == "noninteractive":
@@ -896,10 +914,8 @@ def _get_user_service_deployment_service_manifest(
     }
 
     if service_config["exposed"]:
-        ingress_url = "service-" + service_config["name"] + "-" + session_uuid
         ingress_paths = []
         for port in service_config.get("ports", []):
-            pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
             ingress_paths.append(
                 {
                     "backend": {
@@ -908,14 +924,20 @@ def _get_user_service_deployment_service_manifest(
                             "port": {"number": port},
                         }
                     },
-                    "path": f"/{pbp}{ingress_url}_{port}(/|$)(.*)",
+                    "path": f"/({ingress_url}_{port}.*)"
+                    if is_pbp_enabled
+                    else f"/{ingress_url}_{port}(/|$)(.*)",
                     "pathType": "Prefix",
                 }
             )
 
         ingress_metadata = copy.deepcopy(metadata)
+
+        # Decide rewrite target based on pbp
         ingress_metadata["annotations"] = {
-            "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+            "nginx.ingress.kubernetes.io/rewrite-target": "/$1"
+            if is_pbp_enabled
+            else "/$2",
         }
 
         if service_config.get("requires_authentication", True):
