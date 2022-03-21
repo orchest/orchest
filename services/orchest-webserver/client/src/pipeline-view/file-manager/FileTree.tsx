@@ -222,7 +222,8 @@ export const FileTree = React.memo(function FileTreeComponent({
         }
         return { oldPath, newPath, oldRoot, newRoot };
       } catch (error) {
-        setAlert("Error", `Failed to rename file ${oldPath}. ${error.message}`);
+        // TODO: give a more meaninfule error message.
+        setAlert("Error", `Failed to rename file ${oldPath}. Invalid path.`);
       }
     },
     [

@@ -567,7 +567,7 @@ const PipelineSettingsView: React.FC = () => {
                           disabled={isReadOnly || hasValue(session)}
                           helperText={
                             session
-                              ? "You need to stop session before changing pipeline path"
+                              ? "You need to stop the session before changing pipeline path"
                               : ""
                           }
                           fullWidth
