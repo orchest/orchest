@@ -3,6 +3,7 @@ import Box, { BoxProps } from "@mui/material/Box";
 import { alpha, styled } from "@mui/material/styles";
 import classNames from "classnames";
 import React from "react";
+import { useFileManagerContext } from "./file-manager/FileManagerContext";
 
 const DOT_SIZE = "10px";
 
@@ -77,11 +78,14 @@ export const ConnectionDot = React.forwardRef(function Dot(
     setIsMouseDown(true);
   };
 
+  const { dragFile, resetMove } = useFileManagerContext();
+
   const onMouseUpContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
     e.stopPropagation();
     e.preventDefault();
+    if (dragFile) resetMove();
     if (onMouseUp) onMouseUp(e);
     if (
       e.button === 0 &&

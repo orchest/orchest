@@ -66,7 +66,7 @@ class OrchestImagesToPrePull(Resource):
             CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
             utils.get_jupyter_server_image_to_use(),
         ]
-        pre_pull_orchest_images = {"pre_pull_orchest_images": pre_pull_orchest_images}
+        pre_pull_orchest_images = {"pre_pull_images": pre_pull_orchest_images}
 
         return pre_pull_orchest_images, 200
 

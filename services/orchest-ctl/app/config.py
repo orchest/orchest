@@ -4,7 +4,14 @@ from enum import Enum
 ORCHEST_NAMESPACE = "orchest"
 ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
 
-STATUS_CHANGING_OPERATIONS = ["install", "start", "stop", "restart", "update"]
+STATUS_CHANGING_OPERATIONS = [
+    "install",
+    "start",
+    "stop",
+    "restart",
+    "update",
+    "uninstall",
+]
 
 
 class OrchestStatus(str, Enum):
@@ -15,6 +22,7 @@ class OrchestStatus(str, Enum):
     STOPPED = "stopped"
     STOPPING = "stopping"
     UNHEALTHY = "unhealthy"
+    UNINSTALLING = "uninstalling"
     UPDATING = "updating"
 
 
@@ -31,7 +39,6 @@ ORCHEST_DEPLOYMENTS = [
     "auth-server",
     "celery-worker",
     "docker-registry",
-    "file-manager",
     "orchest-api",
     "orchest-database",
     "orchest-webserver",
@@ -43,8 +50,6 @@ ORCHEST_DEPLOYMENTS = [
 DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = [
     "auth-server",
     "celery-worker",
-    "docker-registry",
-    "file-manager",
     "orchest-api",
     "orchest-webserver",
 ]

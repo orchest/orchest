@@ -407,7 +407,7 @@ const EditJobView: React.FC = () => {
       env_variables: updatedEnvVariables.value,
       max_retained_pipeline_runs: isAutoCleanUpEnabled
         ? numberOfRetainedRuns
-        : undefined,
+        : -1,
     };
 
     if (scheduleOption === "scheduled") {
@@ -482,7 +482,7 @@ const EditJobView: React.FC = () => {
             env_variables: updatedEnvVariables.value,
             max_retained_pipeline_runs: isAutoCleanUpEnabled
               ? numberOfRetainedRuns
-              : undefined,
+              : -1,
           }),
         }).then(() => {
           navigateTo(

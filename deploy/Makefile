@@ -15,6 +15,67 @@ else
   ORCHEST_RESOURCES_TARGET := orchest-resources
 endif
 
+DEFINED_STORAGES := 0
+
+ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
+MAX_INTERACTIVE_RUNS_PARALLELISM := ${if ${MAX_INTERACTIVE_RUNS_PARALLELISM},${MAX_INTERACTIVE_RUNS_PARALLELISM},1}
+MAX_JOB_RUNS_PARALLELISM := ${if ${MAX_JOB_RUNS_PARALLELISM},${MAX_JOB_RUNS_PARALLELISM},1}
+CLOUD := ${if ${CLOUD},${CLOUD},"False"}
+
+# If More than one storage is defined print hout an error and exit.
+ifeq (${ENABLE_ROOK_NFS},TRUE)
+	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
+endif
+
+ifeq (${ENABLE_ROOK_CEPH},TRUE)
+	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
+endif
+
+ifeq (${ENABLE_HOSTPATH},TRUE)
+	DEFINED_STORAGES := $(shell echo $$(( ${DEFINED_STORAGES} + 1 )))
+endif
+
+ifeq ($(shell expr ${DEFINED_STORAGES} \> 1),1)
+	$(error More than one Storage Provider is defined)
+endif
+
+#If no storage is provided, use NFS
+ifeq (${DEFINED_STORAGES},0)
+	ENABLE_ROOK_NFS := TRUE
+endif
+
+# Orchest will install rook/rook (rook-ceph) for managing ceph, if it is desired,
+# define ENABLE_ROOK_CEPH env variable and set it to TRUE
+ROOK_CEPH_TARGET := ${if ${ENABLE_ROOK_CEPH},rook-ceph,}
+
+# if rook-ceph is enable, we also enable ceph-resources target
+CEPH_RESOURCES_TARGET := ${if ${ENABLE_ROOK_CEPH},ceph-resources,}
+
+
+# Orchest will install rook/nfs for managing on promise nfs server, if it is desired,
+# define ENABLE_ROOK_NFS env variable and set it to TRUE
+ROOK_NFS_TARGET := ${if ${ENABLE_ROOK_NFS},rook-nfs,}
+
+# if rook-nfs is enable, we also enable nfs-resources target
+NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
+
+ifeq (${ENABLE_HOSTPATH},TRUE)
+  FILESYSTEM_STORAGE_CLASS := standard
+  BLOCK_STORAGE_CLASS := standard
+  ORCHEST_PVC_BACKEND_TARGET :=
+  STORAGE_CTL_TARGET :=
+else ifeq (${ROOK_CEPH_TARGET},rook-ceph)
+  FILESYSTEM_STORAGE_CLASS := ceph-filesystem
+  BLOCK_STORAGE_CLASS := ceph-block
+  ORCHEST_PVC_BACKEND_TARGET := ceph-resources
+  STORAGE_CTL_TARGET := rook-ceph
+else ifeq (${ROOK_NFS_TARGET},rook-nfs)
+  FILESYSTEM_STORAGE_CLASS := rook-nfs-storage-class
+  ORCHEST_PVC_BACKEND_TARGET := nfs-resources
+  STORAGE_CTL_TARGET := rook-nfs
+endif
+
+
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
@@ -24,38 +85,11 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
-# Orchest will install rook/rook (rook-ceph) for managing ceph by, if it is desired,
-# define ENABLE_ROOK_CEPH env variable and set it to something (preferably TRUE)
-ROOK_CEPH_TARGET := ${if ${ENABLE_ROOK_CEPH},rook-ceph,}
-
-# if rook-ceph is enable, we also enable ceph-resources target
-CEPH_RESOURCES_TARGET := ${if ${ENABLE_ROOK_CEPH},ceph-resources,}
-
-# Orchest will install rook/nfs for managing on promise nfs server, if it is desired,
-# define ENABLE_ROOK_NFS env variable and set it to something (preferably TRUE)
-ROOK_NFS_TARGET := ${if ${ENABLE_ROOK_NFS},rook-nfs,}
-
-# if rook-nfs is enable, we also enable nfs-resources target
-NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
-
-ORCHEST_PVC_BACKEND_TARGET := ${if ${NFS_RESOURCES_TARGET},${NFS_RESOURCES_TARGET},${CEPH_RESOURCES_TARGET}}
-
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
 
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
 REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
-
-# Name of default file-system and block storage classes
-FILESYSTEM_STORAGE_CLASS := standard
-BLOCK_STORAGE_CLASS := standard
-
-ifeq (${ROOK_CEPH_TARGET},rook-ceph)
-  FILESYSTEM_STORAGE_CLASS := ceph-filesystem
-  BLOCK_STORAGE_CLASS := ceph-block
-else ifeq (${ROOK_NFS_TARGET},rook-nfs)
-  FILESYSTEM_STORAGE_CLASS := rook-nfs-storage-class
-endif
 
 # docker-registry deployment configs
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
@@ -151,13 +185,6 @@ CELERY_WORKER_ENABLE_CONFIG := --set celery-worker.enabled=true
 CELERY_WORKER_CONFIG := ${CELERY_WORKER_TAG_CONFIG} \
 						${CELERY_WORKER_ENABLE_CONFIG}
 
-# file-manager deployment configs
-FILE_MANAGER_TAG := ${if ${FILE_MANAGER_TAG},${FILE_MANAGER_TAG},${ORCHEST_DEFAULT_TAG}}
-FILE_MANAGER_TAG_CONFIG := --set file-manager.images.tag=${FILE_MANAGER_TAG}
-FILE_MANAGER_ENABLE_CONFIG := --set file-manager.enabled=true
-FILE_MANAGER_CONFIG := ${FILE_MANAGER_TAG_CONFIG} \
-					   ${FILE_MANAGER_ENABLE_CONFIG}
-
 # orchest-webserver deployment configs
 ORCHEST_WEBSERVER_TAG := ${if ${ORCHEST_WEBSERVER_TAG},${ORCHEST_WEBSERVER_TAG},${ORCHEST_DEFAULT_TAG}}
 ORCHEST_WEBSERVER_TAG_CONFIG := --set orchest-webserver.images.tag=${ORCHEST_WEBSERVER_TAG}
@@ -196,7 +223,6 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	${ORCHEST_API_CONFIG} \
 	${AUTH_SERVER_CONFIG} \
 	${CELERY_WORKER_CONFIG} \
-	${FILE_MANAGER_CONFIG} \
 	${UPDATE_SIDECAR_CONFIG} \
 	${ORCHEST_WEBSERVER_CONFIG} \
 	${NODE_AGENT_CONFIG} \
@@ -208,12 +234,11 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	--set-string orchest-webserver.CLOUD="${CLOUD}" \
 	--set-string auth-server.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string celery-worker.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
+	--set celery-worker.MAX_INTERACTIVE_RUNS_PARALLELISM="${MAX_INTERACTIVE_RUNS_PARALLELISM}" \
+	--set celery-worker.MAX_JOB_RUNS_PARALLELISM="${MAX_JOB_RUNS_PARALLELISM}" \
 	--set-string orchest-api.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	helm
-
-JUPYTER_EG_DEPLOY_CONFIG := jupyter-eg \
-	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/enterprise-gateway
 
 ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/argo-workflows
@@ -224,9 +249,16 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} \
 	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry
 
+###############################################
+################### TARGETS ###################
+###############################################
 .PHONY: orchest
 orchest: initialize | ${ORCHEST_RESOURCES_TARGET}
 	helm install ${ORCHEST_DEPLOY_CONFIG}
+
+.PHONY: clean-orchest
+clean-orchest:
+	helm uninstall orchest --namespace ${NAMESPACE} --wait
 
 # usefull for debugging, not recommended to use without DEBUG=true enabled
 .PHONY: node-agent
@@ -236,14 +268,9 @@ node-agent:
 	${SHARED_DEPLOY_CONFIG} \
 	${NODE_AGENT_ENABLE_CONFIG} helm
 
-
-.PHONY: jupyter-eg
-jupyter-eg: ./bin/jupyter-eg
-
-.SECONDARY: ./bin/jupyter-eg
-./bin/jupyter-eg: create-bin
-	helm install ${JUPYTER_EG_DEPLOY_CONFIG}
-	touch $@
+.PHONY: clean-node-agent
+clean-node-agent:
+	helm uninstall node-agent --namespace ${NAMESPACE} --wait
 
 .PHONY: argo-workflow
 argo-workflow: ./bin/argo-workflow
@@ -253,6 +280,11 @@ argo-workflow: ./bin/argo-workflow
 	helm install ${ARGO_WORKFLOW_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-argo-workflow
+clean-argo-workflow:
+	helm uninstall argo-workflow --namespace ${NAMESPACE} --wait
+	rm ./bin/argo-workflow
+
 .PHONY: docker-registry
 docker-registry : ./bin/docker-registry
 
@@ -261,15 +293,27 @@ docker-registry : ./bin/docker-registry
 	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-docker-registry
+clean-docker-registry:
+	helm uninstall registry --namespace ${NAMESPACE} --wait
+	rm ./bin/docker-registry
+
 .PHONY: cert-manager
 cert-manager : ./bin/cert-manager
 
 .SECONDARY: ./bin/cert-manager
 ./bin/cert-manager: | create-bin
 	kubectl apply -f thirdparty/cert-manager
-	# TODO, This is a hack, evaluate using wait
-	# sleep 30
+	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
+	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-cainjector -n cert-manager
+	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager -n cert-manager
+
 	touch $@
+
+.PHONY: clean-cert-manager
+clean-cert-manager:
+	kubectl delete -f thirdparty/cert-manager
+	rm ./bin/cert-manager
 
 .PHONY: rook-ceph
 rook-ceph: ./bin/rook-ceph
@@ -279,6 +323,10 @@ rook-ceph: ./bin/rook-ceph
 	helm install ${ROOK_CEPH_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-rook-ceph
+clean-rook-ceph:
+	helm uninstall rook-ceph --namespace ${ROOK_CEPH_NAMESPACE} --wait
+	rm ./bin/rook-ceph
 
 .PHONY: rook-nfs
 rook-nfs: ./bin/rook-nfs
@@ -288,6 +336,11 @@ rook-nfs: ./bin/rook-nfs
 	helm install ${ROOK_NFS_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-rook-nfs
+clean-rook-nfs:
+	helm uninstall rook-nfs --namespace ${ROOK_NFS_NAMESPACE} --wait
+	rm ./bin/rook-nfs
+
 .PHONY: registry-resources
 registry-resources: ./bin/registry-resources
 
@@ -295,6 +348,11 @@ registry-resources: ./bin/registry-resources
 ./bin/registry-resources: | create-bin cert-manager ${CEPH_RESOURCES_TARGET}
 	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 	touch $@
+
+.PHONY: clean-registry-resources
+clean-registry-resources:
+	helm uninstall registry-resources --namespace ${NAMESPACE} --wait
+	rm ./bin/registry-resources
 
 .PHONY: ceph-resources
 ceph-resources: ./bin/ceph-resources
@@ -304,6 +362,11 @@ ceph-resources: ./bin/ceph-resources
 	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-ceph-resources
+clean-ceph-resources:
+	helm uninstall ceph-resources --namespace ${ROOK_CEPH_NAMESPACE} --wait
+	rm ./bin/ceph-resources
+
 .PHONY: nfs-resources
 nfs-resources: ./bin/nfs-resources
 
@@ -312,13 +375,41 @@ nfs-resources: ./bin/nfs-resources
 	helm install ${NFS_RSC_DEPLOY_CONFIG}
 	touch $@
 
+.PHONY: clean-nfs-resources
+clean-nfs-resources:
+	helm uninstall nfs-resources --namespace ${ROOK_NFS_NAMESPACE} --wait
+	rm ./bin/nfs-resources
+
 .PHONY: orchest-resources
 orchest-resources: ./bin/orchest-resources
 
 .SECONDARY: ./bin/orchest-resources
 ./bin/orchest-resources: | create-bin ${ORCHEST_PVC_BACKEND_TARGET}
 	helm install ${ORCHEST_RSC_DEPLOY_CONFIG}
-	touch $@
+	@touch $@
+
+.PHONY: clean-orchest-resources
+clean-orchest-resources:
+	helm uninstall orchest-resources --namespace ${NAMESPACE} --wait
+	rm ./bin/orchest-resources
+
+# Dummy clean target
+.PHONY: clean-
+clean-:
+	@echo "nothing here fellas"
+
+# clean-all is meant to bring the cluster to its initial state, but currently it
+# does not delete cert-manager and registry certificates, because the second
+# cert-manager complains about unknown authority and can not create new certificates.
+.PHONY: clean-all
+clean-all: clean-orchest
+clean-all: clean-${ORCHEST_RESOURCES_TARGET}
+clean-all: clean-${ORCHEST_PVC_BACKEND_TARGET}
+clean-all: clean-${STORAGE_CTL_TARGET}
+clean-all: clean-argo-workflow
+clean-all: clean-${REGISTRY_TARGET}
+#clean-all: clean-registry-resources
+#clean-all: clean-cert-manager
 
 .PHONY: create-bin
 create-bin:
@@ -329,7 +420,6 @@ initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
 ./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ${ORCHEST_RESOURCES_TARGET}
-	touch $@
 
 
 .PHONY: orchest-upgrade

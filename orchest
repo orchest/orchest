@@ -35,11 +35,14 @@ fi
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# Make sure the orchest namespace exists and that orchest-resources
-# dependencies are installed. This is needed, for example, to create
-# vpcs before deploying orchest-ctl. K8S_TODO: don't silence stderr,
-# and make it so that repeating "make orchest-resources" will not
-# produce an error.
+# Make sure the orchest namespace exists. Necessary only if Orchest is
+# being installed.
+minikube kubectl -- create namespace orchest  > /dev/null 2>&1
+
+# Make sure the orchest-resources dependencies are installed. This is
+# needed, for example, to create pvcs before deploying orchest-ctl.
+# K8S_TODO: don't silence stderr, and make it so that repeating "make
+# orchest-resources" will not produce an error.
 if [ "$1"  == "install" ]; then
     echo "Creating orchest-namespace and installing dependencies."
     rm -rf "${DIR}/deploy/bin" > /dev/null
@@ -83,7 +86,7 @@ set -e
 
 # This is needed because k8s labels follow this regex:
 # (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?').
-commands=("install" "start" "stop" "restart" "update" "status" "version")
+commands=("install" "start" "stop" "restart" "update" "status" "version" "uninstall")
 label="unrecognized"
 if [[ " ${commands[*]} " =~ " $1 " ]]; then
     label=$1
@@ -96,7 +99,7 @@ fi
 # changes to this label. TODO: passing an argument containing @ will
 # break this.
 pod=$(sed -e "s@IMAGE%@$image@g" -e "s@VERSION%@$repo_version@g" \
--e "s@COMMAND%@$1@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
+-e "s@COMMAND%@$label@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
 minikube kubectl -- create -n orchest -o name -f -)
 
 # Make sure to cleanup the pod on exit.

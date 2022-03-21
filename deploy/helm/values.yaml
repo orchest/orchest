@@ -1,14 +1,11 @@
 global:
   ingress:
-    host: www.localorchest.io
+    host: localorchest.io
 
 auth-server:
   enabled: false
 
 celery-worker:
-  enabled: false
-
-file-manager:
   enabled: false
 
 orchest-api:

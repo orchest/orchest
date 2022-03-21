@@ -199,6 +199,8 @@ follow the :ref:`regular installation process <regular installation>`.
 To enable SSL you first need to get the SSL certificates for your domain and put the certificates in
 the correct place so that Orchest recognizes them. This can be done using a convenience script:
 
+.. K8S_TODO: this process needs to be changed/documented?
+
 .. code-block:: sh
 
     scripts/letsencrypt-nginx.sh <domain> <email>
@@ -213,3 +215,12 @@ HTTPS:
 .. tip::
    👉 Refer to ``AUTH_ENABLED`` in the :ref:`Orchest settings section <orchest settings>` to enable
    the authentication.
+
+Migrate to Kubernetes
+---------------------
+The moment we have moved to a Kubernetes backed Orchest version (and deprecated the Docker based
+version), we will update this section of the documentation to include steps on how to migrate your
+current deployment to a Kubernetes based one.
+
+Just know that we are super excited to make the Kubernetes version available part of the open core
+and we are invested to provide a smooth migration experience 🔥

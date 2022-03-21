@@ -51,6 +51,10 @@ class ImagePuller(object):
 
         self._aclient: Optional[aiodocker.Docker] = None
 
+        # Container to make sure that images that are already being
+        # pulled are not pulled concurrently again.
+        self._curr_pulling_imgs = set()
+
     async def get_image_names(self, queue: asyncio.Queue):
         """Fetches the image names by calling following endpoints
         of the orchest-api.
@@ -64,7 +68,7 @@ class ImagePuller(object):
 
         endpoints = [
             f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull",
-            f"{self.orchest_api_host}/api/environment-images/latest",
+            f"{self.orchest_api_host}/api/environment-images/to-pre-pull",
         ]
 
         async with aiohttp.ClientSession(trust_env=True) as session:
@@ -73,13 +77,10 @@ class ImagePuller(object):
                     for endpoint in endpoints:
                         async with session.get(endpoint) as response:
                             response_json = await response.json()
-                            for image_names in response_json.values():
+                            for image_name in response_json["pre_pull_images"]:
                                 # Add image_name to the queue to be
                                 # consumed by the pullers
-                                [
-                                    await queue.put(image_name)
-                                    for image_name in image_names
-                                ]
+                                await queue.put(image_name)
                 except Exception as ex:
                     self.logger.error(
                         f"Attempt to get image name from '{self.interval}' "
@@ -103,7 +104,9 @@ class ImagePuller(object):
         while True:
             image_name = await queue.get()
             if self.policy == Policy.IfNotPresent:
-                if await self.image_exists(image_name):
+                if image_name in self._curr_pulling_imgs or await self.image_exists(
+                    image_name
+                ):
                     queue.task_done()
                     continue
 
@@ -160,9 +163,12 @@ class ImagePuller(object):
         result = True
         t0 = time.time()
         try:
+            self._curr_pulling_imgs.add(image_name)
             await self.aclient().images.pull(image_name)
         except aiodocker.DockerError:
             result = False
+        finally:
+            self._curr_pulling_imgs.remove(image_name)
         t1 = time.time()
         if result is True:
             self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")

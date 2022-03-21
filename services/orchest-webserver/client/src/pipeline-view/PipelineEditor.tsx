@@ -38,6 +38,7 @@ import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { CreateNextStepButton } from "./CreateNextStepButton";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
+import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import {
@@ -56,7 +57,7 @@ import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
 
-export const PipelineEditor: React.FC = () => {
+export const PipelineEditor = () => {
   const { setAlert, setConfirm } = useAppContext();
 
   const { projectUuid, pipelineUuid, jobUuid, navigateTo } = useCustomRoute();
@@ -72,6 +73,7 @@ export const PipelineEditor: React.FC = () => {
     eventVars,
     dispatch,
     stepDomRefs,
+    pipelineCanvasRef,
     newConnection,
     pipelineCwd,
     pipelineJson,
@@ -85,6 +87,8 @@ export const PipelineEditor: React.FC = () => {
     metadataPositions,
     session,
   } = usePipelineEditorContext();
+
+  const openNotebook = useOpenNoteBook();
 
   const removeSteps = React.useCallback(
     (uuids: string[]) => {
@@ -100,8 +104,6 @@ export const PipelineEditor: React.FC = () => {
   ]);
 
   const pipelineViewportRef = React.useRef<HTMLDivElement>();
-  const pipelineCanvasRef = React.useRef<HTMLDivElement>();
-  const centerPipelineOrigin = React.useRef<() => void>();
   const canvasFuncRef = React.useRef<CanvasFunctions>();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -304,32 +306,6 @@ export const PipelineEditor: React.FC = () => {
     [eventVars.steps]
   );
 
-  const openNotebook = React.useCallback(
-    (e: React.MouseEvent | undefined, filePath: string) => {
-      if (session?.status === "RUNNING") {
-        navigateTo(
-          siteMap.jupyterLab.path,
-          { query: { projectUuid, pipelineUuid, filePath } },
-          e
-        );
-        return;
-      }
-      if (session?.status === "LAUNCHING") {
-        setAlert(
-          "Error",
-          "Please wait for the session to start before opening the Notebook in Jupyter."
-        );
-        return;
-      }
-
-      setAlert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
-    },
-    [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
-  );
-
   const [isShowingServices, setIsShowingServices] = React.useState(false);
 
   const showServices = () => {
@@ -409,11 +385,6 @@ export const PipelineEditor: React.FC = () => {
     },
     [eventVars.openedStep, notebookFilePath, openNotebook, pipelineCwd]
   );
-
-  // const centerView = React.useCallback(() => {
-  //   resetPipelineCanvas();
-  //   dispatch({ type: "SET_SCALE_FACTOR", payload: DEFAULT_SCALE_FACTOR });
-  // }, [dispatch, resetPipelineCanvas]);
 
   const recalibrate = React.useCallback(() => {
     // ensure that connections are re-rendered against the final positions of the steps
@@ -855,7 +826,7 @@ export const PipelineEditor: React.FC = () => {
                 // NOTE: onClick also listens to space bar press when button is focused
                 // it causes issue when user press space bar to navigate the canvas
                 // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                centerPipelineOrigin.current();
+                canvasFuncRef.current.centerPipelineOrigin();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
                   payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
@@ -867,7 +838,7 @@ export const PipelineEditor: React.FC = () => {
             <IconButton
               title="Zoom in"
               onPointerDown={() => {
-                centerPipelineOrigin.current();
+                canvasFuncRef.current.centerPipelineOrigin();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
                   payload: Math.min(eventVars.scaleFactor + 0.25, 2),

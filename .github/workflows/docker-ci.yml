@@ -31,9 +31,7 @@ jobs:
             -i base-kernel-py -i base-kernel-r,
             -i base-kernel-julia,
             -i base-kernel-py-gpu,
-            -i nginx-proxy,
             -i update-sidecar,
-            -i file-manager,
             -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
           ]
 
@@ -58,11 +56,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Push README files to DockerHub nginx-proxy
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/nginx-proxy
-          README_FILEPATH: services/nginx-proxy/README.md
 
       - name: Push README files to DockerHub celery-worker
         uses: peter-evans/dockerhub-description@v2
@@ -135,12 +128,6 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchest/update-sidecar
           README_FILEPATH: services/update-sidecar/README.md
-
-      - name: Push README files to DockerHub file-manager
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/file-manager
-          README_FILEPATH: services/file-manager/README.md
 
   dispatch-orchest-ami-build:
     needs: buildpush

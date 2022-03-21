@@ -192,8 +192,7 @@ const PipelineSettingsView: React.FC = () => {
     setServices((current) => {
       // Maintain client side order key
       if (service.order === undefined) service.order = getOrderValue();
-      current[uuid] = service;
-      return current;
+      return { ...current, [uuid]: service };
     });
 
     setServicesChanged(true);
@@ -232,18 +231,6 @@ const PipelineSettingsView: React.FC = () => {
 
   const onChangePipelineParameters = (editor, data, value: string) => {
     setInputParameters(value);
-  };
-
-  const onChangeDataPassingMemorySize = (value: string) => {
-    setSettings((current) => {
-      return { ...current, data_passing_memory_size: value };
-    });
-  };
-
-  const onChangeEviction = (value: boolean) => {
-    setSettings((current) => {
-      return { ...current, auto_eviction: value };
-    });
   };
 
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
@@ -396,11 +383,19 @@ const PipelineSettingsView: React.FC = () => {
     }
   };
 
-  type ServiceRow = { name: string; scope: string; remove: string };
+  type ServiceRow = {
+    name: string;
+    scope: string;
+    exposed: React.ReactNode;
+    authenticationRequired: React.ReactNode;
+    remove: string;
+  };
 
   const columns: DataTableColumn<ServiceRow>[] = [
     { id: "name", label: "Service" },
     { id: "scope", label: "Scope" },
+    { id: "exposed", label: "Exposed" },
+    { id: "authenticationRequired", label: "Authentication required" },
     {
       id: "remove",
       label: "Delete",
@@ -440,22 +435,24 @@ const PipelineSettingsView: React.FC = () => {
 
   const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
     .sort((a, b) => a[1].order - b[1].order)
-    .map(([key, service]) => {
+    .map(([uuid, service]) => {
       return {
-        uuid: key,
+        uuid,
         name: service.name,
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
-        remove: key,
+        exposed: service.exposed ? "Yes" : "No",
+        authenticationRequired: service.requires_authentication ? "Yes" : "No",
+        remove: uuid,
         details: (
           <ServiceForm
-            key={key}
-            serviceUuid={key}
+            key={uuid}
+            serviceUuid={uuid}
             service={service}
             services={services}
             disabled={isReadOnly}
-            updateService={(updated) => onChangeService(key, updated)}
+            updateService={(updated) => onChangeService(uuid, updated)}
             pipeline_uuid={pipelineUuid}
             project_uuid={projectUuid}
             run_uuid={runUuid}
@@ -535,6 +532,7 @@ const PipelineSettingsView: React.FC = () => {
                           margin="normal"
                           onChange={(e) => setPipelineName(e.target.value)}
                           label="Pipeline name"
+                          InputLabelProps={{ shrink: true }}
                           disabled={isReadOnly}
                           fullWidth
                           data-test-id="pipeline-settings-configuration-pipeline-name"
@@ -553,10 +551,11 @@ const PipelineSettingsView: React.FC = () => {
                           margin="normal"
                           onChange={(e) => setPipelinePath(e.target.value)}
                           label="Pipeline path"
+                          InputLabelProps={{ shrink: true }}
                           disabled={isReadOnly || hasValue(session)}
                           helperText={
                             session
-                              ? "You need to stop session before changing pipeline path"
+                              ? "You need to stop the session before changing pipeline path"
                               : ""
                           }
                           fullWidth

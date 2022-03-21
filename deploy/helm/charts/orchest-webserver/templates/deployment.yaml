@@ -62,7 +62,6 @@ deployment
               - sh
               - -c
               - "wget orchest-api/api -T 2 -t 1 --spider &&
-                wget file-manager -T 2 -t 1 &&
                 wget -T 1 -t 1 localhost --spider"
         livenessProbe:
           httpGet:

@@ -6,11 +6,14 @@ import {
   MouseTracker,
   NewConnection,
   PipelineJson,
+  Position,
   StepsDict,
 } from "@/types";
+import { getOffset } from "@/utils/jquery-replacement";
 import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
+import { getScaleCorrectedPosition } from "../common";
 import { useAutoStartSession } from "../hooks/useAutoStartSession";
 import {
   EventVars,
@@ -30,6 +33,7 @@ export type PipelineEditorContextType = {
   eventVars: EventVars;
   dispatch: (value: EventVarsAction) => void;
   stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
+  pipelineCanvasRef: React.MutableRefObject<HTMLDivElement>;
   newConnection: React.MutableRefObject<NewConnection>;
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
@@ -57,8 +61,8 @@ export type PipelineEditorContextType = {
     endNodeUUID: string;
   };
   sio: SocketIO;
-
   session: IOrchestSession;
+  getOnCanvasPosition: (offset: Position) => Position;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -76,6 +80,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuid: runUuidFromRoute,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
+
+  const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
   const {
     eventVars,
@@ -181,6 +187,23 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     if (shouldForceRerender) forceUpdate();
   }, [shouldForceRerender, forceUpdate]);
 
+  const getOnCanvasPosition = React.useCallback(
+    (offset: Position = { x: 0, y: 0 }): Position => {
+      const clientPosition = {
+        x: mouseTracker.current.client.x - offset.x,
+        y: mouseTracker.current.client.y - offset.y,
+      };
+      const { x, y } = getScaleCorrectedPosition({
+        offset: getOffset(pipelineCanvasRef.current),
+        position: clientPosition,
+        scaleFactor: eventVars.scaleFactor,
+      });
+
+      return { x, y };
+    },
+    [eventVars.scaleFactor, mouseTracker, pipelineCanvasRef]
+  );
+
   return (
     <PipelineEditorContext.Provider
       value={{
@@ -189,6 +212,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         eventVars,
         dispatch,
         stepDomRefs,
+        pipelineCanvasRef,
         newConnection,
         keysDown,
         trackMouseMovement,
@@ -208,6 +232,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         jobUuid,
         sio,
         session,
+        getOnCanvasPosition,
       }}
     >
       {children}

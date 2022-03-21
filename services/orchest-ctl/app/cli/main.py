@@ -2,6 +2,7 @@ from enum import Enum
 from typing import Optional
 
 import typer
+import validators
 
 from app import orchest
 from app.utils import LogLevel, echo, init_logger
@@ -143,6 +144,12 @@ def status(
     orchest.status(output_json=json)
 
 
+def _validate_fqdn(fqdn: str) -> str:
+    if not validators.domain(fqdn):
+        raise typer.BadParameter(f"{fqdn} is not a valid domain.")
+    return fqdn
+
+
 @typer_app.command()
 def install(
     log_level: Optional[LogLevel] = typer.Option(
@@ -155,13 +162,26 @@ def install(
     cloud: bool = typer.Option(
         False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
     ),
+    fqdn: Optional[str] = typer.Option(
+        "localorchest.io",
+        "--fqdn",
+        show_default=True,
+        help=(
+            "Fully qualified domain name of the application. It can be used, for "
+            "example, to reach the application locally after mapping the cluster ip "
+            "to 'localorchest.io' in your /etc/hosts file. To do that, you can use "
+            "'minikube ip' to get the cluster ip."
+        ),
+        callback=_validate_fqdn,
+    ),
 ):
     """Install Orchest.
 
     Installation might take some time depending on your network
     bandwidth.
     """
-    orchest.install(log_level, cloud)
+
+    orchest.install(log_level, cloud, fqdn)
 
 
 @typer_app.command()
@@ -188,6 +208,15 @@ def restart():
     """
 
     orchest.restart()
+
+
+@typer_app.command()
+def uninstall():
+    """
+    Uninstall Orchest.
+    """
+
+    orchest.uninstall()
 
 
 @typer_app.command(hidden=True)

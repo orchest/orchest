@@ -1,6 +1,5 @@
 import { useClickOutside } from "@/hooks/useClickOutside";
 import { FileTree } from "@/types";
-import AddIcon from "@mui/icons-material/Add";
 import FolderIcon from "@mui/icons-material/Folder";
 import TurnLeftOutlinedIcon from "@mui/icons-material/TurnLeftOutlined";
 import Box from "@mui/material/Box";
@@ -68,7 +67,6 @@ type FilePickerProps = {
   icon?: React.ReactNode;
   helperText: string;
   onChangeValue?: (value: FilePickerProps["value"]) => void;
-  onCreateFile?: (path: string) => void;
   onFocus?: () => void;
   tree: FileTree;
   value: string;
@@ -112,12 +110,6 @@ const FilePicker: React.FC<FilePickerProps> = (props) => {
   };
   const onMouseLeaveMenu = () => {
     isBlurAllowed.current = true;
-  };
-
-  const onCreateFile = () => {
-    if (props.onCreateFile) {
-      props.onCreateFile(path);
-    }
   };
 
   const onNavigateUp = () => {
@@ -213,15 +205,6 @@ const FilePicker: React.FC<FilePickerProps> = (props) => {
           <MenuList dense>
             {node.children && (
               <>
-                <MenuItem
-                  onClick={onCreateFile}
-                  data-test-id="file-picker-new-file"
-                >
-                  <ListItemIcon>
-                    <AddIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>New file</ListItemText>
-                </MenuItem>
                 {!node.root && (
                   <MenuItem onClick={onNavigateUp}>
                     <ListItemIcon>

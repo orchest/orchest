@@ -14,10 +14,6 @@ dependencies:
   version: "0.0.1"
   repository: "file://charts/celery-worker"
   condition: celery-worker.enabled
-- name: file-manager
-  version: "0.0.1"
-  repository: "file://charts/file-manager"
-  condition: file-manager.enabled
 - name: orchest-api
   version: "0.0.1"
   repository: "file://charts/orchest-api"

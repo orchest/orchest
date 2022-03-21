@@ -13,7 +13,6 @@ import { OnboardingDialog } from "./components/Layout/OnboardingDialog";
 import { AppDrawer } from "./components/MainDrawer";
 import { SystemDialog } from "./components/SystemDialog";
 import { useAppContext } from "./contexts/AppContext";
-import { useLocalStorage } from "./hooks/useLocalStorage";
 import Jupyter from "./jupyter/Jupyter";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -37,8 +36,7 @@ $.fn.overflowing = function () {
 const App = () => {
   const [jupyter, setJupyter] = React.useState(null);
   const { boot } = useIntercom();
-  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
-  const { setConfirm } = useAppContext();
+  const { setConfirm, isDrawerOpen, setIsDrawerOpen } = useAppContext();
 
   const toggleDrawer = () => setIsDrawerOpen((currentValue) => !currentValue);
 

@@ -50,7 +50,7 @@ Ingress host
     {{- if .Values.global.ingress.host -}}
       {{ .Values.global.ingress.host }}
     {{- else -}}
-      {{ "www.localorchest.io" }}
+      {{ "localorchest.io" }}
     {{- end -}}
   {{- end -}}  
 {{- end -}}

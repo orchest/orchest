@@ -4,6 +4,7 @@ Note that pod labels are coupled with how we restart services, which
 is done by deleting all pods with the given labels.
 """
 import copy
+import json
 import os
 import shlex
 import traceback
@@ -401,6 +402,7 @@ def _get_jupyter_server_deployment_service_manifest(
             "template": {
                 "metadata": metadata,
                 "spec": {
+                    "terminationGracePeriodSeconds": 5,
                     "securityContext": {
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
@@ -689,6 +691,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     },
                     "serviceAccount": f"jupyter-eg-sa-{session_uuid}",
                     "serviceAccountName": f"jupyter-eg-sa-{session_uuid}",
+                    "terminationGracePeriodSeconds": 5,
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -759,6 +762,23 @@ def _get_user_service_deployment_service_manifest(
     img_mappings = session_config["env_uuid_to_image"]
     session_type = session_type.value
 
+    # Template section
+    is_pbp_enabled = service_config.get("preserve_base_path", False)
+    ingress_url = "service-" + service_config["name"] + "-" + session_uuid
+    if is_pbp_enabled:
+        ingress_url = "pbp-" + ingress_url
+
+    # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
+    # this substitution happens after service_config["name"] is read,
+    # so that JSON entry does not support $BASE_PATH_PREFIX
+    # substitution.  This allows the user to specify
+    # $BASE_PATH_PREFIX as the value of an env variable, so that
+    # the base path can be passsed dynamically to the service.
+    service_str = json.dumps(service_config)
+    service_str = service_str.replace("$BASE_PATH_PREFIX", ingress_url)
+    service_config = json.loads(service_str)
+    # End template section
+
     # Get user configured environment variables
     try:
         if session_type == "noninteractive":
@@ -800,6 +820,8 @@ def _get_user_service_deployment_service_manifest(
         userdir_pvc,
         project_dir,
         pipeline_path,
+        container_project_dir=sbinds.get("/project-dir", _config.PROJECT_DIR),
+        container_data_dir=sbinds.get("/data", _config.DATA_DIR),
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
@@ -845,6 +867,7 @@ def _get_user_service_deployment_service_manifest(
             "template": {
                 "metadata": metadata,
                 "spec": {
+                    "terminationGracePeriodSeconds": 5,
                     "securityContext": {
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
@@ -894,17 +917,8 @@ def _get_user_service_deployment_service_manifest(
     }
 
     if service_config["exposed"]:
-        ingress_url = (
-            "service-"
-            + service_config["name"]
-            + "-"
-            + project_uuid.split("-")[0]
-            + "-"
-            + pipeline_uuid.split("-")[0]
-        )
         ingress_paths = []
         for port in service_config.get("ports", []):
-            pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
             ingress_paths.append(
                 {
                     "backend": {
@@ -913,21 +927,34 @@ def _get_user_service_deployment_service_manifest(
                             "port": {"number": port},
                         }
                     },
-                    "path": f"/{pbp}{ingress_url}_{port}",
+                    "path": f"/({ingress_url}_{port}.*)"
+                    if is_pbp_enabled
+                    else f"/{ingress_url}_{port}(/|$)(.*)",
                     "pathType": "Prefix",
                 }
             )
 
         ingress_metadata = copy.deepcopy(metadata)
+
+        # Decide rewrite target based on pbp
+        ingress_metadata["annotations"] = {
+            "nginx.ingress.kubernetes.io/rewrite-target": "/$1"
+            if is_pbp_enabled
+            else "/$2",
+        }
+
         if service_config.get("requires_authentication", True):
             # Needs to be the FQDN since the ingress ngin pod lives in
             # a different namespace.
             auth_url = (
                 f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
             )
-            ingress_metadata["annotations"] = {
-                "nginx.ingress.kubernetes.io/auth-url": auth_url,
-            }
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-url"
+            ] = auth_url
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-signin"
+            ] = "/login"
 
         ingress_manifest = {
             "apiVersion": "networking.k8s.io/v1",

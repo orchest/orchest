@@ -49,7 +49,9 @@ class HelmMode(str, Enum):
     UPGRADE = "Update"
 
 
-def _run_helm_with_progress_bar(mode: HelmMode) -> None:
+def _run_helm_with_progress_bar(
+    mode: HelmMode, injected_env_vars: Optional[Dict[str, str]] = None
+) -> None:
     if mode == HelmMode.INSTALL:
         cmd = "make orchest"
     elif mode == HelmMode.UPGRADE:
@@ -57,8 +59,12 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     else:
         raise ValueError()
 
-    # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
+    # Put the update before the rest so that these env vars cannot be
+    # overwritten by coincidence.
+    if injected_env_vars is not None:
+        for k, v in injected_env_vars.items():
+            env[k] = str(v)
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
@@ -66,6 +72,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     # This way the command will only interact with orchest resources,
     # and not their dependencies (pvcs, etc.).
     env["DEPEND_RESOURCES"] = "FALSE"
+
     process = subprocess.Popen(
         cmd,
         cwd="deploy",
@@ -110,7 +117,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     return return_code
 
 
-def install(log_level: utils.LogLevel, cloud: bool):
+def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
@@ -135,7 +142,9 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
-    return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.INSTALL, injected_env_vars={"ORCHEST_FQDN": fqdn}
+    )
 
     if return_code != 0:
         utils.echo(
@@ -147,11 +156,12 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
     utils.echo("Installation was successful.")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    utils.echo(
+        f"Orchest is running with a FQDN equal to {fqdn}. To access it locally, add an "
+        "entry to your /etc/hosts file mapping the cluster ip (`minikube ip`) to "
+        f"'{fqdn}'."
+    )
 
 
 def _echo_version(
@@ -244,10 +254,12 @@ def status(output_json: bool = False):
                 replicas = depl.spec.replicas
                 if replicas > 0:
                     running_deployments.add(depl_name)
+                    if replicas != depl.status.available_replicas:
+                        unhealthy_deployments.add(depl_name)
                 else:
                     stopped_deployments.add(depl_name)
-                if replicas != depl.status.available_replicas:
-                    unhealthy_deployments.add(depl_name)
+                    if depl.status.available_replicas not in [0, None]:
+                        unhealthy_deployments.add(depl_name)
         # Given that there are no ongoing status changes, Orchest can't
         # have both stopped and running deployments.  Assume that, if at
         # least 1 deployment is running, the ones which are not are
@@ -476,6 +488,7 @@ def start(log_level: utils.LogLevel, cloud: bool):
         label="Start",
         show_eta=False,
     ) as progress_bar:
+        k8sw.sync_celery_parallelism_from_config()
         k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=True)
         k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=True)
 
@@ -493,10 +506,15 @@ def start(log_level: utils.LogLevel, cloud: bool):
         _wait_daemonsets_to_be_ready(daemonsets_to_start, progress_bar)
         _wait_deployments_to_be_ready(deployments_to_start, progress_bar)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    host_names = k8sw.get_host_names()
+    if host_names:
+        utils.echo(
+            "Orchest is running, you can reach it locally by mapping the cluster ip "
+            f"('minikube ip') to the following entries: {host_names} in your "
+            "/etc/hosts file."
+        )
+    else:
+        utils.echo("Orchest is running.")
 
 
 def restart():
@@ -651,7 +669,12 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
-    return_code = _run_helm_with_progress_bar(HelmMode.UPGRADE)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.UPGRADE,
+        # Preserve the current values, i.e. avoid helm overwriting them
+        # with default values.
+        utils.get_celery_parallelism_level_from_config(),
+    )
     if return_code != 0:
         utils.echo(
             f"There was an error while updating Orchest, exit code: {return_code} .",
@@ -661,8 +684,20 @@ def _update() -> None:
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Update was successful.")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    utils.echo("Update was successful, Orchest is running.")
+
+
+def uninstall():
+    k8sw.abort_if_unsafe()
+    utils.echo("Uninstalling Orchest...", nl=False)
+    k8s_core_api.delete_namespace("orchest")
+    while True:
+        try:
+            k8s_core_api.read_namespace("orchest")
+        except k8s_client.ApiException as e:
+            if e.status == 404:
+                utils.echo("\nSuccess.")
+                return
+            raise e
+        utils.echo(".", nl=False)
+        time.sleep(1)

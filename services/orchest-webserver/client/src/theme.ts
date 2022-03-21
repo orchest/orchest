@@ -24,6 +24,13 @@ const theme = createTheme({
   typography: {
     fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
   },
+  // tree: {
+  //   active: {
+  //     bgColor: "#e8f0fe",
+  //     color: "#1a73e8",
+  //   },
+  //   fontSize: "0.9rem",
+  // },
 });
 
 export default theme;

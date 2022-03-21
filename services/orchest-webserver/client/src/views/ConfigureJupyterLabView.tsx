@@ -268,7 +268,11 @@ const ConfigureJupyterLabView: React.FC = () => {
               buildFetchHash={state.buildFetchHash}
             />
 
-            <Stack direction="row" spacing={2}>
+            <Stack
+              sx={{ marginTop: (theme) => theme.spacing(2) }}
+              direction="row"
+              spacing={2}
+            >
               <Button
                 startIcon={<SaveIcon />}
                 variant="contained"
