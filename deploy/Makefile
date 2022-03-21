@@ -399,3 +399,15 @@ initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
 ./bin/initialize: | argo-workflow ${REGISTRY_TARGET} ${ORCHEST_RESOURCES_TARGET}
+
+.PHONY: orchest-upgrade
+orchest-upgrade:
+	helm upgrade ${ORCHEST_DEPLOY_CONFIG}
+
+.PHONY: argo-upgrade
+argo-upgrade:
+	helm upgrade ${ARGO_WORKFLOW_DEPLOY_CONFIG}
+
+.PHONY: registry-upgrade
+registry-upgrade:
+	helm upgrade ${DOCKER_REGISTRY_DEPLOY_CONFIG}
