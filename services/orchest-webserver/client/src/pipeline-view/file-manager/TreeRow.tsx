@@ -84,7 +84,6 @@ const RenameField = ({
 export const TreeRow = ({
   treeNodes,
   handleRename,
-  setIsDragging,
   setDragFile,
   root,
   hoveredPath,
@@ -92,7 +91,6 @@ export const TreeRow = ({
 }: {
   treeNodes: TreeNode[];
   handleRename: (oldPath: string, newPath: string) => void;
-  setIsDragging: (value: boolean) => void;
   setDragFile: (dragFileData: { labelText: string; path: string }) => void;
   root: string;
   hoveredPath: string;
@@ -148,7 +146,6 @@ export const TreeRow = ({
             >
               <TreeRow
                 treeNodes={e.children}
-                setIsDragging={setIsDragging}
                 setDragFile={setDragFile}
                 root={root}
                 hoveredPath={hoveredPath}

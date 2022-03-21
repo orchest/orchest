@@ -166,7 +166,7 @@ export function FileManager() {
         root,
       })}`;
 
-      const response = await fetcher(url);
+      const response = await fetcher<TreeNode>(url);
 
       // Augment existing fileTree with path specific tree
       mergeTrees(response, fileTrees[root]);

@@ -16,6 +16,7 @@ export type TreeNode = {
   path: string;
   type: "directory" | "file";
   name: string;
+  root: boolean;
 };
 
 export const searchTree = (
@@ -117,70 +118,19 @@ export const deduceRenameFromDragOperation = (
  * File API functions
  */
 
-function isDirectoryEntry(
+export function isDirectoryEntry(
   entry: FileSystemEntry
 ): entry is FileSystemDirectoryEntry {
   return entry.isDirectory;
 }
 
-function isFileEntry(entry: FileSystemEntry): entry is FileSystemFileEntry {
+export function isFileEntry(
+  entry: FileSystemEntry
+): entry is FileSystemFileEntry {
   return entry.isFile;
 }
 
-async function traverseDirectory(
-  entry: FileSystemEntry,
-  onEncounter: (entry: FileSystemFileEntry) => void
-) {
-  // return entry if entry is file
-  if (!isDirectoryEntry(entry)) return entry;
-
-  const reader = entry.createReader();
-  // Resolved when the entire directory is traversed
-  return new Promise((resolve, reject) => {
-    const iterationResults = [];
-    function readEntries() {
-      // According to the FileSystem API spec, readEntries() must be called until
-      // it calls the callback with an empty array. Seriously?
-      reader.readEntries(
-        (entries) => {
-          if (!entries.length) {
-            // Done iterating this particular directory
-            resolve(Promise.all(iterationResults));
-          } else {
-            // Add a list of promises for each directory entry.  If the entry is itself
-            // a directory, then that promise won't resolve until it is fully traversed.
-            iterationResults.push(
-              Promise.all(
-                entries.map((entry) => {
-                  return traverseDirectory(entry, onEncounter);
-                })
-              )
-            );
-            // Try calling readEntries() again for the same dir, according to spec
-            readEntries();
-          }
-        },
-        (error) => reject(error)
-      );
-    }
-    readEntries();
-  });
-}
-
-async function processFileEntry(entry: FileSystemFileEntry) {
-  let file = await new Promise((resolve) => {
-    entry.file((file) => {
-      Object.defineProperty(file, "webkitRelativePath", {
-        value: entry.fullPath.slice(1),
-      });
-      resolve(file);
-    });
-  });
-
-  return file;
-}
-
-export const mergeTrees = (subTree, tree) => {
+export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
   // Modifies tree
   // subTree root path
   let { parent } = searchTree(subTree.path, tree);

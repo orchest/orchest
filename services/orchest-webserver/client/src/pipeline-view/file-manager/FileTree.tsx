@@ -101,7 +101,6 @@ export const FileTree = React.memo(function FileTreeComponent({
     setDragFile,
     hoveredPath,
     isDragging,
-    setIsDragging,
     fileTrees,
     setFilePathChanges,
   } = useFileManagerContext();
@@ -395,7 +394,6 @@ export const FileTree = React.memo(function FileTreeComponent({
               labelText={root === PROJECT_DIR_PATH ? "Project files" : root}
             >
               <TreeRow
-                setIsDragging={setIsDragging}
                 setDragFile={setDragFile}
                 treeNodes={fileTrees[root].children}
                 hoveredPath={hoveredPath}
