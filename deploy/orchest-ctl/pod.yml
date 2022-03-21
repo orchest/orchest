@@ -20,8 +20,6 @@ spec:
     env:
     - name: PYTHONUNBUFFERED
       value: "TRUE"
-    - name: ORCHEST_VERSION
-      value: VERSION%
     - name: POD_NAME
       valueFrom:
         fieldRef:
