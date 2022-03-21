@@ -122,6 +122,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
   const handleSelect = React.useCallback(
     (event: React.SyntheticEvent<Element, Event>, selected: string[]) => {
+      event.stopPropagation();
       setSelectedFiles(selected);
     },
     [setSelectedFiles]

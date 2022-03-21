@@ -23,11 +23,14 @@ import {
 import React from "react";
 import {
   allowedExtensionsMarkup,
+  lastSelectedFolderPath,
   PROJECT_DIR_PATH,
   removeLeadingSymbols,
   ROOT_SEPARATOR,
 } from "./common";
+import { useFileManagerContext } from "./FileManagerContext";
 
+//eslint-disable-next-line @typescript-eslint/no-unused-vars
 const KernelLanguage = {
   python: "Python",
   julia: "Julia",
@@ -36,14 +39,14 @@ const KernelLanguage = {
 
 export const CreateFileDialog = ({
   isOpen,
-  folderPath = "",
+  root = "",
   onClose,
   onSuccess,
   projectUuid,
   initialFileName,
 }: {
   isOpen: boolean;
-  folderPath?: string;
+  root?: string;
   onClose: () => void;
   onSuccess: (filePath: string) => void;
   projectUuid: string;
@@ -51,6 +54,11 @@ export const CreateFileDialog = ({
 }) => {
   // Global state
   const { setAlert } = useAppContext();
+  const { selectedFiles } = useFileManagerContext();
+
+  const lastSelectedFolder = React.useMemo(() => {
+    return lastSelectedFolderPath(selectedFiles);
+  }, [selectedFiles]);
 
   // local states
 
@@ -62,7 +70,12 @@ export const CreateFileDialog = ({
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
 
-  const fullFilePath = `${folderPath}${fileName}${fileExtension}`;
+  const rootFolder =
+    root === "/project-dir" ? "/" : root === "/data" ? "../../data" : "";
+  const fullFilePath = `${rootFolder}${lastSelectedFolder}${fileName}${fileExtension}`;
+
+  const rootFolderForDisplay = root === "/project-dir" ? "Project files" : root;
+  const fullFilePathForDisplay = `${rootFolderForDisplay}${lastSelectedFolder}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<
     void,
@@ -188,8 +201,8 @@ export const CreateFileDialog = ({
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  label="Path in project"
-                  value={fullFilePath}
+                  label="File path"
+                  value={fullFilePathForDisplay}
                   fullWidth
                   margin="normal"
                   disabled
