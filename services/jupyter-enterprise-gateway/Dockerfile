@@ -39,7 +39,11 @@ RUN mamba install --quiet --yes \
 COPY ./kernel-override/ /opt/conda/share/jupyter/kernels/python3/
 
 COPY ./lib/python /orchest/lib/python
-RUN pip install --upgrade pip && pip install -e /orchest/lib/python/orchest-internals
+USER root
+RUN pip3 install \
+	--upgrade pip && \
+	pip3 install -e /orchest/lib/python/orchest-internals && \
+	pip3 install kubernetes==21.7.0
 
 ARG ORCHEST_VERSION
 ENV ORCHEST_VERSION=${ORCHEST_VERSION}

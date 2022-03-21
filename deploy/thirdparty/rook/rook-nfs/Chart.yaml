@@ -1,0 +1,9 @@
+apiVersion: v0.0.1
+description: NFS Storage provider fot Cloud-Native Environment
+name: rook-nfs
+version: 0.0.1
+appVersion: 0.0.1
+icon: https://rook.io/images/rook-logo.svg
+sources:
+  - https://github.com/rook/nfs
+

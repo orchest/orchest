@@ -41,7 +41,7 @@ class Config:
     # however, the plasma.sock file is not created by the sdk. This
     # configuration value only specifies where the sdk will look for the
     # socket to connect to the plasma store.
-    STORE_SOCKET_NAME = "/tmp/orchest/plasma.sock"
+    STORE_SOCKET_NAME = "/project-dir/.orchest/plasma.sock"
 
     # For transfer.py
     IDENTIFIER_SERIALIZATION = 1

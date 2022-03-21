@@ -1,0 +1,55 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
+      serviceAccountName: {{ template "library.metadata.name" . }}
+      containers:
+      - name: orchest-api
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        ports:
+        - containerPort: 80
+        env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "ORCHEST_FQDN"
+          value: "{{ .Values.global.ingress.host }}"
+        - name: "ORCHEST_HOST_GID"
+          value: "1"
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"
+        - name: "ORCHEST_GPU_ENABLED_INSTANCE"
+          value: "FALSE"
+        volumeMounts:
+         - name: userdir-pvc
+           mountPath: /userdir
+        startupProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "nc -zvw1 rabbitmq-server 5672 &&
+                nc -zvw1 orchest-database 5432 &&
+                wget -T 1 -t 1 localhost/api --spider"
+          # Be generous with time because the container could be doing a
+          # cleanup and not be able to respond.
+          timeoutSeconds: 5
+          periodSeconds: 5
+          failureThreshold: 40
+          successThreshold: 1
+        livenessProbe:
+          httpGet:
+            path: /api
+            port: 80
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 5

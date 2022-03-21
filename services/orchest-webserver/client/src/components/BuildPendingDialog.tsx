@@ -151,7 +151,7 @@ const BuildPendingDialog: React.FC = () => {
       building: true,
     }));
 
-    let environment_build_requests = environmentsToBeBuilt.map(
+    let environment_image_build_requests = environmentsToBeBuilt.map(
       (environmentUuid) => ({
         environment_uuid: environmentUuid,
         project_uuid: projectUuid,
@@ -160,7 +160,7 @@ const BuildPendingDialog: React.FC = () => {
 
     makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
       type: "json",
-      content: { environment_build_requests },
+      content: { environment_image_build_requests },
     })
       .then(() => startPollingGate())
       .catch((error) => {

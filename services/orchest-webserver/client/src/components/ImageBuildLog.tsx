@@ -1,4 +1,4 @@
-import { EnvironmentBuild } from "@/types";
+import { EnvironmentImageBuild } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
@@ -25,11 +25,11 @@ const ImageBuild = ({
   buildFetchHash,
   hideDefaultStatus,
 }: {
-  build: EnvironmentBuild | undefined;
+  build: EnvironmentImageBuild | undefined;
   ignoreIncomingLogs: boolean;
   buildRequestEndpoint: string;
   buildsKey: string;
-  onUpdateBuild: (newBuild: EnvironmentBuild) => void;
+  onUpdateBuild: (newBuild: EnvironmentImageBuild) => void;
   socketIONamespace: string;
   streamIdentity: string;
   buildFetchHash: string;
@@ -39,7 +39,7 @@ const ImageBuild = ({
   const [promiseManager] = React.useState(new PromiseManager());
   const [refManager] = React.useState(new RefManager());
 
-  const { data: builds, mutate } = useSWR<EnvironmentBuild[]>(
+  const { data: builds, mutate } = useSWR<EnvironmentImageBuild[]>(
     buildRequestEndpoint,
     (url) => fetcher(url).then((response) => response[buildsKey]),
     {

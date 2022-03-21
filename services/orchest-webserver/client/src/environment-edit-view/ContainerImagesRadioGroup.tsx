@@ -16,7 +16,11 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
 import React from "react";
-import { DEFAULT_BASE_IMAGES, LANGUAGE_MAP } from "./common";
+import {
+  DEFAULT_BASE_IMAGES,
+  GPU_SUPPORT_ENABLED,
+  LANGUAGE_MAP,
+} from "./common";
 import { ContainerImageTile } from "./ContainerImageTile";
 import { LabeledText } from "./LabeledText";
 
@@ -41,7 +45,10 @@ const ImageOption: React.FC<{
               top: (theme) => theme.spacing(2),
               right: (theme) => theme.spacing(2.5),
               fontSize: (theme) => theme.typography.caption.fontSize,
-              color: (theme) => theme.palette.primary.dark,
+              color: (theme) =>
+                !disabled
+                  ? theme.palette.primary.dark
+                  : theme.palette.grey[700],
             }}
           >
             GPU
@@ -120,15 +127,22 @@ export const ContainerImagesRadioGroup = ({
         sx={{ margin: (theme) => theme.spacing(2, -1, 0, -1) }}
       >
         {DEFAULT_BASE_IMAGES.map(({ base_image, img_src, gpu_support }) => {
+          const isUnavailable =
+            !GPU_SUPPORT_ENABLED && base_image === "orchest/base-kernel-py-gpu";
           return (
             <Grid item sm={6} key={base_image}>
               <ImageOption
-                title={base_image}
+                title={isUnavailable ? "Temporarily unavailable" : base_image}
                 value={base_image}
-                disabled={disabled}
+                disabled={isUnavailable || disabled}
                 supportGpu={gpu_support}
               >
-                <Image src={`${img_src}`} alt={base_image} loading="lazy" />
+                <Image
+                  src={`${img_src}`}
+                  alt={isUnavailable ? "Temporarily unavailable" : base_image}
+                  loading="lazy"
+                  sx={isUnavailable ? { filter: "grayscale(100%)" } : undefined}
+                />
               </ImageOption>
             </Grid>
           );

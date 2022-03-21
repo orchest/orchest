@@ -1,0 +1,13 @@
+# Service and port configuration
+service:
+  port: 80
+
+ORCHEST_LOG_LEVEL: INFO
+CLOUD: "False"
+
+images:
+  pullPolicy: IfNotPresent
+  registry: docker.io
+  name: orchest/auth-server
+  tag: latest
+  

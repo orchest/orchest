@@ -88,6 +88,7 @@ orchest.transfer
 
 .. automodule:: orchest.transfer
     :members:
+    :exclude-members: output_to_memory
 
 .. _api parameters:
 

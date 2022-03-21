@@ -62,8 +62,8 @@ export const useAutoStartSession = ({
       window.orchest.jupyter.unload();
     }
 
-    if (session?.notebook_server_info) {
-      const base_url = session?.notebook_server_info?.base_url;
+    if (session?.base_url) {
+      const base_url = session.base_url;
 
       if (base_url) {
         let baseAddress = "//" + window.location.host + base_url;

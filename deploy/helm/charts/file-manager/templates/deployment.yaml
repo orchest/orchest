@@ -1,0 +1,32 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
+      containers:
+      - name: file-manager
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        {{ if .Values.service.port}}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        {{ end }}
+        volumeMounts:
+         - name: userdir-pvc
+           mountPath: /userdir
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          initialDelaySeconds: 1
+          periodSeconds: 4
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 5

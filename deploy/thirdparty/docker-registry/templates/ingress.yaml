@@ -1,0 +1,50 @@
+{{- if .Values.ingress.enabled -}}
+{{- $apiVersions := .Capabilities.APIVersions -}}
+{{- $serviceName := include "docker-registry.fullname" . -}}
+{{- $servicePort := .Values.service.port -}}
+{{- $path := .Values.ingress.path -}}
+apiVersion: {{- if $apiVersions.Has "networking.k8s.io/v1" }} networking.k8s.io/v1 {{- else }} networking.k8s.io/v1beta1 {{- end }}
+kind: Ingress
+metadata:
+  name: {{ template "docker-registry.fullname" . }}
+  namespace: {{ .Values.namespace | default .Release.Namespace }}
+  labels:
+    app: {{ template "docker-registry.name" . }}
+    chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+{{- if .Values.ingress.labels }}
+{{ toYaml .Values.ingress.labels | indent 4 }}
+{{- end }}
+  annotations:
+    {{- range $key, $value := .Values.ingress.annotations }}
+      {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+{{- if $apiVersions.Has "networking.k8s.io/v1" }}
+  ingressClassName: {{ .Values.ingress.className }}
+{{- end }}
+  rules:
+    {{- range $host := .Values.ingress.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: {{ $path }}
+{{- if $apiVersions.Has "networking.k8s.io/v1" }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $serviceName }}
+                port:
+                  number: {{ $servicePort }}
+{{- else }}
+            backend:
+              serviceName: {{ $serviceName }}
+              servicePort: {{ $servicePort }}
+{{- end }}
+    {{- end -}}
+  {{- if .Values.ingress.tls }}
+  tls:
+{{ toYaml .Values.ingress.tls | indent 4 }}
+  {{- end -}}
+{{- end -}}

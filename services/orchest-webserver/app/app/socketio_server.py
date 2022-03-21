@@ -80,9 +80,11 @@ def register_build_listener(namespace, socketio):
 
 def register_socketio_broadcast(socketio):
 
-    register_build_listener(_config.ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE, socketio)
     register_build_listener(
-        _config.ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE, socketio
+        _config.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE, socketio
+    )
+    register_build_listener(
+        _config.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE, socketio
     )
 
     @socketio.on("pty-log-manager", namespace="/pty")

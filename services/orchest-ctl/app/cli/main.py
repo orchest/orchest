@@ -1,43 +1,28 @@
-import logging
-import sys
 from enum import Enum
 from typing import Optional
 
 import typer
+import validators
 
-from app.cli import start as cli_start
-from app.orchest import OrchestApp
-from app.spec import get_container_config
-from app.utils import echo, fix_userdir_permissions
+from app import orchest
+from app.utils import LogLevel, echo, init_logger
 
+__CLOUD_HELP_MESSAGE = (
+    "Starting Orchest with --cloud changes GUI functionality. For example "
+    "making it impossible to disable the authentication layer. Settings "
+    "that cannot be modified through the GUI because of this flag, as "
+    "all settings, can still be modified by changing the config.json "
+    "configuration file directly."
+)
 
-# TODO: utils.py
-def init_logger(verbosity=0):
-    """Initialize logger.
-
-    The logging module is used to output to STDOUT for the CLI.
-
-    Args:
-        verbosity: The level of verbosity to use. Corresponds to the
-        logging levels:
-            3 DEBUG
-            2 INFO
-            1 WARNING
-            0 ERROR
-
-    """
-    levels = [logging.ERROR, logging.WARNING, logging.INFO, logging.DEBUG]
-    logging.basicConfig(level=levels[verbosity])
-
-    root = logging.getLogger()
-    if len(root.handlers) > 0:
-        h = root.handlers[0]
-        root.removeHandler(h)
-
-    formatter = logging.Formatter("%(levelname)s: %(message)s")
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    root.addHandler(handler)
+# __DEV_HELP_MESSAGE = (
+#     "Starting Orchest with --dev mounts the repository code from the "
+#     "filesystem (and thus adhering to branches) to the appropriate
+#     paths in " "the Docker containers. This allows for active code
+#     changes being " "reflected inside the application. Moreover,
+#     updating in dev mode " "makes it so that the git repository and
+#     the orchest-ctl image are" "not updated."
+# )
 
 
 def _default(
@@ -67,10 +52,6 @@ typer_app = typer.Typer(
     callback=_default,
 )
 
-typer_app.add_typer(cli_start.typer_app, name="start")
-
-app = OrchestApp()
-
 
 class Language(str, Enum):
     python = "python"
@@ -92,11 +73,47 @@ def version(
         show_default=False,
         help="Get extensive version information.",
     ),
+    json: bool = typer.Option(
+        False,
+        "--json",
+        show_default=False,
+        help="Get output in json.",
+    ),
 ):
     """
     Get Orchest version.
     """
-    app.version(ext=ext)
+    orchest.version(ext=ext, output_json=json)
+
+
+@typer_app.command()
+def start(
+    log_level: Optional[LogLevel] = typer.Option(
+        LogLevel.INFO,
+        "-l",
+        "--log-level",
+        show_default=False,
+        help="Log level inside the application.",
+    ),
+    cloud: bool = typer.Option(
+        False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
+    ),
+):
+    """
+    Start Orchest.
+
+    Alias:
+
+    \b
+        orchest start [OPTIONS]
+    """
+    # if dev:
+    #     logger.info(
+    #         "Starting Orchest with --dev. This mounts host directories
+    #         " "to monitor for source code changes."
+    #     )
+
+    orchest.start(log_level, cloud)
 
 
 @typer_app.command()
@@ -104,87 +121,58 @@ def stop():
     """
     Shutdown Orchest.
     """
-    app.stop()
+    orchest.stop()
 
 
 @typer_app.command()
 def status(
-    ext: bool = typer.Option(
+    json: bool = typer.Option(
         False,
-        "--ext",
+        "--json",
         show_default=False,
-        help="Get extensive status information.",
+        help="Get output in json.",
     ),
 ):
     """
     Get status of Orchest.
 
-    Exit codes:
-
-    - 0: Orchest is running and services are ready.
-
-    - 1: Orchest is not running.
-
-    - 2: Orchest is running, but some required service has shut down.
-
-    - 3: Orchest is running, but some required service is not passing a
-    health check.
-
-    - 4: Orchest is restarting.
-
-    - 5: Orchest is updating.
-    """
-    app.status(ext=ext)
-
-
-@typer_app.command()
-def debug(
-    compress: bool = typer.Option(
-        False, "--compress", show_default=False, help="Compress the output directory."
-    ),
-    ext: bool = typer.Option(
-        False,
-        "--ext",
-        show_default=False,
-        help="Get extensive debug information.",
-    ),
-):
-    """
-    Create a debug dump.
-
-    The dump is saved in the working directory as 'debug-dump'. When
-    reporting a bug, it is best to: stop Orchest, start Orchest again,
-    reproduce the bug, then use this command.
-
-    The command does not need Orchest to be running when called, but
-    will produce a less inclusive dump if that is not the case.
-
-    Note: if Orchest was/has been running with --dev, then there is the
-    possibility of some user data getting into the dump due to the log
-    level being set to DEBUG.
-
-    Note: running with the '--ext' flag could include sensitive user
-    data.
+    The given status will be one of: "installing", "restarting",
+    "running", "starting", "stopped", "stopping", "unhealthy" or
+    "updating".
 
     """
-    app.debug(ext, compress)
+    orchest.status(output_json=json)
+
+
+def _validate_fqdn(fqdn: str) -> str:
+    if not validators.domain(fqdn):
+        raise typer.BadParameter(f"{fqdn} is not a valid domain.")
+    return fqdn
 
 
 @typer_app.command()
 def install(
-    language: Language = typer.Option(
-        Language.python,
-        "--lang",
-        show_default=True,
-        help="Language dependencies to install.",
+    log_level: Optional[LogLevel] = typer.Option(
+        LogLevel.INFO,
+        "-l",
+        "--log-level",
+        show_default=False,
+        help="Log level inside the application.",
     ),
-    gpu: bool = typer.Option(
-        False,
-        show_default="--no-gpu",
+    cloud: bool = typer.Option(
+        False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
+    ),
+    fqdn: Optional[str] = typer.Option(
+        "localorchest.io",
+        "--fqdn",
+        show_default=True,
         help=(
-            "Whether to install GPU supported images corresponding"
-            " to the given language dependencies."
+            "Fully qualified domain name of the application. It can be used, for "
+            "example, to reach the application locally after mapping the cluster ip "
+            "to 'localorchest.io' in your /etc/hosts file. To do that, you can use "
+            "'minikube ip' to get the cluster ip."
         ),
+        callback=_validate_fqdn,
     ),
 ):
     """Install Orchest.
@@ -192,90 +180,43 @@ def install(
     Installation might take some time depending on your network
     bandwidth.
     """
-    # Make sure the permissions of the userdir are correctly set in case
-    # Orchest will always be started using `--cloud` in the future (as
-    # in other modes the permissions are fixed on start).
-    fix_userdir_permissions()
-    app.install(language, gpu=gpu)
+
+    orchest.install(log_level, cloud, fqdn)
 
 
-# TODO: make mode in Mode type. Although it is "web" here
 @typer_app.command()
-def update(
-    mode: Optional[str] = typer.Option(None, hidden=True),
-    dev: bool = typer.Option(
-        False,
-        show_default="--no-dev",
-        help=(
-            "Don't update the git repo. Useful for development as"
-            " the 'master' branch does not need to be checked out."
-        ),
-    ),
-):
+def update():
     """
     Update Orchest.
-
-    For the update to succeed, make sure you have the 'master' branch
-    checked out.
 
     Note: when updating Orchest all running sessions and pipeline runs
     will be killed. Orchest can not be running during update.
     """
-    app.update(mode=mode, dev=dev)
+    orchest.update()
+
+
+@typer_app.command(hidden=True)
+def hidden_update():
+    """Do not use unless you know what you are doing."""
+    orchest._update()
 
 
 @typer_app.command()
-def restart(
-    # Support the old way of passing mode so that an old version of
-    # Orchest does not break when updating.
-    mode: str = typer.Option(
-        "reg",
-        help=(
-            "Mode in which to start Orchest afterwards. This option is "
-            "deprecated and will be removed in a future version. Use --dev "
-            "instead of --mode=dev."
-        ),
-        hidden=True,
-    ),
-    port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
-    cloud: bool = typer.Option(
-        False,
-        show_default="--no-cloud",
-        help=cli_start.__CLOUD_HELP_MESSAGE,
-        hidden=True,
-    ),
-    dev: bool = typer.Option(
-        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
-    ),
-):
+def restart():
     """
     Restart Orchest.
     """
 
-    dev = dev or (mode == "dev")
-    container_config = get_container_config(port, cloud=cloud, dev=dev)
-    app.restart(container_config, cloud=cloud)
+    orchest.restart()
 
 
-@typer_app.command(hidden=True)
-def updateserver(
-    # Necessary to make it so that the update server restarts Orchest
-    # with the correct settings.
-    port: Optional[int] = typer.Option(8000, help="The port Orchest will listen on."),
-    cloud: bool = typer.Option(
-        False,
-        show_default="--no-cloud",
-        help=cli_start.__CLOUD_HELP_MESSAGE,
-        hidden=True,
-    ),
-    dev: bool = typer.Option(
-        False, show_default="--no-dev", help=cli_start.__DEV_HELP_MESSAGE
-    ),
-):
+@typer_app.command()
+def uninstall():
     """
-    Update Orchest through the update-server.
+    Uninstall Orchest.
     """
-    app._updateserver(port, cloud, dev)
+
+    orchest.uninstall()
 
 
 @typer_app.command(hidden=True)
@@ -332,54 +273,4 @@ def adduser(
         echo("Token cannot be empty.", err=True)
         raise typer.Exit(code=1)
 
-    app.add_user(username, password, token, is_admin)
-
-
-@typer_app.command()
-def run(
-    job_name: str = typer.Option(
-        ...,  # required
-        "--job",
-        help="Name of job to create.",
-    ),
-    project_name: str = typer.Option(
-        ...,  # required
-        "--project",
-        help="Name of project containing pipeline.",
-    ),
-    pipeline_name: str = typer.Option(
-        ...,  # required
-        "--pipeline",
-        help="Name of pipeline to run.",
-    ),
-    wait: bool = typer.Option(
-        False,
-        show_default="--no-wait",
-        help="Wait for the pipeline run to finish.",
-    ),
-    rm: bool = typer.Option(
-        False,
-        show_default="--no-rm",
-        help="Remove the job after it finishes running. Requires '--wait'.",
-    ),
-):
-    """
-    Queue a pipeline as a one-time job.
-
-    In order to use environments variables, you can define them through
-    the UI as project or pipeline level environment variables. Passing
-    them directly through the CLI is a potential security risk.
-
-    NOTE: Orchest has to be running for this to work.
-
-    Exit codes:
-
-    - 0: The job was successfully queued.
-
-    - 1: Something went wrong.
-    """
-    if rm and not wait:
-        echo("Using '--rm' requires '--wait'.")
-        raise typer.Exit(code=1)
-
-    app.run(job_name, project_name, pipeline_name, wait=wait, rm=rm)
+    orchest.add_user(username, password, token, is_admin)

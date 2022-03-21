@@ -3,7 +3,6 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import uuid
 from datetime import datetime
 from typing import Optional
@@ -12,7 +11,7 @@ import requests
 from flask import current_app
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import is_services_definition_valid
+from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -25,14 +24,11 @@ def get_pipeline_path(
     project_uuid,
     job_uuid=None,
     pipeline_run_uuid=None,
-    host_path=False,
     pipeline_path=None,
 ):
     """Returns path to pipeline definition file (including .orchest)"""
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     if pipeline_path is None:
         pipeline_path = pipeline_uuid_to_path(pipeline_uuid, project_uuid, job_uuid)
@@ -43,27 +39,25 @@ def get_pipeline_path(
         return os.path.join(USER_DIR, "projects", project_path, pipeline_path)
     elif pipeline_run_uuid is not None and job_uuid is not None:
         return os.path.join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
             pipeline_run_uuid,
             pipeline_path,
         )
     elif job_uuid is not None:
         return os.path.join(
-            get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path),
+            get_job_directory(pipeline_uuid, project_uuid, job_uuid),
             "snapshot",
             pipeline_path,
         )
 
 
-def get_job_directory(pipeline_uuid, project_uuid, job_uuid, host_path=False):
+def get_job_directory(pipeline_uuid, project_uuid, job_uuid):
     """Job directory contains:
     snapshot/
     <pipeline_run_uuid>/<project copy>
     """
 
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     return os.path.join(USER_DIR, "jobs", project_uuid, pipeline_uuid, job_uuid)
 
@@ -73,7 +67,6 @@ def get_pipeline_directory(
     project_uuid,
     job_uuid=None,
     pipeline_run_uuid=None,
-    host_path=False,
 ):
     """Returns path to directory with the pipeline definition file."""
 
@@ -83,20 +76,17 @@ def get_pipeline_directory(
             project_uuid,
             job_uuid,
             pipeline_run_uuid,
-            host_path,
         )
     )[0]
 
 
-def get_project_directory(project_uuid, host_path=False):
+def get_project_directory(project_uuid):
     USER_DIR = StaticConfig.USER_DIR
-    if host_path is True:
-        USER_DIR = StaticConfig.HOST_USER_DIR
 
     return os.path.join(USER_DIR, "projects", project_uuid_to_path(project_uuid))
 
 
-def get_project_snapshot_size(project_uuid, host_path=False):
+def get_project_snapshot_size(project_uuid):
     """Returns the snapshot size for a project in MB."""
 
     def get_size(path, skip_dirs):
@@ -110,7 +100,7 @@ def get_project_snapshot_size(project_uuid, host_path=False):
 
         return size
 
-    project_dir = get_project_directory(project_uuid, host_path=host_path)
+    project_dir = get_project_directory(project_uuid)
 
     # This does not count towards size for snapshots.
     # NOTE: For optimization purposes we might have to also ignore the
@@ -129,9 +119,9 @@ def project_exists(project_uuid):
     ).count() == 0 or not os.path.isdir(get_project_directory(project_uuid))
 
 
-def get_environment_directory(environment_uuid, project_uuid, host_path=False):
+def get_environment_directory(environment_uuid, project_uuid):
     return os.path.join(
-        get_project_directory(project_uuid, host_path),
+        get_project_directory(project_uuid),
         ".orchest",
         "environments",
         environment_uuid,
@@ -245,8 +235,6 @@ def read_environment_from_disk(env_directory, project_uuid) -> Optional[Environm
 def delete_environment(app, project_uuid, environment_uuid):
     """Delete an environment from disk and from the runtime environment
 
-    The only runtime environment for now is Docker.
-
     Args:
         project_uuid:
         environment_uuid:
@@ -256,7 +244,7 @@ def delete_environment(app, project_uuid, environment_uuid):
     """
     url = (
         f"http://{app.config['ORCHEST_API_ADDRESS']}"
-        f"/api/environment-images/{project_uuid}/{environment_uuid}"
+        f"/api/environments/{project_uuid}/{environment_uuid}"
     )
     app.config["SCHEDULER"].add_job(requests.delete, args=[url])
 
@@ -298,7 +286,7 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
             pipeline_json = json.load(json_file)
 
             # Apply pipeline migrations
-            pipeline_json = migrate_pipeline(pipeline_json)
+            migrate_pipeline(pipeline_json)
 
             return pipeline_json
     except Exception as e:
@@ -505,80 +493,7 @@ def create_job_directory(job_uuid, pipeline_uuid, project_uuid):
         current_app.config["USER_DIR"], "projects", project_uuid_to_path(project_uuid)
     )
 
-    copytree(project_dir, snapshot_path)
-
-
-def rmtree(path, ignore_errors=False):
-    """A wrapped `rm -rf -- {path}`.
-
-    If eventlet is being used and it's either patching all modules or
-    patching subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to remove.
-
-    """
-    exit_code = subprocess.call(
-        f"rm -rf -- '{path}'", stderr=subprocess.STDOUT, shell=True
-    )
-    if exit_code != 0 and not ignore_errors:
-        raise OSError(f"Failed to remove '{path}': {exit_code}.")
-
-
-def copy(source: str, target: str, ignore_errors: bool = False) -> None:
-    """A wrapped `cp {source} {target}`.
-
-    If eventlet is being used and it's either patching all modules or
-    patching subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to copy.
-
-    """
-    exit_code = subprocess.call(
-        f"cp '{source}' '{target}'", stderr=subprocess.STDOUT, shell=True
-    )
-    if exit_code != 0 and not ignore_errors:
-        raise OSError(
-            f"Failed to run `cp '{source}' '{target}'` with exit code: {exit_code}."
-        )
-
-
-def copytree(source: str, target: str, respect_gitignore: bool = True):
-    """Copies content from source to target.
-
-    As part of the copying process it ignores patterns from the
-    top-level `.gitignore` in `source`.
-
-    If eventlet is being used and it's either patching all modules or
-    patchng subprocess, this function is not going to block the thread.
-
-    Raises:
-        OSError if it failed to copy.
-
-    """
-    # With a trailing `/` rsync copies the content of the directory
-    # instead of the directory itself.
-    if not source.endswith("/"):
-        source += "/"
-
-    # Construct copy command.
-    # Using rsync with `-W` copies files as a whole which drastically
-    # improves its performance, making it almost as fast as the `cp`
-    # command. The other options (`-aHAX`) are to preserve all kinds
-    # of attributes, e.g. symlinks, `-a` also automatically copies
-    # recursively.
-    copy_cmd = ["rsync", "-aWHAX"]
-    # NOTE: source has trailing `/`
-    if respect_gitignore and os.path.isfile(f"{source}.gitignore"):
-        copy_cmd += [f"--exclude-from='{source}.gitignore'"]
-    copy_cmd += [f"'{source}' '{target}'"]
-
-    exit_code = subprocess.call(
-        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
-    )
-    if exit_code != 0:
-        raise OSError(f"Failed to copy '{source}' to '{target}', :{exit_code}.")
+    copytree(project_dir, snapshot_path, use_gitignore=True)
 
 
 def remove_job_directory(job_uuid, pipeline_uuid, project_uuid):

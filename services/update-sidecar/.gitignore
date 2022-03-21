@@ -1,0 +1,4 @@
+update_service_venv/
+update-sidecar.sock
+update-service.service
+update-service

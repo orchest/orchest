@@ -38,8 +38,8 @@ def create_job_spec(config) -> dict:
         job_spec["pipeline_uuid"], job_spec["project_uuid"]
     )
     job_spec["pipeline_run_spec"]["run_config"] = {
-        "host_user_dir": current_app.config["HOST_USER_DIR"],
-        "project_dir": get_project_directory(job_spec["project_uuid"], host_path=True),
+        "userdir_pvc": current_app.config["USERDIR_PVC"],
+        "project_dir": get_project_directory(job_spec["project_uuid"]),
         "pipeline_path": pipeline_path,
     }
 

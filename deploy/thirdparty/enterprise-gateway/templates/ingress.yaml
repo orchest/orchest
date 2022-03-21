@@ -1,0 +1,35 @@
+{{ if .Values.ingress.enabled }}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: {{ .Release.Namespace }}
+  name: enterprise-gateway-ingress
+  annotations:
+{{- if .Values.ingress.nginx.enabled }}
+{{- with .Values.ingress.nginx.annotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- else if .Values.ingress.traefik.enabled }}
+{{- with .Values.ingress.traefik.annotations }}
+{{ toYaml . | indent 4 }}
+{{- end }}
+{{- end }}
+spec:
+  rules:
+  {{- if .Values.ingress.hostName }}
+  - host: {{ .Values.ingress.hostName }}
+    http:
+  {{- else }}
+  - http:
+  {{- end }}
+      paths:
+{{- if .Values.ingress.nginx.enabled }}
+      - path: {{ .Values.ingress.nginx.path }}
+{{- else if .Values.ingress.traefik.enabled }}
+      - path: {{ .Values.ingress.traefik.path }}
+{{- end }}
+        backend:
+          serviceName: enterprise-gateway
+          servicePort: {{ .Values.port }}
+{{ end }}
+

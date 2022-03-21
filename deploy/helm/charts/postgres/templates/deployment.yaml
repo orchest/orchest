@@ -1,0 +1,38 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: pgdata
+          hostPath:
+            path: /var/lib/orchest/userdir/.orchest/database/data
+            type: DirectoryOrCreate                      
+      containers:
+      - name: orchest-database
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        {{ if .Values.service.port}}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        {{ end }}
+        env:
+        - name: "PGDATA"
+          value: "/userdir/.orchest/database/data"
+        - name: "POSTGRES_HOST_AUTH_METHOD"
+          value: "trust"
+        volumeMounts:
+         - name: pgdata
+           mountPath: /userdir/.orchest/database/data           
+        readinessProbe:
+          exec:
+            command:
+              - pg_isready
+              - --username
+              - postgres
+          initialDelaySeconds: 1
+          periodSeconds: 4
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 20

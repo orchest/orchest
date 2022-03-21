@@ -32,7 +32,7 @@ jobs:
             -i base-kernel-julia,
             -i base-kernel-py-gpu,
             -i nginx-proxy,
-            -i update-server,
+            -i update-sidecar,
             -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
           ]
 
@@ -129,11 +129,11 @@ jobs:
           DOCKERHUB_REPOSITORY: orchest/auth-server
           README_FILEPATH: services/auth-server/README.md
 
-      - name: Push README files to DockerHub update-server
+      - name: Push README files to DockerHub update-sidecar
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchest/update-server
-          README_FILEPATH: services/update-server/README.md
+          DOCKERHUB_REPOSITORY: orchest/update-sidecar
+          README_FILEPATH: services/update-sidecar/README.md
 
   dispatch-orchest-ami-build:
     needs: buildpush

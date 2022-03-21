@@ -6,7 +6,6 @@ import subprocess
 import uuid
 import zipfile
 
-import docker
 import requests
 import sqlalchemy
 from flask import current_app, jsonify, request, send_file
@@ -18,9 +17,8 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
-from _orchest.internals.utils import run_orchest_ctl
 from app import analytics, error
-from app.config import CONFIG_CLASS as StaticConfig
+
 from app.core import filemanager
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
@@ -129,6 +127,14 @@ def register_views(app, db):
                 # use specified uuid if it's not keyword 'new'
                 if environment_uuid != "new":
                     e.uuid = environment_uuid
+                else:
+                    url = (
+                        f'http://{app.config["ORCHEST_API_ADDRESS"]}'
+                        f"/api/environments/{project_uuid}"
+                    )
+                    resp = requests.post(url, json={"uuid": e.uuid})
+                    if resp.status_code != 201:
+                        return {}, resp.status_code, resp.headers.items()
 
                 environment_dir = get_environment_directory(e.uuid, project_uuid)
 
@@ -178,8 +184,8 @@ def register_views(app, db):
         ]
 
         front_end_config_internal = [
-            "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE",
-            "ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE",
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
@@ -194,25 +200,21 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/async/spawn-update-server", methods=["GET"])
-    def spawn_update_server():
+    @app.route("/async/restart", methods=["POST"])
+    def restart():
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl/restart'
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
-        client = docker.from_env()
+    @app.route("/async/start-update", methods=["POST"])
+    def start_update():
 
-        cmd = ["updateserver"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
-
-        return ""
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl'
+            "/start-update"
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
@@ -224,25 +226,6 @@ def register_views(app, db):
                 "client-heartbeat"
             )
         )
-
-        return ""
-
-    @app.route("/async/restart", methods=["POST"])
-    def restart_server():
-
-        client = docker.from_env()
-        cmd = ["restart"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
 
         return ""
 
@@ -925,8 +908,7 @@ def register_views(app, db):
                     404,
                 )
             else:
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
+                pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
 
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
