@@ -39,7 +39,7 @@ ifeq ($(shell expr ${DEFINED_STORAGES} \> 1),1)
 	$(error More than one Storage Provider is defined)
 endif
 
-#If no storage is provided, use NFS 
+#If no storage is provided, use NFS
 ifeq (${DEFINED_STORAGES},0)
 	ENABLE_ROOK_NFS := TRUE
 endif
@@ -62,8 +62,8 @@ NFS_RESOURCES_TARGET := ${if ${ROOK_NFS_TARGET},nfs-resources,}
 ifeq (${ENABLE_HOSTPATH},TRUE)
   FILESYSTEM_STORAGE_CLASS := standard
   BLOCK_STORAGE_CLASS := standard
-  ORCHEST_PVC_BACKEND_TARGET := 
-  STORAGE_CTL_TARGET := 
+  ORCHEST_PVC_BACKEND_TARGET :=
+  STORAGE_CTL_TARGET :=
 else ifeq (${ROOK_CEPH_TARGET},rook-ceph)
   FILESYSTEM_STORAGE_CLASS := ceph-filesystem
   BLOCK_STORAGE_CLASS := ceph-block
@@ -248,9 +248,6 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 	--set-string orchest-webserver.ORCHEST_LOG_LEVEL="${ORCHEST_LOG_LEVEL}" \
 	helm
 
-JUPYTER_EG_DEPLOY_CONFIG := jupyter-eg \
-	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/enterprise-gateway
-
 ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/argo-workflows
 
@@ -283,19 +280,6 @@ node-agent:
 clean-node-agent:
 	helm uninstall node-agent --namespace ${NAMESPACE} --wait
 
-.PHONY: jupyter-eg
-jupyter-eg: ./bin/jupyter-eg
-
-.SECONDARY: ./bin/jupyter-eg
-./bin/jupyter-eg: create-bin
-	helm install ${JUPYTER_EG_DEPLOY_CONFIG}
-	touch $@
-
-.PHONY: clean-jupyter-eg
-clean-jupyter-eg:
-	helm uninstall jupyter-eg --namespace ${NAMESPACE} --wait
-	rm ./bin/jupyter-eg
-
 .PHONY: argo-workflow
 argo-workflow: ./bin/argo-workflow
 
@@ -320,7 +304,7 @@ docker-registry : ./bin/docker-registry
 .PHONY: clean-docker-registry
 clean-docker-registry:
 	helm uninstall registry --namespace ${NAMESPACE} --wait
-	rm ./bin/docker-registry	
+	rm ./bin/docker-registry
 
 .PHONY: cert-manager
 cert-manager : ./bin/cert-manager
@@ -336,7 +320,7 @@ cert-manager : ./bin/cert-manager
 
 .PHONY: clean-cert-manager
 clean-cert-manager:
-	kubectl delete -f thirdparty/cert-manager	
+	kubectl delete -f thirdparty/cert-manager
 	rm ./bin/cert-manager
 
 .PHONY: rook-ceph
@@ -422,18 +406,18 @@ clean-orchest-resources:
 clean-:
 	@echo "noting here fellas"
 
-# clean-all is meant to bring the cluster to its initial state, but currently it 
-# does not delete cert-manager and registry certificates, because the second 
+# clean-all is meant to bring the cluster to its initial state, but currently it
+# does not delete cert-manager and registry certificates, because the second
 # cert-manager complains about unknown authority and can not create new certificates.
 .PHONY: clean-all
 clean-all: clean-orchest
-clean-all: clean-${ORCHEST_RESOURCES_TARGET} 
+clean-all: clean-${ORCHEST_RESOURCES_TARGET}
 clean-all: clean-${ORCHEST_PVC_BACKEND_TARGET}
-clean-all: clean-${STORAGE_CTL_TARGET} 
+clean-all: clean-${STORAGE_CTL_TARGET}
 clean-all: clean-argo-workflow
-clean-all: clean-${REGISTRY_TARGET} 
+clean-all: clean-${REGISTRY_TARGET}
 #clean-all: clean-registry-resources
-#clean-all: clean-cert-manager 
+#clean-all: clean-cert-manager
 
 .PHONY: create-bin
 create-bin:
