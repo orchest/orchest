@@ -1,6 +1,14 @@
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
 
+declare module "react" {
+  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    // extends React's HTMLAttributes
+    directory?: string;
+    webkitdirectory?: string;
+  }
+}
+
 export type Json =
   | string
   | number
@@ -255,39 +263,64 @@ export type Job = {
 };
 
 export type Step = {
+  uuid: string;
+  title: string;
+  incoming_connections: string[];
   environment: string;
   file_path: string;
-  incoming_connections: string[];
-  kernel: { display_name: string; name: string };
+  kernel: { display_name?: string; name?: string };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
-  title: string;
-  uuid: string;
 };
+
+export type MouseTracker = {
+  client: Position;
+  prev: Position;
+  delta: Position;
+  unscaledPrev: Position;
+  unscaledDelta: Position;
+};
+
+export type Connection = {
+  startNodeUUID: string;
+  endNodeUUID?: string;
+};
+
+export type NewConnection = Connection & {
+  xEnd?: number;
+  yEnd?: number;
+};
+
+export type Position = { x: number; y: number };
 
 export type LogType = "step" | "service";
 
-export type IPipelineStepState = Step & {
-  outgoing_connections?: string[];
-  meta_data: {
-    hidden: boolean;
-    position: [number, number];
-    _drag_count: number;
-    _dragged: boolean;
-  };
+export type PipelineStepMetaData = {
+  hidden: boolean;
+  position: [number, number];
 };
+
+export type PipelineStepState = Step & {
+  outgoing_connections?: string[];
+  meta_data?: PipelineStepMetaData;
+};
+
+export type StepsDict = Record<string, PipelineStepState>;
+
+export type Offset = { top: number; left: number };
 
 export type Service = {
   image: string;
   name: string;
   scope: ("interactive" | "noninteractive")[];
-  entrypoint?: string;
+  args?: string;
   binds?: Record<string, string>;
-  ports?: number[];
-  command: string;
+  ports: number[];
+  command?: string;
   preserve_base_path?: boolean;
   env_variables?: Record<string, string>;
   env_variables_inherit?: any[];
+  exposed: boolean;
   requires_authentication?: boolean;
   order?: number;
 };
@@ -313,13 +346,15 @@ export type PipelineMetaData = {
   name: string;
 };
 
+export type PipelineSettings = {
+  auto_eviction?: boolean;
+  data_passing_memory_size?: string;
+};
+
 export type PipelineJson = {
   name: string;
   parameters: Record<string, Json>;
-  settings: {
-    auto_eviction?: boolean;
-    data_passing_memory_size?: string;
-  };
+  settings: PipelineSettings;
   steps: Record<string, Step>;
   uuid: string;
   version: string;

@@ -175,6 +175,17 @@ def get_environments(project_uuid, language=None):
     return environments
 
 
+def preprocess_script(script):
+    """
+    This preprocesses bash scripts
+    that come from the client.
+
+    Make sure it only contains UNIX style line endings to make
+    sure the script can run without issues.
+    """
+    return script.replace("\r\n", "\n")
+
+
 def serialize_environment_to_disk(environment, env_directory):
 
     environment_schema = EnvironmentSchema()
@@ -275,7 +286,7 @@ def get_pipeline_json(pipeline_uuid, project_uuid):
             pipeline_json = json.load(json_file)
 
             # Apply pipeline migrations
-            pipeline_json = migrate_pipeline(pipeline_json)
+            migrate_pipeline(pipeline_json)
 
             return pipeline_json
     except Exception as e:
@@ -547,28 +558,18 @@ def get_ipynb_template(language: str):
     return template_json
 
 
-def generate_ipynb_from_template(step, project_uuid):
+def generate_ipynb_from_template(kernel_name):
 
-    template_json = get_ipynb_template(step["kernel"]["name"].lower())
-    template_json["metadata"]["kernelspec"]["display_name"] = step["kernel"][
-        "display_name"
-    ]
-    template_json["metadata"]["kernelspec"]["name"] = generate_gateway_kernel_name(
-        step["environment"]
-    )
+    template_json = get_ipynb_template(kernel_name)
 
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_file(
-    file_path, pipeline_json, pipeline_directory, project_uuid, step_uuid
-):
+def create_pipeline_file(file_path, pipeline_directory, kernel_name):
     """
     Note: this function does not assume that step['file_path']
     holds the value of file_path!
     """
-
-    step = pipeline_json["steps"][step_uuid]
 
     full_file_path = os.path.join(pipeline_directory, file_path)
     file_path_split = file_path.split(".")
@@ -583,13 +584,13 @@ def create_pipeline_file(
             file_content = ""
 
         if ext == "ipynb":
-            file_content = generate_ipynb_from_template(step, project_uuid)
+            file_content = generate_ipynb_from_template(kernel_name)
 
     elif ext == "ipynb":
         # Check for empty .ipynb, for which we also generate a
         # template notebook.
         if os.stat(full_file_path).st_size == 0:
-            file_content = generate_ipynb_from_template(step, project_uuid)
+            file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
         with open(full_file_path, "w") as file:
@@ -742,6 +743,26 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
         )
     )
     return new_path_abs.startswith(project_path)
+
+
+def resolve_absolute_path(abs_path: str) -> Optional[str]:
+    """Resolves an absolute path to the FS-layout of the webserver.
+
+    Note:
+        Currently only /data is supported.
+    """
+    prefix_map = {"/data": _config.USERDIR_DATA}
+
+    for prefix, fs_prefix in prefix_map.items():
+        if abs_path.startswith(prefix):
+            matched_prefix = prefix
+            resolved_prefix = fs_prefix
+            break
+    else:
+        return
+
+    file_path = abs_path[len(matched_prefix) :]
+    return resolved_prefix + file_path
 
 
 _DEFAULT_ORCHEST_EXAMPLES_JSON = {

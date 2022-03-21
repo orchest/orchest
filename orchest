@@ -1,10 +1,31 @@
 #!/bin/bash
 # Generally speaking, the script will:
+# - make sure the ingress minikube addon is enabled
 # - make sure the script and repo version equals the deployed cluster
 # - launch a orchest-ctl pod in-cluster
 # - wait for it to be ready
 # - attach to it and run the CLI command
 # - cleanup on exit
+
+
+# All issued minikube kubectl commands could be substituted by kubectl
+# to make this work with non minikube clusters, but some sections of
+# this bash script assume minikube.
+MINIKUBE_MODE=true
+
+
+if $MINIKUBE_MODE && ! minikube addons list | grep "ingress " | grep "enabled" > /dev/null ; then
+    echo "The minikube ingress addon needs to be enabled in order to use Orchest."
+    read -p "Have this script install it? Type 'yes' to confirm: " -r 
+    if [[ $REPLY =~ ^yes$ ]];
+    then
+        minikube addons enable ingress
+    else
+        echo "Cancelling installation."
+        exit
+    fi
+fi
+
 namespace_state=$(minikube kubectl -- get namespace orchest -o \
     jsonpath={.status.phase} 2> /dev/null)
 if [ "$namespace_state" == "Terminating" ]; then
@@ -18,15 +39,25 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 # being installed.
 minikube kubectl -- create namespace orchest  > /dev/null 2>&1
 
-
+# Make sure the orchest-resources dependencies are installed. This is
+# needed, for example, to create pvcs before deploying orchest-ctl.
+# K8S_TODO: don't silence stderr, and make it so that repeating "make
+# orchest-resources" will not produce an error.
+if [ "$1"  == "install" ]; then
+    echo "Creating orchest-namespace and installing dependencies."
+    rm -rf "${DIR}/deploy/bin" > /dev/null
+    make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
+    echo "Running orchest-ctl."
+elif ! minikube kubectl get namespace orchest > /dev/null 2>&1 ; then
+    echo "You need to install Orchest before running other commands."
+    exit 1
+fi
 
 # Script and dependencies, i.e. yaml files.
 repo_version=$(git describe --tags --abbrev=0)
 # The deployment.
 cluster_version=$(minikube kubectl -- get namespace orchest -o \
     jsonpath='{.metadata.labels.version}')
-# K8S_TODO: fix this once we actually stop using latest.
-cluster_version=test
 
 # Will be empty only if Orchest has not been installed yet.
 if [ -n "$cluster_version" ]; then
@@ -50,14 +81,12 @@ fi
 minikube kubectl -- apply -f "$DIR/deploy/orchest-ctl/rbac" > /dev/null
 
 image="orchest/orchest-ctl:${repo_version}"
-# K8S_TODO: fix this once we actually stop using latest.
-image="orchest/orchest-ctl"
 
 set -e
 
 # This is needed because k8s labels follow this regex:
 # (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?').
-commands=("install" "start" "stop" "restart" "update" "status" "version")
+commands=("install" "start" "stop" "restart" "update" "status" "version" "uninstall")
 label="unrecognized"
 if [[ " ${commands[*]} " =~ " $1 " ]]; then
     label=$1
@@ -70,7 +99,7 @@ fi
 # changes to this label. TODO: passing an argument containing @ will
 # break this.
 pod=$(sed -e "s@IMAGE%@$image@g" -e "s@VERSION%@$repo_version@g" \
--e "s@COMMAND%@$1@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
+-e "s@COMMAND%@$label@g" "$DIR/deploy/orchest-ctl/pod.yml" | \
 minikube kubectl -- create -n orchest -o name -f -)
 
 # Make sure to cleanup the pod on exit.

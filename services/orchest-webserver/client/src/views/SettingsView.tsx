@@ -7,7 +7,6 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
-import DeleteIcon from "@mui/icons-material/Delete";
 import PeopleIcon from "@mui/icons-material/People";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import SaveIcon from "@mui/icons-material/Save";
@@ -44,7 +43,6 @@ const SettingsView: React.FC = () => {
   const [state, setState] = React.useState({
     status: "...",
     restarting: false,
-    deletingBaseImagesCache: false,
     // text representation of config object, filtered for certain keys
     config: undefined,
     // the full JSON config object
@@ -265,56 +263,6 @@ const SettingsView: React.FC = () => {
 
   const checkUpdate = useCheckUpdate();
 
-  const deleteBaseImagesCache = () => {
-    // K8S_TODO: decide if the wording "base images cache" is desirable.
-    return setConfirm(
-      "Warning",
-      "Are you sure you want to clear the base images cache? This will abort all ongoing environment and jupyter builds.",
-      async (resolve) => {
-        setState((prevState) => ({
-          ...prevState,
-          deletingBaseImagesCache: true,
-        }));
-        try {
-          let checkOrchestPromise = makeCancelable(
-            makeRequest(
-              "DELETE",
-              "/catch/api-proxy/api/environment-images/base-images-cache"
-            ),
-            promiseManager
-          );
-
-          checkOrchestPromise.promise
-            .then(() => {
-              setState((prevState) => ({
-                ...prevState,
-                deletingBaseImagesCache: false,
-              }));
-              resolve(true);
-            })
-            .catch((error) => {
-              setState((prevState) => ({
-                ...prevState,
-                deletingBaseImagesCache: false,
-              }));
-              console.error(error);
-              resolve(false);
-              setAlert("Error", "Could not clear base images cache.");
-            });
-        } catch (error) {
-          setState((prevState) => ({
-            ...prevState,
-            deletingBaseImagesCache: false,
-          }));
-          console.error(error);
-          resolve(false);
-          setAlert("Error", "Could not clear base images cache.");
-          return false;
-        }
-      }
-    );
-  };
-
   React.useEffect(() => {
     checkOrchestStatus();
     getConfig();
@@ -500,7 +448,7 @@ const SettingsView: React.FC = () => {
                 return (
                   <>
                     <LinearProgress className="push-down" />
-                    <p>This can take up to 30 seconds.</p>
+                    <p>This can take up to 1 minute.</p>
                   </>
                 );
               }
@@ -530,37 +478,6 @@ const SettingsView: React.FC = () => {
             >
               Manage users
             </StyledButtonOutlined>
-          </div>
-          <div className="clear"></div>
-        </div>
-
-        <h3>Images Cache</h3>
-        <div className="columns">
-          <div className="column">
-            <p>Clear the base images cache to free up disk space.</p>
-          </div>
-          <div className="column">
-            {(() => {
-              if (!state.deletingBaseImagesCache) {
-                return (
-                  <StyledButtonOutlined
-                    variant="outlined"
-                    color="secondary"
-                    startIcon={<DeleteIcon />}
-                    onClick={deleteBaseImagesCache}
-                  >
-                    Delete Base images cache
-                  </StyledButtonOutlined>
-                );
-              } else {
-                return (
-                  <>
-                    <LinearProgress className="push-down" />
-                    <p>Deleting base images cache.</p>
-                  </>
-                );
-              }
-            })()}
           </div>
           <div className="clear"></div>
         </div>

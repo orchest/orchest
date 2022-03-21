@@ -439,15 +439,15 @@ def _step_to_workflow_manifest_task(
     # This allows us to edit the container that argo runs for us.
     pod_spec_patch = json.dumps(
         {
+            "terminationGracePeriodSeconds": 1,
             "containers": [
                 {
                     "name": "main",
                     "env": env_variables,
                     "restartPolicy": "Never",
-                    # K8S_TODO: fix this.
                     "imagePullPolicy": "IfNotPresent",
                 }
-            ]
+            ],
         },
     )
 

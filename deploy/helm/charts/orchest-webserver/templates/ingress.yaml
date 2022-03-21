@@ -5,6 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   annotations:
     nginx.ingress.kubernetes.io/auth-url: {{ include "library.service.auth" . }}
+    nginx.ingress.kubernetes.io/auth-signin: /login
 spec:
   rules:
     - host: {{ template "library.ingress.host" . }}

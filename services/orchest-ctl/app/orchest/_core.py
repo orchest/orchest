@@ -49,7 +49,9 @@ class HelmMode(str, Enum):
     UPGRADE = "Update"
 
 
-def _run_helm_with_progress_bar(mode: HelmMode) -> None:
+def _run_helm_with_progress_bar(
+    mode: HelmMode, injected_env_vars: Optional[Dict[str, str]] = None
+) -> None:
     if mode == HelmMode.INSTALL:
         cmd = "make orchest"
     elif mode == HelmMode.UPGRADE:
@@ -57,11 +59,20 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     else:
         raise ValueError()
 
-    # K8S_TODO: remove DISABLE_ROOK?
     env = os.environ.copy()
+    # Put the update before the rest so that these env vars cannot be
+    # overwritten by coincidence.
+    if injected_env_vars is not None:
+        for k, v in injected_env_vars.items():
+            env[k] = str(v)
     env["DISABLE_ROOK"] = "TRUE"
     env["CLOUD"] = k8sw.get_orchest_cloud_mode()
     env["ORCHEST_LOG_LEVEL"] = k8sw.get_orchest_log_level()
+    env["ORCHEST_DEFAULT_TAG"] = config.ORCHEST_VERSION
+    # This way the command will only interact with orchest resources,
+    # and not their dependencies (pvcs, etc.).
+    env["DEPEND_RESOURCES"] = "FALSE"
+
     process = subprocess.Popen(
         cmd,
         cwd="deploy",
@@ -72,10 +83,9 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
         shell=True,
     )
 
-    n_ready_deployments = 0
     return_code = None
     with typer.progressbar(
-        length=len(config.ORCHEST_DEPLOYMENTS) + 1,
+        length=len(config.ORCHEST_DEPLOYMENTS) + len(config.ORCHEST_DAEMONSETS) + 1,
         label=mode.value,
         show_eta=False,
     ) as progress_bar:
@@ -88,16 +98,14 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
             process.poll()
             return_code = process.returncode
 
-            # Set the progress bar to the length of the deployments that
-            # are ready.
-            deployments = k8sw.get_orchest_deployments()
-            ready_deployments = [
-                d
-                for d in deployments
-                if d is not None and d.status.ready_replicas == d.spec.replicas
-            ]
-            progress_bar.update(len(ready_deployments) - n_ready_deployments)
-            n_ready_deployments = len(ready_deployments)
+            _wait_deployments_to_be_ready(
+                config.ORCHEST_DEPLOYMENTS,
+                progress_bar,
+            )
+            _wait_daemonsets_to_be_ready(
+                config.ORCHEST_DAEMONSETS,
+                progress_bar,
+            )
 
             # K8S_TODO: failure cases? Or are they covered by helm?
             time.sleep(1)
@@ -109,7 +117,7 @@ def _run_helm_with_progress_bar(mode: HelmMode) -> None:
     return return_code
 
 
-def install(log_level: utils.LogLevel, cloud: bool):
+def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
@@ -126,9 +134,17 @@ def install(log_level: utils.LogLevel, cloud: bool):
 
     utils.echo(f"Installing Orchest {orchest_version}.")
 
+    logger.info("Creating the required directories.")
+    utils.create_required_directories()
+
+    logger.info("Setting 'userdir/' permissions.")
+    utils.fix_userdir_permissions()
+
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
-    return_code = _run_helm_with_progress_bar(HelmMode.INSTALL)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.INSTALL, injected_env_vars={"ORCHEST_FQDN": fqdn}
+    )
 
     if return_code != 0:
         utils.echo(
@@ -138,19 +154,14 @@ def install(log_level: utils.LogLevel, cloud: bool):
         )
         raise typer.Exit(return_code)
 
-    logger.info("Setting 'userdir/' permissions.")
-    utils.fix_userdir_permissions()
-
-    logger.info("Creating the required directories.")
-    utils.create_required_directories()
-
     k8sw.set_orchest_cluster_version(orchest_version)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
     utils.echo("Installation was successful.")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    utils.echo(
+        f"Orchest is running with a FQDN equal to {fqdn}. To access it locally, add an "
+        "entry to your /etc/hosts file mapping the cluster ip (`minikube ip`) to "
+        f"'{fqdn}'."
+    )
 
 
 def _echo_version(
@@ -222,8 +233,7 @@ def status(output_json: bool = False):
 
     Note:
         This is not race condition free, given that a status changing
-        command could start after our read. K8S_TODO: we could try
-        multiple times if the cluster looks unhealthy, discuss.
+        command could start after our read.
     """
     config.JSON_MODE = output_json
     utils.echo("Checking for ongoing status changes...")
@@ -244,10 +254,12 @@ def status(output_json: bool = False):
                 replicas = depl.spec.replicas
                 if replicas > 0:
                     running_deployments.add(depl_name)
+                    if replicas != depl.status.available_replicas:
+                        unhealthy_deployments.add(depl_name)
                 else:
                     stopped_deployments.add(depl_name)
-                if replicas != depl.status.available_replicas:
-                    unhealthy_deployments.add(depl_name)
+                    if depl.status.available_replicas not in [0, None]:
+                        unhealthy_deployments.add(depl_name)
         # Given that there are no ongoing status changes, Orchest can't
         # have both stopped and running deployments.  Assume that, if at
         # least 1 deployment is running, the ones which are not are
@@ -273,14 +285,31 @@ def status(output_json: bool = False):
 
 
 def _wait_deployments_to_be_stopped(
-    deployments: List[k8s_client.V1Deployment], progress_bar
+    deployments: List[str],
+    progress_bar,
+    pods: Optional[List[k8s_client.V1Pod]] = None,
 ) -> None:
-    pods = k8sw.get_orchest_deployments_pods(deployments)
+    if pods is None:
+        pods = k8sw.get_orchest_deployments_pods(deployments)
     while pods:
+        time.sleep(1)
         tmp_pods = k8sw.get_orchest_deployments_pods(deployments)
         progress_bar.update(len(pods) - len(tmp_pods))
         pods = tmp_pods
+
+
+def _wait_daemonsets_to_be_stopped(
+    daemonsets: List[str],
+    progress_bar,
+    pods: Optional[List[k8s_client.V1Pod]] = None,
+) -> None:
+    if pods is None:
+        pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
+    while pods:
         time.sleep(1)
+        tmp_pods = k8sw.get_orchest_daemonsets_pods(daemonsets)
+        progress_bar.update(len(pods) - len(tmp_pods))
+        pods = tmp_pods
 
 
 def stop():
@@ -304,7 +333,23 @@ def stop():
                 f"{sorted(missing_deployments)}. Orchest will be stopped "
                 "regardless."
             )
-    if not running_deployments:
+
+    daemonsets = k8sw.get_orchest_daemonsets(config.ORCHEST_DAEMONSETS)
+    missing_daemonsets = []
+    running_daemonsets = []
+    for daem_name, daem in zip(config.ORCHEST_DAEMONSETS, daemonsets):
+        if daem is None:
+            missing_daemonsets.append(daem_name)
+        elif daem.status.desired_number_scheduled > 0:
+            running_daemonsets.append(daem)
+    if missing_daemonsets:
+        utils.echo(
+            "Detected some inconsistent state, missing daemonsets: "
+            f"{sorted(missing_daemonsets)}. Orchest will be stopped "
+            "regardless."
+        )
+
+    if not running_deployments and not running_daemonsets:
         utils.echo("Orchest is not running.")
         return
 
@@ -320,41 +365,71 @@ def stop():
         else:
             post_cleanup_deployments_to_stop.append(depl)
 
-    deployments_pods = k8sw.get_orchest_deployments_pods(running_deployments)
+    daemonset_pods = k8sw.get_orchest_daemonsets_pods(running_daemonsets)
+    running_daemonsets = [d.metadata.name for d in running_daemonsets]
+    pre_cleanup_deployments_to_stop = [
+        d.metadata.name for d in pre_cleanup_deployments_to_stop
+    ]
+    post_cleanup_deployments_to_stop = [
+        d.metadata.name for d in post_cleanup_deployments_to_stop
+    ]
+    pre_cleanup_deployment_pods = k8sw.get_orchest_deployments_pods(
+        pre_cleanup_deployments_to_stop
+    )
+    post_cleanup_deployment_pods = k8sw.get_orchest_deployments_pods(
+        post_cleanup_deployments_to_stop
+    )
     with typer.progressbar(
         # + 1 for UX and to account for the previous actions.
-        length=len(deployments_pods) + 1,
+        length=len(pre_cleanup_deployment_pods)
+        + len(post_cleanup_deployment_pods)
+        + len(daemonset_pods)
+        + 1,
         label="Shutdown",
         show_eta=False,
     ) as progress_bar:
         progress_bar.update(1)
-        k8sw.scale_down_orchest_deployments(
-            [depl.metadata.name for depl in pre_cleanup_deployments_to_stop]
+        k8sw.scale_down_orchest_daemonsets(running_daemonsets)
+        k8sw.scale_down_orchest_deployments(pre_cleanup_deployments_to_stop)
+        _wait_deployments_to_be_stopped(
+            pre_cleanup_deployments_to_stop, progress_bar, pre_cleanup_deployment_pods
         )
-        _wait_deployments_to_be_stopped(pre_cleanup_deployments_to_stop, progress_bar)
+        _wait_daemonsets_to_be_stopped(running_daemonsets, progress_bar, daemonset_pods)
 
         k8sw.orchest_cleanup()
 
-        k8sw.scale_down_orchest_deployments(
-            [depl.metadata.name for depl in post_cleanup_deployments_to_stop]
+        k8sw.scale_down_orchest_deployments(post_cleanup_deployments_to_stop)
+        _wait_deployments_to_be_stopped(
+            post_cleanup_deployments_to_stop, progress_bar, post_cleanup_deployment_pods
         )
-        _wait_deployments_to_be_stopped(post_cleanup_deployments_to_stop, progress_bar)
 
     utils.echo("Shutdown successful.")
 
 
-def _wait_deployments_to_be_ready(
-    deployments: List[k8s_client.V1Deployment], progress_bar
-) -> None:
+def _wait_deployments_to_be_ready(deployments: List[str], progress_bar) -> None:
     while deployments:
-        depl_names = [depl.metadata.name for depl in deployments]
-        tmp_deployments_to_start = [
-            d
-            for d in k8sw.get_orchest_deployments(depl_names)
-            if d is not None and d.status.ready_replicas != d.spec.replicas
-        ]
+        tmp_deployments_to_start = []
+        for name, depl in zip(deployments, k8sw.get_orchest_deployments(deployments)):
+            if depl is None or depl.status.ready_replicas != depl.spec.replicas:
+                tmp_deployments_to_start.append(name)
+
         progress_bar.update(len(deployments) - len(tmp_deployments_to_start))
         deployments = tmp_deployments_to_start
+        time.sleep(1)
+
+
+def _wait_daemonsets_to_be_ready(daemonsets: List[str], progress_bar) -> None:
+    while daemonsets:
+        tmp_daemonsets_to_start = []
+        for name, daem in zip(daemonsets, k8sw.get_orchest_daemonsets(daemonsets)):
+            if (
+                daem is None
+                or daem.status.number_ready != daem.status.desired_number_scheduled
+            ):
+                tmp_daemonsets_to_start.append(name)
+
+        progress_bar.update(len(daemonsets) - len(tmp_daemonsets_to_start))
+        daemonsets = tmp_daemonsets_to_start
         time.sleep(1)
 
 
@@ -380,40 +455,66 @@ def start(log_level: utils.LogLevel, cloud: bool):
                 "regardless of that. Try to stop Orchest and start it again if this "
                 "doesn't work."
             )
+
+    daemonsets = k8sw.get_orchest_daemonsets(config.ORCHEST_DAEMONSETS)
+    missing_daemonsets = []
+    daemonsets_to_start = []
+    for daem_name, daem in zip(config.ORCHEST_DAEMONSETS, daemonsets):
+        if daem is None:
+            missing_daemonsets.append(daem_name)
+        elif daem.status.desired_number_scheduled == 0:
+            daemonsets_to_start.append(daem)
+    if missing_daemonsets:
+        utils.echo(
+            "Detected some inconsistent state, missing daemonsets: "
+            f"{sorted(missing_daemonsets)}. This operation will proceed "
+            "regardless of that. Try to stop Orchest and start it again if this "
+            "doesn't work."
+        )
+
     # Note: this implies that the operation can't be used to set the
     # scale of all deployments to 1 if, for example, it has been altered
     # to more than that.
-    if not deployments_to_start:
+    if not deployments_to_start and not daemonsets_to_start:
         utils.echo("Orchest is already running.")
         return
 
+    deployments_to_start = [d.metadata.name for d in deployments_to_start]
+    daemonsets_to_start = [d.metadata.name for d in daemonsets_to_start]
     utils.echo("Starting...")
     with typer.progressbar(
         # + 1 for scaling, +1 for userdir permissions.
-        length=len(deployments_to_start) + 2,
+        length=len(deployments_to_start) + len(daemonsets_to_start) + 2,
         label="Start",
         show_eta=False,
     ) as progress_bar:
+        k8sw.sync_celery_parallelism_from_config()
         k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=True)
         k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=True)
 
-        k8sw.scale_up_orchest_deployments(
-            [depl.metadata.name for depl in deployments_to_start]
-        )
+        k8sw.scale_up_orchest_daemonsets(daemonsets_to_start)
+        k8sw.scale_up_orchest_deployments(deployments_to_start)
         progress_bar.update(1)
 
         # Do this after scaling but before waiting for all deployments
         # to be ready so that those can happen concurrently.
-        logger.info("Setting 'userdir/' permissions.")
-        utils.fix_userdir_permissions()
+        if not cloud:
+            logger.info("Setting 'userdir/' permissions.")
+            utils.fix_userdir_permissions()
         progress_bar.update(1)
 
+        _wait_daemonsets_to_be_ready(daemonsets_to_start, progress_bar)
         _wait_deployments_to_be_ready(deployments_to_start, progress_bar)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    host_names = k8sw.get_host_names()
+    if host_names:
+        utils.echo(
+            "Orchest is running, you can reach it locally by mapping the cluster ip "
+            f"('minikube ip') to the following entries: {host_names} in your "
+            "/etc/hosts file."
+        )
+    else:
+        utils.echo("Orchest is running.")
 
 
 def restart():
@@ -493,8 +594,9 @@ def update() -> None:
       print them
     """
     k8sw.abort_if_unsafe()
+    update_pod_manifest = k8sw.get_update_pod_manifest()
     stop()
-    pod = k8sw.create_update_pod()
+    pod = k8s_core_api.create_namespaced_pod("orchest", update_pod_manifest)
 
     status = k8sw.wait_for_pod_status(
         pod.metadata.name,
@@ -556,7 +658,9 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
-    # K8S_TODO: delete user-built jupyter images.
+    # K8S_TODO: delete user-built jupyter images. Perhaps another
+    # `cleanup` operation that runs on update? Seems like something for
+    # the env lifecycle PR
     orchest_version = os.environ.get("ORCHEST_VERSION")
     if orchest_version is None:
         utils.echo(
@@ -565,7 +669,12 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
-    return_code = _run_helm_with_progress_bar(HelmMode.UPGRADE)
+    return_code = _run_helm_with_progress_bar(
+        HelmMode.UPGRADE,
+        # Preserve the current values, i.e. avoid helm overwriting them
+        # with default values.
+        utils.get_celery_parallelism_level_from_config(),
+    )
     if return_code != 0:
         utils.echo(
             f"There was an error while updating Orchest, exit code: {return_code} .",
@@ -575,8 +684,20 @@ def _update() -> None:
 
     k8sw.set_orchest_cluster_version(orchest_version)
 
-    # K8S_TODO: coordinate with ingress for this.
-    # port = 8001
-    # utils.echo(f"Orchest is running at: http://localhost:{port}")
-    utils.echo("Update was successful.")
-    utils.echo("Orchest is running, portforward to the webserver to access it.")
+    utils.echo("Update was successful, Orchest is running.")
+
+
+def uninstall():
+    k8sw.abort_if_unsafe()
+    utils.echo("Uninstalling Orchest...", nl=False)
+    k8s_core_api.delete_namespace("orchest")
+    while True:
+        try:
+            k8s_core_api.read_namespace("orchest")
+        except k8s_client.ApiException as e:
+            if e.status == 404:
+                utils.echo("\nSuccess.")
+                return
+            raise e
+        utils.echo(".", nl=False)
+        time.sleep(1)

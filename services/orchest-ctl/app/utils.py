@@ -77,7 +77,8 @@ def create_required_directories() -> None:
         _config.USERDIR_ENV_IMG_BUILDS,
         _config.USERDIR_JUPYTER_IMG_BUILDS,
         _config.USERDIR_JUPYTERLAB,
-        _config.USERDIR_BASE_IMAGES_CACHE,
+        _config.USERDIR_KANIKO_BASE_IMAGES_CACHE,
+        _config.USERDIR_BUILDKIT_CACHE,
     ]:
         Path(path).mkdir(parents=True, exist_ok=True)
 
@@ -115,3 +116,20 @@ def init_logger(verbosity=0):
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
     root.addHandler(handler)
+
+
+def get_orchest_config() -> dict:
+    """Gets the Orchest configuration."""
+    with open("/config/config.json") as config_file:
+        config = json.load(config_file)
+    return config
+
+
+def get_celery_parallelism_level_from_config() -> dict:
+    orc_config = get_orchest_config()
+    runs_k = "MAX_INTERACTIVE_RUNS_PARALLELISM"
+    jobs_k = "MAX_JOB_RUNS_PARALLELISM"
+    return {
+        runs_k: orc_config.get(runs_k, 1),
+        jobs_k: orc_config.get(jobs_k, 1),
+    }

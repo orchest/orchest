@@ -61,7 +61,11 @@ def write_environment_dockerfile(
 
     """
     statements = []
+
     statements.append(f"FROM {base_image}")
+    # Create a layer (apparently helps with buildkit caching base image
+    # layers). Also helps with logs (see _build_image).
+    statements.append("RUN echo orchest")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
@@ -98,18 +102,19 @@ def write_environment_dockerfile(
         f"sudo rm {bash_script}; fi)"
     )
 
-    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_TERMINATION_FLAG
+    flag = CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG
     error_flag = CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG
     statements.append(
         # The ! in front of echo is there so that the script will fail
         # since the statements in the "if" have failed, the echo is a
         # way of injecting the help message.
         f'RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
-        f"&& bash {bash_script} "
+        f"&& echo {flag} "
+        f"&& bash < {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.
-        f'&& echo "{flag}" {rm_statement} '
-        # The || <error flag> allows to avoid kaniko errors logs making
+        f"&& echo {flag} {rm_statement} "
+        # The || <error flag> allows to avoid builder errors logs making
         # into it the user logs and tell us that there has been an
         # error.
         f"|| (echo {error_flag} && PRODUCE_AN_ERROR)"
@@ -229,8 +234,14 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
         bash_script_name = (
             f".orchest-reserved-env-setup-script-{project_uuid}-{environment_uuid}.sh"
         )
+
+        base_image = environment_properties["base_image"]
+        # Temporary workaround for common.tsx not using the orchest
+        # version.
+        if ":" not in base_image:
+            base_image = f"{base_image}:{CONFIG_CLASS.ORCHEST_VERSION}"
         write_environment_dockerfile(
-            environment_properties["base_image"],
+            base_image,
             project_uuid,
             environment_uuid,
             _config.PROJECT_DIR,
@@ -255,7 +266,7 @@ def prepare_build_context(task_uuid, project_uuid, environment_uuid, project_pat
 
     return {
         "snapshot_path": snapshot_path,
-        "base_image": environment_properties["base_image"],
+        "base_image": base_image,
         "dockerfile_path": dockerfile_name,
     }
 
@@ -346,13 +357,13 @@ def build_environment_image_task(
         finally:
             # We get here either because the task was successful or was
             # aborted, in any case, delete the workflows.
-            k8s_custom_obj_api.delete_namespaced_custom_object(
-                "argoproj.io",
-                "v1alpha1",
-                _config.ORCHEST_NAMESPACE,
-                "workflows",
-                f"image-cache-task-{task_uuid}",
-            )
+            # k8s_custom_obj_api.delete_namespaced_custom_object(
+            #     "argoproj.io",
+            #     "v1alpha1",
+            #     _config.ORCHEST_NAMESPACE,
+            #     "workflows",
+            #     f"image-cache-task-{task_uuid}",
+            # )
             k8s_custom_obj_api.delete_namespaced_custom_object(
                 "argoproj.io",
                 "v1alpha1",

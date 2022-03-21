@@ -11,7 +11,6 @@ import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import EnvironmentsView from "./views/EnvironmentsView";
-import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
@@ -34,6 +33,10 @@ type RouteName =
   | "environment"
   | "jobs"
   | "job"
+  | "jobRun"
+  | "jobRunPipelineSettings"
+  | "jobRunLogs"
+  | "jobRunFilePreview"
   | "pipelineReadonly"
   | "editJob"
   | "fileManager"
@@ -44,7 +47,7 @@ type RouteName =
   | "help"
   | "notFound";
 
-type RouteData = {
+export type RouteData = {
   path: string;
   root?: string;
   component: React.FunctionComponent;
@@ -150,17 +153,39 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
       component: JobView,
     },
     {
+      name: "jobRun",
+      path: "/job-run",
+      root: "/jobs",
+      title: getTitle("Job Run"),
+      component: PipelineView,
+    },
+    {
+      name: "jobRunPipelineSettings",
+      path: "/job-run/pipeline-settings",
+      root: "/jobs",
+      title: getTitle("Job Run Pipeline Settings"),
+      component: PipelineSettingsView,
+    },
+    {
+      name: "jobRunLogs",
+      path: "/job-run/logs",
+      root: "/jobs",
+      title: getTitle("Job Run Logs"),
+      component: LogsView,
+    },
+    {
+      name: "jobRunFilePreview",
+      path: "/job-run/file-preview",
+      root: "/jobs",
+      title: getTitle("Job Run Step File Preview"),
+      component: FilePreviewView,
+    },
+    {
       name: "editJob",
       path: "/edit-job",
       root: "/jobs",
       title: getTitle("Edit Job"),
       component: EditJobView,
-    },
-    {
-      name: "fileManager",
-      path: "/file-manager",
-      title: getTitle("File Manager"),
-      component: FileManagerView,
     },
     {
       name: "settings",
@@ -219,6 +244,34 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
   {} as Record<RouteName, RouteData>
 );
 
+export const projectRootPaths = [
+  siteMap.jobs.path,
+  siteMap.environments.path,
+  siteMap.pipelines.path,
+];
+
+export const withinProjectPaths = getOrderedRoutes().reduce<
+  Pick<RouteData, "path" | "root">[]
+>((all, curr) => {
+  // only include within-project paths
+  // i.e. if the context involves multiple projects, it should be excluded
+  if (
+    projectRootPaths.includes(curr.path) ||
+    projectRootPaths.includes(curr.root) ||
+    curr.path === "/project"
+    // projectsPaths.includes(curr.path)
+  ) {
+    return [
+      ...all,
+      {
+        path: curr.path,
+        root: curr.root,
+      },
+    ];
+  }
+  return all;
+}, [] as Pick<RouteData, "path" | "root">[]);
+
 const snakeCase = (str: string, divider = "_") =>
   str
     .split(/(?=[A-Z])/)
@@ -239,7 +292,7 @@ export const toQueryString = <T extends string>(
           const [key, value] = entry;
           const encodedValue =
             value && value !== "null" && value !== "undefined" // we don't pass along null or undefined since it doesn't mean much to the receiver
-              ? encodeURIComponent(value.toString().toLowerCase())
+              ? encodeURIComponent(value.toString())
               : null;
           return encodedValue
             ? `${str}${snakeCase(key)}=${encodedValue}&`

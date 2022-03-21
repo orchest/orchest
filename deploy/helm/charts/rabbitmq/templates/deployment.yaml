@@ -5,10 +5,10 @@ deployment
 {{ include "library.deployment" . }}
     spec:
       volumes:
-        - name: mnesia
-          hostPath:
-            path: /var/lib/orchest/userdir/.orchest/rabbitmq-mnesia
-            type: DirectoryOrCreate                      
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false                     
       containers:
       - name: rabbitmq-server
         image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
@@ -18,5 +18,6 @@ deployment
         - containerPort: {{ .Values.service.port }}
         {{ end }}
         volumeMounts:
-         - name: mnesia
+         - name: userdir-pvc
            mountPath: /var/lib/rabbitmq/mnesia
+           subPath: .orchest/rabbitmq-mnesia

@@ -11,7 +11,7 @@ from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import copytree, rmtree
+from _orchest.internals.utils import copytree
 from app import create_app
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
@@ -283,26 +283,4 @@ def delete_job_pipeline_run_directories(
     for uuid in pipeline_run_uuids:
         shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
 
-    return "SUCCESS"
-
-
-@celery.task(bind=True, base=AbortableTask)
-def delete_base_images_cache(self) -> str:
-    """Deletes the base images cache.
-
-    Note: this is currently a no op due to the fact that the
-    celery-worker doesn't mount the cache directory: K8S_TODO: either
-    make this happen through a pod so that the code can be made to run
-    in the right node (nodeSelector) or make sure this deletion works
-    once the distributed file system is integrated. Solution 2 is
-    preferable given that performance won't be an issue if the data
-    isn't on the same node of the celery worker given the type of
-    operation and it avoids 1 layer of indirection.
-    """
-    try:
-        with os.scandir(_config.USERDIR_BASE_IMAGES_CACHE) as entries:
-            for entry in entries:
-                rmtree(entry)
-    except FileNotFoundError:
-        ...
     return "SUCCESS"

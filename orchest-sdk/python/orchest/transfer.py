@@ -612,8 +612,8 @@ def output_to_memory(
     """Outputs data to memory.
 
     Warning:
-        This is not implemented in the k8s deployment of Orchest, will
-        raise a NotImplementedError().
+        Memory passing is not supported in this version of Orchest, this
+        function will output to disk.
 
     Note:
         Calling :meth:`output_to_memory` multiple times within the same
@@ -635,7 +635,6 @@ def output_to_memory(
             :exc:`MemoryError` is thrown.
 
     Raises:
-        NotImplementedError:
         DataInvalidNameError: The name of the output data is invalid,
             e.g because it is a reserved name (``"unnamed"``) or because
             it contains a reserved substring.
@@ -655,7 +654,13 @@ def output_to_memory(
         >>> data = "Data I would like to use in my next step"
         >>> output_to_memory(data, name="my_data")
     """
-    raise NotImplementedError()
+    msg = (
+        "Memory passing is not supported in this version of Orchest. This function "
+        "will output to disk. No changes to your code are required."
+    )
+    _print_warning_message(msg)
+    output(data, name)
+    return
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
@@ -1135,9 +1140,6 @@ def output(
     name: Optional[str],
 ) -> None:
     """Outputs data so that it can be retrieved by the next step.
-
-    It first tries to output to memory and if it does not fit in memory,
-    then disk will be used.
 
     Note:
         Calling :meth:`output` multiple times within the same step

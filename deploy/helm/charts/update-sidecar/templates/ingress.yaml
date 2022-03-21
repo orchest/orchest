@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ template "library.metadata.name" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  rules:
+    - host: {{ template "library.ingress.host" . }}
+      http:
+        paths:
+          - path: /update-sidecar
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ template "library.metadata.name" . }}
+                port:
+                  number: {{ template "library.service.port" . }}

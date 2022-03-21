@@ -25,8 +25,10 @@ export const templates: ServiceTemplates = {
       binds: {
         "/data": "/data",
       },
-      entrypoint: "bash",
-      command: "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
+      command: "bash",
+      args: "-c 'umask 002 && tensorboard --logdir /data --host 0.0.0.0'",
+      exposed: true,
+      requires_authentication: true,
       image: "tensorflow/tensorflow",
       name: "tensorboard",
       ports: [6006],
@@ -41,12 +43,14 @@ export const templates: ServiceTemplates = {
         "/data": "/data",
         "/project-dir": "/usr/src/app/src",
       },
-      command:
+      args:
         "-c 'umask 002 && touch /usr/src/app/src/streamlit.py && streamlit run src/streamlit.py'",
-      entrypoint: "bash",
+      command: "bash",
       env_variables: {
         STREAMLIT_SERVER_BASE_URL_PATH: "$BASE_PATH_PREFIX_8501",
       },
+      exposed: true,
+      requires_authentication: true,
       image: "orchest/streamlit",
       name: "streamlit",
       ports: [8501],
@@ -61,9 +65,11 @@ export const templates: ServiceTemplates = {
       binds: {
         "/project-dir": "/home/coder/code-server",
       },
-      entrypoint: "bash",
-      command:
+      command: "bash",
+      args:
         "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
+      exposed: true,
+      requires_authentication: true,
       image: "codercom/code-server:latest",
       name: "vscode",
       ports: [8080],
@@ -77,8 +83,11 @@ export const templates: ServiceTemplates = {
       env_variables: {
         POSTGRES_HOST_AUTH_METHOD: "trust",
       },
+      exposed: false,
+      requires_authentication: true,
       image: "postgres",
       name: "postgres",
+      ports: [5432],
       scope: ["interactive", "noninteractive"],
     },
   },
@@ -86,8 +95,11 @@ export const templates: ServiceTemplates = {
     label: "Redis",
     icon: <IconRedis />,
     config: {
+      exposed: false,
+      requires_authentication: true,
       image: "redis",
       name: "redis",
+      ports: [6379],
       scope: ["interactive", "noninteractive"],
     },
   },
@@ -95,9 +107,12 @@ export const templates: ServiceTemplates = {
     label: "Create custom service",
     icon: <IconDraftOutline />,
     config: {
+      exposed: false,
+      requires_authentication: true,
       image: "",
       name: "my-service",
       scope: ["interactive", "noninteractive"],
+      ports: [8000],
     },
   },
 };

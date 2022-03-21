@@ -27,6 +27,8 @@ deployment
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "ORCHEST_FQDN"
+          value: "{{ .Values.global.ingress.host }}"
         - name: "CLOUD"
           value: "{{ .Values.CLOUD }}"
         - name: "ORCHEST_PORT"
@@ -60,7 +62,6 @@ deployment
               - sh
               - -c
               - "wget orchest-api/api -T 2 -t 1 --spider &&
-                wget file-manager -T 2 -t 1 &&
                 wget -T 1 -t 1 localhost --spider"
         livenessProbe:
           httpGet:

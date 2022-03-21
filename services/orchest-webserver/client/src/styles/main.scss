@@ -943,6 +943,7 @@ button.themed-secondary {
 .pipeline-view {
   position: relative;
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: row;
 
@@ -1071,12 +1072,12 @@ button.themed-secondary {
     overflow: hidden;
     position: absolute;
 
-    &.ready-to-drag {
+    &.ready-to-pan {
       cursor: grabbing; // as a fallback
       cursor: grab;
     }
 
-    &.dragging {
+    &.panning {
       cursor: grabbing;
 
       .pipeline-steps-holder {
@@ -1257,23 +1258,6 @@ button.themed-secondary {
         width: 30px;
         height: 30px;
         border-radius: 30px;
-
-        &.hover {
-          .inner-dot {
-            background: $secondary;
-          }
-        }
-
-        .inner-dot {
-          background: black;
-          border-radius: 10px;
-          width: 10px;
-          height: 10px;
-          margin-left: 10px;
-          margin-top: 10px;
-          pointer-events: none;
-        }
-
         position: absolute;
         top: 50%;
         transform: translateY(-50%);

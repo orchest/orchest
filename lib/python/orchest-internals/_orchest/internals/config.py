@@ -9,14 +9,15 @@ USERDIR_PROJECTS = "/userdir/projects"
 USERDIR_ENV_IMG_BUILDS = "/userdir/.orchest/env-img-builds"
 USERDIR_JUPYTER_IMG_BUILDS = "/userdir/.orchest/jupyter-img-builds"
 USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
-USERDIR_BASE_IMAGES_CACHE = "/userdir/.orchest/base-images-cache"
+USERDIR_KANIKO_BASE_IMAGES_CACHE = "/userdir/.orchest/kaniko-base-images-cache"
+USERDIR_BUILDKIT_CACHE = "/userdir/.orchest/buildkit-cache"
 
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "True"
-ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN", "www.localorchest.io")
+ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN", "localorchest.io")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # This represents a container priority w.r.t. CPU time. By default,
 # containers run with a value of 1024. User code/containers such as
@@ -95,9 +96,10 @@ ENV_SETUP_SCRIPT_FILE_NAME = "setup_script.sh"
 
 DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 
-# Install any dependencies you have in this shell script.
+# Install any dependencies you have in this shell script,
+# see https://docs.orchest.io/en/latest/fundamentals/environments.html#install-packages
 
-# E.g. pip install tensorflow
+# E.g. mamba install -y tensorflow
 
 """
 
@@ -106,7 +108,7 @@ DEFAULT_SETUP_SCRIPT = """#!/bin/bash
 DEFAULT_ENVIRONMENTS = [
     {
         "name": "Python 3",
-        "base_image": "orchest/base-kernel-py",
+        "base_image": f'orchest/base-kernel-py:{os.getenv("ORCHEST_VERSION")}',
         "language": "python",
         "setup_script": DEFAULT_SETUP_SCRIPT,
         "gpu_support": False,
@@ -120,3 +122,6 @@ SIDECAR_PORT = 1111
 
 ORCHEST_NAMESPACE = "orchest"
 ORCHEST_CTL_POD_YAML_PATH = "/orchest/deploy/orchest-ctl/pod.yml"
+ORCHEST_UPDATE_INFO_URL = (
+    "https://update-info.orchest.io/api/orchest/update-info/v2?version={version}"
+)

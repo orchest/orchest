@@ -3,9 +3,12 @@
 Note that pod labels are coupled with how we restart services, which
 is done by deleting all pods with the given labels.
 """
+import copy
+import json
 import os
+import shlex
 import traceback
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import get_userdir_relpath
@@ -154,8 +157,9 @@ def _get_memory_server_deployment_manifest(
                     "containers": [
                         {
                             "name": "memory-server",
-                            "image": "orchest/memory-server:latest",
-                            # K8S_TODO: fix me.
+                            "image": (
+                                f"orchest/memory-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+                            ),
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
                                 {
@@ -320,11 +324,16 @@ def _get_session_sidecar_deployment_manifest(
                     "volumes": [
                         volumes_dict["userdir-pvc"],
                     ],
+                    # Using signal to handle sigterm doesn't work well
+                    # with threads.
+                    "terminationGracePeriodSeconds": 1,
                     "containers": [
                         {
                             "name": metadata["name"],
-                            "image": "orchest/session-sidecar:latest",
-                            # K8S_TODO: fix me.
+                            "image": (
+                                "orchest/session-sidecar:"
+                                + CONFIG_CLASS.ORCHEST_VERSION
+                            ),
                             "imagePullPolicy": "IfNotPresent",
                             "env": [
                                 {
@@ -393,6 +402,7 @@ def _get_jupyter_server_deployment_service_manifest(
             "template": {
                 "metadata": metadata,
                 "spec": {
+                    "terminationGracePeriodSeconds": 5,
                     "securityContext": {
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
@@ -408,7 +418,6 @@ def _get_jupyter_server_deployment_service_manifest(
                         {
                             "name": metadata["name"],
                             "image": utils.get_jupyter_server_image_to_use(),
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "volumeMounts": [
                                 volume_mounts_dict["project-dir"],
@@ -417,8 +426,6 @@ def _get_jupyter_server_deployment_service_manifest(
                                 volume_mounts_dict["jupyterlab-lab"],
                                 volume_mounts_dict["jupyterlab-user-settings"],
                             ],
-                            # K8S_TODO: will require changes based on
-                            # how ingress is implemented.
                             "args": [
                                 "--allow-root",
                                 "--port=8888",
@@ -447,8 +454,6 @@ def _get_jupyter_server_deployment_service_manifest(
         },
     }
 
-    # K8S_TODO: will require changes based on
-    # how ingress is implemented.
     service_manifest = {
         "apiVersion": "v1",
         "kind": "Service",
@@ -686,6 +691,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     },
                     "serviceAccount": f"jupyter-eg-sa-{session_uuid}",
                     "serviceAccountName": f"jupyter-eg-sa-{session_uuid}",
+                    "terminationGracePeriodSeconds": 5,
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -695,8 +701,10 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     "containers": [
                         {
                             "name": metadata["name"],
-                            "image": "orchest/jupyter-enterprise-gateway",
-                            # K8S_TODO: fix me.
+                            "image": (
+                                "orchest/jupyter-enterprise-gateway:"
+                                + CONFIG_CLASS.ORCHEST_VERSION
+                            ),
                             "imagePullPolicy": "IfNotPresent",
                             "env": environment,
                             "volumeMounts": [
@@ -710,8 +718,6 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         },
     }
 
-    # K8S_TODO: will require changes based on how ingress is
-    # implemented.
     service_manifest = {
         "apiVersion": "v1",
         "kind": "Service",
@@ -730,7 +736,7 @@ def _get_user_service_deployment_service_manifest(
     session_config: SessionConfig,
     service_config: Dict[str, Any],
     session_type: SessionType,
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+) -> Tuple[Dict[str, Any], Dict[str, Any], Optional[Dict[str, Any]]]:
     """Get deployment and service manifest for a user service.
 
     Args:
@@ -743,8 +749,9 @@ def _get_user_service_deployment_service_manifest(
             noninteractive.
 
     Returns:
-        Tuple of k8s deployment and service manifests to deploy this
-        user service in the session.
+        Tuple of k8s deployment, service and ingress manifests to deploy
+        this user service in the session. The ingress is None if
+        service.exposed is False.
 
     """
     project_uuid = session_config["project_uuid"]
@@ -754,6 +761,23 @@ def _get_user_service_deployment_service_manifest(
     userdir_pvc = session_config["userdir_pvc"]
     img_mappings = session_config["env_uuid_to_image"]
     session_type = session_type.value
+
+    # Template section
+    is_pbp_enabled = service_config.get("preserve_base_path", False)
+    ingress_url = "service-" + service_config["name"] + "-" + session_uuid
+    if is_pbp_enabled:
+        ingress_url = "pbp-" + ingress_url
+
+    # Replace $BASE_PATH_PREFIX with service_base_url.  NOTE:
+    # this substitution happens after service_config["name"] is read,
+    # so that JSON entry does not support $BASE_PATH_PREFIX
+    # substitution.  This allows the user to specify
+    # $BASE_PATH_PREFIX as the value of an env variable, so that
+    # the base path can be passsed dynamically to the service.
+    service_str = json.dumps(service_config)
+    service_str = service_str.replace("$BASE_PATH_PREFIX", ingress_url)
+    service_config = json.loads(service_str)
+    # End template section
 
     # Get user configured environment variables
     try:
@@ -796,15 +820,17 @@ def _get_user_service_deployment_service_manifest(
         userdir_pvc,
         project_dir,
         pipeline_path,
+        container_project_dir=sbinds.get("/project-dir", _config.PROJECT_DIR),
+        container_data_dir=sbinds.get("/data", _config.DATA_DIR),
     )
     # Can be later extended into adding a Mount for every "custom"
     # key, e.g. key != data and key != project_directory.
     if "/data" in sbinds:
-        volumes.append(volumes_dict["data"])
         volume_mounts.append(volume_mounts_dict["data"])
     if "/project-dir" in sbinds:
-        volumes.append(volumes_dict["project-dir"])
         volume_mounts.append(volume_mounts_dict["project-dir"])
+    if "/data" in sbinds or "/project-dir" in sbinds:
+        volumes.append(volumes_dict["userdir-pvc"])
 
     # To support orchest environments as services.
     image = service_config["image"]
@@ -841,6 +867,7 @@ def _get_user_service_deployment_service_manifest(
             "template": {
                 "metadata": metadata,
                 "spec": {
+                    "terminationGracePeriodSeconds": 5,
                     "securityContext": {
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
@@ -854,7 +881,6 @@ def _get_user_service_deployment_service_manifest(
                         {
                             "name": metadata["name"],
                             "image": image,
-                            # K8S_TODO: fix me.
                             "imagePullPolicy": "IfNotPresent",
                             "env": env,
                             "volumeMounts": volume_mounts,
@@ -869,17 +895,15 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    # K8S_TODO: GUI & data changes to go from entrypoint and command
-    # to command and args.
-    if "entrypoint" in service_config:
-        deployment_manifest["spec"]["template"]["spec"]["containers"][0]["command"] = [
-            service_config["entrypoint"]
-        ]
-
     if "command" in service_config:
-        deployment_manifest["spec"]["template"]["spec"]["containers"][0]["args"] = [
+        deployment_manifest["spec"]["template"]["spec"]["containers"][0]["command"] = [
             service_config["command"]
         ]
+
+    if "args" in service_config:
+        deployment_manifest["spec"]["template"]["spec"]["containers"][0][
+            "args"
+        ] = shlex.split(service_config["args"])
 
     service_manifest = {
         "apiVersion": "v1",
@@ -892,43 +916,61 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    ingress_url = (
-        "service-"
-        + service_config["name"]
-        + "-"
-        + project_uuid.split("-")[0]
-        + "-"
-        + pipeline_uuid.split("-")[0]
-    )
-    ingress_paths = []
-    for port in service_config.get("ports", []):
-        pbp = "pbp-" if service_config.get("preserve_base_path", False) else ""
-        ingress_paths.append(
-            {
-                "backend": {
-                    "service": {
-                        "name": metadata["name"],
-                        "port": {"number": port},
-                    }
-                },
-                "path": f"/{pbp}{ingress_url}_{port}",
-                "pathType": "Prefix",
-            }
-        )
-
-    ingress_manifest = {
-        "apiVersion": "networking.k8s.io/v1",
-        "kind": "Ingress",
-        "metadata": metadata,
-        "spec": {
-            "ingressClassName": "nginx",
-            "rules": [
+    if service_config["exposed"]:
+        ingress_paths = []
+        for port in service_config.get("ports", []):
+            ingress_paths.append(
                 {
-                    "host": _config.ORCHEST_FQDN,
-                    "http": {"paths": ingress_paths},
+                    "backend": {
+                        "service": {
+                            "name": metadata["name"],
+                            "port": {"number": port},
+                        }
+                    },
+                    "path": f"/({ingress_url}_{port}.*)"
+                    if is_pbp_enabled
+                    else f"/{ingress_url}_{port}(/|$)(.*)",
+                    "pathType": "Prefix",
                 }
-            ],
-        },
-    }
+            )
+
+        ingress_metadata = copy.deepcopy(metadata)
+
+        # Decide rewrite target based on pbp
+        ingress_metadata["annotations"] = {
+            "nginx.ingress.kubernetes.io/rewrite-target": "/$1"
+            if is_pbp_enabled
+            else "/$2",
+        }
+
+        if service_config.get("requires_authentication", True):
+            # Needs to be the FQDN since the ingress ngin pod lives in
+            # a different namespace.
+            auth_url = (
+                f"http://auth-server.{_config.ORCHEST_NAMESPACE}.svc.cluster.local/auth"
+            )
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-url"
+            ] = auth_url
+            ingress_metadata["annotations"][
+                "nginx.ingress.kubernetes.io/auth-signin"
+            ] = "/login"
+
+        ingress_manifest = {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "Ingress",
+            "metadata": ingress_metadata,
+            "spec": {
+                "ingressClassName": "nginx",
+                "rules": [
+                    {
+                        "host": _config.ORCHEST_FQDN,
+                        "http": {"paths": ingress_paths},
+                    }
+                ],
+            },
+        }
+    else:
+        ingress_manifest = None
 
     return deployment_manifest, service_manifest, ingress_manifest

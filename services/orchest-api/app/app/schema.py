@@ -90,9 +90,9 @@ service = Model(
             fields.String, required=True, description="interactive/noninteractive"
         ),
         "command": fields.String(required=False, description="Command"),
-        "entrypoint": fields.String(required=False, description="Entrypoint"),
+        "args": fields.String(required=False, description="Args"),
         "ports": fields.List(
-            fields.String, required=False, description="List of service exposed ports"
+            fields.String, required=True, description="List of service exposed ports"
         ),
         "env_variables": fields.Raw(
             required=False,
@@ -105,6 +105,10 @@ service = Model(
                 "List of env vars to inherit from project and pipeline env vars "
                 " or job env vars. These env vars supersede the service defined ones."
             ),
+        ),
+        "exposed": fields.Boolean(
+            required=True,
+            description=("If the service should be reachable outside the cluster."),
         ),
         "binds": fields.Raw(
             required=False, description=("Local fs to container mappings")
@@ -674,6 +678,11 @@ environment_image = Model(
 environment_images = Model(
     "EnvironmentImages",
     {"environment_images": fields.List(fields.Nested(environment_image))},
+)
+
+environment_images_to_pre_pull = Model(
+    "EnvironmentImagesToPrepull",
+    {"pre_pull_images": fields.List(fields.String(required=True))},
 )
 
 

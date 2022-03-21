@@ -160,7 +160,7 @@ being reflected inside the application.
 A few additional notes about running Orchest with the ``--dev`` flag:
 
 * All Flask applications are run in development mode.
-* Only the ``orchest-webserver``, ``auth-server``, ``file-manager`` and ``orchest-api`` support code
+* Only the ``orchest-webserver``, ``auth-server`` and ``orchest-api`` support code
   changes to be instantly reflected. For code changes to other services you will have to rebuild the
   container and restart Orchest. To re-build a specific container (e.g. ``orchest-webserver``), run the following command:
 

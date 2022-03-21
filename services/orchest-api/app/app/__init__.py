@@ -128,7 +128,8 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
         )
 
         if not _utils.is_running_from_reloader():
-            trigger_conditional_jupyter_image_build(app)
+            with app.app_context():
+                trigger_conditional_jupyter_image_build(app)
 
     # Register blueprints at the end to avoid issues when migrating the
     # DB. When registering a blueprint the DB schema is also registered
@@ -228,7 +229,7 @@ def trigger_conditional_jupyter_image_build(app):
         return
 
     # If the image has already been built no need to build again.
-    if utils.get_jupyter_server_image_to_use() != "orchest/jupyter-server:latest":
+    if not utils.get_jupyter_server_image_to_use().startswith("orchest/jupyter-server"):
         return
 
     try:

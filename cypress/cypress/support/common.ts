@@ -87,7 +87,6 @@ export enum TEST_ID {
   JUPYTERLAB_IFRAME = "jupyterlab-iframe",
   MANAGE_USERS = "manage-users",
   MENU_ENVIRONMENTS = "menu-environments",
-  MENU_FILE_MANAGER = "menu-file-manager",
   MENU_JOBS = "menu-jobs",
   MENU_PIPELINE = "menu-pipelines",
   MENU_PROJECTS = "menu-projects",
@@ -307,12 +306,14 @@ export function getJobProjectDirPath(
   return r;
 }
 
-export function setStepParameters(stepTitle, params) {
-  cy.intercept("POST", /.*/).as("allPosts");
+export function setStepParameters(stepTitle: string, params) {
+  cy.intercept("POST", /async\/project-files\/exists/).as("fileExists");
   cy.get(`[data-test-title=${stepTitle}]`)
     .scrollIntoView()
     .click({ force: true });
+  cy.wait("@fileExists");
 
+  cy.intercept("POST", /.*/).as("allPosts");
   // Delete the current content.
   cy.get(".CodeMirror-line")
     .first()

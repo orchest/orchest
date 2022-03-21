@@ -1,4 +1,5 @@
 import datetime
+import os
 
 from _orchest.internals import config as _config
 
@@ -8,6 +9,7 @@ class Config:
     DEBUG = False
     TESTING = False
 
+    ORCHEST_VERSION = os.environ["ORCHEST_VERSION"]
     # must be uppercase
     SQLALCHEMY_DATABASE_URI = "postgresql://postgres@orchest-database/orchest_api"
 
@@ -28,9 +30,9 @@ class Config:
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # Image building.
-    BUILD_IMAGE_LOG_TERMINATION_FLAG = "_ORCHEST_RESERVED_LOG_TERMINATION_FLAG_"
+    IMAGE_BUILDER_IMAGE = "moby/buildkit:v0.10.0"
+    BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
-    HOST_BASE_IMAGES_CACHE = f"/var/lib/orchest{_config.USERDIR_BASE_IMAGES_CACHE}"
 
     # ---- Celery configurations ----
     # NOTE: the configurations have to be lowercase.
@@ -66,7 +68,6 @@ class Config:
         "app.core.tasks.run_pipeline": {"queue": "celery"},
         "app.core.tasks.build_environment_image": {"queue": "builds"},
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
-        "app.core.tasks.delete_base_images_cache": {"queue": "builds"},
     }
 
 

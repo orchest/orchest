@@ -1,4 +1,6 @@
 images:
   pullPolicy: IfNotPresent
-  name: orchest/node-agent:latest 
+  registry: docker.io
+  name: orchest/node-agent
+  tag: k8s-beta
 

@@ -1,9 +1,9 @@
 import { getOrderValue } from "@/pipeline-settings-view/common";
 import { PipelineJson } from "@/types";
 import { getPipelineJSONEndpoint } from "@/utils/webserver-utils";
-import { fetcher, uuidv4 } from "@orchest/lib-utils";
+import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
 type FetchPipelineJsonProps = {
@@ -14,10 +14,18 @@ type FetchPipelineJsonProps = {
 };
 
 export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
+  const { cache } = useSWRConfig();
   const { pipelineUuid, projectUuid, jobUuid, runUuid } = props || {};
+
+  const cacheKey = getPipelineJSONEndpoint(
+    pipelineUuid,
+    projectUuid,
+    jobUuid,
+    runUuid
+  );
+
   const { data, error, isValidating, mutate } = useSWR<PipelineJson>(
-    getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid) ||
-      null,
+    cacheKey || null,
     (url: string) =>
       fetcher<{
         pipeline_json: string;
@@ -46,14 +54,6 @@ export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
           pipelineObj.services = {};
         }
 
-        // use temporary uuid for easier FE manipulation, will be cleaned up when saving
-        pipelineObj.services = Object.values(pipelineObj.services).reduce(
-          (all, curr) => {
-            return { ...all, [uuidv4()]: curr };
-          },
-          {}
-        );
-
         // Augment services with order key
         for (let service in pipelineObj.services) {
           pipelineObj.services[service].order = getOrderValue();
@@ -74,7 +74,7 @@ export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
   );
 
   return {
-    pipelineJson: data,
+    pipelineJson: data || (cache.get(cacheKey) as PipelineJson),
     error,
     isFetchingPipelineJson: isValidating,
     fetchPipelineJson: mutate,

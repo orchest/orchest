@@ -1,5 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import { Service } from "@/types";
 import { getServiceURLs } from "@/utils/webserver-utils";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import TuneIcon from "@mui/icons-material/Tune";
@@ -12,6 +13,7 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Menu from "@mui/material/Menu";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 const formatUrl = (url: string) => {
@@ -27,14 +29,7 @@ export const ServicesMenu = ({
   isOpen: boolean;
   onClose: () => void;
   anchor: React.MutableRefObject<Element>;
-  services: Record<
-    string,
-    {
-      ports: number[];
-      preserve_base_path: string;
-      name: string;
-    }
-  > | null;
+  services: Record<string, Partial<Service>> | null;
 }) => {
   const {
     projectUuid,
@@ -45,9 +40,13 @@ export const ServicesMenu = ({
     navigateTo,
   } = useCustomRoute();
 
+  const isJobRun = hasValue(jobUuid && runUuid);
+
   const openSettings = (e: React.MouseEvent) => {
     navigateTo(
-      siteMap.pipelineSettings.path,
+      isJobRun
+        ? siteMap.jobRunPipelineSettings.path
+        : siteMap.pipelineSettings.path,
       {
         query: {
           projectUuid,
@@ -63,12 +62,14 @@ export const ServicesMenu = ({
   };
 
   const serviceLinks = services
-    ? Object.entries(services).map(([serviceName, service]) => {
-        return {
-          name: serviceName,
-          urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
-        };
-      })
+    ? Object.entries(services)
+        .filter((serviceTuple) => serviceTuple[1].exposed)
+        .map(([serviceName, service]) => {
+          return {
+            name: serviceName,
+            urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
+          };
+        })
     : null;
 
   return (

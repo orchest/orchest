@@ -9,13 +9,14 @@ import os
 import time
 from typing import Container, Dict, Iterable, List, Optional, Union
 
+import requests
 import typer
 import yaml
 from kubernetes import client as k8s_client
 
 from _orchest.internals import config as _config
 from app import config, utils
-from app.connections import k8s_apps_api, k8s_core_api
+from app.connections import k8s_apps_api, k8s_core_api, k8s_netw_api
 
 
 def get_orchest_deployments(
@@ -67,7 +68,7 @@ def get_orchest_deployments_pods(
         deployments = [d for d in get_orchest_deployments(deployments) if d is not None]
     elif not all(isinstance(depl, k8s_client.V1Deployment) for depl in deployments):
         raise ValueError(
-            "Deployments should either all be of type string or of type V1Deployments."
+            "Deployments should either all be of type string or of type V1Deployment."
         )
 
     threads = []
@@ -88,12 +89,78 @@ def get_orchest_deployments_pods(
     return pods
 
 
+def get_orchest_daemonsets_pods(
+    daemonsets: Optional[Union[List[str], List[k8s_client.V1DaemonSet]]] = None,
+) -> List[Optional[k8s_client.V1Pod]]:
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+
+    if all(isinstance(daem, str) for daem in daemonsets):
+        daemonsets = [d for d in get_orchest_daemonsets(daemonsets) if d is not None]
+    elif not all(isinstance(daem, k8s_client.V1DaemonSet) for daem in daemonsets):
+        raise ValueError(
+            "Daemonsets should either all be of type string or of type V1Daemonset."
+        )
+
+    threads = []
+    for daem in daemonsets:
+        t = k8s_core_api.list_namespaced_pod(
+            config.ORCHEST_NAMESPACE,
+            label_selector=_match_labels_to_label_selector(
+                daem.spec.selector.match_labels
+            ),
+            async_req=True,
+        )
+        threads.append(t)
+
+    pods = []
+    for t in threads:
+        depl_pods = t.get()
+        pods.extend(depl_pods.items)
+    return pods
+
+
 def scale_up_orchest_deployments(deployments: Optional[List[str]] = None):
     _scale_orchest_deployments(deployments, 1)
 
 
 def scale_down_orchest_deployments(deployments: Optional[List[str]] = None):
     _scale_orchest_deployments(deployments, 0)
+
+
+def get_orchest_daemonsets(
+    daemonsets: Optional[List[str]] = None,
+) -> List[Optional[k8s_client.V1DaemonSet]]:
+    """Returns Daemonsets objects given their name.
+
+    Args:
+        deployments: Names of daemonsets to retrieve. If not passed or
+            None, config.ORCHEST_DAEMONSETS will be used.
+
+    Return:
+        List of Daemonsets objects, returned in the same order as the
+        given deployments argument.
+    """
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+    threads = []
+    for name in daemonsets:
+        t = k8s_apps_api.read_namespaced_daemon_set(
+            name, config.ORCHEST_NAMESPACE, async_req=True
+        )
+        threads.append(t)
+
+    responses = []
+    for t in threads:
+        try:
+            daemonset = t.get()
+            responses.append(daemonset)
+        except k8s_client.ApiException as e:
+            if e.status == 404:
+                responses.append(None)
+            else:
+                raise
+    return responses
 
 
 def _scale_orchest_deployments(
@@ -114,6 +181,61 @@ def _scale_orchest_deployments(
         t.get()
 
 
+def scale_up_orchest_daemonsets(daemonsets: Optional[List[str]] = None) -> None:
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+    threads = []
+    for name in daemonsets:
+        t = k8s_apps_api.patch_namespaced_daemon_set(
+            name,
+            config.ORCHEST_NAMESPACE,
+            body=[
+                {
+                    "op": "remove",
+                    "path": (
+                        "/spec/template/spec/nodeSelector/"
+                        + config.DAEMONSET_SCALING_FLAG
+                    ),
+                }
+            ],
+            async_req=True,
+        )
+        threads.append(t)
+
+    for t in threads:
+        try:
+            t.get()
+        except k8s_client.ApiException as e:
+            # The daemonset was already running, i.e. there was no
+            # nodeSelector flag set.
+            if e.status != 422:
+                raise e
+
+
+def scale_down_orchest_daemonsets(daemonsets: Optional[List[str]] = None) -> None:
+    if daemonsets is None:
+        daemonsets = config.ORCHEST_DAEMONSETS
+    threads = []
+    for name in daemonsets:
+        t = k8s_apps_api.patch_namespaced_daemon_set(
+            name,
+            config.ORCHEST_NAMESPACE,
+            body={
+                "spec": {
+                    "template": {
+                        "spec": {
+                            "nodeSelector": {config.DAEMONSET_SCALING_FLAG: "true"}
+                        }
+                    }
+                }
+            },
+            async_req=True,
+        )
+        threads.append(t)
+    for t in threads:
+        t.get()
+
+
 def _get_deployment_container_env_var_patch(container_name: str, env_vars=dict) -> dict:
     patch = {
         "spec": {
@@ -123,7 +245,8 @@ def _get_deployment_container_env_var_patch(container_name: str, env_vars=dict) 
                         {
                             "name": container_name,
                             "env": [
-                                {"name": k, "value": v} for k, v in env_vars.items()
+                                {"name": k, "value": str(v)}
+                                for k, v in env_vars.items()
                             ],
                         }
                     ]
@@ -252,8 +375,6 @@ def get_ongoing_status_change() -> Optional[config.OrchestStatus]:
     pod = _get_ongoing_status_changing_pod()
     if pod is None:
         return None
-    if pod.metadata.labels["app"] == "update-server":
-        return config.OrchestStatus.UPDATING
     else:
         cmd = pod.metadata.labels["command"]
         return config.ORCHEST_OPERATION_TO_STATUS_MAPPING[cmd]
@@ -275,7 +396,7 @@ _cleanup_pod_manifest = {
         "containers": [
             {
                 "name": "orchest-api-cleanup",
-                "image": f'orchest/orchest-api:{os.environ["ORCHEST_VERSION"]}',
+                "image": f"orchest/orchest-api:{config.ORCHEST_VERSION}",
                 "command": ["/bin/sh", "-c"],
                 # Make sure the database is compatible with the code.
                 "args": ["python migration_manager.py db migrate && python cleanup.py"],
@@ -305,8 +426,6 @@ def orchest_cleanup() -> None:
     to be online.
     """
     manifest = _cleanup_pod_manifest
-    # K8S_TODO: fix this once we move to versioned images.
-    manifest["spec"]["containers"][0]["image"] = "orchest/orchest-api:latest"
     resp = k8s_core_api.create_namespaced_pod(config.ORCHEST_NAMESPACE, manifest)
     pod_name = resp.metadata.name
 
@@ -337,19 +456,25 @@ def _get_orchest_ctl_update_post_manifest(update_to_version: str) -> dict:
 
     spec = manifest["spec"]
     spec["containers"][0]["image"] = f"orchest/orchest-ctl:{update_to_version}"
-    for env_var in spec["containers"][0]["env"]:
-        if env_var["name"] == "ORCHEST_VERSION":
-            env_var["value"] = update_to_version
-            break
     return manifest
 
 
-def create_update_pod() -> k8s_client.V1Pod:
-    # K8S_TODO: query the update-info server once we moved to versioned
-    # images.
-    manifest = _get_orchest_ctl_update_post_manifest("latest")
-    r = k8s_core_api.create_namespaced_pod("orchest", manifest)
-    return r
+def get_update_pod_manifest() -> dict:
+    current_version = get_orchest_cluster_version()
+    resp = requests.get(
+        _config.ORCHEST_UPDATE_INFO_URL.format(version=current_version), timeout=5
+    )
+    if resp.status_code != 200:
+        utils.echo("Failed to retrieve latest Orchest version information.")
+        raise typer.Exit(1)
+
+    latest_version = resp.json()["latest_version"]
+    if latest_version == current_version:
+        utils.echo("Orchest is already at the latest version.")
+        raise typer.Exit(0)
+
+    manifest = _get_orchest_ctl_update_post_manifest(latest_version)
+    return manifest
 
 
 def wait_for_pod_status(
@@ -378,3 +503,31 @@ def wait_for_pod_status(
         time.sleep(1)
 
     return status
+
+
+def get_host_names() -> List[str]:
+    """Returns the host names under which Orchest is reachable locally.
+
+    Each entry needs to be mapped to the cluster ip in the /etc/hosts
+    file.
+    """
+    hosts = set()
+    try:
+        r = k8s_netw_api.read_namespaced_ingress("orchest-webserver", "orchest")
+    except k8s_client.ApiException as e:
+        if e.status != 404:
+            raise e
+    else:
+        for rule in r.spec.rules:
+            hosts.add(rule.host)
+    return sorted(hosts)
+
+
+def sync_celery_parallelism_from_config() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "celery-worker",
+        "orchest",
+        _get_deployment_container_env_var_patch(
+            "celery-worker", utils.get_celery_parallelism_level_from_config()
+        ),
+    )

@@ -34,3 +34,6 @@ export const DEFAULT_BASE_IMAGES: (CustomImage & { img_src: string })[] = [
     gpu_support: false,
   },
 ];
+
+// Due to the migration to k8s, gpu-supported images are not yet available
+export const GPU_SUPPORT_ENABLED = false;

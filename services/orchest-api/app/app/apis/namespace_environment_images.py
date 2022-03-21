@@ -3,14 +3,11 @@ from flask.globals import current_app
 from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func
 
-from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from _orchest.internals import config as _config
+from _orchest.internals.two_phase_executor import TwoPhaseFunction
 from app import models, schema
-from app.apis.namespace_environment_image_builds import (
-    AbortEnvironmentImageBuild,
-    DeleteProjectBuilds,
-)
-from app.apis.namespace_jupyter_image_builds import AbortJupyterEnvironmentBuild
-from app.connections import db
+from app.apis.namespace_environment_image_builds import DeleteProjectBuilds
+from app.connections import db, k8s_core_api
 from app.core import image_utils
 from app.utils import register_schema
 
@@ -57,23 +54,35 @@ class LatestEnvironmentImage(Resource):
         return {"environment_images": latest_env_images}, 200
 
 
-@api.route(
-    "/base-images-cache",
-)
-class BaseImagesCache(Resource):
-    @api.doc("delete-base-images-cache")
-    def delete(self):
-        """Deletes the base images cache.
+@api.route("/to-pre-pull")
+class EnvironmentImagesToPrePull(Resource):
+    @api.doc("get_environment_image_to_pre_pull")
+    @api.marshal_with(schema.environment_images_to_pre_pull, code=200)
+    def get(self):
+        """Fetches the list of environment images to pre-pull."""
+        latest_env_images = db.session.query(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            func.max(models.EnvironmentImage.tag).label("tag"),
+        ).group_by(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+        )
+        images_to_pre_pull = []
+        registry_ip = k8s_core_api.read_namespaced_service(
+            _config.REGISTRY, _config.ORCHEST_NAMESPACE
+        ).spec.cluster_ip
+        for img in latest_env_images:
+            image = (
+                _config.ENVIRONMENT_IMAGE_NAME.format(
+                    project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+                )
+                + ":"
+                + str(img.tag)
+            )
+            images_to_pre_pull.append(f"{registry_ip}/{image}")
 
-        All ongoing environment and/or jupyter builds are cancelled.
-        """
-        try:
-            with TwoPhaseExecutor(db.session) as tpe:
-                DeleteBaseImagesCache(tpe).transaction()
-        except Exception as e:
-            return {"message": str(e)}, 500
-
-        return {"message": "Base images cache deletion successful."}, 200
+        return {"pre_pull_images": images_to_pre_pull}, 200
 
 
 @api.route(
@@ -113,24 +122,3 @@ class DeleteProjectEnvironmentImages(TwoPhaseFunction):
             DeleteProjectEnvironmentImages._background_collateral,
             args=[current_app._get_current_object(), project_uuid],
         )
-
-
-class DeleteBaseImagesCache(TwoPhaseFunction):
-    def _transaction(self):
-        env_builds = models.EnvironmentImageBuild.query.filter(
-            models.EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
-        )
-        for build in env_builds:
-            AbortEnvironmentImageBuild(self.tpe).transaction(
-                build.project_uuid,
-                build.environment_uuid,
-                build.image_tag,
-            )
-        jupyter_image_builds = models.JupyterImageBuild.query.filter(
-            models.JupyterImageBuild.status.in_(["PENDING", "STARTED"])
-        )
-        for jb in jupyter_image_builds:
-            AbortJupyterEnvironmentBuild(self.tpe).transaction(jb.uuid)
-
-    def _collateral(self):
-        image_utils.delete_base_images_cache()
