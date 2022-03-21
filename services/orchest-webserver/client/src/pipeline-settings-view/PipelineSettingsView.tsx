@@ -233,18 +233,6 @@ const PipelineSettingsView: React.FC = () => {
     setInputParameters(value);
   };
 
-  const onChangeDataPassingMemorySize = (value: string) => {
-    setSettings((current) => {
-      return { ...current, data_passing_memory_size: value };
-    });
-  };
-
-  const onChangeEviction = (value: boolean) => {
-    setSettings((current) => {
-      return { ...current, auto_eviction: value };
-    });
-  };
-
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
     for (let serviceName in pipeline.services) {
       let service = pipeline.services[serviceName];
