@@ -34,9 +34,9 @@ def construct_root_dir_path(root: Optional[str], project_uuid: str) -> str:
     project = Project.query.filter(Project.uuid == project_uuid).first()
 
     if root == PROJECT_DIR_PATH:
-        root = f"/userdir/projects/{project.path}"
+        root = _config.USERDIR_PROJECTS + f"/{project.path}"
     else:  # We know it is "/data"
-        root = "/userdir/data"
+        root = _config.USERDIR_DATA
 
     return root
 

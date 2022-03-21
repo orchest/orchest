@@ -1047,6 +1047,19 @@ def register_views(app, db):
         # Make absolute path relative
         fp = os.path.join(root_dir_path, path[1:])
 
+        if fp == root_dir_path:
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "It is not allowed to delete roots through "
+                            " the file-manager."
+                        )
+                    }
+                ),
+                403,
+            )
+
         if os.path.exists(fp):
             try:
                 rmtree(fp)
