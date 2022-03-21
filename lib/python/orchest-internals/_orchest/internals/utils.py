@@ -550,7 +550,7 @@ def copytree(
         if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
             copy_cmd += [f"--exclude-from={source}.gitignore"]
         # TODO: use shlex to handle this properly.
-        copy_cmd += [f"'{source}' '{target}"]
+        copy_cmd += [f"'{source}' '{target}'"]
     else:
         copy_cmd = ["cp", "-r", f"'{source}' '{target}'"]
 
