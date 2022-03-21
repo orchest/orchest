@@ -108,13 +108,17 @@ export const OnboardingDialog: React.FC = () => {
   const onCompleteOnboarding = () => {
     setIsOnboardingDialogOpen(false, () => {
       setSlide({ index: 0, direction: 0 });
-      if (!hasImportUrl && hasQuickstart) {
-        navigateTo(siteMap.pipeline.path, {
-          query: {
-            projectUuid: quickstart.project_uuid,
-            pipelineUuid: quickstart.pipeline_uuid,
-          },
-        });
+      if (!hasImportUrl) {
+        if (hasQuickstart) {
+          navigateTo(siteMap.pipeline.path, {
+            query: {
+              projectUuid: quickstart.project_uuid,
+              pipelineUuid: quickstart.pipeline_uuid,
+            },
+          });
+          return;
+        }
+        navigateTo(siteMap.projects.path);
       }
     });
   };
