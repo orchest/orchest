@@ -15,6 +15,7 @@ Prerequisites
 
 * `minikube <https://minikube.sigs.k8s.io/docs/start/>`_
 * `helm <https://helm.sh/docs/intro/install/>`_
+* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_
 * bash
 
 Windows
