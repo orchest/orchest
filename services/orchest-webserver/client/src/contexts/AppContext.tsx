@@ -1,3 +1,4 @@
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
   EnvironmentValidationData,
@@ -169,6 +170,8 @@ type AppContext = {
   requestBuild: RequestBuildDispatcher;
   deletePromptMessage: () => void;
   setAsSaved: (value?: boolean) => void;
+  isDrawerOpen: boolean;
+  setIsDrawerOpen: (value: boolean | ((value: boolean) => boolean)) => void;
 };
 
 const Context = React.createContext<AppContext | null>(null);
@@ -263,24 +266,27 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
   ) => {
     // NOTE: consumer could either provide a callback function for onConfirm (for most use cases), or provide an object for more detailed config
     return new Promise<boolean>((resolve) => {
-      const confirmHandler = !callbackOrParams
+      const hasCustomOnConfirm =
+        callbackOrParams instanceof Function || callbackOrParams?.onConfirm;
+
+      const confirmHandler = !hasCustomOnConfirm
         ? () => defaultOnConfirm(resolve)
         : callbackOrParams instanceof Function
         ? () => callbackOrParams(resolve)
         : () => callbackOrParams.onConfirm(resolve);
 
-      const cancelHandler =
-        !callbackOrParams || callbackOrParams instanceof Function
-          ? () => defaultOnCancel(resolve)
-          : () => callbackOrParams.onCancel(resolve);
+      const hasCustomOnCancel = callbackOrParams?.onCancel;
+      const cancelHandler = !hasCustomOnCancel
+        ? () => defaultOnCancel(resolve)
+        : () => callbackOrParams.onCancel(resolve);
 
       const confirmLabel =
-        callbackOrParams instanceof Function
+        !callbackOrParams || callbackOrParams instanceof Function
           ? "Confirm"
           : callbackOrParams?.confirmLabel || "Confirm";
 
       const cancelLabel =
-        callbackOrParams instanceof Function
+        !callbackOrParams || callbackOrParams instanceof Function
           ? "Cancel"
           : callbackOrParams?.cancelLabel || "Cancel";
 
@@ -341,14 +347,14 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
 
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
+  const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
 
   /**
    * =========================== side effects
    */
-  /**
-   * Complete loading once config has been provided and local storage values
-   * have been achieved
-   */
+
+  // Complete loading once config has been provided and local storage values
+  // have been achieved
   React.useEffect(() => {
     const fetchServerConfig = async () => {
       try {
@@ -365,15 +371,14 @@ export const AppContextProvider: React.FC = ({ children }) => {
     fetchServerConfig();
   }, []);
 
-  /**
-   * Handle Unsaved Changes prompt
-   */
+  // Handle Unsaved Changes prompt
   React.useEffect(() => {
     window.onbeforeunload = state.hasUnsavedChanges ? () => true : null;
   }, [state.hasUnsavedChanges]);
 
-  /* Action dispatchers
-  =========================== */
+  /**
+   * =========================== Action dispatchers
+   */
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setAlert = React.useCallback(
@@ -434,6 +439,8 @@ export const AppContextProvider: React.FC = ({ children }) => {
           requestBuild,
           deletePromptMessage,
           setAsSaved,
+          isDrawerOpen,
+          setIsDrawerOpen,
         }}
       >
         {state.isLoaded ? children : null}

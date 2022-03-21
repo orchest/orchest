@@ -11,7 +11,6 @@ import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
 import EnvironmentsView from "./views/EnvironmentsView";
-import FileManagerView from "./views/FileManagerView";
 import FilePreviewView from "./views/FilePreviewView";
 import HelpView from "./views/HelpView";
 import JupyterLabView from "./views/JupyterLabView";
@@ -187,12 +186,6 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
       root: "/jobs",
       title: getTitle("Edit Job"),
       component: EditJobView,
-    },
-    {
-      name: "fileManager",
-      path: "/file-manager",
-      title: getTitle("File Manager"),
-      component: FileManagerView,
     },
     {
       name: "settings",

@@ -32,7 +32,7 @@ export const isValidFile = async (
       method: "POST",
       headers: HEADER.JSON,
       body: JSON.stringify({
-        relative_path: path,
+        path,
       }),
     }
   );

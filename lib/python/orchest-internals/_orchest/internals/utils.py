@@ -513,7 +513,9 @@ def rmtree(path, ignore_errors=False) -> None:
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
 
-def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
+def copytree(
+    source: str, target: str, ignore_errors: bool = False, use_gitignore: bool = False
+) -> None:
     """Copies content from source to target.
 
     If eventlet is being used and it's either patching all modules or
@@ -522,11 +524,13 @@ def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
     Args:
         source:
         target:
+        ignore_errors: If True errors will be ignored, if False an
+            OSError will be raised.
         use_gitignore: If True, the copying process will ignore patterns
-        from the top-level `.gitignore` in `source`.
+            from the top-level `.gitignore` in `source`.
 
     Raises:
-        OSError if it failed to copy.
+        OSError if it failed to copy and ignore_errors is True.
 
     """
 
@@ -545,14 +549,15 @@ def copytree(source: str, target: str, use_gitignore: bool = False) -> None:
         copy_cmd = ["rsync", "-aWHAX"]
         if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
             copy_cmd += [f"--exclude-from={source}.gitignore"]
-        copy_cmd += [f"{source} {target}"]
+        # TODO: use shlex to handle this properly.
+        copy_cmd += [f"'{source}' '{target}"]
     else:
-        copy_cmd = ["cp", "-r", source, target]
+        copy_cmd = ["cp", "-r", f"'{source}' '{target}'"]
 
     exit_code = subprocess.call(
         " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
     )
-    if exit_code != 0:
+    if exit_code != 0 and not ignore_errors:
         raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
 
 

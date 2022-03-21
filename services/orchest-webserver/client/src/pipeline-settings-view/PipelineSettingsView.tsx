@@ -544,6 +544,7 @@ const PipelineSettingsView: React.FC = () => {
                           margin="normal"
                           onChange={(e) => setPipelineName(e.target.value)}
                           label="Pipeline name"
+                          InputLabelProps={{ shrink: true }}
                           disabled={isReadOnly}
                           fullWidth
                           data-test-id="pipeline-settings-configuration-pipeline-name"
@@ -562,10 +563,11 @@ const PipelineSettingsView: React.FC = () => {
                           margin="normal"
                           onChange={(e) => setPipelinePath(e.target.value)}
                           label="Pipeline path"
+                          InputLabelProps={{ shrink: true }}
                           disabled={isReadOnly || hasValue(session)}
                           helperText={
                             session
-                              ? "You need to stop session before changing pipeline path"
+                              ? "You need to stop the session before changing pipeline path"
                               : ""
                           }
                           fullWidth

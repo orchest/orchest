@@ -1,11 +1,7 @@
 import React from "react";
 
 /**
- *
- * @param onStartDragging
- * @param onDragging
- * @param onStopDragging
- * @returns a function that should be assigned to onMouseDown prop of an element
+ * this hook returns a function that should be assigned to onMouseDown prop of an element
  */
 export const useDragElement = ({
   onStartDragging,

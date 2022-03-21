@@ -52,6 +52,13 @@ type Action =
       payload: PipelineStepState;
     }
   | {
+      type: "ASSIGN_FILE_TO_STEP";
+      payload: {
+        filePath: string;
+        stepUuid: string;
+      };
+    }
+  | {
       type: "SELECT_STEPS";
       payload: {
         uuids: string[];
@@ -367,6 +374,14 @@ export const useEventVars = () => {
             openedMultiStep: false,
             ...selectSteps([newStep.uuid]),
           });
+        }
+
+        case "ASSIGN_FILE_TO_STEP": {
+          const { filePath, stepUuid } = action.payload;
+          const updated = produce(state, (draft) => {
+            draft.steps[stepUuid].file_path = filePath;
+          });
+          return withTimestamp({ ...state, ...updated });
         }
 
         case "CREATE_SELECTOR": {

@@ -24,4 +24,7 @@ export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
 
 export const HEADER = {
   JSON: { "Content-Type": "application/json; charset=UTF-8" },
+  FORM: {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+  },
 };

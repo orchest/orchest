@@ -33,7 +33,6 @@ jobs:
             -i base-kernel-py-gpu,
             -i nginx-proxy,
             -i update-sidecar,
-            -i file-manager,
             -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
           ]
 
@@ -135,12 +134,6 @@ jobs:
         env:
           DOCKERHUB_REPOSITORY: orchest/update-sidecar
           README_FILEPATH: services/update-sidecar/README.md
-
-      - name: Push README files to DockerHub file-manager
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/file-manager
-          README_FILEPATH: services/file-manager/README.md
 
   dispatch-orchest-ami-build:
     needs: buildpush
