@@ -72,7 +72,6 @@ export function ActionBar({
           setSelectedFiles([fullFilePath]);
           reload();
         }}
-        root={rootFolder}
         projectUuid={projectUuid}
       />
       <CreateFolderDialog

@@ -13,7 +13,6 @@ import {
   FILE_MANAGER_ENDPOINT,
   getActiveRoot,
   isCombinedPathChildLess,
-  lastSelectedFolderPath,
   mergeTrees,
   PROJECT_DIR_PATH,
   queryArgs,
@@ -37,9 +36,7 @@ import { FileTreeContainer } from "./FileTreeContainer";
  * @param file File | FileWithPath
  * @returns boolean
  */
-function isUploadedViaDropzone(
-  file: File | FileWithPath
-): file is FileWithPath {
+function isFileWithPath(file: File | FileWithPath): file is FileWithPath {
   return hasValue((file as FileWithPath).path);
 }
 
@@ -192,19 +189,15 @@ export function FileManager() {
           try {
             // Derive folder to upload the file to if webkitRelativePath includes a slash
             // (means the file was uploaded as a folder through drag or folder file selection)
-            const isUploadedAsFolder = isUploadedViaDropzone(file)
+
+            const isUploadedAsFolder = isFileWithPath(file)
               ? /.+\/.+/.test(file.path)
               : file.webkitRelativePath !== undefined &&
                 file.webkitRelativePath.includes("/");
 
-            const lastSelectedFolder = lastSelectedFolderPath(selectedFiles);
-
             let path = !isUploadedAsFolder
-              ? lastSelectedFolder
-              : `${lastSelectedFolder}${(isUploadedViaDropzone(file)
-                  ? file.path
-                  : file.webkitRelativePath
-                )
+              ? "/"
+              : `/${(isFileWithPath(file) ? file.path : file.webkitRelativePath)
                   .split("/")
                   .slice(0, -1)
                   .filter((value) => value.length > 0)
@@ -215,8 +208,8 @@ export function FileManager() {
 
             await fetcher(
               `${baseUrl}/upload?${queryArgs({
-                root,
                 path,
+                root,
               })}`,
               { method: "POST", body: formData }
             );
@@ -236,7 +229,7 @@ export function FileManager() {
       reload();
       setInProgress(false);
     },
-    [reload, root, baseUrl, selectedFiles]
+    [reload, root, baseUrl]
   );
 
   /**

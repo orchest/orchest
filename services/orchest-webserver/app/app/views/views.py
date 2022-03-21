@@ -986,6 +986,14 @@ def register_views(app, db):
         kernel_name = request.json.get("kernel_name")
         file_path = normalize_project_relative_path(request.json["file_path"])
 
+        if not is_valid_project_relative_path(project_uuid, file_path):
+            return (
+                jsonify(
+                    {"message": "New file points outside of the project directory."}
+                ),
+                409,
+            )
+
         project_dir = get_project_directory(project_uuid)
         file_path = os.path.join(project_dir, file_path)
         directories, _ = os.path.split(file_path)
