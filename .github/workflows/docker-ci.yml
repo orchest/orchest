@@ -5,8 +5,6 @@ name: Docker CI
 # change event types make sure you are not breaking the
 # dispatch-version-update-info job.
 on:
-  repository_dispatch:
-    types: [manual-trigger]
   release:
     types: [published]
 
