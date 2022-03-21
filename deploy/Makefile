@@ -41,7 +41,7 @@ endif
 
 #If no storage is provided, use NFS
 ifeq (${DEFINED_STORAGES},0)
-	ENABLE_ROOK_NFS := TRUE
+	ENABLE_HOSTPATH := TRUE
 endif
 
 # Orchest will install rook/rook (rook-ceph) for managing ceph, if it is desired,
