@@ -346,10 +346,6 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       dispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
     }
 
-    if (panningState === "ready-to-pan") {
-      setPipelineCanvasState({ panningState: "panning" });
-    }
-
     if (panningState === "panning") {
       let dx = mouseTracker.current.unscaledDelta.x;
       let dy = mouseTracker.current.unscaledDelta.y;
