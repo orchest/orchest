@@ -8,9 +8,6 @@ auth-server:
 celery-worker:
   enabled: false
 
-file-manager:
-  enabled: false
-
 orchest-api:
   enabled: false
 

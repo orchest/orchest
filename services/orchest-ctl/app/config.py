@@ -39,7 +39,6 @@ ORCHEST_DEPLOYMENTS = [
     "auth-server",
     "celery-worker",
     "docker-registry",
-    "file-manager",
     "orchest-api",
     "orchest-database",
     "orchest-webserver",
@@ -51,7 +50,6 @@ ORCHEST_DEPLOYMENTS = [
 DEPLOYMENT_VERSION_SYNCED_WITH_CLUSTER_VERSION = [
     "auth-server",
     "celery-worker",
-    "file-manager",
     "orchest-api",
     "orchest-webserver",
 ]
