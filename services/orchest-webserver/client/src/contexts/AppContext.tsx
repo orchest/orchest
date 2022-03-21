@@ -284,7 +284,8 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
         ? () => callbackOrParams(resolve)
         : () => callbackOrParams.onConfirm(resolve);
 
-      const hasCustomOnCancel = callbackOrParams?.onCancel;
+      const hasCustomOnCancel =
+        !(callbackOrParams instanceof Function) && callbackOrParams?.onCancel;
       const cancelHandler = !hasCustomOnCancel
         ? () => defaultOnCancel(resolve)
         : () => callbackOrParams.onCancel(resolve);
