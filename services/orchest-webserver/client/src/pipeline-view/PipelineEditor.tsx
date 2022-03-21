@@ -38,6 +38,7 @@ import { ConnectionDot } from "./ConnectionDot";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { CreateNextStepButton } from "./CreateNextStepButton";
 import { RunStepsType, useInteractiveRuns } from "./hooks/useInteractiveRuns";
+import { useOpenNoteBook } from "./hooks/useOpenNoteBook";
 import { useSavingIndicator } from "./hooks/useSavingIndicator";
 import { PipelineConnection } from "./pipeline-connection/PipelineConnection";
 import {
@@ -56,7 +57,7 @@ import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
 
-export const PipelineEditor: React.FC = () => {
+export const PipelineEditor = () => {
   const { setAlert, setConfirm } = useAppContext();
 
   const { projectUuid, pipelineUuid, jobUuid, navigateTo } = useCustomRoute();
@@ -72,6 +73,7 @@ export const PipelineEditor: React.FC = () => {
     eventVars,
     dispatch,
     stepDomRefs,
+    pipelineCanvasRef,
     newConnection,
     pipelineCwd,
     pipelineJson,
@@ -85,6 +87,8 @@ export const PipelineEditor: React.FC = () => {
     metadataPositions,
     session,
   } = usePipelineEditorContext();
+
+  const openNotebook = useOpenNoteBook();
 
   const removeSteps = React.useCallback(
     (uuids: string[]) => {
@@ -100,7 +104,6 @@ export const PipelineEditor: React.FC = () => {
   ]);
 
   const pipelineViewportRef = React.useRef<HTMLDivElement>();
-  const pipelineCanvasRef = React.useRef<HTMLDivElement>();
   const canvasFuncRef = React.useRef<CanvasFunctions>();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -301,32 +304,6 @@ export const PipelineEditor: React.FC = () => {
       ).slice(1);
     },
     [eventVars.steps]
-  );
-
-  const openNotebook = React.useCallback(
-    (e: React.MouseEvent | undefined, filePath: string) => {
-      if (session?.status === "RUNNING") {
-        navigateTo(
-          siteMap.jupyterLab.path,
-          { query: { projectUuid, pipelineUuid, filePath } },
-          e
-        );
-        return;
-      }
-      if (session?.status === "LAUNCHING") {
-        setAlert(
-          "Error",
-          "Please wait for the session to start before opening the Notebook in Jupyter."
-        );
-        return;
-      }
-
-      setAlert(
-        "Error",
-        "Please start the session before opening the Notebook in Jupyter."
-      );
-    },
-    [setAlert, session?.status, navigateTo, pipelineUuid, projectUuid]
   );
 
   const [isShowingServices, setIsShowingServices] = React.useState(false);

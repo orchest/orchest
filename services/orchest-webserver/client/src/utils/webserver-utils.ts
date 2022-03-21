@@ -63,6 +63,13 @@ export function validatePipeline(pipelineJson: PipelineJson) {
             "."
         );
       }
+      if (pipelineJson.services[serviceName].ports.length == 0) {
+        errors.push(
+          "Services require at least one port to be defined. Please check service: " +
+            serviceName +
+            "."
+        );
+      }
     }
   }
 
@@ -94,7 +101,7 @@ export function validatePipeline(pipelineJson: PipelineJson) {
 }
 
 export function filterServices(
-  services: Record<string, any>,
+  services: Record<string, Partial<Service>>,
   scope: "noninteractive" | "interactive"
 ) {
   let servicesCopy = cloneDeep(services);
@@ -149,7 +156,7 @@ export function clearOutgoingConnections<
 }
 
 export function getServiceURLs(
-  service: Pick<Service, "ports" | "preserve_base_path" | "name">,
+  service: Partial<Service>,
   projectUuid: string,
   pipelineUuid: string,
   runUuid: string
@@ -158,11 +165,14 @@ export function getServiceURLs(
     return [];
   }
 
-  let serviceUuid = runUuid || pipelineUuid;
-
   let pbpPrefix = "";
   if (service.preserve_base_path) {
     pbpPrefix = "pbp-";
+  }
+
+  let sessionUuid = runUuid;
+  if (!sessionUuid) {
+    sessionUuid = projectUuid.slice(0, 18) + pipelineUuid.slice(0, 18);
   }
 
   return service.ports.map(
@@ -173,9 +183,7 @@ export function getServiceURLs(
       "service-" +
       service.name +
       "-" +
-      projectUuid.split("-")[0] +
-      "-" +
-      serviceUuid.split("-")[0] +
+      sessionUuid +
       "_" +
       port +
       "/"

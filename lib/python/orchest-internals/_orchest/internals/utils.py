@@ -4,15 +4,13 @@ import json
 import logging
 import os
 import re
-import time
+import subprocess
 import uuid
 from collections import ChainMap
 from copy import deepcopy
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-import docker
 import requests
-from docker.types import DeviceRequest
 from werkzeug.serving import is_running_from_reloader as _irfr
 
 from _orchest.internals import config as _config
@@ -323,72 +321,6 @@ class GlobalOrchestConfig:
             )
 
 
-def get_mount(source, target, form="docker-sdk"):
-    if form == "docker-sdk":
-        return {source: {"bind": target, "mode": "rw"}}
-    elif form == "docker-engine":
-        return f"{source}:{target}"
-
-
-def run_orchest_ctl(client, command):
-
-    return client.containers.run(
-        "orchest/orchest-ctl:latest",
-        command,
-        name="orchest-ctl-" + str(uuid.uuid4()),
-        detach=True,
-        auto_remove=True,
-        mounts=[
-            docker.types.Mount(
-                source="/var/run/docker.sock",
-                target="/var/run/docker.sock",
-                type="bind",
-            ),
-            docker.types.Mount(
-                source=os.environ.get("HOST_REPO_DIR"),
-                target="/orchest-host",
-                type="bind",
-            ),
-            docker.types.Mount(
-                source=os.environ.get("HOST_CONFIG_DIR"),
-                target="/config",
-                type="bind",
-            ),
-        ],
-        environment={
-            "HOST_CONFIG_DIR": os.environ.get("HOST_CONFIG_DIR"),
-            "HOST_REPO_DIR": os.environ.get("HOST_REPO_DIR"),
-            "HOST_USER_DIR": os.environ.get("HOST_USER_DIR"),
-            "HOST_OS": os.environ.get("HOST_OS"),
-        },
-    )
-
-
-def get_device_requests(environment_uuid, project_uuid, form="docker-sdk"):
-
-    device_requests = []
-
-    capabilities = get_environment_capabilities(environment_uuid, project_uuid)
-
-    # Do not request GPU capabilities if the instance can't support it,
-    # it will result in an error.
-    if not _config.GPU_ENABLED_INSTANCE:
-        capabilities = [
-            c for c in capabilities if c not in ["gpu", "utility", "compute"]
-        ]
-
-    if len(capabilities) > 0:
-
-        if form == "docker-sdk":
-            device_requests.append(DeviceRequest(count=-1, capabilities=[capabilities]))
-        elif form == "docker-engine":
-            device_requests.append(
-                {"Driver": "nvidia", "Count": -1, "Capabilities": [capabilities]}
-            )
-
-    return device_requests
-
-
 def get_environment_capabilities(environment_uuid, project_uuid):
 
     capabilities = []
@@ -417,75 +349,66 @@ def get_environment_capabilities(environment_uuid, project_uuid):
     return capabilities
 
 
-def get_orchest_mounts(
-    project_dir,
-    pipeline_file,
-    host_user_dir,
-    host_project_dir,
-    host_pipeline_file,
-    mount_form="docker-sdk",
-):
-    """
-    Prepare all mounts that are needed to run Orchest.
+def get_step_and_kernel_volumes_and_volume_mounts(
+    userdir_pvc: str,
+    project_dir: str,
+    pipeline_file: str,
+    container_project_dir: str,
+    container_pipeline_file: str,
+) -> Tuple[List[dict], List[dict]]:
+    """Gets volumes and volume mounts required to run steps and kernels.
 
     Args:
-        mount_form: One of "docker-sdk" or "docker-engine". The former
-            is used for the "docker-py" package and the latter for
-            "aiodocker".
+        userdir_pvc:
+        project_dir:
+        pipeline_file:
+        container_project_dir:
+        container_pipeline_file:
 
+    Returns:
+        A pair of lists, the first element is a list of volumes, the
+        second a list of volume_mounts, valid in k8s pod manifest. The
+        two lists are coupled, each volume mount is related to a volume.
     """
+    volumes = []
+    volume_mounts = []
 
-    project_dir_mount = get_mount(
-        source=host_project_dir, target=project_dir, form=mount_form
+    relative_project_dir = get_userdir_relpath(project_dir)
+    relative_pipeline_path = os.path.join(relative_project_dir, pipeline_file)
+
+    volumes.append(
+        {
+            "name": "userdir-pvc",
+            "persistentVolumeClaim": {"claimName": userdir_pvc, "readOnly": False},
+        }
     )
 
-    if mount_form == "docker-sdk":
-        mounts = project_dir_mount
-    else:
-        mounts = [project_dir_mount]
-
-    # Mount the pipeline file to a specific path.
-    pipeline_file_mount = get_mount(
-        source=host_pipeline_file, target=pipeline_file, form=mount_form
+    volume_mounts.append(
+        {"name": "userdir-pvc", "mountPath": "/data", "subPath": "data"}
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": "/userdir/projects",
+            "subPath": "projects",
+        }
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": container_project_dir,
+            "subPath": relative_project_dir,
+        }
+    )
+    volume_mounts.append(
+        {
+            "name": "userdir-pvc",
+            "mountPath": container_pipeline_file,
+            "subPath": relative_pipeline_path,
+        }
     )
 
-    if mount_form == "docker-sdk":
-        mounts[host_pipeline_file] = pipeline_file_mount[host_pipeline_file]
-    else:
-        mounts.append(pipeline_file_mount)
-
-    # Mount the /userdir/data directory.
-    target_path = "/data"
-    source = os.path.join(host_user_dir, "data")
-
-    mount = get_mount(
-        source=source,
-        target=target_path,
-        form=mount_form,
-    )
-
-    if mount_form == "docker-sdk":
-        mounts[source] = mount[source]
-    else:
-        mounts.append(mount)
-
-    return mounts
-
-
-def docker_images_list_safe(docker_client, *args, attempt_count=10, **kwargs):
-
-    for _ in range(attempt_count):
-        try:
-            return docker_client.images.list(*args, **kwargs)
-        except docker.errors.ImageNotFound as e:
-            logging.debug(
-                "Internal race condition triggered in docker_client.images.list(): %s"
-                % e
-            )
-            return []
-        except Exception as e:
-            logging.debug("Failed to call docker_client.images.list(): %s" % e)
-            return []
+    return volumes, volume_mounts
 
 
 def is_running_from_reloader():
@@ -501,19 +424,6 @@ def is_running_from_reloader():
 
     """
     return _irfr()
-
-
-def docker_images_rm_safe(docker_client, *args, attempt_count=10, **kwargs):
-
-    for _ in range(attempt_count):
-        try:
-            return docker_client.images.remove(*args, **kwargs)
-        except docker.errors.ImageNotFound as e:
-            logging.debug("Failed to remove image: %s" % e)
-            return
-        except Exception as e:
-            logging.debug("Failed to remove image: %s" % e)
-        time.sleep(1)
 
 
 def are_environment_variables_valid(env_variables: Dict[str, str]) -> bool:
@@ -552,7 +462,7 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         # Allowed scopes.
         all([sc in ["interactive", "noninteractive"] for sc in service["scope"]])
         and isinstance(service.get("command", ""), str)
-        and isinstance(service.get("entrypoint", ""), str)
+        and isinstance(service.get("args", ""), str)
         and isinstance(service.get("binds", {}), dict)
         and all(
             [
@@ -563,8 +473,9 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
         and
         # Allowed binds.
         all([bind in ["/data", "/project-dir"] for bind in service.get("binds", {})])
-        and isinstance(service.get("ports", []), list)
-        and all([isinstance(port, int) for port in service.get("ports", [])])
+        and isinstance(service.get("ports"), list)
+        and all([isinstance(port, int) for port in service["ports"]])
+        and len(service["ports"]) > 0
         and isinstance(service.get("env_variables_inherit", []), list)
         and all(
             [
@@ -573,6 +484,8 @@ def is_service_definition_valid(service: Dict[str, Any]) -> bool:
             ]
         )
         and are_environment_variables_valid(service.get("env_variables", {}))
+        and isinstance(service.get("exposed"), bool)
+        and isinstance(service.get("requires_authentication", True), bool)
     )
 
 
@@ -585,34 +498,68 @@ def is_services_definition_valid(services: Dict[str, Dict[str, Any]]) -> bool:
     )
 
 
-def docker_has_gpu_capabilities(
-    client: Optional[docker.client.DockerClient] = None,
-) -> bool:
-    """Checks if GPU capabilities can be requested for containers."""
+def rmtree(path, ignore_errors=False) -> None:
+    """A wrapped rm -rf.
 
-    if client is None:
-        client = docker.client.DockerClient.from_env()
+    If eventlet is being used and it's either patching all modules or
+    patchng subprocess, this function is not going to block the thread.
 
-    other_container_args = {}
-    other_container_args["remove"] = True
-    other_container_args["command"] = "bash"
-    other_container_args["name"] = f"orchest-gpu-test-{str(uuid.uuid1())}"
-    device_requests = []
-    capabilities = ["gpu", "utility", "compute"]
-    device_requests.append(DeviceRequest(count=-1, capabilities=[capabilities]))
-    try:
-        client.containers.run(
-            "python:3.8-slim",
-            device_requests=device_requests,
-            **other_container_args,
-        )
-    except docker.errors.APIError:
-        # If the error is caused by the device driver "nvidia" not being
-        # there the container will not be auto removed.
-        try:
-            c = client.containers.get(other_container_args["name"])
-            c.remove(force=True)
-        except (docker.errors.NotFound, docker.errors.APIError):
-            pass
-        return False
-    return True
+    Raises:
+        OSError if it failed to copy.
+
+    """
+    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
+    if exit_code != 0 and not ignore_errors:
+        raise OSError(f"Failed to rm {path}: {exit_code}.")
+
+
+def copytree(
+    source: str, target: str, ignore_errors: bool = False, use_gitignore: bool = False
+) -> None:
+    """Copies content from source to target.
+
+    If eventlet is being used and it's either patching all modules or
+    patching subprocess, this function is not going to block the thread.
+
+    Args:
+        source:
+        target:
+        ignore_errors: If True errors will be ignored, if False an
+            OSError will be raised.
+        use_gitignore: If True, the copying process will ignore patterns
+            from the top-level `.gitignore` in `source`.
+
+    Raises:
+        OSError if it failed to copy and ignore_errors is True.
+
+    """
+
+    if use_gitignore:
+
+        # With a trailing `/` rsync copies the content of the directory
+        # instead of the directory itself.
+        if not source.endswith("/"):
+            source += "/"
+
+        # Using rsync with `-W` copies files as a whole which
+        # drastically improves its performance, making it almost as fast
+        # as the `cp` command. The other options (`-aHAX`) are to
+        # preserve all kinds of attributes, e.g. symlinks, `-a` also
+        # automatically copies recursively.
+        copy_cmd = ["rsync", "-aWHAX"]
+        if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
+            copy_cmd += [f"--exclude-from={source}.gitignore"]
+        # TODO: use shlex to handle this properly.
+        copy_cmd += [f"'{source}' '{target}'"]
+    else:
+        copy_cmd = ["cp", "-r", f"'{source}' '{target}'"]
+
+    exit_code = subprocess.call(
+        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
+    )
+    if exit_code != 0 and not ignore_errors:
+        raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
+
+
+def get_userdir_relpath(path):
+    return os.path.relpath(path, "/userdir")

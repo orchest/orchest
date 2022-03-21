@@ -1,0 +1,28 @@
+# Default values for rook-nfs-operator
+# This is a YAML-formatted file.
+
+image:
+  prefix: rook
+  repository: rook/nfs
+  tag: VERSION
+  pullPolicy: IfNotPresent
+
+crds:
+  enabled: true
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+
+## Annotations to be added to pod
+annotations: {}
+
+## If true, create & use RBAC resources
+##
+rbacEnable: true

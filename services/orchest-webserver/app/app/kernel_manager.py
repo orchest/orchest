@@ -80,10 +80,10 @@ def populate_kernels(app, db, project_uuid):
             )
             raise e
 
-    # copy launch_docker.py
-    launch_docker_path = os.path.join(
-        app.config["RESOURCE_DIR"], "kernels", "launch_docker.py"
+    # Copy launch_kubernetes.py
+    launch_kubernetes_path = os.path.join(
+        app.config["RESOURCE_DIR"], "kernels", "launch_kubernetes.py"
     )
-    launch_docker_dest_path = os.path.join(kernels_dir_path, "launch_docker.py")
+    launch_kubernetes_dest_path = os.path.join(kernels_dir_path, "launch_kubernetes.py")
 
-    os.system('cp "%s" "%s"' % (launch_docker_path, launch_docker_dest_path))
+    os.system('cp "%s" "%s"' % (launch_kubernetes_path, launch_kubernetes_dest_path))

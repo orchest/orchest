@@ -21,20 +21,25 @@ from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from app import utils
 from app.apis import blueprint as api
-from app.apis.namespace_environment_builds import AbortEnvironmentBuild
+from app.apis.namespace_environment_image_builds import AbortEnvironmentImageBuild
 from app.apis.namespace_jobs import AbortJob
-from app.apis.namespace_jupyter_builds import AbortJupyterBuild, CreateJupyterBuild
+from app.apis.namespace_jupyter_image_builds import (
+    AbortJupyterEnvironmentBuild,
+    CreateJupyterEnvironmentBuild,
+)
 from app.apis.namespace_runs import AbortPipelineRun
+from app.apis.namespace_sessions import StopInteractiveSession
 from app.connections import db
 from app.core.scheduler import Scheduler
 from app.models import (
-    EnvironmentBuild,
+    EnvironmentImageBuild,
     InteractivePipelineRun,
     InteractiveSession,
     Job,
-    JupyterBuild,
+    JupyterImageBuild,
     NonInteractivePipelineRun,
 )
+from config import CONFIG_CLASS
 
 
 def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db=False):
@@ -87,117 +92,6 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
     if to_migrate_db:
         return app
 
-    if use_db and not _utils.is_running_from_reloader():
-        with app.app_context():
-            # In case of running multiple gunicorn workers, we need to
-            # ensure that cleanup is only run once. Therefore, we
-            # attempt to create a directory first (which is an atomic
-            # operation). The edge case of Flask development mode
-            # running multiple threads is handled above using the
-            # `is_running_from_reloader()` check.
-            try:
-                if app.config.get("TESTING", False):
-                    # Do nothing.
-                    # In case of tests we always want to run cleanup.
-                    # Because every test will get a clean app, the same
-                    # code should run for all tests.
-                    pass
-                else:
-                    app.logger.debug("Trying to create /tmp/cleanup_done")
-                    os.mkdir("/tmp/cleanup_done")
-                    app.logger.info("/tmp/cleanup_done successfully created.")
-            except FileExistsError:
-                app.logger.info(
-                    f"/tmp/cleanup_done exists. Skipping cleanup: {os.getpid()}."
-                )
-            else:
-                app.logger.debug("Starting app initialization cleanup.")
-
-                # NOTE: This cleanup code blocks the gunicorn worker
-                # from handling requests, because it is required for the
-                # app to be initialized. So make sure the cleanup is
-                # quick! (Especially when running only a single gunicorn
-                # worker as the entire orchest-api will become
-                # unresponsive.)
-                # In case of an ungraceful shutdown, these entities
-                # could be in an invalid state, so they are deleted,
-                # since for sure they are not running anymore.
-                try:
-                    InteractiveSession.query.delete()
-
-                    # Delete old JupyterBuilds on start to avoid
-                    # accumulation in the DB. Leave the latest such that
-                    # the user can see details about the last executed
-                    # build after restarting Orchest.
-                    jupyter_builds = (
-                        JupyterBuild.query.order_by(JupyterBuild.requested_time.desc())
-                        .offset(1)
-                        .all()
-                    )
-
-                    # Can't use offset and .delete in conjunction in
-                    # sqlalchemy unfortunately.
-                    for jupyer_build in jupyter_builds:
-                        db.session.delete(jupyer_build)
-
-                    db.session.commit()
-
-                    # Fix interactive runs.
-                    runs = InteractivePipelineRun.query.filter(
-                        InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
-                    ).all()
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        for run in runs:
-                            AbortPipelineRun(tpe).transaction(run.uuid)
-
-                    # Fix one off jobs (and their pipeline runs).
-                    jobs = Job.query.filter_by(schedule=None, status="STARTED").all()
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        for job in jobs:
-                            AbortJob(tpe).transaction(job.uuid)
-
-                    # This is to fix the state of cron jobs pipeline
-                    # runs.
-                    runs = NonInteractivePipelineRun.query.filter(
-                        NonInteractivePipelineRun.status.in_(["STARTED"])
-                    ).all()
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        for run in runs:
-                            AbortPipelineRun(tpe).transaction(run.uuid)
-
-                    # Fix env builds.
-                    builds = EnvironmentBuild.query.filter(
-                        EnvironmentBuild.status.in_(["PENDING", "STARTED"])
-                    ).all()
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        for build in builds:
-                            AbortEnvironmentBuild(tpe).transaction(build.uuid)
-
-                    # Fix jupyter builds.
-                    builds = JupyterBuild.query.filter(
-                        JupyterBuild.status.in_(["PENDING", "STARTED"])
-                    ).all()
-                    with TwoPhaseExecutor(db.session) as tpe:
-                        for build in builds:
-                            AbortJupyterBuild(tpe).transaction(build.uuid)
-
-                    # Trigger a build of JupyterLab if no JupyterLab
-                    # image is found for this version and JupyterLab
-                    # setup_script is non-empty.
-                    trigger_conditional_jupyter_build(app)
-
-                    # Make environments unavailable to a user after an
-                    # update.
-                    utils.process_stale_environment_images()
-
-                    # Remove dangling Orchest images, mostly useful
-                    # after an update.
-                    utils.delete_dangling_orchest_images()
-
-                except Exception as e:
-                    app.logger.error("Cleanup failed")
-                    app.logger.error(e)
-
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate
     # execution because all jobs of the all the schedulers read state
@@ -232,6 +126,10 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             seconds=app.config["SCHEDULER_INTERVAL"],
             args=[app],
         )
+
+        if not _utils.is_running_from_reloader():
+            with app.app_context():
+                trigger_conditional_jupyter_image_build(app)
 
     # Register blueprints at the end to avoid issues when migrating the
     # DB. When registering a blueprint the DB schema is also registered
@@ -317,7 +215,7 @@ def init_logging():
     dictConfig(logging_config)
 
 
-def trigger_conditional_jupyter_build(app):
+def trigger_conditional_jupyter_image_build(app):
     # Use early return to satisfy all conditions for
     # triggering a build.
 
@@ -330,13 +228,13 @@ def trigger_conditional_jupyter_build(app):
     else:
         return
 
-    user_jupyer_server_image = _config.JUPYTER_IMAGE_NAME
-    if utils.get_environment_image_docker_id(user_jupyer_server_image) is not None:
+    # If the image has already been built no need to build again.
+    if not utils.get_jupyter_server_image_to_use().startswith("orchest/jupyter-server"):
         return
 
     try:
         with TwoPhaseExecutor(db.session) as tpe:
-            CreateJupyterBuild(tpe).transaction()
+            CreateJupyterEnvironmentBuild(tpe).transaction()
     except Exception:
         app.logger.error("Failed to build Jupyter image")
 
@@ -356,3 +254,83 @@ def register_teardown_request(app):
         return response
 
     return app
+
+
+def cleanup():
+    app = create_app(config_class=CONFIG_CLASS, use_db=True, be_scheduler=False)
+
+    with app.app_context():
+        app.logger.info("Starting app cleanup.")
+
+        try:
+            app.logger.info("Aborting interactive pipeline runs.")
+            runs = InteractivePipelineRun.query.filter(
+                InteractivePipelineRun.status.in_(["PENDING", "STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for run in runs:
+                    AbortPipelineRun(tpe).transaction(run.uuid)
+
+            app.logger.info("Shutting down interactive sessions.")
+            int_sessions = InteractiveSession.query.all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for session in int_sessions:
+                    StopInteractiveSession(tpe).transaction(
+                        session.project_uuid, session.pipeline_uuid, async_mode=False
+                    )
+
+            app.logger.info("Aborting environment builds.")
+            builds = EnvironmentImageBuild.query.filter(
+                EnvironmentImageBuild.status.in_(["PENDING", "STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for build in builds:
+                    AbortEnvironmentImageBuild(tpe).transaction(
+                        build.project_uuid,
+                        build.environment_uuid,
+                        build.image_tag,
+                    )
+
+            app.logger.info("Aborting jupyter builds.")
+            builds = JupyterImageBuild.query.filter(
+                JupyterImageBuild.status.in_(["PENDING", "STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for build in builds:
+                    AbortJupyterEnvironmentBuild(tpe).transaction(build.uuid)
+
+            app.logger.info("Aborting running one off jobs.")
+            jobs = Job.query.filter_by(schedule=None, status="STARTED").all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for job in jobs:
+                    AbortJob(tpe).transaction(job.uuid)
+
+            app.logger.info("Aborting running pipeline runs of cron jobs.")
+            runs = NonInteractivePipelineRun.query.filter(
+                NonInteractivePipelineRun.status.in_(["STARTED"])
+            ).all()
+            with TwoPhaseExecutor(db.session) as tpe:
+                for run in runs:
+                    AbortPipelineRun(tpe).transaction(run.uuid)
+
+            # Delete old JupyterEnvironmentBuilds on to avoid
+            # accumulation in the DB. Leave the latest such that the
+            # user can see details about the last executed build after
+            # restarting Orchest.
+            jupyter_image_builds = (
+                JupyterImageBuild.query.order_by(
+                    JupyterImageBuild.requested_time.desc()
+                )
+                .offset(1)
+                .all()
+            )
+            # Can't use offset and .delete in conjunction in sqlalchemy
+            # unfortunately.
+            for jupyter_image_build in jupyter_image_builds:
+                db.session.delete(jupyter_image_build)
+
+            db.session.commit()
+
+        except Exception as e:
+            app.logger.error("Cleanup failed.")
+            app.logger.error(e)

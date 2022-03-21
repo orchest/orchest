@@ -3,7 +3,7 @@
   "display_name": "{display_name}",
   "metadata": {
     "process_proxy": {
-      "class_name": "enterprise_gateway.services.processproxies.docker_swarm.DockerProcessProxy",
+      "class_name": "enterprise_gateway.services.processproxies.k8s.KubernetesProcessProxy",
       "config": {
         "image_name": "{image_name}"
       }
@@ -12,7 +12,7 @@
   },
   "argv": [
     "python",
-    "/usr/local/share/jupyter/kernels/launch_docker.py",
+    "/usr/local/share/jupyter/kernels/launch_kubernetes.py",
     "--RemoteProcessProxy.kernel-id",
     "{kernel_id}",
     "--RemoteProcessProxy.response-address",

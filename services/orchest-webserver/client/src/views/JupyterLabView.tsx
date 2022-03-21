@@ -209,9 +209,8 @@ const JupyterLabView: React.FC = () => {
   };
 
   const updateJupyterInstance = () => {
-    if (session?.notebook_server_info) {
-      let baseAddress =
-        "//" + window.location.host + session.notebook_server_info?.base_url;
+    if (session?.base_url) {
+      let baseAddress = "//" + window.location.host + session.base_url;
       window.orchest.jupyter.updateJupyterInstance(baseAddress);
     }
   };

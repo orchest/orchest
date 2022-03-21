@@ -1,12 +1,14 @@
+import io
 import json
 import os
+import pathlib
 import subprocess
 import uuid
+import zipfile
 
-import docker
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, request, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
@@ -15,9 +17,9 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
-from _orchest.internals.utils import run_orchest_ctl
+from _orchest.internals.utils import copytree, rmtree
 from app import analytics, error
-from app.config import CONFIG_CLASS as StaticConfig
+from app.core import filemanager
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
@@ -51,8 +53,10 @@ from app.utils import (
     is_valid_project_relative_path,
     normalize_project_relative_path,
     pipeline_set_notebook_kernels,
+    preprocess_script,
     project_entity_counts,
     project_exists,
+    resolve_absolute_path,
     serialize_environment_to_disk,
 )
 
@@ -112,7 +116,7 @@ def register_views(app, db):
                     name=environment_json["name"],
                     project_uuid=project_uuid,
                     language=environment_json["language"],
-                    setup_script=environment_json["setup_script"],
+                    setup_script=preprocess_script(environment_json["setup_script"]),
                     base_image=environment_json["base_image"],
                     gpu_support=environment_json["gpu_support"],
                 )
@@ -120,6 +124,14 @@ def register_views(app, db):
                 # use specified uuid if it's not keyword 'new'
                 if environment_uuid != "new":
                     e.uuid = environment_uuid
+                else:
+                    url = (
+                        f'http://{app.config["ORCHEST_API_ADDRESS"]}'
+                        f"/api/environments/{project_uuid}"
+                    )
+                    resp = requests.post(url, json={"uuid": e.uuid})
+                    if resp.status_code != 201:
+                        return {}, resp.status_code, resp.headers.items()
 
                 environment_dir = get_environment_directory(e.uuid, project_uuid)
 
@@ -169,8 +181,8 @@ def register_views(app, db):
         ]
 
         front_end_config_internal = [
-            "ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE",
-            "ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE",
+            "ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE",
             "PIPELINE_PARAMETERS_RESERVED_KEY",
         ]
 
@@ -185,25 +197,21 @@ def register_views(app, db):
             }
         )
 
-    @app.route("/async/spawn-update-server", methods=["GET"])
-    def spawn_update_server():
+    @app.route("/async/restart", methods=["POST"])
+    def restart():
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl/restart'
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
-        client = docker.from_env()
+    @app.route("/async/start-update", methods=["POST"])
+    def start_update():
 
-        cmd = ["updateserver"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
-
-        return ""
+        resp = requests.post(
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}/api/ctl'
+            "/start-update"
+        )
+        return resp.content, resp.status_code, resp.headers.items()
 
     @app.route("/heartbeat", methods=["GET"])
     def heartbeat():
@@ -215,25 +223,6 @@ def register_views(app, db):
                 "client-heartbeat"
             )
         )
-
-        return ""
-
-    @app.route("/async/restart", methods=["POST"])
-    def restart_server():
-
-        client = docker.from_env()
-        cmd = ["restart"]
-
-        # Note that it won't work as --port {port}.
-        cmd.append(f"--port={StaticConfig.ORCHEST_PORT}")
-
-        if StaticConfig.FLASK_ENV == "development":
-            cmd.append("--dev")
-
-        if StaticConfig.CLOUD:
-            cmd.append("--cloud")
-
-        run_orchest_ctl(client, cmd)
 
         return ""
 
@@ -334,7 +323,7 @@ def register_views(app, db):
             setup_script = request.form.get("setup_script")
             try:
                 with open(setup_script_path, "w") as f:
-                    f.write(setup_script)
+                    f.write(preprocess_script(setup_script))
 
             except IOError as io_error:
                 current_app.logger.error("Failed to write setup_script %s" % io_error)
@@ -757,9 +746,13 @@ def register_views(app, db):
                 pipeline_json = json.load(json_file)
 
             try:
-                file_path = os.path.join(
-                    pipeline_dir, pipeline_json["steps"][step_uuid]["file_path"]
-                )
+                step_file_path = pipeline_json["steps"][step_uuid]["file_path"]
+
+                if step_file_path.startswith("/"):
+                    file_path = resolve_absolute_path(step_file_path)
+                else:
+                    file_path = os.path.join(pipeline_dir, step_file_path)
+
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
             except Exception as e:
@@ -835,7 +828,10 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
-                step["file_path"] = normalize_project_relative_path(step["file_path"])
+                if not step["file_path"].startswith("/"):
+                    step["file_path"] = normalize_project_relative_path(
+                        step["file_path"]
+                    )
 
             errors = check_pipeline_correctness(pipeline_json)
             if errors:
@@ -909,8 +905,7 @@ def register_views(app, db):
                     404,
                 )
             else:
-                with open(pipeline_json_path, "r") as json_file:
-                    pipeline_json = json.load(json_file)
+                pipeline_json = get_pipeline_json(pipeline_uuid, project_uuid)
 
                 return jsonify(
                     {"success": True, "pipeline_json": json.dumps(pipeline_json)}
@@ -983,13 +978,14 @@ def register_views(app, db):
         return jsonify(tree)
 
     @app.route(
-        "/async/project-files/create/<project_uuid>/<pipeline_uuid>/<step_uuid>",
+        "/async/project-files/create/<project_uuid>",
         methods=["POST"],
     )
-    def create_project_file(project_uuid, pipeline_uuid, step_uuid):
+    def create_project_file(project_uuid):
         """Create project file in specified directory within project."""
-
+        kernel_name = request.json.get("kernel_name")
         file_path = normalize_project_relative_path(request.json["file_path"])
+
         if not is_valid_project_relative_path(project_uuid, file_path):
             return (
                 jsonify(
@@ -1007,13 +1003,7 @@ def register_views(app, db):
         if os.path.isfile(file_path):
             return jsonify({"message": "File already exists."}), 409
         try:
-            create_pipeline_file(
-                file_path,
-                get_pipeline_json(pipeline_uuid, project_uuid),
-                project_dir,
-                project_uuid,
-                step_uuid,
-            )
+            create_pipeline_file(file_path, project_dir, kernel_name)
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error("Could not create file at %s. Error: %s" % (file_path, e))
@@ -1024,11 +1014,307 @@ def register_views(app, db):
     def project_file_exists(project_uuid, pipeline_uuid):
         """Check whether file exists"""
 
-        pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
-        file_path = normalize_project_relative_path(request.json["relative_path"])
-        file_path = os.path.join(pipeline_dir, file_path)
+        # Allowed absolute prefixes
+        path = request.json["path"]
+        file_path = None
 
+        if path.startswith("/"):
+            file_path = resolve_absolute_path(path)
+            if file_path is None:
+                return jsonify({"message": "Illegal file path prefix."}), 500
+        elif not path.startswith("/"):
+            pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
+            file_path = normalize_project_relative_path(path)
+            file_path = os.path.join(pipeline_dir, file_path)
+        else:
+            return jsonify({"message": "Illegal file path prefix."}), 500
         if os.path.isfile(file_path):
             return jsonify({"message": "File exists."})
         else:
             return jsonify({"message": "File does not exists."}), 404
+
+    @app.route("/async/file-manager/<project_uuid>/delete", methods=["POST"])
+    def filemanager_delete(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+
+        # Make absolute path relative
+        fp = os.path.join(root_dir_path, path[1:])
+
+        if fp == root_dir_path:
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "It is not allowed to delete roots through "
+                            " the file-manager."
+                        )
+                    }
+                ),
+                403,
+            )
+
+        if os.path.exists(fp):
+            try:
+                rmtree(fp)
+            except Exception:
+                return jsonify({"message": "Deletion failed."}), 500
+        else:
+            return jsonify({"message": "No file or directory at path %s" % path}), 500
+
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/<project_uuid>/duplicate", methods=["POST"])
+    def filemanager_duplicate(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+
+        # Make absolute path relative
+        fp = os.path.join(root_dir_path, path[1:])
+
+        if os.path.isfile(fp) or os.path.isdir(fp):
+            new_fp = filemanager.find_unique_duplicate_filepath(fp)
+            try:
+                if os.path.isfile(fp):
+                    copytree(fp, new_fp)
+                else:
+                    copytree(fp, new_fp, use_gitignore=False)
+            except Exception as e:
+                app.logger.error(e)
+                return jsonify({"message": "Copy of file/directory failed"}), 500
+        else:
+            return jsonify({"message": "No file or directory at path %s" % path}), 500
+
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/<project_uuid>/create-dir", methods=["POST"])
+    def filemanager_create_dir(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+        if not path.endswith("/") or not path.startswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "The path query argument should always"
+                            " start and end with a forward-slash: /"
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        # Make absolute path relative
+        path = "/".join(path.split("/")[1:])
+
+        full_path = os.path.join(root_dir_path, path)
+
+        if os.path.isdir(full_path) or os.path.isfile(full_path):
+            return jsonify({"message": "Path already exists"}), 500
+
+        os.makedirs(full_path, exist_ok=True)
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/<project_uuid>/upload", methods=["POST"])
+    def filemanager_upload(project_uuid):
+
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "Missing path query argument."}), 500
+
+        path = request.args.get("path")
+        app.logger.debug(path)
+        if not path.endswith("/") or not path.startswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "The path query argument should always"
+                            " start and end with a forward-slash: /"
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        # check if the post request has the file part
+        if "file" not in request.files or request.files["file"].filename == "":
+            return jsonify({"message": "No file found"}), 500
+
+        file = request.files["file"]
+        if file and filemanager.allowed_file(file.filename):
+            filename = file.filename.split(os.sep)[-1]
+            # Trim path for joining (up until this point paths always
+            # start and end with a /)
+            path = path[1:]
+            dir_path = os.path.join(root_dir_path, path)
+            # Create directory if it doesn't exist
+            if not os.path.isdir(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+            file.save(os.path.join(dir_path, filename))
+
+        return jsonify({"message": "Success"})
+
+    @app.route("/async/file-manager/<project_uuid>/rename", methods=["POST"])
+    def filemanager_rename(project_uuid):
+
+        if (
+            "oldPath" not in request.args
+            or "newPath" not in request.args
+            or "oldRoot" not in request.args
+            or "newRoot" not in request.args
+        ):
+            return (
+                jsonify({"message": "Need both oldPath and newPath query arguments."}),
+                500,
+            )
+
+        old_root_path = filemanager.construct_root_dir_path(
+            request.args["oldRoot"], project_uuid
+        )
+        new_root_path = filemanager.construct_root_dir_path(
+            request.args["newRoot"], project_uuid
+        )
+
+        oldPath = request.args.get("oldPath")[1:]
+        newPath = request.args.get("newPath")[1:]
+        absOldPath = os.path.join(old_root_path, oldPath)
+        absNewPath = os.path.join(new_root_path, newPath)
+        try:
+            os.rename(absOldPath, absNewPath)
+            return jsonify({"message": "Success"})
+        except Exception:
+            return jsonify({"message": "Failed to rename"}), 500
+
+    @app.route("/async/file-manager/<project_uuid>/download", methods=["GET"])
+    def filemanager_download(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "No path was passed."}), 500
+
+        path = request.args["path"]
+        fp = os.path.join(root_dir_path, path[1:])
+
+        if os.path.isfile(fp):
+            return send_file(fp, as_attachment=True)
+        else:
+            memory_file = io.BytesIO()
+            with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_STORED) as zf:
+                filemanager.zipdir(fp, zf)
+            memory_file.seek(0)
+            return send_file(
+                memory_file,
+                mimetype="application/zip",
+                as_attachment=True,
+                attachment_filename=os.path.basename(fp[:-1]) + ".zip",
+            )
+
+    @app.route("/async/file-manager/<project_uuid>/extension-search", methods=["GET"])
+    def filemanager_extension_search(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        if "path" not in request.args:
+            return jsonify({"message": "No path was passed."}), 500
+
+        if "extensions" not in request.args:
+            return jsonify({"message": "No path was passed."}), 500
+
+        path_filter = request.args.get("path")
+        if not path_filter.endswith("/") or not path_filter.startswith("/"):
+            return (
+                jsonify(
+                    {
+                        "message": (
+                            "The path query argument should always"
+                            " start and end with a forward-slash: /"
+                        ),
+                    }
+                ),
+                500,
+            )
+
+        extensions = request.args.get("extensions").split(",")
+
+        # Make absolute path relative
+        path_filter = path_filter[1:]
+        app.logger.info("Path filter %s" % path_filter)
+
+        matches = []
+
+        for extension in extensions:
+            matches += list(
+                pathlib.Path(os.path.join(root_dir_path, path_filter)).glob(
+                    "**/*.{}".format(extension)
+                )
+            )
+
+        return jsonify(
+            {"files": [os.path.relpath(str(match), root_dir_path) for match in matches]}
+        )
+
+    @app.route("/async/file-manager/<project_uuid>/browse", methods=["GET"])
+    def filemanager_browse(project_uuid):
+        root_dir_path = filemanager.construct_root_dir_path(
+            request.args.get("root"), project_uuid
+        )
+
+        # Path
+        path_filter = "/"
+
+        if "path" in request.args:
+            path_filter = request.args.get("path")
+
+            if not path_filter.endswith("/") or not path_filter.startswith("/"):
+                return (
+                    jsonify(
+                        {
+                            "message": (
+                                "The path query argument should always"
+                                " start and end with a forward-slash: /"
+                            ),
+                        }
+                    ),
+                    500,
+                )
+
+        app.logger.info("Path filter %s" % path_filter)
+
+        depth = 3
+        if "depth" in request.args:
+            try:
+                depth = int(request.args.get("depth"), 10)
+            except Exception:
+                return (
+                    jsonify({"message": "Invalid value for 'depth' query argument"}),
+                    500,
+                )
+
+        return filemanager.generate_tree(
+            root_dir_path, path_filter=path_filter, depth=depth
+        )

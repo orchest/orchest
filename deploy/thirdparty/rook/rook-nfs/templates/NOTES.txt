@@ -1,0 +1,2 @@
+The Rook-NFS Operator has been installed. Check its status by running:
+  kubectl --namespace {{ .Release.Namespace }} get pods -l "app=rook-nfs-operator"

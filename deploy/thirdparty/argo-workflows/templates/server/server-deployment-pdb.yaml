@@ -1,0 +1,19 @@
+{{- if and .Values.server.enabled .Values.server.pdb.enabled -}}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ template "argo-workflows.server.fullname" . }}
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.server.name "name" .Values.server.name) | nindent 4 }}
+spec:
+  {{- if .Values.server.pdb.minAvailable }}
+  minAvailable: {{ .Values.server.pdb.minAvailable }}
+  {{- else if .Values.server.pdb.maxUnavailable }}
+  maxUnavailable: {{ .Values.server.pdb.maxUnavailable }}
+  {{- else }}
+  minAvailable: 0
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "argo-workflows.selectorLabels" (dict "context" . "name" .Values.server.name) | nindent 6 }}
+{{- end -}}

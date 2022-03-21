@@ -213,7 +213,7 @@ class InteractiveSession:
             "pipeline_uuid": pipeline.uuid,
             "pipeline_path": "pip_path",
             "project_dir": "project_dir",
-            "host_userdir": "host_userdir",
+            "userdir": "userdir_pvc",
         }
         client.post("/api/sessions/", json=session_request_spec)
 

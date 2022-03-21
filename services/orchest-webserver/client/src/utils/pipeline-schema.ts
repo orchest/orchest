@@ -148,6 +148,12 @@ export const pipelineSchema = {
               },
               type: "array",
             },
+            exposed: {
+              type: "boolean",
+            },
+            requires_authentication: {
+              type: "boolean",
+            },
             ports: {
               items: {
                 type: ["string", "number"],

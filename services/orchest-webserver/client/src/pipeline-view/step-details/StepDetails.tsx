@@ -1,7 +1,6 @@
 import { Overflowable } from "@/components/common/Overflowable";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
-import { useDragElement } from "@/hooks/useDragElement";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { Step } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
@@ -16,22 +15,14 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import React from "react";
+import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { PositionX, useResizeWidth } from "../hooks/useResizeWidth";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { ConnectionDict, StepDetailsProperties } from "./StepDetailsProperties";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 3),
-}));
-
-const ResizeBar = styled("div")(({ theme }) => ({
-  position: "absolute",
-  top: 0,
-  height: "100%",
-  width: theme.spacing(1),
-  marginLeft: theme.spacing(-0.5),
-  userSelect: "none",
-  cursor: "col-resize",
 }));
 
 const StepDetailsContainer = styled("div")(({ theme }) => ({
@@ -81,36 +72,27 @@ const StepDetailsComponent: React.FC<{
     450
   );
 
-  const uiVars = React.useRef({
-    prevClientX: 0,
-    cumulativeDeltaX: 0,
-  });
-
   const onClose = () => {
     dispatch({ type: "SET_OPENED_STEP", payload: undefined });
   };
 
-  const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
-
   const [subViewIndex, setSubViewIndex] = React.useState(0);
 
-  const onStartDragging = React.useCallback((e: React.MouseEvent) => {
-    uiVars.current.prevClientX = e.clientX;
-    uiVars.current.cumulativeDeltaX = 0;
-  }, []);
+  const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
 
-  const onDragging = React.useCallback((e) => {
-    uiVars.current.cumulativeDeltaX += e.clientX - uiVars.current.prevClientX;
-    uiVars.current.prevClientX = e.clientX;
-    setPanelWidth((prevPanelWidth) => {
-      let newPanelWidth = Math.max(
-        50, // panelWidth min: 50px
-        prevPanelWidth - uiVars.current.cumulativeDeltaX
-      );
-      uiVars.current.cumulativeDeltaX = 0;
-      return newPanelWidth;
-    });
-  }, []);
+  const onDragging = React.useCallback(
+    (positionX: React.MutableRefObject<PositionX>) => {
+      setPanelWidth((prevPanelWidth) => {
+        let newPanelWidth = Math.max(
+          50, // panelWidth min: 50px
+          prevPanelWidth - positionX.current.delta
+        );
+        positionX.current.delta = 0;
+        return newPanelWidth;
+      });
+    },
+    []
+  );
 
   const onStopDragging = React.useCallback(() => {
     setPanelWidth((panelWidth) => {
@@ -119,11 +101,7 @@ const StepDetailsComponent: React.FC<{
     });
   }, [setStoredPanelWidth]);
 
-  const startDragging = useDragElement({
-    onStartDragging,
-    onDragging,
-    onStopDragging,
-  });
+  const startDragging = useResizeWidth(onDragging, onStopDragging);
 
   const onSelectSubView = (
     e: React.SyntheticEvent<Element, Event>,

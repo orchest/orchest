@@ -1,0 +1,5 @@
+server:
+  ingress:
+    enabled: true
+    hosts:
+      - argo-workflows.127.0.0.1.xip.io

@@ -1,14 +1,17 @@
 import argparse
 import contextlib
 import os
+import signal
 import subprocess
+import sys
 import time
 from typing import Tuple
 
-import config
 import pyarrow as pa
 import utils
 from manager import start_manager
+
+import config
 
 
 def get_command_line_args():
@@ -78,6 +81,7 @@ def start_plasma_store(
 
 
 def main():
+    signal.signal(signal.SIGTERM, lambda: sys.exit(0))
     args = get_command_line_args()
 
     memory = args.memory

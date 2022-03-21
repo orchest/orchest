@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rook-nfs-operator
+  labels:
+    operator: rook
+    storage-backend: nfs
+    app: rook-nfs-operator
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"    
+    {{- include "library.rook-nfs.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rook-nfs-operator
+  template:
+    metadata:
+      labels:
+        operator: rook
+        storage-backend: nfs
+        app: rook-nfs-operator
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"    
+        {{- include "library.rook-nfs.labels" . | nindent 8 }}
+{{- if .Values.annotations }}
+      annotations:
+{{ toYaml .Values.annotations | indent 8 }}
+{{- end }}
+    spec:
+{{- if .Values.rbacEnable }}
+      serviceAccountName: rook-nfs-operator
+{{- end }}    
+      containers:
+      - name: rook-nfs-operator
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args: ["nfs", "operator"]
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+{{- if .Values.resources }}
+        resources:
+{{ toYaml .Values.resources | indent 10 }}
+{{- end }}
+{{- if .Values.nodeSelector }}
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+{{- end }}

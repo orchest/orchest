@@ -19,7 +19,7 @@ def test_sessionlist_post_is_launching(client, pipeline, monkeypatch):
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     monkeypatch.setattr(
@@ -47,7 +47,7 @@ def test_sessionlist_post_is_running(client, pipeline, monkeypatch_interactive_s
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     client.post("/api/sessions/", json=pipeline_spec)
@@ -64,7 +64,7 @@ def test_sessionlist_post_revert(client, pipeline, monkeypatch):
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     monkeypatch.setattr(InteractiveSession, "launch", raise_exception_function)
@@ -81,7 +81,7 @@ def test_session_put(client, pipeline, monkeypatch_interactive_session, monkeypa
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     class Restarted:
@@ -113,7 +113,7 @@ def test_session_put_aborts_interactive_run(
         "pipeline_uuid": pl_uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     client.post("/api/sessions/", json=pipeline_spec)
@@ -143,7 +143,7 @@ def test_session_delete_is_stopping(
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     client.post("/api/sessions/", json=pipeline_spec)
@@ -171,7 +171,7 @@ def test_session_delete_aborts_interactive_run(
         "pipeline_uuid": pl_uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     client.post("/api/sessions/", json=pipeline_spec)
@@ -194,7 +194,7 @@ def test_session_delete(client, pipeline, monkeypatch_interactive_session, monke
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     class ShutDown:
@@ -228,7 +228,7 @@ def test_session_delete_revert(
         "pipeline_uuid": pipeline.uuid,
         "pipeline_path": "pip_path",
         "project_dir": "project_dir",
-        "host_userdir": "host_userdir",
+        "userdir_pvc": "userdir_pvc",
     }
 
     client.post("/api/sessions/", json=pipeline_spec)

@@ -1,0 +1,16 @@
+{{- if .Values.workflow.serviceAccount.create -}}
+  {{- range $namespace := or .Values.singleNamespace false | ternary (list "") (append .Values.controller.workflowNamespaces (coalesce .Values.workflow.namespace .Release.Namespace) | uniq)  }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $.Values.workflow.serviceAccount.name }}
+    {{- with $namespace }}
+  namespace: {{ . }}
+    {{- end }}
+    {{- with $.Values.workflow.serviceAccount.annotations }}
+  annotations:
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+{{- end }}

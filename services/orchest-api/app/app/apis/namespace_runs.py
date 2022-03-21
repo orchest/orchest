@@ -6,7 +6,6 @@ import uuid
 from typing import Any, Dict, Optional
 
 from celery.contrib.abortable import AbortableAsyncResult
-from docker import errors
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import nullslast
@@ -17,13 +16,9 @@ from app import errors as self_errors
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import environments
 from app.core.pipelines import Pipeline, construct_pipeline
-from app.utils import (
-    get_proj_pip_env_variables,
-    lock_environment_images_for_run,
-    register_schema,
-    update_status_db,
-)
+from app.utils import get_proj_pip_env_variables, register_schema, update_status_db
 
 api = Namespace("runs", description="Manages interactive pipeline runs")
 api = register_schema(api)
@@ -259,6 +254,16 @@ class CreateInteractiveRun(TwoPhaseFunction):
         db.session.bulk_save_objects(pipeline_steps)
         run["pipeline_steps"] = pipeline_steps
 
+        try:
+            env_uuid_to_image = environments.lock_environment_images_for_run(
+                task_id,
+                project_uuid,
+                pipeline.get_environments(),
+            )
+        except self_errors.PipelineDefinitionNotValid:
+            msg = "Please make sure every pipeline step is assigned an environment."
+            raise self_errors.PipelineDefinitionNotValid(msg)
+
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["task_id"] = task_id
         self.collateral_kwargs["pipeline"] = pipeline
@@ -266,6 +271,7 @@ class CreateInteractiveRun(TwoPhaseFunction):
         self.collateral_kwargs["env_variables"] = get_proj_pip_env_variables(
             project_uuid, pipeline.properties["uuid"]
         )
+        self.collateral_kwargs["env_uuid_to_image"] = env_uuid_to_image
         return run
 
     def _collateral(
@@ -275,41 +281,23 @@ class CreateInteractiveRun(TwoPhaseFunction):
         pipeline: Pipeline,
         run_config: Dict[str, Any],
         env_variables: Dict[str, Any],
+        env_uuid_to_image: Dict[str, str],
         **kwargs,
     ):
-        # Get docker ids of images to use and make it so that the images
-        # will not be deleted in case they become outdated by an
-        # environment rebuild.
-        try:
-            env_uuid_docker_id_mappings = lock_environment_images_for_run(
-                task_id,
-                project_uuid,
-                pipeline.get_environments(),
-            )
-        except errors.ImageNotFound as e:
-            msg = (
-                "Please make sure all pipeline steps are assigned an"
-                " environment that exists in the project. The following"
-                f" environments do not exist:\n\n {e}."
-            )
-            raise errors.ImageNotFound(msg)
-        except self_errors.PipelineDefinitionNotValid:
-            msg = "Please make sure every pipeline step is assigned an environment."
-            raise self_errors.PipelineDefinitionNotValid(msg)
 
         # Create Celery object with the Flask context and construct the
         # kwargs for the job.
         celery = make_celery(current_app)
-        run_config["env_uuid_docker_id_mappings"] = env_uuid_docker_id_mappings
+        run_config["env_uuid_to_image"] = env_uuid_to_image
         run_config["user_env_variables"] = env_variables
-        # For interactive runs the session uuid is equal to the pipeline
-        # uuid.
-        run_config["session_uuid"] = pipeline.properties["uuid"]
+        run_config["session_uuid"] = (
+            project_uuid[:18] + pipeline.properties["uuid"][:18]
+        )
         run_config["session_type"] = "interactive"
         celery_job_kwargs = {
             "pipeline_definition": pipeline.to_dict(),
-            "project_uuid": project_uuid,
             "run_config": run_config,
+            "session_uuid": run_config["session_uuid"],
         }
 
         # Start the run as a background task on Celery. Due to circular

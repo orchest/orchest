@@ -7,7 +7,6 @@ Make sure the `install_orchest.py` is run before launching the API.
 During development (or before a good fix), some manual labor has to be conducted before a pipeline
 can be launched. That is:
 
-- `chmod -R 0777 /var/run/docker.sock`: let docker containers be spawned from inside other containers.
 - `rm api/resources.db` (if one exists): issues with persistent pipeline uuids.
 
 The latter issue does not occur when running the orchest-api inside a container, since the db is
@@ -23,9 +22,7 @@ When a pipeline is launched, the following will happen
 Jupyter-enterprise-gateway (EG)
 
 - Image: `elyra/enterprise-gateway:dev`
-- Environment variable `EG_DOCKER_NETWORK` to make sure that kernels are launched on the same docker network
 - Mounts
-  - `/var/run/docker.sock` at `/var/run/docker.sock`: start docker containers from inside docker (remember to `chmod` the `docker.sock` file).
   - `etc/kernels` at `/usr/local/share/jupyter/kernels`: get custom kernelspecs.
 
 Jupyter-server

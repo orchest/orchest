@@ -1,0 +1,191 @@
+# Default values for docker-registry.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+replicaCount: 1
+
+updateStrategy: {}
+  # type: RollingUpdate
+  # rollingUpdate:
+  #   maxSurge: 1
+  #   maxUnavailable: 0
+
+podAnnotations: {}
+podLabels: {}
+
+serviceAccount:
+  create: false
+  name: ""
+  annotations: {}
+
+image:
+  repository: registry
+  tag: 2.7.1
+  pullPolicy: IfNotPresent
+# imagePullSecrets:
+    # - name: docker
+service:
+  name: registry
+  type: ClusterIP
+  # sessionAffinity: None
+  # sessionAffinityConfig: {}
+  # clusterIP:
+  port: 5000
+  # nodePort:
+  # loadBalancerIP:
+  # loadBalancerSourceRanges:
+  annotations: {}
+  # foo.io/bar: "true"
+ingress:
+  enabled: false
+  className: nginx
+  path: /
+  # Used to create an Ingress record.
+  hosts:
+    - chart-example.local
+  annotations: {}
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  labels: {}
+  tls:
+    # Secrets must be manually created in the namespace.
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+persistence:
+  accessMode: 'ReadWriteOnce'
+  enabled: false
+  size: 10Gi
+  # storageClass: '-'
+
+# set the type of filesystem to use: filesystem, s3
+storage: filesystem
+
+# Set this to name of secret for tls certs
+# tlsSecretName: registry.docker.example.com
+secrets:
+  haSharedSecret: ""
+  htpasswd: ""
+# Secrets for Azure
+#   azure:
+#     accountName: ""
+#     accountKey: ""
+#     container: ""
+# Secrets for S3 access and secret keys
+# Use a secretRef with keys (accessKey, secretKey) for secrets stored outside the chart
+#   s3:
+#     secretRef: ""
+#     accessKey: ""
+#     secretKey: ""
+# Secrets for Swift username and password
+#   swift:
+#     username: ""
+#     password: ""
+
+# Options for s3 storage type:
+# s3:
+#  region: us-east-1
+#  regionEndpoint: s3.us-east-1.amazonaws.com
+#  bucket: my-bucket
+#  rootdirectory: /object/prefix
+#  encrypt: false
+#  secure: true
+
+# Options for swift storage type:
+# swift:
+#  authurl: http://swift.example.com/
+#  container: my-container
+
+# https://docs.docker.com/registry/recipes/mirror/
+proxy:
+  enabled: false
+  remoteurl: https://registry-1.docker.io
+  username: ""
+  password: ""
+  # the ref for a secret stored outside of this chart
+  # Keys: proxyUsername, proxyPassword
+  secretRef: ""
+
+metrics:
+  enabled: false
+  port: 5001
+  # Create a prometheus-operator servicemonitor
+  serviceMonitor:
+    enabled: false
+    labels: {}
+  # prometheus-operator PrometheusRule defining alerting rules for a Prometheus instance
+  prometheusRule:
+    enabled: false
+    labels: {}
+    rules: {}
+
+configData:
+  version: 0.1
+  log:
+    fields:
+      service: registry
+  storage:
+    cache:
+      blobdescriptor: inmemory
+  http:
+    addr: :5000
+    headers:
+      X-Content-Type-Options: [nosniff]
+    debug:
+      addr: :5001
+      prometheus:
+        enabled: false
+        path: /metrics
+  health:
+    storagedriver:
+      enabled: true
+      interval: 10s
+      threshold: 3
+
+securityContext:
+  enabled: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+priorityClassName: ""
+
+podDisruptionBudget: {}
+  # maxUnavailable: 1
+  # minAvailable: 2
+
+nodeSelector: {}
+
+affinity: {}
+
+tolerations: []
+
+extraVolumeMounts: []
+## Additional volumeMounts to the registry container.
+#  - mountPath: /secret-data
+#    name: cloudfront-pem-secret
+#    readOnly: true
+
+extraVolumes: []
+## Additional volumes to the pod.
+#  - name: cloudfront-pem-secret
+#    secret:
+#      secretName: cloudfront-credentials
+#      items:
+#        - key: cloudfront.pem
+#          path: cloudfront.pem
+#          mode: 511
+
+extraEnvVars: []
+## Additional ENV variables to set
+# - name: REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY
+#   value: "/var/lib/example"

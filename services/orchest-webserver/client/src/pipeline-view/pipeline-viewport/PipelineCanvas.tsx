@@ -5,7 +5,12 @@ const PipelineStepsHolder = (
   ref: React.ForwardedRef<HTMLDivElement>
 ) => {
   return (
-    <div className="pipeline-steps-holder" ref={ref} {...props}>
+    <div
+      id="pipeline-canvas"
+      className="pipeline-steps-holder"
+      ref={ref}
+      {...props}
+    >
       {children}
     </div>
   );

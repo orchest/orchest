@@ -1,0 +1,7 @@
+controller:
+  serviceMonitor:
+    enabled: false
+  metricsConfig:
+    enabled: true
+  telemetryConfig:
+    enabled: true

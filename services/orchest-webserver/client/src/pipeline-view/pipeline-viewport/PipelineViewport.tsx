@@ -1,6 +1,7 @@
+import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { getScrollLineHeight } from "@/utils/webserver-utils";
-import { activeElementIsInput } from "@orchest/lib-utils";
+import { activeElementIsInput, uuidv4 } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import {
@@ -11,7 +12,11 @@ import {
 } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
+import { getFilePathForDragFile } from "../file-manager/common";
+import { useFileManagerContext } from "../file-manager/FileManagerContext";
+import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
+import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { PipelineCanvas } from "./PipelineCanvas";
 
 const CANVAS_VIEW_MULTIPLE = 3;
@@ -36,20 +41,23 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   HTMLDivElement,
   Props
 > = ({ children, className, canvasRef, canvasFuncRef, ...props }, ref) => {
+  const { dragFile } = useFileManagerContext();
   const {
     eventVars,
     mouseTracker,
     trackMouseMovement,
     dispatch,
     keysDown,
+    pipelineCwd,
     newConnection,
+    environments,
+    getOnCanvasPosition,
   } = usePipelineEditorContext();
   const {
     pipelineCanvasState: {
       panningState,
       pipelineOffset,
       pipelineOrigin,
-      origin,
       pipelineStepsHolderOffsetLeft,
       pipelineStepsHolderOffsetTop,
     },
@@ -125,15 +133,16 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     [centerPipelineOrigin, centerView]
   );
 
-  // const [panningState, setPanningState] = React.useState<
-  //   "ready-to-pan" | "panning" | "idle"
-  // >("idle");
-
   React.useEffect(() => {
     const keyDownHandler = (event: KeyboardEvent) => {
       if (activeElementIsInput()) return;
 
       if (event.key === " " && !keysDown.has("Space")) {
+        // if any element is on focus, pressing space bar is equivalent to mouse click
+        // therefore it's needed to remove all "focus" state
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         setPipelineCanvasState({ panningState: "ready-to-pan" });
         keysDown.add("Space");
       }
@@ -245,6 +254,51 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     }
   };
 
+  const getApplicableStepFiles = useValidateFilesOnSteps();
+
+  const createStepsWithFiles = React.useCallback(
+    (dropPosition: Position) => {
+      const { allowed } = getApplicableStepFiles();
+
+      const environment = environments.length > 0 ? environments[0] : null;
+
+      allowed.forEach((filePath) => {
+        dispatch({
+          type: "CREATE_STEP",
+          payload: {
+            title: "",
+            uuid: uuidv4(),
+            incoming_connections: [],
+            file_path: getFilePathForDragFile(filePath, pipelineCwd),
+            kernel: {
+              name: environment?.language || "python",
+              display_name: environment?.name || "Python",
+            },
+            environment: environment?.uuid,
+            parameters: {},
+            meta_data: {
+              position: [dropPosition.x, dropPosition.y],
+              hidden: false,
+            },
+          },
+        });
+      });
+    },
+    [dispatch, pipelineCwd, environments, getApplicableStepFiles]
+  );
+
+  const onDropFiles = React.useCallback(() => {
+    // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
+    // here we only handle "create a new step".
+    // const targetElement = target as HTMLElement;
+    const dropPosition = getOnCanvasPosition({
+      x: STEP_WIDTH / 2,
+      y: STEP_HEIGHT / 2,
+    });
+
+    createStepsWithFiles(dropPosition);
+  }, [createStepsWithFiles, getOnCanvasPosition]);
+
   const onMouseUp = (e: React.MouseEvent) => {
     if (eventVars.stepSelector.active) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
@@ -259,6 +313,8 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     if (newConnection.current) {
       dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
     }
+
+    if (dragFile) onDropFiles();
 
     const isLeftClick = e.button === 0;
 
@@ -288,10 +344,6 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
     if (eventVars.stepSelector.active) {
       dispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
-    }
-
-    if (panningState === "ready-to-pan") {
-      setPipelineCanvasState({ panningState: "panning" });
     }
 
     if (panningState === "panning") {
@@ -344,6 +396,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
   return (
     <div
+      id="pipeline-viewport"
       className={classNames(
         "pipeline-steps-outer-holder",
         panningState,
