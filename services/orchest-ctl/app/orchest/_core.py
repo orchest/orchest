@@ -677,6 +677,7 @@ def _update() -> None:
         # with default values.
         utils.get_celery_parallelism_level_from_config(),
     )
+    k8sw.scale_up_orchest_daemonsets(config.ORCHEST_DAEMONSETS)
     if return_code != 0:
         utils.echo(
             f"There was an error while updating Orchest, exit code: {return_code} .",
