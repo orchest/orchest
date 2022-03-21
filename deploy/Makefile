@@ -254,7 +254,7 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 ###############################################
 .PHONY: orchest
 orchest: initialize | ${ORCHEST_RESOURCES_TARGET}
-	helm install ${ORCHEST_DEPLOY_CONFIG}
+	helm upgrade --install ${ORCHEST_DEPLOY_CONFIG}
 
 .PHONY: clean-orchest
 clean-orchest:
@@ -263,7 +263,7 @@ clean-orchest:
 # usefull for debugging, not recommended to use without DEBUG=true enabled
 .PHONY: node-agent
 node-agent:
-	helm install node-agent \
+	helm upgrade --install node-agent \
 	--namespace ${NAMESPACE} \
 	${SHARED_DEPLOY_CONFIG} \
 	${NODE_AGENT_ENABLE_CONFIG} helm
@@ -276,122 +276,103 @@ clean-node-agent:
 argo-workflow: ./bin/argo-workflow
 
 .SECONDARY: ./bin/argo-workflow
-./bin/argo-workflow: | create-bin
-	helm install ${ARGO_WORKFLOW_DEPLOY_CONFIG}
-	touch $@
+./bin/argo-workflow:
+	helm upgrade --install ${ARGO_WORKFLOW_DEPLOY_CONFIG}
 
 .PHONY: clean-argo-workflow
 clean-argo-workflow:
 	helm uninstall argo-workflow --namespace ${NAMESPACE} --wait
-	rm ./bin/argo-workflow
 
 .PHONY: docker-registry
 docker-registry : ./bin/docker-registry
 
 .SECONDARY: ./bin/docker-registry
-./bin/docker-registry: | create-bin registry-resources
-	helm install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
-	touch $@
+./bin/docker-registry: | registry-resources
+	helm upgrade --install ${DOCKER_REGISTRY_DEPLOY_CONFIG}
 
 .PHONY: clean-docker-registry
 clean-docker-registry:
 	helm uninstall registry --namespace ${NAMESPACE} --wait
-	rm ./bin/docker-registry
 
 .PHONY: cert-manager
 cert-manager : ./bin/cert-manager
 
 .SECONDARY: ./bin/cert-manager
-./bin/cert-manager: | create-bin
+./bin/cert-manager: |
 	kubectl apply -f thirdparty/cert-manager
 	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
 	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-cainjector -n cert-manager
 	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager -n cert-manager
 
-	touch $@
-
 .PHONY: clean-cert-manager
 clean-cert-manager:
 	kubectl delete -f thirdparty/cert-manager
-	rm ./bin/cert-manager
 
 .PHONY: rook-ceph
 rook-ceph: ./bin/rook-ceph
 
 .SECONDARY: ./bin/rook-ceph
-./bin/rook-ceph: | create-bin
-	helm install ${ROOK_CEPH_DEPLOY_CONFIG}
-	touch $@
+./bin/rook-ceph: |
+	helm upgrade --install ${ROOK_CEPH_DEPLOY_CONFIG}
 
 .PHONY: clean-rook-ceph
 clean-rook-ceph:
 	helm uninstall rook-ceph --namespace ${ROOK_CEPH_NAMESPACE} --wait
-	rm ./bin/rook-ceph
 
 .PHONY: rook-nfs
 rook-nfs: ./bin/rook-nfs
 
 .SECONDARY: ./bin/rook-nfs
-./bin/rook-nfs: | create-bin
-	helm install ${ROOK_NFS_DEPLOY_CONFIG}
-	touch $@
+./bin/rook-nfs: |
+	helm upgrade --install ${ROOK_NFS_DEPLOY_CONFIG}
 
 .PHONY: clean-rook-nfs
 clean-rook-nfs:
 	helm uninstall rook-nfs --namespace ${ROOK_NFS_NAMESPACE} --wait
-	rm ./bin/rook-nfs
 
 .PHONY: registry-resources
 registry-resources: ./bin/registry-resources
 
 .SECONDARY: ./bin/registry-resources
-./bin/registry-resources: | create-bin cert-manager ${CEPH_RESOURCES_TARGET}
-	helm install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
-	touch $@
+./bin/registry-resources: | cert-manager ${CEPH_RESOURCES_TARGET}
+	helm upgrade --install ${CLUSTER_RSC_REG_DEPLOY_CONFIG}
 
 .PHONY: clean-registry-resources
 clean-registry-resources:
 	helm uninstall registry-resources --namespace ${NAMESPACE} --wait
-	rm ./bin/registry-resources
 
 .PHONY: ceph-resources
 ceph-resources: ./bin/ceph-resources
 
 .SECONDARY: ./bin/ceph-resources
 ./bin/ceph-resources: | create-bin ${ROOK_CEPH_TARGET}
-	helm install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
-	touch $@
+	helm upgrade --install ${CLUSTER_RSC_CEPH_DEPLOY_CONFIG}
 
 .PHONY: clean-ceph-resources
 clean-ceph-resources:
 	helm uninstall ceph-resources --namespace ${ROOK_CEPH_NAMESPACE} --wait
-	rm ./bin/ceph-resources
 
 .PHONY: nfs-resources
 nfs-resources: ./bin/nfs-resources
 
 .SECONDARY: ./bin/nfs-resources
-./bin/nfs-resources: | create-bin rook-nfs
-	helm install ${NFS_RSC_DEPLOY_CONFIG}
-	touch $@
+./bin/nfs-resources: | rook-nfs
+	helm upgrade --install ${NFS_RSC_DEPLOY_CONFIG}
 
 .PHONY: clean-nfs-resources
 clean-nfs-resources:
 	helm uninstall nfs-resources --namespace ${ROOK_NFS_NAMESPACE} --wait
-	rm ./bin/nfs-resources
 
 .PHONY: orchest-resources
 orchest-resources: ./bin/orchest-resources
 
 .SECONDARY: ./bin/orchest-resources
-./bin/orchest-resources: | create-bin ${ORCHEST_PVC_BACKEND_TARGET}
-	helm install ${ORCHEST_RSC_DEPLOY_CONFIG}
-	@touch $@
+./bin/orchest-resources: | ${ORCHEST_PVC_BACKEND_TARGET}
+	helm upgrade --install ${ORCHEST_RSC_DEPLOY_CONFIG}
 
 .PHONY: clean-orchest-resources
 clean-orchest-resources:
 	helm uninstall orchest-resources --namespace ${NAMESPACE} --wait
-	rm ./bin/orchest-resources
 
 # Dummy clean target
 .PHONY: clean-
@@ -411,16 +392,11 @@ clean-all: clean-${REGISTRY_TARGET}
 #clean-all: clean-registry-resources
 #clean-all: clean-cert-manager
 
-.PHONY: create-bin
-create-bin:
-	@mkdir -p ./bin
-
 .PHONY: initialize
 initialize: ./bin/initialize
 
 .SECONDARY: ./bin/initialize
-./bin/initialize: create-bin | argo-workflow ${REGISTRY_TARGET} ${ORCHEST_RESOURCES_TARGET}
-
+./bin/initialize: | argo-workflow ${REGISTRY_TARGET} ${ORCHEST_RESOURCES_TARGET}
 
 .PHONY: orchest-upgrade
 orchest-upgrade:
