@@ -2,12 +2,8 @@
 service:
   port: 80
 
-ORCHEST_LOG_LEVEL: INFO
-CLOUD: "False"
-
 images:
   pullPolicy: IfNotPresent
   registry: docker.io
-  name: orchest/auth-server
+  name: orchest/file-manager
   tag: k8s-beta
-

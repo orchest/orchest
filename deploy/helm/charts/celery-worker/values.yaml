@@ -10,4 +10,4 @@ images:
   pullPolicy: IfNotPresent
   registry: docker.io
   name: orchest/celery-worker
-  tag: latest
+  tag: k8s-beta

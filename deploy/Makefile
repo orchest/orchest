@@ -5,7 +5,7 @@ ROOK_CEPH_NAMESPACE := ${if ${ROOK_CEPH_NAMESPACE},${ROOK_CEPH_NAMESPACE},rook-c
 
 ROOK_NFS_NAMESPACE := ${if ${ROOK_NFS_NAMESPACE},${ROOK_NFS_NAMESPACE},rook-nfs}
 
-ORCHEST_DEFAULT_TAG := ${if ${ORCHEST_DEFAULT_TAG},${ORCHEST_DEFAULT_TAG},latest}
+ORCHEST_DEFAULT_TAG := ${if ${ORCHEST_DEFAULT_TAG},${ORCHEST_DEFAULT_TAG},k8s-beta}
 
 # If DEPEND_RESOURCES is set to FALSE, the orchest target is not dependent
 # to orchest-resources target, thus orchest-resources must have been deployed already
