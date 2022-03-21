@@ -404,7 +404,7 @@ clean-orchest-resources:
 # Dummy clean target
 .PHONY: clean-
 clean-:
-	@echo "noting here fellas"
+	@echo "nothing here fellas"
 
 # clean-all is meant to bring the cluster to its initial state, but currently it
 # does not delete cert-manager and registry certificates, because the second
