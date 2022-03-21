@@ -335,3 +335,10 @@ export const getFilePathForDragFile = (
     ? getFilePathInDataFolder(dragFilePath)
     : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
 };
+
+// Note that the selection order in selectedFiles is backward,
+// so we don't need to find from end
+export const lastSelectedFolderPath = (selectedFiles: string[]) => {
+  const found = selectedFiles.find((path) => path.endsWith("/"));
+  return found ? found.split(":")[1] : "/";
+};
