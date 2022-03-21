@@ -671,11 +671,16 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
+    # Preserve the current values, i.e. avoid helm overwriting them with
+    # default values.
+    host_names = k8sw.get_host_names()
+    injected_env_vars = utils.get_celery_parallelism_level_from_config()
+    if host_names:
+        injected_env_vars = {"ORCHEST_FQDN": host_names[0]}
+
     return_code = _run_helm_with_progress_bar(
         HelmMode.UPGRADE,
-        # Preserve the current values, i.e. avoid helm overwriting them
-        # with default values.
-        utils.get_celery_parallelism_level_from_config(),
+        injected_env_vars=injected_env_vars,
     )
     k8sw.scale_up_orchest_daemonsets(config.ORCHEST_DAEMONSETS)
     if return_code != 0:
