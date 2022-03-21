@@ -17,8 +17,8 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
+from _orchest.internals.utils import copytree, rmtree
 from app import analytics, error
-
 from app.core import filemanager
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
@@ -33,11 +33,8 @@ from app.core.projects import (
 from app.kernel_manager import populate_kernels
 from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
-from app.utils import rmtree  # K8S_TODO: merge conflict as it is now in internal lib?
 from app.utils import (
     check_pipeline_correctness,
-    copy,
-    copytree,
     create_pipeline_file,
     delete_environment,
     get_environment,
@@ -1078,11 +1075,11 @@ def register_views(app, db):
             new_fp = filemanager.find_unique_duplicate_filepath(fp)
             try:
                 if os.path.isfile(fp):
-                    copy(fp, new_fp)
+                    copytree(fp, new_fp)
                 else:
-                    copytree(fp, new_fp, respect_gitignore=False)
+                    copytree(fp, new_fp, use_gitignore=False)
             except Exception as e:
-                app.logger.debug(e)
+                app.logger.error(e)
                 return jsonify({"message": "Copy of file/directory failed"}), 500
         else:
             return jsonify({"message": "No file or directory at path %s" % path}), 500
