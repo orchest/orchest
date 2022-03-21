@@ -18,7 +18,6 @@ jobs:
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      BUILD_TAG: ${{ github.event.client_payload.build_tag }}
 
     strategy:
       matrix:
@@ -43,10 +42,10 @@ jobs:
         run: |
           bash ./scripts/build_container.sh ${{ matrix.image }} \
                     -o ${GITHUB_REF#refs/tags/} \
-                    -t "$BUILD_TAG" \
+                    -t ${GITHUB_REF#refs/tags/} \
                     -v
           echo "-----------"
-          bash ./scripts/push_container.sh ${{ matrix.image }} -t "$BUILD_TAG"
+          bash ./scripts/push_container.sh ${{ matrix.image }} -t ${GITHUB_REF#refs/tags/}
 
   push-readme:
     needs: buildpush
