@@ -402,6 +402,7 @@ def _get_jupyter_server_deployment_service_manifest(
             "template": {
                 "metadata": metadata,
                 "spec": {
+                    "terminationGracePeriodSeconds": 5,
                     "securityContext": {
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
@@ -690,6 +691,7 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
                     },
                     "serviceAccount": f"jupyter-eg-sa-{session_uuid}",
                     "serviceAccountName": f"jupyter-eg-sa-{session_uuid}",
+                    "terminationGracePeriodSeconds": 5,
                     "resources": {
                         "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
@@ -865,6 +867,7 @@ def _get_user_service_deployment_service_manifest(
             "template": {
                 "metadata": metadata,
                 "spec": {
+                    "terminationGracePeriodSeconds": 5,
                     "securityContext": {
                         "runAsUser": 0,
                         "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
