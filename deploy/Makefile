@@ -418,14 +418,14 @@ clean-orchest-resources:
 	rm ./bin/orchest-resources
 
 # Dummy clean target
-.PHONY: celan-
+.PHONY: clean-
 clean-:
 	@echo "noting here fellas"
 
 # clean-all is meant to bring the cluster to its initial state, but currently it 
 # does not delete cert-manager and registry certificates, because the second 
 # cert-manager complains about unknown authority and can not create new certificates.
-.PHONY: celan-all
+.PHONY: clean-all
 clean-all: clean-orchest
 clean-all: clean-${ORCHEST_RESOURCES_TARGET} 
 clean-all: clean-${ORCHEST_PVC_BACKEND_TARGET}
