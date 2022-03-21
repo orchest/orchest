@@ -57,7 +57,6 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "orchest-ctl"
         "update-sidecar"
         "orchest-webserver"
-        "nginx-proxy"
         "memory-server"
         "session-sidecar"
         "auth-server"
@@ -357,16 +356,6 @@ do
             -t "orchest/orchest-webserver:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-webserver/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-    if [ $IMG == "nginx-proxy" ]; then
-        build_ctx=$DIR/../services/nginx-proxy
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/nginx-proxy:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/nginx-proxy/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi

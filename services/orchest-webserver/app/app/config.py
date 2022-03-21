@@ -82,8 +82,6 @@ class Config:
     TELEMETRY_DISABLED = False
     TELEMETRY_INTERVAL = 15  # in minutes
 
-    # The port nginx will listen on. Necessary for a proper restart.
-    ORCHEST_PORT = os.getenv("ORCHEST_PORT", 8000)
     CLOUD = _config.CLOUD
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
