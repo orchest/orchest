@@ -199,6 +199,8 @@ follow the :ref:`regular installation process <regular installation>`.
 To enable SSL you first need to get the SSL certificates for your domain and put the certificates in
 the correct place so that Orchest recognizes them. This can be done using a convenience script:
 
+.. K8S_TODO: this process needs to be changed/documented?
+
 .. code-block:: sh
 
     scripts/letsencrypt-nginx.sh <domain> <email>
