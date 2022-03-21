@@ -72,8 +72,7 @@ if [ -n "$cluster_version" ]; then
         echo -e "\tgit pull origin\n"
         echo -e "Then checkout the required release version:\n"
         echo -e "\tgit checkout tags/${cluster_version}"
-        # K8S_TODO: enable this once we actually stop using latest.
-        # exit 1
+        exit 1
     fi
 fi
 
