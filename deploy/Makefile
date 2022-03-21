@@ -282,7 +282,6 @@ argo-workflow: ./bin/argo-workflow
 .PHONY: clean-argo-workflow
 clean-argo-workflow:
 	helm uninstall argo-workflow --namespace ${NAMESPACE} --wait
-	rm ./bin/argo-workflow
 
 .PHONY: docker-registry
 docker-registry : ./bin/docker-registry
@@ -374,7 +373,6 @@ orchest-resources: ./bin/orchest-resources
 .PHONY: clean-orchest-resources
 clean-orchest-resources:
 	helm uninstall orchest-resources --namespace ${NAMESPACE} --wait
-	rm ./bin/orchest-resources
 
 # Dummy clean target
 .PHONY: clean-
