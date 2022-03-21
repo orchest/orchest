@@ -36,7 +36,7 @@ The Makefile is configured to do the most common actions and it can be configure
 9. `ENABLE_HOSTPATH` enables the hostpath or standard as a storage provider, useful for single-node
    clusters.
 10. `ORCHEST_DEFAULT_TAG` the default container tag of `orchest-api`, `orchest-webserver`,
-    `auth-server`, `file-manager`, `node-agent` and `celery worker`, if specified, the tags of all
+    `auth-server`, `node-agent` and `celery worker`, if specified, the tags of all
     mentioned components will be adjusted accordingly. default: `k8s-beta`
 11. `ORCHEST_API_TAG` defines the tag of `orchest-api`, if not defined, falls back to
     `ORCHEST_DEFAULT_TAG`
@@ -44,16 +44,14 @@ The Makefile is configured to do the most common actions and it can be configure
     `ORCHEST_DEFAULT_TAG`
 13. `CELERY_WORKER_TAG` defines the tag of `celery-worker`, if not defined, falls back to
     `ORCHEST_DEFAULT_TAG`
-14. `FILE_MANAGER_TAG` defines the tag of `file-manager`, if not defined, falls back to
+14. `ORCHEST_WEBSERVER_TAG` defines the tag of `orchest-webserver`, if not defined, falls back to
     `ORCHEST_DEFAULT_TAG`
-15. `ORCHEST_WEBSERVER_TAG` defines the tag of `orchest-webserver`, if not defined, falls back to
+15. `NODE_AGENT_TAG` defines the tag of `node-agent`, if not defined, falls back to
     `ORCHEST_DEFAULT_TAG`
-16. `NODE_AGENT_TAG` defines the tag of `node-agent`, if not defined, falls back to
-    `ORCHEST_DEFAULT_TAG`
-17. `RABBITMQ_TAG` defines the tag of `rabbitmq`, default: `3`
-18. `ROOK_NFS_IMAGE_TAGE` defines the rook-nfs docker tag, default: `v1.7.3`
-19. `ROOK_CEPH_IMAGE_TAGE` defines the rook-ceph docker tag, default: `v1.8.2`
-20. `ORCHEST_FQDN` defines the orchest FQDN. default: `www.localorchest.io`
+16. `RABBITMQ_TAG` defines the tag of `rabbitmq`, default: `3`
+17. `ROOK_NFS_IMAGE_TAGE` defines the rook-nfs docker tag, default: `v1.7.3`
+18. `ROOK_CEPH_IMAGE_TAGE` defines the rook-ceph docker tag, default: `v1.8.2`
+19. `ORCHEST_FQDN` defines the orchest FQDN. default: `www.localorchest.io`
 
 The following targets are defined:
 
