@@ -51,6 +51,10 @@ class ImagePuller(object):
 
         self._aclient: Optional[aiodocker.Docker] = None
 
+        # Container to make sure that images that are already being
+        # pulled are not pulled concurrently again.
+        self._curr_pulling_imgs = set()
+
     async def get_image_names(self, queue: asyncio.Queue):
         """Fetches the image names by calling following endpoints
         of the orchest-api.
@@ -100,7 +104,9 @@ class ImagePuller(object):
         while True:
             image_name = await queue.get()
             if self.policy == Policy.IfNotPresent:
-                if await self.image_exists(image_name):
+                if image_name in self._curr_pulling_imgs or await self.image_exists(
+                    image_name
+                ):
                     queue.task_done()
                     continue
 
@@ -157,9 +163,12 @@ class ImagePuller(object):
         result = True
         t0 = time.time()
         try:
+            self._curr_pulling_imgs.add(image_name)
             await self.aclient().images.pull(image_name)
         except aiodocker.DockerError:
             result = False
+        finally:
+            self._curr_pulling_imgs.remove(image_name)
         t1 = time.time()
         if result is True:
             self.logger.info(f"Pulled image '{image_name}' in {(t1 - t0):.3f} secs.")
