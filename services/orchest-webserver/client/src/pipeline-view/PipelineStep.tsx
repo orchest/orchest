@@ -265,7 +265,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      if (e.button === 1) {
+      if (e.button === 0) {
         isMouseDown.current = true;
         forceUpdate();
       }
