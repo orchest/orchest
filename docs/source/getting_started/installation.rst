@@ -46,45 +46,6 @@ Install Orchest
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
 
-Additional language dependencies
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-By default, running ``bash orchest install``, installs only the language dependencies for Python.
-Other language dependencies can be installed as follows:
-
-.. code-block:: bash
-
-   # To install R dependencies.
-   bash orchest install --lang=r
-
-   # To install all languages: Python, R and Julia.
-   bash orchest install --lang=all
-
-.. tip::
-   👉 Language dependencies can also be installed through the Orchest UI, simply select the
-   corresponding base image when building a new :ref:`environment <environments>`.
-
-Networking issues
-~~~~~~~~~~~~~~~~~
-Docker has some known `network interruption issues
-<https://github.com/docker/for-linux/issues/914>`_ that impact the host network of the machine that
-Orchest is running on. To sidestep the issue it is recommended to disable IPv6 networking.
-
-.. note::
-   This only applies if you're running `minikube` with Docker as the driver.
-
-You can disable IPv6 using:
-
-.. code-block:: bash
-
-   echo "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1\nnet.ipv6.conf.lo.disable_ipv6=1" | sudo tee -a /etc/sysctl.conf
-
-Alternatively, you can disable IPv6 at the kernel level using a boot directive like
-``ipv6.disable=1``.  `This article
-<https://www.thegeekdiary.com/how-to-disable-ipv6-on-ubuntu-18-04-bionic-beaver-linux/>`_ describes
-how to do that for Ubuntu Linux.
-
-.. _installation gpu support:
-
 GPU support
 -----------
 Currently GPU support is not yet available.
