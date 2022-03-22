@@ -75,7 +75,6 @@ else ifeq (${ROOK_NFS_TARGET},rook-nfs)
   STORAGE_CTL_TARGET := rook-nfs
 endif
 
-
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
@@ -87,14 +86,24 @@ REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
 SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
 
+# docker-registry deployment configs
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET}, ${REGISTRY_SECRET},registry-tls-secret}
 REGISTRY_NAME := ${if ${REGISTRY_NAME}, ${REGISTRY_NAME},docker-registry}
 REGISTRY_PORT := ${if ${REGISTRY_PORT}, ${REGISTRY_PORT},443}
-
-# docker-registry deployment configs
+REGISTRY_STORAGE_CLASS := ${if ${REGISTRY_STORAGE_CLASS}, ${REGISTRY_STORAGE_CLASS},standard}
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
 DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
 DOCKER_REGISTRY_PORT_CONFIG := --set service.port=${REGISTRY_PORT}
+DOCKER_REGISTRY_PVC_CONFIG := --set persistence.enabled=true \
+							  --set persistence.storageClass=${REGISTRY_STORAGE_CLASS}
+DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
+								--namespace ${NAMESPACE} \
+								${SHARED_DEPLOY_CONFIG} \
+								${DOCKER_REGISTRY_SECRET_CONFIG} \
+								${DOCKER_REGISTRY_NAME_CONFIG} \
+								${DOCKER_REGISTRY_PORT_CONFIG} \
+								${DOCKER_REGISTRY_PVC_CONFIG} \
+								thirdparty/docker-registry
 
 # Cluste resources enable config
 CLUSTER_RSC_ENABLE_CONFIG := --set cluster-resources.enabled=true
@@ -243,11 +252,6 @@ ORCHEST_DEPLOY_CONFIG := orchest \
 ARGO_WORKFLOW_DEPLOY_CONFIG := argo-workflow \
 	${SHARED_DEPLOY_CONFIG} --namespace ${NAMESPACE} thirdparty/argo-workflows
 
-# Docker-registry deployment configs
-DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
-	--namespace ${NAMESPACE} \
-	${SHARED_DEPLOY_CONFIG} ${DOCKER_REGISTRY_SECRET_CONFIG} ${DOCKER_REGISTRY_NAME_CONFIG} \
-	${DOCKER_REGISTRY_PORT_CONFIG} thirdparty/docker-registry
 
 ###############################################
 ################### TARGETS ###################
