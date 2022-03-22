@@ -384,7 +384,15 @@ const ServiceForm: React.FC<{
                   </FormGroup>
                 </Stack>
                 <Stack direction="column" flex={1}>
-                  <FormSectionTitle title="Exposed service endpoints">
+                  <FormSectionTitle
+                    title="
+                  An exposed service is reachable from outside the cluster at its
+                  defined ports. This is useful, for example, for services like
+                  code-server or tensorboad, or to expose an API endpoint. If
+                  authentication is required you will need to be logged in to access the
+                  service, for that, make sure that auth is enabled in the settings.
+                  "
+                  >
                     Exposed service endpoints
                   </FormSectionTitle>
                   <FormGroup>
