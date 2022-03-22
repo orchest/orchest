@@ -895,7 +895,8 @@ def _get_user_service_deployment_service_manifest(
         },
     }
 
-    if "command" in service_config:
+    # K8S doesn't like empty commands.
+    if service_config.get("command", ""):
         deployment_manifest["spec"]["template"]["spec"]["containers"][0]["command"] = [
             service_config["command"]
         ]
