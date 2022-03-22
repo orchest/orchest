@@ -1,3 +1,4 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { isValidFile } from "@/hooks/useCheckFileValidity";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
@@ -14,6 +15,9 @@ import React from "react";
 import { DRAG_CLICK_SENSITIVITY } from "./common";
 import { usePipelineCanvasContext } from "./contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
+import { getFilePathForDragFile } from "./file-manager/common";
+import { useFileManagerContext } from "./file-manager/FileManagerContext";
+import { useValidateFilesOnSteps } from "./file-manager/useValidateFilesOnSteps";
 import { useUpdateZIndex } from "./hooks/useZIndexMax";
 import { InteractiveConnection } from "./pipeline-connection/InteractiveConnection";
 
@@ -128,10 +132,12 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   ref: React.MutableRefObject<HTMLDivElement>
 ) {
   const [, forceUpdate] = useForceUpdate();
+  const { setAlert } = useAppContext();
   const {
     metadataPositions,
     projectUuid,
     pipelineUuid,
+    pipelineCwd,
     stepDomRefs,
     isReadOnly,
     zIndexMax,
@@ -145,6 +151,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       selectedConnection,
     },
   } = usePipelineEditorContext();
+  const { selectedFiles, dragFile, resetMove } = useFileManagerContext();
 
   const {
     pipelineCanvasState: { panningState },
@@ -192,12 +199,37 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     document.body.removeEventListener("mouseup", finishDragging);
   }, [resetDraggingVariables, savePositions]);
 
+  const getApplicableStepFiles = useValidateFilesOnSteps();
+
   // handles all mouse up cases except "just finished dragging"
   // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
   // so this onMouseUp on the DOM won't work
   const onMouseUp = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (dragFile) {
+      if (selectedFiles.length > 1) {
+        setAlert("Error", "Unable to assign multiple files to a single step.");
+        resetMove();
+        return;
+      }
+
+      const { forbidden, usedNotebookFiles } = getApplicableStepFiles(uuid);
+      if (forbidden.length + usedNotebookFiles.length > 0) {
+        resetMove();
+        return;
+      }
+
+      dispatch({
+        type: "ASSIGN_FILE_TO_STEP",
+        payload: {
+          stepUuid: uuid,
+          filePath: getFilePathForDragFile(dragFile.path, pipelineCwd),
+        },
+      });
+      resetMove();
+    }
 
     if (isSelectorActive) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
@@ -233,8 +265,10 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      isMouseDown.current = true;
-      forceUpdate();
+      if (e.button === 0) {
+        isMouseDown.current = true;
+        forceUpdate();
+      }
     },
     [forceUpdate]
   );
@@ -370,7 +404,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   const onMouseOverContainer = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (newConnection.current) setIsHovering(true);
+    if (newConnection.current || dragFile) setIsHovering(true);
   };
   const onMouseOutContainer = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -381,6 +415,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   return (
     <>
       <Box
+        data-type="step"
         data-uuid={uuid}
         data-test-title={title}
         data-test-id={"pipeline-step"}

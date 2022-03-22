@@ -1,0 +1,4 @@
+
+name: docker-registry
+
+certificate: registry-certificate

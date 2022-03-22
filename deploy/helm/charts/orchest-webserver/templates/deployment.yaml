@@ -1,0 +1,74 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
+        - name: config-pvc
+          persistentVolumeClaim:
+            claimName: config-pvc
+            readOnly: false
+        #TODO(Navid) : check again after the port to k8s is done, to see if it is still needed or not
+        - name: repo
+          hostPath:
+            path: /var/lib/orchest/repo
+            type: DirectoryOrCreate
+      containers:
+      - name: orchest-webserver
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        ports:
+        - containerPort: 80
+        env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "ORCHEST_FQDN"
+          value: "{{ .Values.global.ingress.host }}"
+        - name: "CLOUD"
+          value: "{{ .Values.CLOUD }}"
+        - name: "ORCHEST_PORT"
+          value: "8000"
+        - name: "USERDIR_PVC"
+          value: "userdir-pvc"
+        - name: "HOST_CONFIG_DIR"
+          value: "/var/lib/orchest/config"
+        - name: "HOST_REPO_DIR"
+          value: "/var/lib/orchest/repo"
+        - name: "HOST_OS"
+          value: "linux"
+        - name: "ORCHEST_HOST_GID"
+          value: "1"
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"
+        - name: "ORCHEST_GPU_ENABLED_INSTANCE"
+          value: "FALSE"
+        volumeMounts:
+         - name: userdir-pvc
+           mountPath: /userdir
+         - name: config-pvc
+           mountPath: /config
+         - name: repo
+           mountPath: /orchest-host
+        startupProbe:
+          exec:
+        # K8S_TODO: enable auth check once the auth-server is enabled.
+        # wget auth-server/login/server-config -T 2 -t 1 --spider &&
+            command:
+              - sh
+              - -c
+              - "wget orchest-api/api -T 2 -t 1 --spider &&
+                wget -T 1 -t 1 localhost --spider"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 2
+          failureThreshold: 2

@@ -1,36 +1,36 @@
+"""Module about pipeline definition/de-serialization and pipeline runs.
+
+Essentially, it covers:
+- transforming a pipeline definition, e.g. obtained by the pipeline
+    json, into an instance of the Pipeline class, which adds some nice
+    to have logic.
+- transforming said Pipeline instance to a valid k8s workflow
+    definition, where the pipeline is run as an argo workflow.
+- the required function to actually perform a pipeline run.
+
+As a client of this module you are most likely interested in how to get
+a pipeline json to a Pipeline instance (point 1) and how to use that to
+perform a pipeline run (point 3), with "run_pipeline_workflow".
+
+"""
 import asyncio
 import copy
-import logging
+import json
 import os
 from datetime import datetime
-from typing import Any, Dict, Iterable, List, Optional, Set, TypedDict
+from typing import Any, Dict, Iterable, List, Optional, Set
 
-import aiodocker
 import aiohttp
+from celery.contrib.abortable import AbortableAsyncResult
 
 from _orchest.internals import config as _config
-from _orchest.internals.utils import get_device_requests, get_orchest_mounts
+from _orchest.internals.utils import get_step_and_kernel_volumes_and_volume_mounts
+from app.connections import k8s_core_api, k8s_custom_obj_api
+from app.types import PipelineDefinition, PipelineStepProperties, RunConfig
+from app.utils import get_logger
 from config import CONFIG_CLASS
 
-
-# TODO: this class is not extensive yet. The Other Dicts can be typed
-#       with a TypedDict also.
-class PipelineStepProperties(TypedDict):
-    name: str
-    uuid: str
-    incoming_connections: List[str]  # list of UUIDs
-    file_path: str
-    environment: str
-    parameters: dict
-    meta_data: Dict[str, List[int]]
-
-
-class PipelineDefinition(TypedDict):
-    name: str
-    uuid: str
-    steps: Dict[str, PipelineStepProperties]
-    parameters: Dict[str, Any]
-    settings: Dict[str, Any]
+logger = get_logger()
 
 
 def construct_pipeline(
@@ -125,31 +125,10 @@ async def update_status(
     await session.put(url, json=data)
 
 
-def get_volume_mounts(run_config, task_id):
+class PipelineStep:
+    """A step of a pipeline.
 
-    # Determine the appropriate name for the volume that shares
-    # temporary data amongst containers.
-
-    # This branching logic is because the volume is shared with Jupyter
-    # kernels.
-    # For the InteractiveRuns, while for NonInteractiveRuns it's unique
-    # to the task.
-    if run_config["run_endpoint"] == "runs":
-        volume_uuid = run_config["pipeline_uuid"]
-    elif run_config["run_endpoint"].startswith("jobs"):
-        volume_uuid = task_id
-    temp_volume_name = _config.TEMP_VOLUME_NAME.format(
-        uuid=volume_uuid, project_uuid=run_config["project_uuid"]
-    )
-
-    return [f"{temp_volume_name}:{_config.TEMP_DIRECTORY_PATH}"]
-
-
-class PipelineStepRunner:
-    """Runs a PipelineStep on a chosen backend.
-
-    This class can be thought of as a mixin class to the `PipelineStep`
-    class.
+    It can also be thought of as a node of a graph.
 
     Args:
         properties: properties of the step used for execution.
@@ -176,305 +155,7 @@ class PipelineStepRunner:
         # Initial status is "PENDING".
         self._status: str = "PENDING"
 
-    # TODO: specify a config argument here that is updated as the config
-    #       variable that is passed to run the docker container.
-
-    async def run_on_docker(
-        self,
-        docker_client: aiodocker.Docker,
-        session: aiohttp.ClientSession,
-        task_id: str,
-        *,
-        run_config: Dict[str, Any],
-    ) -> Optional[str]:
-        """Runs the container image defined in the step's properties.
-
-        Running is done asynchronously.
-
-        Args:
-            docker_client: Docker environment to run containers (async).
-            wait_on_completion: if True await containers, else do not.
-                Awaiting containers is helpful when running a dependency
-                graph (like a pipeline), because one step can only
-                executed once all its proper ancestors have completed.
-        """
-        if not all([parent._status == "SUCCESS" for parent in self.parents]):
-            # The step cannot be run yet.
-            return self._status
-
-        if self._status != "PENDING":
-            # The step has already been started.
-
-            # Each parent attempts to start their children when they
-            # finish. When all parents finish simultaneously (with all
-            # their _status'es being "SUCCESS") not checking whether
-            # the child has started or not would lead to multiple start
-            # attempts of the child, resulting in errors.
-            return self._status
-
-        # TODO: better error handling?
-        self._status = "STARTED"
-        await update_status(
-            self._status,
-            task_id,
-            session,
-            type="step",
-            run_endpoint=run_config["run_endpoint"],
-            uuid=self.properties["uuid"],
-        )
-
-        orchest_mounts = get_orchest_mounts(
-            project_dir=_config.PROJECT_DIR,
-            pipeline_file=_config.PIPELINE_FILE,
-            host_user_dir=run_config["host_user_dir"],
-            host_project_dir=run_config["project_dir"],
-            host_pipeline_file=os.path.join(
-                run_config["project_dir"], run_config["pipeline_path"]
-            ),
-            mount_form="docker-engine",
-        )
-
-        # add volume mount
-        orchest_mounts += get_volume_mounts(run_config, task_id)
-
-        device_requests = get_device_requests(
-            self.properties["environment"],
-            run_config["project_uuid"],
-            form="docker-engine",
-        )
-
-        # The working directory is the location of the file being
-        # executed.
-        project_relative_file_path = os.path.join(
-            os.path.split(run_config["pipeline_path"])[0], self.properties["file_path"]
-        )
-
-        working_dir = os.path.split(project_relative_file_path)[0]
-
-        user_env_variables = [
-            f"{key}={value}" for key, value in run_config["user_env_variables"].items()
-        ]
-
-        config = {
-            "Image": run_config["env_uuid_docker_id_mappings"][
-                self.properties["environment"]
-            ],
-            # Note that the order of concatenation matters, so that
-            # there is no risk that the user overwrites internal
-            # variables accidentally.
-            "Env": user_env_variables
-            + [
-                f'ORCHEST_STEP_UUID={self.properties["uuid"]}',
-                f'ORCHEST_SESSION_UUID={run_config["session_uuid"]}',
-                f'ORCHEST_SESSION_TYPE={run_config["session_type"]}',
-                f'ORCHEST_PIPELINE_UUID={run_config["pipeline_uuid"]}',
-                f"ORCHEST_PIPELINE_PATH={_config.PIPELINE_FILE}",
-                f'ORCHEST_PROJECT_UUID={run_config["project_uuid"]}',
-                # ORCHEST_MEMORY_EVICTION is never present when running
-                # notebooks interactively and otherwise always present,
-                # this means eviction of objects from memory can never
-                # be triggered when running notebooks interactively.
-                # This environment variable being present implies that
-                # the Orchest SDK will always emit an eviction message
-                # given the choice, this however, does not imply that
-                # eviction will actually take place, since the memory
-                # server manager will check the pipeline definition
-                # settings to decide whetever object eviction should
-                # take place or not.
-                "ORCHEST_MEMORY_EVICTION=1",
-            ],
-            "HostConfig": {
-                "Binds": orchest_mounts,
-                "DeviceRequests": device_requests,
-                "GroupAdd": [os.environ.get("ORCHEST_HOST_GID")],
-            },
-            "Cmd": [
-                "/orchest/bootscript.sh",
-                "runnable",
-                working_dir,
-                project_relative_file_path,
-            ],
-            "NetworkingConfig": {"EndpointsConfig": {_config.DOCKER_NETWORK: {}}},
-            # NOTE: the `'tests-uuid'` key is only used for tests and
-            # gets ignored by the `docker_client`.
-            "tests-uuid": self.properties["uuid"],
-            "CpuShares": _config.USER_CONTAINERS_CPU_SHARES,
-        }
-
-        # Starts the container asynchronously, however, it does not wait
-        # for completion of the container (like the `docker run` CLI
-        # command does). Therefore the option to await the container
-        # completion is introduced.
-        try:
-            container = await docker_client.containers.run(
-                config=config,
-                name=_config.PIPELINE_STEP_CONTAINER_NAME.format(
-                    run_uuid=task_id, step_uuid=self.properties["uuid"]
-                ),
-            )
-
-            data = await container.wait()
-
-            # The status code will be 0 for "SUCCESS" and -N otherwise.
-            # A negative value -N indicates that the child was
-            # terminated by signal N (POSIX only).
-            if data.get("StatusCode") != 0:
-                self._status = "FAILURE"
-                logging.error(
-                    "Docker container for step %s failed with output:\n%s"
-                    % (
-                        self.properties["uuid"],
-                        "".join(await container.log(stdout=True, stderr=True)),
-                    )
-                )
-            else:
-                self._status = "SUCCESS"
-
-        except Exception as e:
-            logging.error("Failed to run Docker container: %s" % e)
-            self._status = "FAILURE"
-
-        finally:
-            await update_status(
-                self._status,
-                task_id,
-                session,
-                type="step",
-                run_endpoint=run_config["run_endpoint"],
-                uuid=self.properties["uuid"],
-            )
-
-        return self._status
-
-    async def run_children_on_docker(
-        self,
-        docker_client: aiodocker.Docker,
-        session: aiohttp.ClientSession,
-        task_id: str,
-        *,
-        run_config: Dict[str, Any],
-    ) -> Optional[str]:
-        """Runs all children steps after running itself.
-
-        A child run is only started if the step itself has successfully
-        completed.
-
-        Args:
-            docker_client: Docker environment to run containers (async).
-        """
-        # NOTE: construction for sentinel since it cannot run itself (it
-        # is empty).
-        if self.properties:
-            status = await self.run_on_docker(
-                docker_client, session, task_id, run_config=run_config
-            )
-        else:
-            status = "SUCCESS"
-
-        if status == "SUCCESS":
-            # If the task ran successfully then also try to run its
-            # children.
-            tasks = []
-            for child in self._children:
-                task = child.run_children_on_docker(
-                    docker_client, session, task_id, run_config=run_config
-                )
-                tasks.append(asyncio.create_task(task))
-
-            res = await asyncio.gather(*tasks)
-
-            # If one of the children turns out to fail, then we say the
-            # step itself has failed. Because we start by calling the
-            # sentinel node which is placed at the start of
-            # thepipeline.
-            if "FAILURE" in res:
-                return "FAILURE"
-
-        elif status in ["FAILURE", "ABORTED"]:
-
-            # The task did not run successfully, thus all its children
-            # will be aborted.
-            all_children = set()
-            traversel = self._children.copy()
-            while traversel:
-                child = traversel.pop()
-                if child not in all_children:
-                    all_children.add(child)
-                    traversel.extend(child._children)
-
-            for child in all_children:
-                child._status = "ABORTED"
-                await update_status(
-                    "ABORTED",
-                    task_id,
-                    session,
-                    type="step",
-                    run_endpoint=run_config["run_endpoint"],
-                    uuid=child.properties["uuid"],
-                )
-
-            return "FAILURE"
-        else:
-            # The status could be STARTED, which means a parent tried to
-            # invoke run_on_docker for a child that was already running.
-            # We don't have to do anything in that case.
-            pass
-
-        return "SUCCESS"
-
-    async def run_on_kubernetes(self):
-        pass
-
-    async def run_ancestors_on_kubernetes(self):
-        # Call the run_on_kubernetes internally.
-        pass
-
-
-class PipelineStep(PipelineStepRunner):
-    """A step of a pipeline.
-
-    It can also be thought of as a node of a graph.
-
-    Args:
-        properties: properties of the step used for execution.
-        parents: the parents/incoming steps of the current step.
-
-    Attributes:
-        properties: see "Args" section.
-        parents: see "Args" section.
-    """
-
-    def __init__(
-        self,
-        properties: PipelineStepProperties,
-        parents: Optional[List["PipelineStep"]] = None,
-    ) -> None:
-        super().__init__(properties, parents)
-
-    async def run(
-        self,
-        runner_client: aiodocker.Docker,
-        session: aiohttp.ClientSession,
-        task_id: str,
-        *,
-        run_config: Dict[str, Any],
-        compute_backend: str = "docker",
-    ) -> None:
-        """Runs the `PipelineStep` on the given compute backend.
-
-        Args:
-            runner_client: client to manage the compute backend.
-            compute_backend: one of ("docker", "kubernetes").
-        """
-        # run_func =
-        # getattr(self, f'run_ancestors_on_{compute_backend}')
-        run_func = getattr(self, f"run_children_on_{compute_backend}")
-        return await run_func(runner_client, session, task_id, run_config=run_config)
-
     def __eq__(self, other) -> bool:
-        # NOTE: steps get a UUID and are always only identified with
-        # the UUID. Thus if they get additional parents and/or children,
-        # then they will stay the same. I think this is fine though.
         return self.properties["uuid"] == other.properties["uuid"]
 
     def __hash__(self) -> int:
@@ -575,22 +256,6 @@ class Pipeline:
     def get_params(self) -> Dict[str, Any]:
         return self.properties.get("parameters", {})
 
-    @property
-    def sentinel(self) -> PipelineStep:
-        """Returns the sentinel step, connected to the leaf steps.
-
-        Similarly to the implementation of a DLL, we add a sentinel node
-        to the end of the pipeline (i.e. all steps that do not have
-        children will be connected to the sentinel node). By having a
-        pointer to the sentinel we can traverse the entire pipeline.
-        This way we can start a run by "running" the sentinel node.
-        """
-        if self._sentinel is None:
-            self._sentinel = PipelineStep({})
-            self._sentinel._children = [step for step in self.steps if not step.parents]
-
-        return self._sentinel
-
     def get_induced_subgraph(self, selection: Iterable[str]) -> "Pipeline":
         """Returns a new pipeline whos set of steps equal the selection.
 
@@ -652,9 +317,6 @@ class Pipeline:
         for step in self.steps:
             step.parents = [s for s in step.parents if s in self.steps]
             step._children = [s for s in step._children if s in self.steps]
-
-        # Reset the sentinel.
-        self._sentinel = None
 
     def incoming(self, selection: Iterable[str], inclusive: bool = False) -> "Pipeline":
         """Returns a new Pipeline of all ancestors of the selection.
@@ -730,139 +392,344 @@ class Pipeline:
         properties = copy.deepcopy(self.properties)
         return Pipeline(steps=list(steps_to_be_included), properties=properties)
 
-    def kill_all_running_steps(self, task_id, compute_backend, run_config):
-        run_func = getattr(self, f"kill_all_running_steps_on_{compute_backend}")
-        return run_func(task_id, run_config)
-
-    def kill_all_running_steps_on_docker(self, task_id, run_config):
-
-        logging.info("Aborted: kill_all_running_steps")
-
-        # list containers
-        docker_client = run_config["docker_client"]
-        containers = docker_client.containers.list(ignore_removed=True)
-
-        container_names_to_kill = set(
-            [
-                _config.PIPELINE_STEP_CONTAINER_NAME.format(
-                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
-                )
-                for pipeline_step in self.steps
-            ]
-        )
-
-        for container in containers:
-            if container.name in container_names_to_kill:
-                try:
-                    container.kill()
-                except Exception as e:
-                    logging.error(
-                        "Failed to kill container %s. Error: %s (%s)"
-                        % (container.get("name"), e, type(e))
-                    )
-
-    def remove_containerization_resources(self, task_id, compute_backend, run_config):
-        run_func = getattr(
-            self, f"remove_containerization_resources_on_{compute_backend}"
-        )
-        return run_func(task_id, run_config)
-
-    def remove_containerization_resources_on_docker(self, task_id, run_config):
-
-        logging.info("Cleaning up containerization resources on docker")
-
-        # list containers
-        docker_client = run_config["docker_client"]
-        # use all=True to get stopped containers
-        containers = docker_client.containers.list(all=True, ignore_removed=True)
-
-        container_names_to_remove = set(
-            [
-                _config.PIPELINE_STEP_CONTAINER_NAME.format(
-                    run_uuid=task_id, step_uuid=pipeline_step.properties["uuid"]
-                )
-                for pipeline_step in self.steps
-            ]
-        )
-        logging.info(container_names_to_remove)
-
-        for container in containers:
-            if container.name in container_names_to_remove:
-                try:
-                    logging.info("removing container %s" % container.name)
-                    # force=False so we log if a container happened to
-                    # be still running while we expected it to not be
-                    # v=True does not actually do anything because,
-                    # given the docker docs:
-                    # https://docs.docker.com/engine/reference/commandline/rm/
-                    # "This command removes the container and any
-                    # volumes associated with it. Note that if a volume
-                    # was specified with a name, it will not be removed.
-                    # "
-                    container.remove(force=False, v=True)
-                except Exception as e:
-                    logging.error(
-                        "Failed to remove container %s. Error: %s (%s)"
-                        % (container.get("name"), e, type(e))
-                    )
-
-    async def run(
-        self, task_id: str, *, run_config: Dict[str, Any], compute_backend="docker"
-    ) -> str:
-        """Runs the Pipeline asynchronously.
-
-        Args:
-            run_config: Configuration of the run. Example
-                {
-                    'run_endpoint': 'runs',
-                    'project_dir':
-                        '/home/.../userdir/projects/<project_path>',
-                    'pipeline_uuid': 'some-uuid',
-                }
-
-        Returns:
-            Status
-
-        TODO:
-            The function should also take the argument `compute_backend`
-            Although this can be done later, since we do not support
-            any other compute backends yet.
-        """
-        # We have to instantiate the Docker() client here instead of in
-        # the connections.py main module. Because the client has to be
-        # bound to an asyncio eventloop.
-        runner_client = aiodocker.Docker()
-
-        async with aiohttp.ClientSession() as session:
-            await update_status(
-                "STARTED",
-                task_id,
-                session,
-                type="pipeline",
-                run_endpoint=run_config["run_endpoint"],
-            )
-
-            status = await self.sentinel.run(
-                runner_client,
-                session,
-                task_id,
-                run_config=run_config,
-                compute_backend=compute_backend,
-            )
-
-            await update_status(
-                status,
-                task_id,
-                session,
-                type="pipeline",
-                run_endpoint=run_config["run_endpoint"],
-            )
-
-        await runner_client.close()
-
-        # Reset the execution environment of the Pipeline.
-        for step in self.steps:
-            step._status = "PENDING"
-
     def __repr__(self) -> str:
         return f"Pipeline({self.steps!r})"
+
+
+def _step_to_workflow_manifest_task(
+    step: PipelineStep, run_config: Dict[str, Any]
+) -> dict:
+    # The working directory is the location of the file being
+    # executed.
+    project_relative_file_path = os.path.join(
+        os.path.split(run_config["pipeline_path"])[0], step.properties["file_path"]
+    )
+    working_dir = os.path.split(project_relative_file_path)[0]
+
+    user_env_variables = [
+        {"name": key, "value": str(value)}
+        for key, value in run_config["user_env_variables"].items()
+    ]
+    orchest_env_variables = [
+        {"name": "ORCHEST_STEP_UUID", "value": step.properties["uuid"]},
+        {"name": "ORCHEST_SESSION_UUID", "value": run_config["session_uuid"]},
+        {"name": "ORCHEST_SESSION_TYPE", "value": run_config["session_type"]},
+        {"name": "ORCHEST_PIPELINE_UUID", "value": run_config["pipeline_uuid"]},
+        {"name": "ORCHEST_PIPELINE_PATH", "value": _config.PIPELINE_FILE},
+        {"name": "ORCHEST_PROJECT_UUID", "value": run_config["project_uuid"]},
+        {
+            # ORCHEST_MEMORY_EVICTION is never present when running
+            # notebooks interactively and otherwise always present, this
+            # means eviction of objects from memory can never be
+            # triggered when running notebooks interactively.  This
+            # environment variable being present implies that the
+            # Orchest SDK will always emit an eviction message given the
+            # choice, this however, does not imply that eviction will
+            # actually take place, since the memory server manager will
+            # check the pipeline definition settings to decide whetever
+            # object eviction should take place or not.
+            "name": "ORCHEST_MEMORY_EVICTION",
+            "value": "1",
+        },
+    ]
+    # Note that the order of concatenation matters, so that there is no
+    # risk that the user overwrites internal variables accidentally.
+    env_variables = user_env_variables + orchest_env_variables
+
+    # This allows us to edit the container that argo runs for us.
+    pod_spec_patch = json.dumps(
+        {
+            "terminationGracePeriodSeconds": 1,
+            "containers": [
+                {
+                    "name": "main",
+                    "env": env_variables,
+                    "restartPolicy": "Never",
+                    "imagePullPolicy": "IfNotPresent",
+                }
+            ],
+        },
+    )
+
+    # Need to reference the ip because the local docker engine will run
+    # the container, and if the image is missing it will prompt a pull
+    # which will fail because the FQDN can't be resolved by the local
+    # engine on the node. K8S_TODO: fix this.
+    registry_ip = k8s_core_api.read_namespaced_service(
+        _config.REGISTRY, _config.ORCHEST_NAMESPACE
+    ).spec.cluster_ip
+    task = {
+        # "Name cannot begin with a digit when using either 'depends' or
+        # 'dependencies'".
+        "name": f'step-{step.properties["uuid"]}',
+        "dependencies": [f'step-{pstep.properties["uuid"]}' for pstep in step.parents],
+        "template": "step",
+        "arguments": {
+            "parameters": [
+                {
+                    # Used to keep track of the step when getting
+                    # workflow status, since the name we have set is not
+                    # reliable, argo will change it.
+                    "name": "step_uuid",
+                    "value": step.properties["uuid"],
+                },
+                {
+                    "name": "image",
+                    "value": registry_ip
+                    + "/"
+                    + run_config["env_uuid_to_image"][step.properties["environment"]],
+                },
+                {"name": "working_dir", "value": working_dir},
+                {
+                    "name": "project_relative_file_path",
+                    "value": project_relative_file_path,
+                },
+                {"name": "pod_spec_patch", "value": pod_spec_patch},
+                {
+                    # NOTE: only used by tests.
+                    "name": "tests_uuid",
+                    "value": step.properties["uuid"],
+                },
+            ]
+        },
+    }
+    return task
+
+
+def _pipeline_to_workflow_manifest(
+    session_uuid: str,
+    workflow_name: str,
+    pipeline: Pipeline,
+    run_config: Dict[str, Any],
+) -> dict:
+    volumes, volume_mounts = get_step_and_kernel_volumes_and_volume_mounts(
+        userdir_pvc=run_config["userdir_pvc"],
+        project_dir=run_config["project_dir"],
+        pipeline_file=run_config["pipeline_path"],
+        container_project_dir=_config.PROJECT_DIR,
+        container_pipeline_file=_config.PIPELINE_FILE,
+    )
+
+    manifest = {
+        "apiVersion": "argoproj.io/v1alpha1",
+        "kind": "Workflow",
+        "metadata": {
+            "name": workflow_name,
+            "labels": {
+                "project_uuid": run_config["project_uuid"],
+                "session_uuid": session_uuid,
+            },
+        },
+        "spec": {
+            "entrypoint": "pipeline",
+            "volumes": volumes,
+            # The celery task actually takes care of deleting the
+            # workflow, this is just a failsafe.
+            "ttlStrategy": {
+                "secondsAfterCompletion": 1000,
+                "secondsAfterSuccess": 1000,
+                "secondsAfterFailure": 1000,
+            },
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            # The first entry of this list is the definition of the DAG,
+            # while the second entry is the step definition.
+            "templates": [
+                {
+                    "name": "pipeline",
+                    "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                    "dag": {
+                        "failFast": True,
+                        "tasks": [
+                            _step_to_workflow_manifest_task(step, run_config)
+                            for step in pipeline.steps
+                        ],
+                    },
+                },
+                {
+                    "name": "step",
+                    "securityContext": {
+                        "runAsUser": 0,
+                        "runAsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                        "fsGroup": int(os.environ.get("ORCHEST_HOST_GID")),
+                    },
+                    "inputs": {
+                        "parameters": [
+                            {"name": param}
+                            for param in [
+                                "step_uuid",
+                                "image",
+                                "working_dir",
+                                "project_relative_file_path",
+                                "pod_spec_patch",
+                                "tests_uuid",
+                            ]
+                        ]
+                    },
+                    "retryStrategy": {"limit": "0", "backoff": {"maxDuration": "0s"}},
+                    "container": {
+                        "image": "{{inputs.parameters.image}}",
+                        "command": [
+                            "/orchest/bootscript.sh",
+                            "runnable",
+                            "{{inputs.parameters.working_dir}}",
+                            "{{inputs.parameters.project_relative_file_path}}",
+                        ],
+                        "volumeMounts": volume_mounts,
+                    },
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
+                    "podSpecPatch": "{{inputs.parameters.pod_spec_patch}}",
+                },
+            ],
+        },
+    }
+    return manifest
+
+
+async def run_pipeline_workflow(
+    session_uuid: str, task_id: str, pipeline: Pipeline, *, run_config: RunConfig
+):
+    async with aiohttp.ClientSession() as session:
+
+        await update_status(
+            "STARTED",
+            task_id,
+            session,
+            type="pipeline",
+            run_endpoint=run_config["run_endpoint"],
+        )
+
+        namespace = _config.ORCHEST_NAMESPACE
+
+        try:
+            manifest = _pipeline_to_workflow_manifest(
+                session_uuid, f"pipeline-run-task-{task_id}", pipeline, run_config
+            )
+            k8s_custom_obj_api.create_namespaced_custom_object(
+                "argoproj.io", "v1alpha1", namespace, "workflows", body=manifest
+            )
+
+            steps_to_start = {step.properties["uuid"] for step in pipeline.steps}
+            steps_to_finish = set(steps_to_start)
+            had_failed_steps = False
+            while steps_to_finish:
+                # Note: not async.
+                resp = k8s_custom_obj_api.get_namespaced_custom_object(
+                    "argoproj.io",
+                    "v1alpha1",
+                    namespace,
+                    "workflows",
+                    f"pipeline-run-task-{task_id}",
+                )
+                workflow_nodes: dict = resp.get("status", {}).get("nodes", {})
+                for step in workflow_nodes.values():
+                    # The nodes includes the entire "pipeline" node etc.
+                    if step["templateName"] != "step":
+                        continue
+                    # The step was not run because the workflow failed.
+                    if "inputs" not in step:
+                        continue
+
+                    for param in step["inputs"]["parameters"]:
+                        if param["name"] == "step_uuid":
+                            step_uuid = param["value"]
+                            break
+                    else:
+                        # Should never happen.
+                        raise Exception(
+                            f"Did not find step_uuid in step parameters. Step: {step}."
+                        )
+                    step_status = step["phase"]
+                    step_message = step.get("message", "")
+                    step_status_update = None
+
+                    # Argo does not fail a step if the container is
+                    # stuck in a waiting state. Doesn't look like the
+                    # pull backoff behavior can be tuned.
+                    if step_status in ["Pending", "Running"] and (
+                        "ImagePullBackOff" in step_message
+                        or "ErrImagePull" in step_message
+                    ):
+                        step_status_update = "FAILURE"
+                    elif step_status == "Running" and step_uuid in steps_to_start:
+                        step_status_update = "STARTED"
+                        steps_to_start.remove(step_uuid)
+                    elif (
+                        step_status in ["Succeeded", "Failed", "Error"]
+                        and step_uuid in steps_to_finish
+                    ):
+                        step_status_update = {
+                            "Succeeded": "SUCCESS",
+                            "Failed": "FAILURE",
+                            "Error": "FAILURE",
+                        }[step_status]
+
+                    if step_status_update is not None:
+                        if step_status_update == "FAILURE":
+                            had_failed_steps = True
+
+                        if step_status_update in ["FAILURE", "ABORTED", "SUCCESS"]:
+                            steps_to_finish.remove(step_uuid)
+                            if step_uuid in steps_to_start:
+                                steps_to_start.remove(step_uuid)
+
+                        await update_status(
+                            step_status_update,
+                            task_id,
+                            session,
+                            type="step",
+                            run_endpoint=run_config["run_endpoint"],
+                            uuid=step_uuid,
+                        )
+
+                if not steps_to_finish or had_failed_steps:
+                    break
+
+                if AbortableAsyncResult(task_id).is_aborted():
+                    break
+
+                async with session.get(
+                    f'{CONFIG_CLASS.ORCHEST_API_ADDRESS}/{run_config["run_endpoint"]}'
+                    f"/{task_id}"
+                ) as response:
+                    run_status = await response.json()
+                    # Might not be there if it has been deleted.
+                    if run_status.get("status", "ABORTED") in [
+                        "SUCCESS",
+                        "FAILURE",
+                        "ABORTED",
+                    ]:
+                        break
+
+                await asyncio.sleep(0.25)
+
+            for step_uuid in steps_to_finish:
+                await update_status(
+                    "ABORTED",
+                    task_id,
+                    session,
+                    type="step",
+                    run_endpoint=run_config["run_endpoint"],
+                    uuid=step_uuid,
+                )
+
+            pipeline_status = "SUCCESS" if not had_failed_steps else "FAILURE"
+            await update_status(
+                pipeline_status,
+                task_id,
+                session,
+                type="pipeline",
+                run_endpoint=run_config["run_endpoint"],
+            )
+
+        except Exception as e:
+            logger.error(e)
+            await update_status(
+                "FAILURE",
+                task_id,
+                session,
+                type="pipeline",
+                run_endpoint=run_config["run_endpoint"],
+            )

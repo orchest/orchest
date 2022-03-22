@@ -71,12 +71,7 @@ To keep Orchest's disk footprint to a minimal you can use the following best pra
 
 Use a GPU in Orchest
 --------------------
-Make sure you have read the instructions in the :ref:`GPU support section <installation gpu
-support>` of the installation process. Next, you need to create an :ref:`environment <environments>`
-that uses the ``orchest/base-kernel-py-gpu`` (or your custom image with GPU capabilities) as its
-base image and tick the *GPU support* checkbox.
-
-Now you can use the GPU from within your environments.
+Currently GPU support is not yet available. Coming soon!
 
 Use the Orchest CLI
 -------------------
@@ -85,11 +80,7 @@ information by running ``./orchest --help``:
 
 .. code-block:: sh
 
-   # Start Orchest (on port 8000)
    ./orchest start
-
-   # Start Orchest and forward its port to port 80 on the host.
-   ./orchest start --port=80
 
    # Stop Orchest (shuts down Orchest completely).
    ./orchest stop
@@ -105,9 +96,6 @@ information by running ``./orchest --help``:
    # Get extensive version information. Useful to see whether the
    # installation was successful.
    ./orchest version --ext
-
-   # Create a one-off job for a pipeline through the CLI.
-   ./orchest run --job='my-job' --project=quickstart --pipeline='california-housing'
 
 
 Use Orchest shortcuts like a pro
@@ -188,31 +176,6 @@ To skip a cell during pipeline runs:
 
 The cells with the *skip* tag are still runnable through JupyterLab, but when executing these
 notebooks as part of pipelines in Orchest they will not be run.
-
-.. _self-host orchest:
-
-Self-host Orchest
------------------
-Running Orchest on a cloud hosted VM (such as EC2) does not require a special installation. Simply
-follow the :ref:`regular installation process <regular installation>`.
-
-To enable SSL you first need to get the SSL certificates for your domain and put the certificates in
-the correct place so that Orchest recognizes them. This can be done using a convenience script:
-
-.. code-block:: sh
-
-    scripts/letsencrypt-nginx.sh <domain> <email>
-
-Make sure to start Orchest on port ``80`` so that HTTP requests can automatically be upgraded to
-HTTPS:
-
-.. code-block:: bash
-
-   ./orchest start --port=80
-
-.. tip::
-   👉 Refer to ``AUTH_ENABLED`` in the :ref:`Orchest settings section <orchest settings>` to enable
-   the authentication.
 
 Migrate to Kubernetes
 ---------------------

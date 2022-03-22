@@ -67,6 +67,12 @@ export const HeaderBar = ({
     path: siteMap.pipeline.path,
     exact: true,
   });
+
+  const matchFilePreview = useRouteMatch({
+    path: siteMap.filePreview.path,
+    exact: true,
+  });
+
   const matchJupyter = useRouteMatch({
     path: siteMap.jupyterLab.path,
     exact: true,
@@ -168,7 +174,7 @@ export const HeaderBar = ({
           )}
         </Box>
         <Stack spacing={2} direction="row">
-          {pipelineName && !pipelineIsReadOnly && (
+          {!matchFilePreview && pipelineName && !pipelineIsReadOnly && (
             <SessionToggleButton
               pipelineUuid={pipelineUuid}
               projectUuid={projectUuid}

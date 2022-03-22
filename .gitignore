@@ -72,7 +72,9 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 
+#IDE related files
 .idea/
+.devcontainer/
 
 # Flask stuff:
 .webassets-cache

@@ -6,9 +6,10 @@ import uuid
 from typing import Optional
 
 import requests
-from flask.globals import current_app
+from flask import current_app
 
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
+from _orchest.internals.utils import rmtree
 from app import error
 from app.connections import db
 from app.core.pipelines import AddPipelineFromFS, DeletePipeline
@@ -22,9 +23,8 @@ from app.utils import (
     populate_default_environments,
     project_uuid_to_path,
     remove_project_jobs_directories,
-    rmtree,
 )
-from app.views.orchest_api import api_proxy_environment_builds
+from app.views.orchest_api import api_proxy_environment_image_builds
 
 
 class CreateProject(TwoPhaseFunction):
@@ -407,7 +407,7 @@ class ImportGitProject(TwoPhaseFunction):
 def build_environments(environment_uuids, project_uuid):
     project_path = project_uuid_to_path(project_uuid)
 
-    environment_build_requests = [
+    environment_image_build_requests = [
         {
             "project_uuid": project_uuid,
             "project_path": project_path,
@@ -416,13 +416,20 @@ def build_environments(environment_uuids, project_uuid):
         for environment_uuid in environment_uuids
     ]
 
-    return api_proxy_environment_builds(
-        environment_build_requests, current_app.config["ORCHEST_API_ADDRESS"]
+    return api_proxy_environment_image_builds(
+        environment_image_build_requests, current_app.config["ORCHEST_API_ADDRESS"]
     )
 
 
 def build_environments_for_project(project_uuid):
     environments = get_environments(project_uuid)
+
+    for env in environments:
+        url = (
+            f'http://{current_app.config["ORCHEST_API_ADDRESS"]}'
+            f"/api/environments/{project_uuid}"
+        )
+        requests.post(url, json={"uuid": env.uuid})
 
     return build_environments(
         [environment.uuid for environment in environments], project_uuid

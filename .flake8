@@ -13,6 +13,8 @@ ignore =
 
 per-file-ignores =
     orchest-sdk/python/orchest/__init__.py: F401
+    services/orchest-api/app/app/core/sessions/__init__.py: F401
+    services/orchest-ctl/app/orchest/__init__.py: F401
 
 # black is set to 88
 max-line-length = 88

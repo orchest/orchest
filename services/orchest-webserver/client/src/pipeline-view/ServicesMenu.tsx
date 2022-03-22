@@ -29,10 +29,7 @@ export const ServicesMenu = ({
   isOpen: boolean;
   onClose: () => void;
   anchor: React.MutableRefObject<Element>;
-  services: Record<
-    string,
-    Pick<Service, "ports" | "preserve_base_path" | "name">
-  > | null;
+  services: Record<string, Partial<Service>> | null;
 }) => {
   const {
     projectUuid,
@@ -65,12 +62,14 @@ export const ServicesMenu = ({
   };
 
   const serviceLinks = services
-    ? Object.entries(services).map(([serviceName, service]) => {
-        return {
-          name: serviceName,
-          urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
-        };
-      })
+    ? Object.entries(services)
+        .filter((serviceTuple) => serviceTuple[1].exposed)
+        .map(([serviceName, service]) => {
+          return {
+            name: serviceName,
+            urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
+          };
+        })
     : null;
 
   return (

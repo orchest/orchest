@@ -245,24 +245,10 @@ const ServiceForm: React.FC<{
                   data-test-id={`service-${props.service.name}-image`}
                 />
               </Stack>
-              <FormSectionTitle title="Change the service start up behavior by specifying the entrypoint and command options. This is similar the Docker equivalents.">
+              <FormSectionTitle title="Change the service start up behavior by specifying the command and args options.">
                 Start behavior
               </FormSectionTitle>
               <Stack direction="row" spacing={2}>
-                <TextField
-                  label="Entrypoint (optional)"
-                  type="text"
-                  disabled={props.disabled || hasServiceNameError}
-                  value={props.service.entrypoint}
-                  onChange={(e) => {
-                    handleServiceChange("entrypoint", e.target.value);
-                  }}
-                  fullWidth
-                  aria-describedby="tooltip-entrypoint"
-                  helperText="This is the same `entrypoint` as the entrypoint for Docker. E.g. `python main.py`."
-                  data-test-id={`service-${props.service.name}-entrypoint`}
-                />
-
                 <TextField
                   label="Command (optional)"
                   type="text"
@@ -272,9 +258,23 @@ const ServiceForm: React.FC<{
                     handleServiceChange("command", e.target.value);
                   }}
                   fullWidth
-                  helperText="This is the same `command` as the command for Docker. E.g. `arg1 -v`. They are appended to the entrypoint."
                   aria-describedby="tooltip-command"
+                  helperText="This is the same `command` as the command for a k8s Pod. E.g. `bash`."
                   data-test-id={`service-${props.service.name}-command`}
+                />
+
+                <TextField
+                  label="Args (optional)"
+                  type="text"
+                  disabled={props.disabled || hasServiceNameError}
+                  value={props.service.args}
+                  onChange={(e) => {
+                    handleServiceChange("args", e.target.value);
+                  }}
+                  fullWidth
+                  helperText="This is the same `args` as the args for a k8s Pod. E.g. `-c 'echo hello'`. They are appended to the command."
+                  aria-describedby="tooltip-args"
+                  data-test-id={`service-${props.service.name}-args`}
                 />
               </Stack>
               <FormSectionTitle title="Mounts give you access to the project files or /data files from within the service. Entered paths should be absolute paths in the container image.">
@@ -384,18 +384,36 @@ const ServiceForm: React.FC<{
                   </FormGroup>
                 </Stack>
                 <Stack direction="column" flex={1}>
-                  <FormSectionTitle title="Require authentication for the exposed service endpoints.">
-                    Authentication required
+                  <FormSectionTitle
+                    title="
+                  An exposed service is reachable from outside the cluster at its
+                  defined ports. This is useful, for example, for services like
+                  code-server or tensorboad, or to expose an API endpoint. If
+                  authentication is required you will need to be logged in to access the
+                  service, for that, make sure that auth is enabled in the settings.
+                  "
+                  >
+                    Exposed service endpoints
                   </FormSectionTitle>
                   <FormGroup>
+                    <FormControlLabel
+                      label="Exposed"
+                      disabled={props.disabled || hasServiceNameError}
+                      control={
+                        <Checkbox
+                          checked={props.service.exposed}
+                          onChange={(e) => {
+                            handleServiceChange("exposed", e.target.checked);
+                          }}
+                        />
+                      }
+                    />
                     <FormControlLabel
                       label="Authentication required"
                       disabled={props.disabled || hasServiceNameError}
                       control={
                         <Checkbox
-                          checked={
-                            props.service.requires_authentication !== false
-                          }
+                          checked={props.service.requires_authentication}
                           onChange={(e) => {
                             handleServiceChange(
                               "requires_authentication",

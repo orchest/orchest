@@ -1,0 +1,42 @@
+{{- if and .Values.server.enabled .Values.server.serviceAccount.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+{{- if .Values.singleNamespace }}
+kind: RoleBinding
+{{ else }}
+kind: ClusterRoleBinding
+{{- end }}
+metadata:
+  name: {{ template "argo-workflows.server.fullname" . }}
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.server.name "name" .Values.server.name) | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  {{- if .Values.singleNamespace }}
+  kind: Role
+  {{ else }}
+  kind: ClusterRole
+  {{- end }}
+  name: {{ template "argo-workflows.server.fullname" . }}
+subjects:
+- kind: ServiceAccount
+  name: {{ template "argo-workflows.serverServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+
+{{- if .Values.server.clusterWorkflowTemplates.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "argo-workflows.server.fullname" . }}-cluster-template
+  labels:
+    {{- include "argo-workflows.labels" (dict "context" . "component" .Values.server.name "name" .Values.server.name) | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ template "argo-workflows.server.fullname" . }}-cluster-template
+subjects:
+- kind: ServiceAccount
+  name: {{ template "argo-workflows.serverServiceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+{{- end -}}
+{{- end -}}

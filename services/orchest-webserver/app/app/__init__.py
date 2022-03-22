@@ -11,7 +11,9 @@ import base64
 import contextlib
 import logging
 import os
+import signal
 import subprocess
+import sys
 from logging.config import dictConfig
 from pprint import pformat
 from subprocess import Popen
@@ -61,6 +63,7 @@ def create_app(to_migrate_db=False):
     Returns:
         Flask.app
     """
+    signal.signal(signal.SIGTERM, lambda *args, **kwargs: sys.exit(0))
     app = Flask(__name__)
     app.config.from_object(config.CONFIG_CLASS)
 

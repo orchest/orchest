@@ -21,8 +21,8 @@ Example:
 
 try:
     with TwoPhaseExecutor(db.session) as tpe:
-        could_abort = AbortEnvironmentBuild(tpe).transaction(
-            environment_build_uuid
+        could_abort = AbortEnvironmentImageBuild(tpe).transaction(
+            environment_image_build_uuid
         )
 except Exception as e:
     current_app.logger.error(e)

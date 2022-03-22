@@ -54,25 +54,7 @@ Want to skip the installation and jump right in? Then try out our managed servic
 
 [![Open in Orchest](https://github.com/orchest/orchest-examples/raw/main/imgs/open_in_orchest_large.svg)](https://cloud.orchest.io/)
 
-### Linux and macOS
-
-Requirements:
-
-- [Docker](https://docs.docker.com/get-docker/) 🐳 ([Engine version](https://docs.docker.com/engine/install/) of `>= 20.10.7` – run `docker version` to check).
-
-Installation:
-
-```bash
-git clone https://github.com/orchest/orchest.git && cd orchest
-./orchest install
-
-# Start Orchest.
-./orchest start
-```
-
-### Windows, GPU & more
-
-For all other installation methods, such as installing on Windows or adding GPU support, check out our [installation
+For instructions on how to deploy a self-hosted version, check out our [installation
 docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 ## License

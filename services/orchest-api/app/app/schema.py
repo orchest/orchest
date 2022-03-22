@@ -25,43 +25,12 @@ pagination_data = Model(
 )
 
 
-# Namespace: Sessions
-server = Model(
-    "Server",
-    {
-        "port": fields.Integer(
-            required=True, default=8888, description="Port to access the server"
-        ),
-        "base_url": fields.String(required=True, default="/", description="Base URL"),
-    },
-)
+def _session_base_url(s) -> str:
+    if isinstance(s, dict):
+        return "/jupyter-server-" + s["project_uuid"][:18] + s["pipeline_uuid"][:18]
+    else:
+        return "/jupyter-server-" + s.project_uuid[:18] + s.pipeline_uuid[:18]
 
-session = Model(
-    "Session",
-    {
-        "project_uuid": fields.String(required=True, description="UUID of project"),
-        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
-        "status": fields.String(required=True, description="Status of session"),
-        "jupyter_server_ip": fields.String(
-            required=True, description="IP of the jupyter-server"
-        ),
-        "notebook_server_info": fields.Nested(
-            server, required=True, description="Jupyter notebook server connection info"
-        ),
-        "user_services": fields.Raw(
-            required=False, description="User services part of the session"
-        ),
-    },
-)
-
-sessions = Model(
-    "Sessions",
-    {
-        "sessions": fields.List(
-            fields.Nested(session), description="Currently running sessions"
-        )
-    },
-)
 
 project = Model(
     "Project",
@@ -87,6 +56,31 @@ projects = Model(
     {"projects": fields.List(fields.Nested(project), description="All projects")},
 )
 
+environment = Model(
+    "Environment",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "uuid": fields.String(required=True, description="UUID of environment"),
+    },
+)
+
+environment_post = Model(
+    "EnvironmentPost",
+    {
+        "uuid": fields.String(required=True, description="UUID of environment"),
+    },
+)
+
+environments = Model(
+    "Environments",
+    {
+        "environments": fields.List(
+            fields.Nested(environment), description="Environments"
+        )
+    },
+)
+
+
 service = Model(
     "Service",
     {
@@ -95,10 +89,10 @@ service = Model(
         "scopes": fields.List(
             fields.String, required=True, description="interactive/noninteractive"
         ),
-        "command": fields.String(required=False, description="Docker command"),
-        "entrypoint": fields.String(required=False, description="Docker entrypoint"),
+        "command": fields.String(required=False, description="Command"),
+        "args": fields.String(required=False, description="Args"),
         "ports": fields.List(
-            fields.String, required=False, description="List of service exposed ports"
+            fields.String, required=True, description="List of service exposed ports"
         ),
         "env_variables": fields.Raw(
             required=False,
@@ -111,6 +105,10 @@ service = Model(
                 "List of env vars to inherit from project and pipeline env vars "
                 " or job env vars. These env vars supersede the service defined ones."
             ),
+        ),
+        "exposed": fields.Boolean(
+            required=True,
+            description=("If the service should be reachable outside the cluster."),
         ),
         "binds": fields.Raw(
             required=False, description=("Local fs to container mappings")
@@ -161,6 +159,32 @@ service_descriptions = Model("Services", {"*": service_description_wildcard})
 
 services = Model("Services", {"*": service_wildcard})
 
+session = Model(
+    "Session",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "pipeline_uuid": fields.String(required=True, description="UUID of pipeline"),
+        "status": fields.String(required=True, description="Status of session"),
+        "base_url": fields.String(
+            required=True,
+            attribute=lambda s: _session_base_url(s),
+            description="Base URL",
+        ),
+        # The services model doesn't seem to work with restx on output,
+        # known issue. See other comments about restx and wildcards.
+        "user_services": fields.Raw(),
+    },
+)
+
+sessions = Model(
+    "Sessions",
+    {
+        "sessions": fields.List(
+            fields.Nested(session), description="Currently running sessions"
+        )
+    },
+)
+
 pipeline = Model(
     "Pipeline",
     {
@@ -196,10 +220,10 @@ session_config = Model(
             required=True, description="Path to pipeline file"
         ),
         "project_dir": fields.String(
-            required=True, description="Path to pipeline files"
+            required=True, description="Path to project files"
         ),
-        "host_userdir": fields.String(
-            required=True, description="Host path to userdir"
+        "userdir_pvc": fields.String(
+            required=True, description="Name of the userdir pvc"
         ),
         "services": fields.Nested(services),
     },
@@ -367,9 +391,9 @@ non_interactive_run_config = pipeline_run_config.inherit(
     {
         # Needed for the celery-worker to set the new project-dir for
         # jobs. Note that the `orchest-webserver` has this value
-        # stored in the ENV variable `HOST_USER_DIR`.
-        "host_user_dir": fields.String(
-            required=True, description="Path to the /userdir on the host"
+        # stored in the ENV variable `USERDIR_PVC`.
+        "userdir_pvc": fields.String(
+            required=True, description="Name of the userdir pvc"
         ),
     },
 )
@@ -561,8 +585,8 @@ jobs = Model(
     },
 )
 
-environment_build = Model(
-    "EnvironmentBuild",
+environment_image_build = Model(
+    "EnvironmentImageBuild",
     {
         "uuid": fields.String(
             required=True, description="UUID of the environment build"
@@ -570,6 +594,9 @@ environment_build = Model(
         "project_uuid": fields.String(required=True, description="UUID of the project"),
         "environment_uuid": fields.String(
             required=True, description="UUID of the environment"
+        ),
+        "image_tag": fields.String(
+            required=True, description="Tag of the image to be built"
         ),
         "project_path": fields.String(required=True, description="Project path"),
         "requested_time": fields.String(
@@ -590,8 +617,8 @@ environment_build = Model(
 )
 
 
-environment_build_request = Model(
-    "EnvironmentBuildRequest",
+environment_image_build_request = Model(
+    "EnvironmentImageBuildRequest",
     {
         "project_uuid": fields.String(required=True, description="UUID of the project"),
         "environment_uuid": fields.String(
@@ -601,45 +628,66 @@ environment_build_request = Model(
     },
 )
 
-environment_build_requests = Model(
-    "EnvironmentBuildRequests",
+environment_image_build_requests = Model(
+    "EnvironmentImageBuildRequests",
     {
-        "environment_build_requests": fields.List(
-            fields.Nested(environment_build_request),
-            description="Collection of environment_build_request",
+        "environment_image_build_requests": fields.List(
+            fields.Nested(environment_image_build_request),
+            description="Collection of environment_image_build_request",
             unique=True,
         ),
     },
 )
 
-environment_builds = Model(
-    "EnvironmentBuilds",
+environment_image_builds = Model(
+    "EnvironmentImageBuilds",
     {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
+        "environment_image_builds": fields.List(
+            fields.Nested(environment_image_build),
+            description="Collection of environment_image_builds",
         ),
     },
 )
 
-environment_builds_requests_result = Model(
-    "EnvironmentBuildsPost",
+environment_image_builds_requests_result = Model(
+    "EnvironmentImageBuildsPost",
     {
-        "environment_builds": fields.List(
-            fields.Nested(environment_build),
-            description="Collection of environment_builds",
+        "environment_image_builds": fields.List(
+            fields.Nested(environment_image_build),
+            description="Collection of environment_image_builds",
         ),
         "failed_requests": fields.List(
-            fields.Nested(environment_build_request),
+            fields.Nested(environment_image_build_request),
             description="Collection of requests that could not be satisfied",
             unique=True,
         ),
     },
 )
 
+environment_image = Model(
+    "EnvironmentImage",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+        "environment_uuid": fields.String(
+            required=True, description="UUID of environment"
+        ),
+        "tag": fields.String(required=True, description="Tag of the image"),
+    },
+)
 
-jupyter_build = Model(
-    "JupyterBuild",
+environment_images = Model(
+    "EnvironmentImages",
+    {"environment_images": fields.List(fields.Nested(environment_image))},
+)
+
+environment_images_to_pre_pull = Model(
+    "EnvironmentImagesToPrepull",
+    {"pre_pull_images": fields.List(fields.String(required=True))},
+)
+
+
+jupyter_image_build = Model(
+    "JupyterEnvironmentBuild",
     {
         "uuid": fields.String(required=True, description="UUID of the Jupyter build"),
         "requested_time": fields.String(
@@ -659,23 +707,23 @@ jupyter_build = Model(
     },
 )
 
-jupyter_builds = Model(
-    "JupyterBuilds",
+jupyter_image_builds = Model(
+    "JupyterEnvironmentBuilds",
     {
-        "jupyter_builds": fields.List(
-            fields.Nested(jupyter_build),
+        "jupyter_image_builds": fields.List(
+            fields.Nested(jupyter_image_build),
             required=True,
-            description="Collection of jupyter_builds",
+            description="Collection of jupyter_image_builds",
         ),
     },
 )
 
-jupyter_build_request_result = Model(
-    "JupyterBuildPost",
+jupyter_image_build_request_result = Model(
+    "JupyterEnvironmentBuildPost",
     {
-        "jupyter_build": fields.Nested(
-            jupyter_build,
-            description="Requested jupyter_build",
+        "jupyter_image_build": fields.Nested(
+            jupyter_image_build,
+            description="Requested jupyter_image_build",
         )
     },
 )
@@ -738,7 +786,7 @@ _idleness_check_result_details = Model(
         "active_clients": fields.Boolean(
             required=True,
         ),
-        "ongoing_environment_builds": fields.Boolean(
+        "ongoing_environment_image_builds": fields.Boolean(
             required=True,
         ),
         "ongoing_jupyterlab_builds": fields.Boolean(
@@ -767,6 +815,16 @@ idleness_check_result = Model(
             _idleness_check_result_details,
             required=True,
             description="Details of the idleness check.",
+        ),
+    },
+)
+
+update_sidecar_info = Model(
+    "UpdateSidecarInfo",
+    {
+        "token": fields.String(
+            required=True,
+            description="Token to access the update sidecar.",
         ),
     },
 )

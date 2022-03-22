@@ -1,4 +1,4 @@
-import { EnvironmentBuild } from "@/types";
+import { EnvironmentImageBuild } from "@/types";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DoDisturbOnOutlinedIcon from "@mui/icons-material/DoDisturbOnOutlined";
 import HighlightOffIcon from "@mui/icons-material/HighlightOff";
@@ -11,7 +11,7 @@ import Typography from "@mui/material/Typography";
 import React from "react";
 
 const statusIconMapping: Partial<Record<
-  EnvironmentBuild["status"],
+  EnvironmentImageBuild["status"],
   { message: string; icon?: React.ReactNode }
 >> = {
   STARTED: {
@@ -53,7 +53,7 @@ export const ImageBuildStatus = ({
   build,
   sx,
 }: {
-  build: EnvironmentBuild | undefined;
+  build: EnvironmentImageBuild | undefined;
   sx?: SxProps<Theme>;
 }) => {
   const inProgress = ["PENDING", "STARTED"].includes(build?.status);

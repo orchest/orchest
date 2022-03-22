@@ -38,7 +38,7 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   // local states
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
-  const [jupyterBuild, setJupyterBuild] = React.useState(null);
+  const [jupyterBuild, setJupyterEnvironmentBuild] = React.useState(null);
 
   const [state, setState] = React.useState({
     sessionKillStatus: undefined,
@@ -72,7 +72,7 @@ const ConfigureJupyterLabView: React.FC = () => {
         promiseManager
       ).promise;
 
-      setJupyterBuild(JSON.parse(response)["jupyter_build"]);
+      setJupyterEnvironmentBuild(JSON.parse(response)["jupyter_image_build"]);
     } catch (error) {
       if (!error.isCanceled) {
         setIgnoreIncomingLogs(false);
@@ -256,19 +256,23 @@ const ConfigureJupyterLabView: React.FC = () => {
               buildRequestEndpoint={
                 "/catch/api-proxy/api/jupyter-builds/most-recent"
               }
-              buildsKey="jupyter_builds"
+              buildsKey="jupyter_image_builds"
               socketIONamespace={
                 appContext.state?.config
-                  .ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE
+                  .ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
-              onUpdateBuild={setJupyterBuild}
+              onUpdateBuild={setJupyterEnvironmentBuild}
               ignoreIncomingLogs={ignoreIncomingLogs}
               build={jupyterBuild}
               buildFetchHash={state.buildFetchHash}
             />
 
-            <Stack direction="row" spacing={2}>
+            <Stack
+              sx={{ marginTop: (theme) => theme.spacing(2) }}
+              direction="row"
+              spacing={2}
+            >
               <Button
                 startIcon={<SaveIcon />}
                 variant="contained"

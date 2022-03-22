@@ -201,7 +201,7 @@ class _PlasmaConnector:
         """Connects to the plasma store if not already connected.
 
         Returns:
-            A plasma slient.
+            A plasma client.
 
         Raises:
             MemoryOutputNotFoundError: If output from `step_uuid` cannot
@@ -611,6 +611,10 @@ def output_to_memory(
 ) -> None:
     """Outputs data to memory.
 
+    Warning:
+        Memory passing is not supported in this version of Orchest, this
+        function will output to disk.
+
     Note:
         Calling :meth:`output_to_memory` multiple times within the same
         script will overwrite the output, even when using a different
@@ -650,6 +654,13 @@ def output_to_memory(
         >>> data = "Data I would like to use in my next step"
         >>> output_to_memory(data, name="my_data")
     """
+    msg = (
+        "Memory passing is not supported in this version of Orchest. This function "
+        "will output to disk. No changes to your code are required."
+    )
+    _print_warning_message(msg)
+    output(data, name)
+    return
     try:
         _check_data_name_validity(name)
     except (ValueError, TypeError) as e:
@@ -920,7 +931,7 @@ def _resolve(
     # NOTE: All "resolve_{method}" functions have to be included in this
     # list. It is used to resolve what what "get_output_..." method to
     # invoke.
-    resolve_methods: List[Callable] = [_resolve_memory, _resolve_disk]
+    resolve_methods: List[Callable] = [_resolve_disk]
 
     method_infos = []
     method_infos_exceptions = []
@@ -1130,9 +1141,6 @@ def output(
 ) -> None:
     """Outputs data so that it can be retrieved by the next step.
 
-    It first tries to output to memory and if it does not fit in memory,
-    then disk will be used.
-
     Note:
         Calling :meth:`output` multiple times within the same step
         will overwrite the output, even when using a different output
@@ -1166,10 +1174,9 @@ def output(
     except (ValueError, TypeError) as e:
         raise error.DataInvalidNameError(e)
 
-    return output_to_memory(
+    return output_to_disk(
         data,
         name,
-        disk_fallback=True,
     )
 
 

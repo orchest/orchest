@@ -1,6 +1,14 @@
 import { StrategyJson } from "./components/ParameterEditor";
 import { TStatus } from "./components/Status";
 
+declare module "react" {
+  interface HTMLAttributes<T> extends AriaAttributes, DOMAttributes<T> {
+    // extends React's HTMLAttributes
+    directory?: string;
+    webkitdirectory?: string;
+  }
+}
+
 export type Json =
   | string
   | number
@@ -62,8 +70,8 @@ export type OrchestConfig = {
   GPU_ENABLED_INSTANCE: boolean;
   INTERCOM_APP_ID: string;
   INTERCOM_DEFAULT_SIGNUP_DATE: string;
-  ORCHEST_SOCKETIO_ENV_BUILDING_NAMESPACE: string;
-  ORCHEST_SOCKETIO_JUPYTER_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE: string;
+  ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE: string;
   ORCHEST_WEB_URLS: {
     github: string;
     readthedocs: string;
@@ -97,11 +105,7 @@ export interface IOrchestSessionUuid {
 
 export interface IOrchestSession extends IOrchestSessionUuid {
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
-  jupyter_server_ip?: string;
-  notebook_server_info?: {
-    port: number;
-    base_url: string;
-  };
+  base_url: string;
   user_services?: {
     [key: string]: {
       name: string;
@@ -160,15 +164,16 @@ export type CustomImage = Pick<
   "base_image" | "language" | "gpu_support"
 >;
 
-export type EnvironmentBuild = {
+export type EnvironmentImageBuild = {
   environment_uuid: string;
   finished_time: string;
   project_path: string;
   project_uuid: string;
+  image_tag: string;
   requested_time: string;
   started_time: string;
   status: "PENDING" | "STARTED" | "SUCCESS" | "FAILURE" | "ABORTED";
-  uuid: string;
+  celery_task_uuid: string;
 };
 
 export type PipelineStepStatus =
@@ -243,7 +248,7 @@ export type Job = {
     run_config: {
       project_dir: string;
       pipeline_path: string;
-      host_user_dir: string;
+      userdir_pvc: string;
     };
     scheduled_start: string;
   };
@@ -308,13 +313,14 @@ export type Service = {
   image: string;
   name: string;
   scope: ("interactive" | "noninteractive")[];
-  entrypoint?: string;
+  args?: string;
   binds?: Record<string, string>;
-  ports?: number[];
-  command: string;
+  ports: number[];
+  command?: string;
   preserve_base_path?: boolean;
   env_variables?: Record<string, string>;
   env_variables_inherit?: any[];
+  exposed: boolean;
   requires_authentication?: boolean;
   order?: number;
 };

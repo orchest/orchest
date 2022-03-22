@@ -33,3 +33,17 @@ if orchest_version is not None:
             " with respect to the Orchest application. Please upgrade"
             " the SDK version according to https://pypi.org/project/orchest/."
         )
+    elif (
+        (orchest_version >= "v2021.05.1" and __version__ < "0.2.0")
+        # Pre/post k8s.
+        or (orchest_version <= "v2022.03.6" and __version__ >= "0.3.8")
+        or (orchest_version >= "v2022.03.7" and __version__ < "0.3.8")
+    ):
+
+        import warnings
+
+        warnings.warn(
+            "The Orchest SDK seems to have an incompatible version"
+            " with respect to the Orchest application. Please upgrade"
+            " the SDK version according to https://pypi.org/project/orchest/."
+        )

@@ -1,4 +1,4 @@
-import ProjectFilePicker from "@/components/ProjectFilePicker";
+import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
 import { PipelineStepState, Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
@@ -377,7 +377,6 @@ export const StepDetailsProperties: React.FC<{
             value={step.file_path}
             project_uuid={projectUuid}
             pipeline_uuid={pipelineUuid}
-            step_uuid={step.uuid}
             onChange={(value) => onChangeFileName(value, false)}
             menuMaxWidth={menuMaxWidth}
           />

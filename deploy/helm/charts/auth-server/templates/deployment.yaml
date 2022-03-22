@@ -1,0 +1,55 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: config-pvc
+          persistentVolumeClaim:
+            claimName: config-pvc
+            readOnly: false
+      containers:
+      - name: auth-server
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        {{ if .Values.service.port}}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        {{ end }}
+        env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "CLOUD"
+          value: "{{ .Values.CLOUD }}"
+        - name: "HOST_OS"
+          value: "linux"
+        {{ if .Values.enableDebug}}
+        - name: "ORCHEST_LOG_LEVEL"
+          value: DEBUG
+        {{ end }}
+        - name: "PYTHONUNBUFFERED"
+          value: "TRUE"
+        volumeMounts:
+         - name: config-pvc
+           mountPath: /config
+        startupProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "nc -zvw1 orchest-database 5432 &&
+                wget -T 1 -t 1 localhost/login/server-config --spider"
+          periodSeconds: 1
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 20
+        livenessProbe:
+          httpGet:
+            path: /login/server-config
+            port: 80
+            scheme: HTTP
+          periodSeconds: 10
+          timeoutSeconds: 2
+          successThreshold: 1
+          failureThreshold: 2

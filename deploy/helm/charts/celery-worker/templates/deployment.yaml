@@ -1,0 +1,58 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false
+      serviceAccountName: {{ template "library.metadata.name" . }}
+      containers:
+      - name: celery-worker
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        env:
+        - name: "ORCHEST_LOG_LEVEL"
+          value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        - name: "ORCHEST_FQDN"
+          value: "{{ .Values.global.ingress.host }}"
+        - name: "MAX_JOB_RUNS_PARALLELISM"
+          value: "{{ .Values.MAX_JOB_RUNS_PARALLELISM }}"
+        - name: "MAX_INTERACTIVE_RUNS_PARALLELISM"
+          value: "{{ .Values.MAX_INTERACTIVE_RUNS_PARALLELISM }}"
+        - name: "ORCHEST_HOST_GID"
+          value: "1"
+        - name: "ORCHEST_GPU_ENABLED_INSTANCE"
+          value: "FALSE"
+        volumeMounts:
+         - name: userdir-pvc
+           mountPath: /userdir
+        startupProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - "nc -zvw1 orchest-database 5432 &&
+                [ -f worker-builds.pid ] &&
+                [ -f worker-interactive.pid ] &&
+                [ -f worker-jobs.pid ]"
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 5
+          failureThreshold: 40
+        livenessProbe:
+          exec:
+          # A pid file gets deleted if the worker dies.
+            command:
+              - sh
+              - -c
+              - "[ -f worker-builds.pid ] &&
+                [ -f worker-interactive.pid ] &&
+                [ -f worker-jobs.pid ]"
+          periodSeconds: 5
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 10

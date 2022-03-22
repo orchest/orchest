@@ -1,4 +1,3 @@
-import { Code } from "@/components/common/Code";
 import { IconButton } from "@/components/common/IconButton";
 import { TabLabel, TabPanel, Tabs } from "@/components/common/Tabs";
 import {
@@ -29,23 +28,17 @@ import {
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
-import InfoIcon from "@mui/icons-material/Info";
 import ListIcon from "@mui/icons-material/List";
-import MemoryIcon from "@mui/icons-material/Memory";
 import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
 import SaveIcon from "@mui/icons-material/Save";
 import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import FormGroup from "@mui/material/FormGroup";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import TextField from "@mui/material/TextField";
-import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import {
   Alert as CustomAlert,
@@ -240,18 +233,6 @@ const PipelineSettingsView: React.FC = () => {
     setInputParameters(value);
   };
 
-  const onChangeDataPassingMemorySize = (value: string) => {
-    setSettings((current) => {
-      return { ...current, data_passing_memory_size: value };
-    });
-  };
-
-  const onChangeEviction = (value: boolean) => {
-    setSettings((current) => {
-      return { ...current, auto_eviction: value };
-    });
-  };
-
   const validateServiceEnvironmentVariables = (pipeline: PipelineJson) => {
     for (let serviceName in pipeline.services) {
       let service = pipeline.services[serviceName];
@@ -402,11 +383,19 @@ const PipelineSettingsView: React.FC = () => {
     }
   };
 
-  type ServiceRow = { name: string; scope: string; remove: string };
+  type ServiceRow = {
+    name: string;
+    scope: string;
+    exposed: React.ReactNode;
+    authenticationRequired: React.ReactNode;
+    remove: string;
+  };
 
   const columns: DataTableColumn<ServiceRow>[] = [
     { id: "name", label: "Service" },
     { id: "scope", label: "Scope" },
+    { id: "exposed", label: "Exposed" },
+    { id: "authenticationRequired", label: "Authentication required" },
     {
       id: "remove",
       label: "Delete",
@@ -446,22 +435,24 @@ const PipelineSettingsView: React.FC = () => {
 
   const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
     .sort((a, b) => a[1].order - b[1].order)
-    .map(([key, service]) => {
+    .map(([uuid, service]) => {
       return {
-        uuid: key,
+        uuid,
         name: service.name,
         scope: service.scope
           .map((scopeAsString) => scopeMap[scopeAsString])
           .join(", "),
-        remove: key,
+        exposed: service.exposed ? "Yes" : "No",
+        authenticationRequired: service.requires_authentication ? "Yes" : "No",
+        remove: uuid,
         details: (
           <ServiceForm
-            key={key}
-            serviceUuid={key}
+            key={uuid}
+            serviceUuid={uuid}
             service={service}
             services={services}
             disabled={isReadOnly}
-            updateService={(updated) => onChangeService(key, updated)}
+            updateService={(updated) => onChangeService(uuid, updated)}
             pipeline_uuid={pipelineUuid}
             project_uuid={projectUuid}
             run_uuid={runUuid}
@@ -541,6 +532,7 @@ const PipelineSettingsView: React.FC = () => {
                           margin="normal"
                           onChange={(e) => setPipelineName(e.target.value)}
                           label="Pipeline name"
+                          InputLabelProps={{ shrink: true }}
                           disabled={isReadOnly}
                           fullWidth
                           data-test-id="pipeline-settings-configuration-pipeline-name"
@@ -559,10 +551,11 @@ const PipelineSettingsView: React.FC = () => {
                           margin="normal"
                           onChange={(e) => setPipelinePath(e.target.value)}
                           label="Pipeline path"
+                          InputLabelProps={{ shrink: true }}
                           disabled={isReadOnly || hasValue(session)}
                           helperText={
                             session
-                              ? "You need to stop session before changing pipeline path"
+                              ? "You need to stop the session before changing pipeline path"
                               : ""
                           }
                           fullWidth
@@ -603,124 +596,7 @@ const PipelineSettingsView: React.FC = () => {
                       </div>
                       <div className="clear"></div>
                     </div>
-
-                    <div className="columns">
-                      <div className="column">
-                        <h3>Data passing</h3>
-                      </div>
-                      <Stack
-                        direction="column"
-                        spacing={2}
-                        alignItems="flex-start"
-                      >
-                        {!isReadOnly && (
-                          <Alert severity="info">
-                            For these changes to take effect you have to restart
-                            the memory-server (see button below).
-                          </Alert>
-                        )}
-                        <FormGroup>
-                          <FormControlLabel
-                            label={
-                              <Typography
-                                component="span"
-                                variant="body1"
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                }}
-                              >
-                                Automatic memory eviction
-                                <Tooltip title="Auto eviction makes sure outputted objects are evicted once all depending steps have obtained it as an input.">
-                                  <InfoIcon
-                                    fontSize="small"
-                                    aria-describedby="tooltip-memory-eviction"
-                                    sx={{
-                                      marginLeft: (theme) => theme.spacing(1),
-                                    }}
-                                  />
-                                </Tooltip>
-                              </Typography>
-                            }
-                            data-test-id="pipeline-settings-configuration-memory-eviction"
-                            disabled={isReadOnly}
-                            control={
-                              <Checkbox
-                                checked={settings?.auto_eviction}
-                                onChange={(e) => {
-                                  onChangeEviction(e.target.checked);
-                                }}
-                              />
-                            }
-                          />
-                        </FormGroup>
-
-                        {!isReadOnly && (
-                          <Typography
-                            sx={{ marginBottom: (theme) => theme.spacing(2) }}
-                          >
-                            {`Change the size of the memory server for data
-                            passing. For units use KB, MB, or GB, e.g. `}
-                            <Code>1GB</Code>.
-                          </Typography>
-                        )}
-
-                        <TextField
-                          value={settings.data_passing_memory_size}
-                          onChange={(e) =>
-                            onChangeDataPassingMemorySize(e.target.value)
-                          }
-                          margin="normal"
-                          label="Data passing memory size"
-                          error={!isMemorySizeValid}
-                          helperText={
-                            !isMemorySizeValid ? "Not a valid memory size." : ""
-                          }
-                          disabled={isReadOnly}
-                          data-test-id="pipeline-settings-configuration-memory-size"
-                        />
-                      </Stack>
-                      <div className="clear"></div>
-                    </div>
                   </form>
-
-                  {!isReadOnly && (
-                    <div className="columns">
-                      <div className="column">
-                        <h3>Actions</h3>
-                      </div>
-                      <div className="column">
-                        <p className="push-down">
-                          Restarting the memory-server also clears the memory to
-                          allow additional data to be passed between pipeline
-                          steps.
-                        </p>
-                        <div className="push-down">
-                          {(() => {
-                            if (restartingMemoryServer) {
-                              return (
-                                <p className="push-p push-down">
-                                  Restarting in progress...
-                                </p>
-                              );
-                            }
-                          })()}
-
-                          <Button
-                            disabled={restartingMemoryServer}
-                            color="secondary"
-                            variant="contained"
-                            startIcon={<MemoryIcon />}
-                            onClick={restartMemoryServer}
-                            data-test-id="pipeline-settings-configuration-restart-memory-server"
-                          >
-                            Restart memory-server
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="clear"></div>
-                    </div>
-                  )}
                 </div>
               </CustomTabPanel>
               <CustomTabPanel

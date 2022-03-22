@@ -1,0 +1,88 @@
+{{- if .Values.createAggregateRoles }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "argo-workflows.fullname" . }}-view
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  - workflows/finalizers
+  - workfloweventbindings
+  - workfloweventbindings/finalizers
+  - workflowtemplates
+  - workflowtemplates/finalizers
+  - cronworkflows
+  - cronworkflows/finalizers
+  - clusterworkflowtemplates
+  - clusterworkflowtemplates/finalizers
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "argo-workflows.fullname" . }}-edit
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  - workflows/finalizers
+  - workfloweventbindings
+  - workfloweventbindings/finalizers
+  - workflowtemplates
+  - workflowtemplates/finalizers
+  - cronworkflows
+  - cronworkflows/finalizers
+  - clusterworkflowtemplates
+  - clusterworkflowtemplates/finalizers
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "argo-workflows.fullname" . }}-admin
+  labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  - workflows/finalizers
+  - workfloweventbindings
+  - workfloweventbindings/finalizers
+  - workflowtasksets
+  - workflowtasksets/finalizers
+  - workflowtemplates
+  - workflowtemplates/finalizers
+  - cronworkflows
+  - cronworkflows/finalizers
+  - clusterworkflowtemplates
+  - clusterworkflowtemplates/finalizers
+  verbs:
+  - create
+  - delete
+  - deletecollection
+  - get
+  - list
+  - patch
+  - update
+  - watch
+{{- end }}

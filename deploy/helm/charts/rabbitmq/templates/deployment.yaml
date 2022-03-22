@@ -1,0 +1,23 @@
+{{/*
+deployment
+*/}}
+---
+{{ include "library.deployment" . }}
+    spec:
+      volumes:
+        - name: userdir-pvc
+          persistentVolumeClaim:
+            claimName: userdir-pvc
+            readOnly: false                     
+      containers:
+      - name: rabbitmq-server
+        image: "{{ .Values.images.registry }}/{{ .Values.images.name }}:{{ .Values.images.tag }}"
+        imagePullPolicy: {{ include "library.spec.images.pullPolicy" . }}
+        {{ if .Values.service.port}}
+        ports:
+        - containerPort: {{ .Values.service.port }}
+        {{ end }}
+        volumeMounts:
+         - name: userdir-pvc
+           mountPath: /var/lib/rabbitmq/mnesia
+           subPath: .orchest/rabbitmq-mnesia

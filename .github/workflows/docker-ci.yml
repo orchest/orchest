@@ -1,25 +1,21 @@
-# This is a basic workflow to help you get started with Actions
-
 name: Docker CI
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch. NOTE: if you change event types
-# make sure you are not breaking the dispatch-version-update-info job.
+# Controls when the action will run. Triggers the workflow on push or
+# pull request events but only for the master branch. NOTE: if you
+# change event types make sure you are not breaking the
+# dispatch-version-update-info job.
 on:
-  repository_dispatch:
-    types: [manual-trigger]
   release:
     types: [published]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# A workflow run is made up of one or more jobs that can run
+# sequentially or in parallel
 jobs:
   buildpush:
     runs-on: ubuntu-latest
     env:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      # BUILD_TAG: ${{ github.event.client_payload.build_tag }}
-      BUILD_TAG: "latest"
 
     strategy:
       matrix:
@@ -31,9 +27,7 @@ jobs:
             -i base-kernel-py -i base-kernel-r,
             -i base-kernel-julia,
             -i base-kernel-py-gpu,
-            -i nginx-proxy,
-            -i update-server,
-            -i file-manager,
+            -i update-sidecar,
             -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
           ]
 
@@ -44,10 +38,10 @@ jobs:
         run: |
           bash ./scripts/build_container.sh ${{ matrix.image }} \
                     -o ${GITHUB_REF#refs/tags/} \
-                    -t "$BUILD_TAG" \
+                    -t ${GITHUB_REF#refs/tags/} \
                     -v
           echo "-----------"
-          bash ./scripts/push_container.sh ${{ matrix.image }} -t "$BUILD_TAG"
+          bash ./scripts/push_container.sh ${{ matrix.image }} -t ${GITHUB_REF#refs/tags/}
 
   push-readme:
     needs: buildpush
@@ -58,11 +52,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Push README files to DockerHub nginx-proxy
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/nginx-proxy
-          README_FILEPATH: services/nginx-proxy/README.md
 
       - name: Push README files to DockerHub celery-worker
         uses: peter-evans/dockerhub-description@v2
@@ -130,30 +119,25 @@ jobs:
           DOCKERHUB_REPOSITORY: orchest/auth-server
           README_FILEPATH: services/auth-server/README.md
 
-      - name: Push README files to DockerHub update-server
+      - name: Push README files to DockerHub update-sidecar
         uses: peter-evans/dockerhub-description@v2
         env:
-          DOCKERHUB_REPOSITORY: orchest/update-server
-          README_FILEPATH: services/update-server/README.md
+          DOCKERHUB_REPOSITORY: orchest/update-sidecar
+          README_FILEPATH: services/update-sidecar/README.md
 
-      - name: Push README files to DockerHub file-manager
-        uses: peter-evans/dockerhub-description@v2
-        env:
-          DOCKERHUB_REPOSITORY: orchest/file-manager
-          README_FILEPATH: services/file-manager/README.md
+  # To be enabled back once the k8s version hits the cloud.
+  # dispatch-orchest-ami-build:
+  #   needs: buildpush
+  #   runs-on: ubuntu-latest
 
-  dispatch-orchest-ami-build:
-    needs: buildpush
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Dispatch
-        run: >
-          curl -X POST
-          -u "${{secrets.PAT_USER}}:${{secrets.PAT_TOKEN}}"
-          -H "Accept: application/vnd.github.v3+json"
-          https://api.github.com/repos/orchest/cloud-infra/actions/workflows/build_amis.yml/dispatches
-          -d '{"ref":"master"}'
+  #   steps:
+  #     - name: Dispatch
+  #       run: >
+  #         curl -X POST
+  #         -u "${{secrets.PAT_USER}}:${{secrets.PAT_TOKEN}}"
+  #         -H "Accept: application/vnd.github.v3+json"
+  #         https://api.github.com/repos/orchest/cloud-infra/actions/workflows/build_amis.yml/dispatches
+  #         -d '{"ref":"master"}'
 
   dispatch-version-update-info:
     needs: buildpush
