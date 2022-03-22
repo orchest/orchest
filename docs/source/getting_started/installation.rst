@@ -46,9 +46,11 @@ Install Orchest
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
 
+.. _installation gpu support:
+
 GPU support
 -----------
-Currently GPU support is not yet available.
+Currently GPU support is not yet available. Coming soon!
 
 
 Build from source
