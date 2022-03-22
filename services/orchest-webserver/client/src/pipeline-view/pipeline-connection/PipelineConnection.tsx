@@ -1,6 +1,7 @@
 import { NewConnection, Position } from "@/types";
 import classNames from "classnames";
 import React from "react";
+import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { EventVarsAction } from "../hooks/useEventVars";
 import { useUpdateZIndex } from "../hooks/useZIndexMax";
 import { getSvgProperties, getTransformProperty } from "./common";
@@ -38,6 +39,7 @@ const PipelineConnectionComponent: React.FC<{
   newConnection,
   ...props
 }) => {
+  const { keysDown } = usePipelineEditorContext();
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
   );
@@ -110,6 +112,8 @@ const PipelineConnectionComponent: React.FC<{
 
   const onClickFun = React.useCallback(
     (e) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
       if (e.button === 0) {
         e.stopPropagation();
         eventVarsDispatch({
@@ -118,7 +122,7 @@ const PipelineConnectionComponent: React.FC<{
         });
       }
     },
-    [eventVarsDispatch, startNodeUUID, endNodeUUID]
+    [eventVarsDispatch, startNodeUUID, endNodeUUID, keysDown]
   );
 
   const { className, width, height, drawn } = svgProperties;

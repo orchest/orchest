@@ -144,6 +144,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     dispatch,
     mouseTracker,
     newConnection,
+    keysDown,
     eventVars: {
       cursorControlledStep,
       selectedSteps,
@@ -205,6 +206,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   // because user might start to drag while their cursor is not over this step (due to the mouse sensitivity)
   // so this onMouseUp on the DOM won't work
   const onMouseUp = (e: React.MouseEvent) => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
+
     e.stopPropagation();
     e.preventDefault();
 
@@ -263,6 +267,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
   const onMouseDown = React.useCallback(
     (e: React.MouseEvent) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
+
       e.stopPropagation();
       e.preventDefault();
       if (e.button === 0) {
@@ -270,10 +277,13 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         forceUpdate();
       }
     },
-    [forceUpdate]
+    [forceUpdate, keysDown]
   );
 
   const onClick = async (e: React.MouseEvent) => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
+
     e.stopPropagation();
     e.preventDefault();
     if (e.detail === 1) {
@@ -313,6 +323,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
   const onMouseLeave = React.useCallback(
     (e: MouseEvent) => {
+      // user is panning the canvas
+      if (keysDown.has("Space")) return;
+
       e.preventDefault();
       e.stopPropagation();
       // if cursor moves too fast, or move out of canvas, we need to remove the dragging state
@@ -322,7 +335,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         resetDraggingVariables();
       }
     },
-    [resetDraggingVariables, savePositions, selected]
+    [resetDraggingVariables, savePositions, selected, keysDown]
   );
 
   const detectDraggingBehavior = React.useCallback(() => {
@@ -341,6 +354,9 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
   }, [cursorControlledStep, dispatch, uuid]);
 
   const onMouseMove = React.useCallback(() => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
+
     if (disabledDragging) {
       resetDraggingVariables();
       return;
@@ -372,6 +388,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     }
   }, [
     mouseTracker,
+    keysDown,
     uuid,
     isSelectorActive,
     selected,
