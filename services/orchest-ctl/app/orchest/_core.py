@@ -456,7 +456,7 @@ def _wait_daemonsets_to_be_ready(daemonsets: List[str], progress_bar) -> None:
         time.sleep(1)
 
 
-def start(log_level: utils.LogLevel, cloud: bool):
+def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
     k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []

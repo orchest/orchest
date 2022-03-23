@@ -15,14 +15,17 @@ __CLOUD_HELP_MESSAGE = (
     "configuration file directly."
 )
 
-# __DEV_HELP_MESSAGE = (
-#     "Starting Orchest with --dev mounts the repository code from the "
-#     "filesystem (and thus adhering to branches) to the appropriate
-#     paths in " "the Docker containers. This allows for active code
-#     changes being " "reflected inside the application. Moreover,
-#     updating in dev mode " "makes it so that the git repository and
-#     the orchest-ctl image are" "not updated."
-# )
+__DEV_HELP_MESSAGE = (
+    "Starting with --dev will mount /orchest-dev-repo into the "
+    "orchest-webserver, orchest-api and auth-server pods. For the repo "
+    "to be there in the minikube node (since the mounting happens on "
+    "node) minikube should have been started by adding the following "
+    "flags: '--mount-string=\"$(pwd):/orchest-dev-repo\" --mount'. "
+    "Note that, when in --dev mode, the orchest webserver static files "
+    "must be served by running 'pnpm run dev' in the orchest repo that "
+    "has been mounted into the minikube node (run pnpm i to install "
+    "the required packages if needed)."
+)
 
 
 def _default(
@@ -98,6 +101,7 @@ def start(
     cloud: bool = typer.Option(
         False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
     ),
+    dev: bool = typer.Option(False, show_default="--no-dev", help=__DEV_HELP_MESSAGE),
 ):
     """
     Start Orchest.
@@ -113,7 +117,7 @@ def start(
     #         " "to monitor for source code changes."
     #     )
 
-    orchest.start(log_level, cloud)
+    orchest.start(log_level, cloud, dev)
 
 
 @typer_app.command()
