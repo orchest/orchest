@@ -573,53 +573,112 @@ def is_running_multinode() -> bool:
     return len(k8s_core_api.list_node().items) > 1
 
 
+def _dev_mode_pod_patch(
+    service: str,
+    mount_app: bool,
+    mount_client: bool,
+    mount_internal_lib: bool,
+    injected_env: Dict[str, str],
+) -> dict:
+    v_mounts = []
+    if mount_app:
+        v_mounts.append(
+            {
+                "name": "orchest-dev-repo",
+                "mountPath": (f"/orchest/services/{service}/app"),
+                "subPath": f"services/{service}/app",
+            }
+        )
+    if mount_client:
+        v_mounts.append(
+            {
+                "name": "orchest-dev-repo",
+                "mountPath": (f"/orchest/services/{service}/client"),
+                "subPath": f"services/{service}/client",
+            }
+        )
+    if mount_internal_lib:
+        v_mounts.append(
+            {
+                "name": "orchest-dev-repo",
+                "mountPath": "/orchest/lib",
+                "subPath": "lib",
+            }
+        )
+
+    return {
+        "spec": {
+            "template": {
+                "spec": {
+                    "containers": [
+                        {
+                            "name": service,
+                            "env": [
+                                {"name": k, "value": str(v)}
+                                for k, v in injected_env.items()
+                            ],
+                            "volumeMounts": v_mounts,
+                        }
+                    ],
+                    "volumes": [
+                        {
+                            "name": "orchest-dev-repo",
+                            "hostPath": {
+                                "path": "/orchest-dev-repo",
+                                "type": "DirectoryOrCreate",
+                            },
+                        }
+                    ],
+                }
+            }
+        }
+    }
+
+
 def patch_orchest_webserver_for_dev_mode() -> None:
     k8s_apps_api.patch_namespaced_deployment(
         "orchest-webserver",
-        "orchest",
-        body={
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [
-                            {
-                                "name": "orchest-webserver",
-                                "env": [{"name": "FLASK_ENV", "value": "development"}],
-                                "volumeMounts": [
-                                    {
-                                        "name": "orchest-dev-repo",
-                                        "mountPath": (
-                                            "/orchest/services/orchest-webserver/app"
-                                        ),
-                                        "subPath": "services/orchest-webserver/app",
-                                    },
-                                    {
-                                        "name": "orchest-dev-repo",
-                                        "mountPath": (
-                                            "/orchest/services/"
-                                            "orchest-webserver/client"
-                                        ),
-                                        "subPath": "services/orchest-webserver/client",
-                                    },
-                                    {
-                                        "name": "orchest-dev-repo",
-                                        "mountPath": "/orchest/lib",
-                                        "subPath": "lib",
-                                    },
-                                ],
-                            }
-                        ],
-                        "volumes": [
-                            {
-                                "name": "orchest-dev-repo",
-                                "hostPath": {
-                                    "path": "/orchest-dev-repo",
-                                    "type": "DirectoryOrCreate",
-                                },
-                            }
-                        ],
-                    }
-                }
-            }
-        },
+        config.ORCHEST_NAMESPACE,
+        body=_dev_mode_pod_patch(
+            "orchest-webserver",
+            mount_app=True,
+            mount_client=True,
+            mount_internal_lib=True,
+            injected_env={"FLASK_ENV": "development"},
+        ),
+    )
+
+
+def patch_auth_server_for_dev_mode() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "auth-server",
+        config.ORCHEST_NAMESPACE,
+        body=_dev_mode_pod_patch(
+            "auth-server",
+            mount_app=True,
+            mount_client=True,
+            mount_internal_lib=True,
+            injected_env={
+                "FLASK_ENV": "development",
+                "FLASK_APP": "main.py",
+                "FLASK_DEBUG": "1",
+            },
+        ),
+    )
+
+
+def patch_orchest_api_for_dev_mode() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "orchest-api",
+        config.ORCHEST_NAMESPACE,
+        body=_dev_mode_pod_patch(
+            "orchest-api",
+            mount_app=True,
+            mount_client=False,
+            mount_internal_lib=True,
+            injected_env={
+                "FLASK_ENV": "development",
+                "FLASK_APP": "main.py",
+            },
+        ),
     )
