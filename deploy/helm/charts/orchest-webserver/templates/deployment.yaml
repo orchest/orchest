@@ -62,10 +62,10 @@ deployment
               - sh
               - -c
               - "wget orchest-api/api -T 2 -t 1 --spider &&
-                wget -T 1 -t 1 localhost --spider"
+                wget -T 1 -t 1 localhost/async/version --spider"
         livenessProbe:
           httpGet:
-            path: /
+            path: /async/version
             port: 80
             scheme: HTTP
           periodSeconds: 10
