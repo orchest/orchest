@@ -117,7 +117,9 @@ def _run_helm_with_progress_bar(
     return return_code
 
 
-def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
+def install(
+    log_level: utils.LogLevel, cloud: bool, fqdn: str, registry_storage_class: str
+):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
@@ -133,6 +135,8 @@ def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
         raise typer.Exit(code=1)
 
     utils.echo(f"Installing Orchest {orchest_version}.")
+    utils.echo(f"FQDN: {fqdn}.")
+    utils.echo(f"Registry storage class: {registry_storage_class}.")
 
     logger.info("Creating the required directories.")
     utils.create_required_directories()
@@ -143,7 +147,11 @@ def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
     return_code = _run_helm_with_progress_bar(
-        HelmMode.INSTALL, injected_env_vars={"ORCHEST_FQDN": fqdn}
+        HelmMode.INSTALL,
+        injected_env_vars={
+            "ORCHEST_FQDN": fqdn,
+            "REGISTRY_STORAGE_CLASS": registry_storage_class,
+        },
     )
 
     if return_code != 0:
@@ -712,3 +720,7 @@ def uninstall():
             raise e
         utils.echo(".", nl=False)
         time.sleep(1)
+
+
+def is_valid_storage_class(storage_class: str) -> bool:
+    return storage_class in k8sw.get_available_storage_classes()

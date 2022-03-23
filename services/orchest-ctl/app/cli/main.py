@@ -150,6 +150,14 @@ def _validate_fqdn(fqdn: str) -> str:
     return fqdn
 
 
+def _validate_storage_class(storage_class: str) -> str:
+    if not orchest.is_valid_storage_class(storage_class):
+        raise typer.BadParameter(
+            f"{storage_class} is not a storage class in the cluster."
+        )
+    return storage_class
+
+
 @typer_app.command()
 def install(
     log_level: Optional[LogLevel] = typer.Option(
@@ -174,6 +182,18 @@ def install(
         ),
         callback=_validate_fqdn,
     ),
+    registry_storage_class: Optional[str] = typer.Option(
+        "standard",
+        "--registry-storage",
+        show_default=True,
+        help=(
+            "Storage class for the registry. When installing Orchest, a docker "
+            "registry is deployed in the orchest namespace, this class reflects what "
+            "storage should be used. The storage class must be defined in the cluster "
+            "to be valid."
+        ),
+        callback=_validate_storage_class,
+    ),
 ):
     """Install Orchest.
 
@@ -181,7 +201,7 @@ def install(
     bandwidth.
     """
 
-    orchest.install(log_level, cloud, fqdn)
+    orchest.install(log_level, cloud, fqdn, registry_storage_class)
 
 
 @typer_app.command()

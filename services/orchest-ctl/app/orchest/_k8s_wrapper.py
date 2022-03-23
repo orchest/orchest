@@ -16,7 +16,7 @@ from kubernetes import client as k8s_client
 
 from _orchest.internals import config as _config
 from app import config, utils
-from app.connections import k8s_apps_api, k8s_core_api, k8s_netw_api
+from app.connections import k8s_apps_api, k8s_core_api, k8s_netw_api, k8s_storage_api
 
 
 def get_orchest_deployments(
@@ -531,3 +531,8 @@ def sync_celery_parallelism_from_config() -> None:
             "celery-worker", utils.get_celery_parallelism_level_from_config()
         ),
     )
+
+
+def get_available_storage_classes() -> List[str]:
+    s_classes = k8s_storage_api.list_storage_class()
+    return [storage_class.metadata.name for storage_class in s_classes.items]
