@@ -542,6 +542,10 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
     else:
         utils.echo("Orchest is running.")
 
+    if dev:
+        utils.echo("Setting dev mode for orchest-webserver")
+        k8sw.patch_orchest_webserver_for_dev_mode()
+
 
 def restart():
     log_level = k8sw.get_orchest_log_level()

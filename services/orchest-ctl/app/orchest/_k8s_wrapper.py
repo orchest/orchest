@@ -571,3 +571,55 @@ def get_orchest_cluster_storage_class() -> str:
 
 def is_running_multinode() -> bool:
     return len(k8s_core_api.list_node().items) > 1
+
+
+def patch_orchest_webserver_for_dev_mode() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "orchest-webserver",
+        "orchest",
+        body={
+            "spec": {
+                "template": {
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "orchest-webserver",
+                                "env": [{"name": "FLASK_ENV", "value": "development"}],
+                                "volumeMounts": [
+                                    {
+                                        "name": "orchest-dev-repo",
+                                        "mountPath": (
+                                            "/orchest/services/orchest-webserver/app"
+                                        ),
+                                        "subPath": "services/orchest-webserver/app",
+                                    },
+                                    {
+                                        "name": "orchest-dev-repo",
+                                        "mountPath": (
+                                            "/orchest/services/"
+                                            "orchest-webserver/client"
+                                        ),
+                                        "subPath": "services/orchest-webserver/client",
+                                    },
+                                    {
+                                        "name": "orchest-dev-repo",
+                                        "mountPath": "/orchest/lib",
+                                        "subPath": "lib",
+                                    },
+                                ],
+                            }
+                        ],
+                        "volumes": [
+                            {
+                                "name": "orchest-dev-repo",
+                                "hostPath": {
+                                    "path": "/orchest-dev-repo",
+                                    "type": "DirectoryOrCreate",
+                                },
+                            }
+                        ],
+                    }
+                }
+            }
+        },
+    )
