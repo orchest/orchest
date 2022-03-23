@@ -690,6 +690,14 @@ def _update() -> None:
     if host_names:
         injected_env_vars["ORCHEST_FQDN"] = host_names[0]
 
+    registry_storage_class = k8sw.get_registry_storage_class()
+    if registry_storage_class is None:
+        # Consider the choice was made for userdir-pvc to be agreeable.
+        # This is only needed to migrate clusters created during the
+        # first release of k8s Orchest.
+        registry_storage_class = k8sw.get_orchest_cluster_storage_class()
+    injected_env_vars["REGISTRY_STORAGE_CLASS"] = registry_storage_class
+
     return_code = _run_helm_with_progress_bar(
         HelmMode.UPGRADE,
         injected_env_vars=injected_env_vars,

@@ -536,3 +536,34 @@ def sync_celery_parallelism_from_config() -> None:
 def get_available_storage_classes() -> List[str]:
     s_classes = k8s_storage_api.list_storage_class()
     return [storage_class.metadata.name for storage_class in s_classes.items]
+
+
+def get_registry_storage_class() -> Optional[str]:
+    """Returns the registry storage class.
+
+    Returns:
+        The storage class used by the registry pvc. It will return None
+        if no storage class is found. This is needed to migrate existing
+        deployments which did not have a registry pvc defined.
+    """
+    try:
+        r = k8s_core_api.read_namespaced_persistent_volume_claim(
+            "docker-registry", config.ORCHEST_NAMESPACE
+        )
+        return r.spec.storage_class_name
+    except k8s_client.ApiException as e:
+        if e.status != 404:
+            raise e
+        return None
+
+
+def get_orchest_cluster_storage_class() -> str:
+    """Returns the storage class of the cluster.
+
+    The storage class of the userdir-pvc is considered to be the orchest
+    cluster storage class.
+    """
+    r = k8s_core_api.read_namespaced_persistent_volume_claim(
+        "userdir-pvc", config.ORCHEST_NAMESPACE
+    )
+    return r.spec.storage_class_name
