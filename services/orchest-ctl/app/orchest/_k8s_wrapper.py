@@ -567,3 +567,7 @@ def get_orchest_cluster_storage_class() -> str:
         "userdir-pvc", config.ORCHEST_NAMESPACE
     )
     return r.spec.storage_class_name
+
+
+def is_running_multinode() -> bool:
+    return len(k8s_core_api.list_node().items) > 1

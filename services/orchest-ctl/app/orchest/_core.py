@@ -137,6 +137,13 @@ def install(
     utils.echo(f"Installing Orchest {orchest_version}.")
     utils.echo(f"FQDN: {fqdn}.")
     utils.echo(f"Registry storage class: {registry_storage_class}.")
+    if k8sw.is_running_multinode() and registry_storage_class == "standard":
+        msg = (
+            "Error: using the 'standard' storage class for the registry when running "
+            "multinode is not allowed."
+        )
+        utils.echo(msg, err=True)
+        raise typer.Exit(code=1)
 
     logger.info("Creating the required directories.")
     utils.create_required_directories()

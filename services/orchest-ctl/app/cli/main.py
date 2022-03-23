@@ -190,7 +190,8 @@ def install(
             "Storage class for the registry. When installing Orchest, a docker "
             "registry is deployed in the orchest namespace, this class reflects what "
             "storage should be used. The storage class must be defined in the cluster "
-            "to be valid."
+            "to be valid. The standard storage class cannot be used in a multinode "
+            "cluster."
         ),
         callback=_validate_storage_class,
     ),
