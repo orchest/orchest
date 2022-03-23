@@ -551,6 +551,11 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
 
         utils.echo("Setting dev mode for auth-server")
         k8sw.patch_auth_server_for_dev_mode()
+    # No op if there those services weren't running with --dev mode.
+    else:
+        k8sw.unpatch_orchest_webserver_dev_mode()
+        k8sw.unpatch_orchest_api_dev_mode()
+        k8sw.unpatch_auth_server_dev_mode()
 
 
 def restart():

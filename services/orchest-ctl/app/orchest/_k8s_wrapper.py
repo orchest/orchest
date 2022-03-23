@@ -682,3 +682,53 @@ def patch_orchest_api_for_dev_mode() -> None:
             },
         ),
     )
+
+
+def _unpatch_dev_mode(service: str) -> None:
+    spec = k8s_apps_api.read_namespaced_deployment(service, "orchest").spec
+    env = [
+        kv
+        for kv in spec.template.spec.containers[0].env
+        if kv.name not in ["FLASK_ENV", "FLASK_APP", "FLASK_DEBUG"]
+    ]
+    volumes = [
+        vol for vol in spec.template.spec.volumes if vol.name != "orchest-dev-repo"
+    ]
+    v_mounts = [
+        v_mount
+        for v_mount in spec.template.spec.containers[0].volume_mounts
+        if v_mount.name != "orchest-dev-repo"
+    ]
+    k8s_apps_api.patch_namespaced_deployment(
+        service,
+        "orchest",
+        body=[
+            {
+                "op": "replace",
+                "path": ("/spec/template/spec/containers/0/env"),
+                "value": env,
+            },
+            {
+                "op": "replace",
+                "path": ("/spec/template/spec/containers/0/volumeMounts"),
+                "value": v_mounts,
+            },
+            {
+                "op": "replace",
+                "path": ("/spec/template/spec/volumes"),
+                "value": volumes,
+            },
+        ],
+    )
+
+
+def unpatch_orchest_webserver_dev_mode() -> None:
+    _unpatch_dev_mode("orchest-webserver")
+
+
+def unpatch_orchest_api_dev_mode() -> None:
+    _unpatch_dev_mode("orchest-api")
+
+
+def unpatch_auth_server_dev_mode() -> None:
+    _unpatch_dev_mode("auth-server")
