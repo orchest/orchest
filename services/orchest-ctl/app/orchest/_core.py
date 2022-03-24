@@ -118,7 +118,10 @@ def _run_helm_with_progress_bar(
 
 
 def install(
-    log_level: utils.LogLevel, cloud: bool, fqdn: str, registry_storage_class: str
+    log_level: utils.LogLevel,
+    cloud: bool,
+    fqdn: str,
+    registry_storage_class: Optional[str],
 ):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
@@ -136,14 +139,17 @@ def install(
 
     utils.echo(f"Installing Orchest {orchest_version}.")
     utils.echo(f"FQDN: {fqdn}.")
-    utils.echo(f"Registry storage class: {registry_storage_class}.")
+    if registry_storage_class is None:
+        # Consider the choice that was made for userdir-pvc to be
+        # agreeable.
+        registry_storage_class = k8sw.get_orchest_cluster_storage_class()
     if k8sw.is_running_multinode() and registry_storage_class == "standard":
         msg = (
-            "Error: using the 'standard' storage class for the registry when running "
-            "multinode is not allowed."
+            "Warning: using the 'standard' storage class for the registry when running "
+            "multinode will lead to a loss of environment images on restarts and "
+            "updates."
         )
         utils.echo(msg, err=True)
-        raise typer.Exit(code=1)
 
     logger.info("Creating the required directories.")
     utils.create_required_directories()
