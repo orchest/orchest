@@ -5,7 +5,7 @@ import { Position } from "@/types";
 import React from "react";
 import {
   baseNameFromPath,
-  FILE_MANAGER_ENDPOINT,
+  FILE_MANAGEMENT_ENDPOINT,
   queryArgs,
   unpackCombinedPath,
 } from "./common";
@@ -13,7 +13,6 @@ import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
-  baseUrl: string;
   reload: () => Promise<void>;
   handleClose: () => void;
   handleContextMenu: (
@@ -51,7 +50,7 @@ export const useFileManagerLocalContext = () =>
 const deleteFetch = (projectUuid: string, combinedPath: string) => {
   let { root, path } = unpackCombinedPath(combinedPath);
   return fetch(
-    `${FILE_MANAGER_ENDPOINT}/delete?${queryArgs({
+    `${FILE_MANAGEMENT_ENDPOINT}/delete?${queryArgs({
       project_uuid: projectUuid,
       path,
       root,
@@ -69,15 +68,16 @@ const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
 };
 
 const downloadFile = (
-  url: string,
+  projectUuid: string,
   combinedPath: string,
   downloadLink: string
 ) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `${url}/download?${queryArgs({
+  let downloadUrl = `/async/file-management/download?${queryArgs({
     path,
     root,
+    project_uuid: projectUuid,
   })}`;
   const a = document.createElement("a");
   a.href = downloadUrl;
@@ -88,7 +88,6 @@ const downloadFile = (
 };
 
 export const FileManagerLocalContextProvider: React.FC<{
-  baseUrl: string;
   reload: () => Promise<void>;
   setContextMenu: React.Dispatch<
     React.SetStateAction<{
@@ -96,7 +95,7 @@ export const FileManagerLocalContextProvider: React.FC<{
       type: ContextMenuType;
     }>
   >;
-}> = ({ children, baseUrl, reload, setContextMenu }) => {
+}> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
   const { projectUuid } = useCustomRoute();
 
@@ -212,20 +211,19 @@ export const FileManagerLocalContextProvider: React.FC<{
     if (selectedFiles.includes(contextMenuCombinedPath)) {
       selectedFiles.forEach((combinedPath, i) => {
         setTimeout(function () {
-          downloadFile(baseUrl, combinedPath, downloadLink);
+          downloadFile(projectUuid, combinedPath, downloadLink);
         }, i * 500);
         // Seems like multiple download invocations works with 500ms
         // Not the most reliable, might want to fall back to server side zip.
       });
     } else {
-      downloadFile(baseUrl, contextMenuCombinedPath, downloadLink);
+      downloadFile(projectUuid, contextMenuCombinedPath, downloadLink);
     }
-  }, [baseUrl, contextMenuCombinedPath, handleClose, selectedFiles]);
+  }, [projectUuid, contextMenuCombinedPath, handleClose, selectedFiles]);
 
   return (
     <FileManagerLocalContext.Provider
       value={{
-        baseUrl,
         reload,
         handleClose,
         handleContextMenu,

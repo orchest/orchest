@@ -13,7 +13,7 @@ import TextField from "@mui/material/TextField";
 import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
 import {
-  FILE_MANAGER_ENDPOINT,
+  FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
   queryArgs,
 } from "./common";
@@ -53,9 +53,10 @@ export const CreateFolderDialog = ({
 
     await run(
       fetcher(
-        `${FILE_MANAGER_ENDPOINT}/${projectUuid}/create-dir?${queryArgs({
+        `${FILE_MANAGEMENT_ENDPOINT}/create-dir?${queryArgs({
           path: `${lastSelectedFolder}${folderPath}/`,
           root,
+          project_uuid: projectUuid,
         })}`,
         { method: "POST" }
       ).then(() => {

@@ -10,7 +10,7 @@ import React from "react";
 import { FileWithPath } from "react-dropzone";
 import { ActionBar } from "./ActionBar";
 import {
-  FILE_MANAGER_ENDPOINT,
+  FILE_MANAGEMENT_ENDPOINT,
   getActiveRoot,
   isCombinedPathChildLess,
   lastSelectedFolderPath,
@@ -85,11 +85,6 @@ export function FileManager() {
    */
   const { projectUuid } = useCustomRoute();
 
-  const baseUrl = React.useMemo(
-    () => `${FILE_MANAGER_ENDPOINT}/${projectUuid}`,
-    [projectUuid]
-  );
-
   const {
     isDragging,
     selectedFiles,
@@ -134,9 +129,10 @@ export function FileManager() {
     const newFiles = await Promise.all(
       treeRoots.map(async (root) => {
         const file = await fetcher(
-          `${baseUrl}/browse?${queryArgs({
-            depth,
+          `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
+            project_uuid: projectUuid,
             root,
+            depth,
           })}`
         );
         return { key: root, file };
@@ -150,7 +146,7 @@ export function FileManager() {
     );
 
     setInProgress(false);
-  }, [expanded, treeRoots, baseUrl, setFileTrees]);
+  }, [expanded, treeRoots, setFileTrees]);
 
   const collapseAll = () => {
     setExpanded([]);
@@ -164,9 +160,10 @@ export function FileManager() {
 
       let { root, path } = unpackCombinedPath(combinedPath);
 
-      const url = `${baseUrl}/browse?${queryArgs({
-        path,
+      const url = `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
+        project_uuid: projectUuid,
         root,
+        path,
       })}`;
 
       const response = await fetcher<TreeNode>(url);
@@ -176,7 +173,7 @@ export function FileManager() {
       setFileTrees(fileTrees);
       setInProgress(false);
     },
-    [fileTrees, baseUrl, setFileTrees]
+    [fileTrees, projectUuid, setFileTrees]
   );
 
   const uploadFiles = React.useCallback(
@@ -214,9 +211,10 @@ export function FileManager() {
             formData.append("file", file);
 
             await fetcher(
-              `${baseUrl}/upload?${queryArgs({
+              `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs({
                 root,
                 path,
+                project_uuid: projectUuid,
               })}`,
               { method: "POST", body: formData }
             );
@@ -236,7 +234,7 @@ export function FileManager() {
       reload();
       setInProgress(false);
     },
-    [reload, root, baseUrl, selectedFiles]
+    [reload, root, projectUuid, selectedFiles]
   );
 
   /**
@@ -312,7 +310,6 @@ export function FileManager() {
 
   return (
     <FileManagerLocalContextProvider
-      baseUrl={baseUrl}
       reload={reload}
       setContextMenu={setContextMenu}
     >
@@ -332,7 +329,6 @@ export function FileManager() {
         {allTreesHaveLoaded && (
           <FileTreeContainer>
             <FileTree
-              baseUrl={baseUrl}
               treeRoots={treeRoots}
               expanded={expanded}
               onRename={onRename}

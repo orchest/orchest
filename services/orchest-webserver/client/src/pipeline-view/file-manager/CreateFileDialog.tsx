@@ -15,17 +15,15 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import {
   ALLOWED_STEP_EXTENSIONS,
-  extensionFromFilename,
   fetcher,
   FetchError,
-  HEADER,
 } from "@orchest/lib-utils";
 import React from "react";
 import {
   allowedExtensionsMarkup,
   lastSelectedFolderPath,
   PROJECT_DIR_PATH,
-  removeLeadingSymbols,
+  queryArgs,
   ROOT_SEPARATOR,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -39,7 +37,7 @@ const KernelLanguage = {
 
 export const CreateFileDialog = ({
   isOpen,
-  root = "",
+  root = PROJECT_DIR_PATH,
   onClose,
   onSuccess,
   projectUuid,
@@ -70,11 +68,8 @@ export const CreateFileDialog = ({
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
 
-  const rootFolder =
-    root === "/project-dir" ? "/" : root === "/data" ? "../../data" : "";
-  const fullFilePath = `${rootFolder}${lastSelectedFolder}${fileName}${fileExtension}`;
-
-  const rootFolderForDisplay = root === "/project-dir" ? "Project files" : root;
+  const rootFolderForDisplay =
+    root === PROJECT_DIR_PATH ? "Project files" : root;
   const fullFilePathForDisplay = `${rootFolderForDisplay}${lastSelectedFolder}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<
@@ -84,32 +79,19 @@ export const CreateFileDialog = ({
   const isCreating = createFileStatus === "PENDING";
   const onSubmitModal = async () => {
     if (isCreating) return;
-    // validate extensions
-    let extension = extensionFromFilename(fullFilePath);
 
-    if (!ALLOWED_STEP_EXTENSIONS.includes(extension)) {
-      setAlert(
-        "Error",
-        <div>
-          <p>Invalid file extension</p>
-          {`Extension ${extension} is not in allowed set of `}
-          {allowedExtensionsMarkup}.
-        </div>
-      );
-      return;
-    }
+    const fullFilePath = `${lastSelectedFolder}${fileName}${fileExtension}`;
 
     await run(
-      fetcher(`/async/project-files/create/${projectUuid}`, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          file_path: fullFilePath,
-          kernel_name: "python", // BE will ignore this if the file is NOT .ipynb
-        }),
-      }).then(() => {
-        const unifiedFilePath = removeLeadingSymbols(fullFilePath); // remove the leading "./" if any
-        const finalFilePath = `${PROJECT_DIR_PATH}${ROOT_SEPARATOR}/${unifiedFilePath}`;
+      fetcher(
+        `/async/file-management/create?${queryArgs({
+          project_uuid: projectUuid,
+          root,
+          path: fullFilePath,
+        })}`,
+        { method: "POST" }
+      ).then(() => {
+        const finalFilePath = `${root}${ROOT_SEPARATOR}${fullFilePath}`;
         onSuccess(finalFilePath);
       })
     );

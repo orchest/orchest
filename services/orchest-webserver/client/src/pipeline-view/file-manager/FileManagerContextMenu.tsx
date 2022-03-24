@@ -47,7 +47,6 @@ export const FileManagerContextMenu: React.FC<{
   }, [jobUuid, runUuid]);
 
   const {
-    baseUrl,
     reload,
     handleClose,
     handleContextRename,
@@ -63,11 +62,16 @@ export const FileManagerContextMenu: React.FC<{
 
     let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
 
-    await fetch(`${baseUrl}/duplicate?${queryArgs({ path, root })}`, {
-      method: "POST",
-    });
+    await fetch(
+      `/async/file-management/duplicate?${queryArgs({
+        path,
+        root,
+        project_uuid: projectUuid,
+      })}`,
+      { method: "POST" }
+    );
     reload();
-  }, [baseUrl, contextMenuCombinedPath, handleClose, reload, isReadOnly]);
+  }, [projectUuid, contextMenuCombinedPath, handleClose, reload, isReadOnly]);
 
   const handleContextEdit = React.useCallback(() => {
     if (isReadOnly) return;

@@ -110,7 +110,7 @@ def get_project_snapshot_size(project_uuid):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024 ** 2)
+    return get_size(project_dir, skip_dirs) / (1024**2)
 
 
 def project_exists(project_uuid):
@@ -565,20 +565,19 @@ def generate_ipynb_from_template(kernel_name):
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_file(file_path, pipeline_directory, kernel_name):
+def create_file_from_template(file_path, kernel_name="python"):
     """
     Note: this function does not assume that step['file_path']
     holds the value of file_path!
     """
 
-    full_file_path = os.path.join(pipeline_directory, file_path)
     file_path_split = file_path.split(".")
     file_path_without_ext = ".".join(file_path_split[:-1])
     ext = file_path_split[-1]
 
     file_content = None
 
-    if not os.path.isfile(full_file_path):
+    if not os.path.isfile(file_path):
 
         if len(file_path_without_ext) > 0:
             file_content = ""
@@ -589,11 +588,11 @@ def create_pipeline_file(file_path, pipeline_directory, kernel_name):
     elif ext == "ipynb":
         # Check for empty .ipynb, for which we also generate a
         # template notebook.
-        if os.stat(full_file_path).st_size == 0:
+        if os.stat(file_path).st_size == 0:
             file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
-        with open(full_file_path, "w") as file:
+        with open(file_path, "w") as file:
             file.write(file_content)
 
 

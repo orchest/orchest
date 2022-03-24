@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import Optional
+from typing import Optional, Tuple
 
 from flask import jsonify
 
@@ -37,10 +37,10 @@ def construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) ->
     if root not in ALLOWED_ROOTS:
         raise ValueError(f"Received illegal root path: {root}.")
 
-    if root is DATA_DIR_PATH:
+    if root == DATA_DIR_PATH:
         return _config.USERDIR_DATA
 
-    if root is PROJECT_DIR_PATH and project_uuid is None:
+    if root == PROJECT_DIR_PATH and project_uuid is None:
         raise ValueError(f"project_uuid is required.")
 
     project = Project.query.filter(Project.uuid == project_uuid).first()
@@ -115,7 +115,7 @@ def zipdir(path, ziph):
 def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
 
     if not os.path.isdir(dir):
-        return jsonify({"message": "Dir %s not found." % dir}), 404
+        return jsonify({"message": f"Dir {dir} not found."}), 404
 
     # Init structs
     tree = {
@@ -200,26 +200,26 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
 
 def validateRequest(
     root: Optional[str], path: Optional[str], project_uuid: Optional[str]
-):
+) -> Tuple[bool, str]:
     if root is None:
         return (False, "root is required.")
+
     if root == PROJECT_DIR_PATH and project_uuid is None:
         return (False, "project_uuid is required if root is /project-dir.")
 
-    if path is not None and not path.startswith("/"):
-        return (
-            False,
-            "The path query argument should always start with a forward-slash: /",
-        )
-
-    _, ext = os.path.splitext(path)
-
-    # path represents a folder
-    if len(ext) == 0 and not path.endswith("/"):
-        return (
-            False,
-            "The path query argument should end with a forward-slash: / when representing a folder",
-        )
+    if path is not None:
+        if not path.startswith("/"):
+            return (
+                False,
+                "The path query argument should always start with a forward-slash: /",
+            )
+        _, ext = os.path.splitext(path)
+        # path represents a folder
+        if len(ext) == 0 and not path.endswith("/"):
+            return (
+                False,
+                "The path query argument should end with a forward-slash: / when representing a folder",
+            )
 
     root_dir_path = construct_root_dir_path(root=root, project_uuid=project_uuid)
 
