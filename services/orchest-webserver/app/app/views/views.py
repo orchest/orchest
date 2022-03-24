@@ -1292,6 +1292,20 @@ def register_views(app, db):
 
         app.logger.info(f"Path filter {path_filter}")
 
+        is_valid, result = filemanager.validateRequest(
+            root=root, path=path, project_uuid=project_uuid
+        )
+
+        if is_valid is False:
+            return jsonify({"message": result}), 400
+
+        root_dir_path = result
+
+        # Path
+        path_filter = path if path else "/"
+
+        app.logger.info(f"Path filter {path_filter}")
+
         return filemanager.generate_tree(
             root_dir_path, path_filter=path_filter, depth=depth
         )
