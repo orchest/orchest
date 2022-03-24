@@ -117,7 +117,12 @@ def _run_helm_with_progress_bar(
     return return_code
 
 
-def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
+def install(
+    log_level: utils.LogLevel,
+    cloud: bool,
+    fqdn: str,
+    registry_storage_class: Optional[str],
+):
     k8sw.abort_if_unsafe()
     if is_orchest_already_installed():
         utils.echo("Installation is already complete. Did you mean to run:")
@@ -133,6 +138,18 @@ def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
         raise typer.Exit(code=1)
 
     utils.echo(f"Installing Orchest {orchest_version}.")
+    utils.echo(f"FQDN: {fqdn}.")
+    if registry_storage_class is None:
+        # Consider the choice that was made for userdir-pvc to be
+        # agreeable.
+        registry_storage_class = k8sw.get_orchest_cluster_storage_class()
+    if k8sw.is_running_multinode() and registry_storage_class == "standard":
+        msg = (
+            "Warning: using the 'standard' storage class for the registry when running "
+            "multinode will lead to a loss of environment images on restarts and "
+            "updates."
+        )
+        utils.echo(msg, err=True)
 
     logger.info("Creating the required directories.")
     utils.create_required_directories()
@@ -143,7 +160,11 @@ def install(log_level: utils.LogLevel, cloud: bool, fqdn: str):
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
     return_code = _run_helm_with_progress_bar(
-        HelmMode.INSTALL, injected_env_vars={"ORCHEST_FQDN": fqdn}
+        HelmMode.INSTALL,
+        injected_env_vars={
+            "ORCHEST_FQDN": fqdn,
+            "REGISTRY_STORAGE_CLASS": registry_storage_class,
+        },
     )
 
     if return_code != 0:
@@ -676,10 +697,19 @@ def _update() -> None:
 
     # Preserve the current values, i.e. avoid helm overwriting them with
     # default values.
+    injected_env_vars = {}
+    injected_env_vars.update(utils.get_celery_parallelism_level_from_config())
     host_names = k8sw.get_host_names()
-    injected_env_vars = utils.get_celery_parallelism_level_from_config()
     if host_names:
-        injected_env_vars = {"ORCHEST_FQDN": host_names[0]}
+        injected_env_vars["ORCHEST_FQDN"] = host_names[0]
+
+    registry_storage_class = k8sw.get_registry_storage_class()
+    if registry_storage_class is None:
+        # Consider the choice was made for userdir-pvc to be agreeable.
+        # This is only needed to migrate clusters created during the
+        # first release of k8s Orchest.
+        registry_storage_class = k8sw.get_orchest_cluster_storage_class()
+    injected_env_vars["REGISTRY_STORAGE_CLASS"] = registry_storage_class
 
     return_code = _run_helm_with_progress_bar(
         HelmMode.UPGRADE,
@@ -712,3 +742,7 @@ def uninstall():
             raise e
         utils.echo(".", nl=False)
         time.sleep(1)
+
+
+def is_valid_storage_class(storage_class: str) -> bool:
+    return storage_class in k8sw.get_available_storage_classes()

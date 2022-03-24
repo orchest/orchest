@@ -28,6 +28,7 @@ jobs:
             -i base-kernel-julia,
             -i base-kernel-py-gpu,
             -i update-sidecar,
+            -i node-agent,
             -i orchest-ctl -i celery-worker -i memory-server -i session-sidecar,
           ]
 
