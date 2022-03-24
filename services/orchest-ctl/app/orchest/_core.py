@@ -503,19 +503,25 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
         return
 
     if dev:
-        utils.echo("Setting dev mode for orchest-webserver")
+        utils.echo("Setting dev mode for orchest-webserver.")
         k8sw.patch_orchest_webserver_for_dev_mode()
 
-        utils.echo("Setting dev mode for orchest-api")
+        utils.echo("Setting dev mode for orchest-api.")
         k8sw.patch_orchest_api_for_dev_mode()
 
-        utils.echo("Setting dev mode for auth-server")
+        utils.echo("Setting dev mode for auth-server.")
         k8sw.patch_auth_server_for_dev_mode()
     # No op if there those services weren't running with --dev mode.
     else:
-        k8sw.unpatch_orchest_webserver_dev_mode()
-        k8sw.unpatch_orchest_api_dev_mode()
-        k8sw.unpatch_auth_server_dev_mode()
+        if k8sw.is_running_in_dev_mode("orchest-webserver"):
+            utils.echo("Unsetting dev mode for orchest-webserver.")
+            k8sw.unpatch_orchest_webserver_dev_mode()
+        if k8sw.is_running_in_dev_mode("orchest-api"):
+            utils.echo("Unsetting dev mode for orchest-api.")
+            k8sw.unpatch_orchest_api_dev_mode()
+        if k8sw.is_running_in_dev_mode("auth-server"):
+            utils.echo("Unsetting dev mode for auth-server.")
+            k8sw.unpatch_auth_server_dev_mode()
 
     deployments_to_start = [d.metadata.name for d in deployments_to_start]
     daemonsets_to_start = [d.metadata.name for d in daemonsets_to_start]

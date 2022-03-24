@@ -607,6 +607,7 @@ def _dev_mode_pod_patch(
         )
 
     return {
+        "metadata": {"labels": {"dev-mode": "True"}},
         "spec": {
             "template": {
                 "spec": {
@@ -631,7 +632,7 @@ def _dev_mode_pod_patch(
                     ],
                 }
             }
-        }
+        },
     }
 
 
@@ -718,6 +719,10 @@ def _unpatch_dev_mode(service: str) -> None:
                 "path": ("/spec/template/spec/volumes"),
                 "value": volumes,
             },
+            {
+                "op": "remove",
+                "path": ("/metadata/labels/dev-mode"),
+            },
         ],
     )
 
@@ -732,3 +737,17 @@ def unpatch_orchest_api_dev_mode() -> None:
 
 def unpatch_auth_server_dev_mode() -> None:
     _unpatch_dev_mode("auth-server")
+
+
+def is_running_in_dev_mode(orchest_service: str) -> bool:
+    try:
+        return (
+            k8s_apps_api.read_namespaced_deployment(
+                orchest_service, config.ORCHEST_NAMESPACE
+            ).metadata.labels.get("dev-mode")
+            == "True"
+        )
+    except k8s_client.ApiException as e:
+        if e.status == 404:
+            return False
+        raise e
