@@ -8,6 +8,7 @@ from app.orchest._core import (
     _update,
     add_user,
     install,
+    is_valid_storage_class,
     restart,
     start,
     status,
