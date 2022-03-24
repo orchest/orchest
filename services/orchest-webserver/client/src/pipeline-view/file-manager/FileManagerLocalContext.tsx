@@ -1,8 +1,14 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Position } from "@/types";
 import React from "react";
-import { baseNameFromPath, queryArgs, unpackCombinedPath } from "./common";
+import {
+  baseNameFromPath,
+  FILE_MANAGER_ENDPOINT,
+  queryArgs,
+  unpackCombinedPath,
+} from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuType } from "./FileManagerContextMenu";
 
@@ -42,11 +48,16 @@ export const FileManagerLocalContext = React.createContext<
 export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
 
-const deleteFetch = (baseUrl: string, combinedPath: string) => {
+const deleteFetch = (projectUuid: string, combinedPath: string) => {
   let { root, path } = unpackCombinedPath(combinedPath);
-  return fetch(`${baseUrl}/delete?${queryArgs({ path, root })}`, {
-    method: "POST",
-  });
+  return fetch(
+    `${FILE_MANAGER_ENDPOINT}/delete?${queryArgs({
+      project_uuid: projectUuid,
+      path,
+      root,
+    })}`,
+    { method: "POST" }
+  );
 };
 
 const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
@@ -87,6 +98,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   >;
 }> = ({ children, baseUrl, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
+  const { projectUuid } = useCustomRoute();
 
   const { selectedFiles, setSelectedFiles } = useFileManagerContext();
 
@@ -159,7 +171,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         async (resolve) => {
           await Promise.all(
             selectedFiles.map((combinedPath) =>
-              deleteFetch(baseUrl, combinedPath)
+              deleteFetch(projectUuid, combinedPath)
             )
           );
           await reload();
@@ -176,7 +188,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         contextMenuCombinedPath
       )}'?`,
       async (resolve) => {
-        await deleteFetch(baseUrl, contextMenuCombinedPath);
+        await deleteFetch(projectUuid, contextMenuCombinedPath);
         await reload();
         resolve(true);
         return true;
@@ -185,7 +197,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [
     contextMenuCombinedPath,
     selectedFiles,
-    baseUrl,
+    projectUuid,
     reload,
     setConfirm,
     handleClose,

@@ -1025,16 +1025,23 @@ def register_views(app, db):
         else:
             return jsonify({"message": "File does not exists."}), 404
 
-    @app.route("/async/file-manager/<project_uuid>/delete", methods=["POST"])
-    def filemanager_delete(project_uuid):
-        root_dir_path = filemanager.construct_root_dir_path(
-            request.args.get("root"), project_uuid
+    @app.route("/async/file-management/delete", methods=["POST"])
+    def file_delete():
+        root = request.args.get("root")
+        path = request.args.get("path")
+        project_uuid = request.args.get("project_uuid")
+
+        if path is None:
+            return jsonify({"message": "path is required."}), 400
+
+        is_valid, result = filemanager.validateRequest(
+            root=root, path=path, project_uuid=project_uuid
         )
 
-        if "path" not in request.args:
-            return jsonify({"message": "Missing path query argument."}), 500
+        if is_valid is False:
+            return jsonify({"message": result}), 400
 
-        path = request.args.get("path")
+        root_dir_path = result
 
         # Make absolute path relative
         fp = os.path.join(root_dir_path, path[1:])
@@ -1043,10 +1050,7 @@ def register_views(app, db):
             return (
                 jsonify(
                     {
-                        "message": (
-                            "It is not allowed to delete roots through "
-                            " the file-manager."
-                        )
+                        "message": "It is not allowed to delete roots through the file-manager."
                     }
                 ),
                 403,
@@ -1062,7 +1066,7 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/<project_uuid>/duplicate", methods=["POST"])
+    @app.route("/async/file-management/<project_uuid>/duplicate", methods=["POST"])
     def filemanager_duplicate(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1091,7 +1095,7 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/<project_uuid>/create-dir", methods=["POST"])
+    @app.route("/async/file-management/<project_uuid>/create-dir", methods=["POST"])
     def filemanager_create_dir(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1125,7 +1129,7 @@ def register_views(app, db):
         os.makedirs(full_path, exist_ok=True)
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/<project_uuid>/upload", methods=["POST"])
+    @app.route("/async/file-management/<project_uuid>/upload", methods=["POST"])
     def filemanager_upload(project_uuid):
 
         root_dir_path = filemanager.construct_root_dir_path(
@@ -1168,7 +1172,7 @@ def register_views(app, db):
 
         return jsonify({"message": "Success"})
 
-    @app.route("/async/file-manager/<project_uuid>/rename", methods=["POST"])
+    @app.route("/async/file-management/<project_uuid>/rename", methods=["POST"])
     def filemanager_rename(project_uuid):
 
         if (
@@ -1199,7 +1203,7 @@ def register_views(app, db):
         except Exception:
             return jsonify({"message": "Failed to rename"}), 500
 
-    @app.route("/async/file-manager/<project_uuid>/download", methods=["GET"])
+    @app.route("/async/file-management/<project_uuid>/download", methods=["GET"])
     def filemanager_download(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1225,7 +1229,9 @@ def register_views(app, db):
                 attachment_filename=os.path.basename(fp[:-1]) + ".zip",
             )
 
-    @app.route("/async/file-manager/<project_uuid>/extension-search", methods=["GET"])
+    @app.route(
+        "/async/file-management/<project_uuid>/extension-search", methods=["GET"]
+    )
     def filemanager_extension_search(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid
@@ -1270,7 +1276,7 @@ def register_views(app, db):
             {"files": [os.path.relpath(str(match), root_dir_path) for match in matches]}
         )
 
-    @app.route("/async/file-manager/<project_uuid>/browse", methods=["GET"])
+    @app.route("/async/file-management/<project_uuid>/browse", methods=["GET"])
     def filemanager_browse(project_uuid):
         root_dir_path = filemanager.construct_root_dir_path(
             request.args.get("root"), project_uuid

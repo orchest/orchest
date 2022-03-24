@@ -6,7 +6,7 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 
-export const FILE_MANAGER_ENDPOINT = "/async/file-manager";
+export const FILE_MANAGER_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
 export const PROJECT_DIR_PATH = "/project-dir";
 export const ROOT_SEPARATOR = ":";

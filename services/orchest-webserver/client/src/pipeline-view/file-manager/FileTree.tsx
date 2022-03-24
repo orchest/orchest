@@ -64,7 +64,7 @@ const containsFilesByExtension = async (
   if (node.type === "file") return isFileByExtension(extensions, node.name);
   if (node.type === "directory") {
     const response = await fetcher<{ files: string[] }>(
-      `/async/file-manager/${projectUuid}/extension-search?${queryArgs({
+      `/async/file-management/${projectUuid}/extension-search?${queryArgs({
         root: PROJECT_DIR_PATH, // note: root should either be /data or /project-dir
         path: node.path,
         extensions: extensions.join(","),

@@ -196,3 +196,31 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
                 key=lambda e: {"directory": "a.", "file": "b."}[e["type"]] + e["name"]
             )
     return jsonify(tree)
+
+
+def validateRequest(
+    root: Optional[str], path: Optional[str], project_uuid: Optional[str]
+):
+    if root is None:
+        return (False, "root is required.")
+    if root == PROJECT_DIR_PATH and project_uuid is None:
+        return (False, "project_uuid is required if root is /project-dir.")
+
+    if path is not None and not path.startswith("/"):
+        return (
+            False,
+            "The path query argument should always start with a forward-slash: /",
+        )
+
+    _, ext = os.path.splitext(path)
+
+    # path represents a folder
+    if len(ext) == 0 and not path.endswith("/"):
+        return (
+            False,
+            "The path query argument should end with a forward-slash: / when representing a folder",
+        )
+
+    root_dir_path = construct_root_dir_path(root=root, project_uuid=project_uuid)
+
+    return (True, root_dir_path)
