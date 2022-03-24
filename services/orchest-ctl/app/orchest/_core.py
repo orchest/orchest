@@ -716,6 +716,10 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
+    api_was_dev_mode = k8sw.is_running_in_dev_mode("orchest-api")
+    webserver_was_dev_mode = k8sw.is_running_in_dev_mode("orchest-webserver")
+    auth_server_was_dev_mode = k8sw.is_running_in_dev_mode("auth-server")
+
     # Preserve the current values, i.e. avoid helm overwriting them with
     # default values.
     injected_env_vars = {}
@@ -745,6 +749,18 @@ def _update() -> None:
         raise typer.Exit(return_code)
 
     k8sw.set_orchest_cluster_version(orchest_version)
+
+    if webserver_was_dev_mode:
+        utils.echo("Setting dev mode for orchest-webserver.")
+        k8sw.patch_orchest_webserver_for_dev_mode()
+
+    if api_was_dev_mode:
+        utils.echo("Setting dev mode for orchest-api.")
+        k8sw.patch_orchest_api_for_dev_mode()
+
+    if auth_server_was_dev_mode:
+        utils.echo("Setting dev mode for auth-server.")
+        k8sw.patch_auth_server_for_dev_mode()
 
     utils.echo("Update was successful, Orchest is running.")
 
