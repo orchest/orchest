@@ -503,6 +503,19 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
         return
 
     if dev:
+        _cmd = (
+            "minikube start --memory 16000 --cpus 12 "
+            '--mount-string="$(pwd):/orchest-dev-repo" --mount'
+        )
+        utils.echo(
+            "Note that when running in dev mode you need to have mounted the orchest "
+            "repository into minikube. For example by running the following when "
+            f"creating the cluster, while being in the repo: '{_cmd}'. The behaviour "
+            "of mounting in minikube is driver dependant and has some open issues, "
+            "so try to stay on the proven path. A cluster created through the "
+            "scripts/install_minikube.sh script, for example, would lead to the mount "
+            "only working on the master node, due to the kvm driver."
+        )
         utils.echo("Setting dev mode for orchest-webserver.")
         k8sw.patch_orchest_webserver_for_dev_mode()
 
