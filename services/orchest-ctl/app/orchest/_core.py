@@ -502,6 +502,21 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
         utils.echo("Orchest is already running.")
         return
 
+    if dev:
+        utils.echo("Setting dev mode for orchest-webserver")
+        k8sw.patch_orchest_webserver_for_dev_mode()
+
+        utils.echo("Setting dev mode for orchest-api")
+        k8sw.patch_orchest_api_for_dev_mode()
+
+        utils.echo("Setting dev mode for auth-server")
+        k8sw.patch_auth_server_for_dev_mode()
+    # No op if there those services weren't running with --dev mode.
+    else:
+        k8sw.unpatch_orchest_webserver_dev_mode()
+        k8sw.unpatch_orchest_api_dev_mode()
+        k8sw.unpatch_auth_server_dev_mode()
+
     deployments_to_start = [d.metadata.name for d in deployments_to_start]
     daemonsets_to_start = [d.metadata.name for d in daemonsets_to_start]
     utils.echo("Starting...")
@@ -541,21 +556,6 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
         )
     else:
         utils.echo("Orchest is running.")
-
-    if dev:
-        utils.echo("Setting dev mode for orchest-webserver")
-        k8sw.patch_orchest_webserver_for_dev_mode()
-
-        utils.echo("Setting dev mode for orchest-api")
-        k8sw.patch_orchest_api_for_dev_mode()
-
-        utils.echo("Setting dev mode for auth-server")
-        k8sw.patch_auth_server_for_dev_mode()
-    # No op if there those services weren't running with --dev mode.
-    else:
-        k8sw.unpatch_orchest_webserver_dev_mode()
-        k8sw.unpatch_orchest_api_dev_mode()
-        k8sw.unpatch_auth_server_dev_mode()
 
 
 def restart():
