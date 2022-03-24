@@ -986,7 +986,6 @@ def register_views(app, db):
         kernel_name = request.json.get("kernel_name")
         file_path = normalize_project_relative_path(request.json["file_path"])
 
-
         project_dir = get_project_directory(project_uuid)
         file_path = os.path.join(project_dir, file_path)
         directories, _ = os.path.split(file_path)

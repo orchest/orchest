@@ -11,7 +11,8 @@ from app.models import Project
 logger = logging.getLogger(__name__)
 
 PROJECT_DIR_PATH = _config.PROJECT_DIR
-ALLOWED_ROOTS = [PROJECT_DIR_PATH, "/data"]
+DATA_DIR_PATH = _config.DATA_DIR
+ALLOWED_ROOTS = [PROJECT_DIR_PATH, DATA_DIR_PATH]
 
 
 def allowed_file(filename):
@@ -24,21 +25,30 @@ def allowed_file(filename):
     return True
 
 
-def construct_root_dir_path(root: Optional[str], project_uuid: str) -> str:
-    if root is None:
-        root = PROJECT_DIR_PATH
+def construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -> str:
+    """
+    if root is not provided, default to PROJECT_DIR_PATH;
+
+    if root is PROJECT_DIR_PATH, project_uuid is required;
+    """
+
+    root = PROJECT_DIR_PATH if root is None else root
 
     if root not in ALLOWED_ROOTS:
         raise ValueError(f"Received illegal root path: {root}.")
 
+    if root is DATA_DIR_PATH:
+        return _config.USERDIR_DATA
+
+    if root is PROJECT_DIR_PATH and project_uuid is None:
+        raise ValueError(f"project_uuid is required.")
+
     project = Project.query.filter(Project.uuid == project_uuid).first()
 
-    if root == PROJECT_DIR_PATH:
-        root = _config.USERDIR_PROJECTS + f"/{project.path}"
-    else:  # We know it is "/data"
-        root = _config.USERDIR_DATA
+    if project is None:
+        raise ValueError(f"project not found.")
 
-    return root
+    return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
 
 def find_unique_duplicate_filepath(fp):
