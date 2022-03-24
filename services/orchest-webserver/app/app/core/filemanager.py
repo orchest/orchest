@@ -41,12 +41,12 @@ def construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) ->
         return _config.USERDIR_DATA
 
     if root == PROJECT_DIR_PATH and project_uuid is None:
-        raise ValueError(f"project_uuid is required.")
+        raise ValueError(f'{"project_uuid is required."}')
 
     project = Project.query.filter(Project.uuid == project_uuid).first()
 
     if project is None:
-        raise ValueError(f"project not found.")
+        raise ValueError(f'{"project not found."}')
 
     return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
@@ -218,7 +218,8 @@ def validateRequest(
         if len(ext) == 0 and not path.endswith("/"):
             return (
                 False,
-                "The path query argument should end with a forward-slash: / when representing a folder",
+                "The path query argument should end with a forward-slash: /"
+                + " when representing a folder",
             )
 
     root_dir_path = construct_root_dir_path(root=root, project_uuid=project_uuid)

@@ -50,7 +50,6 @@ from app.utils import (
     get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
-    is_valid_project_relative_path,
     normalize_project_relative_path,
     pipeline_set_notebook_kernels,
     preprocess_script,
@@ -979,7 +978,9 @@ def register_views(app, db):
 
     @app.route("/async/file-management/create", methods=["POST"])
     def filemanager_create():
-        """Create a file in specified directory within project or `/data`"""
+        """
+        Create a file in specified directory within project or `/data`
+        """
         root = request.args.get("root")
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
@@ -991,7 +992,8 @@ def register_views(app, db):
             return (
                 jsonify(
                     {
-                        "message": "path should be an absolute path that start with a forward-slash: /"
+                        "message": "path should be an absolute path that"
+                        + " start with a forward-slash: /"
                     }
                 ),
                 400,
@@ -1027,7 +1029,8 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
         pipeline_uuid = request.args.get("pipeline_uuid")
 
-        # currently this endpoint only handles "/data" if path is absolute
+        # currently this endpoint only handles "/data"
+        # if path is absolute
         if path.startswith("/") and not path.startswith("/data"):
             return jsonify({"message": "Illegal file path prefix."}), 400
 
@@ -1073,7 +1076,8 @@ def register_views(app, db):
             return (
                 jsonify(
                     {
-                        "message": "It is not allowed to delete roots through the file-manager."
+                        "message": "It is not allowed to delete roots "
+                        + "through the file-manager."
                     }
                 ),
                 403,
