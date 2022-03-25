@@ -213,14 +213,6 @@ def validateRequest(
                 False,
                 "The path query argument should always start with a forward-slash: /",
             )
-        _, ext = os.path.splitext(path)
-        # path represents a folder
-        if len(ext) == 0 and not path.endswith("/"):
-            return (
-                False,
-                "The path query argument should end with a forward-slash: / when "
-                + "representing a folder",
-            )
 
     root_dir_path = construct_root_dir_path(root=root, project_uuid=project_uuid)
 

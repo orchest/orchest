@@ -942,6 +942,8 @@ def register_views(app, db):
 
         root_dir_path = result
 
+        # no need to check if it's a valid file path,
+        # we only care about the directory after os.path.split
         file_path = os.path.join(root_dir_path, path[1:])
         directory, _ = os.path.split(file_path)
 
@@ -1073,9 +1075,9 @@ def register_views(app, db):
         root_dir_path = result
 
         # Make absolute path relative
-        fp = os.path.join(root_dir_path, path[1:])
+        target_path = os.path.join(root_dir_path, path[1:])
 
-        if fp == root_dir_path:
+        if target_path == root_dir_path:
             return (
                 jsonify(
                     {
@@ -1086,9 +1088,9 @@ def register_views(app, db):
                 403,
             )
 
-        if os.path.exists(fp):
+        if os.path.exists(target_path):
             try:
-                rmtree(fp)
+                rmtree(target_path)
             except Exception:
                 return jsonify({"message": "Deletion failed."}), 500
         else:
@@ -1115,15 +1117,15 @@ def register_views(app, db):
         root_dir_path = result
 
         # Make absolute path relative
-        fp = os.path.join(root_dir_path, path[1:])
+        target_path = os.path.join(root_dir_path, path[1:])
 
-        if os.path.isfile(fp) or os.path.isdir(fp):
-            new_fp = filemanager.find_unique_duplicate_filepath(fp)
+        if os.path.isfile(target_path) or os.path.isdir(target_path):
+            new_path = filemanager.find_unique_duplicate_filepath(target_path)
             try:
-                if os.path.isfile(fp):
-                    copytree(fp, new_fp)
+                if os.path.isfile(target_path):
+                    copytree(target_path, new_path)
                 else:
-                    copytree(fp, new_fp, use_gitignore=False)
+                    copytree(target_path, new_path, use_gitignore=False)
             except Exception as e:
                 app.logger.error(e)
                 return jsonify({"message": "Copy of file/directory failed"}), 500
@@ -1158,6 +1160,8 @@ def register_views(app, db):
         if os.path.isdir(full_path) or os.path.isfile(full_path):
             return jsonify({"message": "Path already exists"}), 500
 
+        # even if name ends like an extension, e.g. "my-folder.txt"
+        # it will be seen as a folder name
         os.makedirs(full_path, exist_ok=True)
         return jsonify({"message": "Success"})
 
@@ -1259,20 +1263,20 @@ def register_views(app, db):
 
         root_dir_path = result
 
-        fp = os.path.join(root_dir_path, path[1:])
+        target_path = os.path.join(root_dir_path, path[1:])
 
-        if os.path.isfile(fp):
-            return send_file(fp, as_attachment=True)
+        if os.path.isfile(target_path):
+            return send_file(target_path, as_attachment=True)
         else:
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_STORED) as zf:
-                filemanager.zipdir(fp, zf)
+                filemanager.zipdir(target_path, zf)
             memory_file.seek(0)
             return send_file(
                 memory_file,
                 mimetype="application/zip",
                 as_attachment=True,
-                attachment_filename=os.path.basename(fp[:-1]) + ".zip",
+                attachment_filename=os.path.basename(target_path[:-1]) + ".zip",
             )
 
     @app.route("/async/file-management/extension-search", methods=["GET"])
