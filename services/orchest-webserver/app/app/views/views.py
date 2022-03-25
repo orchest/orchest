@@ -59,7 +59,7 @@ from app.utils import (
     serialize_environment_to_disk,
 )
 
-ALLOWED_FILE_EXTENSIONS = ["ipynb", "R", "py", "sh"]
+ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
 
 
 def register_views(app, db):
