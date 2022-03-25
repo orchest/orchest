@@ -199,13 +199,29 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
 
 
 def validateRequest(
-    root: Optional[str], path: Optional[str], project_uuid: Optional[str]
+    root: Optional[str],
+    path: Optional[str],
+    project_uuid: Optional[str],
+    depth: Optional[str],
+    is_path_required: Optional[bool] = True,
 ) -> Tuple[bool, str]:
     if root is None:
-        return (False, "root is required.")
+        return (False, "The root query argument is required.")
 
     if root == PROJECT_DIR_PATH and project_uuid is None:
-        return (False, "project_uuid is required if root is /project-dir.")
+        return (
+            False,
+            "The project_uuid query argument is required if root is /project-dir.",
+        )
+
+    # in most cases, path is required,
+    # except for /async/file-management/browse,
+    # where either depth and path should be provided
+    if depth is None and path is None:
+        extra_explanation = (
+            "" if is_path_required else " if the depth query argumentis not present"
+        )
+        return (False, f"The path query argument is required{extra_explanation}.")
 
     if path is not None:
         if not path.startswith("/"):

@@ -930,9 +930,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1000,9 +997,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1066,9 +1060,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1110,9 +1101,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1146,9 +1134,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1176,9 +1161,6 @@ def register_views(app, db):
         root = request.args.get("root")
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
-
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
 
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
@@ -1257,9 +1239,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1291,9 +1270,6 @@ def register_views(app, db):
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
         extensions = request.args.get("extensions")
-
-        if path is None:
-            return jsonify({"message": "path is required."}), 400
 
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
@@ -1335,8 +1311,16 @@ def register_views(app, db):
         depth_as_string = request.args.get("depth")
         project_uuid = request.args.get("project_uuid")
 
-        if depth_as_string is None and path is None:
-            return jsonify({"message": "Either depth or path should be provided."}), 400
+        is_valid, result = filemanager.validateRequest(
+            root=root,
+            path=path,
+            project_uuid=project_uuid,
+            depth=depth_as_string,
+            is_path_required=False,
+        )
+
+        if is_valid is False:
+            return jsonify({"message": result}), 400
 
         depth = 3
         if depth_as_string is not None:
@@ -1344,16 +1328,9 @@ def register_views(app, db):
                 depth = int(depth_as_string, 10)
             except Exception:
                 return (
-                    jsonify({"message": "Invalid value for 'depth' query argument"}),
+                    jsonify({"message": "Invalid value for the depth query argument"}),
                     400,
                 )
-
-        is_valid, result = filemanager.validateRequest(
-            root=root, path=path, project_uuid=project_uuid
-        )
-
-        if is_valid is False:
-            return jsonify({"message": result}), 400
 
         root_dir_path = result
 
