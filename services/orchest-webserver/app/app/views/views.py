@@ -59,6 +59,8 @@ from app.utils import (
     serialize_environment_to_disk,
 )
 
+ALLOWED_FILE_EXTENSIONS = ["ipynb", "R", "py", "sh"]
+
 
 def register_views(app, db):
     errors = {}
@@ -922,23 +924,38 @@ def register_views(app, db):
 
         return jsonify({"cwd": cwd})
 
-    @app.route("/async/file-picker-tree/<project_uuid>", methods=["GET"])
-    def get_file_picker_tree(project_uuid):
+    @app.route("/async/file-management/tree", methods=["GET"])
+    def get_file_tree():
+        root = request.args.get("root")
+        path = request.args.get("path")
+        project_uuid = request.args.get("project_uuid")
 
-        allowed_file_extensions = ["ipynb", "R", "py", "sh"]
+        if path is None:
+            return jsonify({"message": "path is required."}), 400
 
-        project_dir = get_project_directory(project_uuid)
+        is_valid, result = filemanager.validateRequest(
+            root=root, path=path, project_uuid=project_uuid
+        )
 
-        if not os.path.isdir(project_dir):
-            return jsonify({"message": "Project dir %s not found." % project_dir}), 404
+        if is_valid is False:
+            return jsonify({"message": result}), 400
 
-        tree = {"type": "directory", "root": True, "name": "/", "children": []}
+        root_dir_path = result
+
+        file_path = os.path.join(root_dir_path, path[1:])
+        directory, _ = os.path.split(file_path)
+
+        if not os.path.isdir(directory):
+            return (
+                jsonify({"message": f"Directory {directory} not found."}),
+                404,
+            )
 
         dir_nodes = {}
+        tree = {"type": "directory", "root": True, "name": "/", "children": []}
+        dir_nodes[directory] = tree
 
-        dir_nodes[project_dir] = tree
-
-        for root, dirs, files in os.walk(project_dir):
+        for root, dirs, files in os.walk(directory):
 
             # exclude directories that start with "." from file_picker
             dirs[:] = [dirname for dirname in dirs if not dirname.startswith(".")]
@@ -956,12 +973,8 @@ def register_views(app, db):
                 dir_nodes[root]["children"].append(dir_node)
 
             for filename in files:
-
-                if filename.split(".")[-1] in allowed_file_extensions:
-                    file_node = {
-                        "type": "file",
-                        "name": filename,
-                    }
+                if filename.split(".")[-1] in ALLOWED_FILE_EXTENSIONS:
+                    file_node = {"type": "file", "name": filename}
 
                     # this key should always exist
                     try:
@@ -988,17 +1001,6 @@ def register_views(app, db):
         if path is None:
             return jsonify({"message": "path is required."}), 400
 
-        if not path.startswith("/"):
-            return (
-                jsonify(
-                    {
-                        "message": "path should be an absolute path that"
-                        + " start with a forward-slash: /"
-                    }
-                ),
-                400,
-            )
-
         is_valid, result = filemanager.validateRequest(
             root=root, path=path, project_uuid=project_uuid
         )
@@ -1009,9 +1011,10 @@ def register_views(app, db):
         root_dir_path = result
 
         file_path = os.path.join(root_dir_path, path[1:])
-        directories, _ = os.path.split(file_path)
-        if directories:
-            os.makedirs(directories, exist_ok=True)
+        directory, _ = os.path.split(file_path)
+
+        if directory:
+            os.makedirs(directory, exist_ok=True)
 
         if os.path.isfile(file_path):
             return jsonify({"message": "File already exists."}), 409
