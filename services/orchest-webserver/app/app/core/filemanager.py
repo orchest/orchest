@@ -198,21 +198,26 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
     return jsonify(tree)
 
 
-def validateRequest(
+def processRequest(
     root: Optional[str],
     path: Optional[str],
     project_uuid: Optional[str],
-    depth: Optional[str],
+    depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
-) -> Tuple[bool, str]:
+) -> Tuple[str, Optional[bool]]:
     if root is None:
-        return (False, "The root query argument is required.")
+        raise ValueError("The root query argument is required.")
 
     if root == PROJECT_DIR_PATH and project_uuid is None:
-        return (
-            False,
-            "The project_uuid query argument is required if root is /project-dir.",
+        raise ValueError(
+            "The project_uuid query argument is required if root is /project-dir."
         )
+
+    if depth is not None:
+        try:
+            depth = int(depth, 10)
+        except Exception:
+            raise ValueError("Invalid value for the depth query argument.")
 
     # in most cases, path is required,
     # except for /async/file-management/browse,
@@ -221,15 +226,14 @@ def validateRequest(
         extra_explanation = (
             "" if is_path_required else " if the depth query argumentis not present"
         )
-        return (False, f"The path query argument is required{extra_explanation}.")
+        raise ValueError(f"The path query argument is required{extra_explanation}.")
 
     if path is not None:
         if not path.startswith("/"):
-            return (
-                False,
-                "The path query argument should always start with a forward-slash: /",
+            raise ValueError(
+                "The path query argument should always start with a forward-slash: /"
             )
 
     root_dir_path = construct_root_dir_path(root=root, project_uuid=project_uuid)
 
-    return (True, root_dir_path)
+    return (root_dir_path, depth)
