@@ -558,15 +558,19 @@ def get_ipynb_template(language: str):
     return template_json
 
 
-def generate_ipynb_from_template(kernel_name):
+def generate_ipynb_from_template(kernel_name: str):
 
     template_json = get_ipynb_template(kernel_name)
 
     return json.dumps(template_json, indent=4)
 
 
-def create_file_from_template(file_path, kernel_name="python"):
+def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
     """
+    creates an empty file.
+    If the file extension is ".ipynb", kernel_name would be used to
+    configure its metadta
+
     Note: this function does not assume that step['file_path']
     holds the value of file_path!
     """

@@ -35,7 +35,7 @@ from app.models import Environment, Pipeline, Project
 from app.schemas import BackgroundTaskSchema, EnvironmentSchema, ProjectSchema
 from app.utils import (
     check_pipeline_correctness,
-    create_file_from_template,
+    create_empty_file,
     delete_environment,
     get_environment,
     get_environment_directory,
@@ -1013,6 +1013,10 @@ def register_views(app, db):
         root_dir_path = result
 
         file_path = os.path.join(root_dir_path, path[1:])
+
+        if not file_path.split(".")[-1] in ALLOWED_FILE_EXTENSIONS:
+            return jsonify({"message": "Given file type is not supported."}), 409
+
         directory, _ = os.path.split(file_path)
 
         if directory:
@@ -1021,7 +1025,7 @@ def register_views(app, db):
         if os.path.isfile(file_path):
             return jsonify({"message": "File already exists."}), 409
         try:
-            create_file_from_template(file_path)
+            create_empty_file(file_path)
             return jsonify({"message": "File created."})
         except IOError as e:
             app.logger.error(f"Could not create file at {file_path}. Error: {e}")
@@ -1081,8 +1085,10 @@ def register_views(app, db):
             return (
                 jsonify(
                     {
-                        "message": "It is not allowed to delete roots "
-                        + "through the file-manager."
+                        "message": (
+                            "It is not allowed to delete roots "
+                            "through the file-manager."
+                        )
                     }
                 ),
                 403,
