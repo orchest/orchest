@@ -934,7 +934,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1001,7 +1001,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1064,7 +1064,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1105,7 +1105,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1138,7 +1138,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1166,7 +1166,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1243,7 +1243,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         root_dir_path = result
@@ -1275,7 +1275,7 @@ def register_views(app, db):
             root=root, path=path, project_uuid=project_uuid
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         if extensions is None:
@@ -1319,7 +1319,7 @@ def register_views(app, db):
             is_path_required=False,
         )
 
-        if is_valid is False:
+        if not is_valid:
             return jsonify({"message": result}), 400
 
         depth = 3
