@@ -1,3 +1,4 @@
+Jinja2==3.0.3
 APScheduler==3.7.0
 Flask-Cors==3.0.9
 Flask-SQLAlchemy==2.4.1
