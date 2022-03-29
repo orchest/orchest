@@ -1,10 +1,11 @@
-Jinja2==3.0.3
 APScheduler==3.7.0
 Flask-Cors==3.0.9
 Flask-SQLAlchemy==2.4.1
 Flask==1.1.1
+Jinja2==3.0.3
 PyYAML==6.0
 SQLAlchemy-Utils==0.37.4
+Werkzeug==2.0.3
 aiohttp==3.7.4
 amqp==5.0.9
 celery==5.2.2
