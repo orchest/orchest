@@ -21,17 +21,20 @@ Prerequisites
 
 Windows
 ~~~~~~~
-For windows please install Orchest within the WSL 2.
-
-.. note::
-   Make sure you don't clone `orchest` in the paths shared with Windows (`/mnt/C/...` etc.).
-   Due to permission handling in WSL2 this is not supported. Use the native filesystem in for example
-   the Linux user home directory (`~/orchest`).
-
 .. caution::
    For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
    opening the distribution using the Start menu or by `setting up the Windows Terminal
    <https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
+
+For windows please install Orchest within the WSL 2.
+
+Make sure you don't clone the Orchest repository in the paths shared with Windows (e.g.
+``/mnt/C/...``). Due to permission handling in WSL2 this is not supported. Use the native filesystem
+instead, for example clone orchest in the Linux user home directory:
+
+.. code-block:: bash
+
+   cd && git clone https://github.com/orchest/orchest.git
 
 .. _regular installation:
 
@@ -40,7 +43,15 @@ Install Orchest
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
+
+   # Start a minikube cluster with profile "minikube".
+   minikube start --cpus=4
+
    bash orchest install
+
+   # Set up the default Fully Qualified Domain Name (FQDN) in your
+   # /etc/hosts so that you can reach Orchest locally.
+   echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
