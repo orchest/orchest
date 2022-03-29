@@ -1,3 +1,4 @@
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
 import { PipelineStepState, Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
@@ -54,24 +55,13 @@ const KERNEL_OPTIONS = [
 ];
 
 export const StepDetailsProperties: React.FC<{
-  projectUuid: string;
-  pipelineUuid: string;
   pipelineCwd: string;
   readOnly: boolean;
   connections: ConnectionDict;
   step: PipelineStepState;
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
-}> = ({
-  projectUuid,
-  pipelineUuid,
-  pipelineCwd,
-  readOnly,
-  connections,
-  step,
-  onSave,
-  menuMaxWidth,
-}) => {
+}> = ({ pipelineCwd, readOnly, connections, step, onSave, menuMaxWidth }) => {
   const [state, setState] = React.useState({
     environmentOptions: [],
     // this is required to let users edit JSON (while typing the text will not be valid JSON)
@@ -105,6 +95,7 @@ export const StepDetailsProperties: React.FC<{
     [onSave, pipelineCwd, step]
   );
 
+  const { projectUuid } = useCustomRoute();
   const fetchEnvironmentOptions = React.useCallback(() => {
     let environmentsEndpoint = `/store/environments/${projectUuid}`;
 
@@ -375,8 +366,7 @@ export const StepDetailsProperties: React.FC<{
         ) : (
           <ProjectFilePicker
             value={step.file_path}
-            project_uuid={projectUuid}
-            pipeline_uuid={pipelineUuid}
+            pipelineCwd={pipelineCwd}
             onChange={(value) => onChangeFileName(value, false)}
             menuMaxWidth={menuMaxWidth}
           />

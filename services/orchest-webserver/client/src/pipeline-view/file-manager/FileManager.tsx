@@ -19,6 +19,7 @@ import {
   queryArgs,
   searchTrees,
   TreeNode,
+  treeRoots,
   unpackCombinedPath,
 } from "./common";
 import { FileManagerContainer } from "./FileManagerContainer";
@@ -77,7 +78,6 @@ const createInvalidEntryFilter = ({
 };
 
 type ProgressType = LinearProgressProps["variant"];
-const DEFAULT_DEPTH = 3;
 
 const treeRoots: FileManagerRoot[] = ["/project-dir", "/data"];
 
@@ -92,6 +92,7 @@ export function FileManager() {
     selectedFiles,
     setSelectedFiles,
     fileTrees,
+    fetchFileTrees,
     setFileTrees,
   } = useFileManagerContext();
 
@@ -101,7 +102,9 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState(["/project-dir"]);
+  const [expanded, setExpanded] = React.useState<(FileManagerRoot | string)[]>([
+    "/project-dir",
+  ]);
   const [progress, setProgress] = React.useState(0);
 
   const [progressType, setProgressType] = React.useState<ProgressType>(
@@ -122,30 +125,10 @@ export function FileManager() {
     setProgressType("determinate");
     setInProgress(true);
 
-    // Load files on initial render
-    const depth = Math.max(DEFAULT_DEPTH, deepestExpand(expanded));
-
-    const newFiles = await Promise.all(
-      treeRoots.map(async (root) => {
-        const file = await fetcher(
-          `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
-            project_uuid: projectUuid,
-            root,
-            depth,
-          })}`
-        );
-        return { key: root, file };
-      })
-    );
-
-    setFileTrees(
-      newFiles.reduce((obj, curr) => {
-        return { ...obj, [curr.key]: curr.file };
-      }, {})
-    );
+    await fetchFileTrees(deepestExpand(expanded));
 
     setInProgress(false);
-  }, [projectUuid, expanded, treeRoots, setFileTrees]);
+  }, [expanded, fetchFileTrees]);
 
   const collapseAll = () => {
     setExpanded([]);

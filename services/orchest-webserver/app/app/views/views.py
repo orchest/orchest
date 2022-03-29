@@ -19,7 +19,13 @@ from _orchest.internals import utils as _utils
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor
 from _orchest.internals.utils import copytree, rmtree
 from app import analytics, error
-from app.core import filemanager
+from app.core.filemanager import (
+    allowed_file,
+    find_unique_duplicate_filepath,
+    generate_tree,
+    process_request,
+    zipdir,
+)
 from app.core.pipelines import CreatePipeline, DeletePipeline, MovePipeline
 from app.core.projects import (
     CreateProject,
@@ -922,65 +928,6 @@ def register_views(app, db):
 
         return jsonify({"cwd": cwd})
 
-    @app.route("/async/file-management/tree", methods=["GET"])
-    def get_file_tree():
-        root = request.args.get("root")
-        path = request.args.get("path")
-        project_uuid = request.args.get("project_uuid")
-
-        try:
-            root_dir_path, _ = filemanager.process_request(
-                root=root, path=path, project_uuid=project_uuid
-            )
-        except Exception as e:
-            return jsonify({"message": str(e)}), 400
-
-        directory, _ = os.path.join(root_dir_path, os.path.split(path[1:]))
-
-        if not os.path.isdir(directory):
-            return (
-                jsonify({"message": f"Directory {directory} not found."}),
-                404,
-            )
-
-        dir_nodes = {}
-        tree = {"type": "directory", "root": True, "name": "/", "children": []}
-        dir_nodes[directory] = tree
-
-        for root, dirs, files in os.walk(directory):
-
-            # exclude directories that start with "." from file_picker
-            dirs[:] = [dirname for dirname in dirs if not dirname.startswith(".")]
-
-            for dirname in dirs:
-
-                dir_path = os.path.join(root, dirname)
-                dir_node = {
-                    "type": "directory",
-                    "name": dirname,
-                    "children": [],
-                }
-
-                dir_nodes[dir_path] = dir_node
-                dir_nodes[root]["children"].append(dir_node)
-
-            for filename in files:
-                if filename.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
-                    file_node = {"type": "file", "name": filename}
-
-                    # this key should always exist
-                    try:
-                        dir_nodes[root]["children"].append(file_node)
-                    except KeyError as e:
-                        app.logger.error(
-                            "Key %s does not exist in dir_nodes %s. Error: %s"
-                            % (root, dir_nodes, e)
-                        )
-                    except Exception as e:
-                        app.logger.error("Error: %e" % e)
-
-        return jsonify(tree)
-
     @app.route("/async/file-management/create", methods=["POST"])
     def filemanager_create():
         """
@@ -992,7 +939,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1053,7 +1000,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1092,7 +1039,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1102,7 +1049,7 @@ def register_views(app, db):
         target_path = os.path.join(root_dir_path, path[1:])
 
         if os.path.isfile(target_path) or os.path.isdir(target_path):
-            new_path = filemanager.find_unique_duplicate_filepath(target_path)
+            new_path = find_unique_duplicate_filepath(target_path)
             try:
                 if os.path.isfile(target_path):
                     copytree(target_path, new_path)
@@ -1123,7 +1070,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1149,7 +1096,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1162,7 +1109,7 @@ def register_views(app, db):
             return jsonify({"message": "No file found"}), 500
 
         file = request.files["file"]
-        if file and filemanager.allowed_file(file.filename):
+        if file and allowed_file(file.filename):
             filename = file.filename.split(os.sep)[-1]
             # Trim path for joining (up until this point paths always
             # start and end with a /)
@@ -1184,10 +1131,10 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            old_root_path, _ = filemanager.process_request(
+            old_root_path, _ = process_request(
                 root=old_root, path=new_path, project_uuid=project_uuid
             )
-            new_root_path, _ = filemanager.process_request(
+            new_root_path, _ = process_request(
                 root=new_root, path=new_path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1209,7 +1156,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1222,7 +1169,7 @@ def register_views(app, db):
         else:
             memory_file = io.BytesIO()
             with zipfile.ZipFile(memory_file, "w", zipfile.ZIP_STORED) as zf:
-                filemanager.zipdir(target_path, zf)
+                zipdir(target_path, zf)
             memory_file.seek(0)
             return send_file(
                 memory_file,
@@ -1239,7 +1186,7 @@ def register_views(app, db):
         extensions = request.args.get("extensions")
 
         try:
-            root_dir_path, _ = filemanager.process_request(
+            root_dir_path, _ = process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1277,7 +1224,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, depth = filemanager.process_request(
+            root_dir_path, depth = process_request(
                 root=root,
                 path=path,
                 project_uuid=project_uuid,
@@ -1292,20 +1239,6 @@ def register_views(app, db):
 
         app.logger.info(f"Path filter {path_filter}")
 
-        is_valid, result = filemanager.validateRequest(
-            root=root, path=path, project_uuid=project_uuid
-        )
-
-        if is_valid is False:
-            return jsonify({"message": result}), 400
-
-        root_dir_path = result
-
-        # Path
-        path_filter = path if path else "/"
-
-        app.logger.info(f"Path filter {path_filter}")
-
-        return filemanager.generate_tree(
-            root_dir_path, path_filter=path_filter, depth=depth
+        return jsonify(
+            generate_tree(root_dir_path, path_filter=path_filter, depth=depth)
         )

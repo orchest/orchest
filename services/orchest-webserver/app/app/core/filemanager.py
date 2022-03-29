@@ -201,7 +201,7 @@ def generate_tree(
             dir_nodes[root]["children"].sort(
                 key=lambda e: {"directory": "a.", "file": "b."}[e["type"]] + e["name"]
             )
-    return jsonify(tree)
+    return tree
 
 
 def process_request(
