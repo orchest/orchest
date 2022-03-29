@@ -74,13 +74,13 @@ You can expect the build to finish in roughly 15 minutes.
    git clone https://github.com/orchest/orchest.git && cd orchest
 
    # Check out the version you would like to build.
-   git checkout v2022.03.6
+   git checkout v2022.03.8
 
    # Activate `minikube`'s docker
    eval $(minikube -p minikube docker-env)
 
    # Build Orchest's container images from source (in parallel).
-   scripts/build_container.sh -o "v2022.03.6" -t "v2022.03.6"
+   scripts/build_container.sh -o "v2022.03.8" -t "v2022.03.8"
 
    # Install Orchest
    bash orchest install
