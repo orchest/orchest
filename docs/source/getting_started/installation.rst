@@ -22,8 +22,9 @@ Prerequisites
 Windows
 ~~~~~~~
 .. caution::
-   For all further steps make sure to run CLI commands inside a WSL terminal. You can do this by
-   opening the distribution using the Start menu or by `setting up the Windows Terminal
+   For all further steps, including installation of the prerequisites, make sure to run CLI commands
+   inside a WSL terminal. You can do this by opening the distribution using the Start menu or by
+   `setting up the Windows Terminal
    <https://docs.microsoft.com/en-us/windows/wsl/setup/environment#set-up-windows-terminal>`_.
 
 For windows please install Orchest within the WSL 2.
