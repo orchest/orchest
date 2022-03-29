@@ -343,6 +343,119 @@ def _get_kaniko_image_build_workflow_manifest(
     return manifest
 
 
+def _get_buildah_image_build_workflow_manifest(
+    workflow_name,
+    image_name,
+    image_tag,
+    build_context_host_path,
+    dockerfile_path,
+) -> dict:
+    """Returns a buildah workflow manifest given the arguments.
+
+    Args:
+        workflow_name: Name with which the workflow will be run.
+        image_name: Name of the resulting image, can include repository
+            and tags.
+        build_context_path: Path on the container where the build
+            context is to be found.
+        dockerfile_path: Path to the dockerfile, relative to the
+            context.
+
+    Returns:
+        Valid k8s workflow manifest.
+    """
+    full_image_name = f"{_config.REGISTRY_FQDN}/{image_name}:{image_tag}"
+    manifest = {
+        "apiVersion": "argoproj.io/v1alpha1",
+        "kind": "Workflow",
+        "metadata": {"name": workflow_name},
+        "spec": {
+            "entrypoint": "build-env",
+            "templates": [
+                {
+                    "name": "build-env",
+                    "container": {
+                        "name": "buildah",
+                        "image": CONFIG_CLASS.IMAGE_BUILDER_IMAGE,
+                        "workingDir": "/build-context",
+                        "command": ["/bin/sh", "-c"],
+                        "args": [
+                            (
+                                # Build
+                                f"buildah build -f {dockerfile_path} --layers=true "
+                                # https://github.com/containers/buildah/issues/2741
+                                "--format docker "
+                                "--force-rm "
+                                f"--tag {full_image_name} "
+                                # Push
+                                f"&& buildah push {full_image_name}"
+                            )
+                        ],
+                        "securityContext": {
+                            "privileged": True,
+                        },
+                        "volumeMounts": [
+                            {
+                                "name": "userdir-pvc",
+                                "mountPath": "/build-context",
+                                "subPath": get_userdir_relpath(build_context_host_path),
+                                "readOnly": True,
+                            },
+                            {
+                                "name": "image-builder-cache-pvc",
+                                "mountPath": "/var/lib/containers",
+                            },
+                            {
+                                "name": "tls-secret",
+                                "mountPath": "/etc/ssl/certs/additional-ca-cert-bundle.crt",  # noqa
+                                "subPath": "additional-ca-cert-bundle.crt",
+                                "readOnly": True,
+                            },
+                        ],
+                    },
+                    "resources": {
+                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
+                    },
+                    "affinity": _registry_pod_affinity,
+                },
+            ],
+            # The celery task actually takes care of deleting the
+            # workflow, this is just a failsafe.
+            "ttlStrategy": {
+                "secondsAfterCompletion": 100,
+                "secondsAfterSuccess": 100,
+                "secondsAfterFailure": 100,
+            },
+            "dnsPolicy": "ClusterFirst",
+            "restartPolicy": "Never",
+            "volumes": [
+                {
+                    "name": "userdir-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName": "userdir-pvc",
+                    },
+                },
+                {
+                    "name": "image-builder-cache-pvc",
+                    "persistentVolumeClaim": {
+                        "claimName": "image-builder-cache-pvc",
+                    },
+                },
+                {
+                    "name": "tls-secret",
+                    "secret": {
+                        "secretName": "registry-tls-secret",
+                        "items": [
+                            {"key": "ca.crt", "path": "additional-ca-cert-bundle.crt"}
+                        ],
+                    },
+                },
+            ],
+        },
+    }
+    return manifest
+
+
 def _log(user_logs, all_logs, msg, newline=False):
     if newline:
         user_logs.writelines([msg, "\n"])
@@ -363,13 +476,12 @@ def _build_image(
 ):
     """Triggers an argo workflow to build an image and follows it."""
     pod_name = f"image-build-task-{task_uuid}"
-    manifest = _get_buildkit_image_build_workflow_manifest(
+    manifest = _get_buildah_image_build_workflow_manifest(
         pod_name,
         image_name,
         image_tag,
         build_context["snapshot_path"],
         build_context["dockerfile_path"],
-        cache_key=build_context["base_image"].split(":")[0],
     )
 
     IS_DEV = os.getenv("FLASK_ENV") == "development"
@@ -416,7 +528,7 @@ def _build_image(
         if found_error_flag:
             break
 
-        if event.startswith("#") and event.endswith("CACHED"):
+        if event.startswith("#") and event.endswith("Using cache"):
             msg = "Found cached layer."
             _log(user_logs_file_object, complete_logs_file_object, msg, True)
             continue

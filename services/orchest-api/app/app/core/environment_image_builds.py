@@ -62,7 +62,7 @@ def write_environment_dockerfile(
     """
     statements = []
 
-    statements.append(f"FROM {base_image}")
+    statements.append(f"FROM docker.io/{base_image}")
     # Create a layer (apparently helps with buildkit caching base image
     # layers). Also helps with logs (see _build_image).
     statements.append("RUN echo orchest")

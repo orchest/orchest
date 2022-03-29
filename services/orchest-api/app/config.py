@@ -30,7 +30,7 @@ class Config:
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # Image building.
-    IMAGE_BUILDER_IMAGE = "moby/buildkit:v0.10.0"
+    IMAGE_BUILDER_IMAGE = "quay.io/buildah/stable:v1.23.1"
     BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 
