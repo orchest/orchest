@@ -456,156 +456,173 @@ def _get_buildah_image_build_workflow_manifest(
     return manifest
 
 
-def _log(user_logs, all_logs, msg, newline=False):
-    if newline:
-        user_logs.writelines([msg, "\n"])
-        all_logs.writelines([msg, "\n"])
-    else:
-        user_logs.write(msg)
-        all_logs.write(msg)
-    all_logs.flush()
+class ImageBuildSidecar:
+    """Class to start and follow (log) and image build.
 
+    The class is implemented as a state machine. The only real "state"
+    it has are the log files to which to write logs and the current
+    state, reflected by self._log_handler_function. Rough schema:
 
-def _build_image(
-    task_uuid,
-    image_name,
-    image_tag,
-    build_context,
-    user_logs_file_object,
-    complete_logs_file_object,
-):
-    """Triggers an argo workflow to build an image and follows it."""
-    pod_name = f"image-build-task-{task_uuid}"
-    manifest = _get_buildah_image_build_workflow_manifest(
-        pod_name,
+    Starting──►Building───►Copying──┐
+    Worker     Image  │    Context  └►Running──────►Storing
+                      ▼    ▲          Setup script  Image
+                    Pulling│
+                    Base Image
+    """
+
+    def __init__(
+        self,
+        task_uuid,
         image_name,
         image_tag,
-        build_context["snapshot_path"],
-        build_context["dockerfile_path"],
-    )
-
-    IS_DEV = os.getenv("FLASK_ENV") == "development"
-    if IS_DEV:
-        msg = "Running in DEV mode, logs won't be filtered."
-        _log(user_logs_file_object, complete_logs_file_object, msg, False)
-
-    msg = "Starting worker...\n"
-    _log(user_logs_file_object, complete_logs_file_object, msg, False)
-    ns = _config.ORCHEST_NAMESPACE
-    k8s_custom_obj_api.create_namespaced_custom_object(
-        "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
-    )
-
-    utils.wait_for_pod_status(
-        pod_name,
-        ns,
-        expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
-        max_retries=100,
-    )
-
-    _log(user_logs_file_object, complete_logs_file_object, "Building image...", False)
-
-    found_base_image_pull_flag = False
-    found_copying_flag = False
-    copying_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+COPY.*")
-    found_userscript_begin_flag = False
-    userscript_begin_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+RUN.*")
-    has_error = False
-    w = watch.Watch()
-    for event in w.stream(
-        k8s_core_api.read_namespaced_pod_log,
-        name=pod_name,
-        container="main",
-        namespace=ns,
-        follow=True,
+        build_context,
+        user_logs_file_object,
+        complete_logs_file_object,
     ):
-        if IS_DEV:
-            _log(user_logs_file_object, complete_logs_file_object, event, True)
-            continue
+        self.user_logs_file_object = user_logs_file_object
+        self.complete_logs_file_object = complete_logs_file_object
+        self.copying_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+COPY.*")
+        self.userscript_begin_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+RUN.*")
 
-        has_error = event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG)
-        if has_error:
-            break
-
-        if not (found_base_image_pull_flag and found_copying_flag):
-            if not found_base_image_pull_flag and event.startswith("Trying to pull"):
-                found_base_image_pull_flag = True
-                _log(
-                    user_logs_file_object,
-                    complete_logs_file_object,
-                    "\nPulling base image...",
-                    False,
-                )
-            elif copying_regex.match(event):
-                found_base_image_pull_flag = True  # Was already there.
-                found_copying_flag = True
-                _log(
-                    user_logs_file_object,
-                    complete_logs_file_object,
-                    "\nCopying project...",
-                    False,
-                )
-            # Append a "." to the "Building image..." message.
-            else:
-                _log(user_logs_file_object, complete_logs_file_object, ".", False)
-        elif not found_userscript_begin_flag and userscript_begin_regex.match(event):
-            found_userscript_begin_flag = True
-            _log(
-                user_logs_file_object,
-                complete_logs_file_object,
-                "\nRunning environment set-up script...",
-                True,
-            )
-        elif found_userscript_begin_flag:
-            if event.startswith("--> Using cache"):
-                _log(
-                    user_logs_file_object,
-                    complete_logs_file_object,
-                    "\nFound cached layer.",
-                    True,
-                )
-                # Will start storing the image next.
-                break
-            elif event.endswith(CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG):
-                # Will start storing the image next.
-                break
-            else:
-                _log(user_logs_file_object, complete_logs_file_object, event, True)
-        # Append a "." to pulling/copying message.
-        else:
-            _log(user_logs_file_object, complete_logs_file_object, ".", False)
-
-    # The loops exits for 3 reasons: found_ending_flag, found_error_flag
-    # or the pod has stopped running.
-
-    resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace=ns)
-
-    if has_error or resp.status.phase == "Failed":
-        msg = (
-            "There was a problem building the image. The building script had a non 0 "
-            "exit code, build failed.\n"
+        pod_name = self._start_build_pod(
+            task_uuid, image_name, image_tag, build_context
         )
-        _log(user_logs_file_object, complete_logs_file_object, msg, False)
-        raise errors.ImageBuildFailedError()
-    else:
-        msg = "\nStoring image..."
-        _log(user_logs_file_object, complete_logs_file_object, msg, False)
+
+        self._log("Starting image build...")
+        self.log_handler_function = self._log_starting_build_phase
+        w = watch.Watch()
+        for event in w.stream(
+            k8s_core_api.read_namespaced_pod_log,
+            name=pod_name,
+            container="main",
+            namespace=_config.ORCHEST_NAMESPACE,
+            follow=True,
+        ):
+            if event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG):
+                self._handle_error()
+
+            should_break = self.log_handler_function(event)
+            if should_break:
+                break
+
+        # The loops exits for 3 reasons: found_ending_flag,
+        # found_error_flag or the pod has stopped running.
+        resp = k8s_core_api.read_namespaced_pod(
+            name=pod_name, namespace=_config.ORCHEST_NAMESPACE
+        )
+        if resp.status.phase == "Failed":
+            self._handle_error()
+        else:
+            self._log_storage_phase(pod_name)
+
+    def _start_build_pod(
+        self,
+        task_uuid,
+        image_name,
+        image_tag,
+        build_context,
+    ) -> str:
+        pod_name = f"image-build-task-{task_uuid}"
+        manifest = _get_buildah_image_build_workflow_manifest(
+            pod_name,
+            image_name,
+            image_tag,
+            build_context["snapshot_path"],
+            build_context["dockerfile_path"],
+        )
+
+        msg = "Starting worker...\n"
+        self._log(msg, False)
+        ns = _config.ORCHEST_NAMESPACE
+        k8s_custom_obj_api.create_namespaced_custom_object(
+            "argoproj.io", "v1alpha1", ns, "workflows", body=manifest
+        )
+        utils.wait_for_pod_status(
+            pod_name,
+            ns,
+            expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
+            max_retries=100,
+        )
+        return pod_name
+
+    def _log_starting_build_phase(self, event: str) -> None:
+        if event.startswith("Trying to pull"):
+            self._log("\nPulling base image...", False)
+            self.log_handler_function = self._log_base_image_pull_phase
+        elif self.copying_regex.match(event):
+            self._log("\nCopying context...", False)
+            self.log_handler_function = self._log_copy_context_phase
+        else:
+            # Append to "Building image..."
+            self._log(".")
+
+    def _log_storage_phase(self, pod_name: str) -> None:
+        self._log("Storing image...")
         done = False
         while not done:
             try:
                 utils.wait_for_pod_status(
                     pod_name,
-                    ns,
+                    _config.ORCHEST_NAMESPACE,
                     expected_statuses=["Succeeded", "Failed", "Unknown"],
                     max_retries=1,
                 )
             except errors.PodNeverReachedExpectedStatusError:
-                user_logs_file_object.write(".")
+                self._log(".")
             else:
-                user_logs_file_object.write("\n")
+                self._log("\n")
                 done = True
         msg = "Done!"
-        _log(user_logs_file_object, complete_logs_file_object, msg, False)
+        self._log(msg)
+
+    def _log_base_image_pull_phase(self, event: str) -> bool:
+        if self.copying_regex.match(event):
+            # Is done pulling and has started copying the context.
+            self.log_handler_function = self._log_copy_context_phase
+            self._log("\nCopying context...")
+        else:
+            # Append to "Pulling base image..."
+            self._log(".")
+        return False
+
+    def _log_copy_context_phase(self, event: str) -> bool:
+        if self.userscript_begin_regex.match(event):
+            # Is done copying, has started running the set-up script.
+            self._log("\nRunning environment set-up script...", True)
+            self.log_handler_function = self._log_setup_script_phase
+        else:
+            # Append to "Copying context..."
+            self._log(".")
+        return False
+
+    def _log_setup_script_phase(self, event: str) -> None:
+        if event.startswith("--> Using cache"):
+            self._log("Found cached layer.", True)
+            # Will start storing the image next.
+            return True
+        elif event.endswith(CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG):
+            # Will start storing the image next.
+            return True
+        else:
+            self._log(event, True)
+        return False
+
+    def _handle_error(self) -> None:
+        msg = (
+            "There was a problem building the image. The building script had a non 0 "
+            "exit code, build failed."
+        )
+        self._log(msg)
+        raise errors.ImageBuildFailedError()
+
+    def _log(self, msg, newline=False):
+        if newline:
+            self.user_logs_file_object.writelines([msg, "\n"])
+            self.complete_logs_file_object.writelines([msg, "\n"])
+        else:
+            self.user_logs_file_object.writelines(msg)
+            self.complete_logs_file_object.writelines(msg)
+        self.complete_logs_file_object.flush()
 
 
 def build_image(
@@ -637,7 +654,7 @@ def build_image(
     """
     with open(complete_logs_path, "w") as complete_logs_file_object:
         try:
-            _build_image(
+            ImageBuildSidecar(
                 task_uuid,
                 image_name,
                 image_tag,
