@@ -77,8 +77,6 @@ def create_required_directories() -> None:
         _config.USERDIR_ENV_IMG_BUILDS,
         _config.USERDIR_JUPYTER_IMG_BUILDS,
         _config.USERDIR_JUPYTERLAB,
-        _config.USERDIR_KANIKO_BASE_IMAGES_CACHE,
-        _config.USERDIR_BUILDKIT_CACHE,
     ]:
         Path(path).mkdir(parents=True, exist_ok=True)
 
