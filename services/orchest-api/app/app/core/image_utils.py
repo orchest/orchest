@@ -503,16 +503,15 @@ def _build_image(
         max_retries=100,
     )
 
-    _log(user_logs_file_object, complete_logs_file_object, "Building image...", True)
+    _log(user_logs_file_object, complete_logs_file_object, "Building image...", False)
 
-    # Buildkit will add runtimes to commands, can't be deactivated atm.
-    runtime_regex = re.compile(r"^#\d*\s\d*\.\d*\s")
-    flags_count = 0
-    found_error_flag = False
+    found_base_image_pull_flag = False
+    found_copying_flag = False
+    copying_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+COPY.*")
+    found_userscript_begin_flag = False
+    userscript_begin_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+RUN.*")
+    has_error = False
     w = watch.Watch()
-    # Unfortunately buildkit does not provide a way to only output
-    # build logs (i.e. logs from the commands in the dockerfile), see
-    # https://github.com/moby/buildkit/issues/2543.
     for event in w.stream(
         k8s_core_api.read_namespaced_pod_log,
         name=pod_name,
@@ -524,38 +523,64 @@ def _build_image(
             _log(user_logs_file_object, complete_logs_file_object, event, True)
             continue
 
-        found_error_flag = event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG)
-        if found_error_flag:
+        has_error = event.endswith(CONFIG_CLASS.BUILD_IMAGE_ERROR_FLAG)
+        if has_error:
             break
 
-        if event.startswith("#") and event.endswith("Using cache"):
-            msg = "Found cached layer."
-            _log(user_logs_file_object, complete_logs_file_object, msg, True)
-            continue
-        elif event.endswith(CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG):
-            flags_count += 1
-            # Build storage has started.
-            if flags_count == 2:
+        if not (found_base_image_pull_flag and found_copying_flag):
+            if not found_base_image_pull_flag and event.startswith("Trying to pull"):
+                found_base_image_pull_flag = True
+                _log(
+                    user_logs_file_object,
+                    complete_logs_file_object,
+                    "\nPulling base image...",
+                    False,
+                )
+            elif copying_regex.match(event):
+                found_base_image_pull_flag = True  # Was already there.
+                found_copying_flag = True
+                _log(
+                    user_logs_file_object,
+                    complete_logs_file_object,
+                    "\nCopying project...",
+                    False,
+                )
+            # Append a "." to the "Building image..." message.
+            else:
+                _log(user_logs_file_object, complete_logs_file_object, ".", False)
+        elif not found_userscript_begin_flag and userscript_begin_regex.match(event):
+            found_userscript_begin_flag = True
+            _log(
+                user_logs_file_object,
+                complete_logs_file_object,
+                "\nRunning environment set-up script...",
+                True,
+            )
+        elif found_userscript_begin_flag:
+            if event.startswith("--> Using cache"):
+                _log(
+                    user_logs_file_object,
+                    complete_logs_file_object,
+                    "\nFound cached layer.",
+                    True,
+                )
+                # Will start storing the image next.
                 break
-
-            # Don't print the flag.
-            continue
-
-        if flags_count == 0:
-            continue
-
-        # Remove the runtime from the logs.
-        match = runtime_regex.match(event)
-        if match:
-            event = event[len(match.group()) :]
-        _log(user_logs_file_object, complete_logs_file_object, event, True)
+            elif event.endswith(CONFIG_CLASS.BUILD_IMAGE_LOG_FLAG):
+                # Will start storing the image next.
+                break
+            else:
+                _log(user_logs_file_object, complete_logs_file_object, event, True)
+        # Append a "." to pulling/copying message.
+        else:
+            _log(user_logs_file_object, complete_logs_file_object, ".", False)
 
     # The loops exits for 3 reasons: found_ending_flag, found_error_flag
     # or the pod has stopped running.
 
     resp = k8s_core_api.read_namespaced_pod(name=pod_name, namespace=ns)
 
-    if found_error_flag or resp.status.phase == "Failed":
+    if has_error or resp.status.phase == "Failed":
         msg = (
             "There was a problem building the image. The building script had a non 0 "
             "exit code, build failed.\n"
@@ -563,7 +588,7 @@ def _build_image(
         _log(user_logs_file_object, complete_logs_file_object, msg, False)
         raise errors.ImageBuildFailedError()
     else:
-        msg = "Storing image..."
+        msg = "\nStoring image..."
         _log(user_logs_file_object, complete_logs_file_object, msg, False)
         done = False
         while not done:
