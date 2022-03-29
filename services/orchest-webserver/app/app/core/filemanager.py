@@ -204,7 +204,7 @@ def process_request(
     project_uuid: Optional[str],
     depth: Optional[str] = None,
     is_path_required: Optional[bool] = True,
-) -> Tuple[str, Optional[bool]]:
+) -> Tuple[str, Optional[int]]:
     if root is None:
         raise ValueError("The root query argument is required.")
 
