@@ -198,7 +198,7 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
     return jsonify(tree)
 
 
-def processRequest(
+def process_request(
     root: Optional[str],
     path: Optional[str],
     project_uuid: Optional[str],

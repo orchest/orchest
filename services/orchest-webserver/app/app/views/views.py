@@ -931,7 +931,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -986,14 +986,15 @@ def register_views(app, db):
     @app.route("/async/file-management/create", methods=["POST"])
     def filemanager_create():
         """
-        Create a file in specified directory within project or `/data`
+        Create an empty file with the given path within `/project-dir`
+        or `/data`.
         """
         root = request.args.get("root")
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1019,7 +1020,7 @@ def register_views(app, db):
 
     @app.route("/async/file-management/exists", methods=["GET"])
     def filemanager_exists():
-        """Check whether file exists"""
+        """Check whether file exists."""
 
         path = request.args.get("path")
         project_uuid = request.args.get("project_uuid")
@@ -1054,7 +1055,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1093,7 +1094,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1124,7 +1125,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1150,7 +1151,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1185,10 +1186,10 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            old_root_path, _ = filemanager.processRequest(
+            old_root_path, _ = filemanager.process_request(
                 root=old_root, path=new_path, project_uuid=project_uuid
             )
-            new_root_path, _ = filemanager.processRequest(
+            new_root_path, _ = filemanager.process_request(
                 root=new_root, path=new_path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1210,7 +1211,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1240,7 +1241,7 @@ def register_views(app, db):
         extensions = request.args.get("extensions")
 
         try:
-            root_dir_path, _ = filemanager.processRequest(
+            root_dir_path, _ = filemanager.process_request(
                 root=root, path=path, project_uuid=project_uuid
             )
         except Exception as e:
@@ -1278,7 +1279,7 @@ def register_views(app, db):
         project_uuid = request.args.get("project_uuid")
 
         try:
-            root_dir_path, depth = filemanager.processRequest(
+            root_dir_path, depth = filemanager.process_request(
                 root=root,
                 path=path,
                 project_uuid=project_uuid,
