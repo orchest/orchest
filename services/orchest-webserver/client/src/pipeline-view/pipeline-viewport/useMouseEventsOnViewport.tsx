@@ -9,6 +9,7 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
  */
 export const useMouseEventsOnViewport = () => {
   const {
+    keysDown,
     eventVars,
     mouseTracker,
     trackMouseMovement,
@@ -78,7 +79,10 @@ export const useMouseEventsOnViewport = () => {
 
   const onMouseDownDocument = React.useCallback(
     (e: MouseEvent) => {
-      if (e.button === 0 && panningState === "ready-to-pan") {
+      if (
+        e.button === 2 ||
+        (e.button === 0 && panningState === "ready-to-pan")
+      ) {
         trackMouseMovement(e.clientX, e.clientY);
         setPipelineCanvasState({ panningState: "panning" });
       }
@@ -88,11 +92,19 @@ export const useMouseEventsOnViewport = () => {
 
   const onMouseUpDocument = React.useCallback(
     (e: MouseEvent) => {
-      if (e.button === 0 && panningState === "panning") {
+      if (
+        e.button === 0 &&
+        keysDown.has("Space") &&
+        panningState === "panning"
+      ) {
         setPipelineCanvasState({ panningState: "ready-to-pan" });
       }
+
+      if (e.button === 2) {
+        setPipelineCanvasState({ panningState: "idle" });
+      }
     },
-    [panningState, setPipelineCanvasState]
+    [panningState, setPipelineCanvasState, keysDown]
   );
 
   React.useEffect(() => {

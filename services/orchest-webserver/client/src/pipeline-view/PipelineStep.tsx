@@ -448,6 +448,10 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         onMouseUp={onMouseUp}
         onMouseOver={onMouseOverContainer}
         onMouseOut={onMouseOutContainer}
+        onContextMenu={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+        }}
         onClick={onClick}
       >
         {children}

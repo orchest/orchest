@@ -132,6 +132,10 @@ const PipelineConnectionComponent: React.FC<{
       data-start-uuid={startNodeUUID}
       data-end-uuid={endNodeUUID}
       className={classNames("connection", className, selected && "selected")}
+      onContextMenu={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
       ref={containerRef}
       style={{ ...transformProperty, zIndex }}
     >

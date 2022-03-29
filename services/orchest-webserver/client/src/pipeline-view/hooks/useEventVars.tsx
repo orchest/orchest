@@ -346,7 +346,10 @@ export const useEventVars = () => {
        */
       switch (action.type) {
         case "SET_SCALE_FACTOR": {
-          return { ...state, scaleFactor: action.payload };
+          return {
+            ...state,
+            scaleFactor: Math.min(Math.max(action.payload, 0.25), 2),
+          };
         }
         case "SET_STEPS": {
           return { ...state, steps: action.payload };
