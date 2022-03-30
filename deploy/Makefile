@@ -84,7 +84,7 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
-SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
+SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 1800s
 
 # docker-registry deployment configs
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET},${REGISTRY_SECRET},registry-tls-secret}
@@ -311,9 +311,9 @@ cert-manager : ./bin/cert-manager
 .SECONDARY: ./bin/cert-manager
 ./bin/cert-manager: |
 	kubectl apply -f thirdparty/cert-manager
-	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
-	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-cainjector -n cert-manager
-	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager -n cert-manager
+	kubectl wait --for=condition=available --timeout=1800s deployment/cert-manager-webhook -n cert-manager
+	kubectl wait --for=condition=available --timeout=1800s deployment/cert-manager-cainjector -n cert-manager
+	kubectl wait --for=condition=available --timeout=1800s deployment/cert-manager -n cert-manager
 
 .PHONY: clean-cert-manager
 clean-cert-manager:

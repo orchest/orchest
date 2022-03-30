@@ -42,7 +42,7 @@ deployment
           periodSeconds: 5
           successThreshold: 1
           timeoutSeconds: 5
-          failureThreshold: 40
+          failureThreshold: 50
         livenessProbe:
           exec:
           # A pid file gets deleted if the worker dies.
