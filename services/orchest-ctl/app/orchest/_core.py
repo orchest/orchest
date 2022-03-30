@@ -516,6 +516,10 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
             "scripts/install_minikube.sh script, for example, would lead to the mount "
             "only working on the master node, due to the kvm driver."
         )
+        orchest_config = utils.get_orchest_config()
+        orchest_config["TELEMETRY_DISABLED"] = True
+        utils.set_orchest_config(orchest_config)
+
         utils.echo("Setting dev mode for orchest-webserver.")
         k8sw.patch_orchest_webserver_for_dev_mode()
 
