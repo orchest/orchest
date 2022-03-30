@@ -44,6 +44,29 @@ minikube kubectl -- create namespace orchest  > /dev/null 2>&1
 # K8S_TODO: don't silence stderr, and make it so that repeating "make
 # orchest-resources" will not produce an error.
 if [ "$1"  == "install" ]; then
+    WARNING="This can't be changed later."
+    if [ -z "$USERDIR_PVC_SIZE" ]
+    then
+        echo "Specify the user directory size, leave blank for default (50Gi). ${WARNING}" 
+        read -p "Size: " USERDIR_PVC_SIZE
+        export USERDIR_PVC_SIZE
+    fi
+    if [ -z "$IMAGEBUILDERCACHE_PVC_SIZE" ]
+    then
+        echo "Specify the image builder cache size, leave blank for default (50Gi). ${WARNING}" 
+        read -p "Size: " IMAGEBUILDERCACHE_PVC_SIZE
+        export IMAGEBUILDERCACHE_PVC_SIZE
+    fi
+    if [ ! -z "$ENABLE_ROOK_NFS" ]
+    then
+        if [ -z "$NFS_CLAIM_SIZE" ]
+        then
+            echo "Specify the NFS claim size, leave blank for default (50Gi). ${WARNING}" 
+            read -p "Size: " NFS_CLAIM_SIZE
+            export NFS_CLAIM_SIZE
+        fi
+    fi
+
     echo "Creating orchest-namespace and installing dependencies."
     rm -rf "${DIR}/deploy/bin" > /dev/null
     make -C "${DIR}/deploy" orchest-resources > /dev/null 
