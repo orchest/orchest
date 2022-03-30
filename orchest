@@ -59,6 +59,9 @@ if [ "$1"  == "install" ]; then
     fi
     if [ ! -z "$ENABLE_ROOK_NFS" ]
     then
+        echo "Warning, Orchest with NFS on a local deployment is considered" \
+            "to be a development environment. It doesn't make much sense to" \
+            "use this as a user."
         if [ -z "$NFS_CLAIM_SIZE" ]
         then
             echo "Specify the NFS claim size, leave blank for default (50Gi). ${WARNING}" 
