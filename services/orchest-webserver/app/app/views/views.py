@@ -275,7 +275,7 @@ def register_views(app, db):
     @app.route("/async/host-info", methods=["GET"])
     def host_info():
         disk_info = subprocess.getoutput(
-            "df -BKB /config --output=size,avail,itotal,fstype | sed -n '2{p;q}'"
+            "df -BKB /userdir --output=size,avail,itotal,fstype | sed -n '2{p;q}'"
         )
         disk_info
 
