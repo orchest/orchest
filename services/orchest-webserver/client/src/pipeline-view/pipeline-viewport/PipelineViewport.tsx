@@ -1,7 +1,6 @@
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
 import { uuidv4 } from "@orchest/lib-utils";
-import { createUseGesture, pinchAction, wheelAction } from "@use-gesture/react";
 import classNames from "classnames";
 import React from "react";
 import {
@@ -19,6 +18,7 @@ import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { PipelineCanvas } from "./PipelineCanvas";
 import { useKeyboardEventsOnViewport } from "./useKeyboardEventsOnViewport";
 import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
+import { useZoomOnViewport } from "./useZoomOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
 
@@ -28,11 +28,8 @@ export type CanvasFunctions = {
 };
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
-  canvasRef: React.MutableRefObject<HTMLDivElement>;
   canvasFuncRef: React.MutableRefObject<CanvasFunctions>;
 };
-
-const useGesture = createUseGesture([wheelAction, pinchAction]);
 
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
@@ -43,10 +40,7 @@ const useGesture = createUseGesture([wheelAction, pinchAction]);
 const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   HTMLDivElement,
   Props
-> = (
-  { children, className, canvasRef, canvasFuncRef, style, ...props },
-  ref
-) => {
+> = ({ children, className, canvasFuncRef, style, ...props }, ref) => {
   const { dragFile } = useFileManagerContext();
   const {
     eventVars,
@@ -55,6 +49,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     pipelineCwd,
     newConnection,
     environments,
+    pipelineCanvasRef,
     getOnCanvasPosition,
   } = usePipelineEditorContext();
   const {
@@ -75,14 +70,14 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   );
 
   const getCurrentOrigin = React.useCallback(() => {
-    let canvasOffset = getOffset(canvasRef.current);
+    let canvasOffset = getOffset(pipelineCanvasRef.current);
     let viewportOffset = getOffset(localRef.current);
 
     const x = canvasOffset.left - viewportOffset.left;
     const y = canvasOffset.top - viewportOffset.top;
 
     return { x, y };
-  }, [canvasRef]);
+  }, [pipelineCanvasRef]);
 
   const pipelineSetHolderOrigin = React.useCallback(
     (newOrigin: [number, number]) => {
@@ -111,7 +106,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
   const centerPipelineOrigin = React.useCallback(() => {
     let viewportOffset = getOffset(localRef.current);
-    const canvasOffset = getOffset(canvasRef.current);
+    const canvasOffset = getOffset(pipelineCanvasRef.current);
 
     let viewportWidth = getWidth(localRef.current);
     let viewportHeight = getHeight(localRef.current);
@@ -125,7 +120,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     ] as [number, number];
 
     pipelineSetHolderOrigin(centerOrigin);
-  }, [canvasRef, eventVars.scaleFactor, pipelineSetHolderOrigin]);
+  }, [pipelineCanvasRef, eventVars.scaleFactor, pipelineSetHolderOrigin]);
 
   // NOTE: React.useImperativeHandle should only be used in special cases
   // here we have to use it to allow parent component (i.e. PipelineEditor) to center pipeline canvas
@@ -155,26 +150,6 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     });
   }, [resizeCanvas, localRef]);
 
-  const getPositionRelativeToCanvas = React.useCallback(
-    ([x, y]: [number, number]) => {
-      trackMouseMovement(x, y); // in case that user start zoom-in/out before moving their cursor
-      let canvasOffset = getOffset(canvasRef.current);
-
-      return [
-        scaleCorrected(x - canvasOffset.left, eventVars.scaleFactor),
-        scaleCorrected(y - canvasOffset.top, eventVars.scaleFactor),
-      ] as [number, number];
-    },
-    [canvasRef, eventVars.scaleFactor, trackMouseMovement]
-  );
-
-  const getMousePositionRelativeToCanvas = React.useCallback(
-    (e: WheelEvent | React.WheelEvent) => {
-      return getPositionRelativeToCanvas([e.clientX, e.clientY]);
-    },
-    [getPositionRelativeToCanvas]
-  );
-
   const onMouseDown = (e: React.MouseEvent) => {
     if (eventVars.selectedConnection) {
       dispatch({ type: "DESELECT_CONNECTION" });
@@ -185,7 +160,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       trackMouseMovement(e.clientX, e.clientY);
       dispatch({
         type: "CREATE_SELECTOR",
-        payload: getOffset(canvasRef.current),
+        payload: getOffset(pipelineCanvasRef.current),
       });
     }
   };
@@ -264,64 +239,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     };
   }, [pipelineSetHolderSize]);
 
-  React.useEffect(() => {
-    const handler = (e: Event) => e.preventDefault();
-    document.addEventListener("gesturestart", handler);
-    document.addEventListener("gesturechange", handler);
-    document.addEventListener("gestureend", handler);
-    return () => {
-      document.removeEventListener("gesturestart", handler);
-      document.removeEventListener("gesturechange", handler);
-      document.removeEventListener("gestureend", handler);
-    };
-  }, []);
-
-  const zoom = React.useCallback(
-    (event: WheelEvent | PointerEvent | TouchEvent, scaleDiff: number) => {
-      let pipelineMousePosition = getMousePositionRelativeToCanvas(
-        event as WheelEvent
-      );
-
-      // set origin at scroll wheel trigger
-      if (
-        pipelineMousePosition[0] !== pipelineOrigin[0] ||
-        pipelineMousePosition[1] !== pipelineOrigin[1]
-      ) {
-        pipelineSetHolderOrigin(pipelineMousePosition);
-      }
-
-      dispatch((current) => {
-        return {
-          type: "SET_SCALE_FACTOR",
-          payload: current.scaleFactor + scaleDiff,
-        };
-      });
-    },
-    [
-      dispatch,
-      getMousePositionRelativeToCanvas,
-      pipelineOrigin,
-      pipelineSetHolderOrigin,
-    ]
-  );
-
-  useGesture(
-    {
-      onWheel: ({ pinching, delta: [, deltaY], event }) => {
-        if (pinching) return;
-        zoom(event, -deltaY / 3000);
-      },
-      onPinch: ({ pinching, delta, event }) => {
-        if (!pinching) return;
-        zoom(event, delta[0] / 12);
-      },
-    },
-    {
-      target: localRef,
-      preventDefault: true,
-      eventOptions: { passive: false, capture: true },
-    }
-  );
+  useZoomOnViewport(localRef, pipelineSetHolderOrigin);
 
   return (
     <div
@@ -350,7 +268,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       {...props}
     >
       <PipelineCanvas
-        ref={canvasRef}
+        ref={pipelineCanvasRef}
         style={{
           transformOrigin: `${pipelineOrigin[0]}px ${pipelineOrigin[1]}px`,
           transform:

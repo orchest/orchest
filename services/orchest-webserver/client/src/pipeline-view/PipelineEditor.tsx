@@ -644,7 +644,6 @@ export const PipelineEditor = () => {
         <PipelineViewport
           ref={pipelineViewportRef}
           canvasFuncRef={canvasFuncRef}
-          canvasRef={pipelineCanvasRef}
         >
           {connections.map((connection) => {
             if (!connection) return null;
