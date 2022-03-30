@@ -11,4 +11,4 @@ nfs:
   claim:
     storageClassName: standard
     name: rook-nfs-claim
-    storage: 20Gi
+    storage: 50Gi

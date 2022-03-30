@@ -44,9 +44,27 @@ minikube kubectl -- create namespace orchest  > /dev/null 2>&1
 # K8S_TODO: don't silence stderr, and make it so that repeating "make
 # orchest-resources" will not produce an error.
 if [ "$1"  == "install" ]; then
+    if [ ! -z "$ENABLE_ROOK_NFS" ]
+    then
+        echo "Warning, Orchest with NFS on a local deployment is considered" \
+            "to be a development environment. It doesn't make much sense to" \
+            "use this as a user."
+        if [ -z "$NFS_CLAIM_SIZE" ]
+        then
+            echo "Specify the NFS claim size, leave blank for default (50Gi). ${WARNING}" 
+            read -p "Size: " NFS_CLAIM_SIZE
+            export NFS_CLAIM_SIZE
+        fi
+    fi
+
     echo "Creating orchest-namespace and installing dependencies."
     rm -rf "${DIR}/deploy/bin" > /dev/null
-    make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
+    make -C "${DIR}/deploy" orchest-resources > /dev/null 
+    if [ $?  != 0 ]; then
+        echo "Failed to install Orchest resources. Installation aborted."
+        exit 1
+    fi
+
     echo "Running orchest-ctl."
 elif ! minikube kubectl get namespace orchest > /dev/null 2>&1 ; then
     echo "You need to install Orchest before running other commands."
