@@ -1,11 +1,11 @@
-Flask-SQLAlchemy==2.4.1
-Flask==1.1.1
-SQLAlchemy-Utils==0.37.4
-Werkzeug==2.0.3
-eventlet==0.30.2
-flask-migrate==2.5.3
-flask-script==2.0.6
-itsdangerous==2.0.1
-psycopg2-binary==2.8.6
-requests==2.26.0
+Flask-SQLAlchemy
+Flask
+SQLAlchemy-Utils
+Werkzeug
+eventlet
+flask-migrate
+flask-script
+itsdangerous
+psycopg2-binary
+requests
 -e file:../../lib/python/orchest-internals
