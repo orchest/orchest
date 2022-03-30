@@ -51,6 +51,7 @@ if [ "$1"  == "install" ]; then
             "use this as a user."
         if [ -z "$NFS_CLAIM_SIZE" ]
         then
+            WARNING="This can't be changed later."
             echo "Specify the NFS claim size, leave blank for default (50Gi). ${WARNING}" 
             read -p "Size: " NFS_CLAIM_SIZE
             export NFS_CLAIM_SIZE
