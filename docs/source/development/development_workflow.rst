@@ -21,8 +21,8 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `Google Chrome <https://www.google.com/chrome/>`_ (integration tests only)
 
 Currently, the development scripts/tools assume that you are running Orchest in minikube.
-If you have managed to successfully install Orchest in minikube now it's the time to setup your
-development environment.
+If you have managed to successfully :ref:`install <installation>` Orchest in minikube
+now it's the time to setup your development environment.
 
 Development environment
 -----------------------
@@ -106,13 +106,17 @@ single node deployments make it far easier to test changes, for example, you cou
     # Make use of the in-node docker engine.
     eval $(minikube -p minikube docker-env)
 
-    # Build the desired image.
+    # Build the desired image. The tag to be passed is the image tag
+    # that the deployment of the Orchest service is using, see "kubectl
+    # get deployments -n orchest orchest-api -o wide" as an example.
+    # Example tag: 2022.03.8.
     scripts/build_container.sh -i orchest-api \
-        -t <currently deployed orchest version> \
-        -o <currently deployed orchest version>
+        -t <image tag of the deployment of the orchest service> \
+        -o <image tag of the deployment of the orchest service>
 
     # Kill the pods of the orchest-api, so that the new image gets used
-    # when new pods are deployed.
+    # when new pods are deployed. This assumes that Orchest has already
+    # been installed.
     kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
 
 This, however, wouldn't be possible in multi node deployments, and it's also error prone
@@ -122,7 +126,9 @@ following scripts:
 .. code-block:: bash
 
     # Redeploy a service after building the image using the repo code.
-    # This is the script that you will likely use the most.
+    # This is the script that you will likely use the most. This script
+    # assumes Orchest is installed and running, since it interacts with
+    # an Orchest service.
     bash scripts/redeploy_orchest_service_on_minikube.sh orchest-api
 
     # Remove an image from minikube. Can be useful to force a pull from
