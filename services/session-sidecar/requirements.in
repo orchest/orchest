@@ -1,0 +1,2 @@
+kubernetes==21.7.0
+-e file:../../lib/python/orchest-internals
