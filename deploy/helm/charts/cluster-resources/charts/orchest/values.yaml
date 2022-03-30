@@ -3,7 +3,7 @@ filesystem:
 
 userdir:
   name: userdir-pvc
-  storage: 20Gi
+  storage: 50Gi
 
 config:
   name: config-pvc
@@ -11,5 +11,5 @@ config:
 
 imagebuildercache:
   name: image-builder-cache-pvc
-  storage: 20Gi
+  storage: 50Gi
 

@@ -46,7 +46,12 @@ minikube kubectl -- create namespace orchest  > /dev/null 2>&1
 if [ "$1"  == "install" ]; then
     echo "Creating orchest-namespace and installing dependencies."
     rm -rf "${DIR}/deploy/bin" > /dev/null
-    make -C "${DIR}/deploy" orchest-resources > /dev/null 2>&1
+    make -C "${DIR}/deploy" orchest-resources > /dev/null 
+    if [ $?  != 0 ]; then
+        echo "Failed to install Orchest resources. Installation aborted."
+        exit 1
+    fi
+
     echo "Running orchest-ctl."
 elif ! minikube kubectl get namespace orchest > /dev/null 2>&1 ; then
     echo "You need to install Orchest before running other commands."

@@ -75,6 +75,9 @@ else ifeq (${ROOK_NFS_TARGET},rook-nfs)
   STORAGE_CTL_TARGET := rook-nfs
 endif
 
+USERDIR_PVC_SIZE := ${if ${USERDIR_PVC_SIZE},${USERDIR_PVC_SIZE},50Gi}
+IMAGEBUILDERCACHE_PVC_SIZE := ${if ${IMAGEBUILDERCACHE_PVC_SIZE},${IMAGEBUILDERCACHE_PVC_SIZE},50Gi}
+
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
@@ -146,6 +149,8 @@ ORCHEST_RSC_DEPLOY_CONFIG := orchest-resources \
 							${SHARED_DEPLOY_CONFIG}	\
 							${CLUSTER_RSC_ENABLE_CONFIG} \
 							${ORCHEST_RSC_USERDIR_STORAGE} \
+							--set cluster-resources.orchest.userdir.storage="${USERDIR_PVC_SIZE}" \
+							--set cluster-resources.orchest.imagebuildercache.storage="${IMAGEBUILDERCACHE_PVC_SIZE}" \
 							${ORCHEST_RSC_ENABLE_CONFIG} helm
 
 # rook-ceph deplyment configs
