@@ -75,10 +75,6 @@ else ifeq (${ROOK_NFS_TARGET},rook-nfs)
   STORAGE_CTL_TARGET := rook-nfs
 endif
 
-USERDIR_PVC_SIZE := ${if ${USERDIR_PVC_SIZE},${USERDIR_PVC_SIZE},50Gi}
-IMAGEBUILDERCACHE_PVC_SIZE := ${if ${IMAGEBUILDERCACHE_PVC_SIZE},${IMAGEBUILDERCACHE_PVC_SIZE},50Gi}
-NFS_CLAIM_SIZE := ${if ${NFS_CLAIM_SIZE},${NFS_CLAIM_SIZE},50Gi}
-
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
 ORCHEST_LOG_LEVEL := ${if ${ORCHEST_LOG_LEVEL},${ORCHEST_LOG_LEVEL},INFO}
@@ -145,13 +141,17 @@ CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
 # orchest resources deployment configs
 ORCHEST_RSC_ENABLE_CONFIG := --set cluster-resources.orchest.enabled=true
 ORCHEST_RSC_USERDIR_STORAGE := --set cluster-resources.orchest.filesystem.storageClass=${FILESYSTEM_STORAGE_CLASS}
+USERDIR_PVC_SIZE_CONFIG := \
+	${if ${USERDIR_PVC_SIZE},--set cluster-resources.orchest.userdir.storage=${USERDIR_PVC_SIZE},}
+IMAGEBUILDERCACHE_PVC_SIZE_CONFIG := \
+	${if ${IMAGEBUILDERCACHE_PVC_SIZE},--set cluster-resources.orchest.imagebuildercache.storage=${IMAGEBUILDERCACHE_PVC_SIZE},}
 ORCHEST_RSC_DEPLOY_CONFIG := orchest-resources \
 							--namespace ${NAMESPACE} \
 							${SHARED_DEPLOY_CONFIG}	\
 							${CLUSTER_RSC_ENABLE_CONFIG} \
 							${ORCHEST_RSC_USERDIR_STORAGE} \
-							--set cluster-resources.orchest.userdir.storage="${USERDIR_PVC_SIZE}" \
-							--set cluster-resources.orchest.imagebuildercache.storage="${IMAGEBUILDERCACHE_PVC_SIZE}" \
+							${USERDIR_PVC_SIZE_CONFIG} \
+							${IMAGEBUILDERCACHE_PVC_SIZE_CONFIG} \
 							${ORCHEST_RSC_ENABLE_CONFIG} helm
 
 # rook-ceph deplyment configs
@@ -171,12 +171,13 @@ ROOK_NFS_DEPLOY_CONFIG := rook-nfs \
 # nfs resources deplyment configs
 NFS_RSC_ENABLE_CONFIG := --set cluster-resources.nfs.enabled=true
 NFS_RSC_STORAGE_CLASS_NAME := --set cluster-resources.nfs.nfs.storageClass.name=${FILESYSTEM_STORAGE_CLASS}
+NFS_CLAIM_SIZE_CONFIG := ${if ${NFS_CLAIM_SIZE},--set cluster-resources.nfs.nfs.claim.storage=${NFS_CLAIM_SIZE},}
 NFS_RSC_DEPLOY_CONFIG := nfs-resources \
 						--namespace ${ROOK_NFS_NAMESPACE} \
 						${SHARED_DEPLOY_CONFIG}	\
 						${NFS_RSC_STORAGE_CLASS_NAME} \
 						${CLUSTER_RSC_ENABLE_CONFIG} \
-						--set cluster-resources.nfs.nfs.claim.storage="${NFS_CLAIM_SIZE}" \
+						${NFS_CLAIM_SIZE_CONFIG} \
 						${NFS_RSC_ENABLE_CONFIG} helm
 
 # orchest Api deployment configs
