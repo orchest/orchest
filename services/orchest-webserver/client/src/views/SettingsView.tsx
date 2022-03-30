@@ -352,7 +352,7 @@ const SettingsView: React.FC = () => {
           </div>
           <div className="clear"></div>
         </div>
-        <div className="columns">
+        {/* <div className="columns">
           <div className="column">
             <p>Disk usage.</p>
           </div>
@@ -383,7 +383,7 @@ const SettingsView: React.FC = () => {
             })()}
           </div>
         </div>
-        <div className="clear"></div>
+        <div className="clear"></div> */}
 
         <h3>JupyterLab configuration</h3>
         <div className="columns">
