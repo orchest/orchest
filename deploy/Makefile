@@ -77,6 +77,7 @@ endif
 
 USERDIR_PVC_SIZE := ${if ${USERDIR_PVC_SIZE},${USERDIR_PVC_SIZE},50Gi}
 IMAGEBUILDERCACHE_PVC_SIZE := ${if ${IMAGEBUILDERCACHE_PVC_SIZE},${IMAGEBUILDERCACHE_PVC_SIZE},50Gi}
+NFS_CLAIM_SIZE := ${if ${NFS_CLAIM_SIZE},${NFS_CLAIM_SIZE},50Gi}
 
 DEBUG := ${if ${DEBUG},--debug --dry-run,}
 
@@ -175,6 +176,7 @@ NFS_RSC_DEPLOY_CONFIG := nfs-resources \
 						${SHARED_DEPLOY_CONFIG}	\
 						${NFS_RSC_STORAGE_CLASS_NAME} \
 						${CLUSTER_RSC_ENABLE_CONFIG} \
+						--set cluster-resources.nfs.nfs.claim.storage="${NFS_CLAIM_SIZE}" \
 						${NFS_RSC_ENABLE_CONFIG} helm
 
 # orchest Api deployment configs
