@@ -456,7 +456,14 @@ def _wait_daemonsets_to_be_ready(daemonsets: List[str], progress_bar) -> None:
         time.sleep(1)
 
 
-def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
+def start(
+    log_level: utils.LogLevel,
+    cloud: bool,
+    dev: bool,
+    dev_orchest_webserver: bool,
+    dev_orchest_api: bool,
+    dev_auth_server: bool,
+):
     k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
@@ -502,7 +509,7 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
         utils.echo("Orchest is already running.")
         return
 
-    if dev:
+    if dev or dev_orchest_api or dev_orchest_webserver or dev_auth_server:
         _cmd = (
             "minikube start --memory 16000 --cpus 12 "
             '--mount-string="$(pwd):/orchest-dev-repo" --mount'
@@ -520,14 +527,17 @@ def start(log_level: utils.LogLevel, cloud: bool, dev: bool):
         orchest_config["TELEMETRY_DISABLED"] = True
         utils.set_orchest_config(orchest_config)
 
-        utils.echo("Setting dev mode for orchest-webserver.")
-        k8sw.patch_orchest_webserver_for_dev_mode()
+        if dev or dev_orchest_webserver:
+            utils.echo("Setting dev mode for orchest-webserver.")
+            k8sw.patch_orchest_webserver_for_dev_mode()
 
-        utils.echo("Setting dev mode for orchest-api.")
-        k8sw.patch_orchest_api_for_dev_mode()
+        if dev or dev_orchest_api:
+            utils.echo("Setting dev mode for orchest-api.")
+            k8sw.patch_orchest_api_for_dev_mode()
 
-        utils.echo("Setting dev mode for auth-server.")
-        k8sw.patch_auth_server_for_dev_mode()
+        if dev or dev_auth_server:
+            utils.echo("Setting dev mode for auth-server.")
+            k8sw.patch_auth_server_for_dev_mode()
     # No op if there those services weren't running with --dev mode.
     else:
         if k8sw.is_running_in_dev_mode("orchest-webserver"):

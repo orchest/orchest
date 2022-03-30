@@ -102,6 +102,16 @@ def start(
         False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
     ),
     dev: bool = typer.Option(False, show_default="--no-dev", help=__DEV_HELP_MESSAGE),
+    # Selectively set --dev mode.
+    dev_orchest_webserver: bool = typer.Option(
+        False, show_default="--no-dev-orchest-webserver", hidden=True
+    ),
+    dev_orchest_api: bool = typer.Option(
+        False, show_default="--no-dev-orchest-api", hidden=True
+    ),
+    dev_auth_server: bool = typer.Option(
+        False, show_default="--no-dev-auth-server", hidden=True
+    ),
 ):
     """
     Start Orchest.
@@ -111,13 +121,9 @@ def start(
     \b
         orchest start [OPTIONS]
     """
-    # if dev:
-    #     logger.info(
-    #         "Starting Orchest with --dev. This mounts host directories
-    #         " "to monitor for source code changes."
-    #     )
-
-    orchest.start(log_level, cloud, dev)
+    orchest.start(
+        log_level, cloud, dev, dev_orchest_webserver, dev_orchest_api, dev_auth_server
+    )
 
 
 @typer_app.command()
