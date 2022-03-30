@@ -1,0 +1,7 @@
+-c requirements.txt
+ipykernel
+ipython
+nbconvert
+nbformat
+pytest
+-e file:../../../../lib/python/orchest-internals
