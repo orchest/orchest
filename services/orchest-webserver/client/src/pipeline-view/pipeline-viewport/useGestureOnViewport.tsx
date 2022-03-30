@@ -8,9 +8,13 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
 /**
- * This hook is responsible for zoom in/out PiplineCanvas by mutating eventVar.scaleFactor
+ * This hook is responsible for pinching and panning on PiplineCanvas
+ *
+ * It seems that useGesture in one place will intercept all gesture events.
+ * So, for example, useWheel in other places in the same view would not work.
+ * All the gesture events for PipelineEditor should be implemented in this hook.
  */
-export const useZoomOnViewport = (
+export const useGestureOnViewport = (
   ref: React.MutableRefObject<HTMLDivElement>,
   pipelineSetHolderOrigin: (newOrigin: [number, number]) => void
 ) => {
@@ -23,6 +27,7 @@ export const useZoomOnViewport = (
 
   const {
     pipelineCanvasState: { pipelineOrigin },
+    setPipelineCanvasState,
   } = usePipelineCanvasContext();
 
   const getPositionRelativeToCanvas = React.useCallback(
@@ -88,9 +93,15 @@ export const useZoomOnViewport = (
 
   useGesture(
     {
-      onWheel: ({ pinching, delta: [, deltaY], event }) => {
-        if (pinching) return;
-        zoom(event, -deltaY / 3000);
+      onWheel: ({ pinching, wheeling, delta: [dx, dy] }) => {
+        if (pinching || !wheeling) return;
+
+        setPipelineCanvasState((current) => ({
+          pipelineOffset: [
+            current.pipelineOffset[0] - dx,
+            current.pipelineOffset[1] - dy,
+          ],
+        }));
       },
       onPinch: ({ pinching, delta, event }) => {
         if (!pinching) return;

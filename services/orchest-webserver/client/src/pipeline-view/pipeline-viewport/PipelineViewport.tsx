@@ -16,9 +16,9 @@ import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { PipelineCanvas } from "./PipelineCanvas";
+import { useGestureOnViewport } from "./useGestureOnViewport";
 import { useKeyboardEventsOnViewport } from "./useKeyboardEventsOnViewport";
 import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
-import { useZoomOnViewport } from "./useZoomOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
 
@@ -239,7 +239,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     };
   }, [pipelineSetHolderSize]);
 
-  useZoomOnViewport(localRef, pipelineSetHolderOrigin);
+  useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
   return (
     <div

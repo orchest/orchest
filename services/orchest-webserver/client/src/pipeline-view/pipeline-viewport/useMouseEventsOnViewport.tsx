@@ -1,4 +1,5 @@
 import { getOffset } from "@/utils/jquery-replacement";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { getScaleCorrectedPosition } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
@@ -79,10 +80,7 @@ export const useMouseEventsOnViewport = () => {
 
   const onMouseDownDocument = React.useCallback(
     (e: MouseEvent) => {
-      if (
-        e.button === 2 ||
-        (e.button === 0 && panningState === "ready-to-pan")
-      ) {
+      if (e.button === 0 && panningState === "ready-to-pan") {
         trackMouseMovement(e.clientX, e.clientY);
         setPipelineCanvasState({ panningState: "panning" });
       }
@@ -99,24 +97,27 @@ export const useMouseEventsOnViewport = () => {
       ) {
         setPipelineCanvasState({ panningState: "ready-to-pan" });
       }
-
-      if (e.button === 2) {
-        setPipelineCanvasState({ panningState: "idle" });
-      }
     },
     [panningState, setPipelineCanvasState, keysDown]
   );
 
   React.useEffect(() => {
-    document.body.addEventListener("mousedown", onMouseDownDocument);
-    document.body.addEventListener("mouseup", onMouseUpDocument);
-    document.body.addEventListener("mousemove", onMouseMoveDocument);
-    document.body.addEventListener("mouseleave", onMouseLeaveViewport);
+    const supportPointerEvent = hasValue(window.PointerEvent);
+
+    const downEventType = supportPointerEvent ? "pointerdown" : "mousedown";
+    const upEventType = supportPointerEvent ? "pointerup" : "mouseup";
+    const moveEventType = supportPointerEvent ? "pointermove" : "mousemove";
+    const leaveEventType = supportPointerEvent ? "pointerleave" : "mouseleave";
+
+    document.body.addEventListener(downEventType, onMouseDownDocument);
+    document.body.addEventListener(upEventType, onMouseUpDocument);
+    document.body.addEventListener(moveEventType, onMouseMoveDocument);
+    document.body.addEventListener(leaveEventType, onMouseLeaveViewport);
     return () => {
-      document.body.removeEventListener("mousemove", onMouseMoveDocument);
-      document.body.removeEventListener("mouseleave", onMouseLeaveViewport);
-      document.body.removeEventListener("mousedown", onMouseDownDocument);
-      document.body.removeEventListener("mouseup", onMouseUpDocument);
+      document.body.removeEventListener(downEventType, onMouseDownDocument);
+      document.body.removeEventListener(upEventType, onMouseUpDocument);
+      document.body.removeEventListener(moveEventType, onMouseMoveDocument);
+      document.body.removeEventListener(leaveEventType, onMouseLeaveViewport);
     };
   }, [
     onMouseLeaveViewport,
