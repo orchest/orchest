@@ -604,6 +604,11 @@ def _get_jupyter_enterprise_gateway_deployment_service_manifest(
         user_defined_env_vars = utils.get_proj_pip_env_variables(
             project_uuid, pipeline_uuid
         )
+
+        # NOTE: Don't allow users to specify change the `PATH` as it
+        # could break user code execution. The `PATH` var is removed
+        # when starting kernels through the jupyter-EG as well.
+        user_defined_env_vars.pop("PATH", None)
     except Exception:
         user_defined_env_vars = {}
 
