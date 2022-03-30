@@ -7,6 +7,16 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 
 const useGesture = createUseGesture([wheelAction, pinchAction]);
 
+const isTrachpad = (event: WheelEvent) => {
+  // deltaMode represents the unit of the delta values scroll amount
+  // 0: pixel; 1: line; 2: page
+  if (!event.wheelDeltaY && event.deltaMode === 0) return true;
+  // see explanation here https://stackoverflow.com/a/62415754
+  if (event.wheelDeltaY && event.wheelDeltaY === event.deltaY * -3) return true;
+
+  return false;
+};
+
 /**
  * This hook is responsible for pinching and panning on PiplineCanvas
  *
@@ -93,13 +103,20 @@ export const useGestureOnViewport = (
 
   useGesture(
     {
-      onWheel: ({ pinching, wheeling, delta: [dx, dy] }) => {
+      onWheel: ({ pinching, wheeling, delta: [deltaX, deltaY], event }) => {
         if (pinching || !wheeling) return;
 
+        // mouse wheel
+        if (!isTrachpad(event)) {
+          zoom(event, -deltaY / 3000);
+          return;
+        }
+
+        // Touchpad: panning
         setPipelineCanvasState((current) => ({
           pipelineOffset: [
-            current.pipelineOffset[0] - dx,
-            current.pipelineOffset[1] - dy,
+            current.pipelineOffset[0] - deltaX,
+            current.pipelineOffset[1] - deltaY,
           ],
         }));
       },
