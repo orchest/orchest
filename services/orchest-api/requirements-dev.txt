@@ -2,7 +2,9 @@ APScheduler==3.7.0
 Flask-Cors==3.0.9
 Flask-SQLAlchemy==2.4.1
 Flask==1.1.1
+Jinja2==3.0.3
 SQLAlchemy-Utils==0.37.4
+Werkzeug==2.0.3
 aiohttp==3.7.4
 amqp==5.0.9
 celery==5.2.2
@@ -11,8 +13,8 @@ eventlet==0.30.2
 flask-migrate==2.5.3
 flask-restx==0.5.1
 flask-script==2.0.6
-kubernetes==21.7.0
 itsdangerous==2.0.1
+kubernetes==21.7.0
 psycopg2-binary==2.8.6
 pytest-mock==3.6.1
 python-engineio==3.14.2

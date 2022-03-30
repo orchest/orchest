@@ -1,5 +1,7 @@
 #! /usr/bin/env sh
 
+set -e
+
 # Start Gunicorn
 umask 002
 

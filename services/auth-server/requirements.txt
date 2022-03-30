@@ -1,6 +1,7 @@
 Flask-SQLAlchemy==2.4.1
 Flask==1.1.1
 SQLAlchemy-Utils==0.37.4
+Werkzeug==2.0.3
 eventlet==0.30.2
 flask-migrate==2.5.3
 flask-script==2.0.6

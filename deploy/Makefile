@@ -84,7 +84,7 @@ CLOUD := ${if ${CLOUD},${CLOUD},"False"}
 # define DISABLE_REGISTRY env variable and set it to something (preferably FALSE)
 REGISTRY_TARGET := ${if ${DISABLE_REGISTRY},,docker-registry}
 
-SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 600s
+SHARED_DEPLOY_CONFIG := ${KUBECONFIG} ${DEBUG} --create-namespace --atomic --timeout 1800s
 
 # docker-registry deployment configs
 REGISTRY_SECRET := ${if ${REGISTRY_SECRET},${REGISTRY_SECRET},registry-tls-secret}
@@ -141,11 +141,17 @@ CLUSTER_RSC_CEPH_DEPLOY_CONFIG := ceph-resources \
 # orchest resources deployment configs
 ORCHEST_RSC_ENABLE_CONFIG := --set cluster-resources.orchest.enabled=true
 ORCHEST_RSC_USERDIR_STORAGE := --set cluster-resources.orchest.filesystem.storageClass=${FILESYSTEM_STORAGE_CLASS}
+USERDIR_PVC_SIZE_CONFIG := \
+	${if ${USERDIR_PVC_SIZE},--set cluster-resources.orchest.userdir.storage=${USERDIR_PVC_SIZE},}
+IMAGEBUILDERCACHE_PVC_SIZE_CONFIG := \
+	${if ${IMAGEBUILDERCACHE_PVC_SIZE},--set cluster-resources.orchest.imagebuildercache.storage=${IMAGEBUILDERCACHE_PVC_SIZE},}
 ORCHEST_RSC_DEPLOY_CONFIG := orchest-resources \
 							--namespace ${NAMESPACE} \
 							${SHARED_DEPLOY_CONFIG}	\
 							${CLUSTER_RSC_ENABLE_CONFIG} \
 							${ORCHEST_RSC_USERDIR_STORAGE} \
+							${USERDIR_PVC_SIZE_CONFIG} \
+							${IMAGEBUILDERCACHE_PVC_SIZE_CONFIG} \
 							${ORCHEST_RSC_ENABLE_CONFIG} helm
 
 # rook-ceph deplyment configs
@@ -165,11 +171,13 @@ ROOK_NFS_DEPLOY_CONFIG := rook-nfs \
 # nfs resources deplyment configs
 NFS_RSC_ENABLE_CONFIG := --set cluster-resources.nfs.enabled=true
 NFS_RSC_STORAGE_CLASS_NAME := --set cluster-resources.nfs.nfs.storageClass.name=${FILESYSTEM_STORAGE_CLASS}
+NFS_CLAIM_SIZE_CONFIG := ${if ${NFS_CLAIM_SIZE},--set cluster-resources.nfs.nfs.claim.storage=${NFS_CLAIM_SIZE},}
 NFS_RSC_DEPLOY_CONFIG := nfs-resources \
 						--namespace ${ROOK_NFS_NAMESPACE} \
 						${SHARED_DEPLOY_CONFIG}	\
 						${NFS_RSC_STORAGE_CLASS_NAME} \
 						${CLUSTER_RSC_ENABLE_CONFIG} \
+						${NFS_CLAIM_SIZE_CONFIG} \
 						${NFS_RSC_ENABLE_CONFIG} helm
 
 # orchest Api deployment configs
@@ -303,9 +311,9 @@ cert-manager : ./bin/cert-manager
 .SECONDARY: ./bin/cert-manager
 ./bin/cert-manager: |
 	kubectl apply -f thirdparty/cert-manager
-	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-webhook -n cert-manager
-	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager-cainjector -n cert-manager
-	kubectl wait --for=condition=available --timeout=600s deployment/cert-manager -n cert-manager
+	kubectl wait --for=condition=available --timeout=1800s deployment/cert-manager-webhook -n cert-manager
+	kubectl wait --for=condition=available --timeout=1800s deployment/cert-manager-cainjector -n cert-manager
+	kubectl wait --for=condition=available --timeout=1800s deployment/cert-manager -n cert-manager
 
 .PHONY: clean-cert-manager
 clean-cert-manager:

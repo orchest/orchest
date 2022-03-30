@@ -15,7 +15,8 @@
 
 ## Build data pipelines, the easy way 🙌
 
-No frameworks. No YAML. Just write Python and R code in Notebooks.
+No frameworks. No YAML. Just write your data processing code directly in **Python**, **R** or
+**Julia**.
 
 <p align="center">
 <a target="_blank" href="https://vimeo.com/589879082"><img src="https://user-images.githubusercontent.com/1309307/111806797-a2c10300-88d2-11eb-9f21-bf1544f95b34.gif" width="868px" alt="orchest-0.3.0-demo" /></a/></p>
@@ -107,3 +108,4 @@ An example badge to import our [quickstart](https://github.com/orchest/quickstar
 <a href="https://github.com/iannbing"><img src="https://avatars.githubusercontent.com/u/627607?v=4" title="iannbing" width="50" height="50"></a>
 <a href="https://github.com/andtheWings"><img src="https://avatars.githubusercontent.com/u/5892089?v=4" title="andtheWings" width="50" height="50"></a>
 <a href="https://github.com/jacobodeharo"><img src="https://avatars.githubusercontent.com/jacobodeharo?v=4" title="jacobodeharo" width="50" height="50"></a>
+<a href="https://github.com/nhaghighat"><img src="https://avatars.githubusercontent.com/u/3792293?v=4" title="nhaghighat" width="50" height="50"></a>

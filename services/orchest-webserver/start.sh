@@ -1,5 +1,7 @@
 #! /usr/bin/env sh
 
+set -e
+
 umask 002
 
 # Release phase

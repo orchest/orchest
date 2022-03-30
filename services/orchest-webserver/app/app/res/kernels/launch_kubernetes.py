@@ -50,6 +50,23 @@ def _env_image_name_to_project_environment_uuid(image_name: str) -> Tuple[str, s
     return proj_uuid, env_uuid
 
 
+def _get_user_env_vars(proj_uuid: str, pipe_uuid: str) -> dict:
+    project_resp = requests.get(
+        "http://" + _config.ORCHEST_API_ADDRESS + f"/api/projects/{proj_uuid}"
+    )
+    pipeline_resp = requests.get(
+        "http://"
+        + _config.ORCHEST_API_ADDRESS
+        + f"/api/pipelines/{proj_uuid}/{pipe_uuid}"
+    )
+
+    if project_resp.status_code != 200 or pipeline_resp.status_code != 200:
+        raise RuntimeError("Failed to retrieve user environment variables.")
+
+    project, pipeline = project_resp.json(), pipeline_resp.json()
+    return {**project["env_variables"], **pipeline["env_variables"]}
+
+
 def _get_kernel_pod_manifest(
     kernel_id: str, response_addr: str, spark_context_init_mode: str
 ) -> dict:
@@ -100,6 +117,18 @@ def _get_kernel_pod_manifest(
     # Since the environment is specific to the kernel (per env stanza of
     # kernelspec, KERNEL_ and ENV_WHITELIST) just add the env here.
     environment.update(os.environ)
+    try:
+        user_env_vars = _get_user_env_vars(
+            os.environ["ORCHEST_PROJECT_UUID"],
+            os.environ["ORCHEST_PIPELINE_UUID"],
+        )
+    except RuntimeError as e:
+        sys.exit(e)
+    else:
+        # NOTE: This update needs to happen after adding `os.environ`.
+        # Otherwise old env var values (that are present in the
+        # environment of the EG) will overwrite updated values.
+        environment.update(user_env_vars)
     # Let the image PATH be used. Since this is relative to images,
     # we're probably safe.
     environment.pop("PATH")

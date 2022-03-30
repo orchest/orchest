@@ -25,6 +25,10 @@ pipeline run>` is ``PIP_VALUE``.
    access to your instance and sensible data. See how to setup authentication in the :ref:`orchest
    settings <orchest settings>`.
 
+.. note::
+   👉 Changes to the ``PATH`` variable are ignored given that it could break the execution of your
+   code.
+
 Project environment variables
 -----------------------------
 Every variable defined at the project level will be visible to every run of a pipeline belonging to
