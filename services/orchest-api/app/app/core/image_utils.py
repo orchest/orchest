@@ -75,12 +75,15 @@ def _get_buildah_image_build_workflow_manifest(
                                 # https://github.com/containers/buildah/issues/2741
                                 "--format docker "
                                 "--force-rm "
+                                "--disable-compression=true "
                                 # Avoid a warning about not being able
                                 # to write to the audit log.
                                 "--cap-add=CAP_AUDIT_WRITE "
                                 f"--tag {full_image_name} "
                                 # Push
-                                f"&& buildah push {full_image_name}"
+                                "&& buildah push "
+                                "--disable-compression=true "
+                                f"{full_image_name}"
                             )
                         ],
                         "securityContext": {
