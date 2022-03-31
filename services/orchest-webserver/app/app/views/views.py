@@ -59,8 +59,6 @@ from app.utils import (
     serialize_environment_to_disk,
 )
 
-ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
-
 
 def register_views(app, db):
     errors = {}
@@ -967,7 +965,7 @@ def register_views(app, db):
                 dir_nodes[root]["children"].append(dir_node)
 
             for filename in files:
-                if filename.split(".")[-1] in ALLOWED_FILE_EXTENSIONS:
+                if filename.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
                     file_node = {"type": "file", "name": filename}
 
                     # this key should always exist
@@ -1002,7 +1000,7 @@ def register_views(app, db):
 
         file_path = os.path.join(root_dir_path, path[1:])
 
-        if not file_path.split(".")[-1] in ALLOWED_FILE_EXTENSIONS:
+        if not file_path.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
             return jsonify({"message": "Given file type is not supported."}), 409
 
         directory, _ = os.path.split(file_path)

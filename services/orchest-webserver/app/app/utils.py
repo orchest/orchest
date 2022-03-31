@@ -567,12 +567,13 @@ def generate_ipynb_from_template(kernel_name: str):
 
 def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
     """
-    creates an empty file.
-    If the file extension is ".ipynb", kernel_name would be used to
-    configure its metadta
+    This function creates an empty file with the given `file_path`.
+    `kernel_name` is optional. It is  only applicable if `file_path`
+    ends with `.ipynb`.
 
-    Note: this function does not assume that step['file_path']
-    holds the value of file_path!
+    Note: this function does not update pipeline JSON file. Therefore it
+    does not assume that step['file_path'] holds the value of
+    `file_path`.
     """
 
     file_path_split = file_path.split(".")

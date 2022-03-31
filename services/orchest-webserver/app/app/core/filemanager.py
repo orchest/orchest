@@ -25,11 +25,10 @@ def allowed_file(filename):
     return True
 
 
-def construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -> str:
+def _construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -> str:
     """
-    if root is not provided, default to PROJECT_DIR_PATH;
-
-    if root is PROJECT_DIR_PATH, project_uuid is required;
+    If root is not provided, default to PROJECT_DIR_PATH;
+    If root equals to PROJECT_DIR_PATH, project_uuid is required;
     """
 
     root = PROJECT_DIR_PATH if root is None else root
@@ -46,7 +45,7 @@ def construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) ->
     project = Project.query.filter(Project.uuid == project_uuid).first()
 
     if project is None:
-        raise ValueError("project not found.")
+        raise ValueError(f"project {project_uuid} not found.")
 
     return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
@@ -206,34 +205,30 @@ def process_request(
     is_path_required: Optional[bool] = True,
 ) -> Tuple[str, Optional[int]]:
     if root is None:
-        raise ValueError("The root query argument is required.")
+        raise ValueError("Argument root is required.")
 
     if root == PROJECT_DIR_PATH and project_uuid is None:
-        raise ValueError(
-            "The project_uuid query argument is required if root is /project-dir."
-        )
+        raise ValueError("Argument project_uuid is required if root is '/project-dir'.")
 
     if depth is not None:
         try:
             depth = int(depth, 10)
         except Exception:
-            raise ValueError("Invalid value for the depth query argument.")
+            raise ValueError(f"Invalid value for depth: {depth}")
 
     # in most cases, path is required,
     # except for /async/file-management/browse,
     # where either depth and path should be provided
     if depth is None and path is None:
-        extra_explanation = (
-            "" if is_path_required else " if the depth query argumentis not present"
-        )
-        raise ValueError(f"The path query argument is required{extra_explanation}.")
+        extra_explanation = "" if is_path_required else " if depth is None"
+        raise ValueError(f"Argument path is required{extra_explanation}.")
 
     if path is not None:
         if not path.startswith("/"):
             raise ValueError(
-                "The path query argument should always start with a forward-slash: /"
+                "Argument path should always start with a forward-slash: '/'"
             )
 
-    root_dir_path = construct_root_dir_path(root=root, project_uuid=project_uuid)
+    root_dir_path = _construct_root_dir_path(root=root, project_uuid=project_uuid)
 
     return (root_dir_path, depth)
