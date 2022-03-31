@@ -336,9 +336,15 @@ export const getFilePathForDragFile = (
     : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
 };
 
-// Note that the selection order in selectedFiles is backward,
-// so we don't need to find from end
 export const lastSelectedFolderPath = (selectedFiles: string[]) => {
-  const found = selectedFiles.find((path) => path.endsWith("/"));
-  return found ? found.split(":")[1] : "/";
+  if (selectedFiles.length === 0) return "/";
+  // Note that the selection order in selectedFiles is backward,
+  // so we don't need to find from end
+  const lastSelected = selectedFiles[0];
+
+  // example:
+  // given:     /project-dir:/hello-world/foo/bar.py
+  // outcome:   /hello-world/foo/
+  const matches = lastSelected.match(/^\/[^\/]+:((\/[^\/]+)*\/)([^\/]*)/);
+  return matches ? matches[1] : "/";
 };
