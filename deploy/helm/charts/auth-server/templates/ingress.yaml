@@ -5,8 +5,13 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   rules:
-    - host: {{ template "library.ingress.host" . }}
-      http:
+    {{- $ingress := .Values.global.ingress | default dict }}
+    {{ if $ingress.host }}
+    - host: {{ $ingress.host }}
+      http:  
+    {{ else }}
+    - http:
+    {{ end }}
         paths:
           - path: /login
             pathType: Prefix
