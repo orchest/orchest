@@ -180,10 +180,10 @@ def install(
     utils.echo("Installation was successful.")
     utils.echo(
         f"Orchest is running with a FQDN equal to {fqdn}. To access it locally, add an "
-        "entry to your /etc/hosts file mapping the cluster ip (`minikube ip`) to "
-        f"'{fqdn}'. If you are on mac run the 'minikube tunnel' daemon and map "
-        f"127.0.0.1 to {fqdn} in the /etc/hosts file instead. You will then be able to"
-        f"reach Orchest at http://{fqdn}."
+        "entry to your '/etc/hosts' file mapping the cluster ip (`minikube ip`) to "
+        f"'{fqdn}'. If you are on mac run the `minikube tunnel` daemon and map "
+        f"'127.0.0.1' to {fqdn} in the '/etc/hosts' file instead. You will then be "
+        f" able to reach Orchest at http://{fqdn}."
     )
 
 

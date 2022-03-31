@@ -42,7 +42,7 @@ deployment
           # cleanup and not be able to respond.
           timeoutSeconds: 5
           periodSeconds: 5
-          failureThreshold: 40
+          failureThreshold: 50
           successThreshold: 1
         livenessProbe:
           httpGet:
