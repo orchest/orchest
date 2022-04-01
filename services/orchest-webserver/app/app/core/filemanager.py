@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from flask import jsonify
 
@@ -111,7 +111,14 @@ def zipdir(path, ziph):
             )
 
 
-def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
+def generate_tree(
+    dir: str,
+    path_filter="/",
+    allowed_file_extensions: List[str] = [],
+    depth: Optional[int] = 3,
+):
+
+    depth = depth if depth else 3
 
     if not os.path.isdir(dir):
         return jsonify({"message": f"Dir {dir} not found."}), 404
@@ -139,7 +146,7 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
 
     dir_depth = dir.count(os.sep)
 
-    logger.debug("Walking %s " % filtered_path)
+    logger.debug(f"Walking {filtered_path}")
     for root, dirs, files in os.walk(filtered_path):
 
         dir_delete_set = set()
