@@ -110,7 +110,7 @@ def get_project_snapshot_size(project_uuid):
     skip_dirs = [".orchest"]
 
     # Convert bytes to megabytes.
-    return get_size(project_dir, skip_dirs) / (1024**2)
+    return get_size(project_dir, skip_dirs) / (1024 ** 2)
 
 
 def project_exists(project_uuid):
