@@ -146,7 +146,7 @@ export function FileManager() {
     );
 
     setInProgress(false);
-  }, [expanded, treeRoots, setFileTrees]);
+  }, [projectUuid, expanded, treeRoots, setFileTrees]);
 
   const collapseAll = () => {
     setExpanded([]);
