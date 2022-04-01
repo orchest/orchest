@@ -6,13 +6,6 @@ set -e
 FILE_USER="$(ls -n /orchest-host/orchest | awk '{print $3}')"
 FILE_GROUP="$(ls -n /orchest-host/orchest | awk '{print $4}')"
 
-# Explicitely use HTTPS so that we do not get the error:
-# "error: cannot run ssh: No such file or directory"
-# It is caused when the remote "origin" uses SSH.
-git pull https://github.com/orchest/orchest.git --rebase
-# explicitly fetch tags
-git fetch https://github.com/orchest/orchest.git --tags
-
 git fetch origin stale/pre-k8s-orchest
 
 git checkout stale/pre-k8s-orchest
