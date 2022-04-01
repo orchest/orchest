@@ -16,19 +16,19 @@ import {
   cleanFilePath,
   deduceRenameFromDragOperation,
   filePathFromHTMLElement,
+  FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
+  findFilesByExtension,
   generateTargetDescription,
   isFileByExtension,
   isWithinDataFolder,
-  PROJECT_DIR_PATH,
   queryArgs,
   ROOT_SEPARATOR,
-  TreeNode,
   unpackCombinedPath,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
-import { FileTrees, useFileManagerContext } from "./FileManagerContext";
+import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 import { TreeRow } from "./TreeRow";
@@ -55,26 +55,6 @@ const findFileViaPath = (path: string, fileTrees: FileTrees) => {
     head = found;
   }
   return head;
-};
-
-const containsFilesByExtension = async (
-  projectUuid: string,
-  extensions: string[],
-  node: TreeNode
-) => {
-  if (node.type === "file") return isFileByExtension(extensions, node.name);
-  if (node.type === "directory") {
-    const response = await fetcher<{ files: string[] }>(
-      `/async/file-management/extension-search?${queryArgs({
-        project_uuid: projectUuid,
-        root: PROJECT_DIR_PATH, // note: root should either be /data or /project-dir
-        path: node.path,
-        extensions: extensions.join(","),
-      })}`
-    );
-
-    return response.files.length > 0;
-  }
 };
 
 // ancesterPath has to be an folder because a file cannot be a parent
@@ -310,13 +290,15 @@ export const FileTree = React.memo(function FileTreeComponent({
       // if user attempts to move .ipynb or .orchest files to /data
       if (isWithinDataFolder(targetPath)) {
         const foundPathWithForbiddenFiles = await Promise.all(
-          dragFiles.map((dragFilePath) => {
+          dragFiles.map(async (dragFilePath) => {
             const foundFile = findFileViaPath(dragFilePath, fileTrees);
-            return containsFilesByExtension(
+            const files = await findFilesByExtension({
+              root: "/project-dir",
               projectUuid,
-              ["ipynb", "orchest"],
-              foundFile
-            );
+              extensions: ["ipynb", "orchest"],
+              node: foundFile,
+            });
+            return files.length > 0;
           })
         );
 
@@ -370,9 +352,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     (target: HTMLElement) => {
       // dropped outside of the tree view
       // PipelineViewport will take care of the operation
-      if (!isInFileManager(target)) {
-        return;
-      }
+      if (!isInFileManager(target)) return;
 
       let targetFilePath = filePathFromHTMLElement(target);
       if (!targetFilePath) return;
@@ -415,7 +395,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                     : undefined,
               }}
               data-path={combinedPath}
-              labelText={root === PROJECT_DIR_PATH ? "Project files" : root}
+              labelText={root === "/project-dir" ? "Project files" : root}
             >
               <TreeRow
                 setDragFile={setDragFile}

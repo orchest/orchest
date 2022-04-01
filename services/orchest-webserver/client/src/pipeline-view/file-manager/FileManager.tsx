@@ -8,6 +8,7 @@ import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath } from "react-dropzone";
+import { FileManagerRoot } from "../common";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -15,7 +16,6 @@ import {
   isCombinedPathChildLess,
   lastSelectedFolderPath,
   mergeTrees,
-  PROJECT_DIR_PATH,
   queryArgs,
   searchTrees,
   TreeNode,
@@ -79,6 +79,8 @@ const createInvalidEntryFilter = ({
 type ProgressType = LinearProgressProps["variant"];
 const DEFAULT_DEPTH = 3;
 
+const treeRoots: FileManagerRoot[] = ["/project-dir", "/data"];
+
 export function FileManager() {
   /**
    * States
@@ -99,7 +101,7 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
+  const [expanded, setExpanded] = React.useState(["/project-dir"]);
   const [progress, setProgress] = React.useState(0);
 
   const [progressType, setProgressType] = React.useState<ProgressType>(
@@ -109,11 +111,8 @@ export function FileManager() {
     null
   );
 
-  // Note, roots are assumed to always start with a / (absolute paths)
-  const treeRoots = React.useMemo(() => [PROJECT_DIR_PATH, "/data"], []);
   const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
     selectedFiles,
-    treeRoots,
   ]);
 
   /**

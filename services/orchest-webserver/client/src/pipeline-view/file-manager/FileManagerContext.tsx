@@ -1,12 +1,10 @@
 import React from "react";
-import type { TreeNode } from "./common";
+import type { FileTrees } from "./common";
 
 type DragFile = {
   labelText: string;
   path: string;
 };
-
-export type FileTrees = Record<string, TreeNode>;
 
 export type FilePathChange = {
   oldRoot: string;

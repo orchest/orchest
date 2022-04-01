@@ -7,6 +7,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import FilePicker from "../../components/FilePicker";
+import { queryArgs } from "../file-manager/common";
 
 type DirectoryDetails = {
   tree: FileTree;
@@ -32,7 +33,13 @@ const useFileDirectoryDetails = (
     if (project_uuid && pipeline_uuid) {
       run(
         Promise.all([
-          fetcher<FileTree>(`/async/file-picker-tree/${project_uuid}`),
+          fetcher<FileTree>(
+            `/async/file-management/tree?${queryArgs({
+              root: "/project-dir",
+              path: "/",
+              project_uuid,
+            })}`
+          ),
           fetcher<{ cwd: string }>(
             `/async/file-picker-tree/pipeline-cwd/${project_uuid}/${pipeline_uuid}`
           ).then((response) => `${response["cwd"]}/`), // FilePicker cwd expects trailing / for cwd paths

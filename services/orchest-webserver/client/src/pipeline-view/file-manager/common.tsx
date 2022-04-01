@@ -5,10 +5,12 @@ import {
   extensionFromFilename,
 } from "@orchest/lib-utils";
 import React from "react";
+import { FileManagerRoot } from "../common";
+
+export type FileTrees = Record<string, TreeNode>;
 
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
-export const PROJECT_DIR_PATH = "/project-dir";
 export const ROOT_SEPARATOR = ":";
 
 export type TreeNode = {
@@ -146,7 +148,10 @@ export const queryArgs = (obj: Record<string, string | number | boolean>) => {
  * Path helpers
  */
 
-export const getActiveRoot = (selected: string[], treeRoots: string[]) => {
+export const getActiveRoot = (
+  selected: string[],
+  treeRoots: FileManagerRoot[]
+) => {
   if (selected.length === 0) {
     return treeRoots[0];
   } else {
@@ -163,7 +168,10 @@ const isPathChildLess = (path: string, fileTree: TreeNode) => {
     return node.children.length === 0;
   }
 };
-export const isCombinedPathChildLess = (combinedPath, fileTrees) => {
+export const isCombinedPathChildLess = (
+  combinedPath: string,
+  fileTrees: FileTrees
+) => {
   let { root, path } = unpackCombinedPath(combinedPath);
   return isPathChildLess(path, fileTrees[root]);
 };
@@ -218,6 +226,38 @@ export const isFileByExtension = (extensions: string[], filePath: string) => {
     "i"
   );
   return regex.test(filePath);
+};
+
+/**
+ * This function returns a list of file_path that ends with the given extensions.
+ */
+export const findFilesByExtension = async ({
+  root,
+  projectUuid,
+  extensions,
+  node,
+}: {
+  root: FileManagerRoot;
+  projectUuid: string;
+  extensions: string[];
+  node: TreeNode;
+}) => {
+  if (node.type === "file") {
+    const isFileType = isFileByExtension(extensions, node.name);
+    return isFileType ? [node.name] : [];
+  }
+  if (node.type === "directory") {
+    const response = await fetcher<{ files: string[] }>(
+      `/async/file-management/extension-search?${queryArgs({
+        project_uuid: projectUuid,
+        root,
+        path: node.path,
+        extensions: extensions.join(","),
+      })}`
+    );
+
+    return response.files;
+  }
 };
 
 /**

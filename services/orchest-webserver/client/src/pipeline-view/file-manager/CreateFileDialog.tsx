@@ -19,32 +19,25 @@ import {
   FetchError,
 } from "@orchest/lib-utils";
 import React from "react";
+import { FileManagerRoot } from "../common";
 import {
   allowedExtensionsMarkup,
   lastSelectedFolderPath,
-  PROJECT_DIR_PATH,
   queryArgs,
   ROOT_SEPARATOR,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 
-//eslint-disable-next-line @typescript-eslint/no-unused-vars
-const KernelLanguage = {
-  python: "Python",
-  julia: "Julia",
-  r: "R",
-};
-
 export const CreateFileDialog = ({
   isOpen,
-  root = PROJECT_DIR_PATH,
+  root = "/project-dir",
   onClose,
   onSuccess,
   projectUuid,
   initialFileName,
 }: {
   isOpen: boolean;
-  root?: string;
+  root?: FileManagerRoot;
   onClose: () => void;
   onSuccess: (filePath: string) => void;
   projectUuid: string;
@@ -68,8 +61,7 @@ export const CreateFileDialog = ({
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
 
-  const rootFolderForDisplay =
-    root === PROJECT_DIR_PATH ? "Project files" : root;
+  const rootFolderForDisplay = root === "/project-dir" ? "Project files" : root;
   const fullFilePathForDisplay = `${rootFolderForDisplay}${lastSelectedFolder}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<

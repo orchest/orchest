@@ -12,6 +12,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
 import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
+import { FileManagerRoot } from "../common";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
@@ -21,12 +22,12 @@ import { useFileManagerContext } from "./FileManagerContext";
 
 export const CreateFolderDialog = ({
   isOpen,
-  root = "",
+  root,
   onClose,
   onSuccess,
 }: {
   isOpen: boolean;
-  root?: string;
+  root: FileManagerRoot;
   onClose: () => void;
   onSuccess: () => void;
 }) => {
@@ -54,8 +55,8 @@ export const CreateFolderDialog = ({
     await run(
       fetcher(
         `${FILE_MANAGEMENT_ENDPOINT}/create-dir?${queryArgs({
-          path: `${lastSelectedFolder}${folderPath}/`,
           root,
+          path: `${lastSelectedFolder}${folderPath}/`,
           project_uuid: projectUuid,
         })}`,
         { method: "POST" }

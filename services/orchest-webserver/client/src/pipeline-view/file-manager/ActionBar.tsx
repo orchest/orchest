@@ -11,6 +11,7 @@ import { styled } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import React from "react";
+import { FileManagerRoot } from "../common";
 import { CreateFileDialog } from "./CreateFileDialog";
 import { CreateFolderDialog } from "./CreateFolderDialog";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -26,7 +27,7 @@ export function ActionBar({
   rootFolder,
   setExpanded,
 }: {
-  rootFolder: string;
+  rootFolder: FileManagerRoot;
   uploadFiles: (files: File[] | FileList) => void;
   setExpanded: (items: string[]) => void;
 }) {
