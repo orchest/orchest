@@ -508,7 +508,9 @@ def rmtree(path, ignore_errors=False) -> None:
         OSError if it failed to copy.
 
     """
-    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
+    exit_code = subprocess.call(
+        f'rm -rf "{path}"', stderr=subprocess.STDOUT, shell=True
+    )
     if exit_code != 0 and not ignore_errors:
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
