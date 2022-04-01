@@ -156,12 +156,12 @@ export const queryArgs = (obj: Record<string, string | number | boolean>) => {
 export const getActiveRoot = (
   selected: string[],
   treeRoots: FileManagerRoot[]
-) => {
+): FileManagerRoot => {
   if (selected.length === 0) {
     return treeRoots[0];
   } else {
     const { root } = unpackCombinedPath(selected[0]);
-    return root;
+    return root as FileManagerRoot;
   }
 };
 
