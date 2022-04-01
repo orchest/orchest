@@ -3,6 +3,7 @@ import { Step } from "@/types";
 import {
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
+  fetcher,
 } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagerRoot } from "../common";
@@ -12,6 +13,10 @@ export type FileTrees = Record<string, TreeNode>;
 export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
 export const ROOT_SEPARATOR = ":";
+
+export type FileManagementRoot = "/project-dir" | "/data";
+
+export const treeRoots: FileManagementRoot[] = ["/project-dir", "/data"];
 
 export type TreeNode = {
   children: TreeNode[];
@@ -44,7 +49,7 @@ export const unpackCombinedPath = (combinedPath: string) => {
   // combinedPath includes the root
   // e.g. /project-dir:/abc/def
   // Note, the root can't contain the special character ':'
-  let root = combinedPath.split(ROOT_SEPARATOR)[0];
+  let root = combinedPath.split(ROOT_SEPARATOR)[0] as FileManagerRoot;
   let path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
   return { root, path };
 };
