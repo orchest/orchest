@@ -20,7 +20,7 @@ import {
   FILE_MANAGER_ROOT_CLASS,
   generateTargetDescription,
   isFileByExtension,
-  isFromDataFolder,
+  isWithinDataFolder,
   PROJECT_DIR_PATH,
   queryArgs,
   ROOT_SEPARATOR,
@@ -65,7 +65,8 @@ const containsFilesByExtension = async (
   if (node.type === "file") return isFileByExtension(extensions, node.name);
   if (node.type === "directory") {
     const response = await fetcher<{ files: string[] }>(
-      `/async/file-management/${projectUuid}/extension-search?${queryArgs({
+      `/async/file-management/extension-search?${queryArgs({
+        project_uuid: projectUuid,
         root: PROJECT_DIR_PATH, // note: root should either be /data or /project-dir
         path: node.path,
         extensions: extensions.join(","),
@@ -117,7 +118,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   const onOpen = React.useCallback(
     (filePath) => {
       if (
-        isFromDataFolder(filePath) &&
+        isWithinDataFolder(filePath) &&
         isFileByExtension(["orchest", "ipynb"], filePath)
       ) {
         setAlert(
@@ -307,7 +308,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       if (!hasPathChanged) return;
 
       // if user attempts to move .ipynb or .orchest files to /data
-      if (isFromDataFolder(targetPath)) {
+      if (isWithinDataFolder(targetPath)) {
         const foundPathWithForbiddenFiles = await Promise.all(
           dragFiles.map((dragFilePath) => {
             const foundFile = findFileViaPath(dragFilePath, fileTrees);

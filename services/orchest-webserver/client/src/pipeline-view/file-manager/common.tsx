@@ -78,38 +78,30 @@ export const generateTargetDescription = (path: string) => {
   );
 };
 
+const getFolderPathOfFile = (path: string) =>
+  `${path.split("/").slice(0, -1).join("/")}/`;
+
 export const deduceRenameFromDragOperation = (
   sourcePath: string,
   targetPath: string
 ): [string, string] => {
-  if (sourcePath === targetPath) {
-    return [sourcePath, targetPath];
-  }
-  const sep = "/";
-  let isSourceDir = sourcePath.endsWith(sep);
-  let isTargetDir = targetPath.endsWith(sep);
-
-  let newPath: string;
-
-  let sourceBasename = baseNameFromPath(sourcePath);
-
-  // Check if target is child of sourceDir
-  if (targetPath.startsWith(sourcePath)) {
+  // Check if target is sourceDir or a child of sourceDir
+  if (sourcePath === targetPath || targetPath.startsWith(sourcePath)) {
     // Break out with no-op. Illegal move
     return [sourcePath, sourcePath];
   }
 
-  if (isTargetDir) {
-    newPath = targetPath + sourceBasename;
-  } else {
-    let targetParentDirPath =
-      targetPath.split(sep).slice(0, -1).join(sep) + sep;
-    newPath = targetParentDirPath + sourceBasename;
-  }
+  const isSourceDir = sourcePath.endsWith("/");
+  const isTargetDir = targetPath.endsWith("/");
 
-  if (isSourceDir) {
-    newPath += sep;
-  }
+  const sourceBasename = baseNameFromPath(sourcePath);
+  const targetFolderPath = isTargetDir
+    ? targetPath
+    : getFolderPathOfFile(targetPath);
+
+  const newPath = `${targetFolderPath}${sourceBasename}${
+    isSourceDir ? "/" : ""
+  }`;
 
   return [sourcePath, newPath];
 };
@@ -321,7 +313,7 @@ export const filePathFromHTMLElement = (element: HTMLElement) => {
 
 const dataFolderRegex = /^\/data\:?\//;
 
-export const isFromDataFolder = (filePath: string) =>
+export const isWithinDataFolder = (filePath: string) =>
   dataFolderRegex.test(filePath);
 
 const getFilePathInDataFolder = (dragFilePath: string) =>
@@ -331,7 +323,7 @@ export const getFilePathForDragFile = (
   dragFilePath: string,
   pipelineCwd: string
 ) => {
-  return isFromDataFolder(dragFilePath)
+  return isWithinDataFolder(dragFilePath)
     ? getFilePathInDataFolder(dragFilePath)
     : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
 };
