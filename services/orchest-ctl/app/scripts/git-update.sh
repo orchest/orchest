@@ -10,6 +10,8 @@ git fetch origin stale/pre-k8s-orchest
 
 git checkout stale/pre-k8s-orchest
 
+git pull
+
 # Change the user and group of all the files in the repository, except
 # for the userdir.
 ls -I userdir /orchest-host | xargs -I {} chown -R "$FILE_USER":"$FILE_GROUP" {}
