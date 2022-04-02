@@ -12,7 +12,7 @@ import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
 import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagerRoot } from "../common";
+import { FileManagementRoot } from "../common";
 import {
   FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
@@ -27,7 +27,7 @@ export const CreateFolderDialog = ({
   onSuccess,
 }: {
   isOpen: boolean;
-  root: FileManagerRoot;
+  root: FileManagementRoot;
   onClose: () => void;
   onSuccess: () => void;
 }) => {

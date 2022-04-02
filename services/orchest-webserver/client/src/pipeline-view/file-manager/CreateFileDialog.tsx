@@ -19,7 +19,7 @@ import {
   FetchError,
 } from "@orchest/lib-utils";
 import React from "react";
-import { FileManagerRoot } from "../common";
+import { FileManagementRoot } from "../common";
 import {
   allowedExtensionsMarkup,
   lastSelectedFolderPath,
@@ -37,7 +37,7 @@ export const CreateFileDialog = ({
   initialFileName,
 }: {
   isOpen: boolean;
-  root?: FileManagerRoot;
+  root?: FileManagementRoot;
   onClose: () => void;
   onSuccess: (filePath: string) => void;
   projectUuid: string;

@@ -2,8 +2,9 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileTree } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
+import { treeRoots } from "../common";
 import type { FileTrees } from "./common";
-import { FILE_MANAGEMENT_ENDPOINT, queryArgs, treeRoots } from "./common";
+import { FILE_MANAGEMENT_ENDPOINT, queryArgs } from "./common";
 
 type DragFile = {
   labelText: string;

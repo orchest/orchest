@@ -8,7 +8,7 @@ import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath } from "react-dropzone";
-import { FileManagerRoot } from "../common";
+import { FileManagementRoot, treeRoots } from "../common";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -19,7 +19,6 @@ import {
   queryArgs,
   searchTrees,
   TreeNode,
-  treeRoots,
   unpackCombinedPath,
 } from "./common";
 import { FileManagerContainer } from "./FileManagerContainer";
@@ -79,8 +78,6 @@ const createInvalidEntryFilter = ({
 
 type ProgressType = LinearProgressProps["variant"];
 
-const treeRoots: FileManagerRoot[] = ["/project-dir", "/data"];
-
 export function FileManager() {
   /**
    * States
@@ -102,9 +99,9 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState<(FileManagerRoot | string)[]>([
-    "/project-dir",
-  ]);
+  const [expanded, setExpanded] = React.useState<
+    (FileManagementRoot | string)[]
+  >(["/project-dir"]);
   const [progress, setProgress] = React.useState(0);
 
   const [progressType, setProgressType] = React.useState<ProgressType>(

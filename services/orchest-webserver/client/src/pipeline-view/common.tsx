@@ -16,7 +16,9 @@ export const PIPELINE_JOBS_STATUS_ENDPOINT = "/catch/api-proxy/api/jobs";
 export const DEFAULT_SCALE_FACTOR = 1;
 export const DRAG_CLICK_SENSITIVITY = 3;
 
-export type FileManagerRoot = "/project-dir" | "/data";
+export type FileManagementRoot = "/project-dir" | "/data";
+
+export const treeRoots: FileManagementRoot[] = ["/project-dir", "/data"];
 
 export const updatePipelineJson = (
   pipelineJson: PipelineJson,
