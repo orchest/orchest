@@ -166,6 +166,8 @@ export const FileTree = React.memo(function FileTreeComponent({
   const dragFiles = React.useMemo(() => {
     if (!dragFile) return [];
 
+    if (!selectedFiles.includes(dragFile.path)) return [dragFile.path];
+
     const filteredItemsSet = new Set<string>([dragFile.path]);
 
     for (let selectedPath of selectedFiles) {
