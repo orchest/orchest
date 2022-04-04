@@ -558,27 +558,31 @@ def get_ipynb_template(language: str):
     return template_json
 
 
-def generate_ipynb_from_template(kernel_name):
+def generate_ipynb_from_template(kernel_name: str):
 
     template_json = get_ipynb_template(kernel_name)
 
     return json.dumps(template_json, indent=4)
 
 
-def create_pipeline_file(file_path, pipeline_directory, kernel_name):
+def create_empty_file(file_path: str, kernel_name: Optional[str] = "python"):
     """
-    Note: this function does not assume that step['file_path']
-    holds the value of file_path!
+    This function creates an empty file with the given `file_path`.
+    `kernel_name` is optional. It is  only applicable if `file_path`
+    ends with `.ipynb`.
+
+    Note: this function does not update pipeline JSON file. Therefore it
+    does not assume that step['file_path'] holds the value of
+    `file_path`.
     """
 
-    full_file_path = os.path.join(pipeline_directory, file_path)
     file_path_split = file_path.split(".")
     file_path_without_ext = ".".join(file_path_split[:-1])
     ext = file_path_split[-1]
 
     file_content = None
 
-    if not os.path.isfile(full_file_path):
+    if not os.path.isfile(file_path):
 
         if len(file_path_without_ext) > 0:
             file_content = ""
@@ -589,11 +593,11 @@ def create_pipeline_file(file_path, pipeline_directory, kernel_name):
     elif ext == "ipynb":
         # Check for empty .ipynb, for which we also generate a
         # template notebook.
-        if os.stat(full_file_path).st_size == 0:
+        if os.stat(file_path).st_size == 0:
             file_content = generate_ipynb_from_template(kernel_name)
 
     if file_content is not None:
-        with open(full_file_path, "w") as file:
+        with open(file_path, "w") as file:
             file.write(file_content)
 
 

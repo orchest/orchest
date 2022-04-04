@@ -8,13 +8,14 @@ import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath } from "react-dropzone";
+import { FileManagementRoot, treeRoots } from "../common";
 import { ActionBar } from "./ActionBar";
 import {
-  FILE_MANAGER_ENDPOINT,
+  FILE_MANAGEMENT_ENDPOINT,
   getActiveRoot,
   isCombinedPathChildLess,
+  lastSelectedFolderPath,
   mergeTrees,
-  PROJECT_DIR_PATH,
   queryArgs,
   searchTrees,
   TreeNode,
@@ -36,7 +37,9 @@ import { FileTreeContainer } from "./FileTreeContainer";
  * @param file File | FileWithPath
  * @returns boolean
  */
-function isFileWithPath(file: File | FileWithPath): file is FileWithPath {
+function isUploadedViaDropzone(
+  file: File | FileWithPath
+): file is FileWithPath {
   return hasValue((file as FileWithPath).path);
 }
 
@@ -74,7 +77,6 @@ const createInvalidEntryFilter = ({
 };
 
 type ProgressType = LinearProgressProps["variant"];
-const DEFAULT_DEPTH = 3;
 
 export function FileManager() {
   /**
@@ -82,16 +84,12 @@ export function FileManager() {
    */
   const { projectUuid } = useCustomRoute();
 
-  const baseUrl = React.useMemo(
-    () => `${FILE_MANAGER_ENDPOINT}/${projectUuid}`,
-    [projectUuid]
-  );
-
   const {
     isDragging,
     selectedFiles,
     setSelectedFiles,
     fileTrees,
+    fetchFileTrees,
     setFileTrees,
   } = useFileManagerContext();
 
@@ -101,7 +99,9 @@ export function FileManager() {
   const [_inProgress, setInProgress] = React.useState(false);
   const inProgress = useDebounce(_inProgress, 125);
 
-  const [expanded, setExpanded] = React.useState([PROJECT_DIR_PATH]);
+  const [expanded, setExpanded] = React.useState<
+    (FileManagementRoot | string)[]
+  >(["/project-dir"]);
   const [progress, setProgress] = React.useState(0);
 
   const [progressType, setProgressType] = React.useState<ProgressType>(
@@ -111,11 +111,8 @@ export function FileManager() {
     null
   );
 
-  // Note, roots are assumed to always start with a / (absolute paths)
-  const treeRoots = React.useMemo(() => [PROJECT_DIR_PATH, "/data"], []);
   const root = React.useMemo(() => getActiveRoot(selectedFiles, treeRoots), [
     selectedFiles,
-    treeRoots,
   ]);
 
   /**
@@ -125,29 +122,10 @@ export function FileManager() {
     setProgressType("determinate");
     setInProgress(true);
 
-    // Load files on initial render
-    const depth = Math.max(DEFAULT_DEPTH, deepestExpand(expanded));
-
-    const newFiles = await Promise.all(
-      treeRoots.map(async (root) => {
-        const file = await fetcher(
-          `${baseUrl}/browse?${queryArgs({
-            depth,
-            root,
-          })}`
-        );
-        return { key: root, file };
-      })
-    );
-
-    setFileTrees(
-      newFiles.reduce((obj, curr) => {
-        return { ...obj, [curr.key]: curr.file };
-      }, {})
-    );
+    await fetchFileTrees(deepestExpand(expanded));
 
     setInProgress(false);
-  }, [expanded, treeRoots, baseUrl, setFileTrees]);
+  }, [expanded, fetchFileTrees]);
 
   const collapseAll = () => {
     setExpanded([]);
@@ -161,9 +139,10 @@ export function FileManager() {
 
       let { root, path } = unpackCombinedPath(combinedPath);
 
-      const url = `${baseUrl}/browse?${queryArgs({
-        path,
+      const url = `${FILE_MANAGEMENT_ENDPOINT}/browse?${queryArgs({
+        project_uuid: projectUuid,
         root,
+        path,
       })}`;
 
       const response = await fetcher<TreeNode>(url);
@@ -173,7 +152,7 @@ export function FileManager() {
       setFileTrees(fileTrees);
       setInProgress(false);
     },
-    [fileTrees, baseUrl, setFileTrees]
+    [fileTrees, projectUuid, setFileTrees]
   );
 
   const uploadFiles = React.useCallback(
@@ -189,15 +168,19 @@ export function FileManager() {
           try {
             // Derive folder to upload the file to if webkitRelativePath includes a slash
             // (means the file was uploaded as a folder through drag or folder file selection)
-
-            const isUploadedAsFolder = isFileWithPath(file)
+            const isUploadedAsFolder = isUploadedViaDropzone(file)
               ? /.+\/.+/.test(file.path)
               : file.webkitRelativePath !== undefined &&
                 file.webkitRelativePath.includes("/");
 
+            const lastSelectedFolder = lastSelectedFolderPath(selectedFiles);
+
             let path = !isUploadedAsFolder
-              ? "/"
-              : `/${(isFileWithPath(file) ? file.path : file.webkitRelativePath)
+              ? lastSelectedFolder
+              : `${lastSelectedFolder}${(isUploadedViaDropzone(file)
+                  ? file.path
+                  : file.webkitRelativePath
+                )
                   .split("/")
                   .slice(0, -1)
                   .filter((value) => value.length > 0)
@@ -207,9 +190,10 @@ export function FileManager() {
             formData.append("file", file);
 
             await fetcher(
-              `${baseUrl}/upload?${queryArgs({
-                path,
+              `${FILE_MANAGEMENT_ENDPOINT}/upload?${queryArgs({
                 root,
+                path,
+                project_uuid: projectUuid,
               })}`,
               { method: "POST", body: formData }
             );
@@ -229,7 +213,7 @@ export function FileManager() {
       reload();
       setInProgress(false);
     },
-    [reload, root, baseUrl]
+    [reload, root, projectUuid, selectedFiles]
   );
 
   /**
@@ -305,7 +289,6 @@ export function FileManager() {
 
   return (
     <FileManagerLocalContextProvider
-      baseUrl={baseUrl}
       reload={reload}
       setContextMenu={setContextMenu}
     >
@@ -325,7 +308,6 @@ export function FileManager() {
         {allTreesHaveLoaded && (
           <FileTreeContainer>
             <FileTree
-              baseUrl={baseUrl}
               treeRoots={treeRoots}
               expanded={expanded}
               onRename={onRename}
