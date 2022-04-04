@@ -11,7 +11,7 @@ BUILD_TAG="latest"
 ORCHEST_VERSION=$(git describe --tags)
 
 # Read flags.
-while getopts "s:i:t:no:ve" opt; do
+while getopts "s:i:t:no:vem" opt; do
   case $opt in
     e)
       # 'e' for encryption
@@ -29,6 +29,13 @@ while getopts "s:i:t:no:ve" opt; do
       ;;
     s)
       SKIP_IMGS+=($OPTARG)
+      ;;
+    m)
+      # Build minimal set of images.
+      SKIP_IMGS+=("base-kernel-py-gpu")
+      SKIP_IMGS+=("base-kernel-julia")
+      SKIP_IMGS+=("base-kernel-r") 
+      SKIP_IMGS+=("update-sidecar")
       ;;
     t)
       BUILD_TAG="$OPTARG"
