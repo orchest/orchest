@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from flask import jsonify
 
@@ -11,7 +11,8 @@ from app.models import Project
 logger = logging.getLogger(__name__)
 
 PROJECT_DIR_PATH = _config.PROJECT_DIR
-ALLOWED_ROOTS = [PROJECT_DIR_PATH, "/data"]
+DATA_DIR_PATH = _config.DATA_DIR
+ALLOWED_ROOTS = [PROJECT_DIR_PATH, DATA_DIR_PATH]
 
 
 def allowed_file(filename):
@@ -24,21 +25,29 @@ def allowed_file(filename):
     return True
 
 
-def construct_root_dir_path(root: Optional[str], project_uuid: str) -> str:
-    if root is None:
-        root = PROJECT_DIR_PATH
+def _construct_root_dir_path(root: Optional[str], project_uuid: Optional[str]) -> str:
+    """
+    If root is not provided, default to PROJECT_DIR_PATH;
+    If root equals to PROJECT_DIR_PATH, project_uuid is required;
+    """
+
+    root = PROJECT_DIR_PATH if root is None else root
 
     if root not in ALLOWED_ROOTS:
         raise ValueError(f"Received illegal root path: {root}.")
 
+    if root == DATA_DIR_PATH:
+        return _config.USERDIR_DATA
+
+    if root == PROJECT_DIR_PATH and project_uuid is None:
+        raise ValueError("project_uuid is required.")
+
     project = Project.query.filter(Project.uuid == project_uuid).first()
 
-    if root == PROJECT_DIR_PATH:
-        root = _config.USERDIR_PROJECTS + f"/{project.path}"
-    else:  # We know it is "/data"
-        root = _config.USERDIR_DATA
+    if project is None:
+        raise ValueError(f"project {project_uuid} not found.")
 
-    return root
+    return f"{_config.USERDIR_PROJECTS}/{project.path}"
 
 
 def find_unique_duplicate_filepath(fp):
@@ -102,10 +111,17 @@ def zipdir(path, ziph):
             )
 
 
-def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
+def generate_tree(
+    dir: str,
+    path_filter="/",
+    allowed_file_extensions: List[str] = [],
+    depth: Optional[int] = 3,
+):
+
+    depth = depth if depth else 3
 
     if not os.path.isdir(dir):
-        return jsonify({"message": "Dir %s not found." % dir}), 404
+        return jsonify({"message": f"Dir {dir} not found."}), 404
 
     # Init structs
     tree = {
@@ -130,7 +146,7 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
 
     dir_depth = dir.count(os.sep)
 
-    logger.debug("Walking %s " % filtered_path)
+    logger.debug(f"Walking {filtered_path}")
     for root, dirs, files in os.walk(filtered_path):
 
         dir_delete_set = set()
@@ -185,4 +201,41 @@ def generate_tree(dir, path_filter="/", allowed_file_extensions=[], depth=3):
             dir_nodes[root]["children"].sort(
                 key=lambda e: {"directory": "a.", "file": "b."}[e["type"]] + e["name"]
             )
-    return jsonify(tree)
+    return tree
+
+
+def process_request(
+    root: Optional[str],
+    path: Optional[str],
+    project_uuid: Optional[str],
+    depth: Optional[str] = None,
+    is_path_required: Optional[bool] = True,
+) -> Tuple[str, Optional[int]]:
+    if root is None:
+        raise ValueError("Argument root is required.")
+
+    if root == PROJECT_DIR_PATH and project_uuid is None:
+        raise ValueError("Argument project_uuid is required if root is '/project-dir'.")
+
+    if depth is not None:
+        try:
+            depth = int(depth, 10)
+        except Exception:
+            raise ValueError(f"Invalid value for depth: {depth}")
+
+    # in most cases, path is required,
+    # except for /async/file-management/browse,
+    # where either depth and path should be provided
+    if depth is None and path is None:
+        extra_explanation = "" if is_path_required else " if depth is None"
+        raise ValueError(f"Argument path is required{extra_explanation}.")
+
+    if path is not None:
+        if not path.startswith("/"):
+            raise ValueError(
+                "Argument path should always start with a forward-slash: '/'"
+            )
+
+    root_dir_path = _construct_root_dir_path(root=root, project_uuid=project_uuid)
+
+    return (root_dir_path, depth)
