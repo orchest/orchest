@@ -329,6 +329,8 @@ export type FileTree = {
   type: "directory" | "file";
   name: string;
   root?: boolean;
+  path?: string;
+  depth?: number;
   children: FileTree[];
 };
 

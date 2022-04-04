@@ -106,7 +106,6 @@ export const TreeItem = ({
             }
             setIsDragging(true);
             setDragFile({ labelText, path });
-            setSelectedFiles((current) => [...current, path]);
             setTriggedDragging(true);
           }
         }

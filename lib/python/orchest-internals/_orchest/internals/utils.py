@@ -508,7 +508,7 @@ def rmtree(path, ignore_errors=False) -> None:
         OSError if it failed to copy.
 
     """
-    exit_code = subprocess.call(f"rm -rf {path}", stderr=subprocess.STDOUT, shell=True)
+    exit_code = subprocess.call(["rm", "-rf", path], stderr=subprocess.STDOUT)
     if exit_code != 0 and not ignore_errors:
         raise OSError(f"Failed to rm {path}: {exit_code}.")
 
@@ -550,13 +550,11 @@ def copytree(
         if os.path.isfile(f"{source}.gitignore"):  # source has trailing `/`
             copy_cmd += [f"--exclude-from={source}.gitignore"]
         # TODO: use shlex to handle this properly.
-        copy_cmd += [f"'{source}' '{target}'"]
+        copy_cmd += [source, target]
     else:
-        copy_cmd = ["cp", "-r", f"'{source}' '{target}'"]
+        copy_cmd = ["cp", "-r", source, target]
 
-    exit_code = subprocess.call(
-        " ".join(copy_cmd), stderr=subprocess.STDOUT, shell=True
-    )
+    exit_code = subprocess.call(copy_cmd, stderr=subprocess.STDOUT)
     if exit_code != 0 and not ignore_errors:
         raise OSError(f"Failed to copy {source} to {target}, :{exit_code}.")
 

@@ -119,6 +119,7 @@ minikube-status
 minikube-start ${num_nodes} ${num_cpus}
 create-and-attach-volumes ${size}
 minikube-stop
-minikube-start
+minikube-start ${num_nodes} ${num_cpus}
+
 
 echo -n "end"

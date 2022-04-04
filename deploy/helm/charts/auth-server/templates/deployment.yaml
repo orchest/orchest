@@ -43,7 +43,7 @@ deployment
           periodSeconds: 1
           successThreshold: 1
           timeoutSeconds: 5
-          failureThreshold: 20
+          failureThreshold: 50
         livenessProbe:
           httpGet:
             path: /login/server-config

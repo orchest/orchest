@@ -15,35 +15,29 @@ import Select from "@mui/material/Select";
 import TextField from "@mui/material/TextField";
 import {
   ALLOWED_STEP_EXTENSIONS,
-  extensionFromFilename,
   fetcher,
   FetchError,
-  HEADER,
 } from "@orchest/lib-utils";
 import React from "react";
+import { FileManagementRoot } from "../common";
 import {
   allowedExtensionsMarkup,
-  PROJECT_DIR_PATH,
-  removeLeadingSymbols,
+  lastSelectedFolderPath,
+  queryArgs,
   ROOT_SEPARATOR,
 } from "./common";
-
-const KernelLanguage = {
-  python: "Python",
-  julia: "Julia",
-  r: "R",
-};
+import { useFileManagerContext } from "./FileManagerContext";
 
 export const CreateFileDialog = ({
   isOpen,
-  folderPath = "",
+  root = "/project-dir",
   onClose,
   onSuccess,
   projectUuid,
   initialFileName,
 }: {
   isOpen: boolean;
-  folderPath?: string;
+  root?: FileManagementRoot;
   onClose: () => void;
   onSuccess: (filePath: string) => void;
   projectUuid: string;
@@ -51,6 +45,11 @@ export const CreateFileDialog = ({
 }) => {
   // Global state
   const { setAlert } = useAppContext();
+  const { selectedFiles } = useFileManagerContext();
+
+  const lastSelectedFolder = React.useMemo(() => {
+    return lastSelectedFolderPath(selectedFiles);
+  }, [selectedFiles]);
 
   // local states
 
@@ -62,7 +61,8 @@ export const CreateFileDialog = ({
     `.${ALLOWED_STEP_EXTENSIONS[0]}`
   );
 
-  const fullFilePath = `${folderPath}${fileName}${fileExtension}`;
+  const rootFolderForDisplay = root === "/project-dir" ? "Project files" : root;
+  const fullFilePathForDisplay = `${rootFolderForDisplay}${lastSelectedFolder}${fileName}${fileExtension}`;
 
   const { run, setError, error, status: createFileStatus } = useAsync<
     void,
@@ -71,32 +71,19 @@ export const CreateFileDialog = ({
   const isCreating = createFileStatus === "PENDING";
   const onSubmitModal = async () => {
     if (isCreating) return;
-    // validate extensions
-    let extension = extensionFromFilename(fullFilePath);
 
-    if (!ALLOWED_STEP_EXTENSIONS.includes(extension)) {
-      setAlert(
-        "Error",
-        <div>
-          <p>Invalid file extension</p>
-          {`Extension ${extension} is not in allowed set of `}
-          {allowedExtensionsMarkup}.
-        </div>
-      );
-      return;
-    }
+    const fullFilePath = `${lastSelectedFolder}${fileName}${fileExtension}`;
 
     await run(
-      fetcher(`/async/project-files/create/${projectUuid}`, {
-        method: "POST",
-        headers: HEADER.JSON,
-        body: JSON.stringify({
-          file_path: fullFilePath,
-          kernel_name: "python", // BE will ignore this if the file is NOT .ipynb
-        }),
-      }).then(() => {
-        const unifiedFilePath = removeLeadingSymbols(fullFilePath); // remove the leading "./" if any
-        const finalFilePath = `${PROJECT_DIR_PATH}${ROOT_SEPARATOR}/${unifiedFilePath}`;
+      fetcher(
+        `/async/file-management/create?${queryArgs({
+          project_uuid: projectUuid,
+          root,
+          path: fullFilePath,
+        })}`,
+        { method: "POST" }
+      ).then(() => {
+        const finalFilePath = `${root}${ROOT_SEPARATOR}${fullFilePath}`;
         onSuccess(finalFilePath);
       })
     );
@@ -188,8 +175,8 @@ export const CreateFileDialog = ({
               </Grid>
               <Grid item xs={12}>
                 <TextField
-                  label="Path in project"
-                  value={fullFilePath}
+                  label="File path"
+                  value={fullFilePathForDisplay}
                   fullWidth
                   margin="normal"
                   disabled

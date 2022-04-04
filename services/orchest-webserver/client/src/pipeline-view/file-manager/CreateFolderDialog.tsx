@@ -8,25 +8,37 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
+import InputAdornment from "@mui/material/InputAdornment";
 import TextField from "@mui/material/TextField";
 import { fetcher, FetchError } from "@orchest/lib-utils";
 import React from "react";
-import { FILE_MANAGER_ENDPOINT, queryArgs } from "./common";
+import { FileManagementRoot } from "../common";
+import {
+  FILE_MANAGEMENT_ENDPOINT,
+  lastSelectedFolderPath,
+  queryArgs,
+} from "./common";
+import { useFileManagerContext } from "./FileManagerContext";
 
 export const CreateFolderDialog = ({
   isOpen,
-  root = "",
+  root,
   onClose,
   onSuccess,
 }: {
   isOpen: boolean;
-  root?: string;
+  root: FileManagementRoot;
   onClose: () => void;
   onSuccess: () => void;
 }) => {
   // Global state
   const { setAlert } = useAppContext();
   const { projectUuid } = useCustomRoute();
+  const { selectedFiles } = useFileManagerContext();
+
+  const lastSelectedFolder = React.useMemo(() => {
+    return lastSelectedFolderPath(selectedFiles);
+  }, [selectedFiles]);
 
   // local states
 
@@ -42,9 +54,10 @@ export const CreateFolderDialog = ({
 
     await run(
       fetcher(
-        `${FILE_MANAGER_ENDPOINT}/${projectUuid}/create-dir?${queryArgs({
-          path: `/${folderPath}/`,
+        `${FILE_MANAGEMENT_ENDPOINT}/create-dir?${queryArgs({
           root,
+          path: `${lastSelectedFolder}${folderPath}/`,
+          project_uuid: projectUuid,
         })}`,
         { method: "POST" }
       ).then(() => {
@@ -101,6 +114,13 @@ export const CreateFolderDialog = ({
             disabled={isCreating}
             onChange={(e) => setFolderPath(e.target.value)}
             data-test-id="file-manager-file-name-textfield"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">{`${
+                  root === "/project-dir" ? "Project files" : root
+                }${lastSelectedFolder}`}</InputAdornment>
+              ),
+            }}
             sx={{ marginTop: (theme) => theme.spacing(2) }}
           />
         </DialogContent>

@@ -644,7 +644,6 @@ export const PipelineEditor = () => {
         <PipelineViewport
           ref={pipelineViewportRef}
           canvasFuncRef={canvasFuncRef}
-          canvasRef={pipelineCanvasRef}
         >
           {connections.map((connection) => {
             if (!connection) return null;
@@ -829,7 +828,7 @@ export const PipelineEditor = () => {
                 canvasFuncRef.current.centerPipelineOrigin();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
-                  payload: Math.max(eventVars.scaleFactor - 0.25, 0.25),
+                  payload: eventVars.scaleFactor - 0.25,
                 });
               }}
             >
@@ -841,7 +840,7 @@ export const PipelineEditor = () => {
                 canvasFuncRef.current.centerPipelineOrigin();
                 dispatch({
                   type: "SET_SCALE_FACTOR",
-                  payload: Math.min(eventVars.scaleFactor + 0.25, 2),
+                  payload: eventVars.scaleFactor + 0.25,
                 });
               }}
             >

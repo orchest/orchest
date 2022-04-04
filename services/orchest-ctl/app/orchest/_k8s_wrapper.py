@@ -571,3 +571,183 @@ def get_orchest_cluster_storage_class() -> str:
 
 def is_running_multinode() -> bool:
     return len(k8s_core_api.list_node().items) > 1
+
+
+def _dev_mode_pod_patch(
+    service: str,
+    mount_app: bool,
+    mount_client: bool,
+    mount_internal_lib: bool,
+    injected_env: Dict[str, str],
+) -> dict:
+    v_mounts = []
+    if mount_app:
+        v_mounts.append(
+            {
+                "name": "orchest-dev-repo",
+                "mountPath": (f"/orchest/services/{service}/app"),
+                "subPath": f"services/{service}/app",
+            }
+        )
+    if mount_client:
+        v_mounts.append(
+            {
+                "name": "orchest-dev-repo",
+                "mountPath": (f"/orchest/services/{service}/client"),
+                "subPath": f"services/{service}/client",
+            }
+        )
+    if mount_internal_lib:
+        v_mounts.append(
+            {
+                "name": "orchest-dev-repo",
+                "mountPath": "/orchest/lib",
+                "subPath": "lib",
+            }
+        )
+
+    return {
+        "metadata": {"labels": {"dev-mode": "True"}},
+        "spec": {
+            "template": {
+                "spec": {
+                    "containers": [
+                        {
+                            "name": service,
+                            "env": [
+                                {"name": k, "value": str(v)}
+                                for k, v in injected_env.items()
+                            ],
+                            "volumeMounts": v_mounts,
+                        }
+                    ],
+                    "volumes": [
+                        {
+                            "name": "orchest-dev-repo",
+                            "hostPath": {
+                                "path": "/orchest-dev-repo",
+                                "type": "DirectoryOrCreate",
+                            },
+                        }
+                    ],
+                }
+            }
+        },
+    }
+
+
+def patch_orchest_webserver_for_dev_mode() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "orchest-webserver",
+        config.ORCHEST_NAMESPACE,
+        body=_dev_mode_pod_patch(
+            "orchest-webserver",
+            mount_app=True,
+            mount_client=True,
+            mount_internal_lib=True,
+            injected_env={"FLASK_ENV": "development"},
+        ),
+    )
+
+
+def patch_auth_server_for_dev_mode() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "auth-server",
+        config.ORCHEST_NAMESPACE,
+        body=_dev_mode_pod_patch(
+            "auth-server",
+            mount_app=True,
+            mount_client=True,
+            mount_internal_lib=True,
+            injected_env={
+                "FLASK_ENV": "development",
+                "FLASK_APP": "main.py",
+                "FLASK_DEBUG": "1",
+            },
+        ),
+    )
+
+
+def patch_orchest_api_for_dev_mode() -> None:
+    k8s_apps_api.patch_namespaced_deployment(
+        "orchest-api",
+        config.ORCHEST_NAMESPACE,
+        body=_dev_mode_pod_patch(
+            "orchest-api",
+            mount_app=True,
+            mount_client=False,
+            mount_internal_lib=True,
+            injected_env={
+                "FLASK_ENV": "development",
+                "FLASK_APP": "main.py",
+            },
+        ),
+    )
+
+
+def _unpatch_dev_mode(service: str) -> None:
+    spec = k8s_apps_api.read_namespaced_deployment(service, "orchest").spec
+    env = [
+        kv
+        for kv in spec.template.spec.containers[0].env
+        if kv.name not in ["FLASK_ENV", "FLASK_APP", "FLASK_DEBUG"]
+    ]
+    volumes = [
+        vol for vol in spec.template.spec.volumes if vol.name != "orchest-dev-repo"
+    ]
+    v_mounts = [
+        v_mount
+        for v_mount in spec.template.spec.containers[0].volume_mounts
+        if v_mount.name != "orchest-dev-repo"
+    ]
+    k8s_apps_api.patch_namespaced_deployment(
+        service,
+        "orchest",
+        body=[
+            {
+                "op": "replace",
+                "path": ("/spec/template/spec/containers/0/env"),
+                "value": env,
+            },
+            {
+                "op": "replace",
+                "path": ("/spec/template/spec/containers/0/volumeMounts"),
+                "value": v_mounts,
+            },
+            {
+                "op": "replace",
+                "path": ("/spec/template/spec/volumes"),
+                "value": volumes,
+            },
+            {
+                "op": "remove",
+                "path": ("/metadata/labels/dev-mode"),
+            },
+        ],
+    )
+
+
+def unpatch_orchest_webserver_dev_mode() -> None:
+    _unpatch_dev_mode("orchest-webserver")
+
+
+def unpatch_orchest_api_dev_mode() -> None:
+    _unpatch_dev_mode("orchest-api")
+
+
+def unpatch_auth_server_dev_mode() -> None:
+    _unpatch_dev_mode("auth-server")
+
+
+def is_running_in_dev_mode(orchest_service: str) -> bool:
+    try:
+        return (
+            k8s_apps_api.read_namespaced_deployment(
+                orchest_service, config.ORCHEST_NAMESPACE
+            ).metadata.labels.get("dev-mode")
+            == "True"
+        )
+    except k8s_client.ApiException as e:
+        if e.status == 404:
+            return False
+        raise e
