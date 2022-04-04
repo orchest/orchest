@@ -1,87 +1,64 @@
-import { useAppContext } from "@/contexts/AppContext";
-import { useAsync } from "@/hooks/useAsync";
 import { useCheckFileValidity } from "@/hooks/useCheckFileValidity";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { FileTree } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import WarningIcon from "@mui/icons-material/Warning";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import FilePicker from "../../components/FilePicker";
-
-type DirectoryDetails = {
-  tree: FileTree;
-  cwd: string;
-};
-
-const useFileDirectoryDetails = (
-  project_uuid: string,
-  pipeline_uuid: string
-) => {
-  const { setAlert } = useAppContext();
-
-  const { data: directoryDetails, run, error } = useAsync<DirectoryDetails>();
-  const { tree, cwd } = directoryDetails || {};
-
-  React.useEffect(() => {
-    if (error) {
-      setAlert("Error", `Failed to fetch file directory details: ${error}`);
-    }
-  }, [setAlert, error]);
-
-  const fetchDirectoryDetails = React.useCallback(() => {
-    if (project_uuid && pipeline_uuid) {
-      run(
-        Promise.all([
-          fetcher<FileTree>(`/async/file-picker-tree/${project_uuid}`),
-          fetcher<{ cwd: string }>(
-            `/async/file-picker-tree/pipeline-cwd/${project_uuid}/${pipeline_uuid}`
-          ).then((response) => `${response["cwd"]}/`), // FilePicker cwd expects trailing / for cwd paths
-        ]).then(([tree, cwd]) => {
-          return { tree, cwd };
-        })
-      );
-    }
-  }, [project_uuid, pipeline_uuid, run]);
-
-  React.useEffect(() => {
-    fetchDirectoryDetails();
-  }, [fetchDirectoryDetails]);
-
-  return { tree, cwd, fetchDirectoryDetails };
-};
+import { useFileManagerContext } from "../file-manager/FileManagerContext";
+import FilePicker from "./FilePicker";
 
 const ProjectFilePicker: React.FC<{
-  project_uuid: string;
-  pipeline_uuid: string;
+  pipelineCwd: string;
   value: string;
   onChange: (value: string) => void;
   menuMaxWidth?: string;
-}> = ({ onChange, project_uuid, pipeline_uuid, value, menuMaxWidth }) => {
-  // fetching data
-  const { tree, cwd, fetchDirectoryDetails } = useFileDirectoryDetails(
-    project_uuid,
-    pipeline_uuid
-  );
+}> = ({ onChange, pipelineCwd, value, menuMaxWidth }) => {
+  const { projectUuid, pipelineUuid } = useCustomRoute();
+  // ProjectFilePicker uses the same endpoint for fetching FileTree
+  const { fileTrees, fetchFileTrees } = useFileManagerContext();
 
   const selectedFileExists = useCheckFileValidity(
-    project_uuid,
-    pipeline_uuid,
+    projectUuid,
+    pipelineUuid,
     value
   );
 
-  // local states
-
   const onChangeFileValue = (value: string) => onChange(value);
 
-  const onFocus = () => fetchDirectoryDetails();
+  const tree = React.useMemo<FileTree>(() => {
+    return {
+      name: "",
+      path: "",
+      type: "directory",
+      root: true,
+      children: Object.entries(fileTrees).map(([key, rootTree]) => {
+        return {
+          ...rootTree,
+          root: false,
+          name: key === "/project-dir" ? "Project files" : key,
+          path: `${key}:/`, // Adding trailing ":/" to mark it as the root folder.
+          depth: 0,
+        };
+      }),
+    };
+  }, [fileTrees]);
+
+  const onSelectMenuItem = React.useCallback(
+    (node: FileTree) => {
+      // If depth is larger than current, refetch the trees
+      if (node.type === "directory" && node.depth) {
+        fetchFileTrees(node.depth + 1);
+      }
+    },
+    [fetchFileTrees]
+  );
 
   return (
     <>
-      {cwd && tree && (
+      {tree && (
         <FilePicker
           tree={tree}
-          cwd={cwd}
-          onFocus={onFocus}
+          cwd={pipelineCwd}
           value={value}
           icon={
             selectedFileExists ? (
@@ -97,6 +74,7 @@ const ProjectFilePicker: React.FC<{
           }
           onChangeValue={onChangeFileValue}
           menuMaxWidth={menuMaxWidth}
+          onSelectMenuItem={onSelectMenuItem}
         />
       )}
     </>

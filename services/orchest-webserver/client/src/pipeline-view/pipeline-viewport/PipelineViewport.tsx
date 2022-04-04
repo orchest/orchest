@@ -1,12 +1,10 @@
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
-import { getScrollLineHeight } from "@/utils/webserver-utils";
-import { activeElementIsInput, uuidv4 } from "@orchest/lib-utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
 import {
   DEFAULT_SCALE_FACTOR,
-  getScaleCorrectedPosition,
   originTransformScaling,
   scaleCorrected,
 } from "../common";
@@ -18,6 +16,9 @@ import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
 import { STEP_HEIGHT, STEP_WIDTH } from "../PipelineStep";
 import { PipelineCanvas } from "./PipelineCanvas";
+import { useGestureOnViewport } from "./useGestureOnViewport";
+import { useKeyboardEventsOnViewport } from "./useKeyboardEventsOnViewport";
+import { useMouseEventsOnViewport } from "./useMouseEventsOnViewport";
 
 const CANVAS_VIEW_MULTIPLE = 3;
 
@@ -27,7 +28,6 @@ export type CanvasFunctions = {
 };
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
-  canvasRef: React.MutableRefObject<HTMLDivElement>;
   canvasFuncRef: React.MutableRefObject<CanvasFunctions>;
 };
 
@@ -40,17 +40,16 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   HTMLDivElement,
   Props
-> = ({ children, className, canvasRef, canvasFuncRef, ...props }, ref) => {
+> = ({ children, className, canvasFuncRef, style, ...props }, ref) => {
   const { dragFile } = useFileManagerContext();
   const {
     eventVars,
-    mouseTracker,
     trackMouseMovement,
     dispatch,
-    keysDown,
     pipelineCwd,
     newConnection,
     environments,
+    pipelineCanvasRef,
     getOnCanvasPosition,
   } = usePipelineEditorContext();
   const {
@@ -71,14 +70,14 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   );
 
   const getCurrentOrigin = React.useCallback(() => {
-    let canvasOffset = getOffset(canvasRef.current);
+    let canvasOffset = getOffset(pipelineCanvasRef.current);
     let viewportOffset = getOffset(localRef.current);
 
     const x = canvasOffset.left - viewportOffset.left;
     const y = canvasOffset.top - viewportOffset.top;
 
     return { x, y };
-  }, [canvasRef]);
+  }, [pipelineCanvasRef]);
 
   const pipelineSetHolderOrigin = React.useCallback(
     (newOrigin: [number, number]) => {
@@ -107,7 +106,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
 
   const centerPipelineOrigin = React.useCallback(() => {
     let viewportOffset = getOffset(localRef.current);
-    const canvasOffset = getOffset(canvasRef.current);
+    const canvasOffset = getOffset(pipelineCanvasRef.current);
 
     let viewportWidth = getWidth(localRef.current);
     let viewportHeight = getHeight(localRef.current);
@@ -121,7 +120,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     ] as [number, number];
 
     pipelineSetHolderOrigin(centerOrigin);
-  }, [canvasRef, eventVars.scaleFactor, pipelineSetHolderOrigin]);
+  }, [pipelineCanvasRef, eventVars.scaleFactor, pipelineSetHolderOrigin]);
 
   // NOTE: React.useImperativeHandle should only be used in special cases
   // here we have to use it to allow parent component (i.e. PipelineEditor) to center pipeline canvas
@@ -132,42 +131,6 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     () => ({ centerPipelineOrigin, centerView }),
     [centerPipelineOrigin, centerView]
   );
-
-  React.useEffect(() => {
-    const keyDownHandler = (event: KeyboardEvent) => {
-      if (activeElementIsInput()) return;
-
-      if (event.key === " " && !keysDown.has("Space")) {
-        // if any element is on focus, pressing space bar is equivalent to mouse click
-        // therefore it's needed to remove all "focus" state
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        setPipelineCanvasState({ panningState: "ready-to-pan" });
-        keysDown.add("Space");
-      }
-      if (event.key === "h" && !keysDown.has("h")) {
-        centerView();
-        keysDown.add("h");
-      }
-    };
-    const keyUpHandler = (event: KeyboardEvent) => {
-      if (event.key === " ") {
-        setPipelineCanvasState({ panningState: "idle" });
-        keysDown.delete("Space");
-      }
-      if (event.key === "h") {
-        keysDown.delete("h");
-      }
-    };
-
-    document.body.addEventListener("keydown", keyDownHandler);
-    document.body.addEventListener("keyup", keyUpHandler);
-    return () => {
-      document.body.removeEventListener("keydown", keyDownHandler);
-      document.body.removeEventListener("keyup", keyUpHandler);
-    };
-  }, [dispatch, keysDown, centerView, setPipelineCanvasState]);
 
   React.useEffect(() => {
     if (
@@ -187,71 +150,37 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     });
   }, [resizeCanvas, localRef]);
 
-  const getMousePositionRelativeToCanvas = (e: React.WheelEvent) => {
-    trackMouseMovement(e.clientX, e.clientY); // in case that user start zoom-in/out before moving their cursor
-    const { x, y } = mouseTracker.current.client;
-    let canvasOffset = getOffset(canvasRef.current);
-
-    return [
-      scaleCorrected(x - canvasOffset.left, eventVars.scaleFactor),
-      scaleCorrected(y - canvasOffset.top, eventVars.scaleFactor),
-    ] as [number, number];
-  };
-
-  const onPipelineCanvasWheel = (e: React.WheelEvent) => {
-    let pipelineMousePosition = getMousePositionRelativeToCanvas(e);
-
-    // set origin at scroll wheel trigger
-    if (
-      pipelineMousePosition[0] !== pipelineOrigin[0] ||
-      pipelineMousePosition[1] !== pipelineOrigin[1]
-    ) {
-      pipelineSetHolderOrigin(pipelineMousePosition);
-    }
-
-    /* mouseWheel contains information about the deltaY variable
-     * WheelEvent.deltaMode can be:
-     * DOM_DELTA_PIXEL = 0x00
-     * DOM_DELTA_LINE = 0x01 (only used in Firefox)
-     * DOM_DELTA_PAGE = 0x02 (which we'll treat identically to DOM_DELTA_LINE)
-     */
-
-    let deltaY =
-      e.nativeEvent.deltaMode == 0x01 || e.nativeEvent.deltaMode == 0x02
-        ? getScrollLineHeight() * e.nativeEvent.deltaY
-        : e.nativeEvent.deltaY;
-
-    dispatch((current) => {
-      return {
-        type: "SET_SCALE_FACTOR",
-        payload: Math.min(
-          Math.max(current.scaleFactor - deltaY / 3000, 0.25),
-          2
-        ),
-      };
-    });
-  };
-
   const onMouseDown = (e: React.MouseEvent) => {
-    const isLeftClick = e.button === 0;
-
-    trackMouseMovement(e.clientX, e.clientY);
-
-    if (isLeftClick && panningState === "ready-to-pan") {
-      // space held while clicking, means canvas drag
-      setPipelineCanvasState({ panningState: "panning" });
+    if (eventVars.selectedConnection) {
+      dispatch({ type: "DESELECT_CONNECTION" });
     }
-
-    dispatch({ type: "DESELECT_CONNECTION" });
-
     // not dragging the canvas, so user must be creating a selection rectangle
     // we need to save the offset of cursor against pipeline canvas
-    if (isLeftClick && panningState === "idle") {
+    if (e.button === 0 && panningState === "idle") {
+      trackMouseMovement(e.clientX, e.clientY);
       dispatch({
         type: "CREATE_SELECTOR",
-        payload: getOffset(canvasRef.current),
+        payload: getOffset(pipelineCanvasRef.current),
       });
     }
+  };
+
+  const onMouseUp = () => {
+    if (eventVars.stepSelector.active) {
+      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
+    } else {
+      dispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
+    }
+
+    if (eventVars.openedStep) {
+      dispatch({ type: "SET_OPENED_STEP", payload: undefined });
+    }
+
+    if (newConnection.current) {
+      dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
+    }
+
+    if (dragFile) onDropFiles();
   };
 
   const getApplicableStepFiles = useValidateFilesOnSteps();
@@ -299,92 +228,8 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
     createStepsWithFiles(dropPosition);
   }, [createStepsWithFiles, getOnCanvasPosition]);
 
-  const onMouseUp = (e: React.MouseEvent) => {
-    if (eventVars.stepSelector.active) {
-      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
-    } else {
-      dispatch({ type: "SELECT_STEPS", payload: { uuids: [] } });
-    }
-
-    if (eventVars.openedStep) {
-      dispatch({ type: "SET_OPENED_STEP", payload: undefined });
-    }
-
-    if (newConnection.current) {
-      dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
-    }
-
-    if (dragFile) onDropFiles();
-
-    const isLeftClick = e.button === 0;
-
-    if (isLeftClick && panningState === "panning") {
-      setPipelineCanvasState({ panningState: "ready-to-pan" });
-    }
-  };
-
-  const hasMouseMoved = React.useRef(false);
-  const onMouseMoveViewport = React.useCallback(() => {
-    if (!hasMouseMoved.current) {
-      // ensure that mouseTracker is in sync, to prevent jumping in some cases.
-      hasMouseMoved.current = true;
-      return;
-    }
-    let canvasOffset = getOffset(canvasRef.current);
-    // update newConnection's position
-    if (newConnection.current) {
-      const { x, y } = getScaleCorrectedPosition({
-        offset: canvasOffset,
-        position: mouseTracker.current.client,
-        scaleFactor: eventVars.scaleFactor,
-      });
-
-      newConnection.current = { ...newConnection.current, xEnd: x, yEnd: y };
-    }
-
-    if (eventVars.stepSelector.active) {
-      dispatch({ type: "UPDATE_STEP_SELECTOR", payload: canvasOffset });
-    }
-
-    if (panningState === "panning") {
-      let dx = mouseTracker.current.unscaledDelta.x;
-      let dy = mouseTracker.current.unscaledDelta.y;
-
-      setPipelineCanvasState((current) => ({
-        pipelineOffset: [
-          current.pipelineOffset[0] + dx,
-          current.pipelineOffset[1] + dy,
-        ],
-      }));
-    }
-  }, [
-    dispatch,
-    canvasRef,
-    eventVars.scaleFactor,
-    eventVars.stepSelector.active,
-    mouseTracker,
-    newConnection,
-    panningState,
-    setPipelineCanvasState,
-  ]);
-
-  const onMouseLeaveViewport = React.useCallback(() => {
-    if (eventVars.stepSelector.active) {
-      dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
-    }
-    if (newConnection.current) {
-      dispatch({ type: "REMOVE_CONNECTION", payload: newConnection.current });
-    }
-  }, [dispatch, eventVars.stepSelector.active, newConnection]);
-
-  React.useEffect(() => {
-    document.body.addEventListener("mousemove", onMouseMoveViewport);
-    document.body.addEventListener("mouseleave", onMouseLeaveViewport);
-    return () => {
-      document.body.removeEventListener("mousemove", onMouseMoveViewport);
-      document.body.removeEventListener("mouseleave", onMouseLeaveViewport);
-    };
-  }, [onMouseLeaveViewport, onMouseMoveViewport]);
+  useMouseEventsOnViewport();
+  useKeyboardEventsOnViewport(canvasFuncRef);
 
   React.useEffect(() => {
     pipelineSetHolderSize();
@@ -393,6 +238,8 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       window.removeEventListener("resize", pipelineSetHolderSize);
     };
   }, [pipelineSetHolderSize]);
+
+  useGestureOnViewport(localRef, pipelineSetHolderOrigin);
 
   return (
     <div
@@ -411,13 +258,17 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
           ref.current = node;
         }
       }}
-      onWheel={onPipelineCanvasWheel}
       onMouseDown={onMouseDown}
       onMouseUp={onMouseUp}
+      onContextMenu={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+      style={{ ...style, touchAction: "none" }}
       {...props}
     >
       <PipelineCanvas
-        ref={canvasRef}
+        ref={pipelineCanvasRef}
         style={{
           transformOrigin: `${pipelineOrigin[0]}px ${pipelineOrigin[1]}px`,
           transform:

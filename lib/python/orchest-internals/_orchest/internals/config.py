@@ -10,6 +10,8 @@ USERDIR_ENV_IMG_BUILDS = "/userdir/.orchest/env-img-builds"
 USERDIR_JUPYTER_IMG_BUILDS = "/userdir/.orchest/jupyter-img-builds"
 USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
 
+ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
+
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"

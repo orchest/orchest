@@ -6,12 +6,12 @@ import { DesignProvider, OrchestProvider } from "./contexts/Providers";
 
 declare global {
   interface Document {
-    fonts: any;
+    fonts: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 
-  interface Window {
-    orchest: any;
-    Intercom: any;
+  interface WheelEvent {
+    Intercom: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+    wheelDeltaY?: number;
   }
 }
 

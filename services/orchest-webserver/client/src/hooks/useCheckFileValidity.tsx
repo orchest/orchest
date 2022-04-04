@@ -1,9 +1,9 @@
+import { queryArgs } from "@/pipeline-view/file-manager/common";
 import {
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
   fetcher,
   hasValue,
-  HEADER,
 } from "@orchest/lib-utils";
 import useSWR from "swr";
 
@@ -27,14 +27,11 @@ export const isValidFile = async (
   // only check file existence if it passes rule based validation
   if (!project_uuid || !pipeline_uuid || !pathValidator(path)) return false;
   const response = await fetcher(
-    `/async/project-files/exists/${project_uuid}/${pipeline_uuid}`,
-    {
-      method: "POST",
-      headers: HEADER.JSON,
-      body: JSON.stringify({
-        path,
-      }),
-    }
+    `/async/file-management/exists?${queryArgs({
+      project_uuid,
+      pipeline_uuid,
+      path,
+    })}`
   );
   return hasValue(response);
 };
@@ -51,9 +48,11 @@ export const useCheckFileValidity = (
   pipeline_uuid: string,
   path: string
 ) => {
-  // this is no the actual URL (path is part of the request body, not a path arg),
-  // but we use this as a unique cache key for swr
-  const cacheKey = `/async/project-files/exists/${project_uuid}/${pipeline_uuid}/${path}`;
+  const cacheKey = `/async/file-management/exists?${queryArgs({
+    project_uuid,
+    pipeline_uuid,
+    path,
+  })}`;
 
   const { data = false } = useSWR(
     project_uuid && pipeline_uuid && path ? cacheKey : null,
