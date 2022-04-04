@@ -63,6 +63,10 @@ deployment
               - -c
               - "wget orchest-api/api -T 2 -t 1 --spider &&
                 wget -T 1 -t 1 localhost/async/version --spider"
+          timeoutSeconds: 5
+          periodSeconds: 5
+          failureThreshold: 50
+          successThreshold: 1
         livenessProbe:
           httpGet:
             path: /async/version
