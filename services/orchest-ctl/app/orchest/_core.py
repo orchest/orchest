@@ -596,9 +596,14 @@ def restart():
     level_to_str = {level.value: level for level in utils.LogLevel}
     log_level = level_to_str.get(log_level, utils.LogLevel.INFO)
     cloud = k8sw.get_orchest_cloud_mode() == "True"
+    dev_orchest_api = k8sw.is_running_in_dev_mode("orchest-api")
+    dev_orchest_webserver = k8sw.is_running_in_dev_mode("orchest-webserver")
+    dev_auth_server = k8sw.is_running_in_dev_mode("auth-server")
 
     stop()
-    start(log_level, cloud)
+    start(
+        log_level, cloud, False, dev_orchest_webserver, dev_orchest_api, dev_auth_server
+    )
 
 
 def add_user(username: str, password: str, token: str, is_admin: str) -> None:
