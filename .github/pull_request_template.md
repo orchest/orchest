@@ -12,3 +12,5 @@ Fixes: #issue
       migrations (refer to `scripts/migration_manager.sh`).
 - [ ] In case I changed code in the `orchest-sdk` I followed its [release
       checklist](https://github.com/orchest/orchest/blob/master/orchest-sdk/python/RELEASE-CHECKLIST.md)
+- [ ] In case I changed the dependencies in any `requirements.in` I have run `pip-compile`
+      to update the corresponding `requirements.txt`.

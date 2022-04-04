@@ -1,0 +1,11 @@
+Flask-SQLAlchemy
+Flask
+SQLAlchemy-Utils
+Werkzeug
+eventlet
+flask-migrate
+flask-script
+itsdangerous
+psycopg2-binary
+requests
+-e file:../../lib/python/orchest-internals
