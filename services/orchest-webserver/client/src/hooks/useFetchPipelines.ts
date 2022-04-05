@@ -24,8 +24,14 @@ export const useFetchPipelines = (projectUuid: string | undefined) => {
     [mutate]
   );
 
+  const pipelines =
+    data ||
+    (cache.get(`/async/pipelines/${projectUuid}`) as
+      | PipelineMetaData[]
+      | undefined);
+
   return {
-    pipelines: data,
+    pipelines,
     error,
     isFetchingPipelines: isValidating,
     fetchPipelines: mutate,

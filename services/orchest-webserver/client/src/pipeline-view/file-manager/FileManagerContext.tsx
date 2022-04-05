@@ -49,7 +49,7 @@ export const useFileManagerContext = () => React.useContext(FileManagerContext);
 export const FileManagerContextProvider: React.FC = ({ children }) => {
   const { projectUuid } = useCustomRoute();
 
-  const { pipelines } = useFetchPipelines(projectUuid);
+  const { pipelines = [] } = useFetchPipelines(projectUuid);
 
   const fileTreeDepth = React.useRef<number>(3);
   const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);

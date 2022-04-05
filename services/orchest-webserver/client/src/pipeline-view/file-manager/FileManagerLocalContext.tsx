@@ -4,6 +4,9 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import { Position } from "@/types";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
   baseNameFromPath,
@@ -181,32 +184,51 @@ export const FileManagerLocalContextProvider: React.FC<{
         ? `${filesToDelete.length} files`
         : `'${getBaseNameFromContextMenu(filesToDelete[0])}'`;
 
-    const hasPipelineFiles = await Promise.all(
+    const searchResult = await Promise.all(
       filesToDelete.map((pathToDelete) => {
-        if (isFileByExtension(["orchest"], pathToDelete)) return true;
+        if (!pathToDelete.endsWith("/"))
+          return isFileByExtension(["orchest"], pathToDelete)
+            ? pathToDelete
+            : null;
         let { root, path } = unpackCombinedPath(pathToDelete);
         return searchFilePathsByExtension({
           root,
           projectUuid,
           extensions: ["orchest"],
           path,
-        }).then((response) => response.files.length > 0);
+        }).then((response) =>
+          response.files.length > 0 ? pathToDelete : null
+        );
       })
-    ).then((allResponses) => allResponses.includes(true));
+    );
+
+    const pathsThatContainsPipelineFiles = searchResult
+      .filter((result) => hasValue(result))
+      .map((combinedPath) => unpackCombinedPath(combinedPath));
 
     setConfirm(
       "Warning",
-      `Are you sure you want to delete ${filesToDeleteString}?${
-        hasPipelineFiles ? (
+      <Stack spacing={2} direction="column">
+        <Box>{`Are you sure you want to delete ${filesToDeleteString}? `}</Box>
+        {pathsThatContainsPipelineFiles.length > 0 && (
           <>
-            {` Pipeline files `}
-            <Code>{`.orchest`}</Code>
-            {` will also be deleted and it cannot be undone.`}.
+            <Box>
+              {`Following file paths contain pipeline files `}
+              <Code>*.orchest</Code>
+              {`. They will also be deleted and it cannot be undone.`}
+            </Box>
+            <ul>
+              {pathsThatContainsPipelineFiles.map((file) => (
+                <Box key={`${file.root}/${file.path}`}>
+                  <Code>{`${
+                    file.root === "/project-dir" ? "/Project files" : file.root
+                  }${file.path}`}</Code>
+                </Box>
+              ))}
+            </ul>
           </>
-        ) : (
-          ""
-        )
-      }`,
+        )}
+      </Stack>,
       async (resolve) => {
         await Promise.all(
           filesToDelete.map((combinedPath) =>
@@ -214,7 +236,20 @@ export const FileManagerLocalContextProvider: React.FC<{
           )
         );
 
-        if (filesToDelete.includes(pipeline?.path)) {
+        const shouldRedirect = filesToDelete.some((fileToDelete) => {
+          const { path } = unpackCombinedPath(fileToDelete);
+          const pathToDelete = path.replace(/^\//, "");
+
+          const isDeletingPipelineFileDirectly =
+            pathToDelete === pipeline?.path;
+          const isDeletingParentFolder =
+            pathToDelete.endsWith("/") &&
+            pipeline?.path.startsWith(pathToDelete);
+
+          return isDeletingPipelineFileDirectly || isDeletingParentFolder;
+        });
+
+        if (shouldRedirect) {
           // redirect back to pipelines
           navigateTo(siteMap.pipelines.path, {
             query: { projectUuid },
