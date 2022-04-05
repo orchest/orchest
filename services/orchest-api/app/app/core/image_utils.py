@@ -248,7 +248,7 @@ class ImageBuildSidecar:
             pod_name,
             ns,
             expected_statuses=["Running", "Succeeded", "Failed", "Unknown"],
-            max_retries=100,
+            max_retries=2000,
         )
         return pod_name
 
