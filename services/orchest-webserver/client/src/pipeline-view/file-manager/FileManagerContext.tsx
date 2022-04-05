@@ -1,5 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { FileTree } from "@/types";
+import { useFetchPipelines } from "@/hooks/useFetchPipelines";
+import { FileTree, PipelineMetaData } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import { treeRoots } from "../common";
@@ -36,6 +37,7 @@ export type FileManagerContextType = {
     React.SetStateAction<FilePathChange[] | undefined>
   >;
   fileTreeDepth: React.MutableRefObject<number>;
+  pipelines: PipelineMetaData[];
 };
 
 export const FileManagerContext = React.createContext<FileManagerContextType>(
@@ -46,6 +48,8 @@ export const useFileManagerContext = () => React.useContext(FileManagerContext);
 
 export const FileManagerContextProvider: React.FC = ({ children }) => {
   const { projectUuid } = useCustomRoute();
+
+  const { pipelines } = useFetchPipelines(projectUuid);
 
   const fileTreeDepth = React.useRef<number>(3);
   const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
@@ -132,6 +136,7 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         filePathChanges,
         setFilePathChanges,
         fileTreeDepth,
+        pipelines,
       }}
     >
       {children}

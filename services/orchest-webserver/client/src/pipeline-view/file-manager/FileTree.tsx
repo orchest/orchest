@@ -1,7 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/Routes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -87,13 +86,12 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     fileTrees,
     setFilePathChanges,
+    pipelines,
   } = useFileManagerContext();
 
   const { handleSelect, reload } = useFileManagerLocalContext();
 
   const openNotebook = useOpenNoteBook();
-
-  const { pipelines } = useFetchPipelines(projectUuid);
 
   const onOpen = React.useCallback(
     (filePath) => {

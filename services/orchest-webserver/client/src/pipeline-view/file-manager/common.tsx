@@ -229,6 +229,26 @@ export const isFileByExtension = (extensions: string[], filePath: string) => {
   return regex.test(filePath);
 };
 
+export const searchFilePathsByExtension = ({
+  projectUuid,
+  root,
+  path,
+  extensions,
+}: {
+  projectUuid: string;
+  root: string;
+  path: string;
+  extensions: string[];
+}) =>
+  fetcher<{ files: string[] }>(
+    `/async/file-management/extension-search?${queryArgs({
+      project_uuid: projectUuid,
+      root,
+      path,
+      extensions: extensions.join(","),
+    })}`
+  );
+
 /**
  * This function returns a list of file_path that ends with the given extensions.
  */
@@ -248,14 +268,12 @@ export const findFilesByExtension = async ({
     return isFileType ? [node.name] : [];
   }
   if (node.type === "directory") {
-    const response = await fetcher<{ files: string[] }>(
-      `/async/file-management/extension-search?${queryArgs({
-        project_uuid: projectUuid,
-        root,
-        path: node.path,
-        extensions: extensions.join(","),
-      })}`
-    );
+    const response = await searchFilePathsByExtension({
+      projectUuid,
+      root,
+      path: node.path,
+      extensions,
+    });
 
     return response.files;
   }

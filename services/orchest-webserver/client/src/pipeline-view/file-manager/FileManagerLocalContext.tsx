@@ -1,12 +1,16 @@
+import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
 import { Position } from "@/types";
 import React from "react";
 import {
   baseNameFromPath,
   FILE_MANAGEMENT_ENDPOINT,
+  isFileByExtension,
   queryArgs,
+  searchFilePathsByExtension,
   unpackCombinedPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -97,9 +101,17 @@ export const FileManagerLocalContextProvider: React.FC<{
   >;
 }> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
-  const { projectUuid } = useCustomRoute();
+  const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const { selectedFiles, setSelectedFiles } = useFileManagerContext();
+  const {
+    selectedFiles,
+    setSelectedFiles,
+    pipelines,
+  } = useFileManagerContext();
+
+  const pipeline = React.useMemo(() => {
+    return pipelines.find((pipeline) => pipeline.uuid === pipelineUuid);
+  }, [pipelines, pipelineUuid]);
 
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
     string
@@ -155,39 +167,62 @@ export const FileManagerLocalContextProvider: React.FC<{
     setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
   }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
 
-  const handleDelete = React.useCallback(() => {
+  const handleDelete = React.useCallback(async () => {
     if (pipelineIsReadOnly) return;
 
     handleClose();
 
-    if (
-      selectedFiles.includes(contextMenuCombinedPath) &&
-      selectedFiles.length > 1
-    ) {
-      setConfirm(
-        "Warning",
-        `Are you sure you want to delete ${selectedFiles.length} files?`,
-        async (resolve) => {
-          await Promise.all(
-            selectedFiles.map((combinedPath) =>
-              deleteFetch(projectUuid, combinedPath)
-            )
-          );
-          await reload();
-          resolve(true);
-          return true;
-        }
-      );
-      return;
-    }
+    const filesToDelete = selectedFiles.includes(contextMenuCombinedPath)
+      ? selectedFiles
+      : [contextMenuCombinedPath];
+
+    const filesToDeleteString =
+      filesToDelete.length > 1
+        ? `${filesToDelete.length} files`
+        : `'${getBaseNameFromContextMenu(filesToDelete[0])}'`;
+
+    const hasPipelineFiles = await Promise.all(
+      filesToDelete.map((pathToDelete) => {
+        if (isFileByExtension(["orchest"], pathToDelete)) return true;
+        let { root, path } = unpackCombinedPath(pathToDelete);
+        return searchFilePathsByExtension({
+          root,
+          projectUuid,
+          extensions: ["orchest"],
+          path,
+        }).then((response) => response.files.length > 0);
+      })
+    ).then((allResponses) => allResponses.includes(true));
 
     setConfirm(
       "Warning",
-      `Are you sure you want to delete '${getBaseNameFromContextMenu(
-        contextMenuCombinedPath
-      )}'?`,
+      `Are you sure you want to delete ${filesToDeleteString}?${
+        hasPipelineFiles ? (
+          <>
+            {` Pipeline files `}
+            <Code>{`.orchest`}</Code>
+            {` will also be deleted and it cannot be undone.`}.
+          </>
+        ) : (
+          ""
+        )
+      }`,
       async (resolve) => {
-        await deleteFetch(projectUuid, contextMenuCombinedPath);
+        await Promise.all(
+          filesToDelete.map((combinedPath) =>
+            deleteFetch(projectUuid, combinedPath)
+          )
+        );
+
+        if (filesToDelete.includes(pipeline?.path)) {
+          // redirect back to pipelines
+          navigateTo(siteMap.pipelines.path, {
+            query: { projectUuid },
+          });
+          resolve(true);
+          return true;
+        }
+
         await reload();
         resolve(true);
         return true;
@@ -201,6 +236,8 @@ export const FileManagerLocalContextProvider: React.FC<{
     setConfirm,
     handleClose,
     pipelineIsReadOnly,
+    pipeline?.path,
+    navigateTo,
   ]);
 
   const handleDownload = React.useCallback(() => {
