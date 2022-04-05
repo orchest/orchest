@@ -20,7 +20,7 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `pre-commit <https://pre-commit.com/#installation>`_
 * `npm <https://docs.npmjs.com/downloading-and-installing-node-js-and-npm>`_ and `pnpm
   <https://pnpm.io/installation#using-npm>`_
-* `jq <https://stedolan.github.io/jq/>`_
+* `jq <https://stedolan.github.io/jq/>`_ (useful when working with JSON in your terminal)
 * `Google Chrome <https://www.google.com/chrome/>`_ (integration tests only)
 
 .. _cluster mount:
