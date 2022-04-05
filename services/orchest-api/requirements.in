@@ -1,8 +1,8 @@
 APScheduler
 Flask-Cors
 Flask-SQLAlchemy
-Flask
-Jinja2
+Flask<2
+Jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
 PyYAML
 SQLAlchemy-Utils
 Werkzeug

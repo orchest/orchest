@@ -3,7 +3,8 @@ nbconvert~=6.0.0
 # https://github.com/jupyter/nbconvert/issues/1443
 ipython
 itsdangerous
-Flask
+jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
+Flask<2
 flask_sqlalchemy
 Flask-RESTful
 flask-marshmallow
