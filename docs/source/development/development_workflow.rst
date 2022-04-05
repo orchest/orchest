@@ -36,7 +36,6 @@ which allows redeploying services and :ref:`incremental development <incremental
    # Start minikube with the repository mounted in the required place.
    # Run this command while you are in the Orchest repository directory.
    minikube start \
-     --memory 16000 \  # Requires additional steps on Ubuntu-based systems
      --cpus 6 \
      --mount-string="$(pwd):/orchest-dev-repo" --mount
 
