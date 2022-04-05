@@ -120,7 +120,7 @@ def _run_helm_with_progress_bar(
 def install(
     log_level: utils.LogLevel,
     cloud: bool,
-    fqdn: str,
+    fqdn: Optional[str],
     registry_storage_class: Optional[str],
 ):
     k8sw.abort_if_unsafe()
@@ -159,12 +159,12 @@ def install(
 
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
+    injected_env_vars = {}
+    if fqdn is not None:
+        injected_env_vars["ORCHEST_FQDN"] = fqdn
+    injected_env_vars["REGISTRY_STORAGE_CLASS"] = registry_storage_class
     return_code = _run_helm_with_progress_bar(
-        HelmMode.INSTALL,
-        injected_env_vars={
-            "ORCHEST_FQDN": fqdn,
-            "REGISTRY_STORAGE_CLASS": registry_storage_class,
-        },
+        HelmMode.INSTALL, injected_env_vars=injected_env_vars
     )
 
     if return_code != 0:

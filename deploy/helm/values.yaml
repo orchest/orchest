@@ -1,6 +1,9 @@
-global:
-  ingress:
-    host: localorchest.io
+
+
+# uncomment to set the FQDN in ingress resources
+#global:
+#  ingress:
+#    host: localorchest.io
 
 auth-server:
   enabled: false
