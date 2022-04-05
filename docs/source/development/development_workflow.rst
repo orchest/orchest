@@ -94,7 +94,7 @@ For example, to make changes on the ``orchest-api`` service, do the following:
     kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
 
 Alternatively, you can run ``scripts/build_container.sh -m -t $TAG -o $TAG``
-to rebuild all images.
+to rebuild the minimal required set of images.
 
 Multi node
 ++++++++++
