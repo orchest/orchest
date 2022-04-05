@@ -30,9 +30,7 @@ class Config:
     CLIENT_HEARTBEATS_IDLENESS_THRESHOLD = datetime.timedelta(minutes=30)
 
     # Image building.
-    # TODO: setup Orchest repo & dockerhub image if we commit to
-    # buildah.
-    IMAGE_BUILDER_IMAGE = "docker.io/fruttasecca/buildah:1.26-experimental"
+    IMAGE_BUILDER_IMAGE = "docker.io/orchest/buildah:1.26-experimental"
     BUILD_IMAGE_LOG_FLAG = "_ORCHEST_RESERVED_LOG_FLAG_"
     BUILD_IMAGE_ERROR_FLAG = "_ORCHEST_RESERVED_ERROR_FLAG_"
 
