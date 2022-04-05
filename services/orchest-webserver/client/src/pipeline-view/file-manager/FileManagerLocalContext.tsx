@@ -11,6 +11,7 @@ import React from "react";
 import {
   baseNameFromPath,
   FILE_MANAGEMENT_ENDPOINT,
+  filterRedundantChildPaths,
   isFileByExtension,
   queryArgs,
   searchFilePathsByExtension,
@@ -112,6 +113,13 @@ export const FileManagerLocalContextProvider: React.FC<{
     pipelines,
   } = useFileManagerContext();
 
+  // When deleting or downloading selectedFiles, we need to avoid
+  // the redundant child paths.
+  // e.g. if we delete folder `/a/b`, deleting `/a/b/c.py` should be avoided.
+  const selectedFilesWithoutRedundantChildPaths = React.useMemo(() => {
+    return filterRedundantChildPaths(selectedFiles);
+  }, [selectedFiles]);
+
   const pipeline = React.useMemo(() => {
     return pipelines.find((pipeline) => pipeline.uuid === pipelineUuid);
   }, [pipelines, pipelineUuid]);
@@ -176,7 +184,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     handleClose();
 
     const filesToDelete = selectedFiles.includes(contextMenuCombinedPath)
-      ? selectedFiles
+      ? selectedFilesWithoutRedundantChildPaths
       : [contextMenuCombinedPath];
 
     const filesToDeleteString =
@@ -266,6 +274,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [
     contextMenuCombinedPath,
     selectedFiles,
+    selectedFilesWithoutRedundantChildPaths,
     projectUuid,
     reload,
     setConfirm,
@@ -281,7 +290,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     const downloadLink = getBaseNameFromContextMenu(contextMenuCombinedPath);
 
     if (selectedFiles.includes(contextMenuCombinedPath)) {
-      selectedFiles.forEach((combinedPath, i) => {
+      selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {
         setTimeout(function () {
           downloadFile(projectUuid, combinedPath, downloadLink);
         }, i * 500);
@@ -291,7 +300,13 @@ export const FileManagerLocalContextProvider: React.FC<{
     } else {
       downloadFile(projectUuid, contextMenuCombinedPath, downloadLink);
     }
-  }, [projectUuid, contextMenuCombinedPath, handleClose, selectedFiles]);
+  }, [
+    projectUuid,
+    contextMenuCombinedPath,
+    handleClose,
+    selectedFiles,
+    selectedFilesWithoutRedundantChildPaths,
+  ]);
 
   return (
     <FileManagerLocalContext.Provider

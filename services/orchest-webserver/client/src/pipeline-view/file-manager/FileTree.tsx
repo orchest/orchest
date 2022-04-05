@@ -18,6 +18,7 @@ import {
   FileTrees,
   FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
+  filterRedundantChildPaths,
   findFilesByExtension,
   generateTargetDescription,
   isFileByExtension,
@@ -55,10 +56,6 @@ const findFileViaPath = (path: string, fileTrees: FileTrees) => {
   }
   return head;
 };
-
-// ancesterPath has to be an folder because a file cannot be a parent
-const isAncester = (ancesterPath: string, childPath: string) =>
-  ancesterPath.endsWith("/") && childPath.startsWith(ancesterPath);
 
 export const FileTree = React.memo(function FileTreeComponent({
   treeRoots,
@@ -158,40 +155,14 @@ export const FileTree = React.memo(function FileTreeComponent({
     ]
   );
 
-  // dragFiles cannot have nodes that are ancester/offspring of each other
-  // because offspring nodes will be moved along with their ancesters.
-  // e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed
   const dragFiles = React.useMemo(() => {
     if (!dragFile) return [];
-
     if (!selectedFiles.includes(dragFile.path)) return [dragFile.path];
 
-    const filteredItemsSet = new Set<string>([dragFile.path]);
-
-    for (let selectedPath of selectedFiles) {
-      const filteredItems = [...filteredItemsSet];
-
-      // If filteredItem is an ancestor of selectedPath
-      const hasIncluded = filteredItems.some((filteredItem) =>
-        isAncester(filteredItem, selectedPath)
-      );
-
-      if (hasIncluded) continue;
-
-      // Replace the current item with its ancester.
-      filteredItems.forEach((filteredItem) => {
-        if (isAncester(selectedPath, filteredItem)) {
-          filteredItemsSet.delete(filteredItem);
-          filteredItemsSet.add(selectedPath);
-        }
-      });
-
-      // If selectedPath is not an ancester or an offspring of any item in filteredItems,
-      // add it into the list.
-      filteredItemsSet.add(selectedPath);
-    }
-
-    return [...filteredItemsSet];
+    // dragFiles cannot have nodes that are ancester/offspring of each other
+    // because offspring nodes will be moved along with their ancesters.
+    // e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed
+    return filterRedundantChildPaths(selectedFiles);
   }, [dragFile, selectedFiles]);
 
   // by default, handleRename will reload

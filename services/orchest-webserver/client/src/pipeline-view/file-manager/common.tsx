@@ -399,3 +399,33 @@ export const lastSelectedFolderPath = (selectedFiles: string[]) => {
   const matches = lastSelected.match(/^\/[^\/]+:((\/[^\/]+)*\/)([^\/]*)/);
   return matches ? matches[1] : "/";
 };
+
+// ancesterPath has to be an folder because a file cannot be a parent
+const isAncester = (ancesterPath: string, childPath: string) =>
+  ancesterPath.endsWith("/") && childPath.startsWith(ancesterPath);
+
+/**
+ * This function removes the child path if its ancester path already appears in the list.
+ * e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed.
+ * @param list :string[]
+ * @returns string[]
+ */
+export const filterRedundantChildPaths = (list: string[]) => {
+  // ancestor will be processed first
+  const sortedList = list.sort();
+
+  const listSet = new Set<string>([]);
+
+  for (let item of sortedList) {
+    const filteredList = [...listSet];
+
+    // If filteredItem is an ancestor of item
+    const hasIncluded = filteredList.some((filteredItem) =>
+      isAncester(filteredItem, item)
+    );
+
+    if (!hasIncluded) listSet.add(item);
+  }
+
+  return [...listSet];
+};
