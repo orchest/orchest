@@ -3,6 +3,7 @@ deployment
 */}}
 ---
 {{ include "library.deployment" . }}
+    {{- $ingress := .Values.global.ingress | default dict }}
     spec:
       volumes:
         - name: userdir-pvc
@@ -17,8 +18,10 @@ deployment
         env:
         - name: "ORCHEST_LOG_LEVEL"
           value: "{{ .Values.ORCHEST_LOG_LEVEL }}"
+        {{ if $ingress.host }}  
         - name: "ORCHEST_FQDN"
-          value: "{{ .Values.global.ingress.host }}"
+          value: "{{ $ingress.host }}"
+        {{ end }} 
         - name: "MAX_JOB_RUNS_PARALLELISM"
           value: "{{ .Values.MAX_JOB_RUNS_PARALLELISM }}"
         - name: "MAX_INTERACTIVE_RUNS_PARALLELISM"

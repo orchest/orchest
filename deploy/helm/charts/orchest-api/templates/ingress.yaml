@@ -7,8 +7,13 @@ metadata:
     nginx.ingress.kubernetes.io/auth-url: {{ include "library.service.auth" . }}
 spec:
   rules:
-    - host: {{ template "library.ingress.host" . }}
-      http:
+    {{- $ingress := .Values.global.ingress | default dict }}
+    {{ if $ingress.host }}
+    - host: {{ $ingress.host }}
+      http:  
+    {{ else }}
+    - http:
+    {{ end }}
         paths:
           - path: /orchest-api
             pathType: Prefix

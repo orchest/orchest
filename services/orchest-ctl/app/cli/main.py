@@ -181,14 +181,15 @@ def install(
         False, show_default="--no-cloud", help=__CLOUD_HELP_MESSAGE, hidden=True
     ),
     fqdn: Optional[str] = typer.Option(
-        "localorchest.io",
+        None,
         "--fqdn",
         show_default=True,
         help=(
             "Fully qualified domain name of the application. It can be used, for "
             "example, to reach the application locally after mapping the cluster ip "
             "to 'localorchest.io' in your /etc/hosts file. To do that, you can use "
-            "'minikube ip' to get the cluster ip."
+            "'minikube ip' to get the cluster ip, if it is not specified, the cluster "
+            "can be reached via ip(:port)"
         ),
         callback=_validate_fqdn,
     ),
