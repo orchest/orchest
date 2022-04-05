@@ -30,7 +30,7 @@ if orchest_version is not None:
 
         Note:
             Both `old` and `new` must follow the same versioning scheme:
-            * Calver, e.g. "v2022.03.8", or
+            * CalVer, e.g. "v2022.03.8", or
             * SemVer, e.g. "0.3.10"
 
         """
