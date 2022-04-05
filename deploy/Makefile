@@ -94,6 +94,7 @@ DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
 DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
 DOCKER_REGISTRY_PORT_CONFIG := --set service.port=${REGISTRY_PORT}
 DOCKER_REGISTRY_PVC_CONFIG := --set persistence.enabled=true \
+							  --set persistence.size=999Ti \
 							  ${if ${REGISTRY_STORAGE_CLASS},--set persistence.storageClass=${REGISTRY_STORAGE_CLASS},}
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 								--namespace ${NAMESPACE} \
