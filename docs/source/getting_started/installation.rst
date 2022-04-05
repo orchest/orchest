@@ -37,6 +37,19 @@ instead, for example clone orchest in the Linux user home directory:
 
    cd && git clone https://github.com/orchest/orchest.git
 
+Kubernetes cluster
+~~~~~~~~~~~~~~~~~~
+You need `a Kubernetes (k8s) cluster <https://kubernetes.io/docs/setup/>`_ to run Orchest:
+you can either pick a managed service by `one of their certified cloud
+platforms <https://kubernetes.io/docs/setup/production-environment/turnkey-solutions/>`_,
+or `create one locally using
+minikube <https://kubernetes.io/docs/tutorials/kubernetes-basics/create-cluster/cluster-intro/>`_:
+
+.. code-block:: bash
+
+   # Start a minikube cluster with profile "minikube".
+   minikube start --cpus=4
+
 .. _regular installation:
 
 Install Orchest
@@ -44,9 +57,6 @@ Install Orchest
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
-
-   # Start a minikube cluster with profile "minikube".
-   minikube start --cpus=4
 
    bash orchest install
 
