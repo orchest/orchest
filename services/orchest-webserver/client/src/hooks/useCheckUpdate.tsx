@@ -9,6 +9,19 @@ import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 import useSWRImmutable from "swr/immutable";
 
+const isVersionLTE = (oldVersion: string, newVersion: string) => {
+  const [oldYear, oldMonth, oldPatch] = oldVersion.split(".");
+  const [newYear, newMonth, newPatch] = newVersion.split(".");
+
+  if (oldYear > newYear) return false;
+  if (oldYear < newYear) return true;
+  if (oldMonth > newMonth) return false;
+  if (oldMonth < newMonth) return true;
+  if (parseInt(oldPatch) > parseInt(newPatch)) return false;
+  if (parseInt(oldPatch) < parseInt(newPatch)) return true;
+  return oldVersion === newVersion;
+};
+
 const shouldPromptOrchestUpdate = (
   currentVersion: string,
   latestVersion: string | null,
@@ -16,7 +29,7 @@ const shouldPromptOrchestUpdate = (
 ) => {
   // The latest version information has not yet been fetched by Orchest.
   if (latestVersion === null) return false;
-  if (latestVersion <= currentVersion) return false;
+  if (isVersionLTE(latestVersion, currentVersion)) return false;
   return skipVersion !== latestVersion;
 };
 
