@@ -39,15 +39,19 @@ automatically running pre-commit hooks:
 
 .. code-block:: bash
 
-   # Make sure you are inside the orchest root directory.
-   npm run setup --install && \
-       pnpm i && \
-       # Install dependencies to build the docs
-       python3 -m pip install -r docs/requirements.txt && \
-       # Install pre-commit hooks
-       pre-commit install && \
-       # Dependencies to run unit tests
-       sudo apt-get install -y default-libmysqlclient-dev
+   # Make sure you are inside the orchest root directory
+
+   # pre-commit hooks
+   pre-commit install
+
+   # Dependencies to run unit tests
+   sudo apt-get install -y default-libmysqlclient-dev
+
+   # Frontend dependencies for incremental development
+   npm run setup --install && pnpm i
+
+   # Dependencies to build the docs
+   python3 -m pip install -r docs/requirements.txt
 
 IDE & language servers
 ~~~~~~~~~~~~~~~~~~~~~~
