@@ -83,7 +83,10 @@ For example, to make changes on the ``orchest-api`` service, do the following:
 
 .. code-block:: bash
 
-    # Make use of the in-node docker engine
+    # Verify if in-node docker engine is active
+    [[ -n "${MINIKUBE_ACTIVE_DOCKERD}" ]] && echo $MINIKUBE_ACTIVE_DOCKERD || echo "Not active"
+
+    # If not active, set it
     eval $(minikube -p minikube docker-env)
 
     # Save the Orchest version in use
