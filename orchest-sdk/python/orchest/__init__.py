@@ -42,6 +42,8 @@ if orchest_version is not None:
         for o, n in zip(old.split("."), new.split(".")):
             if int(o) > int(n):
                 return False
+            elif int(o) < int(n):
+                return True
         return True
 
     def __gt(old: str, new: str) -> bool:
