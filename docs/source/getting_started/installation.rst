@@ -37,6 +37,15 @@ instead, for example clone orchest in the Linux user home directory:
 
    cd && git clone https://github.com/orchest/orchest.git
 
+Kubernetes cluster
+------------------
+The best option to create a Kubernetes (k8s) cluster locally is using minikube:
+
+.. code-block:: bash
+
+   # Start a minikube cluster with profile "minikube".
+   minikube start --cpus=4
+
 .. _regular installation:
 
 Install Orchest
@@ -44,9 +53,6 @@ Install Orchest
 .. code-block:: bash
 
    git clone https://github.com/orchest/orchest.git && cd orchest
-
-   # Start a minikube cluster with profile "minikube".
-   minikube start --cpus=4
 
    bash orchest install
 
