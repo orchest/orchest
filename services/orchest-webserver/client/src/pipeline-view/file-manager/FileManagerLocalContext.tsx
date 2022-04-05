@@ -1,13 +1,18 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { Position } from "@/types";
 import React from "react";
-import { baseNameFromPath, queryArgs, unpackCombinedPath } from "./common";
+import {
+  baseNameFromPath,
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+  unpackCombinedPath,
+} from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
-  baseUrl: string;
   reload: () => Promise<void>;
   handleClose: () => void;
   handleContextMenu: (
@@ -42,11 +47,16 @@ export const FileManagerLocalContext = React.createContext<
 export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
 
-const deleteFetch = (baseUrl: string, combinedPath: string) => {
+const deleteFetch = (projectUuid: string, combinedPath: string) => {
   let { root, path } = unpackCombinedPath(combinedPath);
-  return fetch(`${baseUrl}/delete?${queryArgs({ path, root })}`, {
-    method: "POST",
-  });
+  return fetch(
+    `${FILE_MANAGEMENT_ENDPOINT}/delete?${queryArgs({
+      project_uuid: projectUuid,
+      path,
+      root,
+    })}`,
+    { method: "POST" }
+  );
 };
 
 const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
@@ -58,15 +68,16 @@ const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
 };
 
 const downloadFile = (
-  url: string,
+  projectUuid: string,
   combinedPath: string,
   downloadLink: string
 ) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `${url}/download?${queryArgs({
+  let downloadUrl = `/async/file-management/download?${queryArgs({
     path,
     root,
+    project_uuid: projectUuid,
   })}`;
   const a = document.createElement("a");
   a.href = downloadUrl;
@@ -77,7 +88,6 @@ const downloadFile = (
 };
 
 export const FileManagerLocalContextProvider: React.FC<{
-  baseUrl: string;
   reload: () => Promise<void>;
   setContextMenu: React.Dispatch<
     React.SetStateAction<{
@@ -85,8 +95,9 @@ export const FileManagerLocalContextProvider: React.FC<{
       type: ContextMenuType;
     }>
   >;
-}> = ({ children, baseUrl, reload, setContextMenu }) => {
+}> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
+  const { projectUuid } = useCustomRoute();
 
   const { selectedFiles, setSelectedFiles } = useFileManagerContext();
 
@@ -159,7 +170,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         async (resolve) => {
           await Promise.all(
             selectedFiles.map((combinedPath) =>
-              deleteFetch(baseUrl, combinedPath)
+              deleteFetch(projectUuid, combinedPath)
             )
           );
           await reload();
@@ -176,7 +187,7 @@ export const FileManagerLocalContextProvider: React.FC<{
         contextMenuCombinedPath
       )}'?`,
       async (resolve) => {
-        await deleteFetch(baseUrl, contextMenuCombinedPath);
+        await deleteFetch(projectUuid, contextMenuCombinedPath);
         await reload();
         resolve(true);
         return true;
@@ -185,7 +196,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [
     contextMenuCombinedPath,
     selectedFiles,
-    baseUrl,
+    projectUuid,
     reload,
     setConfirm,
     handleClose,
@@ -200,20 +211,19 @@ export const FileManagerLocalContextProvider: React.FC<{
     if (selectedFiles.includes(contextMenuCombinedPath)) {
       selectedFiles.forEach((combinedPath, i) => {
         setTimeout(function () {
-          downloadFile(baseUrl, combinedPath, downloadLink);
+          downloadFile(projectUuid, combinedPath, downloadLink);
         }, i * 500);
         // Seems like multiple download invocations works with 500ms
         // Not the most reliable, might want to fall back to server side zip.
       });
     } else {
-      downloadFile(baseUrl, contextMenuCombinedPath, downloadLink);
+      downloadFile(projectUuid, contextMenuCombinedPath, downloadLink);
     }
-  }, [baseUrl, contextMenuCombinedPath, handleClose, selectedFiles]);
+  }, [projectUuid, contextMenuCombinedPath, handleClose, selectedFiles]);
 
   return (
     <FileManagerLocalContext.Provider
       value={{
-        baseUrl,
         reload,
         handleClose,
         handleContextMenu,

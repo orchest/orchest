@@ -3,6 +3,7 @@ import Box, { BoxProps } from "@mui/material/Box";
 import { alpha, styled } from "@mui/material/styles";
 import classNames from "classnames";
 import React from "react";
+import { usePipelineEditorContext } from "./contexts/PipelineEditorContext";
 import { useFileManagerContext } from "./file-manager/FileManagerContext";
 
 const DOT_SIZE = "10px";
@@ -47,6 +48,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
   }: DotType,
   ref: React.MutableRefObject<Extract<BoxProps, "ref">>
 ) {
+  const { keysDown } = usePipelineEditorContext();
+
   const typeClassName = incoming
     ? "incoming-connections"
     : outgoing
@@ -59,6 +62,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
   const onMouseOverContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
     e.stopPropagation();
     e.preventDefault();
     if (onMouseOver) onMouseOver(e);
@@ -73,6 +78,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
   const onMouseDownContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
     e.stopPropagation();
     e.preventDefault();
     setIsMouseDown(true);
@@ -83,6 +90,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
   const onMouseUpContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
     e.stopPropagation();
     e.preventDefault();
     if (dragFile) resetMove();
@@ -101,6 +110,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
   const onMouseLeaveContainer = (
     e: React.MouseEvent<HTMLDivElement, MouseEvent>
   ) => {
+    // user is panning the canvas
+    if (keysDown.has("Space")) return;
     e.stopPropagation();
     e.preventDefault();
     // user is trying to create a new connection

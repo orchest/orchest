@@ -12,6 +12,8 @@ USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
 USERDIR_KANIKO_BASE_IMAGES_CACHE = "/userdir/.orchest/kaniko-base-images-cache"
 USERDIR_BUILDKIT_CACHE = "/userdir/.orchest/buildkit-cache"
 
+ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
+
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"

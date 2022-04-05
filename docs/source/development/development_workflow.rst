@@ -11,13 +11,18 @@ In order to code on Orchest, you need to have the following installed on your sy
 
 * Python version ``3.x``
 * `Docker <https://docs.docker.com/get-docker/>`_
+* `minikube <https://minikube.sigs.k8s.io/docs/start/>`_
+* `helm <https://helm.sh/docs/intro/install/>`_ (if you intend to develop files in ``/deploy``)
+* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_ (you might want to try out a tool like ``k9s`` in the long run)
 * `pre-commit <https://pre-commit.com/#installation>`_
 * `npm <https://docs.npmjs.com/downloading-and-installing-node-js-and-npm>`_ and `pnpm
   <https://pnpm.io/installation#using-npm>`_
 * `virtualenv <https://virtualenv.pypa.io/en/latest/installation.html>`_
-* `Google Chrome <https://www.google.com/chrome/>`_ (used for integration tests only!)
+* `Google Chrome <https://www.google.com/chrome/>`_ (integration tests only)
 
-Next, you will need to setup your development environment.
+Currently, the development scripts/tools assume that you are running Orchest in minikube.
+If you have managed to successfully :ref:`install <installation>` Orchest in minikube
+now it's the time to setup your development environment.
 
 Development environment
 -----------------------
@@ -89,19 +94,95 @@ note that this won't include all the files defined in the Orchest repo), e.g.:
         "settings": {}
     }
 
-Building Orchest
-----------------
-Last but not least, Orchest needs to be build from source:
+Working with Orchest
+--------------------
+To easily test code changes of an arbitrary service, you will need to 1) rebuild the service image and 2)
+make it so that the k8s deployment backing that Orchest service gets redeployed in order to use the
+newly built image. You could be running minikube in multi node or single node, generally speaking,
+single node deployments make it far easier to test changes, for example, you could do the following:
 
 .. code-block:: bash
 
-   scripts/build_container.sh
+    # Make use of the in-node docker engine.
+    eval $(minikube -p minikube docker-env)
 
-   # By default the scripts builds all containers in parallel. To learn
-   # more about other options, such as building without cache, check out
-   # the first lines of the script first.
-   head -45 scripts/build_container.sh
+    # Build the desired image. The tag to be passed is the image tag
+    # that the deployment of the Orchest service is using, see "kubectl
+    # get deployments -n orchest orchest-api -o wide" as an example.
+    # Example tag: 2022.03.8.
+    scripts/build_container.sh -i orchest-api \
+        -t <image tag of the deployment of the orchest service> \
+        -o <image tag of the deployment of the orchest service>
 
+    # Kill the pods of the orchest-api, so that the new image gets used
+    # when new pods are deployed. This assumes that Orchest has already
+    # been installed.
+    kubectl delete pods -n orchest -l "app.kubernetes.io/name=orchest-api"
+
+This, however, wouldn't be possible in multi node deployments, and it's also error prone
+when it comes to setting the right tag, label, etc. For this reason, we provide the
+following scripts:
+
+.. code-block:: bash
+
+    # Redeploy a service after building the image using the repo code.
+    # This is the script that you will likely use the most. This script
+    # assumes Orchest is installed and running, since it interacts with
+    # an Orchest service.
+    bash scripts/redeploy_orchest_service_on_minikube.sh orchest-api
+
+    # Remove an image from minikube. Can be useful to force a pull from
+    # a registry.
+    bash scripts/remove_image_from_minikube.sh orchest/orchest-api
+
+    # Build an image with a given tag, on all nodes.
+    bash scripts/build_image_in_minikube.sh orchest-api v2022.03.7              
+
+    # Run arbitrary commands on all nodes.
+    bash scripts/run_in_minikube.sh echo "hello"
+
+**The redeploy and build_image scripts require the Orchest repository
+to be mounted in minikube**. One way to do that is to mount it on start, for example, ``minikube
+start --memory 16000 --cpus 6 --mount-string="$(pwd):/orchest-dev-repo" --mount``, you will need to
+be in the Orchest repository (note the ``$(pwd)``). Note that multi node mounting might not be
+supported by all minikube drivers. We have tested with the default driver, docker.
+
+.. _incremental development:
+
+Incremental development (hot reloading)
+---------------------------------------
+Now that you have Orchest and all development dependencies installed you are ready to start Orchest
+in dev mode by using the ``--dev`` flag. This way code changes are instantly reflected, without
+having to build the containers again (although it is good practice to rebuild all containers
+:ref:`before committing <before committing>` your changes). The services that support
+dev mode are:
+
+- ``orchest-webserver``
+- ``orchest-api``
+- ``auth-server``
+
+.. code-block:: bash
+
+   # Start minikube with the repository mounted in the required place.
+   # Run this command while you are in the Orchest repository directory.
+   minikube start --memory 16000 --cpus 6 \
+    --mount-string="$(pwd):/orchest-dev-repo" --mount
+
+   # In case any new dependencies were changed or added they need to
+   # be installed.
+   pnpm i
+
+   # Run the client dev server for hot reloading of client (i.e. FE)
+   # files. Note: This command does not finish.
+   pnpm run dev
+
+   # Start Orchest in --dev mode.
+   ./orchest start --dev
+
+.. note::
+   🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
+   :ref:`best practices <best practices>` and our `GitHub
+   <https://github.com/orchest/orchest/issues>`_ to find interesting issues to work on.
 
 .. _building the docs:
 
@@ -125,54 +206,6 @@ To build the docs, run:
    .. code-block:: sh
 
       python3 -m pip install -r docs/requirements.txt
-
-
-.. _incremental development:
-
-Incremental development
------------------------
-.. warning::
-   🚨 For incremental development to work in WSL2, Docker must be installed within the WSL2
-   environment itself.
-
-Now that you have Orchest and all devevelopment dependencies installed you ready to start Orchest in
-dev mode by using the ``--dev`` flag. This way code changes are instantly reflected, without having
-to build the containers again (although it is good practice to rebuild all containers :ref:`before
-committing <before committing>` your changes).
-
-.. code-block:: bash
-
-   # In case any new dependencies were changed or added they need to
-   # be installed.
-   pnpm i
-
-   # Run the client dev server for hot reloading. Note: This command
-   # does not finish.
-   pnpm run dev
-
-   # Start Orchest in a new terminal window.
-   ./orchest start --dev
-
-With ``--dev`` the repository code from the filesystem is mounted (and thus adhering to git
-branches) to the appropriate paths in the Docker containers. This allows for active code changes
-being reflected inside the application.
-
-A few additional notes about running Orchest with the ``--dev`` flag:
-
-* All Flask applications are run in development mode.
-* Only the ``orchest-webserver``, ``auth-server`` and ``orchest-api`` support code
-  changes to be instantly reflected. For code changes to other services you will have to rebuild the
-  container and restart Orchest. To re-build a specific container (e.g. ``orchest-webserver``), run the following command:
-
-.. code-block:: bash
-
-    scripts/build_containers.sh -i orchest-webserver
-
-
-.. note::
-   🎉 Awesome! Everything is set up now and you are ready to start coding. Have a look at our
-   :ref:`best practices <best practices>` and our `GitHub
-   <https://github.com/orchest/orchest/issues>`_ to find interesting issues to work on.
 
 .. _before committing:
 
@@ -215,6 +248,37 @@ branches respectively. Therefore, we require PRs to be merged into ``dev`` inste
 When opening the PR a checklist will automatically appear to guide you to successfully completing
 your PR 🏁.
 
+Python dependencies
+~~~~~~~~~~~~~~~~~~~
+Python dependencies for the microservices are specified using pip's ``requirements.txt`` files.
+Those files are automatically generated by `pip-tools <https://pypi.org/project/pip-tools/>`_
+from ``requirements.in`` files by calling ``pip-compile``, which locks all the transitive dependencies.
+After a locked ``requirements.txt`` file is in place,
+subsequent calls to ``pip-compile`` will not upgrade any of the dependencies
+unless the constraints in ``requirements.in`` are modified.
+
+To manually upgrade a dependency to a newer version, there are several options:
+
+.. code-block::
+
+   pip-compile -P <dep>  # Upgrades <dep> to latest version
+   pip-compile -U  # Try to upgrade everything
+
+As a general rule, avoid writing exact pins in ``requirements.in``
+unless there are known incompatibilities.
+In addition, avoid manually editing ``requirements.txt`` files,
+since they will be automatically generated.
+
+.. warning::
+   A `bug in pip-tools <https://github.com/jazzband/pip-tools/issues/1505>`_ affects local dependencies.
+   Older versions are not affected, but they are not compatible with modern pip.
+   At the time of writing, the best way forward is to install this fork
+   (see `this PR <https://github.com/jazzband/pip-tools/pull/1519>`_ for details):
+
+   .. code-block::
+
+      pip install -U "pip-tools @ git+https://github.com/richafrank/pip-tools.git@combine-without-copy"
+
 Database schema migrations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 Whenever one of the services's database models (in their respective ``models.py``) have been
@@ -230,6 +294,7 @@ schema change on update (since they can then be automatically migrated to the la
    # For more options run:
    scripts/migration_manager.sh --help
 
+
 .. _tests:
 
 Testing
@@ -239,50 +304,61 @@ Testing
 
 Unit tests
 ~~~~~~~~~~
-The unit tests (in particular for the ``orchest-api`` and ``orchest-webserver``) run against a real
-database. This, together with additional setup, and the running of all unit tests is done using the
-following script:
+Unit tests are being ported to k8s, stay tuned :)!
 
-.. code:: sh
+..
+    The unit tests (in particular for the ``orchest-api`` and ``orchest-webserver``) run against a real
+    database. This, together with additional setup, and the running of all unit tests is done using the
+    following script:
 
-    scripts/run_tests.sh
+    .. code:: sh
 
-At this moment we only have unit tests for the Python code.
+        scripts/run_tests.sh
 
-.. tip::
-   👉 If you didn't follow the :ref:`prerequisites <development prerequisites>`, then make sure
-   you've installed the needed requirements to run the unit tests:
+    At this moment we only have unit tests for the Python code.
 
-   .. code-block:: sh
+    .. tip::
+    👉 If you didn't follow the :ref:`prerequisites <development prerequisites>`, then make sure
+    you've installed the needed requirements to run the unit tests:
 
-      sudo apt install default-libmysqlclient-dev
+    .. code-block:: sh
 
-.. note::
-   For isolation dependencies for the different services are installed within their respective
-   virtual environments inside the ``.venvs`` folder.
+        sudo apt install default-libmysqlclient-dev
+
+    .. note::
+    For isolation dependencies for the different services are installed within their respective
+    virtual environments inside the ``.venvs`` folder.
 
 .. _integration tests:
 
 Integration tests
 ~~~~~~~~~~~~~~~~~
-.. warning::
-   🚨 Running integration tests will remove all content of the ``userdir`` directory along with all
-   built environments (the provided script will ask you to confirm before proceeding).
+Integration tests are being ported to k8s, stay tuned :)!
 
-The integration tests are build using `Cypress <http://cypress.io/>`_ and can be run using:
+..
+    .. warning::
+    🚨 Running integration tests will remove all content of the ``userdir`` directory along with all
+    built environments (the provided script will ask you to confirm before proceeding).
+
+    ..
+    The integration tests are build using `Cypress <http://cypress.io/>`_ and can be run using:
 
 
-.. code:: sh
+    ..
+    .. code:: sh
 
-    scripts/run_integration_tests.sh
+        scripts/run_integration_tests.sh
 
-Running all the integration tests can take some time, depending on the host running the tests but
-also on the browser version, run-times have been observed to range from 15 to 30 minutes.
+    ..
+    Running all the integration tests can take some time, depending on the host running the tests but
+    also on the browser version, run-times have been observed to range from 15 to 30 minutes.
 
-.. tip::
-   👉 Adding the ``-g`` option opens the Cypress GUI. Use ``--help`` to see more options.
+    ..
+    .. tip::
+    👉 Adding the ``-g`` option opens the Cypress GUI. Use ``--help`` to see more options.
 
-Troubleshooting
-"""""""""""""""
-The script takes care of starting Orchest if it isn't already. On the other hand, if Orchest is
-already started, then the script expects Orchest to be running on its default port ``8000``.
+    Troubleshooting
+    """""""""""""""
+    The script takes care of starting Orchest if it isn't already. On the other hand, if Orchest is
+    already started, then the script expects Orchest to be running on its default port ``8000``.
+
