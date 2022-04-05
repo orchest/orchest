@@ -17,7 +17,6 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `pre-commit <https://pre-commit.com/#installation>`_
 * `npm <https://docs.npmjs.com/downloading-and-installing-node-js-and-npm>`_ and `pnpm
   <https://pnpm.io/installation#using-npm>`_
-* `virtualenv <https://virtualenv.pypa.io/en/latest/installation.html>`_
 * `Google Chrome <https://www.google.com/chrome/>`_ (integration tests only)
 
 Currently, the development scripts/tools assume that you are running Orchest in minikube.
