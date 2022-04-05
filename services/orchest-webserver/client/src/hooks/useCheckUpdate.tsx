@@ -19,7 +19,7 @@ const isVersionLTE = (oldVersion: string, newVersion: string) => {
   if (oldMonth < newMonth) return true;
   if (parseInt(oldPatch) > parseInt(newPatch)) return false;
   if (parseInt(oldPatch) < parseInt(newPatch)) return true;
-  return oldVersion === newVersion;
+  return true;
 };
 
 const shouldPromptOrchestUpdate = (
