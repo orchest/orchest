@@ -73,6 +73,7 @@ def _get_buildah_image_build_workflow_manifest(
                                 # Build
                                 f"buildah build -f {dockerfile_path} --layers=true "
                                 # https://github.com/containers/buildah/issues/2741
+                                "-v /pip-cache:/home/jovyan/.cache/pip "
                                 "--format docker "
                                 "--force-rm=true "
                                 "--disable-compression=true "
@@ -104,6 +105,12 @@ def _get_buildah_image_build_workflow_manifest(
                             },
                             {
                                 "name": "image-builder-cache-pvc",
+                                "subPath": "pip-cache",
+                                "mountPath": "/pip-cache",
+                            },
+                            {
+                                "name": "image-builder-cache-pvc",
+                                "subPath": "containers",
                                 "mountPath": "/var/lib/containers",
                             },
                             {
@@ -126,6 +133,8 @@ def _get_buildah_image_build_workflow_manifest(
             },
             "dnsPolicy": "ClusterFirst",
             "restartPolicy": "Never",
+            # MULTITENANCY_TODO: different users should have different
+            # pvcs?
             "volumes": [
                 {
                     "name": "userdir-pvc",
