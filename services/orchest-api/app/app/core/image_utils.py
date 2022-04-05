@@ -74,7 +74,7 @@ def _get_buildah_image_build_workflow_manifest(
                                 f"buildah build -f {dockerfile_path} --layers=true "
                                 # https://github.com/containers/buildah/issues/2741
                                 "--format docker "
-                                "--force-rm "
+                                "--force-rm=true "
                                 "--disable-compression=true "
                                 # Avoid a warning about not being able
                                 # to write to the audit log.
@@ -83,6 +83,12 @@ def _get_buildah_image_build_workflow_manifest(
                                 # Push
                                 "&& buildah push "
                                 "--disable-compression=true "
+                                # Buildah might compress regardless of
+                                # the specified options depending on the
+                                # destination storage, tune such
+                                # compression.
+                                "--compression-format=zstd:chunked "
+                                "--compression-level=0 "
                                 f"{full_image_name}"
                             )
                         ],
@@ -107,9 +113,6 @@ def _get_buildah_image_build_workflow_manifest(
                                 "readOnly": True,
                             },
                         ],
-                    },
-                    "resources": {
-                        "requests": {"cpu": _config.USER_CONTAINERS_CPU_SHARES}
                     },
                     "affinity": _registry_pod_affinity,
                 },
