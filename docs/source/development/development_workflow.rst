@@ -3,13 +3,13 @@
 Development workflow
 ====================
 
-Installing Orchest for development
-----------------------------------
-
 .. _development prerequisites:
 
 Prerequisites
-~~~~~~~~~~~~~
+-------------
+
+Required software
+~~~~~~~~~~~~~~~~~
 In order to code on Orchest, you need to have the following installed on your system:
 
 * Python version ``3.x``
@@ -45,6 +45,9 @@ After the minikube cluster is created, follow the steps of a
 .. warning::
    If you have an existing minikube cluster, you will have to delete it
    by calling ``minikube delete``.
+
+Installing Orchest for development
+----------------------------------
 
 Development environment
 ~~~~~~~~~~~~~~~~~~~~~~~
