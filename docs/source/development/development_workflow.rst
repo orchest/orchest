@@ -19,9 +19,17 @@ In order to code on Orchest, you need to have the following installed on your sy
   <https://pnpm.io/installation#using-npm>`_
 * `Google Chrome <https://www.google.com/chrome/>`_ (integration tests only)
 
-Currently, the development scripts/tools assume that you are running Orchest in minikube.
-If you have managed to successfully :ref:`install <installation>` Orchest in minikube
-now it's the time to setup your development environment.
+Regular installation
+--------------------
+Currently, the development scripts/tools assume that you are have Orchest installed in minikube.
+To do so, follow the steps of a :ref:`regular installation <installation>` first.
+
+.. warning::
+   If you plan to use :ref:`incremental development <incremental development>`,
+   adjust your ``minikube start`` command accordingly
+   (see :ref:`below <incremental development>`).
+   If you have an existing minikube cluster, you will have to delete it
+   by calling ``minikube delete``.
 
 Development environment
 -----------------------
