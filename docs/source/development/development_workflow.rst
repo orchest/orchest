@@ -16,8 +16,8 @@ In order to code on Orchest, you need to have the following installed on your sy
 * `Docker <https://docs.docker.com/get-docker/>`_
 * `minikube <https://minikube.sigs.k8s.io/docs/start/>`_
 * `helm <https://helm.sh/docs/intro/install/>`_ (if you intend to develop files in ``/deploy``)
-* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_
-   (you might want to try out a tool like ``k9s`` in the long run)
+* `kubectl <https://kubernetes.io/docs/tasks/tools/#kubectl>`_ (you might want to try out a tool
+  like ``k9s`` in the long run)
 * `pre-commit <https://pre-commit.com/#installation>`_
 * `npm <https://docs.npmjs.com/downloading-and-installing-node-js-and-npm>`_ and `pnpm
   <https://pnpm.io/installation#using-npm>`_
@@ -123,7 +123,7 @@ For this reason, we provide the following scripts:
     bash scripts/remove_image_from_minikube.sh orchest/orchest-api
 
     # Build an image with a given tag, on all nodes.
-    bash scripts/build_image_in_minikube.sh orchest-api v2022.03.7              
+    bash scripts/build_image_in_minikube.sh orchest-api v2022.03.7
 
     # Run arbitrary commands on all nodes.
     bash scripts/run_in_minikube.sh echo "hello"
