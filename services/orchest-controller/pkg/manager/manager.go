@@ -4,7 +4,6 @@ import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/reconciler/orchestcluster"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -22,8 +21,9 @@ type Manager struct {
 func NewManager(inCluster bool) *Manager {
 
 	scheme := runtime.NewScheme()
+	orchestv1alpha1.AddToScheme(scheme)
+
 	config := utils.GetClientConfig(inCluster)
-	//nfsv1alpha1.AddToScheme(scheme)
 
 	clientgoscheme.AddToScheme(scheme)
 
@@ -46,7 +46,6 @@ func (m *Manager) Run() error {
 
 	reconciler := orchestcluster.NewOrchestClusterReconciler(mgr)
 
-	pod := v1.Pod{}
 	if err := ctrl.NewControllerManagedBy(mgr).
 		For(&orchestv1alpha1.OrchestCluster{}).
 		Complete(reconciler); err != nil {
