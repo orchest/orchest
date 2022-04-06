@@ -775,7 +775,15 @@ def _update() -> None:
         # This is only needed to migrate clusters created during the
         # first release of k8s Orchest.
         registry_storage_class = k8sw.get_orchest_cluster_storage_class()
+
+    registry_storage_size = k8sw.get_registry_storage_size()
+    if registry_storage_size is None:
+        # This is only needed to migrate clusters created during the
+        # first release of k8s Orchest.
+        registry_storage_size = "999Ti"
+
     injected_env_vars["REGISTRY_STORAGE_CLASS"] = registry_storage_class
+    injected_env_vars["REGISTRY_PVC_SIZE"] = registry_storage_size
 
     return_code = _run_helm_with_progress_bar(
         HelmMode.UPGRADE,

@@ -557,6 +557,19 @@ def get_registry_storage_class() -> Optional[str]:
         return None
 
 
+def get_registry_storage_size() -> Optional[str]:
+    """Returns the registry storage size."""
+    try:
+        r = k8s_core_api.read_namespaced_persistent_volume_claim(
+            "docker-registry", config.ORCHEST_NAMESPACE
+        )
+        return r.spec.resources.requests["storage"]
+    except k8s_client.ApiException as e:
+        if e.status != 404:
+            raise e
+        return None
+
+
 def get_orchest_cluster_storage_class() -> str:
     """Returns the storage class of the cluster.
 
