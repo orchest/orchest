@@ -44,7 +44,7 @@ func (m *Manager) Run() error {
 		return err
 	}
 
-	reconciler := orchestcluster.NewOrchestClusterReconciler()
+	reconciler := orchestcluster.NewOrchestClusterReconciler(mgr)
 
 	pod := v1.Pod{}
 	if err := ctrl.NewControllerManagedBy(mgr).
