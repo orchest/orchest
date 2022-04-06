@@ -120,7 +120,7 @@ def _run_helm_with_progress_bar(
 def install(
     log_level: utils.LogLevel,
     cloud: bool,
-    fqdn: str,
+    fqdn: Optional[str],
     registry_storage_class: Optional[str],
 ):
     k8sw.abort_if_unsafe()
@@ -138,7 +138,8 @@ def install(
         raise typer.Exit(code=1)
 
     utils.echo(f"Installing Orchest {orchest_version}.")
-    utils.echo(f"FQDN: {fqdn}.")
+    if fqdn is not None:
+        utils.echo(f"FQDN: {fqdn}.")
     if registry_storage_class is None:
         # Consider the choice that was made for userdir-pvc to be
         # agreeable.
@@ -159,12 +160,12 @@ def install(
 
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
+    injected_env_vars = {}
+    if fqdn is not None:
+        injected_env_vars["ORCHEST_FQDN"] = fqdn
+    injected_env_vars["REGISTRY_STORAGE_CLASS"] = registry_storage_class
     return_code = _run_helm_with_progress_bar(
-        HelmMode.INSTALL,
-        injected_env_vars={
-            "ORCHEST_FQDN": fqdn,
-            "REGISTRY_STORAGE_CLASS": registry_storage_class,
-        },
+        HelmMode.INSTALL, injected_env_vars=injected_env_vars
     )
 
     if return_code != 0:
@@ -178,13 +179,21 @@ def install(
     k8sw.set_orchest_cluster_version(orchest_version)
 
     utils.echo("Installation was successful.")
-    utils.echo(
-        f"Orchest is running with a FQDN equal to {fqdn}. To access it locally, add an "
-        "entry to your '/etc/hosts' file mapping the cluster ip (`minikube ip`) to "
-        f"'{fqdn}'. If you are on mac run the `minikube tunnel` daemon and map "
-        f"'127.0.0.1' to {fqdn} in the '/etc/hosts' file instead. You will then be "
-        f" able to reach Orchest at http://{fqdn}."
-    )
+    if fqdn is not None:
+        utils.echo(
+            f"Orchest is running with a FQDN equal to {fqdn}. To access it locally,"
+            " add an entry to your '/etc/hosts' file mapping the cluster ip"
+            f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
+            f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
+            f"You will then be able to reach Orchest at http://{fqdn}."
+        )
+    else:
+        utils.echo(
+            "Orchest is running without a FQDN. To access Orchest locally, simply go to"
+            " the IP returned by `minikube ip`. If you are on mac run the"
+            " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
+            "'/etc/hosts' file instead."
+        )
 
 
 def _echo_version(
@@ -456,7 +465,14 @@ def _wait_daemonsets_to_be_ready(daemonsets: List[str], progress_bar) -> None:
         time.sleep(1)
 
 
-def start(log_level: utils.LogLevel, cloud: bool):
+def start(
+    log_level: utils.LogLevel,
+    cloud: bool,
+    dev: bool,
+    dev_orchest_webserver: bool,
+    dev_orchest_api: bool,
+    dev_auth_server: bool,
+):
     k8sw.abort_if_unsafe()
     depls = k8sw.get_orchest_deployments(config.ORCHEST_DEPLOYMENTS)
     missing_deployments = []
@@ -501,6 +517,47 @@ def start(log_level: utils.LogLevel, cloud: bool):
     if not deployments_to_start and not daemonsets_to_start:
         utils.echo("Orchest is already running.")
         return
+
+    if dev or dev_orchest_api or dev_orchest_webserver or dev_auth_server:
+        _cmd = (
+            "minikube start --memory 16000 --cpus 12 "
+            '--mount-string="$(pwd):/orchest-dev-repo" --mount'
+        )
+        utils.echo(
+            "Note that when running in dev mode you need to have mounted the orchest "
+            "repository into minikube. For example by running the following when "
+            f"creating the cluster, while being in the repo: '{_cmd}'. The behaviour "
+            "of mounting in minikube is driver dependant and has some open issues, "
+            "so try to stay on the proven path. A cluster created through the "
+            "scripts/install_minikube.sh script, for example, would lead to the mount "
+            "only working on the master node, due to the kvm driver."
+        )
+        orchest_config = utils.get_orchest_config()
+        orchest_config["TELEMETRY_DISABLED"] = True
+        utils.set_orchest_config(orchest_config)
+
+        if dev or dev_orchest_webserver:
+            utils.echo("Setting dev mode for orchest-webserver.")
+            k8sw.patch_orchest_webserver_for_dev_mode()
+
+        if dev or dev_orchest_api:
+            utils.echo("Setting dev mode for orchest-api.")
+            k8sw.patch_orchest_api_for_dev_mode()
+
+        if dev or dev_auth_server:
+            utils.echo("Setting dev mode for auth-server.")
+            k8sw.patch_auth_server_for_dev_mode()
+    # No op if there those services weren't running with --dev mode.
+    else:
+        if k8sw.is_running_in_dev_mode("orchest-webserver"):
+            utils.echo("Unsetting dev mode for orchest-webserver.")
+            k8sw.unpatch_orchest_webserver_dev_mode()
+        if k8sw.is_running_in_dev_mode("orchest-api"):
+            utils.echo("Unsetting dev mode for orchest-api.")
+            k8sw.unpatch_orchest_api_dev_mode()
+        if k8sw.is_running_in_dev_mode("auth-server"):
+            utils.echo("Unsetting dev mode for auth-server.")
+            k8sw.unpatch_auth_server_dev_mode()
 
     deployments_to_start = [d.metadata.name for d in deployments_to_start]
     daemonsets_to_start = [d.metadata.name for d in daemonsets_to_start]
@@ -548,9 +605,14 @@ def restart():
     level_to_str = {level.value: level for level in utils.LogLevel}
     log_level = level_to_str.get(log_level, utils.LogLevel.INFO)
     cloud = k8sw.get_orchest_cloud_mode() == "True"
+    dev_orchest_api = k8sw.is_running_in_dev_mode("orchest-api")
+    dev_orchest_webserver = k8sw.is_running_in_dev_mode("orchest-webserver")
+    dev_auth_server = k8sw.is_running_in_dev_mode("auth-server")
 
     stop()
-    start(log_level, cloud)
+    start(
+        log_level, cloud, False, dev_orchest_webserver, dev_orchest_api, dev_auth_server
+    )
 
 
 def add_user(username: str, password: str, token: str, is_admin: str) -> None:
@@ -695,6 +757,10 @@ def _update() -> None:
         )
         raise typer.Exit(code=1)
 
+    api_was_dev_mode = k8sw.is_running_in_dev_mode("orchest-api")
+    webserver_was_dev_mode = k8sw.is_running_in_dev_mode("orchest-webserver")
+    auth_server_was_dev_mode = k8sw.is_running_in_dev_mode("auth-server")
+
     # Preserve the current values, i.e. avoid helm overwriting them with
     # default values.
     injected_env_vars = {}
@@ -724,6 +790,18 @@ def _update() -> None:
         raise typer.Exit(return_code)
 
     k8sw.set_orchest_cluster_version(orchest_version)
+
+    if webserver_was_dev_mode:
+        utils.echo("Setting dev mode for orchest-webserver.")
+        k8sw.patch_orchest_webserver_for_dev_mode()
+
+    if api_was_dev_mode:
+        utils.echo("Setting dev mode for orchest-api.")
+        k8sw.patch_orchest_api_for_dev_mode()
+
+    if auth_server_was_dev_mode:
+        utils.echo("Setting dev mode for auth-server.")
+        k8sw.patch_auth_server_for_dev_mode()
 
     utils.echo("Update was successful, Orchest is running.")
 

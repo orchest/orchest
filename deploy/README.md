@@ -51,7 +51,7 @@ The Makefile is configured to do the most common actions and it can be configure
 16. `RABBITMQ_TAG` defines the tag of `rabbitmq`, default: `3`
 17. `ROOK_NFS_IMAGE_TAGE` defines the rook-nfs docker tag, default: `v1.7.3`
 18. `ROOK_CEPH_IMAGE_TAGE` defines the rook-ceph docker tag, default: `v1.8.2`
-19. `ORCHEST_FQDN` defines the orchest FQDN. default: `localorchest.io`
+19. `ORCHEST_FQDN` defines the orchest FQDN.`
 20. `REGISTRY_STORAGE_CLASS` the storage class for docker-registry volume, default : `standard`
 
 The following targets are defined:

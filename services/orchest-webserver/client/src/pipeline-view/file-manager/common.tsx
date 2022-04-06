@@ -3,12 +3,15 @@ import { Step } from "@/types";
 import {
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
+  fetcher,
 } from "@orchest/lib-utils";
 import React from "react";
+import { FileManagementRoot } from "../common";
 
-export const FILE_MANAGER_ENDPOINT = "/async/file-manager";
+export type FileTrees = Record<string, TreeNode>;
+
+export const FILE_MANAGEMENT_ENDPOINT = "/async/file-management";
 export const FILE_MANAGER_ROOT_CLASS = "file-manager-root";
-export const PROJECT_DIR_PATH = "/project-dir";
 export const ROOT_SEPARATOR = ":";
 
 export type TreeNode = {
@@ -42,7 +45,7 @@ export const unpackCombinedPath = (combinedPath: string) => {
   // combinedPath includes the root
   // e.g. /project-dir:/abc/def
   // Note, the root can't contain the special character ':'
-  let root = combinedPath.split(ROOT_SEPARATOR)[0];
+  let root = combinedPath.split(ROOT_SEPARATOR)[0] as FileManagementRoot;
   let path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
   return { root, path };
 };
@@ -78,38 +81,30 @@ export const generateTargetDescription = (path: string) => {
   );
 };
 
+const getFolderPathOfFile = (path: string) =>
+  `${path.split("/").slice(0, -1).join("/")}/`;
+
 export const deduceRenameFromDragOperation = (
   sourcePath: string,
   targetPath: string
 ): [string, string] => {
-  if (sourcePath === targetPath) {
-    return [sourcePath, targetPath];
-  }
-  const sep = "/";
-  let isSourceDir = sourcePath.endsWith(sep);
-  let isTargetDir = targetPath.endsWith(sep);
-
-  let newPath: string;
-
-  let sourceBasename = baseNameFromPath(sourcePath);
-
-  // Check if target is child of sourceDir
-  if (targetPath.startsWith(sourcePath)) {
+  // Check if target is sourceDir or a child of sourceDir
+  if (sourcePath === targetPath || targetPath.startsWith(sourcePath)) {
     // Break out with no-op. Illegal move
     return [sourcePath, sourcePath];
   }
 
-  if (isTargetDir) {
-    newPath = targetPath + sourceBasename;
-  } else {
-    let targetParentDirPath =
-      targetPath.split(sep).slice(0, -1).join(sep) + sep;
-    newPath = targetParentDirPath + sourceBasename;
-  }
+  const isSourceDir = sourcePath.endsWith("/");
+  const isTargetDir = targetPath.endsWith("/");
 
-  if (isSourceDir) {
-    newPath += sep;
-  }
+  const sourceBasename = baseNameFromPath(sourcePath);
+  const targetFolderPath = isTargetDir
+    ? targetPath
+    : getFolderPathOfFile(targetPath);
+
+  const newPath = `${targetFolderPath}${sourceBasename}${
+    isSourceDir ? "/" : ""
+  }`;
 
   return [sourcePath, newPath];
 };
@@ -154,12 +149,15 @@ export const queryArgs = (obj: Record<string, string | number | boolean>) => {
  * Path helpers
  */
 
-export const getActiveRoot = (selected: string[], treeRoots: string[]) => {
+export const getActiveRoot = (
+  selected: string[],
+  treeRoots: FileManagementRoot[]
+): FileManagementRoot => {
   if (selected.length === 0) {
     return treeRoots[0];
   } else {
     const { root } = unpackCombinedPath(selected[0]);
-    return root;
+    return root as FileManagementRoot;
   }
 };
 
@@ -171,7 +169,10 @@ const isPathChildLess = (path: string, fileTree: TreeNode) => {
     return node.children.length === 0;
   }
 };
-export const isCombinedPathChildLess = (combinedPath, fileTrees) => {
+export const isCombinedPathChildLess = (
+  combinedPath: string,
+  fileTrees: FileTrees
+) => {
   let { root, path } = unpackCombinedPath(combinedPath);
   return isPathChildLess(path, fileTrees[root]);
 };
@@ -226,6 +227,56 @@ export const isFileByExtension = (extensions: string[], filePath: string) => {
     "i"
   );
   return regex.test(filePath);
+};
+
+export const searchFilePathsByExtension = ({
+  projectUuid,
+  root,
+  path,
+  extensions,
+}: {
+  projectUuid: string;
+  root: string;
+  path: string;
+  extensions: string[];
+}) =>
+  fetcher<{ files: string[] }>(
+    `/async/file-management/extension-search?${queryArgs({
+      project_uuid: projectUuid,
+      root,
+      path,
+      extensions: extensions.join(","),
+    })}`
+  );
+
+/**
+ * This function returns a list of file_path that ends with the given extensions.
+ */
+export const findFilesByExtension = async ({
+  root,
+  projectUuid,
+  extensions,
+  node,
+}: {
+  root: FileManagementRoot;
+  projectUuid: string;
+  extensions: string[];
+  node: TreeNode;
+}) => {
+  if (node.type === "file") {
+    const isFileType = isFileByExtension(extensions, node.name);
+    return isFileType ? [node.name] : [];
+  }
+  if (node.type === "directory") {
+    const response = await searchFilePathsByExtension({
+      projectUuid,
+      root,
+      path: node.path,
+      extensions,
+    });
+
+    return response.files;
+  }
 };
 
 /**
@@ -321,7 +372,7 @@ export const filePathFromHTMLElement = (element: HTMLElement) => {
 
 const dataFolderRegex = /^\/data\:?\//;
 
-export const isFromDataFolder = (filePath: string) =>
+export const isWithinDataFolder = (filePath: string) =>
   dataFolderRegex.test(filePath);
 
 const getFilePathInDataFolder = (dragFilePath: string) =>
@@ -331,7 +382,50 @@ export const getFilePathForDragFile = (
   dragFilePath: string,
   pipelineCwd: string
 ) => {
-  return isFromDataFolder(dragFilePath)
+  return isWithinDataFolder(dragFilePath)
     ? getFilePathInDataFolder(dragFilePath)
     : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
+};
+
+export const lastSelectedFolderPath = (selectedFiles: string[]) => {
+  if (selectedFiles.length === 0) return "/";
+  // Note that the selection order in selectedFiles is backward,
+  // so we don't need to find from end
+  const lastSelected = selectedFiles[0];
+
+  // example:
+  // given:     /project-dir:/hello-world/foo/bar.py
+  // outcome:   /hello-world/foo/
+  const matches = lastSelected.match(/^\/[^\/]+:((\/[^\/]+)*\/)([^\/]*)/);
+  return matches ? matches[1] : "/";
+};
+
+// ancesterPath has to be an folder because a file cannot be a parent
+const isAncester = (ancesterPath: string, childPath: string) =>
+  ancesterPath.endsWith("/") && childPath.startsWith(ancesterPath);
+
+/**
+ * This function removes the child path if its ancester path already appears in the list.
+ * e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed.
+ * @param list :string[]
+ * @returns string[]
+ */
+export const filterRedundantChildPaths = (list: string[]) => {
+  // ancestor will be processed first
+  const sortedList = list.sort();
+
+  const listSet = new Set<string>([]);
+
+  for (let item of sortedList) {
+    const filteredList = [...listSet];
+
+    // If filteredItem is an ancestor of item
+    const hasIncluded = filteredList.some((filteredItem) =>
+      isAncester(filteredItem, item)
+    );
+
+    if (!hasIncluded) listSet.add(item);
+  }
+
+  return [...listSet];
 };

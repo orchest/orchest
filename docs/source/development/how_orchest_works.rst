@@ -16,18 +16,8 @@ the execution order and the way the data flows. All build in our visual pipeline
    values see :ref:`configuration <configuration>`.
 
 Orchest is a fully containerized application and its runtime can be managed through the ``orchest``
-shell script. In the script you can see that the Docker socket ``/var/run/docker.sock`` is mounted,
-which Orchest requires in order order to dynamically spawn Docker containers when running pipelines.
-
-Orchest is powered by your filesystem, there is no hidden magic. Upon launching, Orchest will mount
-the content of the ``orchest/userdir/`` directory, where ``orchest/`` is the install directory from
-GitHub, in the Docker containers. Giving you access to your scripts from within Orchest, but also
-allowing you to structure and edit the files with any other editor such as VS Code!
-
-.. caution::
-   The ``userdir/`` directory not only contains your files and scripts, it also contains the state
-   (inside the ``userdir/.orchest/`` directory) that Orchest needs to run. Touching the state can
-   result in, for example, losing job entries causing them to no longer show up in the UI.
+shell script. Orchest runs in kubernetes and the script will take care of deploying the
+application in the cluster.
 
 The mental model in Orchest is centered around *Projects*. Within each project you get to create
 multiple :ref:`pipelines <pipeline>` through the Orchest UI, and every pipeline consists of
@@ -45,7 +35,7 @@ following directory structure of a project:
         └── training.py
 
 .. note::
-   Again Orchest creates a ``.orchest/`` directory to store state. In the ``.orchest/pipelines/``
+   Orchest creates a ``.orchest/`` directory to store state. In the ``.orchest/pipelines/``
    directory the passed data between steps is stored (per pipeline in ``data/``), if disk based data
    passing is used instead of (the default) memory data passing, see :ref:`data passing <data
    passing>`. Per pipeline (inside ``.orchest/pipelines/``) there is also a ``logs/`` directory
@@ -53,9 +43,9 @@ following directory structure of a project:
 
 .. tip::
    You should not put large files inside your project, instead, you should write data to the special
-   ``/data`` directory. The ``/data`` directory is actually the mounted ``userdir/data/`` directory,
-   and is shared between projects.  :ref:`Jobs <jobs>` creates snapshots of the project directory
-   (for reproducibility reasons) and therefore would copy all the data.
+   ``/data`` directory. The ``/data`` directory is shared between projects.  :ref:`Jobs <jobs>`
+   creates snapshots of the project directory (for reproducibility reasons) and therefore would copy
+   all the data.
 
 The :ref:`pipeline definition <pipeline definition>` file ``pipeline.orchest`` in the directory
 structure above defines the structure of the pipeline. For example:
@@ -126,6 +116,12 @@ Overview of the different paths inside the ``userdir/``.
    │   ├── database
    │   │   └── data
    │   │       └── <postgres data store>
+   │   ├── buildkit-cache
+   │   ├── jupyter-img-builds
+   │   ├── env-img-builds
+   │   ├── orchest_examples_data.json
+   │   ├── orchest_update_info.json
+   │   ├── celery-*.db (different celery dbs)
    │   └── kernels
    │       └── <project-uuid>
    │           ├── launch_kubernetes.py

@@ -20,7 +20,7 @@ export const useFetchPipelinesOnCreateJob = ({
   // only fetch pipelines when open the create job dialog
   // and that's why in order to get the fetched data, we need to retrieve it from cache
   // useSWR itself doesn't provide a way to retrieve data via key
-  const { pipelines, isFetchingPipelines, error, getCache } = useFetchPipelines(
+  const { pipelines, isFetchingPipelines, error } = useFetchPipelines(
     projectUuid && isCreateDialogOpen ? projectUuid : undefined
   );
   React.useEffect(() => {
@@ -44,5 +44,5 @@ export const useFetchPipelinesOnCreateJob = ({
     pipelines,
   ]);
 
-  return pipelines || getCache(projectUuid);
+  return pipelines;
 };

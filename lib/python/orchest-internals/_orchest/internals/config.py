@@ -12,12 +12,14 @@ USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
 USERDIR_KANIKO_BASE_IMAGES_CACHE = "/userdir/.orchest/kaniko-base-images-cache"
 USERDIR_BUILDKIT_CACHE = "/userdir/.orchest/buildkit-cache"
 
+ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
+
 DATA_DIR = "/data"
 PROJECT_DIR = "/project-dir"
 PIPELINE_FILE = "/pipeline.json"
 PIPELINE_PARAMETERS_RESERVED_KEY = "pipeline_parameters"
 CLOUD = os.environ.get("CLOUD") == "True"
-ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN", "localorchest.io")
+ORCHEST_FQDN = os.environ.get("ORCHEST_FQDN")
 GPU_ENABLED_INSTANCE = os.environ.get("ORCHEST_GPU_ENABLED_INSTANCE") == "True"
 # This represents a container priority w.r.t. CPU time. By default,
 # containers run with a value of 1024. User code/containers such as

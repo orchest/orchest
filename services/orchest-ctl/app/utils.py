@@ -120,9 +120,15 @@ def init_logger(verbosity=0):
 
 def get_orchest_config() -> dict:
     """Gets the Orchest configuration."""
-    with open("/config/config.json") as config_file:
-        config = json.load(config_file)
-    return config
+    with open("/config/config.json") as orchest_config_file:
+        orchest_config = json.load(orchest_config_file)
+    return orchest_config
+
+
+def set_orchest_config(orchest_config: dict) -> dict:
+    """Sets the Orchest configuration, i.e. saves the dict."""
+    with open("/config/config.json", "w") as orchest_config_file:
+        json.dump(orchest_config, orchest_config_file)
 
 
 def get_celery_parallelism_level_from_config() -> dict:

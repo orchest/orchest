@@ -1,7 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import { siteMap } from "@/Routes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -16,18 +15,20 @@ import {
   cleanFilePath,
   deduceRenameFromDragOperation,
   filePathFromHTMLElement,
+  FileTrees,
+  FILE_MANAGEMENT_ENDPOINT,
   FILE_MANAGER_ROOT_CLASS,
+  filterRedundantChildPaths,
+  findFilesByExtension,
   generateTargetDescription,
   isFileByExtension,
-  isFromDataFolder,
-  PROJECT_DIR_PATH,
+  isWithinDataFolder,
   queryArgs,
   ROOT_SEPARATOR,
-  TreeNode,
   unpackCombinedPath,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
-import { FileTrees, useFileManagerContext } from "./FileManagerContext";
+import { useFileManagerContext } from "./FileManagerContext";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 import { TreeItem } from "./TreeItem";
 import { TreeRow } from "./TreeRow";
@@ -56,33 +57,12 @@ const findFileViaPath = (path: string, fileTrees: FileTrees) => {
   return head;
 };
 
-const containsFilesByExtension = async (
-  projectUuid: string,
-  extensions: string[],
-  node: TreeNode
-) => {
-  if (node.type === "file") return isFileByExtension(extensions, node.name);
-  if (node.type === "directory") {
-    const response = await fetcher<{ files: string[] }>(
-      `/async/file-manager/${projectUuid}/extension-search?${queryArgs({
-        root: PROJECT_DIR_PATH, // note: root should either be /data or /project-dir
-        path: node.path,
-        extensions: extensions.join(","),
-      })}`
-    );
-
-    return response.files.length > 0;
-  }
-};
-
 export const FileTree = React.memo(function FileTreeComponent({
-  baseUrl,
   treeRoots,
   expanded,
   handleToggle,
   onRename,
 }: {
-  baseUrl: string;
   treeRoots: string[];
   expanded: string[];
   handleToggle: (
@@ -103,18 +83,17 @@ export const FileTree = React.memo(function FileTreeComponent({
     isDragging,
     fileTrees,
     setFilePathChanges,
+    pipelines,
   } = useFileManagerContext();
 
   const { handleSelect, reload } = useFileManagerLocalContext();
 
   const openNotebook = useOpenNoteBook();
 
-  const { pipelines } = useFetchPipelines(projectUuid);
-
   const onOpen = React.useCallback(
     (filePath) => {
       if (
-        isFromDataFolder(filePath) &&
+        isWithinDataFolder(filePath) &&
         isFileByExtension(["orchest", "ipynb"], filePath)
       ) {
         setAlert(
@@ -178,10 +157,12 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const dragFiles = React.useMemo(() => {
     if (!dragFile) return [];
+    if (!selectedFiles.includes(dragFile.path)) return [dragFile.path];
 
-    const dragFilesSet = new Set(selectedFiles);
-    if (dragFile) dragFilesSet.add(dragFile.path);
-    return [...dragFilesSet];
+    // dragFiles cannot have nodes that are ancester/offspring of each other
+    // because offspring nodes will be moved along with their ancesters.
+    // e.g. given selection ["/a/", "/a/b.py"], "/a/b.py" should be removed
+    return filterRedundantChildPaths(selectedFiles);
   }, [dragFile, selectedFiles]);
 
   // by default, handleRename will reload
@@ -206,11 +187,12 @@ export const FileTree = React.memo(function FileTreeComponent({
           });
         } else {
           await fetcher(
-            `${baseUrl}/rename?${queryArgs({
-              oldPath,
-              newPath,
-              oldRoot,
-              newRoot,
+            `${FILE_MANAGEMENT_ENDPOINT}/rename?${queryArgs({
+              old_path: oldPath,
+              new_path: newPath,
+              old_root: oldRoot,
+              new_root: newRoot,
+              project_uuid: projectUuid,
             })}`,
             { method: "POST" }
           );
@@ -226,15 +208,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         setAlert("Error", `Failed to rename file ${oldPath}. Invalid path.`);
       }
     },
-    [
-      onRename,
-      baseUrl,
-      reload,
-      setAlert,
-      setFilePathChanges,
-      pipelineUuid,
-      projectUuid,
-    ]
+    [onRename, reload, setAlert, setFilePathChanges, pipelineUuid, projectUuid]
   );
 
   const moveFiles = React.useCallback(
@@ -285,15 +259,17 @@ export const FileTree = React.memo(function FileTreeComponent({
       if (!hasPathChanged) return;
 
       // if user attempts to move .ipynb or .orchest files to /data
-      if (isFromDataFolder(targetPath)) {
+      if (isWithinDataFolder(targetPath)) {
         const foundPathWithForbiddenFiles = await Promise.all(
-          dragFiles.map((dragFilePath) => {
+          dragFiles.map(async (dragFilePath) => {
             const foundFile = findFileViaPath(dragFilePath, fileTrees);
-            return containsFilesByExtension(
+            const files = await findFilesByExtension({
+              root: "/project-dir",
               projectUuid,
-              ["ipynb", "orchest"],
-              foundFile
-            );
+              extensions: ["ipynb", "orchest"],
+              node: foundFile,
+            });
+            return files.length > 0;
           })
         );
 
@@ -347,9 +323,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     (target: HTMLElement) => {
       // dropped outside of the tree view
       // PipelineViewport will take care of the operation
-      if (!isInFileManager(target)) {
-        return;
-      }
+      if (!isInFileManager(target)) return;
 
       let targetFilePath = filePathFromHTMLElement(target);
       if (!targetFilePath) return;
@@ -392,7 +366,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                     : undefined,
               }}
               data-path={combinedPath}
-              labelText={root === PROJECT_DIR_PATH ? "Project files" : root}
+              labelText={root === "/project-dir" ? "Project files" : root}
             >
               <TreeRow
                 setDragFile={setDragFile}

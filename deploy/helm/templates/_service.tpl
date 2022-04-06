@@ -39,18 +39,3 @@ fqdn of the auth-server url.
 {{- define "library.service.auth" -}}
 {{ printf "http://auth-server.%s.svc.cluster.local/auth" .Release.Namespace }}
 {{- end -}}
-
-{{/*
-Ingress host
-*/}}
-{{- define "library.ingress.host" -}}
-  {{- if .Values.ingressOverride -}}
-    {{- .Values.ingressOverride | trunc 63 | trimSuffix "-" -}}
-  {{- else -}}
-    {{- if .Values.global.ingress.host -}}
-      {{ .Values.global.ingress.host }}
-    {{- else -}}
-      {{ "localorchest.io" }}
-    {{- end -}}
-  {{- end -}}  
-{{- end -}}

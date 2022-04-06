@@ -466,31 +466,31 @@ def _get_jupyter_server_deployment_service_manifest(
         },
     }
 
+    ingress_rule = {}
+    if _config.ORCHEST_FQDN is not None:
+        ingress_rule["host"] = _config.ORCHEST_FQDN
+    ingress_rule["http"] = {
+        "paths": [
+            {
+                "backend": {
+                    "service": {
+                        "name": f"jupyter-server-{session_uuid}",
+                        "port": {"number": 80},
+                    }
+                },
+                "path": f"/jupyter-server-{session_uuid}",
+                "pathType": "Prefix",
+            }
+        ]
+    }
+
     ingress_manifest = {
         "apiVersion": "networking.k8s.io/v1",
         "kind": "Ingress",
         "metadata": metadata,
         "spec": {
             "ingressClassName": "nginx",
-            "rules": [
-                {
-                    "host": _config.ORCHEST_FQDN,
-                    "http": {
-                        "paths": [
-                            {
-                                "backend": {
-                                    "service": {
-                                        "name": f"jupyter-server-{session_uuid}",
-                                        "port": {"number": 80},
-                                    }
-                                },
-                                "path": f"/jupyter-server-{session_uuid}",
-                                "pathType": "Prefix",
-                            }
-                        ]
-                    },
-                }
-            ],
+            "rules": [ingress_rule],
         },
     }
 
@@ -962,18 +962,18 @@ def _get_user_service_deployment_service_manifest(
                 "nginx.ingress.kubernetes.io/auth-signin"
             ] = "/login"
 
+        ingress_rule = {}
+        if _config.ORCHEST_FQDN is not None:
+            ingress_rule["host"] = _config.ORCHEST_FQDN
+        ingress_rule["http"] = {"paths": ingress_paths}
+
         ingress_manifest = {
             "apiVersion": "networking.k8s.io/v1",
             "kind": "Ingress",
             "metadata": ingress_metadata,
             "spec": {
                 "ingressClassName": "nginx",
-                "rules": [
-                    {
-                        "host": _config.ORCHEST_FQDN,
-                        "http": {"paths": ingress_paths},
-                    }
-                ],
+                "rules": [ingress_rule],
             },
         }
     else:

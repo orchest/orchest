@@ -1,13 +1,26 @@
+import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { siteMap } from "@/Routes";
 import { Position } from "@/types";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { baseNameFromPath, queryArgs, unpackCombinedPath } from "./common";
+import {
+  baseNameFromPath,
+  FILE_MANAGEMENT_ENDPOINT,
+  filterRedundantChildPaths,
+  isFileByExtension,
+  queryArgs,
+  searchFilePathsByExtension,
+  unpackCombinedPath,
+} from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { ContextMenuType } from "./FileManagerContextMenu";
 
 export type FileManagerLocalContextType = {
-  baseUrl: string;
   reload: () => Promise<void>;
   handleClose: () => void;
   handleContextMenu: (
@@ -42,11 +55,16 @@ export const FileManagerLocalContext = React.createContext<
 export const useFileManagerLocalContext = () =>
   React.useContext(FileManagerLocalContext);
 
-const deleteFetch = (baseUrl: string, combinedPath: string) => {
+const deleteFetch = (projectUuid: string, combinedPath: string) => {
   let { root, path } = unpackCombinedPath(combinedPath);
-  return fetch(`${baseUrl}/delete?${queryArgs({ path, root })}`, {
-    method: "POST",
-  });
+  return fetch(
+    `${FILE_MANAGEMENT_ENDPOINT}/delete?${queryArgs({
+      project_uuid: projectUuid,
+      path,
+      root,
+    })}`,
+    { method: "POST" }
+  );
 };
 
 const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
@@ -58,15 +76,16 @@ const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
 };
 
 const downloadFile = (
-  url: string,
+  projectUuid: string,
   combinedPath: string,
   downloadLink: string
 ) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `${url}/download?${queryArgs({
+  let downloadUrl = `/async/file-management/download?${queryArgs({
     path,
     root,
+    project_uuid: projectUuid,
   })}`;
   const a = document.createElement("a");
   a.href = downloadUrl;
@@ -77,7 +96,6 @@ const downloadFile = (
 };
 
 export const FileManagerLocalContextProvider: React.FC<{
-  baseUrl: string;
   reload: () => Promise<void>;
   setContextMenu: React.Dispatch<
     React.SetStateAction<{
@@ -85,10 +103,26 @@ export const FileManagerLocalContextProvider: React.FC<{
       type: ContextMenuType;
     }>
   >;
-}> = ({ children, baseUrl, reload, setContextMenu }) => {
+}> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
+  const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const { selectedFiles, setSelectedFiles } = useFileManagerContext();
+  const {
+    selectedFiles,
+    setSelectedFiles,
+    pipelines,
+  } = useFileManagerContext();
+
+  // When deleting or downloading selectedFiles, we need to avoid
+  // the redundant child paths.
+  // e.g. if we delete folder `/a/b`, deleting `/a/b/c.py` should be avoided.
+  const selectedFilesWithoutRedundantChildPaths = React.useMemo(() => {
+    return filterRedundantChildPaths(selectedFiles);
+  }, [selectedFiles]);
+
+  const pipeline = React.useMemo(() => {
+    return pipelines.find((pipeline) => pipeline.uuid === pipelineUuid);
+  }, [pipelines, pipelineUuid]);
 
   const [contextMenuCombinedPath, setContextMenuPath] = React.useState<
     string
@@ -144,39 +178,94 @@ export const FileManagerLocalContextProvider: React.FC<{
     setFileRenameNewName(baseNameFromPath(contextMenuCombinedPath));
   }, [contextMenuCombinedPath, handleClose, pipelineIsReadOnly]);
 
-  const handleDelete = React.useCallback(() => {
+  const handleDelete = React.useCallback(async () => {
     if (pipelineIsReadOnly) return;
 
     handleClose();
 
-    if (
-      selectedFiles.includes(contextMenuCombinedPath) &&
-      selectedFiles.length > 1
-    ) {
-      setConfirm(
-        "Warning",
-        `Are you sure you want to delete ${selectedFiles.length} files?`,
-        async (resolve) => {
-          await Promise.all(
-            selectedFiles.map((combinedPath) =>
-              deleteFetch(baseUrl, combinedPath)
-            )
-          );
-          await reload();
-          resolve(true);
-          return true;
-        }
-      );
-      return;
-    }
+    const filesToDelete = selectedFiles.includes(contextMenuCombinedPath)
+      ? selectedFilesWithoutRedundantChildPaths
+      : [contextMenuCombinedPath];
+
+    const filesToDeleteString =
+      filesToDelete.length > 1
+        ? `${filesToDelete.length} files`
+        : `'${getBaseNameFromContextMenu(filesToDelete[0])}'`;
+
+    const searchResult = await Promise.all(
+      filesToDelete.map((pathToDelete) => {
+        if (!pathToDelete.endsWith("/"))
+          return isFileByExtension(["orchest"], pathToDelete)
+            ? pathToDelete
+            : null;
+        let { root, path } = unpackCombinedPath(pathToDelete);
+        return searchFilePathsByExtension({
+          root,
+          projectUuid,
+          extensions: ["orchest"],
+          path,
+        }).then((response) =>
+          response.files.length > 0 ? pathToDelete : null
+        );
+      })
+    );
+
+    const pathsThatContainsPipelineFiles = searchResult
+      .filter((result) => hasValue(result))
+      .map((combinedPath) => unpackCombinedPath(combinedPath));
 
     setConfirm(
       "Warning",
-      `Are you sure you want to delete '${getBaseNameFromContextMenu(
-        contextMenuCombinedPath
-      )}'?`,
+      <Stack spacing={2} direction="column">
+        <Box>{`Are you sure you want to delete ${filesToDeleteString}? `}</Box>
+        {pathsThatContainsPipelineFiles.length > 0 && (
+          <>
+            <Box>
+              {`Following file paths contain pipeline files `}
+              <Code>*.orchest</Code>
+              {`. They will also be deleted and it cannot be undone.`}
+            </Box>
+            <ul>
+              {pathsThatContainsPipelineFiles.map((file) => (
+                <Box key={`${file.root}/${file.path}`}>
+                  <Code>{`${
+                    file.root === "/project-dir" ? "/Project files" : file.root
+                  }${file.path}`}</Code>
+                </Box>
+              ))}
+            </ul>
+          </>
+        )}
+      </Stack>,
       async (resolve) => {
-        await deleteFetch(baseUrl, contextMenuCombinedPath);
+        await Promise.all(
+          filesToDelete.map((combinedPath) =>
+            deleteFetch(projectUuid, combinedPath)
+          )
+        );
+
+        const shouldRedirect = filesToDelete.some((fileToDelete) => {
+          const { path } = unpackCombinedPath(fileToDelete);
+          const pathToDelete = path.replace(/^\//, "");
+
+          const isDeletingPipelineFileDirectly =
+            pathToDelete === pipeline?.path;
+          const isDeletingParentFolder =
+            pathToDelete.endsWith("/") &&
+            pipeline?.path.startsWith(pathToDelete);
+
+          return isDeletingPipelineFileDirectly || isDeletingParentFolder;
+        });
+
+        if (shouldRedirect) {
+          // redirect back to pipelines
+          navigateTo(siteMap.pipelines.path, {
+            query: { projectUuid },
+          });
+          resolve(true);
+          return true;
+        }
+
         await reload();
         resolve(true);
         return true;
@@ -185,11 +274,14 @@ export const FileManagerLocalContextProvider: React.FC<{
   }, [
     contextMenuCombinedPath,
     selectedFiles,
-    baseUrl,
+    selectedFilesWithoutRedundantChildPaths,
+    projectUuid,
     reload,
     setConfirm,
     handleClose,
     pipelineIsReadOnly,
+    pipeline?.path,
+    navigateTo,
   ]);
 
   const handleDownload = React.useCallback(() => {
@@ -198,22 +290,27 @@ export const FileManagerLocalContextProvider: React.FC<{
     const downloadLink = getBaseNameFromContextMenu(contextMenuCombinedPath);
 
     if (selectedFiles.includes(contextMenuCombinedPath)) {
-      selectedFiles.forEach((combinedPath, i) => {
+      selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {
         setTimeout(function () {
-          downloadFile(baseUrl, combinedPath, downloadLink);
+          downloadFile(projectUuid, combinedPath, downloadLink);
         }, i * 500);
         // Seems like multiple download invocations works with 500ms
         // Not the most reliable, might want to fall back to server side zip.
       });
     } else {
-      downloadFile(baseUrl, contextMenuCombinedPath, downloadLink);
+      downloadFile(projectUuid, contextMenuCombinedPath, downloadLink);
     }
-  }, [baseUrl, contextMenuCombinedPath, handleClose, selectedFiles]);
+  }, [
+    projectUuid,
+    contextMenuCombinedPath,
+    handleClose,
+    selectedFiles,
+    selectedFilesWithoutRedundantChildPaths,
+  ]);
 
   return (
     <FileManagerLocalContext.Provider
       value={{
-        baseUrl,
         reload,
         handleClose,
         handleContextMenu,
