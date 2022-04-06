@@ -14,14 +14,20 @@ import { useFileManagerContext } from "./FileManagerContext";
 export const useValidateFilesOnSteps = () => {
   const { setAlert } = useAppContext();
   const { pipelineJson } = usePipelineEditorContext();
-  const { selectedFiles } = useFileManagerContext();
+  const { selectedFiles, dragFile } = useFileManagerContext();
+
+  const filesToProcess = React.useMemo(
+    () =>
+      selectedFiles.includes(dragFile?.path) ? selectedFiles : [dragFile?.path],
+    [selectedFiles, dragFile?.path]
+  );
 
   const getApplicableStepFiles = React.useCallback(
     (stepUuid?: string) => {
       const { usedNotebookFiles, forbidden, allowed } = validateFiles(
         stepUuid,
         pipelineJson?.steps,
-        selectedFiles
+        filesToProcess
       );
 
       if (forbidden.length > 0) {
@@ -65,7 +71,7 @@ export const useValidateFilesOnSteps = () => {
       }
       return { usedNotebookFiles, forbidden, allowed };
     },
-    [pipelineJson?.steps, selectedFiles, setAlert]
+    [pipelineJson?.steps, filesToProcess, setAlert]
   );
 
   return getApplicableStepFiles;
