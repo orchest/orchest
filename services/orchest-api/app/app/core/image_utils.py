@@ -72,8 +72,9 @@ def _get_buildah_image_build_workflow_manifest(
                             (
                                 # Build
                                 f"buildah build -f {dockerfile_path} --layers=true "
-                                # https://github.com/containers/buildah/issues/2741
+                                # jovyan is the user of the base image.
                                 "-v /pip-cache:/home/jovyan/.cache/pip "
+                                # https://github.com/containers/buildah/issues/2741
                                 "--format docker "
                                 "--force-rm=true "
                                 "--disable-compression=true "
@@ -186,13 +187,19 @@ class ImageBuildSidecar:
         user_logs_file_object,
         complete_logs_file_object,
     ):
+        self.task_uuid = task_uuid
+        self.image_name = image_name
+        self.image_tag = image_tag
+        self.build_context = build_context
         self.user_logs_file_object = user_logs_file_object
         self.complete_logs_file_object = complete_logs_file_object
         self.copying_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+COPY.*")
         self.userscript_begin_regex = re.compile(r"^STEP\s+\d+\/\d+:\s+RUN.*")
 
+    def start(self) -> None:
+
         pod_name = self._start_build_pod(
-            task_uuid, image_name, image_tag, build_context
+            self.task_uuid, self.image_name, self.image_tag, self.build_context
         )
 
         self._log("Starting image build...")
@@ -368,7 +375,7 @@ def build_image(
                 build_context,
                 user_logs_file_object,
                 complete_logs_file_object,
-            )
+            ).start()
         except (errors.ImageCachingFailedError, errors.ImageBuildFailedError) as e:
             complete_logs_file_object.write(str(e))
             complete_logs_file_object.flush()
