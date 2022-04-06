@@ -73,10 +73,12 @@ func (r *OrchestClusterReconciler) deleteOrchestCluster(ctx context.Context,
 	}
 
 	// Update Cluster status
-	r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StateDeleting, "Deleting the Cluster")
-
+	err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StateDeleting, "Deleting the Cluster")
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "failed to update cluster status finalizers")
+	}
 	// Remove finalizers
-	err := utils.RemoveFinalizerIfNotPresent(ctx, r.client, cluster, orchestv1alpha1.Finalizer)
+	err = utils.RemoveFinalizerIfNotPresent(ctx, r.client, cluster, orchestv1alpha1.Finalizer)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizers")
 	}
@@ -92,6 +94,13 @@ func (r *OrchestClusterReconciler) updateClusterStatus(ctx context.Context, clus
 		Message: message,
 	}
 
-	return r.client.Status().Update(ctx, cluster)
-
+	err := r.client.Status().Update(ctx, cluster)
+	// If the object doesn't exist yet, it has to be initialized
+	if kerrors.IsNotFound(err) {
+		err = r.client.Update(ctx, cluster)
+	}
+	if err != nil {
+		return errors.Wrapf(err, "failed to update orchest with status  %q", cluster.Name)
+	}
+	return nil
 }
