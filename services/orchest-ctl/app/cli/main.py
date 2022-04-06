@@ -154,8 +154,8 @@ def status(
     orchest.status(output_json=json)
 
 
-def _validate_fqdn(fqdn: str) -> str:
-    if not validators.domain(fqdn):
+def _validate_fqdn(fqdn: Optional[str]) -> str:
+    if fqdn is not None and not validators.domain(fqdn):
         raise typer.BadParameter(f"{fqdn} is not a valid domain.")
     return fqdn
 
