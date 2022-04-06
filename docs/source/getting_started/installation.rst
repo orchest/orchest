@@ -60,20 +60,31 @@ Install Orchest
 
    bash orchest install
 
-   # Set up the default Fully Qualified Domain Name (FQDN) in your
-   # /etc/hosts so that you can reach Orchest locally.
-   echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
+   # You can now reach Orchest on the IP returned by:
+   minikube ip
 
 .. tip::
    🎉 Now that you have installed Orchest, be sure to check out the :ref:`quickstart tutorial
    <quickstart>`.
+
+Installing using an FQDN
+------------------------
+If you would rather reach Orchest using a Fully Qualified Domain Name (FQDN) instead of using the
+cluster IP directly, you can install Orchest using:
+
+.. code-block:: bash
+
+   bash orchest install --fqdn="localorchest.io"
+
+   # Set up the default Fully Qualified Domain Name (FQDN) in your
+   # /etc/hosts so that you can reach Orchest locally.
+   echo "$(minikube ip)\tlocalorchest.io" >> /etc/hosts
 
 .. _installation gpu support:
 
 GPU support
 -----------
 Currently GPU support is not yet available. Coming soon!
-
 
 Build from source
 -----------------

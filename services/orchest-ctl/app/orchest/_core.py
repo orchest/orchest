@@ -138,7 +138,8 @@ def install(
         raise typer.Exit(code=1)
 
     utils.echo(f"Installing Orchest {orchest_version}.")
-    utils.echo(f"FQDN: {fqdn}.")
+    if fqdn is not None:
+        utils.echo(f"FQDN: {fqdn}.")
     if registry_storage_class is None:
         # Consider the choice that was made for userdir-pvc to be
         # agreeable.
@@ -178,13 +179,21 @@ def install(
     k8sw.set_orchest_cluster_version(orchest_version)
 
     utils.echo("Installation was successful.")
-    utils.echo(
-        f"Orchest is running with a FQDN equal to {fqdn}. To access it locally, add an "
-        "entry to your '/etc/hosts' file mapping the cluster ip (`minikube ip`) to "
-        f"'{fqdn}'. If you are on mac run the `minikube tunnel` daemon and map "
-        f"'127.0.0.1' to {fqdn} in the '/etc/hosts' file instead. You will then be "
-        f" able to reach Orchest at http://{fqdn}."
-    )
+    if fqdn is not None:
+        utils.echo(
+            f"Orchest is running with a FQDN equal to {fqdn}. To access it locally,"
+            " add an entry to your '/etc/hosts' file mapping the cluster ip"
+            f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
+            f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
+            f"You will then be able to reach Orchest at http://{fqdn}."
+        )
+    else:
+        utils.echo(
+            "Orchest is running without a FQDN. To access Orchest locally, simply go to"
+            " the IP returned by `minikube ip`. If you are on mac run the"
+            " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
+            "'/etc/hosts' file instead."
+        )
 
 
 def _echo_version(
