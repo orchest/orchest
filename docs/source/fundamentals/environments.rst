@@ -76,16 +76,14 @@ includes the packages you need, simply follow the steps in the previous section.
    pip install black
 
 .. note::
-   💡 The environments Orchest provides are based on the  `Jupyter Docker Stacks
-   <https://jupyter-docker-stacks.readthedocs.io/en/latest/>`_ and come with a number of
-   `pre-installed packages
-   <https://jupyter-docker-stacks.readthedocs.io/en/latest/using/selecting.html>`_. However, the
-   JupyterLab kernel needs to be restarted if it was already running.
-
-.. note::
    💡 `mamba <https://mamba.readthedocs.io/>`_ is a drop-in replacement to conda
    that is more user friendly and faster. Installing packages with conda is also supported,
    but conda might need a long time to solve the environment.
+
+.. note::
+   💡 ``Pip``, ``mamba`` and ``conda`` caches are persisted across builds for quicker iterations.
+   Said cache can be ignored or removed using the respective flags (e.g. ``pip install --no-cache``)
+   or commands.
 
 Installing packages from a ``requirements.txt``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

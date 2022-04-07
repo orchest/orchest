@@ -62,10 +62,7 @@ def write_environment_dockerfile(
     """
     statements = []
 
-    statements.append(f"FROM {base_image}")
-    # Create a layer (apparently helps with buildkit caching base image
-    # layers). Also helps with logs (see _build_image).
-    statements.append("RUN echo orchest")
+    statements.append(f"FROM docker.io/{base_image}")
     statements.append(f"LABEL _orchest_project_uuid={project_uuid}")
     statements.append(f"LABEL _orchest_environment_uuid={env_uuid}")
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
@@ -109,7 +106,6 @@ def write_environment_dockerfile(
         # since the statements in the "if" have failed, the echo is a
         # way of injecting the help message.
         f'RUN ((if [ $(id -u) = 0 ]; then {ps}; else {sps}; fi) || ! echo "{msg}") '
-        f"&& echo {flag} "
         f"&& bash < {bash_script} "
         # Needed to inject the rm statement this way, black was
         # introducing an error.

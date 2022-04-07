@@ -3,7 +3,8 @@ nbconvert~=6.0.0
 # https://github.com/jupyter/nbconvert/issues/1443
 ipython
 itsdangerous
-Flask
+jinja2<3.1.0  # https://github.com/pallets/jinja/issues/1626
+Flask<2
 flask_sqlalchemy
 Flask-RESTful
 flask-marshmallow
@@ -16,7 +17,7 @@ requests
 APScheduler
 nbformat
 six>=1.13.0
-Werkzeug
+Werkzeug<2.1.0  # Newer versions are broken with old Flask
 python-engineio
 python-socketio
 SQLAlchemy-Utils
