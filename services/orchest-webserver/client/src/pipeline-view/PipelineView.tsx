@@ -8,7 +8,9 @@ import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext"
 import { PipelineEditorContextProvider } from "./contexts/PipelineEditorContext";
 import { FileManager } from "./file-manager/FileManager";
 import { FileManagerContextProvider } from "./file-manager/FileManagerContext";
+import { MainSidePanel } from "./MainSidePanel";
 import { PipelineEditor } from "./PipelineEditor";
+import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 
 const PipelineView = () => {
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
@@ -27,7 +29,10 @@ const PipelineView = () => {
         <FileManagerContextProvider>
           <PipelineCanvasContextProvider>
             <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-              <FileManager />
+              <MainSidePanel>
+                <FileManager />
+                <SessionsPanel />
+              </MainSidePanel>
               <PipelineEditor />
             </Stack>
           </PipelineCanvasContextProvider>
