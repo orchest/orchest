@@ -62,8 +62,9 @@ docs](https://docs.orchest.io/en/stable/getting_started/installation.html).
 
 The software in this repository is licensed as follows:
 
-- All content residing under the "orchest-sdk/" directory of this repository is licensed under the
-  "Apache-2.0" license as defined in "orchest-sdk/LICENSE".
+- All content residing under the "orchest-sdk/" and "orchest-cli/" directories of this repository
+  are licensed under the "Apache-2.0" license as defined in "orchest-sdk/LICENSE" and
+  "orchest-cli/LICENSE" respectively.
 - Content outside of the above mentioned directory is available under the "AGPL-3.0" license.
 
 ## Slack Community
