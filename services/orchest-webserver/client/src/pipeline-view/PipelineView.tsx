@@ -1,5 +1,6 @@
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import Stack from "@mui/material/Stack";
 import React from "react";
@@ -15,6 +16,9 @@ import { SessionsPanel } from "./sessions-panel/SessionsPanel";
 const PipelineView = () => {
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
   const { setIsDrawerOpen } = useAppContext();
+  const {
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
 
   React.useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -31,7 +35,7 @@ const PipelineView = () => {
             <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
               <MainSidePanel>
                 <FileManager />
-                <SessionsPanel />
+                {!pipelineIsReadOnly && <SessionsPanel />}
               </MainSidePanel>
               <PipelineEditor />
             </Stack>

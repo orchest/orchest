@@ -11,12 +11,12 @@ declare global {
   }
 
   interface WheelEvent {
-    Intercom: any; // eslint-disable-line @typescript-eslint/no-explicit-any
     wheelDeltaY?: number;
   }
 
   interface Window {
     orchest: { jupyter: Jupyter };
+    Intercom: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   }
 }
 

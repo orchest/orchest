@@ -259,7 +259,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
         if (shouldRedirect) {
           // redirect back to pipelines
-          navigateTo(siteMap.pipelines.path, {
+          navigateTo(siteMap.pipeline.path, {
             query: { projectUuid },
           });
           resolve(true);

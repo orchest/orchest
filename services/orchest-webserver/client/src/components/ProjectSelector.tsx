@@ -44,7 +44,7 @@ export const ProjectSelector = () => {
     if (uuid) {
       const path = matchWithinProjectPaths
         ? matchWithinProjectPaths.root || matchWithinProjectPaths.path
-        : siteMap.pipelines.path;
+        : siteMap.pipeline.path;
 
       navigateTo(path, { query: { projectUuid: uuid } });
     }

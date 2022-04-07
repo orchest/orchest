@@ -68,7 +68,7 @@ export const CreateProjectDialog = ({
         ],
       }));
 
-      navigateTo(siteMap.pipelines.path, {
+      navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: project_uuid },
       });
     } catch (error) {

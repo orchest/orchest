@@ -83,7 +83,7 @@ const JupyterLabView: React.FC = () => {
     conditionalRenderingOfJupyterLab();
 
     if (session?.status === "STOPPING") {
-      navigateTo(siteMap.pipelines.path, {
+      navigateTo(siteMap.pipeline.path, {
         query: { projectUuid },
       });
     }
@@ -119,7 +119,7 @@ const JupyterLabView: React.FC = () => {
             },
             () => {
               // back to pipelines view
-              navigateTo(siteMap.pipelines.path, {
+              navigateTo(siteMap.pipeline.path, {
                 query: { projectUuid },
               });
             }

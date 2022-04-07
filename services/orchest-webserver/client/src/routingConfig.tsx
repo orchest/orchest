@@ -6,7 +6,6 @@ import JobsView from "./jobs-view/JobsView";
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
 import LogsView from "./pipeline-view/LogsView";
 import PipelineView from "./pipeline-view/PipelineView";
-import PipelinesView from "./pipelines-view/PipelinesView";
 import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
@@ -23,7 +22,6 @@ type RouteName =
   | "projects"
   | "examples"
   | "projectSettings"
-  | "pipelines"
   | "pipeline"
   | "jupyterLab"
   | "pipelineSettings"
@@ -86,43 +84,36 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
       component: ProjectSettingsView,
     },
     {
-      name: "pipelines",
-      path: "/pipelines",
-      title: getTitle("Pipelines"),
-      component: PipelinesView,
-    },
-    {
       name: "pipeline",
       path: "/pipeline",
-      root: "/pipelines",
       title: getTitle("Pipeline"),
       component: PipelineView,
     },
     {
       name: "jupyterLab",
       path: "/jupyter-lab",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("JupyterLab"),
       component: JupyterLabView,
     },
     {
       name: "pipelineSettings",
       path: "/pipeline-settings",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Pipeline Settings"),
       component: PipelineSettingsView,
     },
     {
       name: "filePreview",
       path: "/file-preview",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Step File Preview"),
       component: FilePreviewView,
     },
     {
       name: "logs",
       path: "/logs",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Logs"),
       component: LogsView,
     },
@@ -247,7 +238,7 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
 export const projectRootPaths = [
   siteMap.jobs.path,
   siteMap.environments.path,
-  siteMap.pipelines.path,
+  siteMap.pipeline.path,
 ];
 
 export const withinProjectPaths = getOrderedRoutes().reduce<

@@ -47,13 +47,7 @@ import {
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-import {
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  uuidv4,
-} from "@orchest/lib-utils";
+import { hasValue, makeRequest, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -142,7 +136,6 @@ const PipelineSettingsView: React.FC = () => {
     services,
     setServices,
     settings,
-    setSettings,
     pipelineJson,
     pipelineName,
     setPipelineName,
@@ -161,9 +154,6 @@ const PipelineSettingsView: React.FC = () => {
   );
 
   const [servicesChanged, setServicesChanged] = React.useState(false);
-  const [restartingMemoryServer, setRestartingMemoryServer] = React.useState(
-    false
-  );
   const [envVarsChanged, setEnvVarsChanged] = React.useState(false);
 
   const session = getSession({
@@ -174,8 +164,6 @@ const PipelineSettingsView: React.FC = () => {
     setServicesChanged(false);
     setEnvVarsChanged(false);
   }
-
-  const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
   const hasLoaded =
     pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
@@ -339,48 +327,6 @@ const PipelineSettingsView: React.FC = () => {
       const isAllSaved = !value.some((p) => p.status === "rejected");
       setAsSaved(isAllSaved);
     });
-  };
-
-  const restartMemoryServer = () => {
-    if (!restartingMemoryServer) {
-      setRestartingMemoryServer(true);
-
-      // perform POST to save
-      let restartPromise = makeCancelable(
-        makeRequest(
-          "PUT",
-          `/catch/api-proxy/api/sessions/${projectUuid}/${pipelineUuid}`
-        ),
-        promiseManager
-      );
-
-      restartPromise.promise
-        .then(() => {
-          setRestartingMemoryServer(false);
-        })
-        .catch((response) => {
-          if (!response.isCanceled) {
-            let errorMessage =
-              "Could not clear memory server, reason unknown. Please try again later.";
-            try {
-              errorMessage = JSON.parse(response.body)["message"];
-              if (errorMessage == "SessionNotRunning") {
-                errorMessage =
-                  "Session is not running, please try again later.";
-              }
-            } catch (error) {
-              console.error(error);
-            }
-
-            setAlert("Error", errorMessage);
-            setRestartingMemoryServer(false);
-          }
-        });
-    } else {
-      console.error(
-        "Already busy restarting memory server. UI should prohibit this call."
-      );
-    }
   };
 
   type ServiceRow = {

@@ -44,9 +44,10 @@ export const useSessionsPoller = () => {
   } = useProjectsContext();
 
   const location = useLocation();
+
+  // add the view paths that requires polling sessions
   const matchRooViews = matchPath(location.pathname, [
     siteMap.configureJupyterLab.path,
-    siteMap.pipelines.path,
   ]);
   const matchPipelineViews = matchPath(location.pathname, [
     siteMap.pipelineSettings.path,
@@ -56,7 +57,7 @@ export const useSessionsPoller = () => {
   ]);
 
   // sessions are only needed when both conditions are met
-  // 1. in the PipelinesView or ConfigureJupyterLabView (they are root views without a pipeline_uuid)
+  // 1. in the ConfigureJupyterLabView (they are root views without a pipeline_uuid)
   // 2. in the above views AND pipelineUuid is given AND is not read-only
   const shouldPoll =
     matchRooViews?.isExact ||

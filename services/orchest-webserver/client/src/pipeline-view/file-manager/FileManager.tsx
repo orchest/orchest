@@ -1,4 +1,4 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import Box from "@mui/material/Box";
@@ -11,8 +11,8 @@ import Stack from "@mui/material/Stack";
 import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath } from "react-dropzone";
-import { CreatePipelineDialog } from "../../pipelines-view/CreatePipelineDialog";
 import { FileManagementRoot, treeRoots } from "../common";
+import { CreatePipelineDialog } from "../CreatePipelineDialog";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -86,7 +86,10 @@ export function FileManager() {
   /**
    * States
    */
-  const { projectUuid } = useCustomRoute();
+
+  const {
+    state: { projectUuid, pipelineIsReadOnly },
+  } = useProjectsContext();
 
   const {
     isDragging,
@@ -340,26 +343,28 @@ export function FileManager() {
             </FileTreeContainer>
           )}
         </FileManagerLocalContextProvider>
-        <CreatePipelineDialog pipelines={pipelines}>
-          {(onCreateClick) => (
-            <Box
-              sx={{
-                width: "100%",
-                margin: (theme) => theme.spacing(0.5, 0, 1, 0),
-                padding: (theme) => theme.spacing(1),
-              }}
-            >
-              <Button
-                fullWidth
-                startIcon={<AddCircleIcon />}
-                onClick={onCreateClick}
-                data-test-id="pipeline-create"
+        {!pipelineIsReadOnly && (
+          <CreatePipelineDialog pipelines={pipelines}>
+            {(onCreateClick) => (
+              <Box
+                sx={{
+                  width: "100%",
+                  margin: (theme) => theme.spacing(0.5, 0, 1, 0),
+                  padding: (theme) => theme.spacing(1),
+                }}
               >
-                Create pipeline
-              </Button>
-            </Box>
-          )}
-        </CreatePipelineDialog>
+                <Button
+                  fullWidth
+                  startIcon={<AddCircleIcon />}
+                  onClick={onCreateClick}
+                  data-test-id="pipeline-create"
+                >
+                  Create pipeline
+                </Button>
+              </Box>
+            )}
+          </CreatePipelineDialog>
+        )}
       </FileManagerContainer>
     </>
   );

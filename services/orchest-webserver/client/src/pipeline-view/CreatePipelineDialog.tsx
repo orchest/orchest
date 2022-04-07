@@ -15,7 +15,9 @@ import DialogTitle from "@mui/material/DialogTitle";
 import TextField from "@mui/material/TextField";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
-import { INITIAL_PIPELINE_NAME, INITIAL_PIPELINE_PATH } from "./common";
+
+export const INITIAL_PIPELINE_NAME = "Main";
+export const INITIAL_PIPELINE_PATH = "main.orchest";
 
 const getPathFromName = (name: string) => `${toValidFilename(name)}.orchest`;
 const regExp = new RegExp(`^${INITIAL_PIPELINE_NAME}( [0-9]+)?`, "i");
