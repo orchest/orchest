@@ -3,6 +3,7 @@ import secrets
 import uuid
 
 import yaml
+from flask import current_app, request
 from flask_restx import Namespace, Resource
 
 from _orchest.internals import config as _config
@@ -10,8 +11,8 @@ from app import schema, utils
 from app.connections import k8s_core_api
 from config import CONFIG_CLASS
 
-api = Namespace("ctl", description="Orchest-api internal control.")
-api = utils.register_schema(api)
+ns = Namespace("ctl", description="Orchest-api internal control.")
+api = utils.register_schema(ns)
 
 
 @api.route("/start-update")
@@ -67,6 +68,63 @@ class OrchestImagesToPrePull(Resource):
         pre_pull_orchest_images = {"pre_pull_images": pre_pull_orchest_images}
 
         return pre_pull_orchest_images, 200
+
+
+@api.route("/orchest-settings")
+class OrchestSettings(Resource):
+    @api.doc("get_orchest_settings")
+    def get(self):
+        """Get Orchest settings as a json."""
+        return utils.GlobalOrchestConfig().as_dict(), 200
+
+    @api.doc("update_orchest_settings")
+    @api.expect(schema.dictionary)
+    @ns.response(code=200, model=schema.settings_update_response, description="Success")
+    @ns.response(code=400, model=schema.dictionary, description="Invalid request")
+    def put(self):
+        """Update Orchest settings through a json.
+
+        Works, essentially, as a dictionary update, it's an upsert.
+
+        Returns the updated configuration. A 400 response with an error
+        message is returned if any value is of the wrong type or
+        invalid.
+        """
+        config = utils.GlobalOrchestConfig()
+        try:
+            config.update(request.get_json())
+        except (TypeError, ValueError) as e:
+            current_app.logger.debug(e, exc_info=True)
+            return {"message": f"{e}"}, 400
+
+        requires_restart = config.save(current_app)
+        resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
+        return resp, 200
+
+    @api.doc("set_orchest_settings")
+    @api.expect(schema.dictionary)
+    @ns.response(code=200, model=schema.settings_update_response, description="Success")
+    @ns.response(code=400, model=schema.dictionary, description="Invalid request")
+    def post(self):
+        """Replace Orchest settings through a json.
+
+        Won't allow to remove values which have a defined default value
+        and/or that shouldn't be removed.
+
+        Returns the new configuration. A 400 response with an error
+        message is returned if any value is of the wrong type or
+        invalid.
+        """
+        config = utils.GlobalOrchestConfig()
+        try:
+            config.set(request.get_json())
+        except (TypeError, ValueError) as e:
+            current_app.logger.debug(e, exc_info=True)
+            return {"message": f"{e}"}, 400
+
+        requires_restart = config.save(current_app)
+        resp = {"requires_restart": requires_restart, "user_config": config.as_dict()}
+        return resp, 200
 
 
 def _get_update_sidecar_manifest(update_pod_name, token: str) -> dict:
