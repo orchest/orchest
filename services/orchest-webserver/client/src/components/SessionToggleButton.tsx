@@ -3,6 +3,7 @@ import StyledButtonOutlined from "@/styled-components/StyledButton";
 import { IOrchestSession } from "@/types";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
+import { SxProps, Theme } from "@mui/material";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Switch from "@mui/material/Switch";
 import classNames from "classnames";
@@ -14,13 +15,15 @@ type ISessionToggleButtonProps = {
   pipelineUuid: string;
   projectUuid: string;
   isSwitch?: boolean;
+  label?: React.ReactElement | string | number;
   className?: string;
+  sx?: SxProps<Theme>;
 };
 
 const SessionToggleButton = (props: ISessionToggleButtonProps) => {
   const { state, getSession, toggleSession } = useSessionsContext();
 
-  const { className, isSwitch, pipelineUuid, projectUuid } = props;
+  const { className, isSwitch, label, pipelineUuid, projectUuid, sx } = props;
 
   const status =
     props.status ||
@@ -31,7 +34,7 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
 
   const disabled =
     state.sessionsIsLoading || ["STOPPING", "LAUNCHING"].includes(status);
-  const label =
+  const statusLabel =
     {
       STOPPING: "Session stopping…",
       LAUNCHING: "Session starting…",
@@ -68,7 +71,8 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
               checked={isSessionAlive}
             />
           }
-          label={label}
+          label={label || statusLabel}
+          sx={sx}
         />
       ) : (
         <StyledButtonOutlined
@@ -87,8 +91,9 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
           )}
           startIcon={isSessionAlive ? <StopIcon /> : <PlayArrowIcon />}
           data-test-id="session-toggle-button"
+          sx={sx}
         >
-          {label}
+          {label || statusLabel}
         </StyledButtonOutlined>
       )}
     </>

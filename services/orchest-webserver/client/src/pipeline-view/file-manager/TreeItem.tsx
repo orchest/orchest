@@ -17,6 +17,7 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
     [`.${treeItemClasses.label}`]: {
       paddingLeft: 0,
       ["div"]: {
+        whiteSpace: "nowrap",
         textOverflow: "ellipsis",
         overflow: "hidden",
       },
