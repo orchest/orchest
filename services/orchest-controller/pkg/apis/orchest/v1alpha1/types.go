@@ -18,17 +18,19 @@ const (
 type OrchestClusterState string
 
 const (
-	StateInitializing OrchestClusterState = "Initializing"
-	StateRestarting   OrchestClusterState = "Restarting"
-	StateStarting     OrchestClusterState = "Starting"
-	StateStopping     OrchestClusterState = "Stopping"
-	StateStopped      OrchestClusterState = "Stopped"
-	StateUnhealthy    OrchestClusterState = "Unhealthy"
-	StatePending      OrchestClusterState = "Pending"
-	StateDeleting     OrchestClusterState = "Deleting"
-	StateRunning      OrchestClusterState = "Running"
-	StateUpdating     OrchestClusterState = "Updating"
-	StateError        OrchestClusterState = "Error"
+	StateInitializing      OrchestClusterState = "Initializing"
+	StateDeployingArgo     OrchestClusterState = "DeployingArgo"
+	StateDeployingRegistry OrchestClusterState = "DeployingRegistry"
+	StateRestarting        OrchestClusterState = "Restarting"
+	StateStarting          OrchestClusterState = "Starting"
+	StateStopping          OrchestClusterState = "Stopping"
+	StateStopped           OrchestClusterState = "Stopped"
+	StateUnhealthy         OrchestClusterState = "Unhealthy"
+	StatePending           OrchestClusterState = "Pending"
+	StateDeleting          OrchestClusterState = "Deleting"
+	StateRunning           OrchestClusterState = "Running"
+	StateUpdating          OrchestClusterState = "Updating"
+	StateError             OrchestClusterState = "Error"
 )
 
 type OrchestComponent struct {
@@ -124,8 +126,8 @@ type OrchestCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   OrchestClusterSpec   `json:"spec,omitempty"`
-	Status OrchestClusterStatus `json:"status,omitempty"`
+	Spec   OrchestClusterSpec    `json:"spec,omitempty"`
+	Status *OrchestClusterStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
