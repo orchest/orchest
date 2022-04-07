@@ -10,7 +10,6 @@ export const FileTreeContainer: React.FC = ({ children }) => {
     <Box
       sx={{
         userSelect: "none",
-        whiteSpace: "nowrap",
         maxHeight: "100%",
         overflowY: "auto",
         flex: 1,

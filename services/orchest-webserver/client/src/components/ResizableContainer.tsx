@@ -3,6 +3,7 @@ import {
   useDragElementWithPosition,
 } from "@/hooks/useDragElementWithPosition";
 import { getOffset } from "@/utils/jquery-replacement";
+import { isNumber } from "@/utils/webserver-utils";
 import Box, { BoxProps } from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import React from "react";
@@ -21,7 +22,7 @@ type ResizeContextType = {
 };
 
 const getSizeValue = (value: string | number) =>
-  isNaN(Number(value)) ? value : `${value}px`;
+  !isNumber(value) ? value : `${value}px`;
 
 /**
  * `ResizableContainer` can be resized by calling the functions passed by the render props.
@@ -55,6 +56,21 @@ export const ResizableContainer = ({
     height: initialHeight || "100%",
   });
 
+  React.useEffect(() => {
+    if (size.height > maxHeight || size.width > maxWidth) {
+      setSize((current) => {
+        return {
+          width: isNumber(current.width)
+            ? Math.min(current.width, maxWidth)
+            : current.width,
+          height: isNumber(current.height)
+            ? Math.min(current.height, maxHeight)
+            : current.height,
+        };
+      });
+    }
+  }, [maxWidth, maxHeight, size]);
+
   const getNewWidth = React.useCallback(
     (position: React.MutableRefObject<ClientPosition>): number => {
       const { left } = getOffset(containerRef.current);
@@ -75,8 +91,6 @@ export const ResizableContainer = ({
       let newHeight = minHeight
         ? Math.max(minHeight, position.current.prev.y - top)
         : position.current.prev.y - top;
-
-      console.log("DEV ", newHeight, maxHeight);
 
       return maxHeight ? Math.min(newHeight, maxHeight) : newHeight;
     },

@@ -512,3 +512,7 @@ export function pascalCaseToCapitalized(viewName) {
   const subst = ` $1`;
   return viewName.replace(regex, subst).trim();
 }
+
+export function isNumber(value: unknown): value is number {
+  return !isNaN(Number(value));
+}

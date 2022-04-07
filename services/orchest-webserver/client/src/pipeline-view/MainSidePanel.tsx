@@ -4,6 +4,7 @@ import {
   ResizeWidthBar,
 } from "@/components/ResizableContainer";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { isNumber } from "@/utils/webserver-utils";
 import Stack, { StackProps } from "@mui/material/Stack";
 import React from "react";
 
@@ -19,7 +20,7 @@ export const MainSidePanel = React.forwardRef<typeof Stack, StackProps>(
 
     const saveWidth = React.useCallback(
       ({ width }: ElementSize) => {
-        if (!isNaN(Number(width))) {
+        if (isNumber(width)) {
           setStoredPanelWidth(Number(width));
         }
       },
@@ -35,13 +36,16 @@ export const MainSidePanel = React.forwardRef<typeof Stack, StackProps>(
           position: "relative",
           backgroundColor: (theme) => theme.palette.background.paper,
           borderRight: (theme) => `1px solid ${theme.borderColor}`,
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
         }}
         onResized={saveWidth}
       >
         {({ resizeWidth }) => {
           return (
             <>
-              <Stack direction="column">{children}</Stack>
+              {children}
               <ResizeWidthBar
                 side="right"
                 resizeWidth={resizeWidth}

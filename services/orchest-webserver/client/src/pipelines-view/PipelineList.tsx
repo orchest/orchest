@@ -12,6 +12,7 @@ import type { PipelineMetaData } from "@/types";
 import { IOrchestSession } from "@/types";
 import { ellipsis } from "@/utils/styles";
 import { checkGate } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
@@ -444,14 +445,20 @@ export const PipelineList: React.FC<{ projectUuid: string }> = ({
         <LinearProgress />
       ) : (
         <>
-          <CreatePipelineDialog
-            newPipelineName={
-              pipelines ? getValidNewPipelineName(pipelines) : ""
-            }
-            pipelineRows={pipelineRows}
-            createPipeline={createPipeline}
-            disabled={isOperating}
-          />
+          <CreatePipelineDialog pipelines={pipelines} disabled={isOperating}>
+            {(onCreateClick) => (
+              <Box sx={{ margin: (theme) => theme.spacing(2, 0) }}>
+                <Button
+                  variant="contained"
+                  startIcon={<AddIcon />}
+                  onClick={onCreateClick}
+                  data-test-id="pipeline-create"
+                >
+                  Create pipeline
+                </Button>
+              </Box>
+            )}
+          </CreatePipelineDialog>
           <EditProjectPathDialog
             pipelineInEdit={pipelineInEdit}
             setPipelineInEdit={setPipelineInEdit}
