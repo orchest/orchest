@@ -1,0 +1,7 @@
+# Make sure hardcoded version here are equal to the versions in the
+# requirements.txt
+-c requirements.txt
+networkx
+pyarrow
+-e file:../../orchest-sdk/python
+-e file:../../lib/python/orchest-internals

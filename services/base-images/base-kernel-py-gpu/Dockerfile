@@ -12,8 +12,14 @@ USER root
 RUN apt-get update \
     && apt-get install default-libmysqlclient-dev sudo -y
 
-# enable sudo for the NB_USER by default
-RUN passwd -d $NB_USER && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/$NB_USER
+RUN passwd -d $NB_USER \
+    # Enable `sudo` for the $NB_USER by default.
+    && echo "$NB_USER   ALL=(ALL)   NOPASSWD:ALL" | tee /etc/sudoers.d/$NB_USER \
+    # Persist the value of `DEBIAN_FRONTEND` when running with `sudo`,
+    # so that installing packages works as expected.
+    && echo "Defaults env_keep += \"DEBIAN_FRONTEND\"" | tee --append /etc/sudoers.d/$NB_USER \
+    # All files in this directory should be mode 0440.
+    && chmod 0440 /etc/sudoers.d/$NB_USER
 
 # Get all requirements in place.
 COPY ./runnable-shared/runner/requirements* /orchest/services/base-images/runnable-shared/runner/
