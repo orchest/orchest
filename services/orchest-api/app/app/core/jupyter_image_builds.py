@@ -56,10 +56,9 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
 
     """
     statements = []
-    statements.append(f"FROM orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}")
-    # Create a layer (apparently helps with buildkit caching base image
-    # layers). Also helps with logs (see _build_image).
-    statements.append("RUN echo orchest")
+    statements.append(
+        f"FROM docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+    )
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
