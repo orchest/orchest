@@ -294,6 +294,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     pipelineIsReadOnly,
     pipeline?.path,
     navigateTo,
+    dispatch,
   ]);
 
   const handleDownload = React.useCallback(() => {
