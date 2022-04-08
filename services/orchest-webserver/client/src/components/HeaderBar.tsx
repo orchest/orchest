@@ -146,19 +146,18 @@ export const HeaderBar = ({
         <Box sx={{ flex: 1 }}>
           {pipelineName && (
             <Stack
-              direction="row"
+              direction="column"
               alignItems="center"
               justifyContent="center"
-              spacing={2}
             >
-              {pipelineSaveStatus === "saved" ? (
-                <Tooltip title="Pipeline saved">
-                  <CheckCircleIcon />
-                </Tooltip>
-              ) : (
-                <CircularProgress />
-              )}
-              <Stack direction="column" alignItems="center">
+              <Stack direction="row" alignItems="center">
+                {pipelineSaveStatus === "saved" ? (
+                  <Tooltip title="Pipeline saved">
+                    <CheckCircleIcon />
+                  </Tooltip>
+                ) : (
+                  <CircularProgress />
+                )}
                 <Typography
                   variant="h6"
                   sx={{
@@ -166,30 +165,30 @@ export const HeaderBar = ({
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
-                    marginRight: (theme) => theme.spacing(1),
+                    margin: (theme) => theme.spacing(0, 2),
                   }}
                   title={pipelineName}
                   data-test-id="pipeline-name"
                 >
                   {pipelineName}
                 </Typography>
-                {pipelineFilePath && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      maxWidth: "45vw", // TODO: prevent using vw
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                      color: (theme) => theme.palette.grey[700],
-                    }}
-                    title={pipelineFilePath}
-                    data-test-id="pipeline-path"
-                  >
-                    {`Project files/${pipelineFilePath}`}
-                  </Typography>
-                )}
               </Stack>
+              {pipelineFilePath && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    maxWidth: "45vw", // TODO: prevent using vw
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                    color: (theme) => theme.palette.grey[700],
+                  }}
+                  title={pipelineFilePath}
+                  data-test-id="pipeline-path"
+                >
+                  {`Project files/${pipelineFilePath}`}
+                </Typography>
+              )}
             </Stack>
           )}
         </Box>
