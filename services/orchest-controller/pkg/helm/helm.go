@@ -46,6 +46,7 @@ func GetReleaseConfig(ctx context.Context, name, namespace string) (Json, error)
 
 func DeployRelease(ctx context.Context, args []string) error {
 
+	return nil
 	cmd := exec.CommandContext(ctx, "helm", args...)
 
 	stdout := &bytes.Buffer{}
