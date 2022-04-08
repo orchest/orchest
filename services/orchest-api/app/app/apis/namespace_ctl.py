@@ -75,7 +75,7 @@ class OrchestSettings(Resource):
     @api.doc("get_orchest_settings")
     def get(self):
         """Get Orchest settings as a json."""
-        return utils.GlobalOrchestConfig().as_dict(), 200
+        return utils.OrchestSettings().as_dict(), 200
 
     @api.doc("update_orchest_settings")
     @api.expect(schema.dictionary)
@@ -90,7 +90,7 @@ class OrchestSettings(Resource):
         message is returned if any value is of the wrong type or
         invalid.
         """
-        config = utils.GlobalOrchestConfig()
+        config = utils.OrchestSettings()
         try:
             config.update(request.get_json())
         except (TypeError, ValueError) as e:
@@ -115,7 +115,7 @@ class OrchestSettings(Resource):
         message is returned if any value is of the wrong type or
         invalid.
         """
-        config = utils.GlobalOrchestConfig()
+        config = utils.OrchestSettings()
         try:
             config.set(request.get_json())
         except (TypeError, ValueError) as e:

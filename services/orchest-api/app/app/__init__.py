@@ -88,7 +88,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
         Migrate().init_app(app, db)
 
         with app.app_context():
-            app.config.update(utils.GlobalOrchestConfig().as_dict())
+            app.config.update(utils.OrchestSettings().as_dict())
 
     # NOTE: In this case we want to return ASAP as otherwise the DB
     # might be called (inside this function) before it is migrated.

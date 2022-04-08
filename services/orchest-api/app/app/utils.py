@@ -227,7 +227,7 @@ def get_jupyter_server_image_to_use() -> str:
         return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
 
 
-class GlobalOrchestConfig:
+class OrchestSettings:
     _cloud = _config.CLOUD
 
     # Defines default values for all supported configuration options.
@@ -279,7 +279,7 @@ class GlobalOrchestConfig:
     ]
 
     def __init__(self) -> None:
-        """Manages the global user config.
+        """Manages the user orchest settings.
 
         Uses a collections.ChainMap under the hood to provide fallback
         to default values where needed. And when running with `--cloud`,
@@ -287,7 +287,7 @@ class GlobalOrchestConfig:
         in `self._cloud_unmodifiable_config_opts`.
 
         Example:
-            >>> config = GlobalOrchestConfig()
+            >>> config = OrchestSettings()
             >>> # Set the current config to a new one.
             >>> config.set(new_config)
             >>> # Save the updated (and automatically validated) config
