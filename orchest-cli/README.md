@@ -20,7 +20,8 @@ pip install orchest-cli
    `orchest-cli`. Without the namespace creating the namespaced CRD and controller won't work.
 2. Build the controller's `Dockerfile` on the `minikube` node. You can do this using the `Makefile`
    in the `orchest-controller` directory: `make build`.
-3. Deploy the `orchest-controller`
+3. Deploy the `orchest-controller` (can be done together with the next step using
+   `kubectl -f apply services/orchest-controller/deploy`)
 4. Deploy the CRD. This will allow us to create a new custom resources (CR) that will be managed by
    the `orchest-controller`
 
