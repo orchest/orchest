@@ -416,7 +416,7 @@ class OrchestSettings:
             if self._cloud and k in self._cloud_unmodifiable_config_opts:
                 continue
 
-            old_val = flask_app.config[k]
+            old_val = flask_app.config.get(k)
             if new.get(k) is not None and new[k] != old_val:
                 res.append(k)
 
