@@ -314,34 +314,36 @@ export function FileManager() {
             uploadFiles={uploadFiles}
             rootFolder={root}
           />
-          {allTreesHaveLoaded && (
-            <FileTreeContainer>
-              <FileTree
-                treeRoots={treeRoots}
-                expanded={expanded}
-                onRename={onRename}
-                handleToggle={handleToggle}
-              />
-              <FileManagerContextMenu metadata={contextMenu}>
-                {contextMenu?.type === "background" && (
-                  <>
-                    <MenuItem dense onClick={collapseAll}>
-                      Collapse all
-                    </MenuItem>
-                    <MenuItem
-                      dense
-                      onClick={() => {
-                        reload();
-                        setContextMenu(null);
-                      }}
-                    >
-                      Refresh
-                    </MenuItem>
-                  </>
-                )}
-              </FileManagerContextMenu>
-            </FileTreeContainer>
-          )}
+          <FileTreeContainer>
+            {allTreesHaveLoaded && (
+              <>
+                <FileTree
+                  treeRoots={treeRoots}
+                  expanded={expanded}
+                  onRename={onRename}
+                  handleToggle={handleToggle}
+                />
+                <FileManagerContextMenu metadata={contextMenu}>
+                  {contextMenu?.type === "background" && (
+                    <>
+                      <MenuItem dense onClick={collapseAll}>
+                        Collapse all
+                      </MenuItem>
+                      <MenuItem
+                        dense
+                        onClick={() => {
+                          reload();
+                          setContextMenu(null);
+                        }}
+                      >
+                        Refresh
+                      </MenuItem>
+                    </>
+                  )}
+                </FileManagerContextMenu>
+              </>
+            )}
+          </FileTreeContainer>
         </FileManagerLocalContextProvider>
         {!pipelineIsReadOnly && (
           <CreatePipelineDialog pipelines={pipelines}>
@@ -359,7 +361,14 @@ export function FileManager() {
                   onClick={onCreateClick}
                   data-test-id="pipeline-create"
                 >
-                  Create pipeline
+                  <Box
+                    sx={{
+                      marginTop: (theme) => theme.spacing(0.25),
+                      marginRight: (theme) => theme.spacing(1),
+                    }}
+                  >
+                    Create pipeline
+                  </Box>
                 </Button>
               </Box>
             )}

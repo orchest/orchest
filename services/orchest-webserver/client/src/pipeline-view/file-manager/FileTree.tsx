@@ -152,6 +152,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     fileTrees,
     setFilePathChanges,
     pipelines,
+    setPipelines,
   } = useFileManagerContext();
 
   const { handleSelect, reload } = useFileManagerLocalContext();
@@ -250,6 +251,13 @@ export const FileTree = React.memo(function FileTreeComponent({
       const params = getFilePathChangeParams(oldFilePath, newFilePath);
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
+        setPipelines((current) => {
+          return current.map((pipeline) => {
+            return pipeline.uuid === pipelineUuid
+              ? { ...pipeline, path: params.newPath.replace(/^\//, "") }
+              : pipeline;
+          });
+        });
 
         onRename(oldFilePath, newFilePath);
 
@@ -269,7 +277,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [onRename, reload, setAlert, setFilePathChanges, projectUuid]
+    [onRename, reload, setAlert, setFilePathChanges, projectUuid, setPipelines]
   );
 
   const startRename = React.useCallback(
