@@ -1,54 +1,61 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
-import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { siteMap } from "@/Routes";
 import { PipelineJson, StepsDict } from "@/types";
-import { fetcher, uuidv4 } from "@orchest/lib-utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { MutatorCallback } from "swr";
+import { MutatorCallback } from "swr";
 import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
-  pipelineUuid: string,
+  pipelineUuid: string | undefined,
   projectUuid: string,
   jobUuid: string | undefined,
   runUuid: string | undefined,
   isReadOnly: boolean,
   initializeEventVars: (steps: StepsDict) => void
 ) => {
-  const { dispatch } = useProjectsContext();
+  const {
+    state: { pipelines },
+    dispatch,
+  } = useProjectsContext();
   const { setAlert } = useAppContext();
+  const { navigateTo } = useCustomRoute();
+
+  const pipeline = React.useMemo(() => {
+    return (
+      pipelines.find((pipeline) => pipeline.uuid === pipelineUuid) ||
+      pipelines[0]
+    );
+  }, [pipelines, pipelineUuid]);
+
+  React.useEffect(() => {
+    if ((!pipelineUuid && pipeline?.uuid) || pipelineUuid !== pipeline?.uuid) {
+      navigateTo(siteMap.pipeline.path, {
+        query: { projectUuid, pipelineUuid: pipeline?.uuid },
+      });
+      return;
+    }
+    dispatch({
+      type: "UPDATE_PIPELINE",
+      payload: { uuid: pipeline?.uuid },
+    });
+  }, [dispatch, pipeline?.uuid, projectUuid, pipelineUuid, navigateTo]);
 
   const {
     pipelineJson,
     setPipelineJson: originalSetPipelineJson,
     isFetchingPipelineJson,
-    error: fetchPipelineJsonError,
-  } = useFetchPipelineJson({ pipelineUuid, projectUuid, jobUuid, runUuid });
-
-  const { pipeline } = useFetchPipeline({ pipelineUuid, projectUuid });
-
-  React.useEffect(() => {
-    if (pipelineJson && !fetchPipelineJsonError) {
-      dispatch({
-        type: "SET_PIPELINE",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-          pipelineFilePath: pipeline?.path,
-        },
-      });
-    }
-  }, [
-    pipelineJson,
-    fetchPipelineJsonError,
-    dispatch,
-    pipelineUuid,
+    error,
+  } = useFetchPipelineJson({
+    pipelineUuid: pipeline?.uuid,
     projectUuid,
-    pipeline,
-  ]);
+    jobUuid,
+    runUuid,
+  });
 
   const hash = React.useRef<string>(uuidv4());
   const setPipelineJson = React.useCallback(
@@ -67,21 +74,7 @@ export const useInitializePipelineEditor = (
     [originalSetPipelineJson]
   );
 
-  const {
-    data: pipelineCwd,
-    error: fetchCwdError,
-    isValidating: isFetchingCwd,
-  } = useSWR(
-    !isReadOnly && projectUuid && pipelineUuid
-      ? `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-      : null,
-    (url) =>
-      fetcher<{ cwd: string }>(url).then(
-        (cwdPromiseResult) => `${cwdPromiseResult.cwd}/`
-      )
-  );
-
-  const error = fetchPipelineJsonError || fetchCwdError;
+  const pipelineCwd = pipeline?.path.replace(/\/?[^\/]*.orchest$/, "/");
 
   React.useEffect(() => {
     if (error) {
@@ -111,6 +104,6 @@ export const useInitializePipelineEditor = (
     setPipelineJson,
     hash,
     error,
-    isFetching: isFetchingPipelineJson || isFetchingCwd,
+    isFetching: isFetchingPipelineJson,
   };
 };

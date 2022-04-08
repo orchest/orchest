@@ -1,9 +1,7 @@
 import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
@@ -46,7 +44,6 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 
 const LogsView: React.FC = () => {
   // global states
-  const { dispatch, state } = useProjectsContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.logs.path });
 
@@ -74,17 +71,6 @@ const LogsView: React.FC = () => {
   );
   const [sio, setSio] = React.useState(undefined);
   const [job, setJob] = React.useState(undefined);
-  const { pipeline } = useFetchPipeline(
-    !jobUuid && !state?.pipelineFilePath ? { projectUuid, pipelineUuid } : null
-  );
-
-  const pipelineFilePath = React.useMemo(() => {
-    return (
-      state?.pipelineFilePath ||
-      job?.pipeline_run_spec.run_config.pipeline_path ||
-      pipeline.path
-    );
-  }, [state?.pipelineFilePath, job, pipeline]);
 
   // Conditional fetch session
   let session = !jobUuid
@@ -171,18 +157,6 @@ const LogsView: React.FC = () => {
     return sortedStepKeys.map((stepUUID) => mutatedPipelineSteps[stepUUID]);
   };
 
-  const setHeaderComponent = (pipelineName: string) => {
-    dispatch({
-      type: "SET_PIPELINE",
-      payload: {
-        pipelineUuid,
-        projectUuid,
-        pipelineName,
-        pipelineFilePath,
-      },
-    });
-  };
-
   const fetchPipelineJson = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineUuid,
@@ -207,7 +181,6 @@ const LogsView: React.FC = () => {
 
         let sortedSteps = topologicalSort(fetchedPipeline.steps);
         setSortedSteps(sortedSteps);
-        setHeaderComponent(fetchedPipeline.name);
       } else {
         console.warn("Could not load pipeline.json");
         console.log(result);

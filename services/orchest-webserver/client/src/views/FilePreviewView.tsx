@@ -6,7 +6,7 @@ import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import { Job, Pipeline } from "@/types";
+import { Job } from "@/types";
 import {
   getPipelineJSONEndpoint,
   getPipelineStepChildren,
@@ -101,29 +101,18 @@ const FilePreviewView: React.FC = () => {
       ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
       : getPipelineJSONEndpoint(pipelineUuid, projectUuid);
 
-    const [pipelineJson, job, pipeline] = await Promise.all([
+    const [pipelineJson, job] = await Promise.all([
       fetchPipelineJson(pipelineURL),
-      !projectsState?.pipelineFilePath && jobUuid
-        ? fetcher<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
-        : null,
-      !projectsState?.pipelineFilePath && !jobUuid && pipelineUuid
-        ? fetcher<Pipeline>(`/async/pipelines/${projectUuid}/${pipelineUuid}`)
-        : null,
+      jobUuid ? fetcher<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`) : null,
     ]);
 
     const pipelineFilePath =
-      projectsState?.pipelineFilePath ||
       job?.pipeline_run_spec.run_config.pipeline_path ||
-      pipeline?.path;
+      projectsState?.pipeline?.path;
 
     dispatch({
-      type: "SET_PIPELINE",
-      payload: {
-        projectUuid,
-        pipelineUuid,
-        pipelineName: pipelineJson.name,
-        pipelineFilePath,
-      },
+      type: "UPDATE_PIPELINE",
+      payload: { uuid: pipelineUuid, path: pipelineFilePath },
     });
 
     setState((prevState) => ({

@@ -40,7 +40,7 @@ export const useSessionsPoller = () => {
   const { dispatch } = useSessionsContext();
   const { setAlert } = useAppContext();
   const {
-    state: { pipelineUuid, pipelineIsReadOnly },
+    state: { pipeline, pipelineIsReadOnly },
   } = useProjectsContext();
 
   const location = useLocation();
@@ -61,9 +61,7 @@ export const useSessionsPoller = () => {
   // 2. in the above views AND pipelineUuid is given AND is not read-only
   const shouldPoll =
     matchRooViews?.isExact ||
-    (!pipelineIsReadOnly &&
-      hasValue(pipelineUuid) &&
-      matchPipelineViews?.isExact);
+    (!pipelineIsReadOnly && hasValue(pipeline) && matchPipelineViews?.isExact);
 
   const { cache } = useSWRConfig();
 

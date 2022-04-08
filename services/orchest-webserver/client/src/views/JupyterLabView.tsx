@@ -1,6 +1,5 @@
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -27,7 +26,6 @@ export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
 
 const JupyterLabView: React.FC = () => {
   // global states
-  const { dispatch } = useProjectsContext();
   const { requestBuild } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
 
@@ -167,16 +165,7 @@ const JupyterLabView: React.FC = () => {
 
       verifyKernelsCallback(pipelineJson);
 
-      setPipelineCwd(pipeline.path.replace(/\/[^\/]*.orchest$/, "/"));
-      dispatch({
-        type: "SET_PIPELINE",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-          pipelineFilePath: pipeline.path,
-        },
-      });
+      setPipelineCwd(pipeline.path.replace(/\/?[^\/]*.orchest$/, "/"));
     } catch (error) {
       console.error("Could not load pipeline.json");
       console.error(error);

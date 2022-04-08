@@ -298,8 +298,8 @@ const PipelineSettingsView: React.FC = () => {
           if (result.success) {
             // Sync name changes with the global context
             dispatch({
-              type: "SET_PIPELINE",
-              payload: { pipelineName },
+              type: "UPDATE_PIPELINE",
+              payload: { uuid: pipelineUuid, name: pipelineName },
             });
           }
         })

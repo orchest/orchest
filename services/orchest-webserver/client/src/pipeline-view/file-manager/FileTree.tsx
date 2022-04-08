@@ -254,7 +254,10 @@ export const FileTree = React.memo(function FileTreeComponent({
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
         const pipelineFilePath = params.newPath.replace(/^\//, "");
-        dispatch({ type: "SET_PIPELINE", payload: { pipelineFilePath } });
+        dispatch({
+          type: "UPDATE_PIPELINE",
+          payload: { uuid: pipelineUuid, path: pipelineFilePath },
+        });
         setPipelines((current) => {
           return current.map((pipeline) => {
             return pipeline.uuid === pipelineUuid

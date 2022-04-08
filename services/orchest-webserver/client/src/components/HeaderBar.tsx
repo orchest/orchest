@@ -19,8 +19,9 @@ import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useLocation, useRouteMatch } from "react-router-dom";
+import { useRouteMatch } from "react-router-dom";
 import { IconButton } from "./common/IconButton";
 import { ProjectSelector } from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
@@ -32,37 +33,13 @@ export const HeaderBar = ({
   toggleDrawer: () => void;
   isDrawerOpen: boolean;
 }) => {
-  const { navigateTo } = useCustomRoute();
-  const location = useLocation();
+  const { navigateTo, pipelineUuid } = useCustomRoute();
 
   const {
-    state: {
-      projectUuid,
-      pipelineUuid,
-      pipelineName,
-      pipelineFilePath,
-      pipelineSaveStatus,
-      pipelineIsReadOnly,
-    },
-    dispatch,
+    state: { projectUuid, pipeline, pipelineSaveStatus, pipelineIsReadOnly },
   } = useProjectsContext();
   const appContext = useAppContext();
   useSessionsPoller();
-
-  React.useEffect(() => {
-    /*
-      Always unset the pipeline for the header bar on navigation. 
-      It's up to pages to request the headerbar pipeline if they 
-      need it.
-    */
-    dispatch({
-      type: "SET_PIPELINE",
-      payload: {
-        pipelineUuid: undefined,
-        pipelineName: undefined,
-      },
-    });
-  }, [location]);
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
@@ -107,6 +84,10 @@ export const HeaderBar = ({
     window.location.href = "/login/clear";
   };
 
+  // Only show the pipeline name if pipeline_uuid is in the route args,
+  // where `pipeline` exists in `PorjectsContext` or not.
+  const isShowingPipelineName = hasValue(pipelineUuid && pipeline);
+
   return (
     <AppBar
       position="fixed"
@@ -144,7 +125,7 @@ export const HeaderBar = ({
         <ProjectSelector />
         <LinearProgress />
         <Box sx={{ flex: 1 }}>
-          {pipelineName && (
+          {isShowingPipelineName && (
             <Stack
               direction="column"
               alignItems="center"
@@ -167,39 +148,38 @@ export const HeaderBar = ({
                     whiteSpace: "nowrap",
                     margin: (theme) => theme.spacing(0, 2),
                   }}
-                  title={pipelineName}
+                  title={pipeline.name}
                   data-test-id="pipeline-name"
                 >
-                  {pipelineName}
+                  {pipeline.name}
                 </Typography>
               </Stack>
-              {pipelineFilePath && (
-                <Typography
-                  variant="caption"
-                  sx={{
-                    maxWidth: "45vw", // TODO: prevent using vw
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                    color: (theme) => theme.palette.grey[700],
-                  }}
-                  title={pipelineFilePath}
-                  data-test-id="pipeline-path"
-                >
-                  {`Project files/${pipelineFilePath}`}
-                </Typography>
-              )}
+
+              <Typography
+                variant="caption"
+                sx={{
+                  maxWidth: "45vw", // TODO: prevent using vw
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  color: (theme) => theme.palette.grey[700],
+                }}
+                title={pipeline.path}
+                data-test-id="pipeline-path"
+              >
+                {`Project files/${pipeline.path}`}
+              </Typography>
             </Stack>
           )}
         </Box>
         <Stack spacing={2} direction="row">
-          {!matchFilePreview && pipelineName && !pipelineIsReadOnly && (
+          {!matchFilePreview && pipeline && !pipelineIsReadOnly && (
             <SessionToggleButton
               pipelineUuid={pipelineUuid}
               projectUuid={projectUuid}
             />
           )}
-          {pipelineName && matchJupyter && (
+          {pipeline && matchJupyter && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
@@ -210,7 +190,7 @@ export const HeaderBar = ({
               Switch to Pipeline
             </StyledButtonOutlined>
           )}
-          {pipelineName && !pipelineIsReadOnly && matchPipeline && (
+          {pipeline && !pipelineIsReadOnly && matchPipeline && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"

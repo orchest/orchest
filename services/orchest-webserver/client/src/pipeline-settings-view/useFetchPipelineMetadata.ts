@@ -90,13 +90,8 @@ export const useFetchPipelineMetadata = ({
     if (!initialized.current && pipelineUuid && pipelineJson && pipelinePath) {
       initialized.current = true;
       dispatch({
-        type: "SET_PIPELINE",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-          pipelineFilePath: pipelinePath,
-        },
+        type: "UPDATE_PIPELINE",
+        payload: { uuid: pipelineUuid },
       });
     }
   }, [

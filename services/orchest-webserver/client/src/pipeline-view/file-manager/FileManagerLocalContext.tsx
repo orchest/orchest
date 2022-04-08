@@ -168,6 +168,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
   const {
     state: { pipelineIsReadOnly },
+    dispatch,
   } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
@@ -229,7 +230,7 @@ export const FileManagerLocalContextProvider: React.FC<{
               {pathsThatContainsPipelineFiles.map((file) => (
                 <Box key={`${file.root}/${file.path}`}>
                   <Code>{`${
-                    file.root === "/project-dir" ? "/Project files" : file.root
+                    file.root === "/project-dir" ? "Project files" : file.root
                   }${file.path}`}</Code>
                 </Box>
               ))}
@@ -243,6 +244,17 @@ export const FileManagerLocalContextProvider: React.FC<{
             deleteFetch(projectUuid, combinedPath)
           )
         );
+
+        const pipelinePahts = pathsThatContainsPipelineFiles.map(
+          ({ path }) => path
+        );
+
+        dispatch((state) => {
+          const updatedPipelines = state.pipelines.filter((pipeline) => {
+            return !pipelinePahts.some((path) => pipeline.path === path);
+          });
+          return { type: "SET_PIPELINES", payload: updatedPipelines };
+        });
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {
           const { path } = unpackCombinedPath(fileToDelete);

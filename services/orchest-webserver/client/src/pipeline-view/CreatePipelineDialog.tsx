@@ -1,4 +1,5 @@
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
@@ -49,6 +50,7 @@ export const CreatePipelineDialog = ({
   children: (onCreateClick: () => void) => React.ReactNode;
 }) => {
   const { setAlert } = useAppContext();
+  const { dispatch } = useProjectsContext();
   const { projectUuid, navigateTo } = useCustomRoute();
   const { run, status } = useAsync<void>();
 
@@ -91,6 +93,14 @@ export const CreatePipelineDialog = ({
           }
         )
           .then(({ pipeline_uuid }) => {
+            dispatch({
+              type: "ADD_PIPELINE",
+              payload: {
+                uuid: pipeline_uuid,
+                name,
+                path,
+              },
+            });
             navigateToPipeline(pipeline_uuid);
           })
           .catch((error) => {
