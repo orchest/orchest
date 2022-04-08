@@ -1,10 +1,16 @@
 
 
+TAG ?= $(if $(TAGNAME),$orchest/orchest-controller:(TAGNAME),"orchest/orchest-controller:latest")
 
 TOOLS_DIR := $(PWD)/.cache/tools
 
 CONTROLLER_GEN=$(TOOLS_DIR)/controller-gen
 YQ=$(TOOLS_DIR)/yq-v3
+
+
+.PHONY: build
+build:
+	@docker build --rm -t $(TAG) . -f Dockerfile
 
 .SECONDARY: $(CONTROLLER_GEN) 
 $(CONTROLLER_GEN):
