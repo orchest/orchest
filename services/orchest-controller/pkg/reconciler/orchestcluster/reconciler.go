@@ -2,6 +2,7 @@ package orchestcluster
 
 import (
 	"context"
+    "time"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -109,6 +110,9 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			klog.Error(err)
 			return err
 		}
+
+        // TODO: Testing
+        time.Sleep(10 * time.Second)
 	case orchestv1alpha1.StateDeployingArgo:
 		err := addons.DeployArgoIfChanged(ctx, cluster.Namespace)
 		if err != nil {
@@ -121,6 +125,9 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			klog.Error(err)
 			return err
 		}
+
+        // TODO: Testing
+        time.Sleep(10 * time.Second)
 	case orchestv1alpha1.StateDeployingRegistry:
 		err := addons.DeployRegistryIfChanged(ctx, cluster.Namespace)
 		if err != nil {
