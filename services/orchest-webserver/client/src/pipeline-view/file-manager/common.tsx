@@ -203,8 +203,10 @@ export const searchTrees = ({
   }
 };
 
-export const cleanFilePath = (filePath: string) =>
-  filePath.replace(/^\/project-dir\:\//, "").replace(/^\/data\:\//, "/data/");
+export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
+  filePath
+    .replace(/^\/project-dir\:\//, replaceProjectDirWith)
+    .replace(/^\/data\:\//, "/data/");
 
 /**
  * remove leading "./" of a file path

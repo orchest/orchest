@@ -1,5 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -57,6 +58,73 @@ const findFileViaPath = (path: string, fileTrees: FileTrees) => {
   return head;
 };
 
+const getFilePathChangeParams = (oldFilePath: string, newFilePath: string) => {
+  const { root: oldRoot, path: oldPath } = unpackCombinedPath(oldFilePath);
+  const { root: newRoot, path: newPath } = unpackCombinedPath(newFilePath);
+  return { oldRoot, oldPath, newRoot, newPath };
+};
+
+const sendChangeFilePathRequest = ({
+  oldPath,
+  newPath,
+  oldRoot,
+  newRoot,
+  projectUuid,
+}: {
+  oldPath: string;
+  newPath: string;
+  oldRoot: string;
+  newRoot: string;
+  projectUuid: string;
+}) => {
+  return fetcher(
+    `${FILE_MANAGEMENT_ENDPOINT}/rename?${queryArgs({
+      old_path: oldPath,
+      new_path: newPath,
+      old_root: oldRoot,
+      new_root: newRoot,
+      project_uuid: projectUuid,
+    })}`,
+    { method: "POST" }
+  );
+};
+
+const sendChangePipelineFilePathRequest = (
+  projectUuid: string,
+  pipelineUuid: string,
+  newPath: string
+) => {
+  return fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
+    method: "PUT",
+    headers: HEADER.JSON,
+    body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // The path should be relative to `/project-dir:/`.
+  });
+};
+
+const doChangeFilePath = ({
+  pipelineUuid,
+  projectUuid,
+  ...params
+}: {
+  oldRoot: string;
+  oldPath: string;
+  newRoot: string;
+  newPath: string;
+  projectUuid: string;
+  pipelineUuid?: string;
+}) => {
+  if (params.newPath.endsWith(".orchest")) {
+    if (!pipelineUuid) throw new Error("pipeline_uuid is required.");
+    return sendChangePipelineFilePathRequest(
+      projectUuid,
+      pipelineUuid,
+      params.newPath
+    );
+  } else {
+    return sendChangeFilePathRequest({ ...params, projectUuid });
+  }
+};
+
 export const FileTree = React.memo(function FileTreeComponent({
   treeRoots,
   expanded,
@@ -72,8 +140,8 @@ export const FileTree = React.memo(function FileTreeComponent({
   onRename: (oldPath: string, newPath: string) => void;
 }) {
   const { setConfirm, setAlert } = useAppContext();
-
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
+  const { getSession, toggleSession } = useSessionsContext();
 
   const {
     selectedFiles,
@@ -165,50 +233,90 @@ export const FileTree = React.memo(function FileTreeComponent({
     return filterRedundantChildPaths(selectedFiles);
   }, [dragFile, selectedFiles]);
 
-  // by default, handleRename will reload
+  // by default, handleChangeFilePath will reload
   // when moving multiple files, we manually call reload after Promise.all
-  const handleRename = React.useCallback(
-    async (oldCombinedPath, newCombinedPath, skipReload = false) => {
-      let { root: oldRoot, path: oldPath } = unpackCombinedPath(
-        oldCombinedPath
-      );
-      let { root: newRoot, path: newPath } = unpackCombinedPath(
-        newCombinedPath
-      );
-
-      onRename(oldCombinedPath, newCombinedPath);
-
+  const handleChangeFilePath = React.useCallback(
+    async ({
+      oldFilePath,
+      newFilePath,
+      pipelineUuid,
+      skipReload = false,
+    }: {
+      oldFilePath: string;
+      newFilePath: string;
+      pipelineUuid?: string;
+      skipReload?: boolean;
+    }) => {
+      const params = getFilePathChangeParams(oldFilePath, newFilePath);
       try {
-        if (newPath.endsWith(".orchest")) {
-          await fetcher(`/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-            method: "PUT",
-            headers: HEADER.JSON,
-            body: JSON.stringify({ path: newPath.replace(/^\//, "") }), // cannot contain the leading slash
-          });
-        } else {
-          await fetcher(
-            `${FILE_MANAGEMENT_ENDPOINT}/rename?${queryArgs({
-              old_path: oldPath,
-              new_path: newPath,
-              old_root: oldRoot,
-              new_root: newRoot,
-              project_uuid: projectUuid,
-            })}`,
-            { method: "POST" }
-          );
-        }
+        await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
+
+        onRename(oldFilePath, newFilePath);
 
         if (!skipReload) {
-          setFilePathChanges([{ oldPath, newPath, oldRoot, newRoot }]);
+          setFilePathChanges([params]);
           reload();
         }
-        return { oldPath, newPath, oldRoot, newRoot };
+        return params;
       } catch (error) {
-        // TODO: give a more meaninfule error message.
-        setAlert("Error", `Failed to rename file ${oldPath}. Invalid path.`);
+        setAlert(
+          "Error",
+          <>
+            {`Failed to rename file `}{" "}
+            <Code>{cleanFilePath(oldFilePath, "Project files/")}</Code>
+            {`. ${error?.message || ""}`}
+          </>
+        );
       }
     },
-    [onRename, reload, setAlert, setFilePathChanges, pipelineUuid, projectUuid]
+    [onRename, reload, setAlert, setFilePathChanges, projectUuid]
+  );
+
+  const startRename = React.useCallback(
+    (oldFilePath: string, newFilePath: string, skipReload = false) => {
+      const filePathRelativeToProjectDir = cleanFilePath(oldFilePath);
+      const foundPipeline = pipelines.find(
+        (pipeline) => pipeline.path === filePathRelativeToProjectDir
+      );
+      const session = foundPipeline
+        ? getSession({ pipelineUuid: foundPipeline.uuid, projectUuid })
+        : null;
+
+      if (session) {
+        setConfirm(
+          "Warning",
+          <>
+            {`Before renaming `}
+            <Code>{cleanFilePath(oldFilePath, "Project files/")}</Code>
+            {` , you need to stop its session. Do you want to continue?`}
+          </>,
+          {
+            confirmLabel: "Stop session",
+            onConfirm: async (resolve) => {
+              toggleSession(session);
+              resolve(true);
+              return true;
+            },
+          }
+        );
+        return;
+      }
+
+      handleChangeFilePath({
+        oldFilePath,
+        newFilePath,
+        skipReload,
+        pipelineUuid: foundPipeline.uuid,
+      });
+    },
+    [
+      setConfirm,
+      handleChangeFilePath,
+      pipelines,
+      projectUuid,
+      getSession,
+      toggleSession,
+    ]
   );
 
   const moveFiles = React.useCallback(
@@ -235,7 +343,17 @@ export const FileTree = React.memo(function FileTreeComponent({
       setConfirm("Warning", confirmMessage, async (resolve) => {
         const newFilePathChanges = await Promise.all(
           deducedPaths.map(([sourcePath, newPath]) => {
-            return handleRename(sourcePath, newPath, true);
+            const filePathRelativeToProjectDir = cleanFilePath(sourcePath);
+            const foundPipeline = pipelines.find(
+              (pipeline) => pipeline.path === filePathRelativeToProjectDir
+            );
+
+            return handleChangeFilePath({
+              oldFilePath: sourcePath,
+              newFilePath: newPath,
+              pipelineUuid: foundPipeline?.uuid,
+              skipReload: true,
+            });
           })
         );
         setFilePathChanges(newFilePathChanges);
@@ -244,7 +362,14 @@ export const FileTree = React.memo(function FileTreeComponent({
         return true;
       });
     },
-    [dragFiles, handleRename, reload, setConfirm, setFilePathChanges]
+    [
+      dragFiles,
+      handleChangeFilePath,
+      pipelines,
+      reload,
+      setConfirm,
+      setFilePathChanges,
+    ]
   );
 
   const handleDropInside = React.useCallback(
@@ -292,7 +417,12 @@ export const FileTree = React.memo(function FileTreeComponent({
             async (resolve) => {
               const newFilePathChanges = await Promise.all(
                 deducedPaths.map(([sourcePath, newPath]) => {
-                  return handleRename(sourcePath, newPath, true);
+                  return handleChangeFilePath({
+                    oldFilePath: sourcePath,
+                    newFilePath: newPath,
+                    pipelineUuid,
+                    skipReload: true,
+                  });
                 })
               );
               setFilePathChanges(newFilePathChanges);
@@ -312,8 +442,9 @@ export const FileTree = React.memo(function FileTreeComponent({
       fileTrees,
       setConfirm,
       projectUuid,
+      pipelineUuid,
       moveFiles,
-      handleRename,
+      handleChangeFilePath,
       reload,
       setFilePathChanges,
     ]
@@ -374,7 +505,7 @@ export const FileTree = React.memo(function FileTreeComponent({
                 hoveredPath={hoveredPath}
                 root={root}
                 onOpen={onOpen}
-                handleRename={handleRename}
+                handleRename={startRename}
               />
             </TreeItem>
           );

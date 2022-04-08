@@ -77,6 +77,8 @@ export const FileManagerContextMenu: React.FC<{
   const handleContextView = React.useCallback(() => {
     handleClose();
 
+    if (pipelineUuid) return;
+
     const foundStep = Object.values(pipelineJson.steps).find((step) => {
       return (
         step.file_path.replace(/^\.\//, "") ===
@@ -145,7 +147,7 @@ export const FileManagerContextMenu: React.FC<{
               Edit
             </MenuItem>
           )}
-          {contextPathIsFile && (
+          {pipelineUuid && contextPathIsFile && (
             <MenuItem dense onClick={handleContextView}>
               View
             </MenuItem>
