@@ -16,12 +16,9 @@ export const useFetchPipelinesOnCreateJob = ({
   setAlert: AlertDispatcher;
   closeCreateDialog: () => void;
 }) => {
-  // we don't need to fetch pipelines when page load
-  // only fetch pipelines when open the create job dialog
-  // and that's why in order to get the fetched data, we need to retrieve it from cache
-  // useSWR itself doesn't provide a way to retrieve data via key
   const { pipelines, isFetchingPipelines, error } = useFetchPipelines(
-    projectUuid && isCreateDialogOpen ? projectUuid : undefined
+    projectUuid,
+    isCreateDialogOpen
   );
   React.useEffect(() => {
     if (error && error.status === 404) navigateTo(siteMap.projects.path);
