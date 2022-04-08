@@ -13,6 +13,42 @@ type FetchPipelineJsonProps = {
   projectUuid: string | undefined;
 };
 
+export const fetchPipelineJson = (url: string) =>
+  fetcher<{
+    pipeline_json: string;
+    success: boolean;
+  }>(url).then((result) => {
+    if (!result.success) {
+      throw new Error("Failed to fetch pipeline.json");
+    }
+
+    const pipelineObj = JSON.parse(result.pipeline_json) as PipelineJson;
+
+    // as settings are optional, populate defaults if no values exist
+    if (pipelineObj.settings === undefined) {
+      pipelineObj.settings = {};
+    }
+    if (pipelineObj.settings.auto_eviction === undefined) {
+      pipelineObj.settings.auto_eviction = false;
+    }
+    if (pipelineObj.settings.data_passing_memory_size === undefined) {
+      pipelineObj.settings.data_passing_memory_size = "1GB";
+    }
+    if (pipelineObj.parameters === undefined) {
+      pipelineObj.parameters = {};
+    }
+    if (pipelineObj.services === undefined) {
+      pipelineObj.services = {};
+    }
+
+    // Augment services with order key
+    for (let service in pipelineObj.services) {
+      pipelineObj.services[service].order = getOrderValue();
+    }
+
+    return pipelineObj;
+  });
+
 export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
   const { cache } = useSWRConfig();
   const { pipelineUuid, projectUuid, jobUuid, runUuid } = props || {};
@@ -26,41 +62,7 @@ export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
 
   const { data, error, isValidating, mutate } = useSWR<PipelineJson>(
     cacheKey || null,
-    (url: string) =>
-      fetcher<{
-        pipeline_json: string;
-        success: boolean;
-      }>(url).then((result) => {
-        if (!result.success) {
-          throw new Error("Failed to fetch pipeline.json");
-        }
-
-        const pipelineObj = JSON.parse(result.pipeline_json) as PipelineJson;
-
-        // as settings are optional, populate defaults if no values exist
-        if (pipelineObj.settings === undefined) {
-          pipelineObj.settings = {};
-        }
-        if (pipelineObj.settings.auto_eviction === undefined) {
-          pipelineObj.settings.auto_eviction = false;
-        }
-        if (pipelineObj.settings.data_passing_memory_size === undefined) {
-          pipelineObj.settings.data_passing_memory_size = "1GB";
-        }
-        if (pipelineObj.parameters === undefined) {
-          pipelineObj.parameters = {};
-        }
-        if (pipelineObj.services === undefined) {
-          pipelineObj.services = {};
-        }
-
-        // Augment services with order key
-        for (let service in pipelineObj.services) {
-          pipelineObj.services[service].order = getOrderValue();
-        }
-
-        return pipelineObj;
-      })
+    (url: string) => fetchPipelineJson(url)
   );
 
   const setPipelineJson = React.useCallback(

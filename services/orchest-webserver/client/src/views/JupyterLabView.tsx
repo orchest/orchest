@@ -4,9 +4,10 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { TViewPropsWithRequiredQueryArgs } from "@/types";
+import type { Pipeline, TViewPropsWithRequiredQueryArgs } from "@/types";
 import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -14,8 +15,8 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
   collapseDoubleDots,
+  fetcher,
   makeCancelable,
-  makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
@@ -150,51 +151,36 @@ const JupyterLabView: React.FC = () => {
     pipeline ? verifyKernelsInterval : null
   );
 
-  const fetchPipeline = () => {
+  const fetchPipeline = async () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineUuid,
       projectUuid
     );
 
-    let fetchPipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineJSONEndpoint),
-      promiseManager
-    );
+    try {
+      const [pipelineJson, pipeline] = await Promise.all([
+        fetchPipelineJson(pipelineJSONEndpoint),
+        pipelineUuid
+          ? fetcher<Pipeline>(`/async/pipelines/${projectUuid}/${pipelineUuid}`)
+          : null,
+      ]);
 
-    // fetch pipeline cwd
-    let cwdFetchPromise = makeCancelable(
-      makeRequest(
-        "GET",
-        `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-      ),
-      promiseManager
-    );
+      verifyKernelsCallback(pipelineJson);
 
-    Promise.all([cwdFetchPromise.promise, fetchPipelinePromise.promise]).then(
-      ([fetchCwdResult, fetchPipelinePromiseResult]) => {
-        // relativeToAbsolutePath expects trailing / for directories
-        let cwd = JSON.parse(fetchCwdResult)["cwd"] + "/";
-        setPipelineCwd(cwd);
-
-        let result = JSON.parse(fetchPipelinePromiseResult);
-        if (result.success) {
-          let pipeline = JSON.parse(result.pipeline_json);
-          verifyKernelsCallback(pipeline);
-
-          dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineUuid,
-              projectUuid,
-              pipelineName: pipeline.name,
-            },
-          });
-        } else {
-          console.error("Could not load pipeline.json");
-          console.error(result);
-        }
-      }
-    );
+      setPipelineCwd(pipeline.path.replace(/\/[^\/]*.orchest$/, "/"));
+      dispatch({
+        type: "SET_PIPELINE",
+        payload: {
+          pipelineUuid,
+          projectUuid,
+          pipelineName: pipelineJson.name,
+          pipelineFilePath: pipeline.path,
+        },
+      });
+    } catch (error) {
+      console.error("Could not load pipeline.json");
+      console.error(error);
+    }
   };
 
   const conditionalRenderingOfJupyterLab = () => {

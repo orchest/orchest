@@ -298,7 +298,7 @@ const PipelineSettingsView: React.FC = () => {
           if (result.success) {
             // Sync name changes with the global context
             dispatch({
-              type: "pipelineSet",
+              type: "SET_PIPELINE",
               payload: { pipelineName },
             });
           }

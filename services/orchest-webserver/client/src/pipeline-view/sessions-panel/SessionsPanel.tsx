@@ -18,9 +18,9 @@ export const SessionsPanel = () => {
   return (
     <Stack direction="column" sx={{ flex: 1, minHeight: 0 }}>
       <Typography
-        variant="subtitle1"
+        variant="subtitle2"
         component="h3"
-        sx={{ paddingLeft: (theme) => theme.spacing(1) }}
+        sx={{ padding: (theme) => theme.spacing(0.5, 0.5, 0.5, 1.5) }}
       >
         Sessions
       </Typography>

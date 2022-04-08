@@ -3,6 +3,7 @@ import { Layout } from "@/components/Layout";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
@@ -45,7 +46,7 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
 
 const LogsView: React.FC = () => {
   // global states
-  const { dispatch } = useProjectsContext();
+  const { dispatch, state } = useProjectsContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.logs.path });
 
@@ -62,7 +63,7 @@ const LogsView: React.FC = () => {
 
   const isJobRun = hasValue(jobUuid && runUuid);
 
-  const [promiseManager] = React.useState(new PromiseManager());
+  const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
   const [selectedLog, setSelectedLog] = React.useState<{
     type: LogType;
@@ -73,6 +74,17 @@ const LogsView: React.FC = () => {
   );
   const [sio, setSio] = React.useState(undefined);
   const [job, setJob] = React.useState(undefined);
+  const { pipeline } = useFetchPipeline(
+    !jobUuid && !state?.pipelineFilePath ? { projectUuid, pipelineUuid } : null
+  );
+
+  const pipelineFilePath = React.useMemo(() => {
+    return (
+      state?.pipelineFilePath ||
+      job?.pipeline_run_spec.run_config.pipeline_path ||
+      pipeline.path
+    );
+  }, [state?.pipelineFilePath, job, pipeline]);
 
   // Conditional fetch session
   let session = !jobUuid
@@ -81,7 +93,7 @@ const LogsView: React.FC = () => {
 
   React.useEffect(() => {
     connectSocketIO();
-    fetchPipeline();
+    fetchPipelineJson();
 
     if (jobUuid) {
       fetchJob();
@@ -161,16 +173,17 @@ const LogsView: React.FC = () => {
 
   const setHeaderComponent = (pipelineName: string) => {
     dispatch({
-      type: "pipelineSet",
+      type: "SET_PIPELINE",
       payload: {
         pipelineUuid,
         projectUuid,
         pipelineName,
+        pipelineFilePath,
       },
     });
   };
 
-  const fetchPipeline = () => {
+  const fetchPipelineJson = () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineUuid,
       projectUuid,
@@ -191,7 +204,6 @@ const LogsView: React.FC = () => {
 
       if (result.success) {
         let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
-        // setPipelineJson(fetchedPipeline);
 
         let sortedSteps = topologicalSort(fetchedPipeline.steps);
         setSortedSteps(sortedSteps);

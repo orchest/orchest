@@ -8,13 +8,13 @@ export const useProjectsContext = () => React.useContext(ProjectsContext);
 
 type Action =
   | {
-      type: "pipelineSet";
-      payload: Partial<
-        Pick<
-          IProjectsContextState,
-          "pipelineUuid" | "projectUuid" | "pipelineName"
-        >
-      >;
+      type: "SET_PIPELINE";
+      payload: {
+        projectUuid?: string;
+        pipelineUuid?: string;
+        pipelineName?: string;
+        pipelineFilePath?: string;
+      };
     }
   | {
       type: "pipelineSetSaveStatus";
@@ -41,6 +41,7 @@ export interface IProjectsContextState
     "projectUuid" | "pipelineUuid"
   > {
   pipelineName?: string;
+  pipelineFilePath?: string;
   pipelineFetchHash?: string;
   pipelineIsReadOnly: boolean;
   pipelineSaveStatus: "saved" | "saving";
@@ -59,7 +60,7 @@ const reducer = (
   const action = _action instanceof Function ? _action(state) : _action;
 
   switch (action.type) {
-    case "pipelineSet":
+    case "SET_PIPELINE":
       return { ...state, pipelineFetchHash: uuidv4(), ...action.payload };
     case "pipelineSetSaveStatus":
       return { ...state, pipelineSaveStatus: action.payload };
@@ -78,6 +79,7 @@ const reducer = (
 const initialState: IProjectsContextState = {
   pipelineFetchHash: null,
   pipelineName: null,
+  pipelineFilePath: undefined,
   pipelineIsReadOnly: false,
   pipelineSaveStatus: "saved",
   pipelineUuid: undefined,

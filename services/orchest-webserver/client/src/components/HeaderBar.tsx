@@ -40,6 +40,7 @@ export const HeaderBar = ({
       projectUuid,
       pipelineUuid,
       pipelineName,
+      pipelineFilePath,
       pipelineSaveStatus,
       pipelineIsReadOnly,
     },
@@ -55,7 +56,7 @@ export const HeaderBar = ({
       need it.
     */
     dispatch({
-      type: "pipelineSet",
+      type: "SET_PIPELINE",
       payload: {
         pipelineUuid: undefined,
         pipelineName: undefined,
@@ -157,19 +158,38 @@ export const HeaderBar = ({
               ) : (
                 <CircularProgress />
               )}
-              <Typography
-                variant="h6"
-                sx={{
-                  maxWidth: "50vw", // TODO: prevent using vw
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                }}
-                title={pipelineName}
-                data-test-id="pipeline-name"
-              >
-                {pipelineName}
-              </Typography>
+              <Stack direction="column" alignItems="center">
+                <Typography
+                  variant="h6"
+                  sx={{
+                    maxWidth: "45vw", // TODO: prevent using vw
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                    marginRight: (theme) => theme.spacing(1),
+                  }}
+                  title={pipelineName}
+                  data-test-id="pipeline-name"
+                >
+                  {pipelineName}
+                </Typography>
+                {pipelineFilePath && (
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      maxWidth: "45vw", // TODO: prevent using vw
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                      color: (theme) => theme.palette.grey[700],
+                    }}
+                    title={pipelineFilePath}
+                    data-test-id="pipeline-path"
+                  >
+                    {`Project files/${pipelineFilePath}`}
+                  </Typography>
+                )}
+              </Stack>
             </Stack>
           )}
         </Box>

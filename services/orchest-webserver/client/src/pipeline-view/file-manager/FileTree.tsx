@@ -1,5 +1,6 @@
 import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
@@ -142,6 +143,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   const { setConfirm, setAlert } = useAppContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
   const { getSession, toggleSession } = useSessionsContext();
+  const { dispatch } = useProjectsContext();
 
   const {
     selectedFiles,
@@ -251,10 +253,12 @@ export const FileTree = React.memo(function FileTreeComponent({
       const params = getFilePathChangeParams(oldFilePath, newFilePath);
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
+        const pipelineFilePath = params.newPath.replace(/^\//, "");
+        dispatch({ type: "SET_PIPELINE", payload: { pipelineFilePath } });
         setPipelines((current) => {
           return current.map((pipeline) => {
             return pipeline.uuid === pipelineUuid
-              ? { ...pipeline, path: params.newPath.replace(/^\//, "") }
+              ? { ...pipeline, path: pipelineFilePath }
               : pipeline;
           });
         });
@@ -277,7 +281,15 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [onRename, reload, setAlert, setFilePathChanges, projectUuid, setPipelines]
+    [
+      onRename,
+      reload,
+      dispatch,
+      setAlert,
+      setFilePathChanges,
+      projectUuid,
+      setPipelines,
+    ]
   );
 
   const startRename = React.useCallback(

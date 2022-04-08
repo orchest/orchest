@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { useFetchPipeline } from "@/hooks/useFetchPipeline";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { PipelineJson, StepsDict } from "@/types";
 import { fetcher, uuidv4 } from "@orchest/lib-utils";
@@ -26,14 +27,17 @@ export const useInitializePipelineEditor = (
     error: fetchPipelineJsonError,
   } = useFetchPipelineJson({ pipelineUuid, projectUuid, jobUuid, runUuid });
 
+  const { pipeline } = useFetchPipeline({ pipelineUuid, projectUuid });
+
   React.useEffect(() => {
     if (pipelineJson && !fetchPipelineJsonError) {
       dispatch({
-        type: "pipelineSet",
+        type: "SET_PIPELINE",
         payload: {
           pipelineUuid,
           projectUuid,
           pipelineName: pipelineJson.name,
+          pipelineFilePath: pipeline?.path,
         },
       });
     }
@@ -43,6 +47,7 @@ export const useInitializePipelineEditor = (
     dispatch,
     pipelineUuid,
     projectUuid,
+    pipeline,
   ]);
 
   const hash = React.useRef<string>(uuidv4());
