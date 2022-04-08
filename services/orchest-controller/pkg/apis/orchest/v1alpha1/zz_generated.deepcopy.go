@@ -43,7 +43,11 @@ func (in *OrchestCluster) DeepCopyInto(out *OrchestCluster) {
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
 	in.Spec.DeepCopyInto(&out.Spec)
-	out.Status = in.Status
+	if in.Status != nil {
+		in, out := &in.Status, &out.Status
+		*out = new(OrchestClusterStatus)
+		**out = **in
+	}
 	return
 }
 
