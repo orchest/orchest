@@ -51,8 +51,21 @@ func configToRegistrySpec(config helm.Json) RegistrySpec {
 }
 */
 
-func DeployRegistryIfChanged(ctx context.Context, namespace string /*, spec *DockerRegistrySpec*/) error {
+type RegistryAddon struct {
+	deployDir string
+}
 
+func NewRegistryAddon(deployDir string) Addon {
+	return &RegistryAddon{deployDir: deployDir}
+}
+
+//returns the name of the addon
+func (registry *RegistryAddon) GetName() string {
+	return registryName
+}
+
+// Installs addons if the config is changed
+func (registry *RegistryAddon) InstallIfChanged(ctx context.Context, namespace string, config interface{}) error {
 	// First we need to check if there is already a release
 	_, err := helm.GetReleaseConfig(ctx, registryName, namespace)
 	if err == nil {
@@ -70,7 +83,13 @@ func DeployRegistryIfChanged(ctx context.Context, namespace string /*, spec *Doc
 		WithSetValue("service.port", "443").
 		WithSetValue("persistence.size", "999Ti").
 		WithSetValue("persistence.enabled", "true").
-		WithRepository("/home/navid/go/src/github.com/orchest/orchest/deploy/thirdparty/docker-registry").Build()
+		WithRepository(registry.deployDir).Build()
 
 	return helm.DeployRelease(ctx, args)
+
+}
+
+// Uninstall the addon
+func (registry *RegistryAddon) Uninstall(ctx context.Context, namespace string) error {
+	return helm.RemoveRelease(ctx, registryName, namespace)
 }

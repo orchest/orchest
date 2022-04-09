@@ -11,11 +11,21 @@ var (
 	argoWorkFlow string = "argo-workflow"
 )
 
-type ArgoDeploymentConfig struct {
+type ArgoAddon struct {
+	deployDir string
 }
 
-func DeployArgoIfChanged(ctx context.Context, namespace string /*, spec *DockerRegistrySpec*/) error {
+func NewArgoAddon(deployDir string) Addon {
+	return &ArgoAddon{deployDir: deployDir}
+}
 
+//returns the name of the addon
+func (argo *ArgoAddon) GetName() string {
+	return argoWorkFlow
+}
+
+// Installs addons if the config is changed
+func (argo *ArgoAddon) InstallIfChanged(ctx context.Context, namespace string, config interface{}) error {
 	// First we need to check if there is already a release
 	_, err := helm.GetReleaseConfig(ctx, argoWorkFlow, namespace)
 	if err == nil {
@@ -28,7 +38,13 @@ func DeployArgoIfChanged(ctx context.Context, namespace string /*, spec *DockerR
 		WithNamespace(namespace).
 		WithCreateNamespace().
 		WithAtomic().WithTimeout(time.Second * 1800).
-		WithRepository("/home/navid/go/src/github.com/orchest/orchest/deploy/thirdparty/argo-workflows").Build()
+		WithRepository(argo.deployDir).Build()
 
 	return helm.DeployRelease(ctx, args)
+
+}
+
+// Uninstall the addon
+func (argo *ArgoAddon) Uninstall(ctx context.Context, namespace string) error {
+	return helm.RemoveRelease(ctx, argoWorkFlow, namespace)
 }
