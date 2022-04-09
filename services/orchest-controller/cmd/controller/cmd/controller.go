@@ -1,13 +1,16 @@
-package controller
+package cmd
 
 import (
+	"path"
+
+	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/manager"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
 )
 
 var (
-	namespace string
+	deployDir string
 	inCluster bool
 )
 
@@ -25,7 +28,7 @@ func NewControllerCommand() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&namespace, "namespace", "", "The namespace of this controller")
+	cmd.PersistentFlags().StringVar(&deployDir, "deployDir", "/deploy", "The directory which holds the deployment folders")
 	cmd.PersistentFlags().BoolVar(&inCluster, "inCluster", true, "In/Out cluster indicator")
 
 	return cmd
@@ -34,11 +37,22 @@ func NewControllerCommand() *cobra.Command {
 func runControllerCmd() error {
 	klog.Info("running orchest controller")
 
-	mg := manager.NewManager(inCluster)
+	addons := initAddons()
+
+	mg := manager.NewManager(inCluster, addons)
 	err := mg.Run()
 	if mg != nil {
 		klog.Error(err)
 	}
 
 	return err
+}
+
+func initAddons() *addons.AddonManager {
+	addons := addons.NewAddonManager(deployDir)
+
+	addons.AddAddon(addons.NewArgoAddon(path.Join(deployDir, "thirdparty/argo-workflows")))
+	addons.AddAddon(addons.NewRegistryAddon(path.Join(deployDir, "thirdparty/docker-registry")))
+
+	return addons
 }
