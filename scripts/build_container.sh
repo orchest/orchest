@@ -68,6 +68,7 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "session-sidecar"
         "auth-server"
         "node-agent"
+        "orchest-controller"
     )
 fi
 
@@ -374,6 +375,17 @@ do
             -t "orchest/auth-server:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/auth-server/Dockerfile \
+            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
+            $build_ctx)
+    fi
+
+    if [ $IMG == "orchest-controller" ]; then
+
+        build_ctx=$DIR/../services/orchest-controller
+        build=(docker build --platform linux/amd64 --progress=plain \
+            -t "orchest/orchest-controller:$BUILD_TAG" \
+            --no-cache=$NO_CACHE \
+            -f $DIR/../services/orchest-controller/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi
