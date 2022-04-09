@@ -5,6 +5,7 @@ import (
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/manager"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -12,7 +13,6 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	k8smanager "sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -20,14 +20,16 @@ import (
 type OrchestClusterReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
+	addons *addons.AddonManager
 }
 
 // NewOrchestClusterReconciler returns a new *OrchestClusterReconciler.
-func NewOrchestClusterReconciler(mgr k8smanager.Manager) *OrchestClusterReconciler {
+func NewOrchestClusterReconciler(mgr manager.Manager) *OrchestClusterReconciler {
 
 	reconciler := OrchestClusterReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
+		addons: mgr.GetAddons(),
 	}
 
 	return &reconciler
