@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	argoWorkFlow string = "argo-workflow"
+	argoWorkFlow string = "argo"
 )
 
 type ArgoAddon struct {
