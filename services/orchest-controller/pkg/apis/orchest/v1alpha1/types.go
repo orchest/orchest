@@ -18,20 +18,30 @@ const (
 type OrchestClusterState string
 
 const (
-	StateInitializing      OrchestClusterState = "Initializing"
-	StateDeployingArgo     OrchestClusterState = "DeployingArgo"
-	StateDeployingRegistry OrchestClusterState = "DeployingRegistry"
-	StateRestarting        OrchestClusterState = "Restarting"
-	StateStarting          OrchestClusterState = "Starting"
-	StateStopping          OrchestClusterState = "Stopping"
-	StateStopped           OrchestClusterState = "Stopped"
-	StateUnhealthy         OrchestClusterState = "Unhealthy"
-	StatePending           OrchestClusterState = "Pending"
-	StateDeleting          OrchestClusterState = "Deleting"
-	StateRunning           OrchestClusterState = "Running"
-	StateUpdating          OrchestClusterState = "Updating"
-	StateError             OrchestClusterState = "Error"
+	Initializing        OrchestClusterState = "Initializing"
+	DeployingArgo       OrchestClusterState = "Deploying Argo"
+	DeployingRegistry   OrchestClusterState = "Deploying Registry"
+	DeployingOrchestRsc OrchestClusterState = "Deploying Orchest Resources"
+	DeployingOrchest    OrchestClusterState = "Deploying Orchest"
+	Restarting          OrchestClusterState = "Restarting"
+	Starting            OrchestClusterState = "Starting"
+	Stopping            OrchestClusterState = "Stopping"
+	Stopped             OrchestClusterState = "Stopped"
+	Unhealthy           OrchestClusterState = "Unhealthy"
+	Pending             OrchestClusterState = "Pending"
+	Deleting            OrchestClusterState = "Deleting"
+	Running             OrchestClusterState = "Running"
+	Updating            OrchestClusterState = "Updating"
+	Error               OrchestClusterState = "Error"
 )
+
+type OrchestResourcesSpec struct {
+	// If specified, this components will be deployed provided image
+	VolumeSize string `json:"volumeSize,omitempty"`
+
+	// The Storage class of user-dir/
+	StorageClassName string `json:"storageClassName,omitempty"`
+}
 
 type OrchestComponent struct {
 	//If specified, this components will be deployed provided image
@@ -50,6 +60,9 @@ type OrchestComponent struct {
 type OrchestSpec struct {
 	Registry   string `json:"registry,omitempty"`
 	DefaultTag string `json:"defaultTag,omitempty"`
+
+	// orchest resources spec, such as user-dir volume size and storage class
+	Resources OrchestResourcesSpec `json:"resources,omitempty"`
 
 	// If specified, orchest-api for this cluster will be deployed with this configuration
 	OrchestApi OrchestComponent `json:"orchestApi,omitempty"`
