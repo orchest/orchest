@@ -1,4 +1,4 @@
-package addons
+package deployer
 
 import (
 	"context"
@@ -21,7 +21,7 @@ func NewHelmDeployer(name, deployDir string) Deployer {
 
 //returns the name of the deployer
 func (d *HelmDeployer) GetName() string {
-	return orchest
+	return d.name
 }
 
 // Installs deployer if the config is changed

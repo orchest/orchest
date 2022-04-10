@@ -1,4 +1,6 @@
-package addons
+package deployer
+
+/*
 
 import (
 	"context"
@@ -48,3 +50,4 @@ func (argo *ArgoAddon) InstallIfChanged(ctx context.Context, namespace string, c
 func (argo *ArgoAddon) Uninstall(ctx context.Context, namespace string) error {
 	return helm.RemoveRelease(ctx, argoWorkFlow, namespace)
 }
+*/

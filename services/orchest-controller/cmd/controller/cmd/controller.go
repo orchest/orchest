@@ -1,9 +1,6 @@
 package cmd
 
 import (
-	"path"
-
-	"github.com/orchest/orchest/services/orchest-controller/pkg/deployers"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/manager"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
@@ -37,24 +34,12 @@ func NewControllerCommand() *cobra.Command {
 func runControllerCmd() error {
 	klog.Info("running orchest controller")
 
-	addons := initDeployers()
-
-	mg := manager.NewManager(inCluster, addons)
-	err := mg.Run()
-	if mg != nil {
-		klog.Error(err)
+	mg, err := manager.NewManager(inCluster, deployDir)
+	if err != nil {
+		klog.Fatal(err)
 	}
 
+	err = mg.Run()
+
 	return err
-}
-
-func initDeployers() *deployers.DeployerManager {
-	deployers := deployers.NewDeployerManager(deployDir)
-
-	deployers.AddDeployer(deployers.NewHelmDeployer("argo", path.Join(deployDir, "thirdparty/argo-workflows")))
-	deployers.AddDeployer(deployers.NewHelmDeployer("registry", path.Join(deployDir, "thirdparty/argo-workflows")))
-	deployers.AddDeployer(deployers.NewHelmDeployer("orchest-rsc", path.Join(deployDir, "charts")))
-	deployers.AddDeployer(deployers.NewHelmDeployer("orchest", path.Join(deployDir, "charts")))
-
-	return deployers
 }

@@ -2,10 +2,10 @@ package orchestcluster
 
 import (
 	"context"
+	"path"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/addons"
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/manager"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,31 +18,35 @@ import (
 
 // OrchestClusterReconciler reconciles OrchestCluster CRD.
 type OrchestClusterReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
-	addons *addons.AddonManager
-
-	handlers map[orchestv1alpha1.OrchestClusterState]StateHandler
+	client          client.Client
+	scheme          *runtime.Scheme
+	deployerManager *deployer.DeployerManager
 }
 
 // NewOrchestClusterReconciler returns a new *OrchestClusterReconciler.
-func NewOrchestClusterReconciler(mgr manager.Manager) *OrchestClusterReconciler {
+func NewOrchestClusterReconciler(mgr ctrl.Manager, deployDir string) *OrchestClusterReconciler {
 
 	reconciler := OrchestClusterReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		addons: mgr.GetAddons(),
 	}
 
-	reconciler.intiStateHandlers()
+	reconciler.intiDeployerManager(deployDir)
 
 	return &reconciler
 }
 
-func (r *OrchestClusterReconciler) intiStateHandlers() {
+func (r *OrchestClusterReconciler) intiDeployerManager(deployDir string) {
+	deployerManager := deployer.NewDeployerManager()
+
+	deployerManager.AddDeployer(deployer.NewHelmDeployer("argo", path.Join(deployDir, "thirdparty/argo-workflows")))
+	deployerManager.AddDeployer(deployer.NewHelmDeployer("registry", path.Join(deployDir, "thirdparty/argo-workflows")))
+	deployerManager.AddDeployer(deployer.NewHelmDeployer("orchest-rsc", path.Join(deployDir, "charts")))
+	deployerManager.AddDeployer(deployer.NewHelmDeployer("orchest", path.Join(deployDir, "charts")))
 
 }
 
+/*
 func (r *OrchestClusterReconciler) addStateHandlers(state orchestv1alpha1.OrchestClusterState, handler StateHandler) {
 	// If already registred, log warning and return
 	if _, ok := r.handlers[state]; ok {
@@ -52,6 +56,7 @@ func (r *OrchestClusterReconciler) addStateHandlers(state orchestv1alpha1.Orches
 	r.handlers[state] = handler
 	klog.V(2).Info("StateHandler is registered with reconciler for state")
 }
+*/
 
 func (r *OrchestClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 
@@ -96,7 +101,7 @@ func (r *OrchestClusterReconciler) deleteOrchestCluster(ctx context.Context,
 	}
 
 	// Update Cluster status
-	err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StateDeleting, "Deleting the Cluster")
+	err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.Deleting, "Deleting the Cluster")
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to update cluster status finalizers")
 	}
@@ -130,7 +135,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 	case orchestv1alpha1.DeployingArgo:
-		err := r.addons.Get("argo").InstallIfChanged(ctx, cluster.Namespace, nil)
+		err := r.deployerManager.Get("argo").InstallIfChanged(ctx, cluster.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -142,7 +147,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 	case orchestv1alpha1.DeployingRegistry:
-		err := r.addons.Get("registry").InstallIfChanged(ctx, cluster.Namespace, nil)
+		err := r.deployerManager.Get("registry").InstallIfChanged(ctx, cluster.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -154,7 +159,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 	case orchestv1alpha1.DeployingOrchestRsc:
-		err := r.addons.Get("orchest-rsc").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest.Resources)
+		err := r.deployerManager.Get("orchest-rsc").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest.Resources)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -166,7 +171,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 	case orchestv1alpha1.DeployingOrchest:
-		err := r.addons.Get("orchest").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest)
+		err := r.deployerManager.Get("orchest").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest)
 		if err != nil {
 			klog.Error(err)
 			return err

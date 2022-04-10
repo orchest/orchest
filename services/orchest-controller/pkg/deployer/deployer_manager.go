@@ -1,4 +1,4 @@
-package addons
+package deployer
 
 import (
 	"context"
