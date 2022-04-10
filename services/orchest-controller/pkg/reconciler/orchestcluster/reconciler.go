@@ -21,6 +21,8 @@ type OrchestClusterReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
 	addons *addons.AddonManager
+
+	handlers map[orchestv1alpha1.OrchestClusterState]StateHandler
 }
 
 // NewOrchestClusterReconciler returns a new *OrchestClusterReconciler.
@@ -32,7 +34,23 @@ func NewOrchestClusterReconciler(mgr manager.Manager) *OrchestClusterReconciler 
 		addons: mgr.GetAddons(),
 	}
 
+	reconciler.intiStateHandlers()
+
 	return &reconciler
+}
+
+func (r *OrchestClusterReconciler) intiStateHandlers() {
+
+}
+
+func (r *OrchestClusterReconciler) addStateHandlers(state orchestv1alpha1.OrchestClusterState, handler StateHandler) {
+	// If already registred, log warning and return
+	if _, ok := r.handlers[state]; ok {
+		klog.Warning("State handler %s is already registred with reconciler", name)
+	}
+
+	r.handlers[state] = handler
+	klog.V(2).Info("StateHandler is registered with reconciler for state")
 }
 
 func (r *OrchestClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
@@ -95,7 +113,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 
 	// If Status struct is not initialized yet, the cluster is new, create it
 	if cluster.Status == nil {
-		err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StateInitializing, "Initializing orchest cluster")
+		err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.Initializing, "Initializing orchest cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -104,33 +122,57 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 	}
 
 	switch cluster.Status.State {
-	case orchestv1alpha1.StateInitializing:
+	case orchestv1alpha1.Initializing:
 		// First step is to deploy Argo
-		err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StateDeployingArgo, "Deploying Argo")
+		err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingArgo, "Deploying Argo")
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
-	case orchestv1alpha1.StateDeployingArgo:
-		err := addons.DeployArgoIfChanged(ctx, cluster.Namespace)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StateDeployingRegistry, "Deploying Registry")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	case orchestv1alpha1.StateDeployingRegistry:
-		err := addons.DeployRegistryIfChanged(ctx, cluster.Namespace)
+	case orchestv1alpha1.DeployingArgo:
+		err := r.addons.Get("argo").InstallIfChanged(ctx, cluster.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.StatePending, "Pending state")
+		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingRegistry, "Deploying Registry")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	case orchestv1alpha1.DeployingRegistry:
+		err := r.addons.Get("registry").InstallIfChanged(ctx, cluster.Namespace, nil)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchestRsc, "Deploying orchest resource")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	case orchestv1alpha1.DeployingOrchestRsc:
+		err := r.addons.Get("orchest-rsc").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest.Resources)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying orchest")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	case orchestv1alpha1.DeployingOrchest:
+		err := r.addons.Get("orchest").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying orchest")
 		if err != nil {
 			klog.Error(err)
 			return err
