@@ -70,7 +70,6 @@ export const PipelineEditor = () => {
   );
 
   const {
-    disabled,
     eventVars,
     dispatch,
     stepDomRefs,

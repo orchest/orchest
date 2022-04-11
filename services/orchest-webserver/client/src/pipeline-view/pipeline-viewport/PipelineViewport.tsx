@@ -1,5 +1,8 @@
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import { uuidv4 } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
@@ -272,6 +275,42 @@ export const PipelineViewport = React.forwardRef<
       style={{ ...style, touchAction: "none" }}
       {...props}
     >
+      {disabled && (
+        <Box
+          sx={{
+            width: "100%" /* Full width (cover the whole page) */,
+            height: "100%" /* Full height (cover the whole page) */,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              backgroundColor: "transparent",
+              zIndex: 1,
+              padding: (theme) => theme.spacing(10),
+              color: (theme) => theme.palette.grey[400],
+              borderRadius: (theme) => theme.spacing(1),
+            }}
+          >
+            <Typography
+              variant="h4"
+              component="h3"
+              sx={{
+                color: (theme) => theme.palette.grey[400],
+              }}
+            >
+              No pipeline found
+            </Typography>
+          </Paper>
+        </Box>
+      )}
       <PipelineCanvas
         ref={pipelineCanvasRef}
         style={{
@@ -285,6 +324,16 @@ export const PipelineViewport = React.forwardRef<
           ...canvasResizeStyle,
         }}
       >
+        {disabled && (
+          <Box
+            sx={{
+              width: "100vw",
+              height: "100vh",
+              backgroundColor: "rgba(0, 0, 0, 0.03)",
+              display: "block",
+            }}
+          />
+        )}
         {children}
       </PipelineCanvas>
     </div>
