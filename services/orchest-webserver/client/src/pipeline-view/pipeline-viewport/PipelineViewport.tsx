@@ -27,22 +27,25 @@ export type CanvasFunctions = {
   centerView: () => void;
 };
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
-  canvasFuncRef: React.MutableRefObject<CanvasFunctions>;
-};
-
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
 // this means that we don't need to re-render the UI components on PipelineCanvas when zoom-in, zoom-out, panning the canvas
 // therefore, all the scaling states should reside in this component
 // but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineCanvasState in the context
 // so PipelineEditor can use these state
-const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
+
+export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
-  Props
-> = ({ children, className, canvasFuncRef, style, ...props }, ref) => {
+  React.HTMLAttributes<HTMLDivElement> & {
+    canvasFuncRef: React.MutableRefObject<CanvasFunctions>;
+  }
+>(function PipelineViewportComponent(
+  { children, className, canvasFuncRef, style, ...props },
+  ref
+) {
   const { dragFile } = useFileManagerContext();
   const {
+    disabled,
     eventVars,
     trackMouseMovement,
     dispatch,
@@ -151,6 +154,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   }, [resizeCanvas, localRef]);
 
   const onMouseDown = (e: React.MouseEvent) => {
+    if (disabled) return;
     if (eventVars.selectedConnection) {
       dispatch({ type: "DESELECT_CONNECTION" });
     }
@@ -166,6 +170,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   };
 
   const onMouseUp = () => {
+    if (disabled) return;
     if (eventVars.stepSelector.active) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     } else {
@@ -284,6 +289,4 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       </PipelineCanvas>
     </div>
   );
-};
-
-export const PipelineViewport = React.forwardRef(PipelineStepsOuterHolder);
+});

@@ -158,7 +158,7 @@ export const FileManagerContextMenu: React.FC<{
           )}
           {pipelineUuid && contextPathIsAllowedFileType && (
             <MenuItem dense onClick={handleContextView}>
-              View as step file
+              View
             </MenuItem>
           )}
           {!isReadOnly && (

@@ -63,6 +63,7 @@ export type PipelineEditorContextType = {
   sio: SocketIO;
   session: IOrchestSession;
   getOnCanvasPosition: (offset: Position) => Position;
+  disabled: boolean;
 };
 
 export const PipelineEditorContext = React.createContext<
@@ -80,6 +81,8 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuid: runUuidFromRoute,
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
+
+  const disabled = !pipelineUuid;
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
@@ -233,6 +236,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         sio,
         session,
         getOnCanvasPosition,
+        disabled,
       }}
     >
       {children}

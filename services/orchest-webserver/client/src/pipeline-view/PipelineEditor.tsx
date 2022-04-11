@@ -70,6 +70,7 @@ export const PipelineEditor = () => {
   );
 
   const {
+    disabled,
     eventVars,
     dispatch,
     stepDomRefs,
@@ -810,87 +811,89 @@ export const PipelineEditor = () => {
             <Rectangle {...getStepSelectorRectangle(eventVars.stepSelector)} />
           )}
         </PipelineViewport>
-        <div className="pipeline-actions bottom-left">
-          <div className="navigation-buttons">
-            <IconButton
-              title="Center"
-              data-test-id="pipeline-center"
-              onPointerDown={canvasFuncRef.current?.centerView}
-            >
-              <CropFreeIcon />
-            </IconButton>
-            <IconButton
-              title="Zoom out"
-              onPointerDown={() => {
-                // NOTE: onClick also listens to space bar press when button is focused
-                // it causes issue when user press space bar to navigate the canvas
-                // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                canvasFuncRef.current.centerPipelineOrigin();
-                dispatch({
-                  type: "SET_SCALE_FACTOR",
-                  payload: eventVars.scaleFactor - 0.25,
-                });
-              }}
-            >
-              <RemoveIcon />
-            </IconButton>
-            <IconButton
-              title="Zoom in"
-              onPointerDown={() => {
-                canvasFuncRef.current.centerPipelineOrigin();
-                dispatch({
-                  type: "SET_SCALE_FACTOR",
-                  payload: eventVars.scaleFactor + 0.25,
-                });
-              }}
-            >
-              <AddIcon />
-            </IconButton>
-            {!isReadOnly && (
+        {pipelineJson && (
+          <div className="pipeline-actions bottom-left">
+            <div className="navigation-buttons">
               <IconButton
-                title="Auto layout"
-                onPointerDown={autoLayoutPipeline}
+                title="Center"
+                data-test-id="pipeline-center"
+                onPointerDown={canvasFuncRef.current?.centerView}
               >
-                <AccountTreeOutlinedIcon />
+                <CropFreeIcon />
               </IconButton>
-            )}
-          </div>
-          {!isReadOnly &&
-            !pipelineRunning &&
-            eventVars.selectedSteps.length > 0 &&
-            !eventVars.stepSelector.active && (
-              <div className="selection-buttons">
-                <Button
-                  variant="contained"
-                  onClick={runSelectedSteps}
-                  data-test-id="interactive-run-run-selected-steps"
+              <IconButton
+                title="Zoom out"
+                onPointerDown={() => {
+                  // NOTE: onClick also listens to space bar press when button is focused
+                  // it causes issue when user press space bar to navigate the canvas
+                  // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
+                  canvasFuncRef.current.centerPipelineOrigin();
+                  dispatch({
+                    type: "SET_SCALE_FACTOR",
+                    payload: eventVars.scaleFactor - 0.25,
+                  });
+                }}
+              >
+                <RemoveIcon />
+              </IconButton>
+              <IconButton
+                title="Zoom in"
+                onPointerDown={() => {
+                  canvasFuncRef.current.centerPipelineOrigin();
+                  dispatch({
+                    type: "SET_SCALE_FACTOR",
+                    payload: eventVars.scaleFactor + 0.25,
+                  });
+                }}
+              >
+                <AddIcon />
+              </IconButton>
+              {!isReadOnly && (
+                <IconButton
+                  title="Auto layout"
+                  onPointerDown={autoLayoutPipeline}
                 >
-                  Run selected steps
-                </Button>
-                {selectedStepsHasIncoming && (
+                  <AccountTreeOutlinedIcon />
+                </IconButton>
+              )}
+            </div>
+            {!isReadOnly &&
+              !pipelineRunning &&
+              eventVars.selectedSteps.length > 0 &&
+              !eventVars.stepSelector.active && (
+                <div className="selection-buttons">
                   <Button
                     variant="contained"
-                    onClick={onRunIncoming}
-                    data-test-id="interactive-run-run-incoming-steps"
+                    onClick={runSelectedSteps}
+                    data-test-id="interactive-run-run-selected-steps"
                   >
-                    Run incoming steps
+                    Run selected steps
                   </Button>
-                )}
+                  {selectedStepsHasIncoming && (
+                    <Button
+                      variant="contained"
+                      onClick={onRunIncoming}
+                      data-test-id="interactive-run-run-incoming-steps"
+                    >
+                      Run incoming steps
+                    </Button>
+                  )}
+                </div>
+              )}
+            {pipelineRunning && (
+              <div className="selection-buttons">
+                <PipelineActionButton
+                  onClick={cancelRun}
+                  startIcon={<CloseIcon />}
+                  disabled={isCancellingRun}
+                  data-test-id="interactive-run-cancel"
+                >
+                  Cancel run
+                </PipelineActionButton>
               </div>
             )}
-          {pipelineRunning && (
-            <div className="selection-buttons">
-              <PipelineActionButton
-                onClick={cancelRun}
-                startIcon={<CloseIcon />}
-                disabled={isCancellingRun}
-                data-test-id="interactive-run-cancel"
-              >
-                Cancel run
-              </PipelineActionButton>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
         {pipelineJson && (
           <div className={"pipeline-actions top-right"}>
             {!isReadOnly && (

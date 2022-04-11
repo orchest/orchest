@@ -3,6 +3,7 @@ import {
   ResizableContainer,
   ResizeHeightBar,
 } from "@/components/ResizableContainer";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { isNumber } from "@/utils/webserver-utils";
 import Box, { BoxProps } from "@mui/material/Box";
@@ -21,6 +22,9 @@ export const FileManagerContainer = React.forwardRef<
 >(function FileManagerContainerComponent({ children, uploadFiles, sx }, ref) {
   const localRef = React.useRef<typeof Stack>(null);
 
+  const { pipelineUuid } = useCustomRoute();
+  const disabled = !pipelineUuid;
+
   const {
     acceptedFiles,
     getInputProps,
@@ -29,8 +33,8 @@ export const FileManagerContainer = React.forwardRef<
   } = useDropzone();
 
   React.useEffect(() => {
-    if (acceptedFiles.length > 0) uploadFiles(acceptedFiles);
-  }, [uploadFiles, acceptedFiles]);
+    if (!disabled && acceptedFiles.length > 0) uploadFiles(acceptedFiles);
+  }, [disabled, uploadFiles, acceptedFiles]);
 
   const [storedHeight, setStoredHeight] = useLocalStorage(
     "pipelineEditor.fileManagerHeight",
@@ -51,19 +55,20 @@ export const FileManagerContainer = React.forwardRef<
 
   const saveHeight = React.useCallback(
     ({ height }: ElementSize) => {
-      if (isNumber(height)) {
+      if (!disabled && isNumber(height)) {
         setStoredHeight(Number(height));
       }
     },
-    [setStoredHeight]
+    [disabled, setStoredHeight]
   );
 
   React.useEffect(() => {
+    if (disabled) return;
     window.addEventListener("resize", updateMaxHeight);
     return () => {
       window.removeEventListener("resize", updateMaxHeight);
     };
-  }, [updateMaxHeight]);
+  }, [disabled, updateMaxHeight]);
 
   return (
     <ResizableContainer
