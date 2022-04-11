@@ -30,6 +30,17 @@ export type CanvasFunctions = {
   centerView: () => void;
 };
 
+const Overlay = () => (
+  <Box
+    sx={{
+      width: "100vw",
+      height: "100vh",
+      backgroundColor: "rgba(0, 0, 0, 0.03)",
+      display: "block",
+    }}
+  />
+);
+
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
 // this means that we don't need to re-render the UI components on PipelineCanvas when zoom-in, zoom-out, panning the canvas
@@ -324,16 +335,7 @@ export const PipelineViewport = React.forwardRef<
           ...canvasResizeStyle,
         }}
       >
-        {disabled && (
-          <Box
-            sx={{
-              width: "100vw",
-              height: "100vh",
-              backgroundColor: "rgba(0, 0, 0, 0.03)",
-              display: "block",
-            }}
-          />
-        )}
+        {disabled && <Overlay />}
         {children}
       </PipelineCanvas>
     </div>
