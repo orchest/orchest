@@ -5,7 +5,7 @@ import {
   useAppContext,
 } from "@/contexts/AppContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import Button from "@mui/material/Button";
+import Button, { ButtonProps } from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
@@ -22,6 +22,38 @@ const checkCancellable = (
 ): message is CancellableMessage => {
   return typedIncludes(cancellableTypes, message.type);
 };
+
+// If the trigger of the Dialog is also a keydown, setting the default prop `autoFocus` to `true` will also trigger the button click.
+// We intentionally break it with eventloop.
+const DelayedFocusButton = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  //eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function DelayedFocusButtonComponent({ autoFocus, ...props }, ref) {
+    const localRef = React.useRef<HTMLButtonElement>();
+
+    React.useEffect(() => {
+      const timeout = window.setTimeout(() => {
+        if (localRef.current) {
+          localRef.current.focus();
+        }
+      }, 0);
+      return () => window.clearTimeout(timeout);
+    }, []);
+
+    return (
+      <Button
+        ref={(node: HTMLButtonElement) => {
+          localRef.current = node;
+          if (typeof ref === "function") {
+            ref(node);
+          } else if (ref) {
+            ref.current = node;
+          }
+        }}
+        {...props}
+      />
+    );
+  }
+);
 
 export const SystemDialog: React.FC = () => {
   const { state, deletePromptMessage } = useAppContext();
@@ -83,15 +115,14 @@ export const SystemDialog: React.FC = () => {
               {promptMessage.cancelLabel || "Cancel"}
             </Button>
           )}
-          <Button
+          <DelayedFocusButton
             type="submit"
-            autoFocus
             form={`${promptMessage.type}-form`}
             variant="contained"
             data-test-id="confirm-dialog-ok"
           >
             {promptMessage.confirmLabel || "Confirm"}
-          </Button>
+          </DelayedFocusButton>
         </DialogActions>
       </form>
     </Dialog>
