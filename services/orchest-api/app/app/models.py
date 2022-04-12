@@ -211,6 +211,15 @@ class EnvironmentImage(BaseModel):
         primary_key=True,
     )
 
+    # sha256:<digest>
+    digest = db.Column(
+        db.String(71),
+        nullable=False,
+        index=True,
+        # To migrate existing entries.
+        server_default="Undefined",
+    )
+
     __table_args__ = (
         # To find all images of the environment of a project.
         Index(None, "project_uuid", "environment_uuid"),
