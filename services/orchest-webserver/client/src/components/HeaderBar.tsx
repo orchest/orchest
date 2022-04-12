@@ -100,78 +100,88 @@ export const HeaderBar = ({
       }}
     >
       <Toolbar>
-        <MuiIconButton
-          title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
-          onClick={(e) => {
-            e.preventDefault();
-            toggleDrawer();
-          }}
-          sx={{ marginLeft: (theme) => theme.spacing(-2) }}
-        >
-          <MenuIcon />
-        </MuiIconButton>
-        <Box
-          component="img"
-          onClick={goToHome}
-          onAuxClick={goToHome}
-          src="/image/logo.svg"
-          data-test-id="orchest-logo"
-          sx={{
-            cursor: "pointer",
-            width: (theme) => theme.spacing(5),
-            margin: (theme) => theme.spacing(0, 2.5, 0, 1.25), // to align the AppDrawer ListIconText
-          }}
-        />
-        <ProjectSelector />
+        <Stack direction="row" alignItems="center" sx={{ width: "30%" }}>
+          <MuiIconButton
+            title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
+            onClick={(e) => {
+              e.preventDefault();
+              toggleDrawer();
+            }}
+            sx={{ marginLeft: (theme) => theme.spacing(-2) }}
+          >
+            <MenuIcon />
+          </MuiIconButton>
+          <Box
+            component="img"
+            onClick={goToHome}
+            onAuxClick={goToHome}
+            src="/image/logo.svg"
+            data-test-id="orchest-logo"
+            sx={{
+              cursor: "pointer",
+              width: (theme) => theme.spacing(5),
+              margin: (theme) => theme.spacing(0, 2.5, 0, 1.25), // to align the AppDrawer ListIconText
+            }}
+          />
+          <ProjectSelector />
+        </Stack>
         <LinearProgress />
-        <Box sx={{ flex: 1 }}>
-          {isShowingPipelineName && (
-            <Stack
-              direction="column"
-              alignItems="center"
-              justifyContent="center"
-            >
-              <Stack direction="row" alignItems="center">
-                {pipelineSaveStatus === "saved" ? (
-                  <Tooltip title="Pipeline saved">
-                    <CheckCircleIcon />
-                  </Tooltip>
-                ) : (
-                  <CircularProgress />
-                )}
+        {isShowingPipelineName && (
+          <Stack
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            sx={{ flex: 1 }}
+          >
+            {isShowingPipelineName && (
+              <>
+                <Stack direction="row" alignItems="center">
+                  {pipelineSaveStatus === "saved" ? (
+                    <Tooltip title="Pipeline saved">
+                      <CheckCircleIcon />
+                    </Tooltip>
+                  ) : (
+                    <CircularProgress />
+                  )}
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      maxWidth: "45vw", // TODO: prevent using vw
+                      textOverflow: "ellipsis",
+                      overflow: "hidden",
+                      whiteSpace: "nowrap",
+                      margin: (theme) => theme.spacing(0, 1),
+                    }}
+                    title={pipeline.name}
+                    data-test-id="pipeline-name"
+                  >
+                    {pipeline.name}
+                  </Typography>
+                </Stack>
                 <Typography
-                  variant="h6"
+                  variant="caption"
                   sx={{
                     maxWidth: "45vw", // TODO: prevent using vw
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
-                    margin: (theme) => theme.spacing(0, 1),
+                    color: (theme) => theme.palette.grey[700],
                   }}
-                  title={pipeline.name}
-                  data-test-id="pipeline-name"
+                  title={pipeline.path}
+                  data-test-id="pipeline-path"
                 >
-                  {pipeline.name}
+                  {pipeline.path}
                 </Typography>
-              </Stack>
-              <Typography
-                variant="caption"
-                sx={{
-                  maxWidth: "45vw", // TODO: prevent using vw
-                  textOverflow: "ellipsis",
-                  overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  color: (theme) => theme.palette.grey[700],
-                }}
-                title={pipeline.path}
-                data-test-id="pipeline-path"
-              >
-                {pipeline.path}
-              </Typography>
-            </Stack>
-          )}
-        </Box>
-        <Stack spacing={2} direction="row">
+              </>
+            )}
+          </Stack>
+        )}
+        <Stack
+          spacing={2}
+          direction="row"
+          justifyContent="flex-end"
+          sx={{ width: "30%" }}
+        >
           {!matchFilePreview && pipeline && !pipelineIsReadOnly && (
             <SessionToggleButton
               pipelineUuid={pipelineUuid}
