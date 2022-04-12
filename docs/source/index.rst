@@ -1,6 +1,8 @@
 Orchest
 =======
 
+.. title:: Orchest Docs
+
 .. tip::
    👉 Get started with the :ref:`quickstart <quickstart>`!
 
