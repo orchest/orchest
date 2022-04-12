@@ -85,6 +85,7 @@ export const SystemDialog: React.FC = () => {
           )}
           <Button
             type="submit"
+            autoFocus
             form={`${promptMessage.type}-form`}
             variant="contained"
             data-test-id="confirm-dialog-ok"

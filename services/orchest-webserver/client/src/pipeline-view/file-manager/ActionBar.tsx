@@ -2,11 +2,11 @@ import { IconButton } from "@/components/common/IconButton";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
-import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUpload";
+import DriveFolderUploadIcon from "@mui/icons-material/DriveFolderUploadSharp";
 import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import UnfoldLessIcon from "@mui/icons-material/UnfoldLess";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
+import UploadFileIcon from "@mui/icons-material/UploadFileSharp";
 import { styled } from "@mui/material";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
@@ -111,6 +111,18 @@ export function ActionBar({
                 />
               </form>
               <FileManagerActionButton
+                title="Create file"
+                onClick={openCreateFileDialog}
+              >
+                <NoteAddIcon />
+              </FileManagerActionButton>
+              <FileManagerActionButton
+                onClick={openCreateFolderDialog}
+                title="Create folder"
+              >
+                <CreateNewFolderIcon />
+              </FileManagerActionButton>
+              <FileManagerActionButton
                 onClick={() => {
                   uploadFileRef.current.click();
                 }}
@@ -125,18 +137,6 @@ export function ActionBar({
                 title="Upload folder"
               >
                 <DriveFolderUploadIcon />
-              </FileManagerActionButton>
-              <FileManagerActionButton
-                title="Create file"
-                onClick={openCreateFileDialog}
-              >
-                <NoteAddIcon />
-              </FileManagerActionButton>
-              <FileManagerActionButton
-                onClick={openCreateFolderDialog}
-                title="Create folder"
-              >
-                <CreateNewFolderIcon />
               </FileManagerActionButton>
             </>
           )}

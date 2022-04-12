@@ -146,7 +146,7 @@ export const HeaderBar = ({
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
-                    margin: (theme) => theme.spacing(0, 2),
+                    margin: (theme) => theme.spacing(0, 1),
                   }}
                   title={pipeline.name}
                   data-test-id="pipeline-name"
@@ -154,7 +154,6 @@ export const HeaderBar = ({
                   {pipeline.name}
                 </Typography>
               </Stack>
-
               <Typography
                 variant="caption"
                 sx={{
@@ -167,7 +166,7 @@ export const HeaderBar = ({
                 title={pipeline.path}
                 data-test-id="pipeline-path"
               >
-                {`Project files/${pipeline.path}`}
+                {pipeline.path}
               </Typography>
             </Stack>
           )}

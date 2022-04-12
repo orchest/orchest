@@ -57,6 +57,9 @@ import { getStepSelectorRectangle, Rectangle } from "./Rectangle";
 import { ServicesMenu } from "./ServicesMenu";
 import { StepDetails } from "./step-details/StepDetails";
 
+const deleteStepMessage =
+  "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?";
+
 export const PipelineEditor = () => {
   const { setAlert, setConfirm } = useAppContext();
 
@@ -330,25 +333,21 @@ export const PipelineEditor = () => {
     if (eventVars.selectedSteps.length > 0) {
       setIsDeletingSteps(true);
 
-      setConfirm(
-        "Warning",
-        `A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?`,
-        {
-          onConfirm: async (resolve) => {
-            dispatch({ type: "SET_OPENED_STEP", payload: undefined });
-            removeSteps([...eventVars.selectedSteps]);
-            setIsDeletingSteps(false);
-            saveSteps(eventVars.steps);
-            resolve(true);
-            return true;
-          },
-          onCancel: (resolve) => {
-            setIsDeletingSteps(false);
-            resolve(false);
-            return false;
-          },
-        }
-      );
+      setConfirm("Warning", deleteStepMessage, {
+        onConfirm: async (resolve) => {
+          dispatch({ type: "SET_OPENED_STEP", payload: undefined });
+          removeSteps([...eventVars.selectedSteps]);
+          setIsDeletingSteps(false);
+          saveSteps(eventVars.steps);
+          resolve(true);
+          return true;
+        },
+        onCancel: (resolve) => {
+          setIsDeletingSteps(false);
+          resolve(false);
+          return false;
+        },
+      });
     }
   }, [
     dispatch,
@@ -361,16 +360,12 @@ export const PipelineEditor = () => {
 
   const onDetailsDelete = React.useCallback(() => {
     let uuid = eventVars.openedStep;
-    setConfirm(
-      "Warning",
-      "A deleted step and its logs cannot be recovered once deleted, are you sure you want to proceed?",
-      async (resolve) => {
-        removeSteps([uuid]);
-        saveSteps(eventVars.steps);
-        resolve(true);
-        return true;
-      }
-    );
+    setConfirm("Warning", deleteStepMessage, async (resolve) => {
+      removeSteps([uuid]);
+      saveSteps(eventVars.steps);
+      resolve(true);
+      return true;
+    });
   }, [
     eventVars.openedStep,
     eventVars.steps,
