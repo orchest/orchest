@@ -152,7 +152,6 @@ export const FileTree = React.memo(function FileTreeComponent({
     hoveredPath,
     isDragging,
     fileTrees,
-    setFilePathChanges,
     pipelines,
     setPipelines,
   } = useFileManagerContext();
@@ -254,10 +253,6 @@ export const FileTree = React.memo(function FileTreeComponent({
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
         const pipelineFilePath = params.newPath.replace(/^\//, "");
-        dispatch({
-          type: "UPDATE_PIPELINE",
-          payload: { uuid: pipelineUuid, path: pipelineFilePath },
-        });
         setPipelines((current) => {
           return current.map((pipeline) => {
             return pipeline.uuid === pipelineUuid
@@ -268,10 +263,8 @@ export const FileTree = React.memo(function FileTreeComponent({
 
         onRename(oldFilePath, newFilePath);
 
-        if (!skipReload) {
-          setFilePathChanges([params]);
-          reload();
-        }
+        if (!skipReload) reload();
+
         return params;
       } catch (error) {
         setAlert(
@@ -284,19 +277,11 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [
-      onRename,
-      reload,
-      dispatch,
-      setAlert,
-      setFilePathChanges,
-      projectUuid,
-      setPipelines,
-    ]
+    [onRename, reload, setAlert, projectUuid, setPipelines]
   );
 
   const startRename = React.useCallback(
-    (oldFilePath: string, newFilePath: string, skipReload = false) => {
+    async (oldFilePath: string, newFilePath: string, skipReload = false) => {
       const filePathRelativeToProjectDir = cleanFilePath(oldFilePath);
       const foundPipeline = pipelines.find(
         (pipeline) => pipeline.path === filePathRelativeToProjectDir
@@ -325,15 +310,24 @@ export const FileTree = React.memo(function FileTreeComponent({
         return;
       }
 
-      handleChangeFilePath({
+      await handleChangeFilePath({
         oldFilePath,
         newFilePath,
         skipReload,
         pipelineUuid: foundPipeline.uuid,
       });
+
+      if (foundPipeline.uuid === pipelineUuid) {
+        dispatch({
+          type: "UPDATE_PIPELINE",
+          payload: { uuid: pipelineUuid, path: newFilePath },
+        });
+      }
     },
     [
       setConfirm,
+      dispatch,
+      pipelineUuid,
       handleChangeFilePath,
       pipelines,
       projectUuid,
@@ -364,22 +358,31 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
 
       setConfirm("Warning", confirmMessage, async (resolve) => {
-        const newFilePathChanges = await Promise.all(
-          deducedPaths.map(([sourcePath, newPath]) => {
+        await Promise.all(
+          deducedPaths.map(async ([sourcePath, newPath]) => {
             const filePathRelativeToProjectDir = cleanFilePath(sourcePath);
             const foundPipeline = pipelines.find(
               (pipeline) => pipeline.path === filePathRelativeToProjectDir
             );
 
-            return handleChangeFilePath({
+            const change = await handleChangeFilePath({
               oldFilePath: sourcePath,
               newFilePath: newPath,
               pipelineUuid: foundPipeline?.uuid,
               skipReload: true,
             });
+
+            if (foundPipeline?.uuid === pipelineUuid) {
+              dispatch({
+                type: "UPDATE_PIPELINE",
+                payload: { uuid: pipelineUuid, path: newPath },
+              });
+            }
+
+            return change;
           })
         );
-        setFilePathChanges(newFilePathChanges);
+
         reload();
         resolve(true);
         return true;
@@ -387,11 +390,12 @@ export const FileTree = React.memo(function FileTreeComponent({
     },
     [
       dragFiles,
+      dispatch,
+      pipelineUuid,
       handleChangeFilePath,
       pipelines,
       reload,
       setConfirm,
-      setFilePathChanges,
     ]
   );
 
@@ -438,7 +442,7 @@ export const FileTree = React.memo(function FileTreeComponent({
               </Box>
             </Stack>,
             async (resolve) => {
-              const newFilePathChanges = await Promise.all(
+              await Promise.all(
                 deducedPaths.map(([sourcePath, newPath]) => {
                   return handleChangeFilePath({
                     oldFilePath: sourcePath,
@@ -448,7 +452,6 @@ export const FileTree = React.memo(function FileTreeComponent({
                   });
                 })
               );
-              setFilePathChanges(newFilePathChanges);
               reload();
               resolve(true);
               return true;
@@ -469,7 +472,6 @@ export const FileTree = React.memo(function FileTreeComponent({
       moveFiles,
       handleChangeFilePath,
       reload,
-      setFilePathChanges,
     ]
   );
 

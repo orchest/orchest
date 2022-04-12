@@ -33,10 +33,6 @@ export type FileManagerContextType = {
   fetchFileTrees: (depth?: number) => Promise<void>;
   fileTrees: FileTrees;
   setFileTrees: React.Dispatch<React.SetStateAction<FileTrees>>;
-  filePathChanges: FilePathChange[] | undefined;
-  setFilePathChanges: React.Dispatch<
-    React.SetStateAction<FilePathChange[] | undefined>
-  >;
   fileTreeDepth: React.MutableRefObject<number>;
   pipelines: PipelineMetaData[];
   setPipelines: (
@@ -82,10 +78,6 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
   const [isDragging, setIsDragging] = React.useState(false);
 
   const [fileTrees, setFileTrees] = React.useState<FileTrees>({});
-
-  const [filePathChanges, setFilePathChanges] = React.useState<
-    FilePathChange[]
-  >(undefined);
 
   const resetMove = React.useCallback(() => {
     // Needs to be delayed to prevent tree toggle
@@ -140,8 +132,6 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         fetchFileTrees,
         fileTrees,
         setFileTrees,
-        filePathChanges,
-        setFilePathChanges,
         fileTreeDepth,
         pipelines,
         setPipelines,

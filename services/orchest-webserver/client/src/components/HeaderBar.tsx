@@ -2,6 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
+import { cleanFilePath } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/Routes";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -170,7 +171,7 @@ export const HeaderBar = ({
                   title={pipeline.path}
                   data-test-id="pipeline-path"
                 >
-                  {pipeline.path}
+                  {cleanFilePath(pipeline.path)}
                 </Typography>
               </>
             )}
