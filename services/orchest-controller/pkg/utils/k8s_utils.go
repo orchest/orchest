@@ -2,9 +2,12 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -100,4 +103,33 @@ func RemoveFinalizerIfNotPresent(ctx context.Context, client client.Client, obj 
 	}
 
 	return nil
+}
+
+func RunningPodsForDeployment(ctx context.Context, client client.Client, depKey client.ObjectKey) (int, error) {
+
+	deployment := &appsv1.Deployment{}
+	err := client.Get(ctx, depKey, deployment)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("deployment %s resource not found.", depKey)
+			return 0, nil
+		}
+		// Error reading Deployment.
+		return 0, errors.Wrap(err, "failed to get OrchestCluster")
+	}
+
+	return int(deployment.Status.ReadyReplicas), nil
+
+}
+
+func GetFullImageName(registry, imageName, tag string) string {
+	if tag == "" {
+		tag = "latest"
+	}
+	if registry != "" {
+		return fmt.Sprintf("%s/%s:%s", registry, imageName, tag)
+	}
+
+	return fmt.Sprintf("%s:%s", imageName, tag)
+
 }
