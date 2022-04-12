@@ -104,6 +104,12 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 								${DOCKER_REGISTRY_NAME_CONFIG} \
 								${DOCKER_REGISTRY_PORT_CONFIG} \
 								${DOCKER_REGISTRY_PVC_CONFIG} \
+								--set configData.storage.delete.enabled=true \
+								--set configData.storage.cache.blobdescriptor=redis \
+								--set configData.redis.addr=localhost \
+								--set configData.redis.dialtimeout=0ms \
+								--set configData.redis.readtimeout=0ms \
+								--set configData.redis.writetimeout=0ms \
 								thirdparty/docker-registry
 
 # Cluste resources enable config
