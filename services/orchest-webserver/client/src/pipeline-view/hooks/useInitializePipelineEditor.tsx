@@ -11,39 +11,55 @@ import { MutatorCallback } from "swr";
 import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
-  pipelineUuid: string | undefined,
-  projectUuid: string,
-  jobUuid: string | undefined,
   runUuid: string | undefined,
   isReadOnly: boolean,
   initializeEventVars: (steps: StepsDict) => void
 ) => {
   const {
-    state: { pipelines },
+    state: { pipelines, pipeline, projectUuid },
     dispatch,
   } = useProjectsContext();
   const { setAlert } = useAppContext();
-  const { navigateTo } = useCustomRoute();
-
-  const pipeline = React.useMemo(() => {
-    return (
-      pipelines.find((pipeline) => pipeline.uuid === pipelineUuid) ||
-      pipelines[0]
-    );
-  }, [pipelines, pipelineUuid]);
+  const {
+    navigateTo,
+    projectUuid: projectUuidFromRoute,
+    pipelineUuid,
+    jobUuid,
+  } = useCustomRoute();
 
   React.useEffect(() => {
-    if ((!pipelineUuid && pipeline?.uuid) || pipelineUuid !== pipeline?.uuid) {
+    const foundPipeline = pipelines
+      ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid) ||
+        pipelines[0]
+      : null;
+
+    if (foundPipeline && foundPipeline?.uuid !== pipelineUuid) {
+      // Navigate to a valid pipelineUuid.
       navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid, pipelineUuid: pipeline?.uuid },
+        query: {
+          projectUuid: projectUuidFromRoute,
+          pipelineUuid: foundPipeline.uuid,
+        },
       });
       return;
     }
-    dispatch({
-      type: "UPDATE_PIPELINE",
-      payload: { uuid: pipeline?.uuid },
-    });
-  }, [dispatch, pipeline?.uuid, projectUuid, pipelineUuid, navigateTo]);
+
+    // Reaching this point, `pipelineUuid` must be valid.
+    // We can safely update `state.pipeline`.
+    if (pipeline?.uuid !== pipelineUuid) {
+      dispatch({
+        type: "UPDATE_PIPELINE",
+        payload: { uuid: pipelineUuid },
+      });
+    }
+  }, [
+    dispatch,
+    pipeline?.uuid,
+    pipelineUuid,
+    pipelines,
+    navigateTo,
+    projectUuidFromRoute,
+  ]);
 
   const {
     pipelineJson,
@@ -51,8 +67,10 @@ export const useInitializePipelineEditor = (
     isFetchingPipelineJson,
     error,
   } = useFetchPipelineJson({
-    pipelineUuid: pipeline?.uuid,
+    // This `projectUuid` cannot be from route. It has to be from ProjectsContext, aligned with `pipeline?.uuid`.
+    // Otherwise, when user switch to another project, pipeline?.uuid does not exist.
     projectUuid,
+    pipelineUuid: pipeline?.uuid,
     jobUuid,
     runUuid,
   });
@@ -78,9 +96,19 @@ export const useInitializePipelineEditor = (
 
   React.useEffect(() => {
     if (error) {
-      setAlert("Error", `Failed to initialize pipeline. ${error.message}`);
+      setAlert(
+        "Error",
+        `Failed to initialize pipeline. ${error.message}`,
+        (resolve) => {
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid: projectUuidFromRoute },
+          });
+          resolve(true);
+          return true;
+        }
+      );
     }
-  }, [error, setAlert]);
+  }, [error, setAlert, pipeline, navigateTo, projectUuidFromRoute]);
 
   // initialize eventVars.steps
   const initialized = React.useRef(false);

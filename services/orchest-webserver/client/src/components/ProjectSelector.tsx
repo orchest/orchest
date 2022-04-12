@@ -73,7 +73,7 @@ export const ProjectSelector = () => {
         let fetchedProjects: Project[] = JSON.parse(response);
 
         dispatch({
-          type: "projectsSet",
+          type: "SET_PROJECTS",
           payload: fetchedProjects,
         });
       })
@@ -83,9 +83,9 @@ export const ProjectSelector = () => {
   // sync state.projectUuid and the route param projectUuid
   React.useEffect(() => {
     if (projectUuidFromRoute) {
-      dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+      dispatch({ type: "SET_PROJECT", payload: projectUuidFromRoute });
     }
-  }, [projectUuidFromRoute]);
+  }, [projectUuidFromRoute, dispatch]);
 
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
@@ -112,11 +112,11 @@ export const ProjectSelector = () => {
         // navigate ONLY if user is at the project root and
         // we're switching projects (because of detecting an
         // invalidProjectUuid)
-        dispatch({ type: "projectSet", payload: newProjectUuid });
+        dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
 
   if (
     !matchWithinProjectPaths ||

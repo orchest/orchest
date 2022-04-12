@@ -15,7 +15,6 @@ import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import MuiIconButton from "@mui/material/IconButton";
-import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
@@ -126,57 +125,54 @@ export const HeaderBar = ({
           />
           <ProjectSelector />
         </Stack>
-        <LinearProgress />
-        {isShowingPipelineName && (
-          <Stack
-            direction="column"
-            alignItems="center"
-            justifyContent="center"
-            sx={{ flex: 1 }}
-          >
-            {isShowingPipelineName && (
-              <>
-                <Stack direction="row" alignItems="center">
-                  {pipelineSaveStatus === "saved" ? (
-                    <Tooltip title="Pipeline saved">
-                      <CheckCircleIcon />
-                    </Tooltip>
-                  ) : (
-                    <CircularProgress />
-                  )}
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      maxWidth: "45vw", // TODO: prevent using vw
-                      textOverflow: "ellipsis",
-                      overflow: "hidden",
-                      whiteSpace: "nowrap",
-                      margin: (theme) => theme.spacing(0, 1),
-                    }}
-                    title={pipeline.name}
-                    data-test-id="pipeline-name"
-                  >
-                    {pipeline.name}
-                  </Typography>
-                </Stack>
+        <Stack
+          direction="column"
+          alignItems="center"
+          justifyContent="center"
+          sx={{ flex: 1 }}
+        >
+          {isShowingPipelineName && (
+            <>
+              <Stack direction="row" alignItems="center">
+                {pipelineSaveStatus === "saved" ? (
+                  <Tooltip title="Pipeline saved">
+                    <CheckCircleIcon />
+                  </Tooltip>
+                ) : (
+                  <CircularProgress />
+                )}
                 <Typography
-                  variant="caption"
+                  variant="h6"
                   sx={{
                     maxWidth: "45vw", // TODO: prevent using vw
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
-                    color: (theme) => theme.palette.grey[700],
+                    margin: (theme) => theme.spacing(0, 1),
                   }}
-                  title={pipeline.path}
-                  data-test-id="pipeline-path"
+                  title={pipeline.name}
+                  data-test-id="pipeline-name"
                 >
-                  {cleanFilePath(pipeline.path)}
+                  {pipeline.name}
                 </Typography>
-              </>
-            )}
-          </Stack>
-        )}
+              </Stack>
+              <Typography
+                variant="caption"
+                sx={{
+                  maxWidth: "45vw", // TODO: prevent using vw
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                  color: (theme) => theme.palette.grey[700],
+                }}
+                title={pipeline.path}
+                data-test-id="pipeline-path"
+              >
+                {cleanFilePath(pipeline.path)}
+              </Typography>
+            </>
+          )}
+        </Stack>
         <Stack
           spacing={2}
           direction="row"

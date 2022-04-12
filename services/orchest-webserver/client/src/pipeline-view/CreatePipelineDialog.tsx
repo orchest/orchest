@@ -41,16 +41,15 @@ const getValidNewPipelineName = (
 };
 
 export const CreatePipelineDialog = ({
-  pipelines,
-  disabled,
   children,
 }: {
-  pipelines: PipelineMetaData[];
-  disabled?: boolean;
   children: (onCreateClick: () => void) => React.ReactNode;
 }) => {
   const { setAlert } = useAppContext();
-  const { dispatch } = useProjectsContext();
+  const {
+    dispatch,
+    state: { pipelines = [] },
+  } = useProjectsContext();
   const { projectUuid, navigateTo } = useCustomRoute();
   const { run, status } = useAsync<void>();
 
@@ -113,7 +112,7 @@ export const CreatePipelineDialog = ({
 
       onClose();
     },
-    [run, projectUuid, setAlert, navigateToPipeline, onClose]
+    [run, dispatch, projectUuid, setAlert, navigateToPipeline, onClose]
   );
 
   const [newPipeline, setNewPipeline] = React.useState({
@@ -207,7 +206,7 @@ export const CreatePipelineDialog = ({
               variant="contained"
               type="submit"
               form="create-pipeline"
-              disabled={!isFormValid || disabled}
+              disabled={!isFormValid || status === "PENDING"}
               data-test-id="pipeline-create-ok"
             >
               Create pipeline

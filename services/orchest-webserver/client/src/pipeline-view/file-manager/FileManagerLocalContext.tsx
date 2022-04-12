@@ -96,13 +96,12 @@ export const FileManagerLocalContextProvider: React.FC<{
   >;
 }> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
+  const {
+    state: { pipelines = [] },
+  } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const {
-    selectedFiles,
-    setSelectedFiles,
-    pipelines,
-  } = useFileManagerContext();
+  const { selectedFiles, setSelectedFiles } = useFileManagerContext();
 
   // When deleting or downloading selectedFiles, we need to avoid
   // the redundant child paths.

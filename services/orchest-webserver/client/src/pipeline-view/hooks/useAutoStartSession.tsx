@@ -1,13 +1,10 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import React from "react";
 
 export const useAutoStartSession = ({
-  projectUuid,
-  pipelineUuid,
   isReadOnly = false,
 }: {
-  projectUuid: string;
-  pipelineUuid: string;
   isReadOnly: boolean;
 }) => {
   const {
@@ -15,17 +12,21 @@ export const useAutoStartSession = ({
     getSession,
     toggleSession,
   } = useSessionsContext();
+  const {
+    state: { projectUuid, pipeline },
+  } = useProjectsContext();
 
   const session = React.useMemo(
-    () => getSession({ projectUuid, pipelineUuid }),
-    [projectUuid, pipelineUuid, getSession]
+    () => getSession({ projectUuid, pipelineUuid: pipeline?.uuid }),
+    [projectUuid, pipeline?.uuid, getSession]
   );
 
   const [shouldAutoStart, setShouldAutoStart] = React.useState(false);
 
   const toggleSessionPayload = React.useMemo(() => {
-    return { pipelineUuid, projectUuid };
-  }, [pipelineUuid, projectUuid]);
+    if (!pipeline?.uuid || !projectUuid) return null;
+    return { pipelineUuid: pipeline?.uuid, projectUuid };
+  }, [pipeline?.uuid, projectUuid]);
 
   const hasFired = React.useRef(false);
   React.useEffect(() => {
@@ -34,12 +35,7 @@ export const useAutoStartSession = ({
       hasFired.current = true;
     }
 
-    if (
-      !hasFired.current &&
-      isReadOnly !== true &&
-      !sessionsIsLoading &&
-      !session
-    ) {
+    if (!hasFired.current && !isReadOnly && !sessionsIsLoading && !session) {
       hasFired.current = true;
       setShouldAutoStart(true);
     }

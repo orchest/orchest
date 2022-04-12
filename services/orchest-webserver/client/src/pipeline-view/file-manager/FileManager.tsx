@@ -98,7 +98,6 @@ export function FileManager() {
     fileTrees,
     fetchFileTrees,
     setFileTrees,
-    pipelines,
   } = useFileManagerContext();
 
   const containerRef = React.useRef<typeof Stack>();
@@ -346,7 +345,7 @@ export function FileManager() {
           </FileTreeContainer>
         </FileManagerLocalContextProvider>
         {!pipelineIsReadOnly && (
-          <CreatePipelineDialog pipelines={pipelines}>
+          <CreatePipelineDialog>
             {(onCreateClick) => (
               <Box
                 sx={{

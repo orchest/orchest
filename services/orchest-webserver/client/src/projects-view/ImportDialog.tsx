@@ -98,7 +98,7 @@ const ImportDialog: React.FC<{
           let projects: Project[] = JSON.parse(response);
 
           dispatch({
-            type: "projectsSet",
+            type: "SET_PROJECTS",
             payload: projects,
           });
 

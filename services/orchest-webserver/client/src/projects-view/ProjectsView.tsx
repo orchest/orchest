@@ -177,7 +177,7 @@ const ProjectsView: React.FC = () => {
       projects
     ) {
       dispatch({
-        type: "projectsSet",
+        type: "SET_PROJECTS",
         payload: projects,
       });
     }
@@ -231,7 +231,7 @@ const ProjectsView: React.FC = () => {
   const deleteProjectRequest = (toBeDeletedId: string) => {
     if (projectUuid === toBeDeletedId) {
       dispatch({
-        type: "projectSet",
+        type: "SET_PROJECT",
         payload: undefined,
       });
     }

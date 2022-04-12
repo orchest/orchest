@@ -52,7 +52,7 @@ export const CreateProjectDialog = ({
       );
 
       dispatch((state) => ({
-        type: "projectsSet",
+        type: "SET_PROJECTS",
         payload: [
           ...state.projects,
           {

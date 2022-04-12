@@ -1,9 +1,7 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
-import { useFetchPipelines } from "@/hooks/useFetchPipelines";
-import { FileTree, PipelineMetaData } from "@/types";
+import { FileTree } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { MutatorCallback } from "swr/dist/types";
 import { treeRoots } from "../common";
 import type { FileTrees } from "./common";
 import { FILE_MANAGEMENT_ENDPOINT, queryArgs } from "./common";
@@ -34,13 +32,6 @@ export type FileManagerContextType = {
   fileTrees: FileTrees;
   setFileTrees: React.Dispatch<React.SetStateAction<FileTrees>>;
   fileTreeDepth: React.MutableRefObject<number>;
-  pipelines: PipelineMetaData[];
-  setPipelines: (
-    data?:
-      | PipelineMetaData[]
-      | Promise<PipelineMetaData[]>
-      | MutatorCallback<PipelineMetaData[]>
-  ) => Promise<PipelineMetaData[]>;
 };
 
 export const FileManagerContext = React.createContext<FileManagerContextType>(
@@ -51,8 +42,6 @@ export const useFileManagerContext = () => React.useContext(FileManagerContext);
 
 export const FileManagerContextProvider: React.FC = ({ children }) => {
   const { projectUuid } = useCustomRoute();
-
-  const { pipelines = [], setPipelines } = useFetchPipelines(projectUuid);
 
   const fileTreeDepth = React.useRef<number>(3);
   const [selectedFiles, _setSelectedFiles] = React.useState<string[]>([]);
@@ -133,8 +122,6 @@ export const FileManagerContextProvider: React.FC = ({ children }) => {
         fileTrees,
         setFileTrees,
         fileTreeDepth,
-        pipelines,
-        setPipelines,
       }}
     >
       {children}

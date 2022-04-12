@@ -1,3 +1,4 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
@@ -75,6 +76,9 @@ export const usePipelineEditorContext = () =>
 
 export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   const {
+    state: { pipelines },
+  } = useProjectsContext();
+  const {
     projectUuid,
     pipelineUuid,
     jobUuid,
@@ -82,7 +86,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
-  const disabled = !pipelineUuid;
+  const disabled = pipelines && pipelines.length === 0;
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
@@ -153,20 +157,11 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     setPipelineJson,
     hash,
     error: fetchDataError,
-  } = useInitializePipelineEditor(
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    runUuid,
-    isReadOnly,
-    initializeEventVars
-  );
+  } = useInitializePipelineEditor(runUuid, isReadOnly, initializeEventVars);
 
   const sio = useSocketIO();
 
   const session = useAutoStartSession({
-    projectUuid,
-    pipelineUuid,
     isReadOnly,
   });
 

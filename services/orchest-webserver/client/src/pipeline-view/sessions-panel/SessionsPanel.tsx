@@ -1,18 +1,18 @@
 import SessionToggleButton from "@/components/SessionToggleButton";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { IOrchestSession } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import React from "react";
-import { useFileManagerContext } from "../file-manager/FileManagerContext";
 
 type SessionStatus = IOrchestSession["status"] | "";
 
 export const SessionsPanel = () => {
-  const { projectUuid } = useCustomRoute();
-  const { pipelines } = useFileManagerContext();
+  const {
+    state: { projectUuid, pipelines = [] },
+  } = useProjectsContext();
   const { getSession } = useSessionsContext();
 
   return (

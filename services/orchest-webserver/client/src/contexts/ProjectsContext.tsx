@@ -21,15 +21,19 @@ type Action =
       payload: PipelineMetaData[];
     }
   | {
-      type: "pipelineSetSaveStatus";
+      type: "LOAD_PIPELINES";
+      payload: PipelineMetaData[];
+    }
+  | {
+      type: "SET_PIPELINE_SAVE_STATUS";
       payload: IProjectsContextState["pipelineSaveStatus"];
     }
   | {
-      type: "projectSet";
+      type: "SET_PROJECT";
       payload: IProjectsContextState["projectUuid"];
     }
   | {
-      type: "projectsSet";
+      type: "SET_PROJECTS";
       payload: Project[];
     }
   | {
@@ -43,8 +47,8 @@ export interface IProjectsContextState {
   projectUuid?: string;
   pipelineIsReadOnly: boolean;
   pipelineSaveStatus: "saved" | "saving";
-  pipelines: PipelineMetaData[];
-  pipeline?: PipelineMetaData;
+  pipelines: PipelineMetaData[] | undefined;
+  pipeline?: PipelineMetaData | undefined;
   projects: Project[];
   hasLoadedProjects: boolean;
 }
@@ -69,11 +73,15 @@ const reducer = (
     }
     case "UPDATE_PIPELINE": {
       const { uuid, ...changes } = action.payload;
+      const currentPipelines = state.pipelines || [];
 
       // Always look up `state.pipelines`.
-      const targetPipeline = state.pipelines.find(
-        (pipeline) => pipeline.uuid === action.payload.uuid
-      );
+      const targetPipeline =
+        currentPipelines.find(
+          (pipeline) => pipeline.uuid === action.payload.uuid
+        ) || currentPipelines[0];
+
+      if (!targetPipeline) return state;
 
       const updatedPipeline = { ...targetPipeline, ...changes };
       const updatedPipelines = state.pipelines.map((pipeline) =>
@@ -84,6 +92,9 @@ const reducer = (
         pipeline: updatedPipeline,
         pipelines: updatedPipelines,
       };
+    }
+    case "LOAD_PIPELINES": {
+      return { ...state, pipelines: action.payload };
     }
     case "SET_PIPELINES": {
       const isPipelineRemoved = !action.payload.some(
@@ -96,13 +107,18 @@ const reducer = (
         pipeline: isPipelineRemoved ? action.payload[0] : state.pipeline,
       };
     }
-    case "pipelineSetSaveStatus":
+    case "SET_PIPELINE_SAVE_STATUS":
       return { ...state, pipelineSaveStatus: action.payload };
     case "SET_PIPELINE_IS_READONLY":
       return { ...state, pipelineIsReadOnly: action.payload };
-    case "projectSet":
-      return { ...state, projectUuid: action.payload };
-    case "projectsSet":
+    case "SET_PROJECT":
+      return {
+        ...state,
+        projectUuid: action.payload,
+        pipelines: undefined,
+        pipeline: undefined,
+      };
+    case "SET_PROJECTS":
       return { ...state, projects: action.payload, hasLoadedProjects: true };
     default: {
       console.log(action);
@@ -114,7 +130,7 @@ const reducer = (
 const initialState: IProjectsContextState = {
   pipelineIsReadOnly: false,
   pipelineSaveStatus: "saved",
-  pipelines: [],
+  pipelines: undefined,
   projects: [],
   hasLoadedProjects: false,
 };
@@ -127,10 +143,10 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
   );
 
   React.useEffect(() => {
-    if (!isFetchingPipelines && !error && pipelines) {
-      dispatch({ type: "SET_PIPELINES", payload: pipelines });
+    if (!state.pipelines && !isFetchingPipelines && !error && pipelines) {
+      dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
     }
-  }, [dispatch, pipelines, isFetchingPipelines, error]);
+  }, [dispatch, state.pipelines, pipelines, isFetchingPipelines, error]);
 
   return (
     <ProjectsContext.Provider

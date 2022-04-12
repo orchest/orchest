@@ -232,8 +232,8 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         method: "POST",
         headers: HEADER.JSON,
         body: JSON.stringify({
-          pipeline_uuid: payload.pipelineUuid,
           project_uuid: payload.projectUuid,
+          pipeline_uuid: payload.pipelineUuid,
         }),
       })
         .then((sessionDetails) => setSession(sessionDetails))

@@ -164,12 +164,16 @@ export const PipelineEditor = () => {
           : "Could not load pipeline",
         (resolve) => {
           resolve(true);
-          returnToJob();
+          if (jobUuid) {
+            returnToJob();
+          } else {
+            navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
+          }
 
           return true;
         }
       );
-  }, [fetchDataError, returnToJob, setAlert, jobUuid]);
+  }, [fetchDataError, returnToJob, setAlert, navigateTo, projectUuid, jobUuid]);
 
   const setOngoingSaves = useSavingIndicator();
 
