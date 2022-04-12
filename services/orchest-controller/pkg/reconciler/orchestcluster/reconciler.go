@@ -6,6 +6,7 @@ import (
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,47 +17,51 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type ReconcilerConfig struct {
+	DeployDir                  string
+	PostgresDefaultImage       string
+	RabbitmqDefaultImage       string
+	OrchestDefaultTag          string
+	CeleryWorkerImageName      string
+	OrchestApiImageName        string
+	OrchestWebserverImageName  string
+	AuthServerImageName        string
+	UserdirDefaultVolumeSize   string
+	ConfigdirDefaultVolumeSize string
+	BuilddirDefaultVolumeSize  string
+	InCluster                  bool
+}
+
 // OrchestClusterReconciler reconciles OrchestCluster CRD.
 type OrchestClusterReconciler struct {
 	client          client.Client
+	config          *ReconcilerConfig
 	scheme          *runtime.Scheme
 	deployerManager *deployer.DeployerManager
 }
 
 // NewOrchestClusterReconciler returns a new *OrchestClusterReconciler.
-func NewOrchestClusterReconciler(mgr ctrl.Manager, deployDir string) *OrchestClusterReconciler {
+func NewOrchestClusterReconciler(mgr ctrl.Manager, config *ReconcilerConfig) *OrchestClusterReconciler {
 
 	reconciler := OrchestClusterReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
+		config: config,
 	}
 
-	reconciler.intiDeployerManager(deployDir)
+	reconciler.intiDeployerManager()
 
 	return &reconciler
 }
 
-func (r *OrchestClusterReconciler) intiDeployerManager(deployDir string) {
-	deployerManager := deployer.NewDeployerManager()
+func (r *OrchestClusterReconciler) intiDeployerManager() {
+	r.deployerManager = deployer.NewDeployerManager()
 
-	deployerManager.AddDeployer(deployer.NewHelmDeployer("argo", path.Join(deployDir, "thirdparty/argo-workflows")))
-	deployerManager.AddDeployer(deployer.NewHelmDeployer("registry", path.Join(deployDir, "thirdparty/argo-workflows")))
-	deployerManager.AddDeployer(deployer.NewHelmDeployer("orchest-rsc", path.Join(deployDir, "charts")))
-	deployerManager.AddDeployer(deployer.NewHelmDeployer("orchest", path.Join(deployDir, "charts")))
+	r.deployerManager.AddDeployer(helm.NewHelmDeployer("argo", path.Join(r.config.DeployDir, "thirdparty/argo-workflows")))
+	r.deployerManager.AddDeployer(helm.NewHelmDeployer("registry", path.Join(r.config.DeployDir, "thirdparty/docker-registry")))
+	r.deployerManager.AddDeployer(NewOrchestDeployer("orchest", r.client, r.config))
 
 }
-
-/*
-func (r *OrchestClusterReconciler) addStateHandlers(state orchestv1alpha1.OrchestClusterState, handler StateHandler) {
-	// If already registred, log warning and return
-	if _, ok := r.handlers[state]; ok {
-		klog.Warning("State handler %s is already registred with reconciler", name)
-	}
-
-	r.handlers[state] = handler
-	klog.V(2).Info("StateHandler is registered with reconciler for state")
-}
-*/
 
 func (r *OrchestClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 
@@ -118,7 +123,9 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 
 	// If Status struct is not initialized yet, the cluster is new, create it
 	if cluster.Status == nil {
-		err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.Initializing, "Initializing orchest cluster")
+		// Set the default values in CR if not specified
+		copy := r.getClusterWithIfNotSpecified(ctx, cluster)
+		err := r.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing orchest cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -153,25 +160,13 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchestRsc, "Deploying orchest resource")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	case orchestv1alpha1.DeployingOrchestRsc:
-		err := r.deployerManager.Get("orchest-rsc").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest.Resources)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
 		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying orchest")
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 	case orchestv1alpha1.DeployingOrchest:
-		err := r.deployerManager.Get("orchest").InstallIfChanged(ctx, cluster.Namespace, cluster.Spec.Orchest)
+		err := r.deployerManager.Get("orchest").InstallIfChanged(ctx, cluster.Namespace, cluster)
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -206,4 +201,47 @@ func (r *OrchestClusterReconciler) updateClusterStatus(ctx context.Context, clus
 		return errors.Wrapf(err, "failed to update orchest with status  %q", cluster.Name)
 	}
 	return nil
+}
+
+func (r *OrchestClusterReconciler) getClusterWithIfNotSpecified(ctx context.Context,
+	cluster *orchestv1alpha1.OrchestCluster) *orchestv1alpha1.OrchestCluster {
+
+	copy := cluster.DeepCopy()
+
+	changed := false
+
+	if copy.Spec.Orchest.DefaultTag == "" {
+		changed = true
+		copy.Spec.Orchest.DefaultTag = r.config.OrchestDefaultTag
+	}
+
+	if copy.Spec.Postgres.Image == "" {
+		changed = true
+		copy.Spec.Postgres.Image = r.config.PostgresDefaultImage
+	}
+
+	if copy.Spec.RabbitMq.Image == "" {
+		changed = true
+		copy.Spec.RabbitMq.Image = r.config.RabbitmqDefaultImage
+	}
+
+	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
+		changed = true
+		copy.Spec.Orchest.Resources.UserDirVolumeSize = r.config.UserdirDefaultVolumeSize
+	}
+
+	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
+		changed = true
+		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = r.config.BuilddirDefaultVolumeSize
+	}
+
+	if copy.Spec.Orchest.Resources.ConfigDirVolumeSize == "" {
+		changed = true
+		copy.Spec.Orchest.Resources.ConfigDirVolumeSize = r.config.ConfigdirDefaultVolumeSize
+	}
+
+	if changed {
+		return copy
+	}
+	return cluster
 }
