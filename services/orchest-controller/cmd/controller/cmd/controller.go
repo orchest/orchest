@@ -36,7 +36,7 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&reconcilerConfig.CeleryWorkerImageName, "celeryImageName", "orchest/celery-worker", "The default celery-worker image name")
 	cmd.PersistentFlags().StringVar(&reconcilerConfig.OrchestApiImageName, "orchestApiImageName", "orchest/orchest-api", "The default orchest-api image name")
 	cmd.PersistentFlags().StringVar(&reconcilerConfig.OrchestWebserverImageName, "webserverImageName", "orchest/orchest-webserver", "The default orchest-webserver image name")
-	cmd.PersistentFlags().StringVar(&reconcilerConfig.AuthServerImageName, "authServerImageName", "999Ti", "The default auth server image name")
+	cmd.PersistentFlags().StringVar(&reconcilerConfig.AuthServerImageName, "authServerImageName", "orchest/auth-server", "The default auth server image name")
 	cmd.PersistentFlags().BoolVar(&managerConfig.InCluster, "inCluster", true, "In/Out cluster indicator")
 
 	return cmd

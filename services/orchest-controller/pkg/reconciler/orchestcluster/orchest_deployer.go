@@ -27,7 +27,8 @@ var (
 	configDirName  = "config-pvc"
 	builderDirName = "image-builder-cache-pvc"
 
-	userdirMountPath = "/userdir"
+	userdirMountPath   = "/userdir"
+	configdirMountPath = "/config"
 
 	// database paths
 	dbMountPath = "/userdir/.orchest/database/data"
@@ -42,6 +43,7 @@ var (
 	orchestApiName   = "orchest-api"
 	rabbitmqName     = "rabbitmq-server"
 	celeryWorkerName = "celery-worker"
+	authServerName   = "auth-server"
 
 	//Labels and annotations
 	GenerationKey         = "contoller.orchest.io/generation"
@@ -122,6 +124,12 @@ func (d *OrchestDeployer) InstallIfChanged(ctx context.Context, namespace string
 		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
 	}
 
+	// deploying auth-server
+	err = d.deployAuthServer(ctx, orchest)
+	if err != nil && !kerrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
+	}
+
 	// The next component would orchest-api
 	err = d.deployOrchestApi(ctx, orchest)
 	if err != nil && !kerrors.IsAlreadyExists(err) {
@@ -186,6 +194,24 @@ func (d *OrchestDeployer) deployOrchestDatabase(ctx context.Context, orchest *or
 	}
 
 	err = d.client.Create(ctx, service, &client.CreateOptions{})
+	if err != nil && !kerrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create service")
+	}
+
+	return d.waitForDeployment(ctx, client.ObjectKeyFromObject(deployment))
+}
+
+func (d *OrchestDeployer) deployAuthServer(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+
+	deployment := d.getAuthServerManifest(orchest)
+	service := getServiceManifest(authServerName, 80, orchest)
+
+	err := d.client.Create(ctx, deployment.DeepCopy(), &client.CreateOptions{})
+	if err != nil && !kerrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create deployment")
+	}
+
+	err = d.client.Create(ctx, service.DeepCopy(), &client.CreateOptions{})
 	if err != nil && !kerrors.IsAlreadyExists(err) {
 		return errors.Wrapf(err, "failed to create service")
 	}
