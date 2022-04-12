@@ -6,15 +6,14 @@ import { siteMap } from "@/Routes";
 import { Position } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
   baseNameFromPath,
   FILE_MANAGEMENT_ENDPOINT,
   filterRedundantChildPaths,
-  isFileByExtension,
+  findPipelineFilePathsWithinFolders,
+  getBaseNameFromPath,
   queryArgs,
-  searchFilePathsByExtension,
   unpackCombinedPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -65,14 +64,6 @@ const deleteFetch = (projectUuid: string, combinedPath: string) => {
     })}`,
     { method: "POST" }
   );
-};
-
-const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
-  let pathComponents = contextMenuCombinedPath.split("/");
-  if (contextMenuCombinedPath.endsWith("/")) {
-    pathComponents = pathComponents.slice(0, -1);
-  }
-  return pathComponents.slice(-1)[0];
 };
 
 const downloadFile = (
@@ -188,43 +179,35 @@ export const FileManagerLocalContextProvider: React.FC<{
       ? selectedFilesWithoutRedundantChildPaths
       : [contextMenuCombinedPath];
 
+    const fileBaseName = getBaseNameFromPath(filesToDelete[0]);
     const filesToDeleteString =
-      filesToDelete.length > 1
-        ? `${filesToDelete.length} files`
-        : `'${getBaseNameFromContextMenu(filesToDelete[0])}'`;
+      filesToDelete.length > 1 ? (
+        `${filesToDelete.length} files`
+      ) : (
+        <Code>{fileBaseName}</Code>
+      );
 
-    const searchResult = await Promise.all(
-      filesToDelete.map((pathToDelete) => {
-        if (!pathToDelete.endsWith("/"))
-          return isFileByExtension(["orchest"], pathToDelete)
-            ? pathToDelete
-            : null;
-        let { root, path } = unpackCombinedPath(pathToDelete);
-        return searchFilePathsByExtension({
-          root,
-          projectUuid,
-          extensions: ["orchest"],
-          path,
-        }).then((response) =>
-          response.files.length > 0 ? pathToDelete : null
-        );
-      })
+    const pathsThatContainsPipelineFiles = await findPipelineFilePathsWithinFolders(
+      projectUuid,
+      filesToDelete.map((combinedPath) => unpackCombinedPath(combinedPath))
     );
 
-    const pathsThatContainsPipelineFiles = searchResult
-      .filter((result) => hasValue(result))
-      .map((combinedPath) => unpackCombinedPath(combinedPath));
+    const shouldShowPipelineFilePaths =
+      !fileBaseName.endsWith(".orchest") && // Only one file to delete and it is a `.orchest` file
+      pathsThatContainsPipelineFiles.length > 0;
 
     setConfirm(
       "Warning",
       <Stack spacing={2} direction="column">
-        <Box>{`Are you sure you want to delete ${filesToDeleteString}? `}</Box>
-        {pathsThatContainsPipelineFiles.length > 0 && (
+        <Box>
+          {`Are you sure you want to delete `} {filesToDeleteString}
+          {` ?`}
+        </Box>
+        {shouldShowPipelineFilePaths && (
           <>
             <Box>
-              {`Following file paths contain pipeline files `}
-              <Code>*.orchest</Code>
-              {`. They will also be deleted and it cannot be undone.`}
+              Following pipeline files will also be deleted and it cannot be
+              undone.
             </Box>
             <ul>
               {pathsThatContainsPipelineFiles.map((file) => (
@@ -245,13 +228,13 @@ export const FileManagerLocalContextProvider: React.FC<{
           )
         );
 
-        const pipelinePahts = pathsThatContainsPipelineFiles.map(
-          ({ path }) => path
+        const pipelinePaths = pathsThatContainsPipelineFiles.map(({ path }) =>
+          path.replace(/^\//, "")
         );
 
         dispatch((state) => {
           const updatedPipelines = state.pipelines.filter((pipeline) => {
-            return !pipelinePahts.some((path) => pipeline.path === path);
+            return !pipelinePaths.some((path) => pipeline.path === path);
           });
           return { type: "SET_PIPELINES", payload: updatedPipelines };
         });
@@ -300,7 +283,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   const handleDownload = React.useCallback(() => {
     handleClose();
 
-    const downloadLink = getBaseNameFromContextMenu(contextMenuCombinedPath);
+    const downloadLink = getBaseNameFromPath(contextMenuCombinedPath);
 
     if (selectedFiles.includes(contextMenuCombinedPath)) {
       selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {

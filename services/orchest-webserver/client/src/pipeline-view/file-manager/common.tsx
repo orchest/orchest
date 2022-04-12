@@ -41,10 +41,17 @@ export const searchTree = (
   return res;
 };
 
-export const unpackCombinedPath = (combinedPath: string) => {
+/**
+ * `path` always starts with "/"
+ */
+export type UnpackedPath = { root: FileManagementRoot; path: string };
+
+export const unpackCombinedPath = (combinedPath: string): UnpackedPath => {
   // combinedPath includes the root
   // e.g. /project-dir:/abc/def
-  // Note, the root can't contain the special character ':'
+  // => root: /project-dir
+  // => path: /abc/def
+
   let root = combinedPath.split(ROOT_SEPARATOR)[0] as FileManagementRoot;
   let path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
   return { root, path };
@@ -430,4 +437,37 @@ export const filterRedundantChildPaths = (list: string[]) => {
   }
 
   return [...listSet];
+};
+
+export const getBaseNameFromPath = (combinedPath: string) => {
+  let pathComponents = combinedPath.split("/");
+  if (combinedPath.endsWith("/")) {
+    pathComponents = pathComponents.slice(0, -1);
+  }
+  return pathComponents.slice(-1)[0];
+};
+
+export const findPipelineFilePathsWithinFolders = async (
+  projectUuid: string,
+  filePaths: UnpackedPath[]
+): Promise<UnpackedPath[]> => {
+  const files = await Promise.all(
+    filePaths.map(({ root, path }) => {
+      if (!path.endsWith("/"))
+        return isFileByExtension(["orchest"], path) ? { root, path } : null;
+      return searchFilePathsByExtension({
+        projectUuid,
+        extensions: ["orchest"],
+        root,
+        path,
+      }).then((response) =>
+        response.files.map((file) => ({
+          root,
+          path: `/${file}`,
+        }))
+      );
+    })
+  );
+
+  return files.filter((value) => value).flatMap((value) => value);
 };

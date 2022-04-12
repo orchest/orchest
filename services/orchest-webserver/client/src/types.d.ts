@@ -344,7 +344,7 @@ export type Pipeline = {
 
 export type PipelineMetaData = {
   uuid: string;
-  path: string;
+  path: string; // Note that this path is relative to `/project-dir:`, i.e. it doesn't have a leading slash
   name: string;
 };
 

@@ -4,6 +4,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
+import { IOrchestSessionUuid, PipelineMetaData } from "@/types";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import TreeView from "@mui/lab/TreeView";
@@ -22,12 +23,14 @@ import {
   FILE_MANAGER_ROOT_CLASS,
   filterRedundantChildPaths,
   findFilesByExtension,
+  findPipelineFilePathsWithinFolders,
   generateTargetDescription,
   isFileByExtension,
   isWithinDataFolder,
   queryArgs,
   ROOT_SEPARATOR,
   unpackCombinedPath,
+  UnpackedPath,
 } from "./common";
 import { DragIndicator } from "./DragIndicator";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -114,7 +117,7 @@ const doChangeFilePath = ({
   projectUuid: string;
   pipelineUuid?: string;
 }) => {
-  if (params.newPath.endsWith(".orchest")) {
+  if (isFileByExtension(["orchest"], params.newPath)) {
     if (!pipelineUuid) throw new Error("pipeline_uuid is required.");
     return sendChangePipelineFilePathRequest(
       projectUuid,
@@ -235,6 +238,97 @@ export const FileTree = React.memo(function FileTreeComponent({
     return filterRedundantChildPaths(selectedFiles);
   }, [dragFile, selectedFiles]);
 
+  const pipelineDics = React.useMemo(
+    () =>
+      pipelines.reduce((all, curr) => {
+        return { ...all, [curr.path]: curr };
+      }, {} as Record<string, PipelineMetaData>),
+    [pipelines]
+  );
+
+  const checkSessionForMovingPipelineFiles = React.useCallback(
+    async (combinedPaths: string[]): Promise<[boolean, PipelineMetaData[]]> => {
+      const { folderPaths, pipelineFilePaths } = combinedPaths.reduce(
+        (all, dragPath) => {
+          if (dragPath.endsWith("/"))
+            all.folderPaths.push(unpackCombinedPath(dragPath));
+          if (dragPath.endsWith(".orchest")) {
+            all.pipelineFilePaths.push(unpackCombinedPath(dragPath));
+          }
+          return all;
+        },
+        {
+          folderPaths: [] as UnpackedPath[],
+          pipelineFilePaths: [] as UnpackedPath[],
+        }
+      );
+
+      const foundPipelineFilePaths = await findPipelineFilePathsWithinFolders(
+        projectUuid,
+        folderPaths
+      );
+
+      const filePaths = [...pipelineFilePaths, ...foundPipelineFilePaths];
+
+      if (filePaths.length === 0) return [true, []];
+
+      const pipelinesWithSession: (IOrchestSessionUuid &
+        PipelineMetaData)[] = [];
+
+      for (let filePath of filePaths) {
+        const foundPipeline = pipelineDics[filePath.path.replace(/^\//, "")];
+
+        if (!foundPipeline) continue;
+
+        const session = getSession({
+          pipelineUuid: foundPipeline.uuid,
+          projectUuid,
+        });
+
+        if (session) {
+          pipelinesWithSession.push({
+            ...foundPipeline,
+            ...session,
+          });
+        }
+      }
+
+      if (pipelinesWithSession.length > 0) {
+        setConfirm(
+          "Warning",
+          <Stack spacing={2} direction="column">
+            <Box>
+              Following pipeline files will also be moved. You need to stop
+              their sessions before moving them. Do you want to proceed?
+            </Box>
+            <ul>
+              {pipelinesWithSession.map((file) => (
+                <Box key={file.path}>
+                  <Code>{`Project files/${file.path}`}</Code>
+                </Box>
+              ))}
+            </ul>
+          </Stack>,
+          {
+            confirmLabel: `Stop session${
+              pipelinesWithSession.length > 1 ? "s" : ""
+            }`,
+            onConfirm: async (resolve) => {
+              await Promise.all(
+                pipelinesWithSession.map((session) => toggleSession(session))
+              );
+              resolve(true);
+              return true;
+            },
+          }
+        );
+      }
+
+      return [pipelinesWithSession.length === 0, pipelinesWithSession];
+    },
+    [getSession, projectUuid, setConfirm, toggleSession, pipelineDics]
+  );
+
   // by default, handleChangeFilePath will reload
   // when moving multiple files, we manually call reload after Promise.all
   const handleChangeFilePath = React.useCallback(
@@ -282,33 +376,14 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const startRename = React.useCallback(
     async (oldFilePath: string, newFilePath: string, skipReload = false) => {
-      const filePathRelativeToProjectDir = cleanFilePath(oldFilePath);
-      const foundPipeline = pipelines.find(
-        (pipeline) => pipeline.path === filePathRelativeToProjectDir
-      );
-      const session = foundPipeline
-        ? getSession({ pipelineUuid: foundPipeline.uuid, projectUuid })
-        : null;
+      const [isSafeToProceed] = await checkSessionForMovingPipelineFiles([
+        oldFilePath,
+      ]);
 
-      if (session) {
-        setConfirm(
-          "Warning",
-          <>
-            {`Before renaming `}
-            <Code>{cleanFilePath(oldFilePath, "Project files/")}</Code>
-            {` , you need to stop its session. Do you want to continue?`}
-          </>,
-          {
-            confirmLabel: "Stop session",
-            onConfirm: async (resolve) => {
-              toggleSession(session);
-              resolve(true);
-              return true;
-            },
-          }
-        );
-        return;
-      }
+      if (!isSafeToProceed) return;
+
+      const filePathRelativeToProjectDir = cleanFilePath(oldFilePath);
+      const foundPipeline = pipelineDics[filePathRelativeToProjectDir];
 
       await handleChangeFilePath({
         oldFilePath,
@@ -325,37 +400,38 @@ export const FileTree = React.memo(function FileTreeComponent({
       }
     },
     [
-      setConfirm,
       dispatch,
       pipelineUuid,
+      pipelineDics,
       handleChangeFilePath,
-      pipelines,
-      projectUuid,
-      getSession,
-      toggleSession,
+      checkSessionForMovingPipelineFiles,
     ]
   );
 
   const moveFiles = React.useCallback(
-    (deducedPaths: [string, string][]) => {
+    async (deducedPaths: [string, string][]) => {
       const [sourcePath, targetPath] = deducedPaths[0];
+
+      const [isSafeToProceed] = await checkSessionForMovingPipelineFiles(
+        deducedPaths.map((paths) => paths[0]) // only check sourcePath
+      );
+
+      if (!isSafeToProceed) return;
+
       let targetDescription = generateTargetDescription(targetPath);
-      const confirmMessage =
-        dragFiles.length > 1 ? (
-          <>
-            {`Do you want move `}
-            {dragFiles.length}
-            {` files to `}
-            {targetDescription} ?
-          </>
-        ) : (
-          <>
-            {`Do you want move `}
+
+      const confirmMessage = (
+        <>
+          {`Do you want move `}
+          {dragFiles.length > 1 ? (
+            `${dragFiles.length} files`
+          ) : (
             <Code>{baseNameFromPath(sourcePath)}</Code>
-            {` to `}
-            {targetDescription} ?
-          </>
-        );
+          )}
+          {` to `}
+          {targetDescription} ?
+        </>
+      );
 
       setConfirm("Warning", confirmMessage, async (resolve) => {
         await Promise.all(
@@ -396,6 +472,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       pipelines,
       reload,
       setConfirm,
+      checkSessionForMovingPipelineFiles,
     ]
   );
 
