@@ -766,7 +766,7 @@ def _update() -> None:
     injected_env_vars = {}
     injected_env_vars.update(utils.get_celery_parallelism_level_from_config())
     host_names = k8sw.get_host_names()
-    if host_names:
+    if host_names and host_names[0] is not None:
         injected_env_vars["ORCHEST_FQDN"] = host_names[0]
 
     registry_storage_class = k8sw.get_registry_storage_class()
