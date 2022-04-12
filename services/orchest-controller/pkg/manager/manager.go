@@ -11,26 +11,31 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+type ManagerConfig struct {
+	InCluster bool
+}
+
 // Manager encapsulates creating kubernetes controller manager.
 type Manager struct {
-	scheme    *runtime.Scheme
-	config    *rest.Config
-	mgr       ctrl.Manager
-	deployDir string
+	mgr              ctrl.Manager
+	scheme           *runtime.Scheme
+	k8sconfig        *rest.Config
+	reconcilerConfig *orchestcluster.ReconcilerConfig
 }
 
 // NewManager returns *NewManager.
-func NewManager(inCluster bool, deployDir string) (*Manager, error) {
+func NewManager(mgrConfig *ManagerConfig,
+	reconcilerConfig *orchestcluster.ReconcilerConfig) (*Manager, error) {
 
 	scheme := runtime.NewScheme()
 	orchestv1alpha1.AddToScheme(scheme)
 
 	clientgoscheme.AddToScheme(scheme)
 
-	config := utils.GetClientConfig(inCluster)
+	k8sconfig := utils.GetClientConfig(mgrConfig.InCluster)
 
 	mgr, err := ctrl.NewManager(
-		config, ctrl.Options{
+		k8sconfig, ctrl.Options{
 			Scheme: scheme,
 		})
 
@@ -39,10 +44,10 @@ func NewManager(inCluster bool, deployDir string) (*Manager, error) {
 	}
 
 	return &Manager{
-		scheme:    scheme,
-		config:    config,
-		deployDir: deployDir,
-		mgr:       mgr,
+		scheme:           scheme,
+		k8sconfig:        k8sconfig,
+		reconcilerConfig: reconcilerConfig,
+		mgr:              mgr,
 	}, nil
 
 }
@@ -50,7 +55,7 @@ func NewManager(inCluster bool, deployDir string) (*Manager, error) {
 // Run the operator instance.
 func (m *Manager) Run() error {
 
-	reconciler := orchestcluster.NewOrchestClusterReconciler(m.mgr, m.deployDir)
+	reconciler := orchestcluster.NewOrchestClusterReconciler(m.mgr, m.reconcilerConfig)
 
 	if err := ctrl.NewControllerManagedBy(m.mgr).
 		For(&orchestv1alpha1.OrchestCluster{}).
