@@ -118,12 +118,17 @@ def run_registry_garbage_collection() -> None:
     https://github.com/distribution/distribution/issues/1803, this
     makes it possible to run GC without having to restart the registry
     to clean the cache.
+
+    This function should be called only when having the certainty that
+    no images are being pushed to the registry to avoid race conditions.
+    This is currently accomplished by calling it from a celery task part
+    of the "builds" queue.
     """
     pods = k8s_core_api.list_namespaced_pod(
         _config.ORCHEST_NAMESPACE, label_selector="app=docker-registry"
     )
     for pod in pods.items:
-        logger.info(f"Running garbage collection in pod: {pod}.")
+        logger.info(f"Running garbage collection in pod: {pod.metadata.name}.")
         resp = stream.stream(
             k8s_core_api.connect_get_namespaced_pod_exec,
             pod.metadata.name,
@@ -139,4 +144,4 @@ def run_registry_garbage_collection() -> None:
             stdout=True,
             tty=False,
         )
-        logger.debug(str(resp))
+        logger.info(str(resp))

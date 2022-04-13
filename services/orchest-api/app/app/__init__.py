@@ -42,7 +42,13 @@ from app.models import (
 from config import CONFIG_CLASS
 
 
-def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db=False):
+def create_app(
+    config_class=None,
+    use_db=True,
+    be_scheduler=False,
+    to_migrate_db=False,
+    register_api=True,
+):
     """Create the Flask app and return it.
 
     Args:
@@ -59,6 +65,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             scheduler.
         to_migrate_db: If True, then only initialize the DB so that the
             DB can be migrated.
+        register_api: If api endpoints should be registered.
 
     Returns:
         Flask.app
@@ -131,10 +138,11 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             with app.app_context():
                 trigger_conditional_jupyter_image_build(app)
 
-    # Register blueprints at the end to avoid issues when migrating the
-    # DB. When registering a blueprint the DB schema is also registered
-    # and so the DB migration should happen before it..
-    app.register_blueprint(api, url_prefix="/api")
+    if register_api:
+        # Register blueprints at the end to avoid issues when migrating
+        # the DB. When registering a blueprint the DB schema is also
+        # registered and so the DB migration should happen before it..
+        app.register_blueprint(api, url_prefix="/api")
 
     return app
 
@@ -257,7 +265,9 @@ def register_teardown_request(app):
 
 
 def cleanup():
-    app = create_app(config_class=CONFIG_CLASS, use_db=True, be_scheduler=False)
+    app = create_app(
+        config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
+    )
 
     with app.app_context():
         app.logger.info("Starting app cleanup.")

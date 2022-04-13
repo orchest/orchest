@@ -10,11 +10,14 @@ from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
+import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
+from app import errors as self_errors
 from app.celery_app import make_celery
-from app.connections import k8s_custom_obj_api
+from app.connections import db, k8s_custom_obj_api
+from app.core import registry
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
@@ -28,7 +31,8 @@ logger = get_task_logger(__name__)
 # databases) is called twice, which means celery-worker needs the
 # /userdir bind to access the DB which is probably not a good idea.
 # create_all should only be called once per app right?
-celery = make_celery(create_app(CONFIG_CLASS, use_db=False), use_backend_db=True)
+application = create_app(CONFIG_CLASS, use_db=True, register_api=False)
+celery = make_celery(application, use_backend_db=True)
 
 
 # This will not work yet, because Celery does not yet support asyncio
@@ -284,3 +288,37 @@ def delete_job_pipeline_run_directories(
         shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
 
     return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def registry_garbage_collection(self) -> None:
+    """Runs the registry garbage collection task.
+
+    Images that are to be removed are removed from the registry and
+    registry garbage collection is run if necessary.
+    """
+    with application.app_context():
+        imgs_to_delete_from_registry = (
+            models.ImageToBeDeletedFromTheRegistry.query.all()
+        )
+
+        # Delete images from the registry.
+        img_deleted_from_registry_ids = []
+        for img in imgs_to_delete_from_registry:
+            try:
+                registry.delete_image_by_digest(
+                    img.name.split(":")[0], img.digest, run_garbage_collection=False
+                )
+            except self_errors.ImageRegistryDeletionError as e:
+                logger.warning(e)
+            else:
+                img_deleted_from_registry_ids.append(img.id)
+
+        models.ImageToBeDeletedFromTheRegistry.query.filter(
+            models.ImageToBeDeletedFromTheRegistry.id.in_(img_deleted_from_registry_ids)
+        ).delete()
+
+        if img_deleted_from_registry_ids:
+            registry.run_registry_garbage_collection()
+        db.session.commit()
+        return "SUCCESS"

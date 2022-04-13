@@ -71,6 +71,7 @@ class Config:
         "app.core.tasks.run_pipeline": {"queue": "celery"},
         "app.core.tasks.build_environment_image": {"queue": "builds"},
         "app.core.tasks.build_jupyter_image": {"queue": "builds"},
+        "app.core.tasks.registry_garbage_collection": {"queue": "builds"},
     }
 
 

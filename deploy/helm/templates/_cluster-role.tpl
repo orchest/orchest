@@ -28,6 +28,7 @@ rules:
       - pods
       - pods/log
       - pods/attach
+      - pods/exec
       - roles
       - serviceaccounts
       - rolebindings
