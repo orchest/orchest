@@ -903,8 +903,8 @@ def register_views(app, db):
                     jsonify(
                         {
                             "success": False,
-                            "reason": ".orchest file doesn't exist at location %s"
-                            % pipeline_json_path,
+                            "reason": ".orchest file doesn't exist at location "
+                            + pipeline_json_path,
                         }
                     ),
                     404,
