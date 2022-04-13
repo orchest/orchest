@@ -112,28 +112,28 @@ func (d *OrchestDeployer) InstallIfChanged(ctx context.Context, namespace string
 		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
 	}
 
-	// Rbbitmq has to be deployed next
+	// Rabbitmq has to be deployed next
 	err = d.deployRabbitMq(ctx, orchest)
 	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
+		return errors.Wrapf(err, "failed to create %s deployment", rabbitmqName)
 	}
 
 	// celery-worker has to be deployed next
 	err = d.deployCeleryWorker(ctx, orchest)
 	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
+		return errors.Wrapf(err, "failed to create %s deployment", celeryWorkerName)
 	}
 
 	// deploying auth-server
 	err = d.deployAuthServer(ctx, orchest)
 	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
+		return errors.Wrapf(err, "failed to create %s deployment", authServerName)
 	}
 
 	// The next component would orchest-api
 	err = d.deployOrchestApi(ctx, orchest)
 	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create %s deployment", orchestDBName)
+		return errors.Wrapf(err, "failed to create %s deployment", orchestApiName)
 	}
 
 	return nil
