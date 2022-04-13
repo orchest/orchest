@@ -98,6 +98,7 @@ export const FileManagerLocalContextProvider: React.FC<{
   const { setConfirm } = useAppContext();
   const {
     state: { pipelines = [] },
+    fetchPipelines,
   } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
@@ -226,7 +227,12 @@ export const FileManagerLocalContextProvider: React.FC<{
             deleteFetch(projectUuid, combinedPath)
           )
         );
+        // Send a GET request for file dicovery
+        // to ensure that the pipeline is removed from DB.
+        // It's not needed to await it because we don't use the response
+        fetchPipelines();
 
+        // Clean up `state.pipelines` is still needed.
         const pipelinePaths = pathsThatContainsPipelineFiles.map(({ path }) =>
           path.replace(/^\//, "")
         );
@@ -277,6 +283,7 @@ export const FileManagerLocalContextProvider: React.FC<{
     pipeline?.path,
     navigateTo,
     dispatch,
+    fetchPipelines,
   ]);
 
   const handleDownload = React.useCallback(() => {

@@ -350,8 +350,8 @@ export function cleanServerDateTime(dateTimeString) {
 }
 
 export function getPipelineJSONEndpoint(
-  pipeline_uuid: string,
-  project_uuid: string,
+  pipeline_uuid: string | undefined,
+  project_uuid: string | undefined,
   job_uuid?: string | null,
   pipeline_run_uuid?: string | null
 ) {

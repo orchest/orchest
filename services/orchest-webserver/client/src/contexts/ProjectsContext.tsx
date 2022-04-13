@@ -1,6 +1,7 @@
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
 import type { PipelineMetaData, Project } from "@/types";
 import React from "react";
+import { KeyedMutator } from "swr";
 
 export const ProjectsContext = React.createContext<IProjectsContext>(null);
 
@@ -60,6 +61,7 @@ export interface IProjectsContextState {
 export interface IProjectsContext {
   state: IProjectsContextState;
   dispatch: (value: ProjectsContextAction) => void;
+  fetchPipelines: KeyedMutator<PipelineMetaData[]>;
 }
 
 const reducer = (
@@ -147,21 +149,25 @@ const initialState: IProjectsContextState = {
 export const ProjectsContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
-  const { pipelines, isFetchingPipelines, error } = useFetchPipelines(
-    state.projectUuid
-  );
+  const {
+    pipelines,
+    isFetchingPipelines,
+    error,
+    fetchPipelines,
+  } = useFetchPipelines(state.projectUuid);
 
   React.useEffect(() => {
-    if (!state.pipelines && !isFetchingPipelines && !error && pipelines) {
+    if (!isFetchingPipelines && !error && pipelines) {
       dispatch({ type: "LOAD_PIPELINES", payload: pipelines });
     }
-  }, [dispatch, state.pipelines, pipelines, isFetchingPipelines, error]);
+  }, [dispatch, pipelines, isFetchingPipelines, error]);
 
   return (
     <ProjectsContext.Provider
       value={{
         state,
         dispatch,
+        fetchPipelines,
       }}
     >
       {children}

@@ -48,7 +48,9 @@ export const TreeItem = ({
   sx: SxProps<Theme>;
 }) => {
   const { setIsDragging, setDragFile } = useFileManagerContext();
-  const { pipelines = [] } = useProjectsContext();
+  const {
+    state: { pipelines = [] },
+  } = useProjectsContext();
   const { projectUuid } = useCustomRoute();
   const { setConfirm } = useAppContext();
   const { getSession, toggleSession } = useSessionsContext();

@@ -343,6 +343,8 @@ def register_views(app, db):
                 current_app.logger.error("Failed to read setup_script %s" % fnf_error)
                 return ""
 
+    # Deprecated: With the new FileManager, this endpoint is no longer
+    # used by FE.
     @app.route(
         "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
     )
