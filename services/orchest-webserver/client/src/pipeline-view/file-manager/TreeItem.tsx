@@ -1,6 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
@@ -46,7 +47,8 @@ export const TreeItem = ({
   labelText: string;
   sx: SxProps<Theme>;
 }) => {
-  const { setIsDragging, setDragFile, pipelines } = useFileManagerContext();
+  const { setIsDragging, setDragFile } = useFileManagerContext();
+  const { pipelines = [] } = useProjectsContext();
   const { projectUuid } = useCustomRoute();
   const { setConfirm } = useAppContext();
   const { getSession, toggleSession } = useSessionsContext();
