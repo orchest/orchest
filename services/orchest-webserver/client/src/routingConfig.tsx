@@ -248,7 +248,7 @@ export const withinProjectPaths = getOrderedRoutes().reduce<
   // i.e. if the context involves multiple projects, it should be excluded
   if (
     projectRootPaths.includes(curr.path) ||
-    projectRootPaths.includes(curr.root) ||
+    projectRootPaths.includes(curr.root || "") ||
     curr.path === "/project"
     // projectsPaths.includes(curr.path)
   ) {
@@ -270,7 +270,7 @@ const snakeCase = (str: string, divider = "_") =>
     .toLowerCase();
 
 export const toQueryString = <T extends string>(
-  query: Record<T, string | number | boolean | undefined | null>
+  query: Record<T, string | number | boolean | undefined | null> | null
 ) => {
   const isObject =
     typeof query === "object" &&

@@ -105,7 +105,7 @@ export interface IOrchestSessionUuid {
 
 export interface IOrchestSession extends IOrchestSessionUuid {
   status?: "RUNNING" | "LAUNCHING" | "STOPPING";
-  base_url: string;
+  base_url?: string;
   user_services?: {
     [key: string]: {
       name: string;
@@ -236,6 +236,7 @@ export type Job = {
     uuid: string;
     steps: Record<string, Step>;
     version: string;
+    services: Record<string, Service>;
   };
   next_scheduled_time: string;
   last_scheduled_time: string;

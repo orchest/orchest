@@ -11,10 +11,10 @@ import { useHistory, useLocation } from "react-router-dom";
 // console.log(mobile); // 0612345678
 // console.log(isReadOnly); // true
 const useLocationState = <T>(stateNames: string[]) => {
-  const location = useLocation();
-  return (stateNames.map((stateName) =>
+  const location = useLocation<{ state: Record<string, T> }>();
+  return stateNames.map((stateName) =>
     location.state ? location.state[stateName] : null
-  ) as unknown) as T;
+  );
 };
 
 // see https://reactrouter.com/web/example/query-parameters
@@ -44,20 +44,21 @@ const useHistoryListener = <T>({
   backward,
   onPush,
 }: {
-  forward?: (history) => void;
-  backward?: (history) => void;
-  onPush?: (history) => void;
+  forward?: (history: unknown) => void;
+  backward?: (history: unknown) => void;
+  onPush?: (history: unknown) => void;
 }) => {
   const history = useHistory<T>();
-  const locationKeysRef = React.useRef([]);
+  const locationKeysRef = React.useRef<string[]>([]);
   React.useEffect(() => {
     const removeListener = history.listen((location) => {
+      const locationKey = location.key || "";
       if (history.action === "PUSH") {
-        locationKeysRef.current = [location.key];
+        locationKeysRef.current = [locationKey];
         onPush && onPush(history);
       }
       if (history.action === "POP") {
-        const isForward = locationKeysRef.current[1] === location.key;
+        const isForward = locationKeysRef.current[1] === locationKey;
         if (isForward) {
           forward && forward(history);
         } else {
@@ -66,9 +67,9 @@ const useHistoryListener = <T>({
 
         // update location keys
         locationKeysRef.current =
-          locationKeysRef.current[1] === location.key
+          locationKeysRef.current[1] === locationKey
             ? locationKeysRef.current.slice(1)
-            : [location.key, ...locationKeysRef.current];
+            : [locationKey, ...locationKeysRef.current];
       }
     });
     return removeListener;
@@ -105,7 +106,7 @@ const useCustomRoute = () => {
   ] = valueArray as (string | undefined | null)[]; // asserting all values are string
 
   type NavigateParams = {
-    query?: Record<string, string | number | boolean>;
+    query?: Record<string, string | number | boolean | undefined | null>;
     state?: Record<string, string | number | boolean | undefined | null>;
   };
 

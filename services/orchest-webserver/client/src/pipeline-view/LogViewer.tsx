@@ -13,15 +13,17 @@ export interface ILogViewerProps {
   sio: SocketIO;
   pipelineUuid: string;
   projectUuid: string;
-  jobUuid: string;
-  runUuid: string;
+  jobUuid: string | undefined | null;
+  runUuid: string | undefined | null;
   type: LogType;
   logId: string;
 }
 
 const LogViewer: React.FC<ILogViewerProps> = (props) => {
-  const [sessionUuid, setSessionUuid] = React.useState(null);
-  const [heartbeatInterval, setHeartbeatInterval] = React.useState(null);
+  const [sessionUuid, setSessionUuid] = React.useState<string | null>(null);
+  const [heartbeatInterval, setHeartbeatInterval] = React.useState<
+    number | null
+  >(null);
 
   const [refManager] = React.useState(new RefManager());
   const [fitAddon] = React.useState(new FitAddon());

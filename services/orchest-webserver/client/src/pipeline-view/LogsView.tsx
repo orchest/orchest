@@ -6,6 +6,7 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type {
+  Job,
   LogType,
   PipelineJson,
   PipelineStepState,
@@ -37,6 +38,7 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import io from "socket.io-client";
+import { SocketIO } from "./hooks/useSocketIO";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -73,6 +75,8 @@ const LogsView: React.FC = () => {
     navigateTo,
   } = useCustomRoute();
 
+  const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
+
   const { getSession } = useSessionsContext();
 
   const isJobRun = hasValue(jobUuid && runUuid);
@@ -82,17 +86,18 @@ const LogsView: React.FC = () => {
   const [selectedLog, setSelectedLog] = React.useState<{
     type: LogType;
     logId: string;
-  }>(null);
-  const [sortedSteps, setSortedSteps] = React.useState<PipelineStepState[]>(
-    undefined
-  );
-  const [sio, setSio] = React.useState(undefined);
-  const [job, setJob] = React.useState(undefined);
+  } | null>(null);
+  const [sortedSteps, setSortedSteps] = React.useState<
+    PipelineStepState[] | undefined
+  >(undefined);
+  const [sio, setSio] = React.useState<SocketIO | undefined>(undefined);
+  const [job, setJob] = React.useState<Job | undefined>(undefined);
 
   // Conditional fetch session
-  let session = !jobUuid
-    ? getSession({ pipelineUuid, projectUuid })
-    : undefined;
+  let session =
+    !jobUuid && hasValue(projectUuid) && hasValue(pipelineUuid)
+      ? getSession({ projectUuid, pipelineUuid })
+      : undefined;
 
   React.useEffect(() => {
     connectSocketIO();
@@ -124,23 +129,23 @@ const LogsView: React.FC = () => {
   };
 
   const topologicalSort = (pipelineSteps: Record<string, Step>) => {
-    let sortedStepKeys = [];
+    let sortedStepKeys: string[] = [];
 
     const mutatedPipelineSteps = addOutgoingConnections(
       pipelineSteps as StepsDict
     );
 
     let conditionalAdd = (step: PipelineStepState) => {
-      // add iff all parents are already in the sortedStepKeys
+      // add if all parents are already in the sortedStepKeys
       let parentsAdded = true;
-      for (let x = 0; x < step.incoming_connections.length; x++) {
-        if (sortedStepKeys.indexOf(step.incoming_connections[x]) === -1) {
+      for (let connection of step.incoming_connections) {
+        if (!sortedStepKeys.includes(connection)) {
           parentsAdded = false;
           break;
         }
       }
 
-      if (sortedStepKeys.indexOf(step.uuid) == -1 && parentsAdded) {
+      if (!sortedStepKeys.includes(step.uuid) && parentsAdded) {
         sortedStepKeys.push(step.uuid);
       }
     };
@@ -149,16 +154,16 @@ const LogsView: React.FC = () => {
     let addSelfAndChildren = (step: PipelineStepState) => {
       conditionalAdd(step);
 
-      for (let x = 0; x < step.outgoing_connections.length; x++) {
-        let childStepUUID = step.outgoing_connections[x];
+      step.outgoing_connections = step.outgoing_connections || ([] as string[]);
+
+      for (let childStepUUID of step.outgoing_connections) {
         let childStep = mutatedPipelineSteps[childStepUUID];
 
         conditionalAdd(childStep);
       }
 
       // Recurse down
-      for (let x = 0; x < step.outgoing_connections.length; x++) {
-        let childStepUUID = step.outgoing_connections[x];
+      for (let childStepUUID of step.outgoing_connections) {
         addSelfAndChildren(mutatedPipelineSteps[childStepUUID]);
       }
     };
@@ -175,6 +180,9 @@ const LogsView: React.FC = () => {
   };
 
   const fetchPipelineJson = () => {
+    if (!isQueryArgsComplete)
+      return Promise.reject("projectUUid or pipelineUuid is missing");
+
     let pipelineJSONEndpoint = getPipelineJSONEndpoint(
       pipelineUuid,
       projectUuid,
@@ -218,14 +226,15 @@ const LogsView: React.FC = () => {
   };
 
   const close = () => {
-    navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
-      query: {
-        projectUuid,
-        pipelineUuid,
-        jobUuid,
-        runUuid,
-      },
-    });
+    if (isQueryArgsComplete)
+      navigateTo(isJobRun ? siteMap.jobRun.path : siteMap.pipeline.path, {
+        query: {
+          projectUuid,
+          pipelineUuid,
+          jobUuid,
+          runUuid,
+        },
+      });
   };
 
   const onClickLog = (uuid: string, type: LogType) => {
@@ -264,7 +273,7 @@ const LogsView: React.FC = () => {
         if (Object.keys(services).length > 0) {
           setSelectedLog({
             type: "service",
-            logId: services[Object.keys(services)[0]].name,
+            logId: services[Object.keys(services)[0]].name || "",
           });
         }
       }
@@ -306,7 +315,7 @@ const LogsView: React.FC = () => {
                   <ListItemButton
                     key={sortedStep.uuid}
                     selected={
-                      selectedLog &&
+                      hasValue(selectedLog) &&
                       selectedLog.type === "step" &&
                       selectedLog.logId === sortedStep.uuid
                     }
@@ -355,11 +364,11 @@ const LogsView: React.FC = () => {
                   <ListItemButton
                     key={service.name}
                     selected={
-                      selectedLog &&
+                      hasValue(selectedLog) &&
                       selectedLog.type === "service" &&
                       selectedLog.logId === service.name
                     }
-                    onClick={() => onClickLog(service.name, "service")}
+                    onClick={() => onClickLog(service.name || "", "service")}
                   >
                     <ListItemText
                       primary={service.name}
@@ -371,7 +380,7 @@ const LogsView: React.FC = () => {
             </List>
           </Box>
           <Box sx={{ flex: 1 }}>
-            {selectedLog ? (
+            {isQueryArgsComplete && sio && selectedLog ? (
               <LogViewer
                 key={selectedLog.logId}
                 sio={sio}
