@@ -62,7 +62,7 @@ if [ $code -eq 0 ] && [ ${COMMANDS} = "migrate" ]; then
   kubectl cp \
   "orchest/${pod_name}:/orchest/services/${SERVICE}/app/migrations/versions" \
   "${DIR}/../services/${SERVICE}/app/migrations/versions" \
-  > /dev/null 2>&1
+  > /dev/null
   # Sending cp to /dev/null because of this issue:
   # https://github.com/kubernetes/kubernetes/issues/58692.
 
