@@ -221,6 +221,17 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
     )
 
 
+def get_active_environment_images() -> List[models.EnvironmentImage]:
+    """Gets the list of active environment images (to keep on nodes).
+
+    Assumes that an image that is not marked_for_removal is to be kept
+    on nodes, see _env_images_that_can_be_deleted for details.
+    """
+    return models.EnvironmentImage.query.filter(
+        models.EnvironmentImage.marked_for_removal.is_(False)
+    ).all()
+
+
 def _env_images_that_can_be_deleted(
     project_uuid: Optional[str] = None,
     environment_uuid: Optional[str] = None,
