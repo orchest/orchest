@@ -40,7 +40,6 @@ func (d *OrchestDeployer) getAuthServerManifest(orchest *orchestv1alpha1.Orchest
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: orchestApiName,
 			Volumes: []corev1.Volume{
 				{
 					Name: configDirName,

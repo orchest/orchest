@@ -12,7 +12,7 @@ YQ=$(TOOLS_DIR)/yq-v3
 build:
 	@docker build --rm -t $(TAG) . -f Dockerfile
 
-.SECONDARY: $(CONTROLLER_GEN) 
+.SECONDARY: $(CONTROLLER_GEN)
 $(CONTROLLER_GEN):
 	set -e ;\
 	mkdir -p $(TOOLS_DIR) ;\
@@ -48,8 +48,8 @@ $(YQ):
 .PHONY: crds
 crds: $(CONTROLLER_GEN) $(YQ)
 	@echo Updating CRD manifests
-	$(CONTROLLER_GEN) crd paths=./pkg/apis/... output:dir=.cache  	
-	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy/crds.yaml
+	$(CONTROLLER_GEN) crd paths=./pkg/apis/... output:dir=.cache
+	@$(YQ) read .cache/orchest.io_orchestclusters.yaml >> deploy-controller/crds.yaml
 	@rm -f .cache/orchest.io_orchestclusters.yaml
 
 .PHONY: codegen
