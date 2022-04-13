@@ -8,6 +8,9 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "downlevelIteration": true
+    "noFallthroughCasesInSwitch": true,
+    "downlevelIteration": true,
+    // "strict": true, // TODO: uncomment this.
+    "strictNullChecks": true
   }
 }
