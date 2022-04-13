@@ -42,6 +42,23 @@ export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
 >;
 
+const LogViewerPlaceHolder = () => (
+  <Stack
+    alignItems="center"
+    justifyContent="center"
+    sx={{
+      backgroundColor: (theme) => theme.palette.common.black,
+      width: "100%",
+      height: "100%",
+      color: (theme) => theme.palette.grey[800],
+    }}
+  >
+    <Typography variant="h3" component="span">
+      No logs available
+    </Typography>
+  </Stack>
+);
+
 const LogsView: React.FC = () => {
   // global states
 
@@ -235,6 +252,8 @@ const LogsView: React.FC = () => {
     return filterServices(services, jobUuid ? "noninteractive" : "interactive");
   }, [hasLoaded, job?.pipeline_definition?.services, jobUuid, session]);
 
+  console.log("DEV selectedLog: ", selectedLog);
+
   React.useEffect(() => {
     // Preselect first step, or service (if no step exists)
     if (sortedSteps !== undefined && !selectedLog) {
@@ -252,7 +271,7 @@ const LogsView: React.FC = () => {
         }
       }
     }
-  }, [sortedSteps, session, services]);
+  }, [sortedSteps, selectedLog, session, services]);
 
   return (
     <Layout disablePadding>
@@ -354,7 +373,7 @@ const LogsView: React.FC = () => {
             </List>
           </Box>
           <Box sx={{ flex: 1 }}>
-            {selectedLog && (
+            {selectedLog ? (
               <LogViewer
                 key={selectedLog.logId}
                 sio={sio}
@@ -364,6 +383,8 @@ const LogsView: React.FC = () => {
                 runUuid={runUuid}
                 {...selectedLog}
               />
+            ) : (
+              <LogViewerPlaceHolder />
             )}
           </Box>
           <Box

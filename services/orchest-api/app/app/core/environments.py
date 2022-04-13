@@ -45,9 +45,9 @@ def get_env_uuids_to_image_mappings(
     ]
     if len(envs_missing_image) > 0:
         msg = (
-            "Some referenced environments do not exist in the project. The"
+            "Some referenced environments do not exist in the project. The "
             f"following environments do not exist: {envs_missing_image}.\n\n"
-            "Please make sure all pipeline steps and services are assigned an"
+            "Please make sure all pipeline steps and services are assigned an "
             "environment that exists in the project."
         )
         raise self_errors.ImageNotFound(msg)
