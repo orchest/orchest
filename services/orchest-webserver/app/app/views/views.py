@@ -1114,15 +1114,16 @@ def register_views(app, db):
         if file and allowed_file(file.filename):
             filename = file.filename.split(os.sep)[-1]
             # Trim path for joining (up until this point paths always
-            # start and end with a /)
+            # start and end with a "/")
             path = path[1:]
             dir_path = os.path.join(root_dir_path, path)
             # Create directory if it doesn't exist
             if not os.path.isdir(dir_path):
                 os.makedirs(dir_path, exist_ok=True)
-            file.save(os.path.join(dir_path, filename))
+            file_path = os.path.join(dir_path, filename)
+            file.save(file_path)
 
-        return jsonify({"message": "Success"})
+        return jsonify({"file_path": file_path})
 
     @app.route("/async/file-management/rename", methods=["POST"])
     def filemanager_rename():
