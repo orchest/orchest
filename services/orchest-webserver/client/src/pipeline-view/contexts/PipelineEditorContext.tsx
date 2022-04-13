@@ -11,7 +11,6 @@ import {
   StepsDict,
 } from "@/types";
 import { getOffset } from "@/utils/jquery-replacement";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
 import { getScaleCorrectedPosition } from "../common";
@@ -83,7 +82,6 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     pipelineUuid,
     jobUuid,
     runUuid: runUuidFromRoute,
-    isReadOnly: isReadOnlyFromQueryString,
   } = useCustomRoute();
 
   const disabled = pipelines && pipelines.length === 0;
@@ -142,13 +140,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuidFromRoute
   );
 
-  const isJobRun = hasValue(jobUuid && runUuidFromRoute);
-  const isReadOnly = useIsReadOnly(
-    projectUuid,
-    jobUuid,
-    runUuid,
-    isJobRun || isReadOnlyFromQueryString
-  );
+  const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid);
 
   const {
     pipelineCwd,

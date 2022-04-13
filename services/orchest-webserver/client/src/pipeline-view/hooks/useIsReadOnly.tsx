@@ -6,41 +6,47 @@ import React from "react";
 export const useIsReadOnly = (
   projectUuid: string,
   jobUuid: string,
-  runUuid: string,
-  initialValue: boolean
+  runUuid: string
 ) => {
-  const { dispatch } = useProjectsContext();
+  const {
+    dispatch,
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
   const { requestBuild } = useAppContext();
 
-  const [isReadOnly, setIsReadOnly] = React.useState(initialValue);
-
-  React.useEffect(() => {
-    dispatch({
-      type: "SET_PIPELINE_IS_READONLY",
-      payload: isReadOnly,
-    });
-  }, [dispatch, isReadOnly]);
+  const setIsReadOnly = React.useCallback(
+    (value: boolean) => {
+      dispatch({
+        type: "SET_PIPELINE_IS_READONLY",
+        payload: value,
+      });
+    },
+    [dispatch]
+  );
 
   const hasActiveRun = runUuid && jobUuid;
-  const isNonPipelineRun = !hasActiveRun && isReadOnly;
 
   React.useEffect(() => {
-    if (isNonPipelineRun) {
+    if (hasActiveRun) setIsReadOnly(true);
+  }, [hasActiveRun, setIsReadOnly]);
+
+  React.useEffect(() => {
+    if (!hasActiveRun) {
       // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate(projectUuid);
-      checkGatePromise
+      checkGate(projectUuid)
         .then(() => {
           setIsReadOnly(false);
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
+            setIsReadOnly(true);
             requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
             });
           }
         });
     }
-  }, [isNonPipelineRun, projectUuid, requestBuild, setIsReadOnly]);
+  }, [hasActiveRun, projectUuid, requestBuild, setIsReadOnly]);
 
-  return isReadOnly;
+  return pipelineIsReadOnly;
 };

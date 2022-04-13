@@ -3,7 +3,9 @@ import { PipelineJson, PipelineStepState, Service } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import {
   extensionFromFilename,
+  fetcher,
   hasValue,
+  HEADER,
   makeRequest,
 } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -193,25 +195,20 @@ export function getServiceURLs(
 export function checkGate(project_uuid: string) {
   return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
-    makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
-      type: "json",
-      content: { project_uuid },
-    })
-      .then((response: string) => {
-        try {
-          let json = JSON.parse(response);
-          if (json.validation === "pass") {
-            resolve();
-          } else {
-            reject({ reason: "gate-failed", data: json });
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .catch((error) => {
-        reject({ reason: "request-failed", error: error });
-      });
+    fetcher<{ actions: string[]; validation: "pass" | "fail" }>(
+      `/catch/api-proxy/api/validations/environments`,
+      {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ project_uuid }),
+      }
+    ).then((response) => {
+      if (response.validation === "pass") {
+        resolve();
+      } else {
+        reject({ reason: "gate-failed", data: response });
+      }
+    });
   });
 }
 
