@@ -1,7 +1,7 @@
 package v1alpha1
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -18,27 +18,43 @@ const (
 type OrchestClusterState string
 
 const (
-	StateInitializing      OrchestClusterState = "Initializing"
-	StateDeployingArgo     OrchestClusterState = "DeployingArgo"
-	StateDeployingRegistry OrchestClusterState = "DeployingRegistry"
-	StateRestarting        OrchestClusterState = "Restarting"
-	StateStarting          OrchestClusterState = "Starting"
-	StateStopping          OrchestClusterState = "Stopping"
-	StateStopped           OrchestClusterState = "Stopped"
-	StateUnhealthy         OrchestClusterState = "Unhealthy"
-	StatePending           OrchestClusterState = "Pending"
-	StateDeleting          OrchestClusterState = "Deleting"
-	StateRunning           OrchestClusterState = "Running"
-	StateUpdating          OrchestClusterState = "Updating"
-	StateError             OrchestClusterState = "Error"
+	Initializing        OrchestClusterState = "Initializing"
+	DeployingArgo       OrchestClusterState = "Deploying Argo"
+	DeployingRegistry   OrchestClusterState = "Deploying Registry"
+	DeployingOrchestRsc OrchestClusterState = "Deploying Orchest Resources"
+	DeployingOrchest    OrchestClusterState = "Deploying Orchest"
+	Restarting          OrchestClusterState = "Restarting"
+	Starting            OrchestClusterState = "Starting"
+	Stopping            OrchestClusterState = "Stopping"
+	Stopped             OrchestClusterState = "Stopped"
+	Unhealthy           OrchestClusterState = "Unhealthy"
+	Pending             OrchestClusterState = "Pending"
+	Deleting            OrchestClusterState = "Deleting"
+	Running             OrchestClusterState = "Running"
+	Updating            OrchestClusterState = "Updating"
+	Error               OrchestClusterState = "Error"
 )
+
+type OrchestResourcesSpec struct {
+	// If specified, this components will be deployed provided image
+	UserDirVolumeSize string `json:"userDirvolumeSize,omitempty"`
+
+	// If specified, this components will be deployed provided image
+	ConfigDirVolumeSize string `json:"configDirVolumeSize,omitempty"`
+
+	// If specified, this components will be deployed provided image
+	BuilderCacheDirVolumeSize string `json:"builderCacheDirVolumeSize,omitempty"`
+
+	// The Storage class of user-dir/
+	StorageClassName string `json:"storageClassName,omitempty"`
+}
 
 type OrchestComponent struct {
 	//If specified, this components will be deployed provided image
 	Image string `json:"image,omitempty"`
 
 	// List of environment variables to set in the container.
-	Env []v1.EnvVar `json:"env,omitempty"`
+	Env []corev1.EnvVar `json:"env,omitempty"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
@@ -50,6 +66,11 @@ type OrchestComponent struct {
 type OrchestSpec struct {
 	Registry   string `json:"registry,omitempty"`
 	DefaultTag string `json:"defaultTag,omitempty"`
+
+	Env []corev1.EnvVar `json:"env,omitempty"`
+
+	// orchest resources spec, such as user-dir volume size and storage class
+	Resources OrchestResourcesSpec `json:"resources,omitempty"`
 
 	// If specified, orchest-api for this cluster will be deployed with this configuration
 	OrchestApi OrchestComponent `json:"orchestApi,omitempty"`
@@ -69,20 +90,30 @@ type OrchestSpec struct {
 
 // RegistrySpec describes the attributes of docker-registry which will be used by step containers.
 type DockerRegistrySpec struct {
-	Image string `json:"image,omitempty"`
+	Name string `json:"image,omitempty" helm:"fullnameOverride"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
 	// Selector which must match a node's labels for the pod to be scheduled on that node.
 	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	VolumeSize string `json:"volumeSize,omitempty"`
+	VolumeSize string `json:"volumeSize,omitempty" helm:"persistence.size"`
 
-	StorageClass string `json:"storageClass,omitempty"`
+	StorageClass string `json:"storageClass,omitempty" helm:"persistence.storageClass"`
 }
 
 // PostgresSpec describes the attributes of postgres which will be used by orchest components.
 type PostgresSpec struct {
+	Image string `json:"image,omitempty"`
+
+	// NodeSelector is a selector which must be true for the pod to fit on a node.
+	// Selector which must match a node's labels for the pod to be scheduled on that node.
+	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+}
+
+// RabbitMq describes the attributes of rabbit which will be used by orchest components.
+type RabbitMQSpec struct {
 	Image string `json:"image,omitempty"`
 
 	// NodeSelector is a selector which must be true for the pod to fit on a node.
@@ -108,6 +139,8 @@ type OrchestClusterSpec struct {
 	Registry DockerRegistrySpec `json:"registry,omitempty"`
 
 	Postgres PostgresSpec `json:"postgres,omitempty"`
+
+	RabbitMq RabbitMQSpec `json:"rabbitMq,omitempty"`
 }
 
 // OrchestClusterStatus defines the status of OrchestCluster

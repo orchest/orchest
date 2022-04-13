@@ -5,14 +5,42 @@ import (
 	"context"
 	"encoding/json"
 	"os/exec"
+	"reflect"
 
 	"github.com/pkg/errors"
 	"k8s.io/klog/v2"
 )
 
-type Json map[string]interface{}
+type Values map[string]interface{}
 
-func GetReleaseConfig(ctx context.Context, name, namespace string) (Json, error) {
+func structToValues(valuesStruct interface{}) Values {
+
+	values := Values{}
+	if valuesStruct == nil {
+		return values
+	}
+	v := reflect.TypeOf(valuesStruct)
+	reflectValue := reflect.ValueOf(valuesStruct)
+	reflectValue = reflect.Indirect(reflectValue)
+
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	for i := 0; i < v.NumField(); i++ {
+		tag := v.Field(i).Tag.Get("helm")
+		field := reflectValue.Field(i).Interface()
+		if tag != "" && tag != "-" {
+			if v.Field(i).Type.Kind() == reflect.Struct {
+				values[tag] = structToValues(field)
+			} else {
+				values[tag] = field
+			}
+		}
+	}
+	return values
+}
+
+func GetReleaseConfig(ctx context.Context, name, namespace string) (Values, error) {
 
 	klog.V(2).Infof("Attempting to get the status of release: %s, namespace: %s", name, namespace)
 
@@ -46,7 +74,6 @@ func GetReleaseConfig(ctx context.Context, name, namespace string) (Json, error)
 
 func DeployRelease(ctx context.Context, args []string) error {
 
-	return nil
 	cmd := exec.CommandContext(ctx, "helm", args...)
 
 	stdout := &bytes.Buffer{}
@@ -60,4 +87,29 @@ func DeployRelease(ctx context.Context, args []string) error {
 	}
 
 	return err
+}
+
+func RemoveRelease(ctx context.Context, name, namespace string) error {
+
+	klog.V(2).Infof("Attempting to remove the release: %s, namespace: %s", name, namespace)
+
+	args := NewHelmArgBuilder().
+		WithUnInstall().
+		WithName(name).
+		WithNamespace(namespace).
+		WithJsonOutput().Build()
+
+	cmd := exec.CommandContext(ctx, "helm", args...)
+
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
+	err := cmd.Run()
+	_, ok := err.(*exec.ExitError)
+	if ok {
+		return errors.Wrapf(err, "failed to remove helm deployment release: %s, namespace: %s", name, namespace)
+	}
+
+	return nil
 }
