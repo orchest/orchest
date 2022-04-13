@@ -1,3 +1,4 @@
+import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -5,6 +6,8 @@ import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/Routes";
 import { PipelineJson, StepsDict } from "@/types";
+import Box from "@mui/material/Box";
+import Stack from "@mui/material/Stack";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
@@ -28,17 +31,33 @@ export const useInitializePipelineEditor = (
   } = useCustomRoute();
 
   React.useEffect(() => {
-    const foundPipeline = pipelines
-      ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid) ||
-        pipelines[0]
-      : null;
+    const isTryingToFindByUuid = pipelines && pipelineUuid;
+    const foundPipelineByUuid = isTryingToFindByUuid
+      ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
+      : undefined;
 
-    if (foundPipeline && foundPipeline?.uuid !== pipelineUuid) {
+    if (isTryingToFindByUuid && !foundPipelineByUuid) {
+      setAlert(
+        "Pipeline not found",
+        <Stack direction="column" spacing={2}>
+          <Box>
+            {`Pipeline with the given uuid `}
+            <Code>{pipelineUuid}</Code>
+            {` is not found. You might have had a wrong URL, or this pipeline might have been deleted.`}
+          </Box>
+          <Box>Will try to load other pipelines in this project.</Box>
+        </Stack>
+      );
+    }
+
+    const pipelineToOpen = foundPipelineByUuid || pipelines?.find(Boolean);
+
+    if (pipelineToOpen && pipelineToOpen?.uuid !== pipelineUuid) {
       // Navigate to a valid pipelineUuid.
       navigateTo(siteMap.pipeline.path, {
         query: {
           projectUuid: projectUuidFromRoute,
-          pipelineUuid: foundPipeline.uuid,
+          pipelineUuid: pipelineToOpen.uuid,
         },
       });
       return;
@@ -54,6 +73,7 @@ export const useInitializePipelineEditor = (
     }
   }, [
     dispatch,
+    setAlert,
     pipeline?.uuid,
     pipelineUuid,
     pipelines,
