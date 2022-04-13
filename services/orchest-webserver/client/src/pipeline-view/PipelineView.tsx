@@ -1,4 +1,5 @@
 import { Layout } from "@/components/Layout";
+import ProjectBasedView from "@/components/ProjectBasedView";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -17,7 +18,7 @@ const PipelineView = () => {
   useSendAnalyticEvent("view load", { name: siteMap.pipeline.path });
   const { setIsDrawerOpen } = useAppContext();
   const {
-    state: { pipelineIsReadOnly },
+    state: { pipelineIsReadOnly, projectUuid },
   } = useProjectsContext();
 
   React.useEffect(() => {
@@ -29,19 +30,26 @@ const PipelineView = () => {
 
   return (
     <Layout disablePadding>
-      <PipelineEditorContextProvider>
-        <FileManagerContextProvider>
-          <PipelineCanvasContextProvider>
-            <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
-              <MainSidePanel>
-                <FileManager />
-                {!pipelineIsReadOnly && <SessionsPanel />}
-              </MainSidePanel>
-              <PipelineEditor />
-            </Stack>
-          </PipelineCanvasContextProvider>
-        </FileManagerContextProvider>
-      </PipelineEditorContextProvider>
+      {projectUuid ? (
+        <PipelineEditorContextProvider>
+          <FileManagerContextProvider>
+            <PipelineCanvasContextProvider>
+              <Stack direction="row" sx={{ height: "100%", width: "100%" }}>
+                <MainSidePanel>
+                  <FileManager />
+                  {!pipelineIsReadOnly && <SessionsPanel />}
+                </MainSidePanel>
+                <PipelineEditor />
+              </Stack>
+            </PipelineCanvasContextProvider>
+          </FileManagerContextProvider>
+        </PipelineEditorContextProvider>
+      ) : (
+        <ProjectBasedView
+          projectUuid={projectUuid}
+          sx={{ padding: (theme) => (!projectUuid ? theme.spacing(4) : 0) }}
+        />
+      )}
     </Layout>
   );
 };
