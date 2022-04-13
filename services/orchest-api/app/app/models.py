@@ -237,6 +237,27 @@ class EnvironmentImage(BaseModel):
         Index(None, "project_uuid", "environment_uuid", tag.desc()),
     )
 
+    sessions_using_image = db.relationship(
+        "InteractiveSessionInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    jobs_using_image = db.relationship(
+        "JobInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    runs_using_image = db.relationship(
+        "PipelineRunInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
     def __repr__(self):
         return (
             "<EnvironmentImage: "

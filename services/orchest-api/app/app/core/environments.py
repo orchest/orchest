@@ -1,11 +1,15 @@
-from typing import Dict, List, Set
+from typing import Dict, List, Optional, Set
 
-from sqlalchemy import desc
+from sqlalchemy import desc, func, tuple_
 
 import app.models as models
 from _orchest.internals import config as _config
 from app import errors as self_errors
+from app import utils
 from app.connections import db
+from app.core import registry
+
+logger = utils.get_logger()
 
 
 def get_env_uuids_to_image_mappings(
@@ -215,3 +219,162 @@ def is_environment_in_use(project_uuid: str, env_uuid: str) -> bool:
         or len(interactive_runs_using_environment(project_uuid, env_uuid)) > 0
         or len(jobs_using_environment(project_uuid, env_uuid)) > 0
     )
+
+
+def _env_images_that_can_be_deleted(
+    project_uuid: Optional[str] = None,
+    environment_uuid: Optional[str] = None,
+) -> List[models.EnvironmentImage]:
+    """Gets environment images that are not in use and can be deleted.
+
+    An env image to be considered as such needs to respect the following
+    requirements:
+    - not in use by a session, job or pipeline run
+    - not the "latest" image for a given environment, because that would
+        mean that a new session, job or pipeline run could use it
+    - not already marked_for_removal
+    - doesn't share the digest with an image that does not respect point
+        1 or 2. This is because the digest is the real "identity" of the
+        image, meaning that a name:tag actually points to digest, and
+        a digest might be pointed at by different image:tag combinations
+        . The registry doesn't allow deletion by image:tag but by
+        digest, hence the edge case. Essentially, we don't want to
+        delete a digest that is in use.
+
+    Given this, the following query checks for env images which digest
+    is not in the digests that are in use or are considered "latest".
+    When it comes to edge cases (assuming the query is correct):
+    - we don't run the risk of deleting a digest which is in use or
+        latest
+    - we don't run the risk of deleting a digest right after a new
+        "latest" image that uses the same digest has been pushed
+        assuming the task performing the registry deletion runs in the
+        env builds queue, which ensures that no build is taking place
+    - on the nodes, the node-agent is responsible for issuing a
+        deletion to the client, said deletion happens by name:tag, which
+        avoids the risk of deletion unintended images.
+    """
+    # Digests in use.
+    imgs_in_use_by_int_runs = (
+        db.session.query(models.EnvironmentImage.digest)
+        .join(models.PipelineRunInUseImage, models.EnvironmentImage.runs_using_image)
+        .join(
+            models.InteractivePipelineRun,
+            models.InteractivePipelineRun.uuid == models.PipelineRunInUseImage.run_uuid,
+        )
+        .filter(models.InteractivePipelineRun.status.in_(["PENDING", "STARTED"]))
+    )
+    imgs_in_use_by_sessions = (
+        db.session.query(models.EnvironmentImage.digest)
+        .join(
+            models.InteractiveSessionInUseImage,
+            models.EnvironmentImage.sessions_using_image,
+        )
+        .join(
+            models.InteractiveSession,
+            models.InteractiveSession.project_uuid
+            == models.InteractiveSessionInUseImage.project_uuid
+            and models.InteractiveSessionInUseImage.pipeline_uuid
+            == models.InteractiveSessionInUseImage.pipeline_uuid,
+        )
+    )
+    imgs_in_use_by_jobs = (
+        db.session.query(models.EnvironmentImage.digest)
+        .join(models.JobInUseImage, models.EnvironmentImage.jobs_using_image)
+        .join(models.Job, models.Job.uuid == models.JobInUseImage.job_uuid)
+        .filter(models.Job.status.in_(["DRAFT", "PENDING", "STARTED", "PAUSED"]))
+    )
+    imgs_in_use = imgs_in_use_by_int_runs.union(
+        imgs_in_use_by_sessions, imgs_in_use_by_jobs
+    ).subquery()
+
+    # Latest images digests.
+    tag_rank = (
+        func.rank()
+        .over(
+            partition_by=[
+                models.EnvironmentImage.project_uuid,
+                models.EnvironmentImage.environment_uuid,
+            ],
+            order_by=models.EnvironmentImage.tag.desc(),
+        )
+        .label("tag_rank")
+    )
+    latest_imgs = db.session.query(models.EnvironmentImage).add_column(tag_rank)
+    latest_imgs = (
+        latest_imgs.from_self()
+        .filter(tag_rank == 1)
+        .with_entities(models.EnvironmentImage.digest)
+        .subquery()
+    )
+
+    imgs_not_in_use = models.EnvironmentImage.query.filter(
+        models.EnvironmentImage.digest.not_in(imgs_in_use),
+        models.EnvironmentImage.digest.not_in(latest_imgs),
+        # Assume it's already been processed.
+        models.EnvironmentImage.marked_for_removal.is_(False),
+    )
+    if project_uuid:
+        imgs_not_in_use.filter(models.EnvironmentImage.project_uuid == project_uuid)
+    if environment_uuid:
+        imgs_not_in_use.filter(
+            models.EnvironmentImage.environment_uuid == environment_uuid
+        )
+    return imgs_not_in_use.all()
+
+
+def mark_env_images_that_can_be_removed(
+    project_uuid: Optional[str] = None,
+    environment_uuid: Optional[str] = None,
+) -> None:
+    """Marks env images to be removed.
+
+    The EnvironmentImage.marked_for_removal flag is set to True and
+    an entry to the ImageToBeDeletedFromTheRegistry model is added for
+    every image that can be removed. This makes is to that
+    EnvironmentImage records can be safely deleted without the risk of
+    leaving dangling images in the system.
+
+    Note: this function does not commit, it's responsibility of the
+    caller to do so.
+
+    Args:
+        project_uuid: if specified, only env image of this project will
+            be considered.
+        environment_uuid: if specified, only env image of this
+            environment will be considered.
+    """
+    imgs = _env_images_that_can_be_deleted(project_uuid, environment_uuid)
+
+    # Bulk update "marked_for_removal".
+    models.EnvironmentImage.query.filter(
+        tuple_(
+            models.EnvironmentImage.project_uuid,
+            models.EnvironmentImage.environment_uuid,
+            models.EnvironmentImage.tag,
+        ).in_([(img.project_uuid, img.environment_uuid, img.tag) for img in imgs])
+    ).update({"marked_for_removal": True})
+
+    # Bulk insert image deletion outbox records.
+    imgs_to_be_deleted_from_registry = []
+    for img in imgs:
+        repo_name = _config.ENVIRONMENT_IMAGE_NAME.format(
+            project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+        )
+        digest = img.digest
+
+        # Migrate old env images.
+        if digest == "Undefined":
+            digest = registry.get_manifest_digest(
+                _config.ENVIRONMENT_IMAGE_NAME.format(
+                    project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+                ),
+                img.tag,
+            )
+        imgs_to_be_deleted_from_registry.append(
+            models.ImageToBeDeletedFromTheRegistry(
+                name=f"{repo_name}:{img.tag}", digest=digest
+            )
+        )
+
+    db.session.bulk_save_objects(imgs_to_be_deleted_from_registry)
