@@ -34,7 +34,7 @@ while getopts "s:i:t:no:vem" opt; do
       # Build minimal set of images.
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
-      SKIP_IMGS+=("base-kernel-r") 
+      SKIP_IMGS+=("base-kernel-r")
       SKIP_IMGS+=("update-sidecar")
       ;;
     t)
@@ -208,7 +208,7 @@ function cleanup() {
     if ! [ -z "$JUPYTER_USER_IMAGES" ]; then
         docker rmi $JUPYTER_USER_IMAGES >/dev/null
     fi
-    
+
 }
 
 trap cleanup SIGINT

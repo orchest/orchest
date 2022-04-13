@@ -12,7 +12,6 @@ ENV GO111MODULE on
 WORKDIR /go/src/github.com/orchest/orchest/services/orchest-controller
 ADD . .
 
-
 RUN	CGO_ENABLED=0 GOOS=linux go build -a -o bin/controller ./cmd/controller
 ########################################################################################################################
 # Final stage
