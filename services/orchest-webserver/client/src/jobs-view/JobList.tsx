@@ -133,10 +133,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
   }, []);
 
   const pipelines = useFetchPipelinesOnCreateJob({
-    projectUuid,
     isCreateDialogOpen,
-    navigateTo,
-    setAlert,
     closeCreateDialog,
   });
 

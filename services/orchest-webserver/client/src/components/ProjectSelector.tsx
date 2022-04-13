@@ -72,10 +72,7 @@ export const ProjectSelector = () => {
       .then((response) => {
         let fetchedProjects: Project[] = JSON.parse(response);
 
-        dispatch({
-          type: "SET_PROJECTS",
-          payload: fetchedProjects,
-        });
+        dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
       })
       .catch((error) => console.log(error));
   };

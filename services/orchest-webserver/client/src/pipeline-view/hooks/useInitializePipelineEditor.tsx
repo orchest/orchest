@@ -8,7 +8,7 @@ import { siteMap } from "@/Routes";
 import { PipelineJson, StepsDict } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { uuidv4 } from "@orchest/lib-utils";
+import { hasValue, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
 import { extractStepsFromPipelineJson } from "../common";
@@ -19,7 +19,12 @@ export const useInitializePipelineEditor = (
   initializeEventVars: (steps: StepsDict) => void
 ) => {
   const {
-    state: { pipelines, pipeline, projectUuid },
+    state: {
+      pipelines,
+      pipeline,
+      projectUuid,
+      hasLoadedPipelinesInPipelineEditor,
+    },
     dispatch,
   } = useProjectsContext();
   const { setAlert } = useAppContext();
@@ -30,13 +35,23 @@ export const useInitializePipelineEditor = (
     jobUuid,
   } = useCustomRoute();
 
-  React.useEffect(() => {
-    const isTryingToFindByUuid = pipelines && pipelineUuid;
-    const foundPipelineByUuid = isTryingToFindByUuid
-      ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
-      : undefined;
+  const isTryingToFindByUuid = hasValue(pipelines && pipelineUuid);
+  const foundPipelineByUuid = React.useMemo(
+    () =>
+      isTryingToFindByUuid
+        ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
+        : undefined,
+    [isTryingToFindByUuid, pipelineUuid, pipelines]
+  );
 
-    if (isTryingToFindByUuid && !foundPipelineByUuid) {
+  React.useEffect(() => {
+    // This check should only happens if user enter the URL by hand.
+    // Otherwise, this alert will appear when changing projects.
+    if (
+      !hasLoadedPipelinesInPipelineEditor &&
+      isTryingToFindByUuid &&
+      !foundPipelineByUuid
+    ) {
       setAlert(
         "Pipeline not found",
         <Stack direction="column" spacing={2}>
@@ -49,7 +64,20 @@ export const useInitializePipelineEditor = (
         </Stack>
       );
     }
+    if (pipelines) {
+      dispatch({ type: "SET_HAS_LOADED_PIPELINES", payload: true });
+    }
+  }, [
+    hasLoadedPipelinesInPipelineEditor,
+    pipelines,
+    dispatch,
+    foundPipelineByUuid,
+    isTryingToFindByUuid,
+    pipelineUuid,
+    setAlert,
+  ]);
 
+  React.useEffect(() => {
     const pipelineToOpen = foundPipelineByUuid || pipelines?.find(Boolean);
 
     if (pipelineToOpen && pipelineToOpen?.uuid !== pipelineUuid) {
@@ -73,7 +101,7 @@ export const useInitializePipelineEditor = (
     }
   }, [
     dispatch,
-    setAlert,
+    foundPipelineByUuid,
     pipeline?.uuid,
     pipelineUuid,
     pipelines,

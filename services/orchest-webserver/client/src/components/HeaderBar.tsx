@@ -100,7 +100,7 @@ export const HeaderBar = ({
       }}
     >
       <Toolbar>
-        <Stack direction="row" alignItems="center" sx={{ width: "30%" }}>
+        <Stack direction="row" alignItems="center" sx={{ width: "33%" }}>
           <MuiIconButton
             title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
             onClick={(e) => {
@@ -129,11 +129,16 @@ export const HeaderBar = ({
           direction="column"
           alignItems="center"
           justifyContent="center"
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, maxWidth: "33%" }}
         >
           {isShowingPipelineName && (
             <>
-              <Stack direction="row" alignItems="center">
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="center"
+                sx={{ width: "100%" }}
+              >
                 {pipelineSaveStatus === "saved" ? (
                   <Tooltip title="Pipeline saved">
                     <CheckCircleIcon />
@@ -144,10 +149,10 @@ export const HeaderBar = ({
                 <Typography
                   variant="h6"
                   sx={{
-                    maxWidth: "45vw", // TODO: prevent using vw
                     textOverflow: "ellipsis",
                     overflow: "hidden",
                     whiteSpace: "nowrap",
+                    minWidth: 0,
                     margin: (theme) => theme.spacing(0, 1),
                   }}
                   title={pipeline.name}
@@ -159,10 +164,10 @@ export const HeaderBar = ({
               <Typography
                 variant="caption"
                 sx={{
-                  maxWidth: "45vw", // TODO: prevent using vw
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
+                  minWidth: 0,
                   color: (theme) => theme.palette.grey[700],
                 }}
                 title={pipeline.path}
@@ -177,7 +182,7 @@ export const HeaderBar = ({
           spacing={2}
           direction="row"
           justifyContent="flex-end"
-          sx={{ width: "30%" }}
+          sx={{ width: "33%" }}
         >
           {!matchFilePreview && pipeline && !pipelineIsReadOnly && (
             <SessionToggleButton

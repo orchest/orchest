@@ -161,9 +161,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
 
   const sio = useSocketIO();
 
-  const session = useAutoStartSession({
-    isReadOnly,
-  });
+  const session = useAutoStartSession({ isReadOnly });
 
   React.useEffect(() => {
     const startTracking = (e: MouseEvent) =>

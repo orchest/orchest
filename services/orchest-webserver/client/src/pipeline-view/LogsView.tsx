@@ -252,8 +252,6 @@ const LogsView: React.FC = () => {
     return filterServices(services, jobUuid ? "noninteractive" : "interactive");
   }, [hasLoaded, job?.pipeline_definition?.services, jobUuid, session]);
 
-  console.log("DEV selectedLog: ", selectedLog);
-
   React.useEffect(() => {
     // Preselect first step, or service (if no step exists)
     if (sortedSteps !== undefined && !selectedLog) {

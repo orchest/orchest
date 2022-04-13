@@ -17,6 +17,10 @@ type Action =
         Partial<Omit<PipelineMetaData, "uuid">>;
     }
   | {
+      type: "SET_HAS_LOADED_PIPELINES";
+      payload: boolean;
+    }
+  | {
       type: "SET_PIPELINES";
       payload: PipelineMetaData[];
     }
@@ -51,6 +55,7 @@ export interface IProjectsContextState {
   pipeline?: PipelineMetaData | undefined;
   projects: Project[];
   hasLoadedProjects: boolean;
+  hasLoadedPipelinesInPipelineEditor: boolean;
 }
 export interface IProjectsContext {
   state: IProjectsContextState;
@@ -96,6 +101,9 @@ const reducer = (
     case "LOAD_PIPELINES": {
       return { ...state, pipelines: action.payload };
     }
+    case "SET_HAS_LOADED_PIPELINES": {
+      return { ...state, hasLoadedPipelinesInPipelineEditor: action.payload };
+    }
     case "SET_PIPELINES": {
       const isPipelineRemoved = !action.payload.some(
         (pipeline) => state.pipeline?.path === pipeline.path
@@ -133,6 +141,7 @@ const initialState: IProjectsContextState = {
   pipelines: undefined,
   projects: [],
   hasLoadedProjects: false,
+  hasLoadedPipelinesInPipelineEditor: false,
 };
 
 export const ProjectsContextProvider: React.FC = ({ children }) => {

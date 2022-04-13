@@ -375,7 +375,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         );
       }
     },
-    [onRename, reload, setAlert, projectUuid]
+    [onRename, dispatch, reload, setAlert, projectUuid]
   );
 
   const startRename = React.useCallback(
