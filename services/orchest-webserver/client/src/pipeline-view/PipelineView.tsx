@@ -4,6 +4,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import Stack from "@mui/material/Stack";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { siteMap } from "../Routes";
 import { PipelineCanvasContextProvider } from "./contexts/PipelineCanvasContext";
@@ -29,7 +30,7 @@ const PipelineView = () => {
   }, [setIsDrawerOpen]);
 
   return (
-    <Layout disablePadding>
+    <Layout disablePadding={hasValue(projectUuid)}>
       {projectUuid ? (
         <PipelineEditorContextProvider>
           <FileManagerContextProvider>
@@ -45,10 +46,7 @@ const PipelineView = () => {
           </FileManagerContextProvider>
         </PipelineEditorContextProvider>
       ) : (
-        <ProjectBasedView
-          projectUuid={projectUuid}
-          sx={{ padding: (theme) => (!projectUuid ? theme.spacing(4) : 0) }}
-        />
+        <ProjectBasedView projectUuid={projectUuid} />
       )}
     </Layout>
   );
