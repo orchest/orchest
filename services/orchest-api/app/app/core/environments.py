@@ -236,6 +236,7 @@ def get_active_environment_images() -> List[models.EnvironmentImage]:
 def _env_images_that_can_be_deleted(
     project_uuid: Optional[str] = None,
     environment_uuid: Optional[str] = None,
+    latest_can_be_removed: bool = False,
 ) -> List[models.EnvironmentImage]:
     """Gets environment images that are not in use and can be deleted.
 
@@ -266,6 +267,11 @@ def _env_images_that_can_be_deleted(
         deletion to the client, said deletion happens by name:tag, which
         avoids the risk of deletion unintended images.
     """
+    if latest_can_be_removed and (project_uuid is None or environment_uuid is None):
+        raise ValueError(
+            "'latest_can_be_removed' requires project and env uuid to be passed."
+        )
+
     # Digests in use.
     imgs_in_use_by_int_runs = (
         db.session.query(models.EnvironmentImage.digest)
@@ -301,38 +307,74 @@ def _env_images_that_can_be_deleted(
     ).subquery()
 
     # Latest images digests.
-    tag_rank = (
-        func.rank()
-        .over(
-            partition_by=[
-                models.EnvironmentImage.project_uuid,
-                models.EnvironmentImage.environment_uuid,
-            ],
-            order_by=models.EnvironmentImage.tag.desc(),
+    if not latest_can_be_removed:
+        tag_rank = (
+            func.rank()
+            .over(
+                partition_by=[
+                    models.EnvironmentImage.project_uuid,
+                    models.EnvironmentImage.environment_uuid,
+                ],
+                order_by=models.EnvironmentImage.tag.desc(),
+            )
+            .label("tag_rank")
         )
-        .label("tag_rank")
-    )
-    latest_imgs = db.session.query(models.EnvironmentImage).add_column(tag_rank)
-    latest_imgs = (
-        latest_imgs.from_self()
-        .filter(tag_rank == 1)
-        .with_entities(models.EnvironmentImage.digest)
-        .subquery()
-    )
+        latest_imgs = db.session.query(models.EnvironmentImage).add_column(tag_rank)
+        latest_imgs = (
+            latest_imgs.from_self()
+            .filter(tag_rank == 1)
+            .with_entities(models.EnvironmentImage.digest)
+            .subquery()
+        )
 
     imgs_not_in_use = models.EnvironmentImage.query.filter(
         models.EnvironmentImage.digest.not_in(imgs_in_use),
-        models.EnvironmentImage.digest.not_in(latest_imgs),
         # Assume it's already been processed.
         models.EnvironmentImage.marked_for_removal.is_(False),
     )
+    if not latest_can_be_removed:
+        imgs_not_in_use = imgs_not_in_use.filter(
+            models.EnvironmentImage.digest.not_in(latest_imgs),
+        )
     if project_uuid:
-        imgs_not_in_use.filter(models.EnvironmentImage.project_uuid == project_uuid)
+        imgs_not_in_use = imgs_not_in_use.filter(
+            models.EnvironmentImage.project_uuid == project_uuid
+        )
     if environment_uuid:
-        imgs_not_in_use.filter(
+        imgs_not_in_use = imgs_not_in_use.filter(
             models.EnvironmentImage.environment_uuid == environment_uuid
         )
     return imgs_not_in_use.all()
+
+
+def mark_all_proj_env_images_to_be_removed_on_env_deletion(
+    project_uuid: str, environment_uuid: str
+) -> None:
+    """Marks all env images of a project to be removed.
+
+    Note: this function does not commit, it's responsibility of the
+    caller to do so. Will create a ImageToBeDeletedFromTheRegistry entry
+    for every image that needs to be removed from the registry.
+
+    Helper function that ignores the fact that an image is "latest" when
+    deciding if it should be removed. This function only makes sense to
+    be called when deleting an environment. If the digest is still in
+    use by another image it won't be deleted, but that should not be
+    possible in a real world scenario because it would require an env
+    image from a different environment to have the exact same digest. If
+    that was to happen, the deletion of images would still proceed
+    correctly, since:
+    - on node deletion is handled declaratively and works by name:tag.
+    - registry deletion happens by digest, when the in use image that
+        happens to have the same digest won't be in use anymore the
+        digest will be deleted, causing the deletion of all tags
+        pointing to it.
+    """
+    _mark_env_images_that_can_be_removed(
+        project_uuid=project_uuid,
+        environment_uuid=environment_uuid,
+        latest_can_be_removed=True,
+    )
 
 
 def mark_env_images_that_can_be_removed(
@@ -356,8 +398,33 @@ def mark_env_images_that_can_be_removed(
         environment_uuid: if specified, only env image of this
             environment will be considered.
     """
+    _mark_env_images_that_can_be_removed(
+        project_uuid=project_uuid,
+        environment_uuid=environment_uuid,
+        latest_can_be_removed=False,
+    )
+
+
+def _mark_env_images_that_can_be_removed(
+    project_uuid: Optional[str] = None,
+    environment_uuid: Optional[str] = None,
+    latest_can_be_removed: bool = False,
+) -> None:
+    """
+    Args:
+        project_uuid:
+        environment_uuid:
+        latest_can_be_removed: If True "latest" images for an
+            environment will be considerable as removable. This is only
+            useful when deleting an environment. Be absolutely sure of
+            what you are doing if you set this to True. If this is set
+            to True project_uuid and environment_uuid must be passed as
+            well.
+    """
     logger.info("Marking environment images for removal.")
-    imgs = _env_images_that_can_be_deleted(project_uuid, environment_uuid)
+    imgs = _env_images_that_can_be_deleted(
+        project_uuid, environment_uuid, latest_can_be_removed
+    )
 
     # Bulk update "marked_for_removal".
     models.EnvironmentImage.query.filter(
