@@ -87,6 +87,7 @@ const LogsView: React.FC = () => {
     undefined
   );
   const [sio, setSio] = React.useState(undefined);
+  const [sioConnected, setSioConnected] = React.useState(false);
   const [job, setJob] = React.useState(undefined);
 
   // Conditional fetch session
@@ -104,20 +105,29 @@ const LogsView: React.FC = () => {
 
     return () => {
       promiseManager.cancelCancelablePromises();
-      disconnectSocketIO();
+      setSio((sio) => {
+        disconnectSocketIO(sio);
+        return sio;
+      });
     };
   }, []);
 
   const connectSocketIO = () => {
-    // disable polling
-    let socket = io.connect("/pty", { transports: ["websocket"] });
-
-    socket.on("connect", () => {
-      setSio(socket);
-    });
+    setSio(io.connect("/pty", { transports: ["websocket"] }));
   };
 
-  const disconnectSocketIO = () => {
+  React.useEffect(() => {
+    if (sio) {
+      sio.on("connect", () => {
+        setSioConnected(true);
+      });
+      sio.on("disconnect", () => {
+        setSioConnected(false);
+      });
+    }
+  }, [sio]);
+
+  const disconnectSocketIO = (sio) => {
     if (sio) {
       sio.disconnect();
     }
@@ -232,7 +242,8 @@ const LogsView: React.FC = () => {
     setSelectedLog({ type, logId: uuid });
   };
 
-  const hasLoaded = sortedSteps !== undefined && sio && (!jobUuid || job);
+  const hasLoaded =
+    sortedSteps !== undefined && sioConnected && (!jobUuid || job);
 
   const services = React.useMemo(() => {
     if (!hasLoaded) return {};
