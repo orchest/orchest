@@ -86,7 +86,7 @@ const LogsView: React.FC = () => {
   const [sortedSteps, setSortedSteps] = React.useState<PipelineStepState[]>(
     undefined
   );
-  const [sio, setSio] = React.useState(undefined);
+  const sio = React.useRef(undefined);
   const [sioConnected, setSioConnected] = React.useState(false);
   const [job, setJob] = React.useState(undefined);
 
@@ -105,31 +105,24 @@ const LogsView: React.FC = () => {
 
     return () => {
       promiseManager.cancelCancelablePromises();
-      setSio((sio) => {
-        disconnectSocketIO(sio);
-        return sio;
-      });
+      disconnectSocketIO();
     };
   }, []);
 
   const connectSocketIO = () => {
-    setSio(io.connect("/pty", { transports: ["websocket"] }));
+    sio.current = io.connect("/pty", { transports: ["websocket"] });
+
+    sio.current.on("connect", () => {
+      setSioConnected(true);
+    });
+    sio.current.on("disconnect", () => {
+      setSioConnected(false);
+    });
   };
 
-  React.useEffect(() => {
-    if (sio) {
-      sio.on("connect", () => {
-        setSioConnected(true);
-      });
-      sio.on("disconnect", () => {
-        setSioConnected(false);
-      });
-    }
-  }, [sio]);
-
-  const disconnectSocketIO = (sio) => {
-    if (sio) {
-      sio.disconnect();
+  const disconnectSocketIO = () => {
+    if (sio.current) {
+      sio.current.disconnect();
     }
   };
 
@@ -385,7 +378,7 @@ const LogsView: React.FC = () => {
             {selectedLog ? (
               <LogViewer
                 key={selectedLog.logId}
-                sio={sio}
+                sio={sio.current}
                 pipelineUuid={pipelineUuid}
                 projectUuid={projectUuid}
                 jobUuid={jobUuid}

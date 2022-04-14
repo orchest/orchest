@@ -6,17 +6,17 @@ export type SocketIO = Record<"on" | "off" | "emit", any> & {
 };
 
 export const useSocketIO = () => {
-  const [sio, setSio] = React.useState<SocketIO>(null);
+  const sio = React.useRef<SocketIO>(null);
   // TODO: only make state.sio defined after successful
   // connect to avoid .emit()'ing to unconnected
   // sio client (emits aren't buffered).
   const connectSocketIO = () => {
     // disable polling
-    setSio(io.connect("/pty", { transports: ["websocket"] }));
+    sio.current = io.connect("/pty", { transports: ["websocket"] });
   };
 
   const disconnectSocketIO = () => {
-    if (sio) sio.disconnect();
+    if (sio.current) sio.current.disconnect();
   };
 
   React.useEffect(() => {
