@@ -5,12 +5,12 @@ import { RefManager, uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { FitAddon } from "xterm-addon-fit";
 import { XTerm } from "xterm-for-react";
-import { SocketIO } from "./hooks/useSocketIO";
+import { useSocketIO } from "./hooks/useSocketIO";
 
 const HEARTBEAT_INTERVAL = 60 * 1000; // send heartbeat every minute
 
 export interface ILogViewerProps {
-  sio: SocketIO;
+  // sio: SocketIO;
   pipelineUuid: string;
   projectUuid: string;
   jobUuid: string | undefined | null;
@@ -49,9 +49,11 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
     }
   };
 
+  const sio = useSocketIO("/pty");
+
   const initializeSocketIOListener = () => {
-    props.sio.on("pty-output", onPtyOutputHandler);
-    props.sio.on("pty-reset", onPtyReset);
+    sio.on("pty-output", onPtyOutputHandler);
+    sio.on("pty-reset", onPtyReset);
 
     setHeartbeatInterval(HEARTBEAT_INTERVAL);
   };
@@ -74,7 +76,7 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
   };
 
   const stopLog = () => {
-    props.sio.emit("pty-log-manager", {
+    sio.emit("pty-log-manager", {
       action: "stop-logs",
       session_uuid: sessionUuid,
     });
@@ -100,12 +102,12 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
       data["job_uuid"] = props.jobUuid;
     }
 
-    props.sio.emit("pty-log-manager", data);
+    sio.emit("pty-log-manager", data);
   };
 
   useInterval(() => {
     if (sessionUuid) {
-      props.sio.emit("pty-log-manager", {
+      sio.emit("pty-log-manager", {
         action: "heartbeat",
         session_uuid: sessionUuid,
       });
@@ -126,8 +128,8 @@ const LogViewer: React.FC<ILogViewerProps> = (props) => {
     return () => {
       stopLog();
 
-      props.sio.off("pty-output", onPtyOutputHandler);
-      props.sio.off("pty-reset", onPtyReset);
+      sio.off("pty-output", onPtyOutputHandler);
+      sio.off("pty-reset", onPtyReset);
 
       window.removeEventListener("resize", fitTerminal);
     };

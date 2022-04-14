@@ -168,7 +168,6 @@ const StepDetailsComponent: React.FC<{
         </CustomTabPanel>
         <CustomTabPanel value={subViewIndex} index={1} name="pipeline-logs">
           <StepDetailsLogs
-            sio={sio}
             projectUuid={projectUuid}
             jobUuid={jobUuid}
             runUuid={runUuid}

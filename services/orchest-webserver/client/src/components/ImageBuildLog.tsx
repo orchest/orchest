@@ -12,8 +12,6 @@ import { ImageBuildStatus } from "./ImageBuildStatus";
 
 const BUILD_POLL_FREQUENCY = [5000, 1000]; // poll more frequently during build
 
-let socket;
-
 const ImageBuild = ({
   onUpdateBuild,
   buildRequestEndpoint,
@@ -47,6 +45,8 @@ const ImageBuild = ({
     }
   );
 
+  const socket = React.useRef(undefined);
+
   React.useEffect(() => {
     mutate();
   }, [buildFetchHash, mutate]);
@@ -59,11 +59,11 @@ const ImageBuild = ({
 
   const connectSocketIO = () => {
     // disable polling
-    socket = io.connect(socketIONamespace, {
+    socket.current = io.connect(socketIONamespace, {
       transports: ["websocket"],
     });
 
-    socket.on(
+    socket.current.on(
       "sio_streamed_task_data",
       (data: { action: string; identity: string; output?: string }) => {
         // ignore terminal outputs from other builds
@@ -115,7 +115,7 @@ const ImageBuild = ({
     window.addEventListener("resize", fitTerminal);
 
     return () => {
-      if (socket) socket.close();
+      if (socket.current) socket.current.disconnect();
       promiseManager.cancelCancelablePromises();
       window.removeEventListener("resize", fitTerminal);
     };

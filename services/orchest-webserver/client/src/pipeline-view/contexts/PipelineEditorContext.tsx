@@ -23,7 +23,6 @@ import {
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
-import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
 
 export type PipelineEditorContextType = {
   projectUuid: string;
@@ -60,7 +59,7 @@ export type PipelineEditorContextType = {
     startNodeUUID: string;
     endNodeUUID: string;
   };
-  sio: SocketIO;
+  // sio: SocketIO;
   session: IOrchestSession;
   getOnCanvasPosition: (offset: Position) => Position;
   disabled: boolean;
@@ -151,7 +150,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     error: fetchDataError,
   } = useInitializePipelineEditor(runUuid, isReadOnly, initializeEventVars);
 
-  const sio = useSocketIO();
+  // const sio = useSocketIO();
 
   const session = useAutoStartSession({ isReadOnly });
 
@@ -218,7 +217,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         isReadOnly,
         instantiateConnection,
         jobUuid,
-        sio,
+        // sio,
         session,
         getOnCanvasPosition,
         disabled,

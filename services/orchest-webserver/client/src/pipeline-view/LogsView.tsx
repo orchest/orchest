@@ -6,7 +6,6 @@ import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import LogViewer from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type {
-  Job,
   LogType,
   PipelineJson,
   PipelineStepState,
@@ -37,8 +36,6 @@ import {
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
-import io from "socket.io-client";
-import { SocketIO } from "./hooks/useSocketIO";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
   "pipeline_uuid" | "project_uuid"
@@ -86,12 +83,12 @@ const LogsView: React.FC = () => {
   const [selectedLog, setSelectedLog] = React.useState<{
     type: LogType;
     logId: string;
-  } | null>(null);
-  const [sortedSteps, setSortedSteps] = React.useState<
-    PipelineStepState[] | undefined
-  >(undefined);
-  const [sio, setSio] = React.useState<SocketIO | undefined>(undefined);
-  const [job, setJob] = React.useState<Job | undefined>(undefined);
+  }>(null);
+  const [sortedSteps, setSortedSteps] = React.useState<PipelineStepState[]>(
+    undefined
+  );
+
+  const [job, setJob] = React.useState(undefined);
 
   // Conditional fetch session
   let session =
@@ -100,7 +97,6 @@ const LogsView: React.FC = () => {
       : undefined;
 
   React.useEffect(() => {
-    connectSocketIO();
     fetchPipelineJson();
 
     if (jobUuid) {
@@ -109,24 +105,8 @@ const LogsView: React.FC = () => {
 
     return () => {
       promiseManager.cancelCancelablePromises();
-      disconnectSocketIO();
     };
   }, []);
-
-  const connectSocketIO = () => {
-    // disable polling
-    let socket = io.connect("/pty", { transports: ["websocket"] });
-
-    socket.on("connect", () => {
-      setSio(socket);
-    });
-  };
-
-  const disconnectSocketIO = () => {
-    if (sio) {
-      sio.disconnect();
-    }
-  };
 
   const topologicalSort = (pipelineSteps: Record<string, Step>) => {
     let sortedStepKeys: string[] = [];
@@ -241,7 +221,7 @@ const LogsView: React.FC = () => {
     setSelectedLog({ type, logId: uuid });
   };
 
-  const hasLoaded = sortedSteps !== undefined && sio && (!jobUuid || job);
+  const hasLoaded = sortedSteps !== undefined && (!jobUuid || job);
 
   const services = React.useMemo(() => {
     if (!hasLoaded) return {};
@@ -380,10 +360,9 @@ const LogsView: React.FC = () => {
             </List>
           </Box>
           <Box sx={{ flex: 1 }}>
-            {isQueryArgsComplete && sio && selectedLog ? (
+            {isQueryArgsComplete && selectedLog ? (
               <LogViewer
                 key={selectedLog.logId}
-                sio={sio}
                 pipelineUuid={pipelineUuid}
                 projectUuid={projectUuid}
                 jobUuid={jobUuid}
