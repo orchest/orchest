@@ -8,12 +8,15 @@ from flask_restx import Namespace, Resource, marshal
 from sqlalchemy import desc, or_
 
 import app.models as models
+from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import registry
 from app.errors import SessionInProgressException
 from app.utils import register_schema, update_status_db
+from config import CONFIG_CLASS
 
 api = Namespace("jupyter-builds", description="Build Jupyter server image")
 api = register_schema(api)
@@ -98,6 +101,21 @@ class JupyterEnvironmentBuild(Resource):
                 model=models.JupyterImageBuild,
                 filter_by=filter_by,
             )
+            if status_update["status"] == "SUCCESS":
+                build = models.JupyterImageBuild.query.filter(
+                    models.JupyterImageBuild.uuid == jupyter_image_build_uuid
+                ).one()
+                digest = registry.get_manifest_digest(
+                    _config.JUPYTER_IMAGE_NAME,
+                    build.image_tag,
+                )
+                db.session.add(
+                    models.JupyterImage(
+                        tag=build.image_tag,
+                        digest=digest,
+                        base_image_version=CONFIG_CLASS.ORCHEST_VERSION,
+                    )
+                )
             db.session.commit()
         except Exception:
             db.session.rollback()
