@@ -97,14 +97,29 @@ def lock_environment_images_for_run(
 
 def lock_environment_images_for_interactive_session(
     project_uuid: str, pipeline_uuid: str, environment_uuids: Set[str]
-) -> Dict[str, str]:
-    """For user services using environment images as a base image."""
+) -> Dict[str, models.EnvironmentImage]:
+    """Locks environment images for an interactive session.
+
+    Won't create an InteractiveSessionInUseImage if the entry exists
+    already.
+    """
     _lock_environments(project_uuid, environment_uuids)
     env_uuid_to_image = get_env_uuids_to_image_mappings(project_uuid, environment_uuids)
 
-    env_uuid_to_image_name = {}
     run_image_mappings = []
     for env_uuid, image in env_uuid_to_image.items():
+        if db.session.query(
+            db.session.query(models.InteractiveSessionInUseImage)
+            .filter(
+                models.InteractiveSessionInUseImage.project_uuid == project_uuid,
+                models.InteractiveSessionInUseImage.pipeline_uuid == pipeline_uuid,
+                models.InteractiveSessionInUseImage.environment_uuid == env_uuid,
+                models.InteractiveSessionInUseImage.environment_image_tag == image.tag,
+            )
+            .exists()
+        ).scalar():
+            continue
+
         run_image_mappings.append(
             models.InteractiveSessionInUseImage(
                 project_uuid=project_uuid,
@@ -113,15 +128,9 @@ def lock_environment_images_for_interactive_session(
                 environment_image_tag=image.tag,
             )
         )
-        env_uuid_to_image_name[env_uuid] = (
-            _config.ENVIRONMENT_IMAGE_NAME.format(
-                project_uuid=project_uuid, environment_uuid=env_uuid
-            )
-            + f":{image.tag}"
-        )
 
     db.session.bulk_save_objects(run_image_mappings)
-    return env_uuid_to_image_name
+    return env_uuid_to_image
 
 
 def lock_environment_images_for_job(
