@@ -261,9 +261,7 @@ def build_environment_image(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_jupyter_image(
-    self,
-) -> str:
+def build_jupyter_image(self, image_tag: str) -> str:
     """Builds Jupyter image, pushing a new image to the registry.
 
     Returns:
@@ -271,7 +269,7 @@ def build_jupyter_image(
 
     """
 
-    return build_jupyter_image_task(self.request.id)
+    return build_jupyter_image_task(self.request.id, image_tag)
 
 
 @celery.task(bind=True, base=AbortableTask)

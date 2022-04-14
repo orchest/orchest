@@ -304,6 +304,8 @@ class JupyterImageBuild(BaseModel):
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
+    # Nullable to migrate existing values.
+    image_tag = db.Column(db.Integer, nullable=True, index=True)
 
     def __repr__(self):
         return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
