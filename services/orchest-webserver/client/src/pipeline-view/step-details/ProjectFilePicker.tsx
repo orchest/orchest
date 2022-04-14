@@ -8,7 +8,7 @@ import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import FilePicker from "./FilePicker";
 
 const ProjectFilePicker: React.FC<{
-  pipelineCwd: string;
+  pipelineCwd: string | undefined;
   value: string;
   onChange: (value: string) => void;
   menuMaxWidth?: string;
@@ -55,7 +55,7 @@ const ProjectFilePicker: React.FC<{
 
   return (
     <>
-      {tree && (
+      {tree && pipelineCwd && (
         <FilePicker
           tree={tree}
           cwd={pipelineCwd}

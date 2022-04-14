@@ -5,8 +5,8 @@ import useSWR, { MutatorCallback } from "swr";
 import { PIPELINE_RUN_STATUS_ENDPOINT } from "../common";
 
 export const useFetchInteractiveRun = (
-  projectUuid: string,
-  pipelineUuid: string,
+  projectUuid: string | undefined,
+  pipelineUuid: string | undefined,
   runUuidFromRoute: string | undefined
 ) => {
   // Edit mode fetches latest interactive run
@@ -18,21 +18,26 @@ export const useFetchInteractiveRun = (
     mutate: mutateRunUuid,
     error: fetchRunUuidError,
     isValidating: isFetchingRunUuid,
-  } = useSWR(
+  } = useSWR<string | undefined>(
     shouldFetchRunUuid
       ? `${PIPELINE_RUN_STATUS_ENDPOINT}/?project_uuid=${projectUuid}&pipeline_uuid=${pipelineUuid}`
       : null,
     (url) =>
       fetcher<{ runs: PipelineRun[] }>(url).then((result) => {
-        return result.runs.length > 0 ? result.runs[0].uuid : null;
+        return result.runs.length > 0 ? result.runs[0].uuid : undefined;
       })
   );
 
   const runUuid = shouldFetchRunUuid ? fetchedRunUuid : runUuidFromRoute;
 
   const setRunUuid = React.useCallback(
-    (data?: string | Promise<string> | MutatorCallback<string>) =>
-      mutateRunUuid(data, false),
+    (
+      data?:
+        | string
+        | undefined
+        | Promise<string | undefined>
+        | MutatorCallback<string | undefined>
+    ) => mutateRunUuid(data, false),
     [mutateRunUuid]
   );
 

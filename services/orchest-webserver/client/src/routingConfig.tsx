@@ -4,7 +4,7 @@ import EnvironmentEditView from "./environment-edit-view/EnvironmentEditView";
 import JobView from "./job-view/JobView";
 import JobsView from "./jobs-view/JobsView";
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
-import LogsView from "./pipeline-view/LogsView";
+import { LogsView } from "./pipeline-view/LogsView";
 import PipelineView from "./pipeline-view/PipelineView";
 import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
@@ -58,10 +58,7 @@ const _getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
 // to add new route, you would also need to add the route name to RouteName.
 // NOTE: the order of the routes matters, react-router loads the first route that matches the given path
 
-export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
-  if (getTitle === undefined) {
-    getTitle = _getTitle;
-  }
+export const getOrderedRoutes = (getTitle = _getTitle) => {
   return [
     {
       name: "projects",

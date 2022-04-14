@@ -1,11 +1,12 @@
 import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
-import ImageBuildLog from "@/components/ImageBuildLog";
+import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
+import { EnvironmentImageBuild } from "@/types";
 import CloseIcon from "@mui/icons-material/Close";
 import MemoryIcon from "@mui/icons-material/Memory";
 import SaveIcon from "@mui/icons-material/Save";
@@ -14,6 +15,8 @@ import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import {
+  fetcher,
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
@@ -38,15 +41,22 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   // local states
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
-  const [jupyterBuild, setJupyterEnvironmentBuild] = React.useState(null);
+  const [jupyterBuild, setJupyterEnvironmentBuild] = React.useState<
+    EnvironmentImageBuild | undefined
+  >(undefined);
 
-  const [state, setState] = React.useState({
-    sessionKillStatus: undefined,
-    buildRequestInProgress: false,
-    cancelBuildRequestInProgress: false,
-    buildFetchHash: uuidv4(),
-    jupyterSetupScript: undefined,
-  });
+  const [isBuildingImage, setIsBuildingImage] = React.useState(false);
+  const [isCancellingBuild, setIsCancellingBuild] = React.useState(false);
+  const [jupyterSetupScript, setJupyterSetupScript] = React.useState<
+    string | undefined
+  >(undefined);
+
+  const [
+    hasStartedKillingSessions,
+    setHasStartedKillingSessions,
+  ] = React.useState(false);
+
+  const [buildFetchHash, setBuildFetchHash] = React.useState(uuidv4());
 
   const building = React.useMemo(() => {
     return jupyterBuild
@@ -56,13 +66,28 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   const [promiseManager] = React.useState(new PromiseManager());
 
-  const buildImage = async () => {
+  const save = React.useCallback(async () => {
+    if (!hasValue(jupyterSetupScript)) return;
+
+    let formData = new FormData();
+    formData.append("setup_script", jupyterSetupScript);
+
+    try {
+      await fetcher("/async/jupyter-setup-script", {
+        method: "POST",
+        body: formData,
+      });
+      setAsSaved();
+    } catch (e) {
+      setAsSaved(false);
+      console.error(e);
+    }
+  }, [jupyterSetupScript, setAsSaved]);
+
+  const buildImage = React.useCallback(async () => {
     window.orchest.jupyter.unload();
 
-    setState((prevState) => ({
-      ...prevState,
-      buildRequestInProgress: true,
-    }));
+    setIsBuildingImage(true);
     setIgnoreIncomingLogs(true);
 
     try {
@@ -102,55 +127,40 @@ const ConfigureJupyterLabView: React.FC = () => {
                   console.error(error);
                   resolve(false);
                 });
-              setState((prevState) => ({
-                ...prevState,
-                sessionKillStatus: "WAITING",
-              }));
+              setHasStartedKillingSessions(true);
+
               return true;
             }
           );
         }
       }
     }
-    setState((prevState) => ({
-      ...prevState,
-      buildRequestInProgress: false,
-    }));
-  };
+    setIsBuildingImage(false);
+  }, [deleteAllSessions, promiseManager, save, setAlert, setConfirm]);
 
-  const cancelImageBuild = () => {
+  const cancelImageBuild = async () => {
     // send DELETE to cancel ongoing build
     if (
       jupyterBuild &&
-      CANCELABLE_STATUSES.indexOf(jupyterBuild.status) !== -1
+      CANCELABLE_STATUSES.includes(jupyterBuild.status) &&
+      jupyterBuild?.uuid
     ) {
-      setState((prevState) => ({
-        ...prevState,
-        cancelBuildRequestInProgress: true,
-      }));
+      setIsCancellingBuild(true);
 
-      makeRequest(
-        "DELETE",
-        `/catch/api-proxy/api/jupyter-builds/${jupyterBuild.uuid}`
-      )
-        .then(() => {
-          // immediately fetch latest status
-          // NOTE: this DELETE call doesn't actually destroy the resource, that's
-          // why we're querying it again.
-          setState((prevState) => ({
-            ...prevState,
-            buildFetchHash: uuidv4(),
-          }));
-        })
-        .catch((error) => {
-          console.error(error);
-        })
-        .finally(() => {
-          setState((prevState) => ({
-            ...prevState,
-            cancelBuildRequestInProgress: false,
-          }));
-        });
+      try {
+        await fetcher(
+          `/catch/api-proxy/api/jupyter-builds/${jupyterBuild.uuid}`,
+          { method: "DELETE" }
+        );
+
+        // immediately fetch latest status
+        // NOTE: this DELETE call doesn't actually destroy the resource, that's
+        // why we're querying it again.
+        setBuildFetchHash(uuidv4());
+      } catch (e) {
+        console.error(e);
+      }
+      setIsCancellingBuild(false);
     } else {
       setAlert(
         "Error",
@@ -159,58 +169,43 @@ const ConfigureJupyterLabView: React.FC = () => {
     }
   };
 
-  const getSetupScript = () => {
-    let getSetupScriptPromise = makeCancelable(
-      makeRequest("GET", "/async/jupyter-setup-script"),
-      promiseManager
-    );
-    getSetupScriptPromise.promise.then((response) => {
-      setState((prevState) => ({
-        ...prevState,
-        jupyterSetupScript: response,
-      }));
-    });
-  };
-
-  const save = async () => {
-    setAsSaved();
-
-    // auto save the bash script
-    let formData = new FormData();
-
-    formData.append("setup_script", state.jupyterSetupScript);
-    return makeRequest("POST", "/async/jupyter-setup-script", {
-      type: "FormData",
-      content: formData,
-    }).catch((e) => {
-      console.error(e);
-    });
-  };
+  const getSetupScript = React.useCallback(async () => {
+    try {
+      const { script } = await fetcher<{ script: string }>(
+        "/async/jupyter-setup-script"
+      );
+      setJupyterSetupScript(script);
+    } catch (e) {
+      setAlert("Error", `Failed to fetch setup script. ${e}`);
+    }
+  }, [setAlert]);
 
   React.useEffect(() => {
     getSetupScript();
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
+  }, [getSetupScript]);
 
   React.useEffect(() => {
     const isAllSessionsDeletedForBuildingImage =
-      state.sessionKillStatus === "WAITING" && // an attempt to delete all sessions was initiated
-      !sessionsKillAllInProgress && // the operation of deleting sessions was started
+      hasStartedKillingSessions && // attempted to build image but got stuck, so started to kill sessions
+      !sessionsKillAllInProgress && // the operation of deleting sessions is done
+      sessions &&
       sessions.length === 0; // all sessions are finally cleaned up;
 
     if (isAllSessionsDeletedForBuildingImage) {
-      setState((prevState) => ({
-        ...prevState,
-        sessionKillStatus: undefined,
-      }));
+      setHasStartedKillingSessions(false);
       buildImage();
     }
-  }, [sessions, sessionsKillAllInProgress, state.sessionKillStatus]);
+  }, [
+    sessions,
+    sessionsKillAllInProgress,
+    hasStartedKillingSessions,
+    buildImage,
+  ]);
 
   return (
     <Layout>
       <div className={"view-page jupyterlab-config-page"}>
-        {state.jupyterSetupScript !== undefined ? (
+        {hasValue(jupyterSetupScript) ? (
           <>
             <PageTitle>Configure JupyterLab</PageTitle>
             <p className="push-down">
@@ -234,7 +229,7 @@ const ConfigureJupyterLabView: React.FC = () => {
 
             <div className="push-down">
               <CodeMirror
-                value={state.jupyterSetupScript}
+                value={jupyterSetupScript}
                 options={{
                   mode: "application/x-sh",
                   theme: "dracula",
@@ -243,10 +238,7 @@ const ConfigureJupyterLabView: React.FC = () => {
                   readOnly: building,
                 }}
                 onBeforeChange={(editor, data, value) => {
-                  setState((prevState) => ({
-                    ...prevState,
-                    jupyterSetupScript: value,
-                  }));
+                  setJupyterSetupScript(value);
                   setAsSaved(false);
                 }}
               />
@@ -259,13 +251,13 @@ const ConfigureJupyterLabView: React.FC = () => {
               buildsKey="jupyter_image_builds"
               socketIONamespace={
                 appContext.state?.config
-                  .ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
+                  ?.ORCHEST_SOCKETIO_JUPYTER_IMG_BUILDING_NAMESPACE
               }
               streamIdentity={"jupyter"}
               onUpdateBuild={setJupyterEnvironmentBuild}
               ignoreIncomingLogs={ignoreIncomingLogs}
               build={jupyterBuild}
-              buildFetchHash={state.buildFetchHash}
+              buildFetchHash={buildFetchHash}
             />
 
             <Stack
@@ -282,10 +274,7 @@ const ConfigureJupyterLabView: React.FC = () => {
               </Button>
               {!building ? (
                 <Button
-                  disabled={
-                    state.buildRequestInProgress ||
-                    typeof state.sessionKillStatus !== "undefined"
-                  }
+                  disabled={isBuildingImage || hasStartedKillingSessions}
                   startIcon={<MemoryIcon />}
                   color="secondary"
                   variant="contained"
@@ -295,7 +284,7 @@ const ConfigureJupyterLabView: React.FC = () => {
                 </Button>
               ) : (
                 <Button
-                  disabled={state.cancelBuildRequestInProgress}
+                  disabled={isCancellingBuild}
                   startIcon={<CloseIcon />}
                   color="secondary"
                   variant="contained"

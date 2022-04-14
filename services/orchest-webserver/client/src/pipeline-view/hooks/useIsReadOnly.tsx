@@ -1,12 +1,13 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { checkGate } from "@/utils/webserver-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useIsReadOnly = (
-  projectUuid: string,
-  jobUuid: string,
-  runUuid: string
+  projectUuid: string | undefined,
+  jobUuid: string | undefined,
+  runUuid: string | undefined
 ) => {
   const {
     dispatch,
@@ -24,14 +25,14 @@ export const useIsReadOnly = (
     [dispatch]
   );
 
-  const hasActiveRun = runUuid && jobUuid;
+  const hasActiveRun = hasValue(runUuid && jobUuid);
 
   React.useEffect(() => {
     if (hasActiveRun) setIsReadOnly(true);
   }, [hasActiveRun, setIsReadOnly]);
 
   React.useEffect(() => {
-    if (!hasActiveRun) {
+    if (!hasActiveRun && hasValue(projectUuid)) {
       // for non pipelineRun - read only check gate
       checkGate(projectUuid)
         .then(() => {

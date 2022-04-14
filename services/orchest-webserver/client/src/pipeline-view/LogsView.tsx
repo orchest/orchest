@@ -2,12 +2,13 @@ import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchJob } from "@/hooks/useFetchJob";
+import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import LogViewer from "@/pipeline-view/LogViewer";
+import { LogViewer } from "@/pipeline-view/LogViewer";
 import { siteMap } from "@/Routes";
 import type {
   LogType,
-  PipelineJson,
   PipelineStepState,
   Step,
   StepsDict,
@@ -16,7 +17,6 @@ import type {
 import {
   addOutgoingConnections,
   filterServices,
-  getPipelineJSONEndpoint,
 } from "@/utils/webserver-utils";
 import CloseIcon from "@mui/icons-material/Close";
 import Box from "@mui/material/Box";
@@ -29,12 +29,7 @@ import ListItemText from "@mui/material/ListItemText";
 import ListSubheader from "@mui/material/ListSubheader";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import {
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
@@ -58,7 +53,58 @@ const LogViewerPlaceHolder = () => (
   </Stack>
 );
 
-const LogsView: React.FC = () => {
+const topologicalSort = (pipelineSteps: Record<string, Step>) => {
+  let sortedStepKeys: string[] = [];
+
+  const mutatedPipelineSteps = addOutgoingConnections(
+    pipelineSteps as StepsDict
+  );
+
+  let conditionalAdd = (step: PipelineStepState) => {
+    // add if all parents are already in the sortedStepKeys
+    let parentsAdded = true;
+    for (let connection of step.incoming_connections) {
+      if (!sortedStepKeys.includes(connection)) {
+        parentsAdded = false;
+        break;
+      }
+    }
+
+    if (!sortedStepKeys.includes(step.uuid) && parentsAdded) {
+      sortedStepKeys.push(step.uuid);
+    }
+  };
+
+  // Add self and children (breadth first)
+  let addSelfAndChildren = (step: PipelineStepState) => {
+    conditionalAdd(step);
+
+    step.outgoing_connections = step.outgoing_connections || ([] as string[]);
+
+    for (let childStepUUID of step.outgoing_connections) {
+      let childStep = mutatedPipelineSteps[childStepUUID];
+
+      conditionalAdd(childStep);
+    }
+
+    // Recurse down
+    for (let childStepUUID of step.outgoing_connections) {
+      addSelfAndChildren(mutatedPipelineSteps[childStepUUID]);
+    }
+  };
+
+  // Find roots
+  for (let stepUUID in mutatedPipelineSteps) {
+    let step = mutatedPipelineSteps[stepUUID];
+    if (step.incoming_connections.length == 0) {
+      addSelfAndChildren(step);
+    }
+  }
+
+  return sortedStepKeys.map((stepUUID) => mutatedPipelineSteps[stepUUID]);
+};
+
+export const LogsView: React.FC = () => {
   // global states
 
   useSendAnalyticEvent("view load", { name: siteMap.logs.path });
@@ -74,136 +120,33 @@ const LogsView: React.FC = () => {
 
   const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
 
+  const { job } = useFetchJob(jobUuid);
+  const { pipelineJson } = useFetchPipelineJson({
+    pipelineUuid,
+    projectUuid,
+    jobUuid,
+    runUuid,
+  });
+
+  const sortedSteps = React.useMemo(() => {
+    if (!pipelineJson) return undefined;
+    return topologicalSort(pipelineJson.steps);
+  }, [pipelineJson]);
+
   const { getSession } = useSessionsContext();
 
   const isJobRun = hasValue(jobUuid && runUuid);
 
-  const promiseManager = React.useMemo(() => new PromiseManager(), []);
-
   const [selectedLog, setSelectedLog] = React.useState<{
     type: LogType;
     logId: string;
-  }>(null);
-  const [sortedSteps, setSortedSteps] = React.useState<PipelineStepState[]>(
-    undefined
-  );
-
-  const [job, setJob] = React.useState(undefined);
+  } | null>(null);
 
   // Conditional fetch session
   let session =
     !jobUuid && hasValue(projectUuid) && hasValue(pipelineUuid)
       ? getSession({ projectUuid, pipelineUuid })
       : undefined;
-
-  React.useEffect(() => {
-    fetchPipelineJson();
-
-    if (jobUuid) {
-      fetchJob();
-    }
-
-    return () => {
-      promiseManager.cancelCancelablePromises();
-    };
-  }, []);
-
-  const topologicalSort = (pipelineSteps: Record<string, Step>) => {
-    let sortedStepKeys: string[] = [];
-
-    const mutatedPipelineSteps = addOutgoingConnections(
-      pipelineSteps as StepsDict
-    );
-
-    let conditionalAdd = (step: PipelineStepState) => {
-      // add if all parents are already in the sortedStepKeys
-      let parentsAdded = true;
-      for (let connection of step.incoming_connections) {
-        if (!sortedStepKeys.includes(connection)) {
-          parentsAdded = false;
-          break;
-        }
-      }
-
-      if (!sortedStepKeys.includes(step.uuid) && parentsAdded) {
-        sortedStepKeys.push(step.uuid);
-      }
-    };
-
-    // Add self and children (breadth first)
-    let addSelfAndChildren = (step: PipelineStepState) => {
-      conditionalAdd(step);
-
-      step.outgoing_connections = step.outgoing_connections || ([] as string[]);
-
-      for (let childStepUUID of step.outgoing_connections) {
-        let childStep = mutatedPipelineSteps[childStepUUID];
-
-        conditionalAdd(childStep);
-      }
-
-      // Recurse down
-      for (let childStepUUID of step.outgoing_connections) {
-        addSelfAndChildren(mutatedPipelineSteps[childStepUUID]);
-      }
-    };
-
-    // Find roots
-    for (let stepUUID in mutatedPipelineSteps) {
-      let step = mutatedPipelineSteps[stepUUID];
-      if (step.incoming_connections.length == 0) {
-        addSelfAndChildren(step);
-      }
-    }
-
-    return sortedStepKeys.map((stepUUID) => mutatedPipelineSteps[stepUUID]);
-  };
-
-  const fetchPipelineJson = () => {
-    if (!isQueryArgsComplete)
-      return Promise.reject("projectUUid or pipelineUuid is missing");
-
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
-      pipelineUuid,
-      projectUuid,
-      jobUuid,
-      runUuid
-    );
-
-    let pipelinePromise = makeCancelable(
-      makeRequest("GET", pipelineJSONEndpoint),
-      promiseManager
-    );
-
-    pipelinePromise.promise.then((response) => {
-      let result: {
-        pipeline_json: string;
-        success: boolean;
-      } = JSON.parse(response);
-
-      if (result.success) {
-        let fetchedPipeline: PipelineJson = JSON.parse(result.pipeline_json);
-
-        let sortedSteps = topologicalSort(fetchedPipeline.steps);
-        setSortedSteps(sortedSteps);
-      } else {
-        console.warn("Could not load pipeline.json");
-        console.log(result);
-      }
-    });
-  };
-
-  const fetchJob = () => {
-    makeRequest("GET", `/catch/api-proxy/api/jobs/${jobUuid}`).then(
-      (response: string) => {
-        try {
-          setJob(JSON.parse(response));
-        } catch (error) {
-          console.error("Failed to fetch job.", error);
-        }
-      }
-    );
-  };
 
   const close = () => {
     if (isQueryArgsComplete)
@@ -401,5 +344,3 @@ const LogsView: React.FC = () => {
     </Layout>
   );
 };
-
-export default LogsView;

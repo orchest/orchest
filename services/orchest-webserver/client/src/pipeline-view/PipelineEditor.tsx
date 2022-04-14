@@ -47,6 +47,7 @@ import {
 } from "./pipeline-viewport/PipelineViewport";
 import { PipelineActionButton } from "./PipelineActionButton";
 import {
+  ExecutionState,
   getStateText,
   PipelineStep,
   StepStatus,
@@ -106,7 +107,7 @@ export const PipelineEditor = () => {
     runUuid,
   ]);
 
-  const pipelineViewportRef = React.useRef<HTMLDivElement>();
+  const pipelineViewportRef = React.useRef<HTMLDivElement | null>(null);
   const canvasFuncRef = React.useRef<CanvasFunctions>();
 
   // we need to calculate the canvas offset every time for re-alignment after zoom in/out
@@ -241,7 +242,7 @@ export const PipelineEditor = () => {
   const saveSteps = React.useCallback(
     (steps: StepsDict) => {
       const newPipelineJson = mergeStepsIntoPipelineJson(steps);
-      savePipelineJson(newPipelineJson);
+      if (newPipelineJson) savePipelineJson(newPipelineJson);
     },
     [mergeStepsIntoPipelineJson, savePipelineJson]
   );
@@ -279,7 +280,7 @@ export const PipelineEditor = () => {
   };
 
   const onOpenFilePreviewView = React.useCallback(
-    (e: React.MouseEvent, stepUuid: string) => {
+    (e: React.MouseEvent | undefined, stepUuid: string) => {
       navigateTo(
         isJobRun ? siteMap.jobRunFilePreview.path : siteMap.filePreview.path,
         {
@@ -326,7 +327,7 @@ export const PipelineEditor = () => {
   const onDoubleClickStep = (stepUUID: string) => {
     if (isReadOnly) {
       onOpenFilePreviewView(undefined, stepUUID);
-    } else {
+    } else if (pipelineCwd) {
       openNotebook(undefined, notebookFilePath(pipelineCwd, stepUUID));
     }
   };
@@ -363,9 +364,12 @@ export const PipelineEditor = () => {
   ]);
 
   const onDetailsDelete = React.useCallback(() => {
-    let uuid = eventVars.openedStep;
     setConfirm("Warning", deleteStepMessage, async (resolve) => {
-      removeSteps([uuid]);
+      if (!eventVars.openedStep) {
+        resolve(false);
+        return false;
+      }
+      removeSteps([eventVars.openedStep]);
       saveSteps(eventVars.steps);
       resolve(true);
       return true;
@@ -380,7 +384,8 @@ export const PipelineEditor = () => {
 
   const onOpenNotebook = React.useCallback(
     (e: React.MouseEvent) => {
-      openNotebook(e, notebookFilePath(pipelineCwd, eventVars.openedStep));
+      if (pipelineCwd && eventVars.openedStep)
+        openNotebook(e, notebookFilePath(pipelineCwd, eventVars.openedStep));
     },
     [eventVars.openedStep, notebookFilePath, openNotebook, pipelineCwd]
   );
@@ -395,6 +400,7 @@ export const PipelineEditor = () => {
     const gridMargin = 20;
 
     setPipelineJson((current) => {
+      if (!current) return current;
       const updatedSteps = layoutPipeline(
         // Use the pipeline definition from the editor
         eventVars.steps,
@@ -504,7 +510,7 @@ export const PipelineEditor = () => {
   const hasSelectedSteps = eventVars.selectedSteps.length > 1;
 
   const onSaveDetails = React.useCallback(
-    (stepChanges: Partial<Step>, uuid: string, replace: boolean) => {
+    (stepChanges: Partial<Step>, uuid: string, replace = false) => {
       dispatch({
         type: "SAVE_STEP_DETAILS",
         payload: { stepChanges, uuid, replace },
@@ -600,7 +606,7 @@ export const PipelineEditor = () => {
     }
   }
 
-  const servicesButtonRef = React.useRef<HTMLButtonElement>();
+  const servicesButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const flushPage = useHasChanged(hash.current);
   const shouldSave = useHasChanged(eventVars.timestamp);
 
@@ -651,7 +657,7 @@ export const PipelineEditor = () => {
             const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
             const endNode = endNodeUUID
               ? stepDomRefs.current[`${endNodeUUID}-incoming`]
-              : null;
+              : undefined;
 
             // startNode is required
             if (!startNode) return null;
@@ -666,16 +672,16 @@ export const PipelineEditor = () => {
               eventVars.cursorControlledStep === startNodeUUID ||
               (eventVars.selectedSteps.includes(startNodeUUID) &&
                 eventVars.selectedSteps.includes(
-                  eventVars.cursorControlledStep
+                  eventVars.cursorControlledStep || ""
                 ));
 
             const shouldUpdateEnd =
               flushPage ||
               eventVars.cursorControlledStep === endNodeUUID ||
               isNew ||
-              (eventVars.selectedSteps.includes(endNodeUUID) &&
+              (eventVars.selectedSteps.includes(endNodeUUID || "") &&
                 eventVars.selectedSteps.includes(
-                  eventVars.cursorControlledStep
+                  eventVars.cursorControlledStep || ""
                 ));
 
             const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
@@ -701,25 +707,27 @@ export const PipelineEditor = () => {
             const key = `${startNodeUUID}-${endNodeUUID}-${hash.current}`;
 
             return (
-              <PipelineConnection
-                key={key}
-                shouldRedraw={flushPage}
-                isNew={isNew}
-                selected={isSelected}
-                startNodeUUID={startNodeUUID}
-                endNodeUUID={endNodeUUID}
-                zIndexMax={zIndexMax}
-                getPosition={getPosition}
-                eventVarsDispatch={dispatch}
-                stepDomRefs={stepDomRefs}
-                startNodeX={startNodePosition.x}
-                startNodeY={startNodePosition.y}
-                endNodeX={endNodePosition?.x}
-                endNodeY={endNodePosition?.y}
-                newConnection={newConnection}
-                shouldUpdate={shouldUpdate}
-                cursorControlledStep={eventVars.cursorControlledStep}
-              />
+              startNodePosition && (
+                <PipelineConnection
+                  key={key}
+                  shouldRedraw={flushPage}
+                  isNew={isNew}
+                  selected={isSelected}
+                  startNodeUUID={startNodeUUID}
+                  endNodeUUID={endNodeUUID}
+                  zIndexMax={zIndexMax}
+                  getPosition={getPosition}
+                  eventVarsDispatch={dispatch}
+                  stepDomRefs={stepDomRefs}
+                  startNodeX={startNodePosition.x}
+                  startNodeY={startNodePosition.y}
+                  endNodeX={endNodePosition?.x}
+                  endNodeY={endNodePosition?.y}
+                  newConnection={newConnection}
+                  shouldUpdate={shouldUpdate}
+                  cursorControlledStep={eventVars.cursorControlledStep}
+                />
+              )
             );
           })}
           {Object.entries(eventVars.steps).map((entry) => {
@@ -727,11 +735,11 @@ export const PipelineEditor = () => {
             const selected = eventVars.selectedSteps.includes(uuid);
 
             const isIncomingActive =
-              eventVars.selectedConnection &&
+              hasValue(eventVars.selectedConnection) &&
               eventVars.selectedConnection.endNodeUUID === step.uuid;
 
             const isOutgoingActive =
-              eventVars.selectedConnection &&
+              hasValue(eventVars.selectedConnection) &&
               eventVars.selectedConnection.startNodeUUID === step.uuid;
 
             const movedToTop =
@@ -742,7 +750,7 @@ export const PipelineEditor = () => {
               ? stepExecutionState[step.uuid] || { status: "IDLE" }
               : { status: "IDLE" };
 
-            const stateText = getStateText(executionState);
+            const stateText = getStateText(executionState as ExecutionState);
 
             // only add steps to the component that have been properly
             // initialized
@@ -825,7 +833,7 @@ export const PipelineEditor = () => {
                   // NOTE: onClick also listens to space bar press when button is focused
                   // it causes issue when user press space bar to navigate the canvas
                   // thus, onPointerDown should be used here, so zoom-out only is triggered if user mouse down on the button
-                  canvasFuncRef.current.centerPipelineOrigin();
+                  canvasFuncRef.current?.centerPipelineOrigin();
                   dispatch({
                     type: "SET_SCALE_FACTOR",
                     payload: eventVars.scaleFactor - 0.25,
@@ -837,7 +845,7 @@ export const PipelineEditor = () => {
               <IconButton
                 title="Zoom in"
                 onPointerDown={() => {
-                  canvasFuncRef.current.centerPipelineOrigin();
+                  canvasFuncRef.current?.centerPipelineOrigin();
                   dispatch({
                     type: "SET_SCALE_FACTOR",
                     payload: eventVars.scaleFactor + 0.25,

@@ -51,7 +51,7 @@ const Overlay = () => (
 export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & {
-    canvasFuncRef: React.MutableRefObject<CanvasFunctions>;
+    canvasFuncRef: React.MutableRefObject<CanvasFunctions | undefined>;
   }
 >(function PipelineViewportComponent(
   { children, className, canvasFuncRef, style, ...props },

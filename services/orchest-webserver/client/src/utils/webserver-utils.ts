@@ -161,7 +161,7 @@ export function getServiceURLs(
   service: Partial<Service>,
   projectUuid: string,
   pipelineUuid: string,
-  runUuid: string
+  runUuid: string | undefined
 ): string[] {
   if (service.ports === undefined) {
     return [];

@@ -1,7 +1,7 @@
 import { BackButton } from "@/components/common/BackButton";
 import { HotKeyHint } from "@/components/common/HotKeyHint";
 import { PageTitle } from "@/components/common/PageTitle";
-import ImageBuildLog from "@/components/ImageBuildLog";
+import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { ImageBuildStatus } from "@/components/ImageBuildStatus";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
@@ -89,7 +89,7 @@ const EnvironmentEditView: React.FC = () => {
     // if environment is new, don't pass the uuid, so this hook won't fire the request
     uuid: environmentUuid,
     project_uuid: projectUuid,
-    ...config.ENVIRONMENT_DEFAULTS,
+    ...config?.ENVIRONMENT_DEFAULTS,
   });
 
   // !Note: new environment should have been created in EnvironmentList
@@ -129,12 +129,12 @@ const EnvironmentEditView: React.FC = () => {
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
 
   const [environmentBuild, setEnvironmentImageBuild] = React.useState<
-    EnvironmentImageBuild
-  >(null);
+    EnvironmentImageBuild | undefined
+  >(undefined);
   const building = React.useMemo(() => {
     return (
       ignoreIncomingLogs ||
-      CANCELABLE_STATUSES.includes(environmentBuild?.status)
+      CANCELABLE_STATUSES.includes(environmentBuild?.status || "")
     );
   }, [environmentBuild, ignoreIncomingLogs]);
 
@@ -186,8 +186,6 @@ const EnvironmentEditView: React.FC = () => {
     handleSubmit,
     handleBlur,
     values,
-    errors,
-    touched,
     setFieldValue,
     submitForm,
   } = useFormik({
@@ -197,7 +195,7 @@ const EnvironmentEditView: React.FC = () => {
       const errors: Record<string, string> = {};
       const environmentNameValidation = validateEnvironmentName(name);
       if (!environmentNameValidation.valid)
-        errors.name = environmentNameValidation.reason;
+        errors.name = environmentNameValidation.reason || "";
       return errors;
     },
     onSubmit: async (payload, { setSubmitting }) => {
@@ -217,7 +215,7 @@ const EnvironmentEditView: React.FC = () => {
         setFieldValue(key, value);
       });
       setAsSaved(false);
-      setEnvironment((prev) => ({ ...prev, ...payload }));
+      setEnvironment((prev) => ({ ...prev, ...payload } as Environment));
     },
     [setAsSaved, setEnvironment, setFieldValue]
   );
@@ -244,7 +242,7 @@ const EnvironmentEditView: React.FC = () => {
 
   const build = React.useCallback(
     async (e?: React.MouseEvent) => {
-      if (building) return;
+      if (building || !projectUuid) return;
       if (e) {
         e.preventDefault();
         e.nativeEvent.preventDefault();
@@ -470,7 +468,7 @@ const EnvironmentEditView: React.FC = () => {
                     buildRequestEndpoint={`${ENVIRONMENT_BUILDS_BASE_ENDPOINT}/most-recent/${projectUuid}/${environment?.uuid}`}
                     buildsKey="environment_image_builds"
                     socketIONamespace={
-                      config.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE
+                      config?.ORCHEST_SOCKETIO_ENV_IMG_BUILDING_NAMESPACE
                     }
                     streamIdentity={`${projectUuid}-${environment?.uuid}`}
                     onUpdateBuild={setEnvironmentImageBuild}

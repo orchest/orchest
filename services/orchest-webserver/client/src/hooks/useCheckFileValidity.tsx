@@ -44,19 +44,24 @@ export const isValidFile = async (
  * @returns boolean
  */
 export const useCheckFileValidity = (
-  project_uuid: string,
-  pipeline_uuid: string,
-  path: string
+  projectUuid: string | undefined,
+  pipelineUuid: string | undefined,
+  path: string | undefined
 ) => {
-  const cacheKey = `/async/file-management/exists?${queryArgs({
-    project_uuid,
-    pipeline_uuid,
-    path,
-  })}`;
+  const isQueryArgsComplete =
+    hasValue(projectUuid) && hasValue(pipelineUuid) && hasValue(path);
+
+  const cacheKey = isQueryArgsComplete
+    ? `/async/file-management/exists?${queryArgs({
+        projectUuid,
+        pipelineUuid,
+        path,
+      })}`
+    : null;
 
   const { data = false } = useSWR(
-    project_uuid && pipeline_uuid && path ? cacheKey : null,
-    () => isValidFile(project_uuid, pipeline_uuid, path),
+    cacheKey,
+    () => isQueryArgsComplete && isValidFile(projectUuid, pipelineUuid, path),
     { refreshInterval: 1000 }
   );
 

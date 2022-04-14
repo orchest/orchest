@@ -42,7 +42,7 @@ const StepDetailsComponent: React.FC<{
   onOpenNotebook: (e: React.MouseEvent) => void;
   onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
   onDelete: () => void;
-  onSave: (stepChanges: Partial<Step>, uuid: string, replace: boolean) => void;
+  onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
 }> = ({ onOpenNotebook, onOpenFilePreviewView, onSave, onDelete }) => {
   const {
     eventVars,
@@ -52,12 +52,11 @@ const StepDetailsComponent: React.FC<{
     pipelineJson,
     pipelineUuid,
     dispatch,
-    sio,
     jobUuid,
     projectUuid,
   } = usePipelineEditorContext();
 
-  const step = eventVars.steps[eventVars.openedStep];
+  const step = eventVars.steps[eventVars.openedStep || ""];
 
   const connections = React.useMemo(() => {
     if (!step) return {};

@@ -1,5 +1,6 @@
 import { toQueryString } from "@/routingConfig";
 import { openInNewTab } from "@/utils/openInNewTab";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { useHistory, useLocation } from "react-router-dom";
 
@@ -103,7 +104,11 @@ const useCustomRoute = () => {
     environmentUuid,
     stepUuid,
     filePath,
-  ] = valueArray as (string | undefined | null)[]; // asserting all values are string
+  ] = valueArray.map((value) => {
+    // if value is `null` or `undefined`, return `undefined`
+    // stringify the value for all the other cases.
+    return !hasValue(value) ? undefined : String(value);
+  });
 
   type NavigateParams = {
     query?: Record<string, string | number | boolean | undefined | null>;

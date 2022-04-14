@@ -165,6 +165,7 @@ export type CustomImage = Pick<
 >;
 
 export type EnvironmentImageBuild = {
+  uuid: string;
   environment_uuid: string;
   finished_time: string;
   project_path: string;

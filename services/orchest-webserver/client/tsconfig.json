@@ -8,9 +8,13 @@
     "paths": {
       "@/*": ["src/*"]
     },
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
     "noFallthroughCasesInSwitch": true,
-    "downlevelIteration": true,
-    // "strict": true, // TODO: uncomment this.
-    "strictNullChecks": true
+    "downlevelIteration": true
   }
 }

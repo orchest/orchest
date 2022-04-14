@@ -338,9 +338,9 @@ def register_views(app, db):
         else:
             try:
                 with open(setup_script_path, "r") as f:
-                    return f.read()
+                    return jsonify({"script": f.read()})
             except FileNotFoundError as fnf_error:
-                current_app.logger.error("Failed to read setup_script %s" % fnf_error)
+                current_app.logger.error(f"Failed to read setup_script {fnf_error}")
                 return ""
 
     # Deprecated: With the new FileManager, this endpoint is no longer

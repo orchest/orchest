@@ -13,7 +13,7 @@ const isEnvironmentChanged = (prev: Environment, curr: Environment) =>
     "setup_script",
   ]);
 
-const useHasEnvironmentChanged = (environment: Environment) => {
+const useHasEnvironmentChanged = (environment: Environment | undefined) => {
   const hasChanged = useHasChanged(environment, (prev, curr) => {
     if (!prev || !curr) return false;
     return isEnvironmentChanged(prev, curr);
@@ -22,7 +22,7 @@ const useHasEnvironmentChanged = (environment: Environment) => {
 };
 
 export const useAutoSaveEnvironment = (
-  value: Environment | null,
+  value: Environment | undefined,
   save: (newValue?: Environment) => Promise<Environment | null>
 ) => {
   const valuesForSaving = useDebounce(value, 500);
