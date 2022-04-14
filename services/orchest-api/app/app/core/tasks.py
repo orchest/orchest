@@ -299,7 +299,7 @@ def registry_garbage_collection(self) -> None:
     """
     with application.app_context():
         imgs_to_delete_from_registry = (
-            models.ImageToBeDeletedFromTheRegistry.query.all()
+            models.ImageToBeDeletedFromTheRegistry.query.with_for_update().all()
         )
 
         # Delete images from the registry.

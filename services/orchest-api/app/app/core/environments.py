@@ -225,7 +225,8 @@ def get_active_environment_images() -> List[models.EnvironmentImage]:
     """Gets the list of active environment images (to keep on nodes).
 
     Assumes that an image that is not marked_for_removal is to be kept
-    on nodes, see _env_images_that_can_be_deleted for details.
+    on nodes, see _env_images_that_can_be_deleted and where
+    mark_env_images_that_can_be_removed is called for details.
     """
     return models.EnvironmentImage.query.filter(
         models.EnvironmentImage.marked_for_removal.is_(False)
@@ -355,6 +356,7 @@ def mark_env_images_that_can_be_removed(
         environment_uuid: if specified, only env image of this
             environment will be considered.
     """
+    logger.info("Marking environment images for removal.")
     imgs = _env_images_that_can_be_deleted(project_uuid, environment_uuid)
 
     # Bulk update "marked_for_removal".
