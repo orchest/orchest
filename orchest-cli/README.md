@@ -52,6 +52,12 @@ Deploying a new controller:
   `kubectl -n orchest get orchestclusters` have the expected output (including a `STATUS` column).
   Also then we can get just the status instead of the entire object.
 
+TODO:
+
+- GitHub Action workflow files to publish CLI on release
+- Docs
+- Great CRD
+
 ### Questions
 
 - How about the ingress addon?

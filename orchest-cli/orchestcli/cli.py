@@ -15,15 +15,24 @@ https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomO
 # - Use `rich` to echo instead of `click`.
 #       - Loaders
 #       - Parsed line length
+#       All spinner libraries seem to be manipulating an output stream,
+#       where they write to it, clear the current line, and write to it
+#       in a loop. But not sure how to make sure this is compatible cross
+#       operating systems.
 
+import collections
 import enum
 import json
 import sys
 import time
-from typing import Dict, Optional
+import typing as t
+from gettext import gettext
 
 import click
 from kubernetes import client, config, stream
+
+if t.TYPE_CHECKING:
+    from multiprocessing.pool import AsyncResult
 
 # https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomObjectsApi.md
 config.load_kube_config()
@@ -33,6 +42,7 @@ CORE_API = client.CoreV1Api()
 # TODO: config values
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
+APPLICATION_CMDS = ["adduser"]
 
 
 def echo(*args, **kwargs) -> None:
@@ -69,7 +79,7 @@ def jecho(*args, **kwargs) -> None:
     else:
         if args and args[0] is not None:
             args = (json.dumps(args[0], sort_keys=True, indent=True), *args[1:])
-    return click.echo(*args, **kwargs)
+    return click.echo(*args, **kwargs)  # type: ignore
 
 
 class CRObjectNotFound(Exception):
@@ -83,7 +93,7 @@ class ClickCommonOptionsCmd(click.Command):
         super().__init__(*args, **kwargs)
         # Add the common commands to the beginning of the list so that
         # they are displayed first in the help menu.
-        self.params = [
+        self.params: t.List[click.Option] = [
             click.Option(
                 ("-n", "--namespace"),
                 default=NAMESPACE,
@@ -99,10 +109,52 @@ class ClickCommonOptionsCmd(click.Command):
         ] + self.params
 
 
+class ClickHelpCategories(click.Group):
+    def format_commands(
+        self, ctx: click.Context, formatter: click.HelpFormatter
+    ) -> None:
+        """Extra format methods for multi methods that adds all the commands
+        after the options.
+        """
+        commands = []
+        for subcommand in self.list_commands(ctx):
+            cmd = self.get_command(ctx, subcommand)
+            # What is this, the tool lied about a command.  Ignore it
+            if cmd is None:
+                continue
+            if cmd.hidden:
+                continue
+
+            commands.append((subcommand, cmd))
+
+        # allow for 3 times the default spacing
+        if len(commands):
+            limit = formatter.width - 6 - max(len(cmd[0]) for cmd in commands)
+
+            categories: t.Dict[
+                str, t.List[t.Tuple[str, str]]
+            ] = collections.defaultdict(list)
+            for subcommand, cmd in commands:
+                help = cmd.get_short_help_str(limit)
+
+                # TODO: Instead we could make it into a separate click
+                # group and add both groups to the cli entrypoint group.
+                if subcommand in APPLICATION_CMDS:
+                    categories["Application Commands"].append((subcommand, help))
+                else:
+                    categories["Cluster Management Commands"].append((subcommand, help))
+
+            if categories:
+                for category, rows in categories.items():
+                    with formatter.section(gettext(category)):
+                        formatter.write_dl(rows)
+
+
 @click.group(
     context_settings={
         "help_option_names": ["-h", "--help"],
-    }
+    },
+    cls=ClickHelpCategories,
 )
 def cli():
     """The Orchest CLI to manage your Orchest Cluster on Kubernetes.
@@ -146,7 +198,7 @@ def install(**common_options) -> None:
 
     # TODO: Do we want to put everything in JSON? Probably easier to
     # merge it with flags passed by the user.
-    resource = {
+    custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
         "metadata": {
@@ -169,7 +221,7 @@ def install(**common_options) -> None:
             version="v1alpha1",
             namespace=ns,
             plural="orchestclusters",
-            body=resource,
+            body=custom_object,
         )
     except client.ApiException as e:
         echo("Failed to install Orchest.")
@@ -180,17 +232,55 @@ def install(**common_options) -> None:
             echo("Could not create the required namespaced custom object.")
         sys.exit(1)
 
-    echo("Setting up the Orchest Cluster...", nl=False)
+    echo("Setting up the Orchest Cluster...", nl=True)
+    try:
+        # NOTE: Click's `echo` makes sure the ANSI characters work
+        # cross-platform. For Windows it uses `colorama` to do so.
+        echo("\033[?25l", nl=False)  # hide cursor
 
-    # NOTE: Watching (using `watch.Watch().stream(...)`) is not
-    # supported, thus we go for a loop instead:
-    # https://github.com/kubernetes-client/python/issues/1679
-    curr_status = ClusterStatus.INITIALIZING
-    end_status = ClusterStatus.PENDING
-    while curr_status != end_status:
-        curr_status = _get_orchest_cluster_status(ns, cluster_name)
-        echo(curr_status)
-        time.sleep(1)
+        # NOTE: Watching (using `watch.Watch().stream(...)`) is not
+        # supported, thus we go for a loop instead:
+        # https://github.com/kubernetes-client/python/issues/1679
+        prev_status = ClusterStatus.INITIALIZING
+        curr_status = ClusterStatus.INITIALIZING
+        end_status = ClusterStatus.RUNNING
+
+        # Use `async_req` to make sure spinner is always loading.
+        thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
+        while curr_status != end_status:
+            thread = t.cast("AsyncResult", thread)
+            if thread.ready():
+                curr_status = _parse_cluster_status_from_custom_object(thread.get())
+                thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
+
+            if curr_status is None:
+                curr_status = prev_status
+
+            if curr_status == prev_status:
+                for _ in range(3):  # 3 * (0.2 + 0.2) = 1.2
+                    echo("\r", nl=False)  # Move cursor to beginning of line
+                    echo("\033[K", nl=False)  # Erase until end of line
+                    echo(f"🚶 {curr_status.value}", nl=False)
+                    time.sleep(0.2)
+                    echo("\r", nl=False)
+                    echo("\033[K", nl=False)
+                    echo(f"🏃 {curr_status.value}", nl=False)
+                    time.sleep(0.2)
+
+            else:
+                echo("\r", nl=False)
+                echo("\033[K", nl=False)
+                echo(f"🏁 {prev_status.value}", nl=True)
+                prev_status = curr_status
+
+                # Otherwise we would wait without reason once installation
+                # has finished.
+                if curr_status != end_status:
+                    time.sleep(1.2)
+    finally:
+        echo("\033[?25h", nl=False)  # show cursor
+
+    echo("Successfully installed Orchest!")
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -223,7 +313,7 @@ def version(json_flag: bool, **common_options) -> None:
             echo(e, err=True)
         sys.exit(1)
 
-    version = custom_object["spec"]["orchest"]["defaultTag"]
+    version = custom_object["spec"]["orchest"]["defaultTag"]  # type: ignore
 
     if json_flag:
         jecho({"version": version})
@@ -254,7 +344,6 @@ def status(json_flag: bool, **common_options) -> None:
 
     """
     ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
-    ns = "orchesttt"
 
     # NOTE: If an uncaught exception is raised, Python will exit with
     # exit code equal to 1.
@@ -316,9 +405,9 @@ def adduser(
     username: str,
     is_admin: bool,
     non_interactive: bool,
-    non_interactive_password: Optional[str],
+    non_interactive_password: t.Optional[str],
     set_token: bool,
-    non_interactive_token: Optional[str],
+    non_interactive_token: t.Optional[str],
     **common_options,
 ) -> None:
     """Add a new user to Orchest.
@@ -397,9 +486,9 @@ def _add_user(
     ns: str,
     cluster_name: str,
     username: str,
-    password: Optional[str],
+    password: t.Optional[str],
     is_admin: bool,
-    token: Optional[str],
+    token: t.Optional[str],
 ) -> None:
     if password is None:
         raise ValueError("Password must be specified")
@@ -455,8 +544,19 @@ def _add_user(
         raise RuntimeError(client.read_all())
 
 
-def _get_orchest_cluster_status(ns: str, cluster_name: str) -> Optional[ClusterStatus]:
+def _get_orchest_cluster_status(
+    ns: str, cluster_name: str
+) -> t.Optional[ClusterStatus]:
     """
+
+    Note:
+        Passes `kwargs` to underlying `get_namespaced_custom_object`
+        call.
+
+    Returns:
+        multiprocessing.pool.AsyncResult if `async_req=True`,
+        None if custom object did contain `status` entry,
+        the status of the custom object otherwise.
 
     Raises:
         CRObjectNotFound: Custom Object could not be found.
@@ -465,21 +565,37 @@ def _get_orchest_cluster_status(ns: str, cluster_name: str) -> Optional[ClusterS
     # TODO: The moment the `/status` endpoint is implemented we can
     # switch to `CUSTOM_OBJECT_API.get_namespaced_custom_object_status`
     custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    custom_object = t.cast(t.Dict, custom_object)
+    return _parse_cluster_status_from_custom_object(custom_object)
 
+
+def _parse_cluster_status_from_custom_object(
+    custom_object: t.Dict,
+) -> t.Optional[ClusterStatus]:
     try:
         # TODO: Introduce more granularity later and add `message`
         status = ClusterStatus(custom_object["status"]["state"])
     except KeyError:
-        # NOTE: KeyError can get hit due to `"status"` not yet
-        # being present in the response:
+        # NOTE: KeyError can get hit due to `"status"` not (yet) being
+        # present in the response:
         # https://github.com/kubernetes-client/python/issues/1772
         return None
 
     return status
 
 
-def _get_namespaced_custom_object(ns: str, cluster_name: str) -> Dict:
+def _get_namespaced_custom_object(
+    ns: str, cluster_name: str, **kwargs
+) -> t.Union[t.Dict, "AsyncResult"]:
     """
+
+    Note:
+        Passes `kwargs` to underlying `get_namespaced_custom_object`
+        call.
+
+    Returns:
+        multiprocessing.pool.AsyncResult if `async_req=True`,
+        the custom object otherwise.
 
     Raises:
         CRObjectNotFound: Custom Object could not be found.
@@ -492,6 +608,7 @@ def _get_namespaced_custom_object(ns: str, cluster_name: str) -> Dict:
             name=cluster_name,
             namespace=ns,
             plural="orchestclusters",
+            **kwargs,
         )
     except client.ApiException as e:
         if e.status == 404:  # not found
