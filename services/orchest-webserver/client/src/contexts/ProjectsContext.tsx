@@ -1,9 +1,12 @@
 import { useFetchPipelines } from "@/hooks/useFetchPipelines";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import type { PipelineMetaData, Project } from "@/types";
 import React from "react";
 import { KeyedMutator } from "swr";
 
-export const ProjectsContext = React.createContext<IProjectsContext>(null);
+export const ProjectsContext = React.createContext<IProjectsContext>(
+  {} as IProjectsContext
+);
 
 export const useProjectsContext = () => React.useContext(ProjectsContext);
 
@@ -11,11 +14,6 @@ type Action =
   | {
       type: "ADD_PIPELINE";
       payload: PipelineMetaData;
-    }
-  | {
-      type: "UPDATE_PIPELINE";
-      payload: Pick<PipelineMetaData, "uuid"> &
-        Partial<Omit<PipelineMetaData, "uuid">>;
     }
   | {
       type: "SET_HAS_LOADED_PIPELINES";
@@ -44,6 +42,10 @@ type Action =
   | {
       type: "SET_PIPELINE_IS_READONLY";
       payload: boolean;
+    }
+  | {
+      type: "UPDATE_PIPELINE";
+      payload: { uuid: string } & Partial<PipelineMetaData>;
     };
 
 type ActionCallback = (currentState: IProjectsContextState) => Action;
@@ -74,7 +76,9 @@ const reducer = (
     case "ADD_PIPELINE": {
       return {
         ...state,
-        pipelines: [...state.pipelines, action.payload],
+        pipelines: state.pipelines
+          ? [...state.pipelines, action.payload]
+          : [action.payload],
         pipeline: action.payload,
       };
     }
@@ -91,7 +95,7 @@ const reducer = (
       if (!targetPipeline) return state;
 
       const updatedPipeline = { ...targetPipeline, ...changes };
-      const updatedPipelines = state.pipelines.map((pipeline) =>
+      const updatedPipelines = (state.pipelines || []).map((pipeline) =>
         pipeline.uuid === uuid ? updatedPipeline : pipeline
       );
       return {
@@ -155,6 +159,24 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     error,
     fetchPipelines,
   } = useFetchPipelines(state.projectUuid);
+
+  const hasPipelinesChanged = useHasChanged(state.pipelines);
+
+  React.useEffect(() => {
+    // When switching projects, state.pipelines will be cleaned up.
+    // then we need to refetch.
+    // Note that we don't want to trigger this when page is just loaded.
+    // because useFetchPipelines will do the inital request.
+    const hasPipelineCleanedUp =
+      !isFetchingPipelines && hasPipelinesChanged && !state.pipelines;
+
+    if (hasPipelineCleanedUp) fetchPipelines();
+  }, [
+    isFetchingPipelines,
+    state.pipelines,
+    hasPipelinesChanged,
+    fetchPipelines,
+  ]);
 
   React.useEffect(() => {
     if (!isFetchingPipelines && !error && pipelines) {

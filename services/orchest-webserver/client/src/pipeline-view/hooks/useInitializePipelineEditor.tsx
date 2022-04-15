@@ -35,7 +35,7 @@ export const useInitializePipelineEditor = (
     jobUuid,
   } = useCustomRoute();
 
-  const isTryingToFindByUuid = hasValue(pipelines && pipelineUuid);
+  const isTryingToFindByUuid = hasValue(pipelines) && hasValue(pipelineUuid);
   const foundPipelineByUuid = React.useMemo(
     () =>
       isTryingToFindByUuid
@@ -93,7 +93,7 @@ export const useInitializePipelineEditor = (
 
     // Reaching this point, `pipelineUuid` must be valid.
     // We can safely update `state.pipeline`.
-    if (pipeline?.uuid !== pipelineUuid) {
+    if (pipelineUuid && pipeline?.uuid !== pipelineUuid) {
       dispatch({
         type: "UPDATE_PIPELINE",
         payload: { uuid: pipelineUuid },

@@ -92,6 +92,7 @@ const FilePreviewView: React.FC = () => {
   };
 
   const fetchPipeline = async () => {
+    if (!pipelineUuid) return;
     setState((prevState) => ({
       ...prevState,
       loadingFile: true,

@@ -452,7 +452,7 @@ export const FileTree = React.memo(function FileTreeComponent({
               skipReload: true,
             });
 
-            if (foundPipeline?.uuid === pipelineUuid) {
+            if (pipelineUuid && foundPipeline?.uuid === pipelineUuid) {
               dispatch({
                 type: "UPDATE_PIPELINE",
                 payload: { uuid: pipelineUuid, path: newPath },

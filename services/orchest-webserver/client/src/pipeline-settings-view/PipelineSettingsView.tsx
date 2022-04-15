@@ -243,6 +243,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const saveGeneralForm = async () => {
+    if (!pipelineUuid) return;
     // do not mutate the original pipelineJson
     // put all mutations together for saving
     const updatedPipelineJson = generatePipelineJsonForSaving({
