@@ -30,6 +30,7 @@ import ListSubheader from "@mui/material/ListSubheader";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import { hasValue } from "@orchest/lib-utils";
+import cloneDeep from "lodash.clonedeep";
 import React from "react";
 
 export type ILogsViewProps = TViewPropsWithRequiredQueryArgs<
@@ -130,7 +131,7 @@ export const LogsView: React.FC = () => {
 
   const sortedSteps = React.useMemo(() => {
     if (!pipelineJson) return undefined;
-    return topologicalSort(pipelineJson.steps);
+    return topologicalSort(cloneDeep(pipelineJson.steps));
   }, [pipelineJson]);
 
   const { getSession } = useSessionsContext();

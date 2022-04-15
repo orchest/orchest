@@ -75,8 +75,12 @@ export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
     [mutate]
   );
 
+  // Note that pipelineJson should be assumed
+  // to be immutable (due to SWR).
+  const pipelineJson = data || (cache.get(cacheKey) as PipelineJson);
+
   return {
-    pipelineJson: data || (cache.get(cacheKey) as PipelineJson),
+    pipelineJson,
     error,
     isFetchingPipelineJson: isValidating,
     fetchPipelineJson: mutate,
