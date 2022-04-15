@@ -44,7 +44,7 @@ export const ProjectSelector = () => {
     if (uuid) {
       const path = matchWithinProjectPaths
         ? matchWithinProjectPaths.root || matchWithinProjectPaths.path
-        : siteMap.pipelines.path;
+        : siteMap.pipeline.path;
 
       navigateTo(path, { query: { projectUuid: uuid } });
     }
@@ -54,7 +54,7 @@ export const ProjectSelector = () => {
   const validateProjectUuid = (
     uuidToValidate: string | undefined | null,
     projects: Project[]
-  ): string | undefined => {
+  ): string | null | undefined => {
     let isValid = uuidToValidate
       ? projects.some((project) => project.uuid == uuidToValidate)
       : false;
@@ -72,10 +72,7 @@ export const ProjectSelector = () => {
       .then((response) => {
         let fetchedProjects: Project[] = JSON.parse(response);
 
-        dispatch({
-          type: "projectsSet",
-          payload: fetchedProjects,
-        });
+        dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
       })
       .catch((error) => console.log(error));
   };
@@ -83,9 +80,9 @@ export const ProjectSelector = () => {
   // sync state.projectUuid and the route param projectUuid
   React.useEffect(() => {
     if (projectUuidFromRoute) {
-      dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+      dispatch({ type: "SET_PROJECT", payload: projectUuidFromRoute });
     }
-  }, [projectUuidFromRoute]);
+  }, [projectUuidFromRoute, dispatch]);
 
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
@@ -105,18 +102,17 @@ export const ProjectSelector = () => {
       );
 
       if (invalidProjectUuid) {
+        if (state.projects.length === 0) return;
         // Select the first one from the given projects
-        let newProjectUuid =
-          state.projects.length > 0 ? state.projects[0].uuid : undefined;
-
+        let newProjectUuid = state.projects[0].uuid;
         // navigate ONLY if user is at the project root and
         // we're switching projects (because of detecting an
         // invalidProjectUuid)
-        dispatch({ type: "projectSet", payload: newProjectUuid });
+        dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
 
   if (
     !matchWithinProjectPaths ||

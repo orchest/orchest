@@ -2,6 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSessionsPoller } from "@/hooks/useSessionsPoller";
+import { cleanFilePath } from "@/pipeline-view/file-manager/common";
 import { siteMap } from "@/Routes";
 import StyledButtonOutlined from "@/styled-components/StyledButton";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -14,13 +15,13 @@ import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import MuiIconButton from "@mui/material/IconButton";
-import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
-import { useLocation, useRouteMatch } from "react-router-dom";
+import { useRouteMatch } from "react-router-dom";
 import { IconButton } from "./common/IconButton";
 import { ProjectSelector } from "./ProjectSelector";
 import SessionToggleButton from "./SessionToggleButton";
@@ -32,36 +33,12 @@ export const HeaderBar = ({
   toggleDrawer: () => void;
   isDrawerOpen: boolean;
 }) => {
-  const { navigateTo } = useCustomRoute();
-  const location = useLocation();
-
+  const { navigateTo, pipelineUuid } = useCustomRoute();
   const {
-    state: {
-      projectUuid,
-      pipelineUuid,
-      pipelineName,
-      pipelineSaveStatus,
-      pipelineIsReadOnly,
-    },
-    dispatch,
+    state: { projectUuid, pipeline, pipelineSaveStatus, pipelineIsReadOnly },
   } = useProjectsContext();
   const appContext = useAppContext();
   useSessionsPoller();
-
-  React.useEffect(() => {
-    /*
-      Always unset the pipeline for the header bar on navigation. 
-      It's up to pages to request the headerbar pipeline if they 
-      need it.
-    */
-    dispatch({
-      type: "pipelineSet",
-      payload: {
-        pipelineUuid: undefined,
-        pipelineName: undefined,
-      },
-    });
-  }, [location]);
 
   const matchPipeline = useRouteMatch({
     path: siteMap.pipeline.path,
@@ -105,6 +82,9 @@ export const HeaderBar = ({
   const logoutHandler = () => {
     window.location.href = "/login/clear";
   };
+  // Only show the pipeline name if pipeline_uuid is in the route args,
+  // where `pipeline` exists in `PorjectsContext` or not.
+  const isShowingPipelineName = hasValue(pipelineUuid) && hasValue(pipeline);
 
   return (
     <AppBar
@@ -117,70 +97,113 @@ export const HeaderBar = ({
         borderBottom: (theme) => `1px solid ${theme.borderColor}`,
       }}
     >
-      <Toolbar>
-        <MuiIconButton
-          title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
-          onClick={(e) => {
-            e.preventDefault();
-            toggleDrawer();
-          }}
-          sx={{ marginLeft: (theme) => theme.spacing(-2) }}
-        >
-          <MenuIcon />
-        </MuiIconButton>
-        <Box
-          component="img"
-          onClick={goToHome}
-          onAuxClick={goToHome}
-          src="/image/logo.svg"
-          data-test-id="orchest-logo"
+      <Toolbar
+        sx={{
+          justifyContent: "space-between",
+        }}
+      >
+        <Stack direction="row" alignItems="center">
+          <MuiIconButton
+            title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
+            onClick={(e) => {
+              e.preventDefault();
+              toggleDrawer();
+            }}
+            sx={{ marginLeft: (theme) => theme.spacing(-2) }}
+          >
+            <MenuIcon />
+          </MuiIconButton>
+          <Box
+            component="img"
+            onClick={goToHome}
+            onAuxClick={goToHome}
+            src="/image/logo.svg"
+            data-test-id="orchest-logo"
+            sx={{
+              cursor: "pointer",
+              width: (theme) => theme.spacing(5),
+              margin: (theme) => theme.spacing(0, 2.5, 0, 1.25), // to align the AppDrawer ListIconText
+            }}
+          />
+          <ProjectSelector />
+        </Stack>
+        <Stack
+          direction="column"
+          alignItems="center"
+          justifyContent="center"
           sx={{
-            cursor: "pointer",
-            width: (theme) => theme.spacing(5),
-            margin: (theme) => theme.spacing(0, 2.5, 0, 1.25), // to align the AppDrawer ListIconText
+            flex: 1,
+            maxWidth: "33%",
+            left: {
+              xl: "50%",
+            },
+            position: {
+              xl: "absolute",
+            },
+            transform: {
+              xl: "translateX(-50%)",
+            },
           }}
-        />
-        <ProjectSelector />
-        <LinearProgress />
-        <Box sx={{ flex: 1 }}>
-          {pipelineName && (
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="center"
-              spacing={2}
-            >
-              {pipelineSaveStatus === "saved" ? (
-                <Tooltip title="Pipeline saved">
-                  <CheckCircleIcon />
-                </Tooltip>
-              ) : (
-                <CircularProgress />
-              )}
+        >
+          {isShowingPipelineName && (
+            <>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="center"
+                sx={{ width: "100%" }}
+              >
+                {pipelineSaveStatus === "saved" ? (
+                  <Tooltip title="Pipeline saved">
+                    <CheckCircleIcon />
+                  </Tooltip>
+                ) : (
+                  <CircularProgress />
+                )}
+                <Typography
+                  variant="h6"
+                  sx={{
+                    textOverflow: "ellipsis",
+                    overflow: "hidden",
+                    whiteSpace: "nowrap",
+                    minWidth: 0,
+                    margin: (theme) => theme.spacing(0, 1),
+                  }}
+                  title={pipeline.name}
+                  data-test-id="pipeline-name"
+                >
+                  {pipeline.name}
+                </Typography>
+              </Stack>
               <Typography
-                variant="h6"
+                variant="caption"
                 sx={{
-                  maxWidth: "50vw", // TODO: prevent using vw
                   textOverflow: "ellipsis",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
+                  minWidth: 0,
+                  color: (theme) => theme.palette.grey[700],
                 }}
-                title={pipelineName}
-                data-test-id="pipeline-name"
+                title={pipeline.path}
+                data-test-id="pipeline-path"
               >
-                {pipelineName}
+                {cleanFilePath(pipeline.path)}
               </Typography>
-            </Stack>
+            </>
           )}
-        </Box>
-        <Stack spacing={2} direction="row">
-          {!matchFilePreview && pipelineName && !pipelineIsReadOnly && (
-            <SessionToggleButton
-              pipelineUuid={pipelineUuid}
-              projectUuid={projectUuid}
-            />
-          )}
-          {pipelineName && matchJupyter && (
+        </Stack>
+        <Stack spacing={2} direction="row" justifyContent="flex-end">
+          {!matchFilePreview &&
+            pipeline &&
+            !pipelineIsReadOnly &&
+            projectUuid &&
+            pipelineUuid && (
+              <SessionToggleButton
+                pipelineUuid={pipelineUuid}
+                projectUuid={projectUuid}
+              />
+            )}
+          {pipeline && matchJupyter && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"
@@ -191,7 +214,7 @@ export const HeaderBar = ({
               Switch to Pipeline
             </StyledButtonOutlined>
           )}
-          {pipelineName && !pipelineIsReadOnly && matchPipeline && (
+          {pipeline && !pipelineIsReadOnly && matchPipeline && (
             <StyledButtonOutlined
               variant="outlined"
               color="secondary"

@@ -90,7 +90,7 @@ const localElementPosition = (
 };
 
 export const getNodeCenter = (parentOffset: Offset, scaleFactor: number) => (
-  node: HTMLElement | undefined
+  node: HTMLElement | undefined | null
 ) => {
   if (!node) return null;
   let nodePosition = localElementPosition(

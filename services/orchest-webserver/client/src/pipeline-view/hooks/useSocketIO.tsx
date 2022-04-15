@@ -1,28 +1,23 @@
 import React from "react";
 import io from "socket.io-client";
 
-export type SocketIO = Record<"on" | "off" | "emit", any> & {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type Socket = Record<"on" | "off" | "emit" | "close", any> & {
+  connect: (namespace: string, params: Record<string, string[]>) => Socket;
   disconnect: () => void;
+  close: () => void; // Synonym of socket.disconnect().
 };
 
-export const useSocketIO = () => {
-  const [sio, setSio] = React.useState<SocketIO>(null);
-  // TODO: only make state.sio defined after successful
-  // connect to avoid .emit()'ing to unconnected
-  // sio client (emits aren't buffered).
-  const connectSocketIO = () => {
-    // disable polling
-    setSio(io.connect("/pty", { transports: ["websocket"] }));
-  };
-
-  const disconnectSocketIO = () => {
-    if (sio) sio.disconnect();
-  };
+export const useSocketIO = (namespace: string) => {
+  const socket = React.useMemo<Socket>(() => {
+    return io.connect(namespace, { transports: ["websocket"] });
+  }, [namespace]);
 
   React.useEffect(() => {
-    connectSocketIO();
-    return () => disconnectSocketIO();
-  }, []);
+    return () => {
+      socket.disconnect();
+    };
+  }, [socket]);
 
-  return sio;
+  return socket;
 };

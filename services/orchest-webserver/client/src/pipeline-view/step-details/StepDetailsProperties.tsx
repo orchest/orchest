@@ -1,6 +1,6 @@
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
-import { PipelineStepState, Step } from "@/types";
+import { Environment, PipelineStepState, Step } from "@/types";
 import { toValidFilename } from "@/utils/toValidFilename";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
@@ -14,9 +14,8 @@ import Typography from "@mui/material/Typography";
 import {
   collapseDoubleDots,
   extensionFromFilename,
+  fetcher,
   kernelNameToLanguage,
-  makeCancelable,
-  makeRequest,
   PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
@@ -54,20 +53,35 @@ const KERNEL_OPTIONS = [
   { value: "julia", label: "Julia" },
 ];
 
-export const StepDetailsProperties: React.FC<{
-  pipelineCwd: string;
+type EnvironmentOption = {
+  value: string;
+  label: string;
+};
+
+export const StepDetailsProperties = ({
+  pipelineCwd,
+  readOnly,
+  connections,
+  step,
+  onSave,
+  menuMaxWidth,
+}: {
+  pipelineCwd: string | undefined;
   readOnly: boolean;
   connections: ConnectionDict;
   step: PipelineStepState;
   onSave: (payload: Partial<Step>, uuid: string, replace?: boolean) => void;
   menuMaxWidth?: string;
-}> = ({ pipelineCwd, readOnly, connections, step, onSave, menuMaxWidth }) => {
+}) => {
   const [state, setState] = React.useState({
-    environmentOptions: [],
     // this is required to let users edit JSON (while typing the text will not be valid JSON)
     editableParameters: JSON.stringify(step.parameters, null, 2),
     autogenerateFilePath: step.file_path.length == 0,
   });
+
+  const [environmentOptions, setEnvironmentOptions] = React.useState<
+    EnvironmentOption[]
+  >([]);
 
   const promiseManager = React.useMemo(() => new PromiseManager(), []);
   const refManager = React.useMemo(() => new RefManager(), []);
@@ -81,7 +95,8 @@ export const StepDetailsProperties: React.FC<{
           environment: updatedEnvironmentUUID,
           kernel: { display_name: updatedEnvironmentName },
         },
-        step.uuid
+        step.uuid,
+        false
       );
       if (updatedEnvironmentUUID !== "" && step["file_path"] !== "") {
         let kernelName = `orchest-kernel-${updatedEnvironmentUUID}`;
@@ -104,16 +119,9 @@ export const StepDetailsProperties: React.FC<{
         "?language=" + kernelNameToLanguage(step.kernel.name);
     }
 
-    let fetchEnvironmentOptionsPromise = makeCancelable(
-      makeRequest("GET", environmentsEndpoint),
-      promiseManager
-    );
-
-    fetchEnvironmentOptionsPromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
-
-        let environmentOptions = [];
+    fetcher<Environment[]>(environmentsEndpoint)
+      .then((result) => {
+        let options: EnvironmentOption[] = [];
 
         let currentEnvironmentInEnvironments = false;
 
@@ -121,7 +129,7 @@ export const StepDetailsProperties: React.FC<{
           if (environment.uuid == step.environment) {
             currentEnvironmentInEnvironments = true;
           }
-          environmentOptions.push({
+          options.push({
             value: environment.uuid,
             label: environment.name,
           });
@@ -130,15 +138,12 @@ export const StepDetailsProperties: React.FC<{
         if (!currentEnvironmentInEnvironments) {
           // update environment
           onChangeEnvironment(
-            environmentOptions.length > 0 ? environmentOptions[0].value : "",
-            environmentOptions.length > 0 ? environmentOptions[0].label : ""
+            options.length > 0 ? options[0].value : "",
+            options.length > 0 ? options[0].label : ""
           );
         }
 
-        setState((prevState) => ({
-          ...prevState,
-          environmentOptions: environmentOptions,
-        }));
+        setEnvironmentOptions(options);
       })
       .catch((error) => {
         console.log(error);
@@ -147,7 +152,6 @@ export const StepDetailsProperties: React.FC<{
     isNotebookStep,
     onChangeEnvironment,
     projectUuid,
-    promiseManager,
     step.environment,
     step.kernel.name,
   ]);
@@ -232,8 +236,12 @@ export const StepDetailsProperties: React.FC<{
       );
 
       if (selectedConnection.length > 0) {
-        let positionDelta = e.clientY - previousPosition;
-        let itemHeight = selectedConnection.outerHeight();
+        const clientY = e.clientY as number;
+        let positionDelta = clientY - previousPosition;
+
+        previousPosition = clientY;
+
+        let itemHeight = selectedConnection.outerHeight() as number;
 
         connectionItemOffset += positionDelta;
 
@@ -251,8 +259,6 @@ export const StepDetailsProperties: React.FC<{
         selectedConnection.css({
           transform: "translateY(" + connectionItemOffset + "px)",
         });
-
-        previousPosition = e.clientY;
 
         // find new index based on current position
         let elementYPosition =
@@ -401,13 +407,13 @@ export const StepDetailsProperties: React.FC<{
             value={step.environment}
             disabled={readOnly}
             onChange={(e) => {
-              const selected = state.environmentOptions.find(
+              const selected = environmentOptions.find(
                 (option) => option.value === e.target.value
               );
-              onChangeEnvironment(selected.value, selected.label);
+              if (selected) onChangeEnvironment(selected.value, selected.label);
             }}
           >
-            {state.environmentOptions.map((option) => {
+            {environmentOptions.map((option) => {
               return (
                 <MenuItem key={option.value} value={option.value}>
                   {option.label}

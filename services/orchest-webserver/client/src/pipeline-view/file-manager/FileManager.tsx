@@ -1,5 +1,8 @@
-import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useDebounce } from "@/hooks/useDebounce";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
 import LinearProgress, {
   LinearProgressProps,
 } from "@mui/material/LinearProgress";
@@ -9,6 +12,7 @@ import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { FileWithPath } from "react-dropzone";
 import { FileManagementRoot, treeRoots } from "../common";
+import { CreatePipelineDialog } from "../CreatePipelineDialog";
 import { ActionBar } from "./ActionBar";
 import {
   FILE_MANAGEMENT_ENDPOINT,
@@ -82,7 +86,10 @@ export function FileManager() {
   /**
    * States
    */
-  const { projectUuid } = useCustomRoute();
+
+  const {
+    state: { projectUuid, pipelineIsReadOnly },
+  } = useProjectsContext();
 
   const {
     isDragging,
@@ -288,10 +295,7 @@ export function FileManager() {
   );
 
   return (
-    <FileManagerLocalContextProvider
-      reload={reload}
-      setContextMenu={setContextMenu}
-    >
+    <>
       <FileManagerContainer ref={containerRef} uploadFiles={uploadFiles}>
         {inProgress && (
           <LinearProgress
@@ -300,40 +304,76 @@ export function FileManager() {
             variant={progressType}
           />
         )}
-        <ActionBar
-          setExpanded={setExpanded}
-          uploadFiles={uploadFiles}
-          rootFolder={root}
-        />
-        {allTreesHaveLoaded && (
+        <FileManagerLocalContextProvider
+          reload={reload}
+          setContextMenu={setContextMenu}
+        >
+          <ActionBar
+            setExpanded={setExpanded}
+            uploadFiles={uploadFiles}
+            rootFolder={root}
+          />
           <FileTreeContainer>
-            <FileTree
-              treeRoots={treeRoots}
-              expanded={expanded}
-              onRename={onRename}
-              handleToggle={handleToggle}
-            />
-            <FileManagerContextMenu metadata={contextMenu}>
-              {contextMenu?.type === "background" && (
-                <>
-                  <MenuItem dense onClick={collapseAll}>
-                    Collapse all
-                  </MenuItem>
-                  <MenuItem
-                    dense
-                    onClick={() => {
-                      reload();
-                      setContextMenu(null);
+            {allTreesHaveLoaded && (
+              <>
+                <FileTree
+                  treeRoots={treeRoots}
+                  expanded={expanded}
+                  onRename={onRename}
+                  handleToggle={handleToggle}
+                />
+                <FileManagerContextMenu metadata={contextMenu}>
+                  {contextMenu?.type === "background" && (
+                    <>
+                      <MenuItem dense onClick={collapseAll}>
+                        Collapse all
+                      </MenuItem>
+                      <MenuItem
+                        dense
+                        onClick={() => {
+                          reload();
+                          setContextMenu(null);
+                        }}
+                      >
+                        Refresh
+                      </MenuItem>
+                    </>
+                  )}
+                </FileManagerContextMenu>
+              </>
+            )}
+          </FileTreeContainer>
+        </FileManagerLocalContextProvider>
+        {!pipelineIsReadOnly && (
+          <CreatePipelineDialog>
+            {(onCreateClick) => (
+              <Box
+                sx={{
+                  width: "100%",
+                  margin: (theme) => theme.spacing(0.5, 0, 1, 0),
+                  padding: (theme) => theme.spacing(1),
+                }}
+              >
+                <Button
+                  fullWidth
+                  startIcon={<AddCircleIcon />}
+                  onClick={onCreateClick}
+                  data-test-id="pipeline-create"
+                >
+                  <Box
+                    sx={{
+                      marginTop: (theme) => theme.spacing(0.25),
+                      marginRight: (theme) => theme.spacing(1),
                     }}
                   >
-                    Refresh
-                  </MenuItem>
-                </>
-              )}
-            </FileManagerContextMenu>
-          </FileTreeContainer>
+                    Create pipeline
+                  </Box>
+                </Button>
+              </Box>
+            )}
+          </CreatePipelineDialog>
         )}
       </FileManagerContainer>
-    </FileManagerLocalContextProvider>
+    </>
   );
 }

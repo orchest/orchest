@@ -131,16 +131,6 @@ const commandsFromProject = (project: Project): Command => {
           },
         },
       },
-      {
-        title: "Pipelines: " + project.path,
-        action: "openPage",
-        data: {
-          path: siteMap.pipelines.path,
-          query: {
-            projectUuid: project.uuid,
-          },
-        },
-      },
     ],
   };
 };

@@ -1,6 +1,7 @@
 import { Code } from "@/components/common/Code";
 import { OrchestFileIcon } from "@/components/common/icons/OrchestFileIcon";
 import { useAppContext } from "@/contexts/AppContext";
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import MuiTreeItem, { treeItemClasses, TreeItemProps } from "@mui/lab/TreeItem";
@@ -8,6 +9,7 @@ import { SxProps, Theme } from "@mui/material";
 import Box from "@mui/material/Box";
 import { styled } from "@mui/material/styles";
 import React from "react";
+import { cleanFilePath } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
 import { getIcon, SVGFileIcon } from "./SVGFileIcon";
 
@@ -17,6 +19,7 @@ const StyledTreeItemRoot = styled(MuiTreeItem)(({ theme }) => ({
     [`.${treeItemClasses.label}`]: {
       paddingLeft: 0,
       ["div"]: {
+        whiteSpace: "nowrap",
         textOverflow: "ellipsis",
         overflow: "hidden",
       },
@@ -44,12 +47,11 @@ export const TreeItem = ({
   labelText: string;
   sx: SxProps<Theme>;
 }) => {
+  const { setIsDragging, setDragFile } = useFileManagerContext();
   const {
-    setSelectedFiles,
-    setIsDragging,
-    setDragFile,
-  } = useFileManagerContext();
-  const { pipelineUuid, projectUuid } = useCustomRoute();
+    state: { pipelines = [] },
+  } = useProjectsContext();
+  const { projectUuid } = useCustomRoute();
   const { setConfirm } = useAppContext();
   const { getSession, toggleSession } = useSessionsContext();
 
@@ -82,21 +84,25 @@ export const TreeItem = ({
             Math.abs(normalizedDeltaX) + Math.abs(normalizedDeltaY);
 
           if (cumulativeDrag.current.drag > DRAG_THRESHOLD) {
-            const session = getSession({
-              pipelineUuid,
-              projectUuid,
-            });
-            if (path.endsWith(".orchest") && session) {
+            const filePathRelativeToProjectDir = cleanFilePath(path);
+            const foundPipeline = pipelines.find(
+              (pipeline) => pipeline.path === filePathRelativeToProjectDir
+            );
+            const session = foundPipeline
+              ? getSession({ pipelineUuid: foundPipeline.uuid, projectUuid })
+              : null;
+            if (session) {
               setConfirm(
                 "Warning",
                 <>
-                  Before moving <Code>.orchest</Code> files, you need to stop
-                  session. Do you want to continue?
+                  {`Before moving `}
+                  <Code>{cleanFilePath(path, "Project files/")}</Code>
+                  {` , you need to stop its session. Do you want to continue?`}
                 </>,
                 {
                   confirmLabel: "Stop session",
                   onConfirm: async (resolve) => {
-                    toggleSession({ pipelineUuid, projectUuid });
+                    toggleSession(session);
                     resolve(true);
                     return true;
                   },

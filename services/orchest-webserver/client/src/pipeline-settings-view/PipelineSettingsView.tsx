@@ -47,13 +47,7 @@ import {
   IconLightBulbOutline,
   Link,
 } from "@orchest/design-system";
-import {
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-  uuidv4,
-} from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER, uuidv4 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import React from "react";
 import { Controlled as CodeMirror } from "react-codemirror2";
@@ -142,7 +136,6 @@ const PipelineSettingsView: React.FC = () => {
     services,
     setServices,
     settings,
-    setSettings,
     pipelineJson,
     pipelineName,
     setPipelineName,
@@ -161,9 +154,6 @@ const PipelineSettingsView: React.FC = () => {
   );
 
   const [servicesChanged, setServicesChanged] = React.useState(false);
-  const [restartingMemoryServer, setRestartingMemoryServer] = React.useState(
-    false
-  );
   const [envVarsChanged, setEnvVarsChanged] = React.useState(false);
 
   const session = getSession({
@@ -174,8 +164,6 @@ const PipelineSettingsView: React.FC = () => {
     setServicesChanged(false);
     setEnvVarsChanged(false);
   }
-
-  const promiseManager = React.useMemo(() => new PromiseManager(), []);
 
   const hasLoaded =
     pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
@@ -255,6 +243,7 @@ const PipelineSettingsView: React.FC = () => {
   };
 
   const saveGeneralForm = async () => {
+    if (!pipelineUuid) return;
     // do not mutate the original pipelineJson
     // put all mutations together for saving
     const updatedPipelineJson = generatePipelineJsonForSaving({
@@ -300,87 +289,55 @@ const PipelineSettingsView: React.FC = () => {
     formData.append("pipeline_json", JSON.stringify(updatedPipelineJson));
 
     Promise.allSettled([
-      makeRequest(
-        "POST",
+      fetcher<{ success: boolean; reason?: string; message?: string }>(
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
-        { type: "FormData", content: formData }
-      )
-        .then((response: string) => {
-          let result = JSON.parse(response);
-          if (result.success) {
-            // Sync name changes with the global context
-            dispatch({
-              type: "pipelineSet",
-              payload: { pipelineName },
-            });
-          }
-        })
-        .catch((response) => {
-          setAlert(
-            "Error",
-            "Could not save: pipeline definition OR Notebook JSON"
-          );
-
-          console.error(response);
-          return Promise.reject(response);
-        }),
-      makeRequest("PUT", `/async/pipelines/${projectUuid}/${pipelineUuid}`, {
-        type: "json",
-        content: {
-          env_variables: envVariablesObj.value,
-          path: !session ? pipelinePath : undefined, // path cannot be changed when there is an active session
-        },
-      }).catch((response) => {
-        setAlert("Error", "Could not save: environment variables");
-        console.error(response);
-        return Promise.reject(response);
-      }),
-    ]).then((value) => {
-      const isAllSaved = !value.some((p) => p.status === "rejected");
-      setAsSaved(isAllSaved);
-    });
-  };
-
-  const restartMemoryServer = () => {
-    if (!restartingMemoryServer) {
-      setRestartingMemoryServer(true);
-
-      // perform POST to save
-      let restartPromise = makeCancelable(
-        makeRequest(
-          "PUT",
-          `/catch/api-proxy/api/sessions/${projectUuid}/${pipelineUuid}`
-        ),
-        promiseManager
-      );
-
-      restartPromise.promise
-        .then(() => {
-          setRestartingMemoryServer(false);
-        })
-        .catch((response) => {
-          if (!response.isCanceled) {
-            let errorMessage =
-              "Could not clear memory server, reason unknown. Please try again later.";
-            try {
-              errorMessage = JSON.parse(response.body)["message"];
-              if (errorMessage == "SessionNotRunning") {
-                errorMessage =
-                  "Session is not running, please try again later.";
-              }
-            } catch (error) {
-              console.error(error);
+        { method: "POST", body: formData }
+      ),
+      // path cannot be changed when there is an active session
+      !session
+        ? fetcher<{ success: boolean; reason?: string; message?: string }>(
+            `/async/pipelines/${projectUuid}/${pipelineUuid}`,
+            {
+              method: "PUT",
+              headers: HEADER.JSON,
+              body: JSON.stringify({
+                env_variables: envVariablesObj.value,
+                path: pipelinePath,
+              }),
             }
+          )
+        : Promise.resolve(pipelinePath),
+    ]).then(([pipelineJsonChanges, pipelineChanges]) => {
+      const errorMessages = [
+        pipelineJsonChanges.status === "rejected"
+          ? "pipeline definition or Notebook JSON"
+          : undefined,
+        pipelineChanges.status === "rejected"
+          ? "environment variables"
+          : undefined,
+      ].filter((value) => value);
 
-            setAlert("Error", errorMessage);
-            setRestartingMemoryServer(false);
-          }
-        });
-    } else {
-      console.error(
-        "Already busy restarting memory server. UI should prohibit this call."
-      );
-    }
+      if (errorMessages.length > 0) {
+        setAlert("Error", `Could not save ${errorMessages.join(" and ")}`);
+      }
+
+      // Sync changes with the global context
+      const payload = {
+        ...(pipelineJsonChanges.status === "fulfilled"
+          ? { name: pipelineName }
+          : undefined),
+        ...(pipelineChanges.status === "fulfilled"
+          ? { path: pipelinePath }
+          : undefined),
+      };
+
+      dispatch({
+        type: "UPDATE_PIPELINE",
+        payload: { uuid: pipelineUuid, ...payload },
+      });
+
+      setAsSaved(errorMessages.length === 0);
+    });
   };
 
   type ServiceRow = {

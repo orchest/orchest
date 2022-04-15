@@ -8,7 +8,7 @@ export const useSavingIndicator = () => {
   const setPipelineSaveStatus = React.useCallback(
     (status: "saving" | "saved") => {
       dispatch({
-        type: "pipelineSetSaveStatus",
+        type: "SET_PIPELINE_SAVE_STATUS",
         payload: status,
       });
     },

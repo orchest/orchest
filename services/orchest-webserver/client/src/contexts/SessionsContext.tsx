@@ -39,30 +39,28 @@ type Session = {
   pipelineUuid?: string;
 };
 
-const getSessionValue = (session: Session | null) => {
-  return (
-    session && {
-      projectUuid: session.projectUuid || session.project_uuid,
-      pipelineUuid: session.pipelineUuid || session.pipeline_uuid,
-    }
-  );
+const getSessionValue = (session: Session) => {
+  return {
+    projectUuid: session.projectUuid || session.project_uuid,
+    pipelineUuid: session.pipelineUuid || session.pipeline_uuid,
+  };
 };
 
 // because project_uuid and pipeline_uuid can either be snake_case or camelCase,
-// isSession function should be able to compare either case.
-export const isSession = (a: Session, b: Session) => {
+// isSameSession function should be able to compare either case.
+export function isSameSession(a: Session, b: Session) {
   if (!a || !b) return false;
   const sessionA = getSessionValue(a);
   const sessionB = getSessionValue(b);
 
   return !Object.keys(sessionA).some((key) => sessionA[key] !== sessionB[key]);
-};
+}
 
 /* Matchers
   =========================================== */
 
 const isStoppable = (status: TSessionStatus) =>
-  ["RUNNING", "LAUNCHING"].includes(status);
+  ["RUNNING", "LAUNCHING"].includes(status || "");
 
 /* Fetchers
   =========================================== */
@@ -99,9 +97,7 @@ type SessionsContextAction = Action | ActionCallback;
 type SessionsContext = {
   state: SessionsContextState;
   dispatch: React.Dispatch<SessionsContextAction>;
-  getSession: (
-    session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">
-  ) => IOrchestSession | undefined;
+  getSession: (session: Session) => IOrchestSession | undefined;
   toggleSession: (payload: IOrchestSessionUuid) => Promise<void>;
   deleteAllSessions: () => Promise<void>;
 };
@@ -155,8 +151,10 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
 
   const getSession = React.useCallback(
-    (session: Pick<IOrchestSession, "pipelineUuid" | "projectUuid">) =>
-      state.sessions.find((stateSession) => isSession(session, stateSession)),
+    (session: Session) =>
+      state.sessions?.find((stateSession) =>
+        isSameSession(session, stateSession)
+      ),
     [state]
   );
 
@@ -164,12 +162,12 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
    * a wrapper of SET_SESSIONS action dispatcher, used for updating single session
    */
   const setSession = React.useCallback(
-    (newSessionData?: Partial<IOrchestSession>) => {
+    (newSessionData?: IOrchestSession) => {
       if (!newSessionData) return;
       dispatch((currentState) => {
         let found = false;
-        const newSessions = currentState.sessions.map((sessionData) => {
-          const isMatching = isSession(newSessionData, sessionData);
+        const newSessions = (currentState.sessions || []).map((sessionData) => {
+          const isMatching = isSameSession(newSessionData, sessionData);
           if (isMatching) found = true;
 
           return isMatching
@@ -178,12 +176,9 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         });
 
         // not found, insert newSessionData as the temporary session
-        const outcome = (found
+        const outcome: IOrchestSession[] = found
           ? newSessions
-          : [
-              ...newSessions,
-              { ...newSessionData, status: "LAUNCHING" },
-            ]) as IOrchestSession[];
+          : [...newSessions, { ...newSessionData, status: "LAUNCHING" }];
 
         return {
           type: "SET_SESSIONS",
@@ -200,8 +195,8 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
   const toggleSession = React.useCallback(
     async (payload: IOrchestSessionUuid) => {
-      const foundSession = state.sessions.find((session) =>
-        isSession(session, payload)
+      const foundSession = state.sessions?.find((session) =>
+        isSameSession(session, payload)
       );
 
       /* use the cashed session from useSWR or create a temporary one out of previous one */
@@ -210,8 +205,9 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         "pipeline_uuid",
       ]);
 
-      const isWorking = ["LAUNCHING", "STOPPING"].includes(session?.status);
-      if (isWorking) return;
+      const isOperating =
+        session?.status && ["LAUNCHING", "STOPPING"].includes(session.status);
+      if (isOperating) return;
 
       // both "RUNNING", "LAUNCHING" are stoppable
       // but we only allow RUNNING to be stopped here
@@ -226,14 +222,14 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
         return;
       }
 
-      // session is undefined, launching a new session
+      // `session` is undefined, launching a new session
       setSession({ ...payload, status: "LAUNCHING" });
       await fetcher(ENDPOINT, {
         method: "POST",
         headers: HEADER.JSON,
         body: JSON.stringify({
-          pipeline_uuid: payload.pipelineUuid,
           project_uuid: payload.projectUuid,
+          pipeline_uuid: payload.pipelineUuid,
         }),
       })
         .then((sessionDetails) => setSession(sessionDetails))
@@ -255,7 +251,7 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
     dispatch({ type: "SET_IS_KILLING_ALL_SESSIONS", payload: true });
     try {
       await Promise.all(
-        state.sessions
+        (state.sessions || [])
           .map((sessionValue) => {
             const shouldStop = isStoppable(sessionValue.status);
             return shouldStop ? stopSession(sessionValue) : null;

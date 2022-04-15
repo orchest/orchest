@@ -1,11 +1,11 @@
-export const getOffset = (element: HTMLElement | undefined) => {
+export function getOffset<T extends HTMLElement>(element: T | undefined) {
   if (!element) return { top: 0, left: 0 };
   const box = element.getBoundingClientRect();
   return {
     top: box.top + window.pageYOffset - document.documentElement.clientTop,
     left: box.left + window.pageXOffset - document.documentElement.clientLeft,
   };
-};
+}
 
 export const getWidth = (element: HTMLElement) => {
   if (!element) return 0;

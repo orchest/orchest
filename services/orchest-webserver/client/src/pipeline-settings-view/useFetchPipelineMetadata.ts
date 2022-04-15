@@ -45,24 +45,6 @@ export const useFetchPipelineMetadata = ({
   });
 
   /**
-   * Update ProjectsContext
-   */
-  const initialized = React.useRef(false);
-  React.useEffect(() => {
-    if (!initialized.current && pipelineJson) {
-      initialized.current = true;
-      dispatch({
-        type: "pipelineSet",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-        },
-      });
-    }
-  }, [pipelineJson, pipelineUuid, projectUuid, initialized, dispatch]);
-
-  /**
    * hooks for persisting local mutations without changing the initial data
    */
 
@@ -99,6 +81,27 @@ export const useFetchPipelineMetadata = ({
     pipeline,
     pipelineRun
   );
+
+  /**
+   * Update ProjectsContext
+   */
+  const initialized = React.useRef(false);
+  React.useEffect(() => {
+    if (!initialized.current && pipelineUuid && pipelineJson && pipelinePath) {
+      initialized.current = true;
+      dispatch({
+        type: "UPDATE_PIPELINE",
+        payload: { uuid: pipelineUuid },
+      });
+    }
+  }, [
+    pipelineJson,
+    pipelineUuid,
+    pipelinePath,
+    projectUuid,
+    initialized,
+    dispatch,
+  ]);
 
   // fetch project env vars only if it's not a job or a pipeline run
   // NOTE: project env var only makes sense for pipelines, because jobs and runs make an copy of all the effective variables

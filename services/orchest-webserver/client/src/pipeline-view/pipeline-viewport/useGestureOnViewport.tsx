@@ -29,6 +29,7 @@ export const useGestureOnViewport = (
   pipelineSetHolderOrigin: (newOrigin: [number, number]) => void
 ) => {
   const {
+    disabled,
     eventVars,
     trackMouseMovement,
     dispatch,
@@ -74,6 +75,7 @@ export const useGestureOnViewport = (
 
   const zoom = React.useCallback(
     (event: WheelEvent | PointerEvent | TouchEvent, scaleDiff: number) => {
+      if (disabled) return;
       let pipelineMousePosition = getMousePositionRelativeToCanvas(
         event as WheelEvent
       );
@@ -94,6 +96,7 @@ export const useGestureOnViewport = (
       });
     },
     [
+      disabled,
       dispatch,
       getMousePositionRelativeToCanvas,
       pipelineOrigin,
@@ -104,7 +107,7 @@ export const useGestureOnViewport = (
   useGesture(
     {
       onWheel: ({ pinching, wheeling, delta: [deltaX, deltaY], event }) => {
-        if (pinching || !wheeling) return;
+        if (disabled || pinching || !wheeling) return;
 
         // mouse wheel
         if (!isTrachpad(event)) {
@@ -121,7 +124,7 @@ export const useGestureOnViewport = (
         }));
       },
       onPinch: ({ pinching, delta, event }) => {
-        if (!pinching) return;
+        if (disabled || !pinching) return;
         zoom(event, delta[0] / 12);
       },
     },
