@@ -101,7 +101,7 @@ export const HeaderBar = ({
     >
       <Toolbar
         sx={{
-          justifyContent: "space-around",
+          justifyContent: "space-between",
         }}
       >
         <Stack direction="row" alignItems="center">
