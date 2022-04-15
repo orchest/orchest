@@ -55,9 +55,16 @@ Deploying a new controller:
 TODO:
 
 - GitHub Action workflow files to publish CLI on release
-- Docs
+- "Deploying Orchest" --> "Deploying Orchest control plane"
+- Structure of CLI code
+- Installation docs
 - Great CRD
+- Tests? Could also be as simple as running a type checker for now.
 
 ### Questions
 
 - How about the ingress addon?
+- How again are we creating the folders every service expects? Also how do run
+  `fix_userdir_permissions`?
+- Running Orchest with increased log-level and/or --cloud? Also how about --dev?
+- Do we want to change the `orchest/config.json` file to all just be included in the CR?

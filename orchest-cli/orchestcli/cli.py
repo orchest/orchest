@@ -539,7 +539,7 @@ def _add_user(
     # NOTE: Timeout shouldn't be needed, but we don't want to keep the
     # WS connection open indefinitely if something goes wrong in the
     # auth-server.
-    client.run_forever(timeout=10)
+    client.run_forever(timeout=20)
     if client.returncode != 0:
         raise RuntimeError(client.read_all())
 
