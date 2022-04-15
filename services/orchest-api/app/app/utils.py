@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime
-from typing import Container, Dict, Iterable, Optional, Union
+from typing import Container, Dict, Iterable, List, Optional, Union
 
 from celery.utils.log import get_task_logger
 from flask import current_app
@@ -212,7 +212,7 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     return query
 
 
-def get_jupyter_server_image_to_use() -> str:
+def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
     custom_image = (
         models.JupyterImage.query.filter(
             models.JupyterImage.marked_for_removal.is_(False),
@@ -223,8 +223,14 @@ def get_jupyter_server_image_to_use() -> str:
         .order_by(desc(models.JupyterImage.tag))
         .first()
     )
+    return [custom_image] if custom_image is not None else []
 
-    if custom_image is not None:
+
+def get_jupyter_server_image_to_use() -> str:
+    active_custom_images = get_active_custom_jupyter_images()
+    if active_custom_images:
+        custom_image = active_custom_images[0]
+        # K8S_TODO
         registry_ip = k8s_core_api.read_namespaced_service(
             _config.REGISTRY, _config.ORCHEST_NAMESPACE
         ).spec.cluster_ip

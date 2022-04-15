@@ -14,6 +14,7 @@ from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
 from app import errors as self_errors
+from app import utils
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
 from app.core import environments, registry
@@ -299,30 +300,44 @@ def registry_garbage_collection(self) -> None:
         repositories_to_gc = []
         repos = registry.get_list_of_repositories()
 
-        env_image_repos_on_registry = [
-            repo for repo in repos if repo.startswith("orchest-env")
+        # Env images + custom Jupyter images.
+        repos_of_interest = [
+            repo
+            for repo in repos
+            if repo.startswith("orchest-env")
+            or repo.startswith(_config.JUPYTER_IMAGE_NAME)
         ]
         active_env_images = environments.get_active_environment_images()
-        active_env_images_names = set(
+        active_env_image_names = set(
             _config.ENVIRONMENT_IMAGE_NAME.format(
                 project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
             )
             + f":{img.tag}"
             for img in active_env_images
         )
+        active_custom_jupyter_images = utils.get_active_custom_jupyter_images()
+        active_custom_jupyter_image_names = set(
+            f"{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
+            for img in active_custom_jupyter_images
+        )
+
+        active_image_names = active_env_image_names.union(
+            active_custom_jupyter_image_names
+        )
+
         # Go through all env image repos, for every tag, check if the
         # image is in the active images, if not, delete it. If the
         # image is not among the actives it means that it's either in
         # the set of images where marked_for_removal = True, or the
         # image isn't there at all, i.e. the project or environment has
         # been deleted.
-        for repo in env_image_repos_on_registry:
+        for repo in repos_of_interest:
             tags = registry.get_tags_of_repository(repo)
 
             all_tags_removed = True
             for tag in tags:
                 name = f"{repo}:{tag}"
-                if name not in active_env_images_names:
+                if name not in active_image_names:
                     logger.info(f"Deleting {name} from the registry.")
                     has_deleted_images = True
                     digest = registry.get_manifest_digest(repo, tag)
