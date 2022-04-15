@@ -7,7 +7,6 @@ from _orchest.internals import config as _config
 from app import errors as self_errors
 from app import utils
 from app.connections import db
-from app.core import registry
 
 logger = utils.get_logger()
 
@@ -362,8 +361,7 @@ def mark_all_proj_env_images_to_be_removed_on_env_deletion(
     """Marks all env images of a project to be removed.
 
     Note: this function does not commit, it's responsibility of the
-    caller to do so. Will create a ImageToBeDeletedFromTheRegistry entry
-    for every image that needs to be removed from the registry.
+    caller to do so.
 
     Helper function that ignores the fact that an image is "latest" when
     deciding if it should be removed. This function only makes sense to
@@ -392,11 +390,8 @@ def mark_env_images_that_can_be_removed(
 ) -> None:
     """Marks env images to be removed.
 
-    The EnvironmentImage.marked_for_removal flag is set to True and
-    an entry to the ImageToBeDeletedFromTheRegistry model is added for
-    every image that can be removed. This makes is to that
-    EnvironmentImage records can be safely deleted without the risk of
-    leaving dangling images in the system.
+    The EnvironmentImage.marked_for_removal flag is set to True, said
+    images will be deleted from the registry and from nodes.
 
     Note: this function does not commit, it's responsibility of the
     caller to do so.
@@ -443,27 +438,3 @@ def _mark_env_images_that_can_be_removed(
             models.EnvironmentImage.tag,
         ).in_([(img.project_uuid, img.environment_uuid, img.tag) for img in imgs])
     ).update({"marked_for_removal": True})
-
-    # Bulk insert image deletion outbox records.
-    imgs_to_be_deleted_from_registry = []
-    for img in imgs:
-        repo_name = _config.ENVIRONMENT_IMAGE_NAME.format(
-            project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
-        )
-        digest = img.digest
-
-        # Migrate old env images.
-        if digest == "Undefined":
-            digest = registry.get_manifest_digest(
-                _config.ENVIRONMENT_IMAGE_NAME.format(
-                    project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
-                ),
-                img.tag,
-            )
-        imgs_to_be_deleted_from_registry.append(
-            models.ImageToBeDeletedFromTheRegistry(
-                name=f"{repo_name}:{img.tag}", digest=digest
-            )
-        )
-
-    db.session.bulk_save_objects(imgs_to_be_deleted_from_registry)

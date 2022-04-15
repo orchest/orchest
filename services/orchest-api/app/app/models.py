@@ -980,39 +980,3 @@ ForeignKeyConstraint(
     ],
     ondelete="CASCADE",
 )
-
-
-class ImageToBeDeletedFromTheRegistry(BaseModel):
-    """Contains images that are to be deleted from the registry.
-
-    Acts, essentially, as an outbox for those images. The reason is that
-    image deletion happens asynchronously and a project or environment
-    deletion would end up deleting (cascade) all records of interest,
-    i.e. in this case EnvironmentImages.
-    """
-
-    __tablename__ = "images_to_be_deleted_from_the_registry"
-
-    # Use this as a PK to avoid a particular edge case where a user
-    # could: build an image, delete the environment, re-import the same
-    # environment through the fs, build again the same image, obtaining
-    # an image with the same repo, tag and digest, which needs to be
-    # deleted again.
-    id = db.Column(db.Integer(), primary_key=True)
-
-    # repo:tag
-    name = db.Column(
-        db.String(),
-        nullable=False,
-        index=True,
-    )
-
-    # sha256:<digest>
-    digest = db.Column(
-        db.String(71),
-        nullable=False,
-        index=True,
-    )
-
-    def __repr__(self):
-        return f"<ImageToBeDeletedFromTheRegistry: {self.name}@{self.digest}>"

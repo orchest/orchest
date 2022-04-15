@@ -298,27 +298,5 @@ def registry_garbage_collection(self) -> None:
     registry garbage collection is run if necessary.
     """
     with application.app_context():
-        imgs_to_delete_from_registry = (
-            models.ImageToBeDeletedFromTheRegistry.query.with_for_update().all()
-        )
-
-        # Delete images from the registry.
-        img_deleted_from_registry_ids = []
-        for img in imgs_to_delete_from_registry:
-            try:
-                registry.delete_image_by_digest(
-                    img.name.split(":")[0], img.digest, run_garbage_collection=False
-                )
-            except self_errors.ImageRegistryDeletionError as e:
-                logger.warning(e)
-            else:
-                img_deleted_from_registry_ids.append(img.id)
-
-        models.ImageToBeDeletedFromTheRegistry.query.filter(
-            models.ImageToBeDeletedFromTheRegistry.id.in_(img_deleted_from_registry_ids)
-        ).delete()
-
-        if img_deleted_from_registry_ids:
-            registry.run_registry_garbage_collection()
-        db.session.commit()
+        ...
         return "SUCCESS"
