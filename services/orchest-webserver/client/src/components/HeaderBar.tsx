@@ -133,7 +133,7 @@ export const HeaderBar = ({
           direction="column"
           alignItems="center"
           justifyContent="center"
-          sx={{ flex: 1 }}
+          sx={{ flex: 1, maxWidth: "33%" }}
         >
           {isShowingPipelineName && (
             <>
