@@ -257,7 +257,7 @@ def install(**common_options) -> None:
                 curr_status = prev_status
 
             if curr_status == prev_status:
-                for _ in range(3):  # 3 * (0.2 + 0.2) = 1.2
+                for _ in range(3):
                     echo("\r", nl=False)  # Move cursor to beginning of line
                     echo("\033[K", nl=False)  # Erase until end of line
                     echo(f"🚶 {curr_status.value}", nl=False)
@@ -276,7 +276,7 @@ def install(**common_options) -> None:
                 # Otherwise we would wait without reason once installation
                 # has finished.
                 if curr_status != end_status:
-                    time.sleep(1.2)
+                    thread.wait()  # type: ignore
     finally:
         echo("\033[?25h", nl=False)  # show cursor
 
