@@ -10,14 +10,13 @@ from celery import Task
 from celery.contrib.abortable import AbortableAsyncResult, AbortableTask
 from celery.utils.log import get_task_logger
 
-import app.models as models
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
 from app import errors as self_errors
 from app.celery_app import make_celery
-from app.connections import db, k8s_custom_obj_api
-from app.core import registry
+from app.connections import k8s_custom_obj_api
+from app.core import environments, registry
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
@@ -296,27 +295,50 @@ def registry_garbage_collection(self) -> None:
     registry garbage collection is run if necessary.
     """
     with application.app_context():
-        imgs_to_delete_from_registry = (
-            models.ImageToBeDeletedFromTheRegistry.query.with_for_update().all()
+        has_deleted_images = False
+        repositories_to_gc = []
+        repos = registry.get_list_of_repositories()
+
+        env_image_repos_on_registry = [
+            repo for repo in repos if repo.startswith("orchest-env")
+        ]
+        active_env_images = environments.get_active_environment_images()
+        active_env_images_names = set(
+            _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+            )
+            + f":{img.tag}"
+            for img in active_env_images
         )
+        # Go through all env image repos, for every tag, check if the
+        # image is in the active images, if not, delete it. If the
+        # image is not among the actives it means that it's either in
+        # the set of images where marked_for_removal = True, or the
+        # image isn't there at all, i.e. the project or environment has
+        # been deleted.
+        for repo in env_image_repos_on_registry:
+            tags = registry.get_tags_of_repository(repo)
 
-        # Delete images from the registry.
-        img_deleted_from_registry_ids = []
-        for img in imgs_to_delete_from_registry:
-            try:
-                registry.delete_image_by_digest(
-                    img.name.split(":")[0], img.digest, run_garbage_collection=False
-                )
-            except self_errors.ImageRegistryDeletionError as e:
-                logger.warning(e)
-            else:
-                img_deleted_from_registry_ids.append(img.id)
+            all_tags_removed = True
+            for tag in tags:
+                name = f"{repo}:{tag}"
+                if name not in active_env_images_names:
+                    logger.info(f"Deleting {name} from the registry.")
+                    has_deleted_images = True
+                    digest = registry.get_manifest_digest(repo, tag)
+                    try:
+                        registry.delete_image_by_digest(
+                            repo, digest, run_garbage_collection=False
+                        )
+                    except self_errors.ImageRegistryDeletionError as e:
+                        logger.warning(e)
+                else:
+                    all_tags_removed = False
+                    logger.info(f"Not deleting {name} from the registry.")
 
-        models.ImageToBeDeletedFromTheRegistry.query.filter(
-            models.ImageToBeDeletedFromTheRegistry.id.in_(img_deleted_from_registry_ids)
-        ).delete()
+            if all_tags_removed:
+                repositories_to_gc.append(repo)
 
-        if img_deleted_from_registry_ids:
-            registry.run_registry_garbage_collection()
-        db.session.commit()
+        if has_deleted_images or repositories_to_gc:
+            registry.run_registry_garbage_collection(repositories_to_gc)
         return "SUCCESS"

@@ -139,7 +139,7 @@ def create_app(
         scheduler.add_job(
             process_images_for_deletion,
             "interval",
-            seconds=app.config["SCHEDULER_INTERVAL"],
+            seconds=app.config["IMAGES_DELETION_INTERVAL"],
             args=[app],
         )
 
