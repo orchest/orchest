@@ -8,14 +8,14 @@ from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
-from sqlalchemy import or_, text
+from sqlalchemy import desc, or_, text
 from sqlalchemy.orm import query, undefer
 
 import app.models as models
 from _orchest.internals import config as _config
 from app import errors as self_errors
 from app import schema
-from app.connections import db, k8s_core_api
+from app.connections import k8s_core_api
 from config import CONFIG_CLASS
 
 
@@ -210,13 +210,21 @@ def fuzzy_filter_non_interactive_pipeline_runs(
 
 
 def get_jupyter_server_image_to_use() -> str:
-    has_customized_jupyter = db.session.query(
-        db.session.query(models.JupyterImageBuild).filter_by(status="SUCCESS").exists()
-    ).scalar()
-    if has_customized_jupyter:
+    custom_image = (
+        models.JupyterImage.query.filter(
+            models.JupyterImage.marked_for_removal.is_(False),
+            # Only allow an image that matches this orchest cluster
+            # version.
+            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
+        )
+        .order_by(desc(models.JupyterImage.tag))
+        .first()
+    )
+
+    if custom_image is not None:
         registry_ip = k8s_core_api.read_namespaced_service(
             _config.REGISTRY, _config.ORCHEST_NAMESPACE
         ).spec.cluster_ip
-        return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:latest"
+        return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{custom_image.tag}"
     else:
         return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
