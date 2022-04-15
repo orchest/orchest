@@ -25,6 +25,8 @@ class Config:
     # How often to run the scheduling logic when the process is running
     # as scheduler, in seconds.
     SCHEDULER_INTERVAL = 10
+    # Same as above, but for image deletion and GC.
+    IMAGES_DELETION_INTERVAL = 120
 
     GPU_ENABLED_INSTANCE = _config.GPU_ENABLED_INSTANCE
 
