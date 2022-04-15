@@ -282,15 +282,34 @@ def trigger_conditional_jupyter_image_build(app):
     if os.path.isfile(jupyter_setup_script):
         with open(jupyter_setup_script, "r") as file:
             if len(file.read()) == 0:
+                app.logger.info(
+                    "Empty setup script, no need to trigger a jupyter build."
+                )
                 return
     else:
+        app.logger.info("No setup script, no need to trigger a jupyter build.")
         return
 
-    # If the image has already been built no need to build again.
-    if not utils.get_jupyter_server_image_to_use().startswith("orchest/jupyter-server"):
+    if utils.get_active_custom_jupyter_images():
+        app.logger.info(
+            "There are active custom jupyter images, no need to trigger a build."
+        )
         return
 
+    if db.session.query(
+        db.session.query(JupyterImageBuild)
+        .filter(JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
+        .exists()
+    ).scalar():
+        app.logger.info(
+            "Ongoing custom jupyter image build, no need to trigger a build."
+        )
+        return
+
+    # Note: this is not race condition free in case of concurrent APIs
+    # restarting.
     try:
+        app.logger.info("Triggering custom jupyter build.")
         with TwoPhaseExecutor(db.session) as tpe:
             CreateJupyterEnvironmentBuild(tpe).transaction()
     except Exception:
