@@ -8,7 +8,7 @@ from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
-from sqlalchemy import desc, or_, text
+from sqlalchemy import and_, desc, or_, text
 from sqlalchemy.orm import query, undefer
 
 import app.models as models
@@ -17,6 +17,17 @@ from app import errors as self_errors
 from app import schema
 from app.connections import k8s_core_api
 from config import CONFIG_CLASS
+
+
+def get_logger() -> logging.Logger:
+    try:
+        return current_app.logger
+    except Exception:
+        pass
+    return get_task_logger(__name__)
+
+
+logger = get_logger()
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -112,14 +123,6 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
         .env_variables
     )
     return {**project_env_vars, **pipeline_env_vars}
-
-
-def get_logger() -> logging.Logger:
-    try:
-        return current_app.logger
-    except Exception:
-        pass
-    return get_task_logger(__name__)
 
 
 def page_to_pagination_data(pagination: Pagination) -> dict:
@@ -228,3 +231,54 @@ def get_jupyter_server_image_to_use() -> str:
         return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{custom_image.tag}"
     else:
         return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+
+
+def mark_custom_jupyter_images_to_be_removed() -> str:
+    """Marks custom jupyter images to be removed.
+
+    The JupyterImage.marked_for_removal flag is set to True, based on
+    this, said image won't be considered as active and thus won't be
+    used to start a jupyter server, and will be deleted by both nodes
+    and the registry.
+
+    Note: this function does not commit, it's responsibility of the
+    caller to do so.
+
+    """
+    logger.info("Marking custom jupyter images for removal.")
+    images_to_be_removed = models.JupyterImage.query.filter(
+        models.JupyterImage.marked_for_removal.is_(False)
+    )
+
+    # Only consider the latest valid image as active. This is because
+    # to build a jupyter server image you need to stop all sessions, so
+    # we know that only the latest could be in use.
+    latest_custom_image = (
+        models.JupyterImage.query.filter(
+            models.JupyterImage.marked_for_removal.is_(False),
+            # Only allow an image that matches this orchest cluster
+            # version.
+            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
+        )
+        .order_by(desc(models.JupyterImage.tag))
+        .first()
+    )
+    if latest_custom_image is not None:
+        images_to_be_removed = images_to_be_removed.filter(
+            or_(
+                and_(
+                    # Don't remove the latest valid image.
+                    models.JupyterImage.tag < latest_custom_image.tag,
+                    # Can't delete an image from the registry if it has
+                    # the same digest of an active image.
+                    models.JupyterImage.digest != latest_custom_image.digest,
+                ),
+                models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION,
+            )
+        )
+    else:
+        images_to_be_removed = images_to_be_removed.filter(
+            models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION
+        )
+
+    images_to_be_removed.update({"marked_for_removal": True})

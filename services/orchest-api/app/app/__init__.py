@@ -169,6 +169,7 @@ def process_images_for_deletion(app):
     """
     with app.app_context():
         environments.mark_env_images_that_can_be_removed()
+        utils.mark_custom_jupyter_images_to_be_removed()
         db.session.commit()
 
         # Don't queue the task if there are build tasks going, this is a
