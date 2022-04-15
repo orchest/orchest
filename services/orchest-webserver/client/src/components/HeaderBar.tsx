@@ -99,8 +99,12 @@ export const HeaderBar = ({
         borderBottom: (theme) => `1px solid ${theme.borderColor}`,
       }}
     >
-      <Toolbar>
-        <Stack direction="row" alignItems="center" sx={{ width: "33%" }}>
+      <Toolbar
+        sx={{
+          justifyContent: "space-around",
+        }}
+      >
+        <Stack direction="row" alignItems="center">
           <MuiIconButton
             title={`${isDrawerOpen ? "Collapse" : "Expand"} navigation`}
             onClick={(e) => {
@@ -129,7 +133,7 @@ export const HeaderBar = ({
           direction="column"
           alignItems="center"
           justifyContent="center"
-          sx={{ flex: 1, maxWidth: "33%" }}
+          sx={{ flex: 1 }}
         >
           {isShowingPipelineName && (
             <>
@@ -178,12 +182,7 @@ export const HeaderBar = ({
             </>
           )}
         </Stack>
-        <Stack
-          spacing={2}
-          direction="row"
-          justifyContent="flex-end"
-          sx={{ width: "33%" }}
-        >
+        <Stack spacing={2} direction="row" justifyContent="flex-end">
           {!matchFilePreview &&
             pipeline &&
             !pipelineIsReadOnly &&
