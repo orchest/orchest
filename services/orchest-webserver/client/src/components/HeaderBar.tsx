@@ -34,7 +34,6 @@ export const HeaderBar = ({
   isDrawerOpen: boolean;
 }) => {
   const { navigateTo, pipelineUuid } = useCustomRoute();
-
   const {
     state: { projectUuid, pipeline, pipelineSaveStatus, pipelineIsReadOnly },
   } = useProjectsContext();
@@ -83,7 +82,6 @@ export const HeaderBar = ({
   const logoutHandler = () => {
     window.location.href = "/login/clear";
   };
-
   // Only show the pipeline name if pipeline_uuid is in the route args,
   // where `pipeline` exists in `PorjectsContext` or not.
   const isShowingPipelineName = hasValue(pipelineUuid) && hasValue(pipeline);
@@ -133,7 +131,19 @@ export const HeaderBar = ({
           direction="column"
           alignItems="center"
           justifyContent="center"
-          sx={{ flex: 1, maxWidth: "33%" }}
+          sx={{
+            flex: 1,
+            maxWidth: "33%",
+            left: {
+              xl: "50%",
+            },
+            position: {
+              xl: "absolute",
+            },
+            transform: {
+              xl: "translateX(-50%)",
+            },
+          }}
         >
           {isShowingPipelineName && (
             <>
