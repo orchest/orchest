@@ -293,17 +293,20 @@ const PipelineSettingsView: React.FC = () => {
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
         { method: "POST", body: formData }
       ),
-      fetcher<{ success: boolean; reason?: string; message?: string }>(
-        `/async/pipelines/${projectUuid}/${pipelineUuid}`,
-        {
-          method: "PUT",
-          headers: HEADER.JSON,
-          body: JSON.stringify({
-            env_variables: envVariablesObj.value,
-            path: !session ? pipelinePath : undefined, // path cannot be changed when there is an active session
-          }),
-        }
-      ),
+      // path cannot be changed when there is an active session
+      !session
+        ? fetcher<{ success: boolean; reason?: string; message?: string }>(
+            `/async/pipelines/${projectUuid}/${pipelineUuid}`,
+            {
+              method: "PUT",
+              headers: HEADER.JSON,
+              body: JSON.stringify({
+                env_variables: envVariablesObj.value,
+                path: pipelinePath,
+              }),
+            }
+          )
+        : Promise.resolve(pipelinePath),
     ]).then(([pipelineJsonChanges, pipelineChanges]) => {
       const errorMessages = [
         pipelineJsonChanges.status === "rejected"
@@ -320,13 +323,14 @@ const PipelineSettingsView: React.FC = () => {
 
       // Sync changes with the global context
       const payload = {
-        name:
-          pipelineJsonChanges.status === "fulfilled" ? pipelineName : undefined,
-        path:
-          pipelineChanges.status === "fulfilled" && !session
-            ? pipelinePath
-            : undefined,
+        ...(pipelineJsonChanges.status === "fulfilled"
+          ? { name: pipelineName }
+          : undefined),
+        ...(pipelineChanges.status === "fulfilled"
+          ? { path: pipelinePath }
+          : undefined),
       };
+
       dispatch({
         type: "UPDATE_PIPELINE",
         payload: { uuid: pipelineUuid, ...payload },

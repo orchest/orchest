@@ -54,7 +54,7 @@ export const ProjectSelector = () => {
   const validateProjectUuid = (
     uuidToValidate: string | undefined | null,
     projects: Project[]
-  ): string | undefined => {
+  ): string | null | undefined => {
     let isValid = uuidToValidate
       ? projects.some((project) => project.uuid == uuidToValidate)
       : false;
@@ -102,10 +102,9 @@ export const ProjectSelector = () => {
       );
 
       if (invalidProjectUuid) {
+        if (state.projects.length === 0) return;
         // Select the first one from the given projects
-        let newProjectUuid =
-          state.projects.length > 0 ? state.projects[0].uuid : undefined;
-
+        let newProjectUuid = state.projects[0].uuid;
         // navigate ONLY if user is at the project root and
         // we're switching projects (because of detecting an
         // invalidProjectUuid)

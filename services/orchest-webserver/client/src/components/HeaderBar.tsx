@@ -86,7 +86,7 @@ export const HeaderBar = ({
 
   // Only show the pipeline name if pipeline_uuid is in the route args,
   // where `pipeline` exists in `PorjectsContext` or not.
-  const isShowingPipelineName = hasValue(pipelineUuid && pipeline);
+  const isShowingPipelineName = hasValue(pipelineUuid) && hasValue(pipeline);
 
   return (
     <AppBar
@@ -184,12 +184,16 @@ export const HeaderBar = ({
           justifyContent="flex-end"
           sx={{ width: "33%" }}
         >
-          {!matchFilePreview && pipeline && !pipelineIsReadOnly && (
-            <SessionToggleButton
-              pipelineUuid={pipelineUuid}
-              projectUuid={projectUuid}
-            />
-          )}
+          {!matchFilePreview &&
+            pipeline &&
+            !pipelineIsReadOnly &&
+            projectUuid &&
+            pipelineUuid && (
+              <SessionToggleButton
+                pipelineUuid={pipelineUuid}
+                projectUuid={projectUuid}
+              />
+            )}
           {pipeline && matchJupyter && (
             <StyledButtonOutlined
               variant="outlined"
