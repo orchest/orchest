@@ -4,7 +4,7 @@ Functions aren't a 1:1 mapping to the OCI API specs, but an abstracted
 version of what we actually need.
 """
 
-from typing import List
+from typing import List, Optional
 
 import requests
 from kubernetes import stream
@@ -104,7 +104,7 @@ def delete_image_by_digest(
         run_registry_garbage_collection()
 
 
-def run_registry_garbage_collection() -> None:
+def run_registry_garbage_collection(repositories: Optional[List[str]] = None) -> None:
     """Runs the registry garbage collection process.
 
     Docs: https://docs.docker.com/registry/garbage-collection/
@@ -124,6 +124,9 @@ def run_registry_garbage_collection() -> None:
     This is currently accomplished by calling it from a celery task part
     of the "builds" queue.
     """
+    if repositories is None:
+        repositories = []
+
     pods = k8s_core_api.list_namespaced_pod(
         _config.ORCHEST_NAMESPACE, label_selector="app=docker-registry"
     )
@@ -145,3 +148,24 @@ def run_registry_garbage_collection() -> None:
             tty=False,
         )
         logger.info(str(resp))
+
+        # Sadly running the docker-registry GC is not enough.
+        for repo in repositories:
+            logger.info(
+                f"Deleting repo {repo} from pod {pod.metadata.name} file system."
+            )
+            resp = stream.stream(
+                k8s_core_api.connect_get_namespaced_pod_exec,
+                pod.metadata.name,
+                _config.ORCHEST_NAMESPACE,
+                command=[
+                    "rm",
+                    "-rf",
+                    f"/var/lib/registry/docker/registry/v2/repositories/{repo}",
+                ],
+                stderr=True,
+                stdin=False,
+                stdout=True,
+                tty=False,
+            )
+            logger.info(str(resp))

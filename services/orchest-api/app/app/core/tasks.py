@@ -298,6 +298,7 @@ def registry_garbage_collection(self) -> None:
     """
     with application.app_context():
         has_deleted_images = False
+        repositories_to_gc = []
         repos = registry.get_list_of_repositories()
 
         env_image_repos_on_registry = [
@@ -319,6 +320,8 @@ def registry_garbage_collection(self) -> None:
         # been deleted.
         for repo in env_image_repos_on_registry:
             tags = registry.get_tags_of_repository(repo)
+
+            all_tags_removed = True
             for tag in tags:
                 name = f"{repo}:{tag}"
                 if name not in active_env_images_names:
@@ -332,8 +335,12 @@ def registry_garbage_collection(self) -> None:
                     except self_errors.ImageRegistryDeletionError as e:
                         logger.warning(e)
                 else:
+                    all_tags_removed = False
                     logger.info(f"Not deleting {name} from the registry.")
 
-        if has_deleted_images:
-            registry.run_registry_garbage_collection()
+            if all_tags_removed:
+                repositories_to_gc.append(repo)
+
+        if has_deleted_images or repositories_to_gc:
+            registry.run_registry_garbage_collection(repositories_to_gc)
         return "SUCCESS"
