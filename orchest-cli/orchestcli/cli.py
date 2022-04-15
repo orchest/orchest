@@ -177,7 +177,7 @@ class ClusterStatus(enum.Enum):
     INITIALIZING = "Initializing"
     DEPLOYING_ARGO = "Deploying Argo"
     DEPLOYING_REGISTRY = "Deploying Registry"
-    DEPLOYING_ORCHEST = "Deploying Orchest"
+    DEPLOYING_ORCHEST_CONTROL_PLANE = "Deploying Orchest Control Plane"
     DEPLOYING_ORCHEST_RESOURCES = "Deploying Orchest Resources"
     RESTARTING = "Restarting"
     STARTING = "Starting"

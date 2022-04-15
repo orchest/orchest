@@ -22,7 +22,7 @@ const (
 	DeployingArgo       OrchestClusterState = "Deploying Argo"
 	DeployingRegistry   OrchestClusterState = "Deploying Registry"
 	DeployingOrchestRsc OrchestClusterState = "Deploying Orchest Resources"
-	DeployingOrchest    OrchestClusterState = "Deploying Orchest"
+	DeployingOrchest    OrchestClusterState = "Deploying Orchest Control Plane"
 	Restarting          OrchestClusterState = "Restarting"
 	Starting            OrchestClusterState = "Starting"
 	Stopping            OrchestClusterState = "Stopping"

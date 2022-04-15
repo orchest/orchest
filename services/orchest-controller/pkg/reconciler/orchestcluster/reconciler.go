@@ -125,7 +125,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 	if cluster.Status == nil {
 		// Set the default values in CR if not specified
 		copy := r.getClusterWithIfNotSpecified(ctx, cluster)
-		err := r.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing orchest cluster")
+		err := r.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -160,7 +160,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying orchest")
+		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -172,7 +172,7 @@ func (r *OrchestClusterReconciler) reconcileCluster(ctx context.Context, cluster
 			return err
 		}
 
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying orchest")
+		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
 		if err != nil {
 			klog.Error(err)
 			return err
