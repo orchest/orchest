@@ -57,12 +57,12 @@ var (
 
 type OrchestDeployer struct {
 	client    client.Client
-	config    *ReconcilerConfig
+	config    *ControllerConfig
 	name      string
 	sleepTime time.Duration
 }
 
-func NewOrchestDeployer(name string, client client.Client, config *ReconcilerConfig) deployer.Deployer {
+func NewOrchestDeployer(name string, client client.Client, config *ControllerConfig) deployer.Deployer {
 	return &OrchestDeployer{
 		name:      name,
 		client:    client,
