@@ -1,11 +1,16 @@
 package orchestcluster
 
 import (
+	"context"
+
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -94,4 +99,40 @@ func getRbacManifest(componentName string, metadata metav1.ObjectMeta) []client.
 		clusterRole, clusterRoleBinding, serviceAccount,
 	}
 
+}
+
+// AddFinalizer adds specified finalizer string to object
+func AddFinalizerIfNotPresent(ctx context.Context,
+	ocClient versioned.Interface,
+	orchest *orchestv1alpha1.OrchestCluster,
+	finalizer string) error {
+
+	if !utils.Contains(orchest.GetFinalizers(), finalizer) {
+		klog.Infof("Failed to get finalizers of OrchestCluster: %s", orchest.GetName())
+		orchest.SetFinalizers(append(orchest.GetFinalizers(), finalizer))
+
+		_, err := ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to add finalizer %q to %q", finalizer, orchest.GetName())
+		}
+	}
+
+	return nil
+}
+
+// RemoveFinalizers removes finalizersfrom object
+func RemoveFinalizerIfNotPresent(ctx context.Context,
+	ocClient versioned.Interface,
+	orchest *orchestv1alpha1.OrchestCluster,
+	finalizer string) error {
+
+	finalizers := utils.Remove(orchest.GetFinalizers(), finalizer)
+	orchest.SetFinalizers(finalizers)
+
+	_, err := ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to remove finalizer %q from %q", finalizer, orchest.GetName())
+	}
+
+	return nil
 }

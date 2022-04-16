@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/informers"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
@@ -104,66 +103,9 @@ func NewOrchestClusterInformer(ocClient versioned.Interface) orchestinformers.Or
 	return orchestInformerFactory.Orchest().V1alpha1().OrchestClusters()
 }
 
-func NewDeploymentInformer(client kubernetes.Interface) appsinformers.DaemonSetInformer {
+func NewDeploymentInformer(client kubernetes.Interface) appsinformers.DeploymentInformer {
 	appsInformerFactory := informers.NewSharedInformerFactoryWithOptions(client, time.Second*30)
-	return appsInformerFactory.Apps().V1().DaemonSets()
-}
-
-func contains(list []string, s string) bool {
-	for _, v := range list {
-		if v == s {
-			return true
-		}
-	}
-
-	return false
-}
-
-func remove(list []string, s string) []string {
-	for i, v := range list {
-		if v == s {
-			return append(list[:i], list[i+1:]...)
-		}
-	}
-	return list
-}
-
-// AddFinalizer adds specified finalizer string to object
-func AddFinalizerIfNotPresent(ctx context.Context, client client.Client, obj client.Object, finalizer string) error {
-
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return errors.Wrap(err, "failed to get meta information of object")
-	}
-
-	if !contains(accessor.GetFinalizers(), finalizer) {
-		klog.Infof("Failed to get finalizers to object %q", accessor.GetName())
-		accessor.SetFinalizers(append(accessor.GetFinalizers(), finalizer))
-
-		if err := client.Update(ctx, obj); err != nil {
-			return errors.Wrapf(err, "failed to add finalizer %q on %q", finalizer, accessor.GetName())
-		}
-	}
-
-	return nil
-}
-
-// RemoveFinalizers removes finalizersfrom object
-func RemoveFinalizerIfNotPresent(ctx context.Context, client client.Client, obj client.Object, finalizer string) error {
-
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return errors.Wrap(err, "failed to get meta information of object")
-	}
-
-	finalizers := remove(accessor.GetFinalizers(), finalizer)
-	accessor.SetFinalizers(finalizers)
-
-	if err := client.Update(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to remove finalizer %q on %q", finalizer, accessor.GetName())
-	}
-
-	return nil
+	return appsInformerFactory.Apps().V1().Deployments()
 }
 
 func RunningPodsForDeployment(ctx context.Context, client client.Client, depKey client.ObjectKey) (int, error) {

@@ -12,10 +12,10 @@ import (
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -26,8 +26,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/component-base/metrics/prometheus/ratelimiter"
 	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
@@ -56,7 +54,7 @@ type OrchestClusterController struct {
 
 	ocClient versioned.Interface
 
-	config *ControllerConfig
+	config ControllerConfig
 
 	workerLoopPeriod time.Duration
 
@@ -80,7 +78,7 @@ type OrchestClusterController struct {
 // NewOrchestClusterController returns a new *OrchestClusterController.
 func NewOrchestClusterController(client kubernetes.Interface,
 	ocClient versioned.Interface,
-	config *ControllerConfig,
+	config ControllerConfig,
 	ocInformer orchestinformers.OrchestClusterInformer,
 	depInformer appsinformers.DeploymentInformer) *OrchestClusterController {
 
@@ -160,7 +158,7 @@ func (contoller *OrchestClusterController) onDeploymentUpdate(obj interface{}) {
 			utilruntime.HandleError(fmt.Errorf("couldn't get key for object %+v: %v", obj, err))
 			return
 		}
-		klog.V(3).Infof("DaemonSet update update: %s", orchest.Name)
+		klog.V(3).Infof("Deployment update update: %s", orchest.Name)
 		contoller.queue.AddRateLimited(key)
 	}
 }
@@ -240,67 +238,86 @@ func (contoller *OrchestClusterController) handleErr(err error, key interface{})
 
 func (contoller *OrchestClusterController) syncOrchestCluster(key string) error {
 
-	// Get OrchestCluster CRD from kubernetes
-	cluster := &orchestv1alpha1.OrchestCluster{}
-	err := r.client.Get(ctx, req.NamespacedName, cluster)
+	startTime := time.Now()
+	klog.V(3).Infof("Started syncing OrchestCluster: %s.", key)
+	defer func() {
+		klog.V(3).Infof("Finished syncing DDSet OrchestCluster: %s. duration: (%v)", key, time.Since(startTime))
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer func() {
+		cancel()
+	}()
+
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
+
+	orchest, err := contoller.ocLister.OrchestClusters(namespace).Get(name)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			klog.V(2).Info("OrchestCluster %s resource not found.", req.NamespacedName)
-			return reconcile.Result{}, nil
+			klog.V(2).Info("OrchestCluster %s resource not found.", key)
+			return nil
 		}
 		// Error reading OrchestCluster - The request will be requeued.
-		return reconcile.Result{}, errors.Wrap(err, "failed to get OrchestCluster")
+		return errors.Wrap(err, "failed to get OrchestCluster")
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
-	err = utils.AddFinalizerIfNotPresent(ctx, r.client, cluster, orchestv1alpha1.Finalizer)
+	err = AddFinalizerIfNotPresent(ctx, contoller.ocClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to add finalizer")
+		errors.Wrap(err, "failed to add finalizer")
 	}
 
-	if !cluster.GetDeletionTimestamp().IsZero() {
+	if !orchest.GetDeletionTimestamp().IsZero() {
 		// The cluster is deleted, delete it
-		return r.deleteOrchestCluster(ctx, req)
+		return contoller.deleteOrchestCluster(ctx, name, namespace)
 	}
 
 	// Reconciling
-	if err := r.reconcileCluster(ctx, cluster); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile cluster %q", req.NamespacedName)
+	if err := contoller.reconcileCluster(ctx, orchest); err != nil {
+		return errors.Wrapf(err, "failed to reconcile OrchestCluster %q", name)
 	}
 
 	// Return and do not requeue
-	return reconcile.Result{}, nil
+	return nil
 }
 
-func (r *OrchestClusterController) deleteOrchestCluster(ctx context.Context,
-	req ctrl.Request) (reconcile.Result, error) {
+func (contoller *OrchestClusterController) deleteOrchestCluster(ctx context.Context,
+	name, namespace string) error {
 
-	cluster := &orchestv1alpha1.OrchestCluster{}
-	if err := r.client.Get(ctx, req.NamespacedName, cluster); err != nil {
-		return reconcile.Result{}, errors.Wrapf(err, "failed to get cluster %v during deleting cluster.", req.NamespacedName)
+	orchest, err := contoller.ocLister.OrchestClusters(namespace).Get(name)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("OrchestCluster %s resource not found.", name)
+			return nil
+		}
+		return errors.Wrapf(err, "failed to get cluster %v during deleting cluster.", name)
 	}
 
 	// Update Cluster status
-	err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.Deleting, "Deleting the Cluster")
+	err = contoller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to update cluster status finalizers")
+		return errors.Wrapf(err, "failed to update cluster status to orchestv1alpha1.Deleting, OrchestCluster: %s",
+			orchest.GetName())
 	}
 	// Remove finalizers
-	err = utils.RemoveFinalizerIfNotPresent(ctx, r.client, cluster, orchestv1alpha1.Finalizer)
+	err = RemoveFinalizerIfNotPresent(ctx, contoller.ocClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
-		return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizers")
+		return errors.Wrap(err, "failed to remove finalizers")
 	}
 
-	return reconcile.Result{}, nil
+	return nil
 }
 
-func (r *OrchestClusterController) reconcileCluster(ctx context.Context, cluster *orchestv1alpha1.OrchestCluster) error {
+func (controller *OrchestClusterController) reconcileCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// If Status struct is not initialized yet, the cluster is new, create it
-	if cluster.Status == nil {
+	if orchest.Status == nil {
 		// Set the default values in CR if not specified
-		copy := r.getClusterWithIfNotSpecified(ctx, cluster)
-		err := r.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
+		copy := controller.getClusterWithIfNotSpecified(ctx, orchest)
+		err := controller.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -308,77 +325,31 @@ func (r *OrchestClusterController) reconcileCluster(ctx context.Context, cluster
 		return nil
 	}
 
-	switch cluster.Status.State {
-	case orchestv1alpha1.Initializing:
-		// First step is to deploy Argo
-		err := r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingArgo, "Deploying Argo")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	case orchestv1alpha1.DeployingArgo:
-		err := r.deployerManager.Get("argo").InstallIfChanged(ctx, cluster.Namespace, nil)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingRegistry, "Deploying Registry")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	case orchestv1alpha1.DeployingRegistry:
-		err := r.deployerManager.Get("registry").InstallIfChanged(ctx, cluster.Namespace, nil)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-	case orchestv1alpha1.DeployingOrchest:
-		err := r.deployerManager.Get("orchest").InstallIfChanged(ctx, cluster.Namespace, cluster)
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-		err = r.updateClusterStatus(ctx, cluster, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-
-	}
+	controller.ensureThirdPartyDependencies(ctx, orchest)
 
 	return nil
 
 }
 
-func (r *OrchestClusterController) updateClusterStatus(ctx context.Context, cluster *orchestv1alpha1.OrchestCluster,
-	state orchestv1alpha1.OrchestClusterState, message string) error {
+func (controller *OrchestClusterController) updateClusterStatus(ctx context.Context,
+	orchest *orchestv1alpha1.OrchestCluster,
+	state orchestv1alpha1.OrchestClusterState,
+	message string) error {
 
-	cluster.Status = &orchestv1alpha1.OrchestClusterStatus{
+	orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
 		State:   state,
 		Message: message,
 	}
 
-	err := r.client.Status().Update(ctx, cluster)
-	// If the object doesn't exist yet, it has to be initialized
-	if kerrors.IsNotFound(err) {
-		err = r.client.Update(ctx, cluster)
-	}
+	orchest, err := controller.ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+
 	if err != nil {
-		return errors.Wrapf(err, "failed to update orchest with status  %q", cluster.Name)
+		return errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)
 	}
 	return nil
 }
 
-func (r *OrchestClusterController) getClusterWithIfNotSpecified(ctx context.Context,
+func (controller *OrchestClusterController) getClusterWithIfNotSpecified(ctx context.Context,
 	cluster *orchestv1alpha1.OrchestCluster) *orchestv1alpha1.OrchestCluster {
 
 	copy := cluster.DeepCopy()
@@ -387,36 +358,76 @@ func (r *OrchestClusterController) getClusterWithIfNotSpecified(ctx context.Cont
 
 	if copy.Spec.Orchest.DefaultTag == "" {
 		changed = true
-		copy.Spec.Orchest.DefaultTag = r.config.OrchestDefaultTag
+		copy.Spec.Orchest.DefaultTag = controller.config.OrchestDefaultTag
 	}
 
 	if copy.Spec.Postgres.Image == "" {
 		changed = true
-		copy.Spec.Postgres.Image = r.config.PostgresDefaultImage
+		copy.Spec.Postgres.Image = controller.config.PostgresDefaultImage
 	}
 
 	if copy.Spec.RabbitMq.Image == "" {
 		changed = true
-		copy.Spec.RabbitMq.Image = r.config.RabbitmqDefaultImage
+		copy.Spec.RabbitMq.Image = controller.config.RabbitmqDefaultImage
 	}
 
 	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
 		changed = true
-		copy.Spec.Orchest.Resources.UserDirVolumeSize = r.config.UserdirDefaultVolumeSize
+		copy.Spec.Orchest.Resources.UserDirVolumeSize = controller.config.UserdirDefaultVolumeSize
 	}
 
 	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
 		changed = true
-		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = r.config.BuilddirDefaultVolumeSize
+		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = controller.config.BuilddirDefaultVolumeSize
 	}
 
 	if copy.Spec.Orchest.Resources.ConfigDirVolumeSize == "" {
 		changed = true
-		copy.Spec.Orchest.Resources.ConfigDirVolumeSize = r.config.ConfigdirDefaultVolumeSize
+		copy.Spec.Orchest.Resources.ConfigDirVolumeSize = controller.config.ConfigdirDefaultVolumeSize
 	}
 
 	if changed {
 		return copy
 	}
 	return cluster
+}
+
+func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
+	orchest *orchestv1alpha1.OrchestCluster) error {
+
+	switch orchest.Status.State {
+	case orchestv1alpha1.Initializing:
+		// First step is to deploy Argo
+		err := controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingArgo, "Deploying Argo")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	case orchestv1alpha1.DeployingArgo:
+		err := controller.deployerManager.Get("argo").InstallIfChanged(ctx, orchest.Namespace, nil)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingRegistry, "Deploying Registry")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	case orchestv1alpha1.DeployingRegistry:
+		err := controller.deployerManager.Get("registry").InstallIfChanged(ctx, orchest.Namespace, nil)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+
+	return nil
 }
