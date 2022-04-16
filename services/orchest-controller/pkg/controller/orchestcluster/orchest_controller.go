@@ -46,7 +46,7 @@ type ControllerConfig struct {
 	UserdirDefaultVolumeSize   string
 	ConfigdirDefaultVolumeSize string
 	BuilddirDefaultVolumeSize  string
-	threadiness                int
+	Threadiness                int
 	InCluster                  bool
 }
 
@@ -72,8 +72,8 @@ type OrchestClusterController struct {
 	ocLister   orchestlisters.OrchestClusterLister
 	ocSynced   cache.InformerSynced
 
-	depInformer appsinformers.DaemonSetInformer
-	depLister   appslister.DaemonSetLister
+	depInformer appsinformers.DeploymentInformer
+	depLister   appslister.DeploymentLister
 	depSynced   cache.InformerSynced
 }
 
@@ -203,7 +203,7 @@ func (contoller *OrchestClusterController) Run(stopCh <-chan struct{}) {
 		return
 	}
 
-	for i := 0; i < contoller.config.threadiness; i++ {
+	for i := 0; i < contoller.config.Threadiness; i++ {
 		go wait.Until(contoller.worker, contoller.workerLoopPeriod, stopCh)
 	}
 

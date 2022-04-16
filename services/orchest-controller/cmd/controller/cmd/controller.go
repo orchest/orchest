@@ -42,6 +42,7 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestApiImageName, "orchestApiImageName", "orchest/orchest-api", "The default orchest-api image name")
 	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestWebserverImageName, "webserverImageName", "orchest/orchest-webserver", "The default orchest-webserver image name")
 	cmd.PersistentFlags().StringVar(&controllerConfig.AuthServerImageName, "authServerImageName", "orchest/auth-server", "The default auth server image name")
+	cmd.PersistentFlags().IntVar(&controllerConfig.Threadiness, "threadiness", 1, "threadiness of the controller")
 	cmd.PersistentFlags().BoolVar(&controllerConfig.InCluster, "inCluster", true, "In/Out cluster indicator")
 
 	return cmd
