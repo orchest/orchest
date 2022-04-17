@@ -2,6 +2,8 @@ package orchestcluster
 
 import (
 	"context"
+	"fmt"
+	"hash/fnv"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
@@ -10,15 +12,30 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getMatchLables(compoenentName string, orchest *orchestv1alpha1.OrchestCluster) map[string]string {
-	matchLabels := utils.DeepCopy(orchest.GetLabels())
-	matchLabels[ControllerLabelKey] = orchest.Name
-	matchLabels[ComponentLabelKey] = compoenentName
-	return matchLabels
+func getDeploymentsSelector(orchest *orchestv1alpha1.OrchestCluster) (labels.Selector, error) {
+
+	labels := getDeploymentsLabels(orchest)
+	labelSelector := metav1.SetAsLabelSelector(labels)
+
+	selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get Selector from LabelSelector")
+	}
+
+	return selector, nil
+}
+
+func getDeploymentsLabels(orchest *orchestv1alpha1.OrchestCluster) map[string]string {
+	labels := utils.DeepCopy(orchest.GetLabels())
+	labels[ControllerLabelKey] = orchest.Name
+	labels[ControllerPartOfLabel] = "orchest"
+	return labels
 }
 
 func getMetadata(compoenentName string, orchest *orchestv1alpha1.OrchestCluster) metav1.ObjectMeta {
@@ -135,4 +152,11 @@ func RemoveFinalizerIfNotPresent(ctx context.Context,
 	}
 
 	return nil
+}
+
+func ComputeHash(spec *orchestv1alpha1.OrchestClusterSpec) string {
+	hasher := fnv.New32a()
+	utils.DeepHashObject(hasher, *spec)
+
+	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
 }

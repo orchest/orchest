@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (d *OrchestDeployer) getAuthServerManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func (d *OrchestReconciler) getAuthServerManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
 
 	matchLabels := getMatchLables(authServerName, orchest)
 	metadata := getMetadata(authServerName, orchest)

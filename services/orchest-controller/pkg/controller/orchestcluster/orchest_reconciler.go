@@ -5,14 +5,16 @@ import (
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -44,6 +46,7 @@ var (
 	rabbitmqName     = "rabbitmq-server"
 	celeryWorkerName = "celery-worker"
 	authServerName   = "auth-server"
+	orchestWebserver = "orchest-webserver"
 
 	//Labels and annotations
 	GenerationKey         = "contoller.orchest.io/generation"
@@ -55,33 +58,74 @@ var (
 	Zero = intstr.FromInt(0)
 )
 
-type OrchestDeployer struct {
-	client    client.Client
-	config    *ControllerConfig
-	name      string
+// OrchestReconciler reconciles a single OrchestCluster
+type OrchestReconciler struct {
+	key string
+
+	name string
+
+	namespace string
+
+	controller *OrchestClusterController
+
 	sleepTime time.Duration
 }
 
-func NewOrchestDeployer(name string, client client.Client, config *ControllerConfig) deployer.Deployer {
-	return &OrchestDeployer{
-		name:      name,
-		client:    client,
-		config:    config,
-		sleepTime: time.Second,
+func NewOrchestReconciler(key string,
+	controller *OrchestClusterController) *OrchestReconciler {
+
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return nil
+	}
+	return &OrchestReconciler{
+		key:        key,
+		name:       name,
+		namespace:  namespace,
+		controller: controller,
+		sleepTime:  time.Second,
 	}
 }
 
-//returns the name of the deployer
-func (d *OrchestDeployer) GetName() string {
-	return d.name
-}
-
 // Installs deployer if the config is changed
-func (d *OrchestDeployer) InstallIfChanged(ctx context.Context, namespace string, valuesStruct interface{}) error {
+func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 
-	orchest, ok := valuesStruct.(*orchestv1alpha1.OrchestCluster)
-	if !ok {
-		return errors.New("Wrong argument provided to orchest deployer")
+	// First we need to retrive the latest version of OrchestCluster
+	orchest, err := r.controller.ocClient.OrchestV1alpha1().OrchestClusters(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			// OrchestCluster does not exist, return
+			return nil
+		}
+		return err
+	}
+
+	// computer the hash of current version.
+	curHash := ComputeHash(&orchest.Spec)
+
+	// retrive the hash of current object
+	oldHash, ok := orchest.GetLabels()[ControllerLabelKey]
+
+	needUpdate := curHash != oldHash
+
+	// If the update is needed, and needUpdate is true, the cluster should be paused first
+	if needUpdate && ok && !r.isPaused(orchest) {
+		r.pauseOrchest(orchest)
+	}
+
+	if curHash == oldHash {
+
+	}
+
+	// Retrive the created pvcs
+
+	userdir, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
+	// userdir is not created or is removed, we have to recreate it
+	if err != nil && kerrors.IsNotFound(err) {
+		err := r.persistentVolumeClaim(userDirName, r.namespace, storageClass, userDirSize, orchest)
+		if err != nil && !kerrors.IsAlreadyExists(err) {
+			return errors.Wrapf(err, "failed to create %s pvc", userDirName)
+		}
 	}
 
 	// Let's create required pvcs for orchest deployment
@@ -140,14 +184,70 @@ func (d *OrchestDeployer) InstallIfChanged(ctx context.Context, namespace string
 
 }
 
-// Uninstall the addon
-func (d *OrchestDeployer) Uninstall(ctx context.Context, namespace string) error {
+func (r *OrchestReconciler) isPaused(orchest *orchestv1alpha1.OrchestCluster) bool {
+	return orchest.Status != nil &&
+		(orchest.Status.State != orchestv1alpha1.Paused ||
+			orchest.Status.State != orchestv1alpha1.Updating)
+}
+
+func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+
+	orchest, err := r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, "Pausing the cluster")
+	if err != nil {
+		return errors.Wrapf(err, "failed to update status while changin the state to pausing")
+	}
+
+	// get the current deployments and pause them (change their replica to 0)
+	deployments, err := r.getDeployments(ctx, orchest)
+	if err != nil {
+		return err
+	}
+
+	// orchest-webserver will be paused first
+	webserver, ok := deployments[orchestWebserver]
+	if ok {
+		r.pauseOrchestWebserver(webserver)
+	}
+
 	return nil
 }
 
-func (d *OrchestDeployer) createPersistentVolumeClaim(ctx context.Context,
-	name, namespace, storageClass, volumeSize string,
-	orchest *orchestv1alpha1.OrchestCluster) error {
+// gets the deployments accociated with OrchestCluster and returns a map of them
+func (r *OrchestReconciler) getDeployments(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (
+	map[string]*appsv1.Deployment, error) {
+
+	orchest, err := r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, "Pausing the cluster")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
+	}
+
+	// get the current deployments and pause them (change their replica to 0)
+	selector, err := getDeploymentsSelector(orchest)
+	if err != nil {
+		return nil, err
+	}
+
+	deployments, err := r.controller.depLister.Deployments(r.namespace).List(selector)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get deployments of OrchestCluser=%s", orchest.Name)
+	}
+
+	// now we iterate over the list of deployments and create the map
+	deploymentMap := make(map[string]*appsv1.Deployment, len(deployments))
+	for _, deployment := range deployments {
+		deploymentMap[deployment.Name] = deployment
+	}
+
+	return deploymentMap, nil
+}
+
+// Uninstall the addon
+func (d *OrchestReconciler) Uninstall(ctx context.Context, namespace string) error {
+	return nil
+}
+
+func (d *OrchestReconciler) persistentVolumeClaim(name, namespace, storageClass string,
+	volumeSize string, orchest *orchestv1alpha1.OrchestCluster) *v1.PersistentVolumeClaim {
 
 	spec := corev1.PersistentVolumeClaimSpec{
 		AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
@@ -178,10 +278,10 @@ func (d *OrchestDeployer) createPersistentVolumeClaim(ctx context.Context,
 		Spec: spec,
 	}
 
-	return d.client.Create(ctx, pvc, &client.CreateOptions{})
+	return pvc
 }
 
-func (d *OrchestDeployer) deployOrchestDatabase(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *OrchestReconciler) deployOrchestDatabase(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	// First check if the deployment already exist
 
@@ -201,7 +301,7 @@ func (d *OrchestDeployer) deployOrchestDatabase(ctx context.Context, orchest *or
 	return d.waitForDeployment(ctx, client.ObjectKeyFromObject(deployment))
 }
 
-func (d *OrchestDeployer) deployAuthServer(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *OrchestReconciler) deployAuthServer(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	deployment := d.getAuthServerManifest(orchest)
 	service := getServiceManifest(authServerName, 80, orchest)
@@ -219,7 +319,7 @@ func (d *OrchestDeployer) deployAuthServer(ctx context.Context, orchest *orchest
 	return d.waitForDeployment(ctx, client.ObjectKeyFromObject(deployment))
 }
 
-func (d *OrchestDeployer) deployOrchestApi(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *OrchestReconciler) deployOrchestApi(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	deployment, rbacs := d.getOrchetApiManifest(orchest)
 	service := getServiceManifest(orchestApiName, 80, orchest)
@@ -244,7 +344,7 @@ func (d *OrchestDeployer) deployOrchestApi(ctx context.Context, orchest *orchest
 	return d.waitForDeployment(ctx, client.ObjectKeyFromObject(deployment))
 }
 
-func (d *OrchestDeployer) deployCeleryWorker(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *OrchestReconciler) deployCeleryWorker(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	deployment, rbacs := d.getCeleryWorkerManifests(orchest)
 
@@ -263,7 +363,7 @@ func (d *OrchestDeployer) deployCeleryWorker(ctx context.Context, orchest *orche
 	return d.waitForDeployment(ctx, client.ObjectKeyFromObject(deployment))
 }
 
-func (d *OrchestDeployer) deployRabbitMq(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (d *OrchestReconciler) deployRabbitMq(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
 	deployment := getRabbitMqManifest(orchest)
 	service := getServiceManifest(rabbitmqName, 5672, orchest)
@@ -281,7 +381,7 @@ func (d *OrchestDeployer) deployRabbitMq(ctx context.Context, orchest *orchestv1
 	return d.waitForDeployment(ctx, client.ObjectKeyFromObject(deployment))
 }
 
-func (d *OrchestDeployer) waitForDeployment(ctx context.Context, key client.ObjectKey) error {
+func (d *OrchestReconciler) waitForDeployment(ctx context.Context, key client.ObjectKey) error {
 	klog.Infof("Waiting for deployment to become ready object key: %s", key.String())
 
 	// wait for deployment to become ready

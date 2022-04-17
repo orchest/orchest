@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (d *OrchestDeployer) getCeleryWorkerManifests(orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, []client.Object) {
+func (d *OrchestReconciler) getCeleryWorkerManifests(orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, []client.Object) {
 
 	matchLabels := getMatchLables(celeryWorkerName, orchest)
 	metadata := getMetadata(celeryWorkerName, orchest)

@@ -29,7 +29,8 @@ import (
 )
 
 var (
-	OrchestClusterKind = "OrchestCluster"
+	OrchestClusterKind             = "OrchestCluster"
+	ControllerRevisionHashLabelKey = "controller-revision-hash"
 )
 
 type ControllerConfig struct {
@@ -73,6 +74,8 @@ type OrchestClusterController struct {
 	depInformer appsinformers.DeploymentInformer
 	depLister   appslister.DeploymentLister
 	depSynced   cache.InformerSynced
+
+	reconcilers map[string]*OrchestReconciler
 }
 
 // NewOrchestClusterController returns a new *OrchestClusterController.
@@ -86,39 +89,42 @@ func NewOrchestClusterController(client kubernetes.Interface,
 		ratelimiter.RegisterMetricAndTrackRateLimiterUsage("orchest_cluster_controller", client.CoreV1().RESTClient().GetRateLimiter())
 	}
 
-	contoller := OrchestClusterController{
+	controller := OrchestClusterController{
 		client:           client,
 		ocClient:         ocClient,
 		config:           config,
 		workerLoopPeriod: time.Second,
+		reconcilers:      make(map[string]*OrchestReconciler),
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "orchest cluster"),
 	}
 
 	ocInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: contoller.onOrchestClusterUpdate,
+		AddFunc: controller.onOrchestClusterUpdate,
 		UpdateFunc: func(old, cur interface{}) {
-			contoller.onOrchestClusterUpdate(cur)
+			controller.onOrchestClusterUpdate(cur)
 		},
-		DeleteFunc: contoller.onOrchestClusterUpdate,
+		DeleteFunc: controller.onOrchestClusterUpdate,
 	})
 
-	contoller.ocInformer = ocInformer
-	contoller.ocLister = ocInformer.Lister()
-	contoller.ocSynced = ocInformer.Informer().HasSynced
+	controller.ocInformer = ocInformer
+	controller.ocLister = ocInformer.Lister()
+	controller.ocSynced = ocInformer.Informer().HasSynced
 
 	depInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: contoller.onDeploymentUpdate,
+		AddFunc: controller.onDeploymentUpdate,
 		UpdateFunc: func(old, cur interface{}) {
-			contoller.onDeploymentUpdate(cur)
+			controller.onDeploymentUpdate(cur)
 		},
-		DeleteFunc: contoller.onDeploymentUpdate,
+		DeleteFunc: controller.onDeploymentUpdate,
 	})
 
-	contoller.depInformer = depInformer
-	contoller.depLister = depInformer.Lister()
-	contoller.depSynced = depInformer.Informer().HasSynced
+	controller.depInformer = depInformer
+	controller.depLister = depInformer.Lister()
+	controller.depSynced = depInformer.Informer().HasSynced
 
-	return &contoller
+	controller.intiDeployerManager()
+
+	return &controller
 }
 
 func (r *OrchestClusterController) intiDeployerManager() {
@@ -129,7 +135,7 @@ func (r *OrchestClusterController) intiDeployerManager() {
 
 }
 
-func (contoller *OrchestClusterController) onDeploymentUpdate(obj interface{}) {
+func (controller *OrchestClusterController) onDeploymentUpdate(obj interface{}) {
 	dep, ok := obj.(*appsv1.Deployment)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -145,7 +151,7 @@ func (contoller *OrchestClusterController) onDeploymentUpdate(obj interface{}) {
 	}
 
 	if dep.ObjectMeta.OwnerReferences != nil && dep.ObjectMeta.OwnerReferences[0].Kind == OrchestClusterKind {
-		orchest, err := contoller.ocLister.OrchestClusters(dep.Namespace).Get(dep.ObjectMeta.OwnerReferences[0].Name)
+		orchest, err := controller.ocLister.OrchestClusters(dep.Namespace).Get(dep.ObjectMeta.OwnerReferences[0].Name)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("couldn't get OrchestCluster=%s in namespace=%s",
 				dep.ObjectMeta.OwnerReferences[0].Name,
@@ -159,11 +165,11 @@ func (contoller *OrchestClusterController) onDeploymentUpdate(obj interface{}) {
 			return
 		}
 		klog.V(3).Infof("Deployment update update: %s", orchest.Name)
-		contoller.queue.AddRateLimited(key)
+		controller.queue.AddRateLimited(key)
 	}
 }
 
-func (contoller *OrchestClusterController) onOrchestClusterUpdate(obj interface{}) {
+func (controller *OrchestClusterController) onOrchestClusterUpdate(obj interface{}) {
 	orchest, ok := obj.(*orchestv1alpha1.OrchestCluster)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
@@ -184,59 +190,59 @@ func (contoller *OrchestClusterController) onOrchestClusterUpdate(obj interface{
 		return
 	}
 	klog.V(3).Infof("OrchestCluster update event :%s", orchest.Name)
-	contoller.queue.AddRateLimited(key)
+	controller.queue.AddRateLimited(key)
 }
 
 // Run will not return until stopCh is closed. workers determines how many
 // endpoints will be handled in parallel.
-func (contoller *OrchestClusterController) Run(stopCh <-chan struct{}) {
+func (controller *OrchestClusterController) Run(stopCh <-chan struct{}) {
 
 	klog.Infof("Starting orchest cluster controller")
 	defer klog.Infof("Shutting down orchest cluster controller")
 
 	defer utilruntime.HandleCrash()
-	defer contoller.queue.ShutDown()
+	defer controller.queue.ShutDown()
 
-	if !cache.WaitForCacheSync(stopCh, contoller.ocSynced, contoller.depSynced) {
+	if !cache.WaitForCacheSync(stopCh, controller.ocSynced, controller.depSynced) {
 		return
 	}
 
-	for i := 0; i < contoller.config.Threadiness; i++ {
-		go wait.Until(contoller.worker, contoller.workerLoopPeriod, stopCh)
+	for i := 0; i < controller.config.Threadiness; i++ {
+		go wait.Until(controller.worker, controller.workerLoopPeriod, stopCh)
 	}
 
 	<-stopCh
 }
 
-func (contoller *OrchestClusterController) worker() {
-	for contoller.processNextWorkItem() {
+func (controller *OrchestClusterController) worker() {
+	for controller.processNextWorkItem() {
 	}
 }
 
-func (contoller *OrchestClusterController) processNextWorkItem() bool {
-	eKey, quit := contoller.queue.Get()
+func (controller *OrchestClusterController) processNextWorkItem() bool {
+	eKey, quit := controller.queue.Get()
 	if quit {
 		return false
 	}
-	defer contoller.queue.Done(eKey)
+	defer controller.queue.Done(eKey)
 
-	err := contoller.syncOrchestCluster(eKey.(string))
-	contoller.handleErr(err, eKey)
+	err := controller.syncOrchestCluster(eKey.(string))
+	controller.handleErr(err, eKey)
 
 	return true
 }
 
-func (contoller *OrchestClusterController) handleErr(err error, key interface{}) {
+func (controller *OrchestClusterController) handleErr(err error, key interface{}) {
 	if err == nil {
-		contoller.queue.Forget(key)
+		controller.queue.Forget(key)
 		return
 	}
 	klog.Warningf("dropping orchest csluter %q out of the queue: %v", key, err)
-	contoller.queue.Forget(key)
+	controller.queue.Forget(key)
 	utilruntime.HandleError(err)
 }
 
-func (contoller *OrchestClusterController) syncOrchestCluster(key string) error {
+func (controller *OrchestClusterController) syncOrchestCluster(key string) error {
 
 	startTime := time.Now()
 	klog.V(3).Infof("Started syncing OrchestCluster: %s.", key)
@@ -254,7 +260,7 @@ func (contoller *OrchestClusterController) syncOrchestCluster(key string) error 
 		return err
 	}
 
-	orchest, err := contoller.ocLister.OrchestClusters(namespace).Get(name)
+	orchest, err := controller.ocLister.OrchestClusters(namespace).Get(name)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			klog.V(2).Info("OrchestCluster %s resource not found.", key)
@@ -265,18 +271,35 @@ func (contoller *OrchestClusterController) syncOrchestCluster(key string) error 
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
-	err = AddFinalizerIfNotPresent(ctx, contoller.ocClient, orchest, orchestv1alpha1.Finalizer)
+	err = AddFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
 		errors.Wrap(err, "failed to add finalizer")
 	}
 
 	if !orchest.GetDeletionTimestamp().IsZero() {
 		// The cluster is deleted, delete it
-		return contoller.deleteOrchestCluster(ctx, name, namespace)
+		return controller.deleteOrchestCluster(ctx, name, namespace)
 	}
 
 	// Reconciling
-	if err := contoller.reconcileCluster(ctx, orchest); err != nil {
+	// If Status struct is not initialized yet, the cluster is new, create it
+	if orchest.Status == nil {
+		// Set the default values in CR if not specified
+		copy := controller.getDefaultIfNotSpecified(ctx, orchest)
+		err := controller.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+		return nil
+	}
+
+	err = controller.ensureThirdPartyDependencies(ctx, orchest)
+	if err != nil {
+		return err
+	}
+
+	if err := controller.reconcileCluster(ctx, key); err != nil {
 		return errors.Wrapf(err, "failed to reconcile OrchestCluster %q", name)
 	}
 
@@ -284,10 +307,10 @@ func (contoller *OrchestClusterController) syncOrchestCluster(key string) error 
 	return nil
 }
 
-func (contoller *OrchestClusterController) deleteOrchestCluster(ctx context.Context,
+func (controller *OrchestClusterController) deleteOrchestCluster(ctx context.Context,
 	name, namespace string) error {
 
-	orchest, err := contoller.ocLister.OrchestClusters(namespace).Get(name)
+	orchest, err := controller.ocLister.OrchestClusters(namespace).Get(name)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			klog.V(2).Info("OrchestCluster %s resource not found.", name)
@@ -297,13 +320,13 @@ func (contoller *OrchestClusterController) deleteOrchestCluster(ctx context.Cont
 	}
 
 	// Update Cluster status
-	err = contoller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
+	err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
 	if err != nil {
 		return errors.Wrapf(err, "failed to update cluster status to orchestv1alpha1.Deleting, OrchestCluster: %s",
 			orchest.GetName())
 	}
 	// Remove finalizers
-	err = RemoveFinalizerIfNotPresent(ctx, contoller.ocClient, orchest, orchestv1alpha1.Finalizer)
+	err = RemoveFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove finalizers")
 	}
@@ -311,21 +334,16 @@ func (contoller *OrchestClusterController) deleteOrchestCluster(ctx context.Cont
 	return nil
 }
 
-func (controller *OrchestClusterController) reconcileCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
+func (controller *OrchestClusterController) reconcileCluster(ctx context.Context, key string) error {
 
-	// If Status struct is not initialized yet, the cluster is new, create it
-	if orchest.Status == nil {
-		// Set the default values in CR if not specified
-		copy := controller.getClusterWithIfNotSpecified(ctx, orchest)
-		err := controller.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		return nil
+	reconciler, ok := controller.reconcilers[key]
+	// This is a new cluster known to us, we should create a new reconciler for it
+	if !ok {
+		reconciler = NewOrchestReconciler(key, controller)
+		controller.reconcilers[key] = reconciler
 	}
 
-	controller.ensureThirdPartyDependencies(ctx, orchest)
+	reconciler.Reconcile(ctx)
 
 	return nil
 
@@ -334,7 +352,7 @@ func (controller *OrchestClusterController) reconcileCluster(ctx context.Context
 func (controller *OrchestClusterController) updateClusterStatus(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster,
 	state orchestv1alpha1.OrchestClusterState,
-	message string) error {
+	message string) (*orchestv1alpha1.OrchestCluster, error) {
 
 	orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
 		State:   state,
@@ -344,12 +362,12 @@ func (controller *OrchestClusterController) updateClusterStatus(ctx context.Cont
 	orchest, err := controller.ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
 
 	if err != nil {
-		return errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)
+		return nil, errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)
 	}
-	return nil
+	return orchest, nil
 }
 
-func (controller *OrchestClusterController) getClusterWithIfNotSpecified(ctx context.Context,
+func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context.Context,
 	cluster *orchestv1alpha1.OrchestCluster) *orchestv1alpha1.OrchestCluster {
 
 	copy := cluster.DeepCopy()

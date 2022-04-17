@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (d *OrchestDeployer) getOrchetApiManifest(orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, []client.Object) {
+func (d *OrchestReconciler) getOrchetApiManifest(orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, []client.Object) {
 
 	matchLabels := getMatchLables(orchestApiName, orchest)
 	metadata := getMetadata(orchestApiName, orchest)

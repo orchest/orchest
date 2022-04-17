@@ -31,6 +31,8 @@ const (
 	Pending             OrchestClusterState = "Pending"
 	Deleting            OrchestClusterState = "Deleting"
 	Running             OrchestClusterState = "Running"
+	Pausing             OrchestClusterState = "Pausing"
+	Paused              OrchestClusterState = "Paused"
 	Updating            OrchestClusterState = "Updating"
 	Error               OrchestClusterState = "Error"
 )

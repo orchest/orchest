@@ -1,5 +1,11 @@
 package utils
 
+import (
+	"hash"
+
+	"github.com/davecgh/go-spew/spew"
+)
+
 func Contains(list []string, s string) bool {
 	for _, v := range list {
 		if v == s {
@@ -17,4 +23,15 @@ func Remove(list []string, s string) []string {
 		}
 	}
 	return list
+}
+
+func DeepHashObject(hasher hash.Hash, objectToWrite interface{}) {
+	hasher.Reset()
+	printer := spew.ConfigState{
+		Indent:         " ",
+		SortKeys:       true,
+		DisableMethods: true,
+		SpewKeys:       true,
+	}
+	printer.Fprintf(hasher, "%#v", objectToWrite)
 }
