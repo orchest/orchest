@@ -9,7 +9,8 @@ loop where:
 """
 import asyncio
 import logging
-from typing import List, Set, Tuple
+import os
+from typing import List, Optional, Set, Tuple
 
 import aiodocker
 import aiohttp
@@ -27,6 +28,18 @@ def is_env_image(name: str) -> bool:
 
 def is_custom_jupyter_image(name: str) -> bool:
     return _config.JUPYTER_IMAGE_NAME in name
+
+
+def is_orchest_image(name: str) -> bool:
+    return name.startswith("orchest/")
+
+
+def _get_orchest_version() -> Optional[str]:
+    v = os.environ.get("ORCHEST_VERSION")
+    # Make sure it's not "".
+    if not v:
+        v = None
+    return v
 
 
 async def get_active_environment_images(session: aiohttp.ClientSession) -> Set[str]:
@@ -52,15 +65,17 @@ async def get_active_custom_jupyter_images(session: aiohttp.ClientSession) -> Se
 
 async def get_images_of_interest_on_node(
     aiodocker_client,
-) -> Tuple[List[str], List[str]]:
+) -> Tuple[List[str], List[str], List[str]]:
     """Gets the environment images on the node.
 
     Returns:
         A tuple of lists, where the first list are env images that are
-        on the node, the second are custom jupyter images.
+        on the node, the second are custom jupyter images, the third
+        are orchest images.
     """
     env_images_on_node = []
     custom_jupyter_images_on_node = []
+    orchest_images = []
 
     for img in await aiodocker_client.images.list():
         names = img.get("RepoTags")
@@ -72,7 +87,9 @@ async def get_images_of_interest_on_node(
                 env_images_on_node.append(name)
             elif is_custom_jupyter_image(name):
                 custom_jupyter_images_on_node.append(name)
-    return env_images_on_node, custom_jupyter_images_on_node
+            elif is_orchest_image(name):
+                orchest_images.append(name)
+    return env_images_on_node, custom_jupyter_images_on_node, orchest_images
 
 
 async def run():
@@ -84,6 +101,7 @@ async def run():
                     (
                         env_images_on_node,
                         custom_jupyter_images_on_node,
+                        orchest_images_on_node,
                     ) = await get_images_of_interest_on_node(aiodocker_client)
 
                     # Find inactive env images on the node.
@@ -113,10 +131,29 @@ async def run():
                         "removed."
                     )
 
+                    # Find old orchest images on the node.
+                    orchest_v = _get_orchest_version()
+                    orchest_images_to_remove_from_node = []
+                    if orchest_v is not None:
+                        logger.info(
+                            "Looking for Orchest images which version differs from: "
+                            f" {orchest_v}."
+                        )
+                        for img in orchest_images_on_node:
+                            # Doesn't follow the way we version.
+                            if "orchest/buildah" in img:
+                                continue
+                            v = img.split(":")[1]
+                            # Should we use something safer? Like the
+                            # "packaging" package?
+                            if v != orchest_v:
+                                orchest_images_to_remove_from_node.append(img)
+
                     # Remove them.
                     for img in (
                         env_images_to_remove_from_node
                         + custom_jupyter_images_to_remove_from_node
+                        + orchest_images_to_remove_from_node
                     ):
                         try:
                             logger.info(f"Deleting {img}.")
