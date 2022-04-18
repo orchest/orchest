@@ -295,48 +295,43 @@ class OrchestSettings:
         "MAX_JOB_RUNS_PARALLELISM": {
             "default": 1,
             "type": int,
-            "requires-restart": True,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
             # Will return True if it could apply changes on the fly,
             # False otherwise.
-            "apply_runtime_changes_function": _set_job_runs_parallelism_at_runtime,
+            "apply-runtime-changes-function": _set_job_runs_parallelism_at_runtime,
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
             "default": 1,
             "type": int,
-            "requires-restart": True,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
-            "apply_runtime_changes_function": _set_interactive_runs_parallelism_at_runtime,  # noqa
+            "apply-runtime-changes-function": _set_interactive_runs_parallelism_at_runtime,  # noqa
         },
         "AUTH_ENABLED": {
             "default": False,
             "type": bool,
-            "requires-restart": True,
             "condition": None,
-            "apply_runtime_changes_function": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
         },
         "TELEMETRY_DISABLED": {
             "default": False,
             "type": bool,
-            "requires-restart": True,
             "condition": None,
-            "apply_runtime_changes_function": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
         },
         "TELEMETRY_UUID": {
             "default": str(uuid.uuid4()),
             "type": str,
             "requires-restart": True,
             "condition": None,
-            "apply_runtime_changes_function": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
         },
         "INTERCOM_USER_EMAIL": {
             "default": "johndoe@example.org",
             "type": str,
-            "requires-restart": True,
             "condition": None,
-            "apply_runtime_changes_function": None,
+            "apply-runtime-changes-function": lambda prev, new: False,
         },
     }
     _cloud_unmodifiable_config_opts = [
@@ -412,9 +407,7 @@ class OrchestSettings:
         if flask_app is None:
             return
 
-        self._apply_runtime_changes(flask_app, settings_as_dict)
-
-        return self._changes_require_restart(flask_app, settings_as_dict)
+        return self._apply_runtime_changes(flask_app, settings_as_dict)
 
     def update(self, d: dict) -> None:
         """Updates the current config values.
@@ -464,34 +457,43 @@ class OrchestSettings:
     def __getitem__(self, key):
         return self._values[key]
 
-    def _changes_require_restart(self, flask_app, new: dict) -> List[str]:
-        """Do config changes require an Orchest restart.
+    def _apply_runtime_changes(self, flask_app, new: dict) -> None:
+        """Updates settings at runtime when possible.
 
-        Compares the Orchest global config values in the flask app to
-        the `new` values and determines whether the changes require a
-        restart of the Orchest application.
+        Changes that can be updated dynamically and do not require a
+        restart are applied.
+
+        Args:
+            flask_app (flask.Flask): The `flask_app.config` will be
+                updated if changing the settings at runtime was
+                possible.
+            new: Dictionary reflecting the new settings to be applied.
 
         Returns:
             A list of strings representing the changed configuration
             options that require a restart of Orchest to take effect.
 
         """
-        res = []
+        settings_requiring_restart = []
         for k, val in self._config_values.items():
-            if not val["requires-restart"]:
-                continue
-
             # Changes to unmodifiable config options won't take effect
             # anyways and so they should not account towards requiring
             # a restart yes or no.
             if self._cloud and k in self._cloud_unmodifiable_config_opts:
                 continue
 
-            old_val = flask_app.config.get(k)
-            if new.get(k) is not None and new[k] != old_val:
-                res.append(k)
+            apply_f = val["apply-runtime-changes-function"]
 
-        return res
+            old_val = flask_app.config.get(k)
+            new_val = new.get(k)
+            if new_val is not None and new_val != old_val:
+                could_update = apply_f(old_val, new_val)
+                if could_update:
+                    flask_app.config[k] = new_val
+                else:
+                    settings_requiring_restart.append(k)
+
+        return settings_requiring_restart
 
     def _validate_dict(self, d: dict, migrate=False) -> None:
         """Validates the types and values of the values of the dict.
@@ -592,32 +594,3 @@ class OrchestSettings:
             settings[setting.name] = setting.value["value"]
 
         return settings
-
-    def _apply_runtime_changes(self, flask_app, new: dict) -> None:
-        """Updates settings at runtime when possible.
-
-        Changes that can be updated dynamically and do not require a
-        restart are applied.
-
-        Args:
-            flask_app (flask.Flask): The `flask_app.config` will be
-                updated if necessary.
-            new: Dictionary reflecting the new settings to be applied.
-
-        """
-        res = []
-        for k, val in self._config_values.items():
-            apply_f = val.get("apply_runtime_changes_function")
-            if apply_f is None:
-                continue
-            if self._cloud and k in self._cloud_unmodifiable_config_opts:
-                continue
-
-            old_val = flask_app.config.get(k)
-            if new.get(k) is not None and new[k] != old_val:
-                could_update = apply_f(old_val, new[k])
-                # Else a restart will be required.
-                if could_update:
-                    flask_app.config[k] = new[k]
-
-        return res
