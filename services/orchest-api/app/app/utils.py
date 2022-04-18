@@ -20,6 +20,7 @@ from _orchest.internals import config as _config
 from _orchest.internals import errors as _errors
 from app import errors as self_errors
 from app import schema
+from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
 
@@ -227,6 +228,65 @@ def get_jupyter_server_image_to_use() -> str:
         return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
 
 
+def _set_celery_worker_parallelism_at_runtime(
+    worker: str, previous_parallelism: int, new_parallelism: int
+) -> bool:
+    """Set the parallelism of a celery worker at runtime.
+
+    Args:
+        worker: Name of the worker.
+        previous_parallelism: Current parallelism level.
+        new_parallelism: New parallelism level.
+
+    Returns:
+        True if the parallelism level could be changed, False otherwise.
+        Only allows to increase parallelism, the reason is that celery
+        won't gracefully decrease the parallelism level if it's not
+        possible because processes are busy with a task.
+    """
+    if previous_parallelism is None or new_parallelism is None:
+        return False
+    if new_parallelism < previous_parallelism:
+        return False
+    if previous_parallelism == new_parallelism:
+        return True
+
+    # We don't query the celery-worker and rely on arguments because the
+    # worker might take some time to spawn new processes, leading to
+    # race conditions.
+    celery = make_celery(current_app)
+    worker = f"celery@{worker}"
+    celery.control.pool_grow(new_parallelism - previous_parallelism, [worker])
+    return True
+
+
+def _get_worker_parallelism(worker: str) -> int:
+    celery = make_celery(current_app)
+    worker = f"celery@{worker}"
+    stats = celery.control.inspect([worker]).stats()
+    return len(stats[worker]["pool"]["processes"])
+
+
+def _set_job_runs_parallelism_at_runtime(
+    previous_parallelism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-jobs",
+        previous_parallelism,
+        new_parallelism,
+    )
+
+
+def _set_interactive_runs_parallelism_at_runtime(
+    previous_parallelism: int, new_parallelism: int
+) -> bool:
+    return _set_celery_worker_parallelism_at_runtime(
+        "worker-interactive",
+        previous_parallelism,
+        new_parallelism,
+    )
+
+
 class OrchestSettings:
     _cloud = _config.CLOUD
 
@@ -238,6 +298,9 @@ class OrchestSettings:
             "requires-restart": True,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
+            # Will return True if it could apply changes on the fly,
+            # False otherwise.
+            "apply_runtime_changes_function": _set_job_runs_parallelism_at_runtime,
         },
         "MAX_INTERACTIVE_RUNS_PARALLELISM": {
             "default": 1,
@@ -245,30 +308,35 @@ class OrchestSettings:
             "requires-restart": True,
             "condition": lambda x: 0 < x <= 25,
             "condition-msg": "within the range [1, 25]",
+            "apply_runtime_changes_function": _set_interactive_runs_parallelism_at_runtime,  # noqa
         },
         "AUTH_ENABLED": {
             "default": False,
             "type": bool,
             "requires-restart": True,
             "condition": None,
+            "apply_runtime_changes_function": None,
         },
         "TELEMETRY_DISABLED": {
             "default": False,
             "type": bool,
             "requires-restart": True,
             "condition": None,
+            "apply_runtime_changes_function": None,
         },
         "TELEMETRY_UUID": {
             "default": str(uuid.uuid4()),
             "type": str,
             "requires-restart": True,
             "condition": None,
+            "apply_runtime_changes_function": None,
         },
         "INTERCOM_USER_EMAIL": {
             "default": "johndoe@example.org",
             "type": str,
             "requires-restart": True,
             "condition": None,
+            "apply_runtime_changes_function": None,
         },
     }
     _cloud_unmodifiable_config_opts = [
@@ -313,7 +381,8 @@ class OrchestSettings:
         Args:
             flask_app (flask.Flask): Uses the `flask_app.config` to
                 determine whether Orchest needs to be restarted for the
-                global config changes to take effect.
+                global config changes to take effect or if some settings
+                can be updated at runtime.
 
         Returns:
             * `None` if no `flask_app` is given.
@@ -342,6 +411,8 @@ class OrchestSettings:
 
         if flask_app is None:
             return
+
+        self._apply_runtime_changes(flask_app, settings_as_dict)
 
         return self._changes_require_restart(flask_app, settings_as_dict)
 
@@ -521,3 +592,32 @@ class OrchestSettings:
             settings[setting.name] = setting.value["value"]
 
         return settings
+
+    def _apply_runtime_changes(self, flask_app, new: dict) -> None:
+        """Updates settings at runtime when possible.
+
+        Changes that can be updated dynamically and do not require a
+        restart are applied.
+
+        Args:
+            flask_app (flask.Flask): The `flask_app.config` will be
+                updated if necessary.
+            new: Dictionary reflecting the new settings to be applied.
+
+        """
+        res = []
+        for k, val in self._config_values.items():
+            apply_f = val.get("apply_runtime_changes_function")
+            if apply_f is None:
+                continue
+            if self._cloud and k in self._cloud_unmodifiable_config_opts:
+                continue
+
+            old_val = flask_app.config.get(k)
+            if new.get(k) is not None and new[k] != old_val:
+                could_update = apply_f(old_val, new[k])
+                # Else a restart will be required.
+                if could_update:
+                    flask_app.config[k] = new[k]
+
+        return res
