@@ -239,7 +239,7 @@ def get_jupyter_server_image_to_use() -> str:
         return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
 
 
-def mark_custom_jupyter_images_to_be_removed() -> str:
+def mark_custom_jupyter_images_to_be_removed() -> None:
     """Marks custom jupyter images to be removed.
 
     The JupyterImage.marked_for_removal flag is set to True, based on

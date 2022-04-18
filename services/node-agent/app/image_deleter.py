@@ -14,6 +14,8 @@ from typing import List, Set, Tuple
 import aiodocker
 import aiohttp
 
+from _orchest.internals import config as _config
+
 logger = logging.getLogger("IMAGE_DELETER")
 
 
@@ -24,9 +26,7 @@ def is_env_image(name: str) -> bool:
 
 
 def is_custom_jupyter_image(name: str) -> bool:
-    # Should we add the internal lib to the node agent for this?
-    JUPYTER_IMAGE_NAME = "orchest-jupyter-server-user-configured"
-    return JUPYTER_IMAGE_NAME in name
+    return _config.JUPYTER_IMAGE_NAME in name
 
 
 async def get_active_environment_images(session: aiohttp.ClientSession) -> Set[str]:
