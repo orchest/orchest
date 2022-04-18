@@ -5,6 +5,8 @@ WORKDIR /orchest/services/node-agent/
 
 # Get all Python requirements in place and install them.
 COPY ./requirements.txt ./
+COPY ./lib /orchest/lib
+
 RUN pip3 install -r requirements.txt
 
 COPY . ./

@@ -5,15 +5,18 @@ from typing import Optional
 from celery.contrib.abortable import AbortableAsyncResult
 from flask import abort, current_app, request
 from flask_restx import Namespace, Resource, marshal
-from sqlalchemy import or_
+from sqlalchemy import desc, or_
 
 import app.models as models
+from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import registry
 from app.errors import SessionInProgressException
 from app.utils import register_schema, update_status_db
+from config import CONFIG_CLASS
 
 api = Namespace("jupyter-builds", description="Build Jupyter server image")
 api = register_schema(api)
@@ -98,6 +101,21 @@ class JupyterEnvironmentBuild(Resource):
                 model=models.JupyterImageBuild,
                 filter_by=filter_by,
             )
+            if status_update["status"] == "SUCCESS":
+                build = models.JupyterImageBuild.query.filter(
+                    models.JupyterImageBuild.uuid == jupyter_image_build_uuid
+                ).one()
+                digest = registry.get_manifest_digest(
+                    _config.JUPYTER_IMAGE_NAME,
+                    build.image_tag,
+                )
+                db.session.add(
+                    models.JupyterImage(
+                        tag=build.image_tag,
+                        digest=digest,
+                        base_image_version=CONFIG_CLASS.ORCHEST_VERSION,
+                    )
+                )
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -184,6 +202,17 @@ class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
         # This way we avoid race conditions.
         task_id = str(uuid.uuid4())
 
+        latest_jupyter_img_build = (
+            models.JupyterImageBuild.query.with_for_update()
+            .filter(models.JupyterImageBuild.image_tag.is_not(None))
+            .order_by(desc(models.JupyterImageBuild.image_tag))
+            .first()
+        )
+        if latest_jupyter_img_build is None:
+            image_tag = 1
+        else:
+            image_tag = latest_jupyter_img_build.image_tag + 1
+
         # TODO: verify if forget has the same effect of
         # ignore_result=True because ignore_result cannot be used with
         # abortable tasks.
@@ -194,17 +223,20 @@ class CreateJupyterEnvironmentBuild(TwoPhaseFunction):
             "uuid": task_id,
             "requested_time": datetime.fromisoformat(datetime.utcnow().isoformat()),
             "status": "PENDING",
+            "image_tag": image_tag,
         }
         db.session.add(models.JupyterImageBuild(**jupyter_image_build))
 
         self.collateral_kwargs["task_id"] = task_id
+        self.collateral_kwargs["image_tag"] = str(image_tag)
         return jupyter_image_build
 
-    def _collateral(self, task_id: str):
+    def _collateral(self, task_id: str, image_tag: str):
         celery = make_celery(current_app)
 
         celery.send_task(
             "app.core.tasks.build_jupyter_image",
+            kwargs={"image_tag": image_tag},
             task_id=task_id,
         )
 

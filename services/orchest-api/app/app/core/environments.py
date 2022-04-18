@@ -59,10 +59,15 @@ def get_env_uuids_to_image_mappings(
 
 
 def _lock_environments(project_uuid: str, environment_uuids: Set[str]):
-    for env_uuid in environment_uuids:
-        models.Environment.query.with_for_update().filter_by(
-            project_uuid=project_uuid, uuid=env_uuid
-        ).one()
+    models.Environment.query.with_for_update().filter(
+        models.Environment.uuid.in_(list(environment_uuids)),
+        models.Environment.project_uuid == project_uuid,
+    ).all()
+    models.EnvironmentImage.query.with_for_update().filter(
+        models.EnvironmentImage.project_uuid == project_uuid,
+        models.EnvironmentImage.environment_uuid.in_(list(environment_uuids)),
+        models.EnvironmentImage.marked_for_removal.is_(False),
+    ).all()
 
 
 def lock_environment_images_for_run(
@@ -335,7 +340,7 @@ def _env_images_that_can_be_deleted(
             .subquery()
         )
 
-    imgs_not_in_use = models.EnvironmentImage.query.filter(
+    imgs_not_in_use = models.EnvironmentImage.query.with_for_update().filter(
         models.EnvironmentImage.digest.not_in(imgs_in_use),
         # Assume it's already been processed.
         models.EnvironmentImage.marked_for_removal.is_(False),

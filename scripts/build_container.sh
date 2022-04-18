@@ -85,6 +85,7 @@ LIB_IMAGES=(
     "update-sidecar"
     "celery-worker"
     "jupyter-enterprise-gateway"
+    "node-agent"
 )
 
 PNPM_FILES=(
