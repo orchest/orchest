@@ -252,7 +252,7 @@ def mark_custom_jupyter_images_to_be_removed() -> None:
 
     """
     logger.info("Marking custom jupyter images for removal.")
-    images_to_be_removed = models.JupyterImage.query.filter(
+    images_to_be_removed = models.JupyterImage.query.with_for_update().filter(
         models.JupyterImage.marked_for_removal.is_(False)
     )
 
