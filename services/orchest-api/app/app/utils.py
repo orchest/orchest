@@ -213,6 +213,7 @@ def fuzzy_filter_non_interactive_pipeline_runs(
 
 
 def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
+    """Returns the list of active jupyter images, sorted by tag DESC."""
     custom_image = (
         models.JupyterImage.query.filter(
             models.JupyterImage.marked_for_removal.is_(False),
@@ -221,9 +222,9 @@ def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
             models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
         )
         .order_by(desc(models.JupyterImage.tag))
-        .first()
+        .all()
     )
-    return [custom_image] if custom_image is not None else []
+    return custom_image
 
 
 def get_jupyter_server_image_to_use() -> str:
