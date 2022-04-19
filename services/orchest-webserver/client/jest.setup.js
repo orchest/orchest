@@ -1,6 +1,6 @@
-import "@testing-library/jest-dom/extend-expect";
-import "jest-fetch-mock";
-import { server } from "./src/__mocks__/server.mock";
+require("@testing-library/jest-dom/extend-expect");
+require("jest-fetch-mock");
+const { server } = require("./src/__mocks__/server.mock"); // eslint-disable-line @typescript-eslint/no-var-requires
 
 // Establish API mocking before all tests.
 beforeAll(() => server.listen());
