@@ -9,16 +9,12 @@ const { createTransformer } = require("esbuild-jest");
 
 const transformer = createTransformer({
   sourcemap: true,
-  loaders: {
-    ".test.ts": "tsx",
-  },
   define: {
     __BASE_URL__: `"http://localhost:8080"`,
   },
+  loaders: {
+    ".test.ts": "tsx",
+  },
 });
 
-module.exports = {
-  process(fileContent, filePath, jestConfig) {
-    return transformer.process(fileContent, fileContent, filePath, jestConfig);
-  },
-};
+module.exports = transformer;
