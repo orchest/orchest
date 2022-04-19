@@ -10,7 +10,7 @@ const { transformSync } = require("esbuild");
 module.exports = {
   process(src) {
     const result = transformSync(src, {
-      define: { __BASE_URL__: "http://localhost:8080" },
+      define: { __BASE_URL__: '"http://localhost:8080"' },
     });
     return result;
   },
