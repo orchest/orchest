@@ -321,6 +321,26 @@ def _env_images_that_can_be_deleted(
 
     # Latest images digests.
     if not latest_can_be_removed:
+        # Will produce a subquery like the following:
+        # select project_uuid, environment_uuid, tag,
+        # ####
+        # rank() OVER (
+        #     partition by project_uuid, environment_uuid
+        #     order by tag desc
+        # ) rank
+        # from environment_images
+        # order by project_uuid, environment_uuid, tag desc;
+        # ####
+        # Which will give rank 1 to the "latest" image of every
+        # environment, example:
+        # project_uuid  | environment_uuid | tag | rank
+        # --------------+------------------+-----+------
+        # 13006c56-... | 18b59993-...     |   1 |    1
+        # 13006c56-... | c56ab762-...     |   2 |    1
+        # 13006c56-... | c56ab762-...     |   1 |    2
+        # 13006c56-... | e0af758d-...     |   3 |    1
+        # 13006c56-... | e0af758d-...     |   2 |    2
+        # 13006c56-... | e0af758d-...     |   1 |    3
         tag_rank = (
             func.rank()
             .over(
