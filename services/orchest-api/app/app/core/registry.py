@@ -64,7 +64,7 @@ def get_manifest(repository: str, tag: str) -> List[str]:
     return r.json()
 
 
-def get_manifest_digest(repository: str, tag: str) -> str:
+def get_manifest_digest(repository: str, tag: str) -> Optional[str]:
     """Gets the digest of a manifest.
 
     Can be used, for example, in other registry API endpoints.
@@ -77,7 +77,7 @@ def get_manifest_digest(repository: str, tag: str) -> str:
         verify=_VERIFY,
         headers={"Accept": "application/vnd.docker.distribution.manifest.v2+json"},
     )
-    digest = resp.headers["Docker-Content-Digest"]
+    digest = resp.headers.get("Docker-Content-Digest")
     return digest
 
 
