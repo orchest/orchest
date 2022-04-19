@@ -14,11 +14,6 @@ const transformer = createTransformer({
 
 module.exports = {
   process(fileContent, filePath, jestConfig) {
-    return transformer.process(
-      fileContent.replace("__BASE_URL__", '"http://localhost:8080"'),
-      fileContent,
-      filePath,
-      jestConfig
-    );
+    return transformer.process(fileContent, fileContent, filePath, jestConfig);
   },
 };
