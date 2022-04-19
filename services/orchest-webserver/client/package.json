@@ -75,6 +75,7 @@
     "esbuild": "~0.14.0",
     "esbuild-jest": "^0.5.0",
     "jest": "^27.4.5",
+    "jest-fetch-mock": "^3.0.3",
     "jest-junit": "^13.0.0",
     "sass-bin": "^1.43.2",
     "ts-jest": "^27.1.2",

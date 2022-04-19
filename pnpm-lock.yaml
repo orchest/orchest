@@ -170,6 +170,7 @@ importers:
       immer: ^9.0.12
       isomorphic-unfetch: 3.1.0
       jest: ^27.4.5
+      jest-fetch-mock: ^3.0.3
       jest-junit: ^13.0.0
       jquery: ^3.5.1
       lodash.clonedeep: ^4.5.0
@@ -254,6 +255,7 @@ importers:
       esbuild: 0.14.27
       esbuild-jest: 0.5.0_esbuild@0.14.27
       jest: 27.4.5
+      jest-fetch-mock: 3.0.3
       jest-junit: 13.0.0
       sass-bin: 1.43.2
       ts-jest: 27.1.2_31cbaf66f233764650221659d32b6390
@@ -1574,8 +1576,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_b31e2e930191052696b5daf8df9af787
+      '@emotion/styled': 11.6.0_0a99bf3499149946574f430ef37a741d
       '@mui/base': 5.0.0-alpha.59_ba191c0052acfa37659f3ba04a2d9405
       '@mui/system': 5.2.3_98944ee4dd5f6cfd31442cef9ca2b57e
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -1641,8 +1643,8 @@ packages:
     dependencies:
       '@babel/runtime': 7.16.3
       '@emotion/cache': 11.6.0
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_b31e2e930191052696b5daf8df9af787
+      '@emotion/styled': 11.6.0_0a99bf3499149946574f430ef37a741d
       prop-types: 15.7.2
       react: 17.0.2
     dev: false
@@ -1685,8 +1687,8 @@ packages:
         optional: true
     dependencies:
       '@babel/runtime': 7.16.3
-      '@emotion/react': 11.6.0_224c005a9aae57ced2ce2da687f66614
-      '@emotion/styled': 11.6.0_b776a098af178845b9a687c0f1e09552
+      '@emotion/react': 11.6.0_b31e2e930191052696b5daf8df9af787
+      '@emotion/styled': 11.6.0_0a99bf3499149946574f430ef37a741d
       '@mui/private-theming': 5.2.3_@types+react@17.0.3+react@17.0.2
       '@mui/styled-engine': 5.2.0_3ca9f49da28f3590cbe49aab51aa421d
       '@mui/types': 7.1.0_@types+react@17.0.3
@@ -3327,6 +3329,14 @@ packages:
   /cronstrue/1.122.0:
     resolution: {integrity: sha512-PFuhZd+iPQQ0AWTXIEYX+t3nFGzBrWxmTWUKJOrsGRewaBSLKZ4I1f8s2kryU75nNxgyugZgiGh2OJsCTA/XlA==}
     dev: false
+
+  /cross-fetch/3.1.5:
+    resolution: {integrity: sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==}
+    dependencies:
+      node-fetch: 2.6.7
+    transitivePeerDependencies:
+      - encoding
+    dev: true
 
   /cross-spawn/6.0.5:
     resolution: {integrity: sha512-eTVLrBSt7fjbDygz805pMnstIs2VTBNkRm0qxZd+M7A5XDdxVRWO5MxGBXZhjY4cqLYLdtrGqRf8mBPmzwSpWQ==}
@@ -5611,6 +5621,15 @@ packages:
       jest-util: 27.4.2
     dev: true
 
+  /jest-fetch-mock/3.0.3:
+    resolution: {integrity: sha512-Ux1nWprtLrdrH4XwE7O7InRY6psIi3GOsqNESJgMJ+M5cv4A8Lh7SN9d2V2kKRZ8ebAfcd1LNyZguAOb6JiDqw==}
+    dependencies:
+      cross-fetch: 3.1.5
+      promise-polyfill: 8.2.3
+    transitivePeerDependencies:
+      - encoding
+    dev: true
+
   /jest-get-type/27.4.0:
     resolution: {integrity: sha512-tk9o+ld5TWq41DkK14L4wox4s2D9MtTpKaAVzXfr5CUKm5ZK2ExcaFE0qls2W71zE/6R2TxxrK9w2r6svAFDBQ==}
     engines: {node: ^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0}
@@ -6449,6 +6468,18 @@ packages:
       whatwg-url: 5.0.0
     dev: false
 
+  /node-fetch/2.6.7:
+    resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
+    dependencies:
+      whatwg-url: 5.0.0
+    dev: true
+
   /node-int64/0.4.0:
     resolution: {integrity: sha1-h6kGXNs1XTGC2PlM4RGIuCXGijs=}
     dev: true
@@ -6850,6 +6881,10 @@ packages:
   /progress/2.0.3:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
+    dev: true
+
+  /promise-polyfill/8.2.3:
+    resolution: {integrity: sha512-Og0+jCRQetV84U8wVjMNccfGCnMQ9mGs9Hv78QFe+pSDD3gWTpz0y+1QCuxy5d/vBFuZ3iwP2eycAkvqIMPmWg==}
     dev: true
 
   /prompts/2.4.2:
@@ -8002,7 +8037,6 @@ packages:
 
   /tr46/0.0.3:
     resolution: {integrity: sha1-gYT9NH2snNwYWZLzpmIuFLnZq2o=}
-    dev: false
 
   /tr46/2.1.0:
     resolution: {integrity: sha512-15Ih7phfcdP5YxqiB+iDtLoaTz4Nd35+IiAv0kQ5FNKHzXgdWqPoTIqEDDJmXceQt4JZk6lVPT8lnDlPpGDppw==}
@@ -8313,7 +8347,6 @@ packages:
 
   /webidl-conversions/3.0.1:
     resolution: {integrity: sha1-JFNCdeKnvGvnvIZhHMFq4KVlSHE=}
-    dev: false
 
   /webidl-conversions/5.0.0:
     resolution: {integrity: sha512-VlZwKPCkYKxQgeSbH5EyngOmRp7Ww7I9rQLERETtf5ofd9pGeswWiOtogpEO850jziPRarreGxn5QIiTqpb2wA==}
@@ -8340,7 +8373,6 @@ packages:
     dependencies:
       tr46: 0.0.3
       webidl-conversions: 3.0.1
-    dev: false
 
   /whatwg-url/8.7.0:
     resolution: {integrity: sha512-gAojqb/m9Q8a5IV96E3fHJM70AzCkgt4uXYX2O7EmuyOnLrViCQlsEBmF9UQIu3/aeAIp2U17rtbpZWNntQqdg==}
