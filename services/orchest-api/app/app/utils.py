@@ -229,13 +229,13 @@ def get_jupyter_server_image_to_use() -> str:
 
 
 def _set_celery_worker_parallelism_at_runtime(
-    worker: str, previous_parallelism: int, new_parallelism: int
+    worker: str, current_parallelism: int, new_parallelism: int
 ) -> bool:
     """Set the parallelism of a celery worker at runtime.
 
     Args:
         worker: Name of the worker.
-        previous_parallelism: Current parallelism level.
+        current_parallelism: Current parallelism level.
         new_parallelism: New parallelism level.
 
     Returns:
@@ -244,11 +244,11 @@ def _set_celery_worker_parallelism_at_runtime(
         won't gracefully decrease the parallelism level if it's not
         possible because processes are busy with a task.
     """
-    if previous_parallelism is None or new_parallelism is None:
+    if current_parallelism is None or new_parallelism is None:
         return False
-    if new_parallelism < previous_parallelism:
+    if new_parallelism < current_parallelism:
         return False
-    if previous_parallelism == new_parallelism:
+    if current_parallelism == new_parallelism:
         return True
 
     # We don't query the celery-worker and rely on arguments because the
@@ -256,7 +256,7 @@ def _set_celery_worker_parallelism_at_runtime(
     # race conditions.
     celery = make_celery(current_app)
     worker = f"celery@{worker}"
-    celery.control.pool_grow(new_parallelism - previous_parallelism, [worker])
+    celery.control.pool_grow(new_parallelism - current_parallelism, [worker])
     return True
 
 
@@ -268,21 +268,21 @@ def _get_worker_parallelism(worker: str) -> int:
 
 
 def _set_job_runs_parallelism_at_runtime(
-    previous_parallelism: int, new_parallelism: int
+    current_parallellism: int, new_parallelism: int
 ) -> bool:
     return _set_celery_worker_parallelism_at_runtime(
         "worker-jobs",
-        previous_parallelism,
+        current_parallellism,
         new_parallelism,
     )
 
 
 def _set_interactive_runs_parallelism_at_runtime(
-    previous_parallelism: int, new_parallelism: int
+    current_parallelism: int, new_parallelism: int
 ) -> bool:
     return _set_celery_worker_parallelism_at_runtime(
         "worker-interactive",
-        previous_parallelism,
+        current_parallelism,
         new_parallelism,
     )
 
@@ -484,10 +484,10 @@ class OrchestSettings:
 
             apply_f = val["apply-runtime-changes-function"]
 
-            old_val = flask_app.config.get(k)
+            current_val = flask_app.config.get(k)
             new_val = new.get(k)
-            if new_val is not None and new_val != old_val:
-                could_update = apply_f(old_val, new_val)
+            if new_val is not None and new_val != current_val:
+                could_update = apply_f(current_val, new_val)
                 if could_update:
                     flask_app.config[k] = new_val
                 else:
