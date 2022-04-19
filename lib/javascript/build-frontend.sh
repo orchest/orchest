@@ -43,7 +43,7 @@ CSS_BUNDLE_PATH="dist/style.css"
 TS_SRC_PATH="src/main.tsx"
 SASS_SRC_PATH="src/styles/main.scss"
 
-ESBUILD_ARGS="$TS_SRC_PATH --bundle --minify --target=es6 --outfile=$JS_BUNDLE_PATH"
+ESBUILD_ARGS="$TS_SRC_PATH --bundle --minify --target=es6 --define:__BASE_URL__=\"\" --outfile=$JS_BUNDLE_PATH"
 SASS_ARGS="$SASS_SRC_PATH --load-path=$NODE_MODULES_PATH $CSS_BUNDLE_PATH"
 
 if $WATCH; then

@@ -4,8 +4,12 @@ export type FetchError = {
   body?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
-export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {
-  const response = await window.fetch(url, params);
+const getTargetUrl = (url: string) => __BASE_URL__ + url;
+
+export const fetcher = async <T>(url: string, params?: RequestInit) => {
+  const targetUrl = getTargetUrl(url);
+
+  const response = await window.fetch(targetUrl, params);
   const responseAsString = await response.text();
   const jsonResponse =
     responseAsString === "" ? {} : JSON.parse(responseAsString);
