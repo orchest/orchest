@@ -17,6 +17,10 @@ export const useFetchPipelines = (
       )
   );
 
+  if (error) {
+    console.log(error);
+  }
+
   const setPipelines = React.useCallback(
     (
       data?:

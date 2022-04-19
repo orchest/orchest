@@ -5,11 +5,17 @@ const { compilerOptions } = require("./tsconfig");
 module.exports = {
   verbose: true,
   preset: "ts-jest",
-  testEnvironment: "node",
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
     prefix: "<rootDir>/",
   }),
   transform: {
+    "^.+\\.[t|j]sx?$": [
+      "esbuild-jest",
+      {
+        sourcemap: true,
+        loaders: { ".test.ts": "tsx" },
+      },
+    ],
     "^.+\\.[t|j]sx?$": "<rootDir>/customTransformer.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
