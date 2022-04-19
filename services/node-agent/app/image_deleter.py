@@ -62,7 +62,13 @@ async def get_images_of_interest_on_node(
     env_images_on_node = []
     custom_jupyter_images_on_node = []
 
-    for img in await aiodocker_client.images.list():
+    filters = {
+        "label": [
+            f"maintainer={_config.ORCHEST_MAINTAINER_LABEL}",
+        ]
+    }
+
+    for img in await aiodocker_client.images.list(filters=filters):
         names = img.get("RepoTags")
         # Unfortunately RepoTags is mapped to None instead of not being
         # there in some cases.

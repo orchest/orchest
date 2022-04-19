@@ -2,6 +2,8 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
+ORCHEST_MAINTAINER_LABEL = "Orchest B.V. https://www.orchest.io"
+
 # Orchest directories that need to exist in the userdir.
 USERDIR_DATA = "/userdir/data"
 USERDIR_JOBS = "/userdir/jobs"
