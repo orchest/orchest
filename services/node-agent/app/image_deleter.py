@@ -109,6 +109,9 @@ async def run():
                         custom_jupyter_images_on_node,
                         orchest_images_on_node,
                     ) = await get_images_of_interest_on_node(aiodocker_client)
+                    env_images_on_node = set(env_images_on_node)
+                    custom_jupyter_images_on_node = set(custom_jupyter_images_on_node)
+                    orchest_images_on_node = set(orchest_images_on_node)
 
                     # Find inactive env images on the node.
                     active_env_images = await get_active_environment_images(session)
@@ -149,11 +152,16 @@ async def run():
                             # Doesn't follow the way we version.
                             if "orchest/buildah" in img:
                                 continue
-                            v = img.split(":")[1]
-                            # Should we use something safer? Like the
-                            # "packaging" package?
-                            if v != orchest_v:
-                                orchest_images_to_remove_from_node.append(img)
+                            if ":" not in img:
+                                continue
+
+                            name, tag = img.split(":")
+                            if tag != orchest_v:
+                                # Only delete an old image if the up to
+                                # date one made it to the node, to avoid
+                                # slowing doing updates.
+                                if f"{name}:{orchest_v}" in orchest_images_on_node:
+                                    orchest_images_to_remove_from_node.append(img)
 
                     # Remove them.
                     for img in (
