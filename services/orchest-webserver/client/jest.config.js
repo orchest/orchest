@@ -9,13 +9,6 @@ module.exports = {
     prefix: "<rootDir>/",
   }),
   transform: {
-    "^.+\\.[t|j]sx?$": [
-      "esbuild-jest",
-      {
-        sourcemap: true,
-        loaders: { ".test.ts": "tsx" },
-      },
-    ],
     "^.+\\.[t|j]sx?$": "<rootDir>/customTransformer.js",
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
