@@ -1,8 +1,20 @@
 {
   "extends": "../../../tsconfig.json",
+  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*"],
   "compilerOptions": {
-    "baseUrl": "."
-  },
-  "exclude": ["node_modules"],
-  "include": ["src/**/*.ts", "src/typed.tsx"]
+    "types": ["jest", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strictBindCallApply": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictPropertyInitialization": true,
+    "noFallthroughCasesInSwitch": true,
+    "downlevelIteration": true
+  }
 }

@@ -4,7 +4,7 @@ import type { PipelineMetaData, Project } from "@/types";
 import React from "react";
 import { KeyedMutator } from "swr";
 
-export const ProjectsContext = React.createContext<IProjectsContext>(
+const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
 );
 
