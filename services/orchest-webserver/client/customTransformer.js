@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const { createTransformer } = require("esbuild-jest");
-const { transformSync } = require("esbuild");
 
 // For mocking API calls with `msw`, it requires complete URL's.
 // https://mswjs.io/docs/getting-started/integrate/node#direct-usage
@@ -16,9 +15,7 @@ const transformer = createTransformer({
 module.exports = {
   process(fileContent, filePath, jestConfig) {
     return transformer.process(
-      transformSync(fileContent, {
-        define: { __BASE_URL__: '"http://localhost:8080"' },
-      }),
+      fileContent.replace("__BASE_URL__", '"http://localhost:8080"'),
       fileContent,
       filePath,
       jestConfig
