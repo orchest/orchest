@@ -58,6 +58,7 @@ class Config:
     result_backend_sqlalchemy_uri = f"postgresql://{_result_backend_server}"
     # this format is used by celery
     result_backend = f"db+postgresql+psycopg2://{_result_backend_server}"
+    worker_prefetch_multiplier = 1
 
     imports = ("app.core.tasks",)
     task_create_missing_queues = True

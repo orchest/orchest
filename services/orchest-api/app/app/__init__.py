@@ -87,10 +87,13 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
         # Necessary for db migrations.
         Migrate().init_app(app, db)
 
-    # NOTE: In this case we want to return ASAP as otherwise the DB
-    # might be called (inside this function) before it is migrated.
-    if to_migrate_db:
-        return app
+        # NOTE: In this case we want to return ASAP as otherwise the DB
+        # might be called (inside this function) before it is migrated.
+        if to_migrate_db:
+            return app
+
+        with app.app_context():
+            app.config.update(utils.OrchestSettings().as_dict())
 
     # Create a background scheduler (in a daemon thread) for every
     # gunicorn worker. The individual schedulers do not cause duplicate

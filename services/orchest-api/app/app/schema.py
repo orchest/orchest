@@ -10,6 +10,16 @@ import datetime
 
 from flask_restx import Model, fields
 
+dictionary = Model("Dictionary", {})
+
+settings_update_response = Model(
+    "SettingsUpdateResponse",
+    {
+        "requires_restart": fields.List(fields.String, required=True),
+        "user_config": fields.Raw(required=True),
+    },
+)
+
 pagination_data = Model(
     "PaginationData",
     {
