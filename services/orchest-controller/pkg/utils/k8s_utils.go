@@ -135,7 +135,7 @@ func GetFullImageName(registry, imageName, tag string) string {
 		tag = "latest"
 	}
 	if registry != "" {
-		return fmt.Sprintf("%s/%s:%s", registry, imageName, tag)
+		return fmt.Sprintf("%s/orchest/%s:%s", registry, imageName, tag)
 	}
 
 	return fmt.Sprintf("%s:%s", imageName, tag)
