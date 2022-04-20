@@ -33,17 +33,6 @@ func getAuthServerManifest(hash string, orchest *orchestv1alpha1.OrchestCluster)
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
-			Volumes: []corev1.Volume{
-				{
-					Name: configDirName,
-					VolumeSource: corev1.VolumeSource{
-						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-							ClaimName: configDirName,
-							ReadOnly:  false,
-						},
-					},
-				},
-			},
 			Containers: []corev1.Container{
 				{
 					Name:  authServer,
@@ -54,12 +43,6 @@ func getAuthServerManifest(hash string, orchest *orchestv1alpha1.OrchestCluster)
 						},
 					},
 					Env: env,
-					VolumeMounts: []corev1.VolumeMount{
-						{
-							Name:      configDirName,
-							MountPath: configdirMountPath,
-						},
-					},
 				},
 			},
 		},
