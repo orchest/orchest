@@ -7,6 +7,7 @@ from _orchest.internals import config as _config
 from app import errors as self_errors
 from app import utils
 from app.connections import db
+from app.core import registry
 
 logger = utils.get_logger()
 
@@ -451,6 +452,21 @@ def _mark_env_images_that_can_be_removed(
             well.
     """
     logger.info("Marking environment images for removal.")
+
+    # Migrate old env images, will happen only once.
+    imgs_to_migrate = models.EnvironmentImage.query.filter(
+        models.EnvironmentImage.digest == "Undefined",
+    ).all()
+    for img in imgs_to_migrate:
+        digest = registry.get_manifest_digest(
+            _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+            ),
+            img.tag,
+        )
+        if digest is not None:
+            img.digest = digest
+
     imgs = _env_images_that_can_be_deleted(
         project_uuid, environment_uuid, latest_can_be_removed
     )

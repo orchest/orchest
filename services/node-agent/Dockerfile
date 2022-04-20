@@ -12,3 +12,5 @@ RUN pip3 install -r requirements.txt
 COPY . ./
 
 CMD [ "python3", "./app/main.py" ]
+ARG ORCHEST_VERSION
+ENV ORCHEST_VERSION=${ORCHEST_VERSION}
