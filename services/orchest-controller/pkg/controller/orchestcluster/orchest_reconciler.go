@@ -495,7 +495,7 @@ func (r *OrchestReconciler) deployOrchestApi(ctx context.Context, hash string, o
 		return err
 	}
 
-	service := getServiceManifest(hash, orchestApi, 80, orchest)
+	service := getServiceManifest(orchestApi, hash, 80, orchest)
 	err = r.upsertService(ctx, hash, service)
 	if err != nil {
 		return err
