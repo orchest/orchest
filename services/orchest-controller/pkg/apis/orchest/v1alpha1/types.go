@@ -71,8 +71,8 @@ type OrchestSpec struct {
 
 	Pause bool `json:"pause,omitempty"`
 
-	Registry   string `json:"registry,omitempty"`
-	DefaultTag string `json:"defaultTag,omitempty"`
+	Registry string `json:"registry,omitempty"`
+	Version  string `json:"version,omitempty"`
 
 	Env []corev1.EnvVar `json:"env,omitempty"`
 

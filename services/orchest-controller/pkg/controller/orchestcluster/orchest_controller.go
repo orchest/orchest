@@ -39,7 +39,7 @@ type ControllerConfig struct {
 	DeployDir                  string
 	PostgresDefaultImage       string
 	RabbitmqDefaultImage       string
-	OrchestDefaultTag          string
+	OrchestDefaultVersion      string
 	CeleryWorkerImageName      string
 	OrchestApiImageName        string
 	OrchestWebserverImageName  string
@@ -381,9 +381,9 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 
 	changed := false
 
-	if copy.Spec.Orchest.DefaultTag == "" {
+	if copy.Spec.Orchest.Version == "" {
 		changed = true
-		copy.Spec.Orchest.DefaultTag = controller.config.OrchestDefaultTag
+		copy.Spec.Orchest.Version = controller.config.OrchestDefaultVersion
 	}
 
 	if copy.Spec.Postgres.Image == "" {
@@ -411,28 +411,28 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Resources.ConfigDirVolumeSize = controller.config.ConfigdirDefaultVolumeSize
 	}
 
-	if copy.Spec.Orchest.OrchestApi.Image == "" {
+	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.OrchestApi.Image == apiImage {
 		changed = true
-		copy.Spec.Orchest.OrchestApi.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi,
-			controller.config.OrchestDefaultTag)
+		copy.Spec.Orchest.OrchestApi.Image = apiImage
 	}
 
+	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.OrchestWebServer.Image == "" {
 		changed = true
-		copy.Spec.Orchest.OrchestWebServer.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver,
-			controller.config.OrchestDefaultTag)
+		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
 	}
 
+	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.CeleryWorker.Image == "" {
 		changed = true
-		copy.Spec.Orchest.CeleryWorker.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker,
-			controller.config.OrchestDefaultTag)
+		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
 	}
 
+	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer, copy.Spec.Orchest.Version)
 	if copy.Spec.Orchest.AuthServer.Image == "" {
 		changed = true
-		copy.Spec.Orchest.AuthServer.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer,
-			controller.config.OrchestDefaultTag)
+		copy.Spec.Orchest.AuthServer.Image = authServerImage
 	}
 
 	if changed {

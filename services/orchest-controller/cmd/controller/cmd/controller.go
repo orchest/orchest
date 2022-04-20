@@ -37,7 +37,7 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&controllerConfig.UserdirDefaultVolumeSize, "userdirSize", "999Ti", "The default size for userdir pvc")
 	cmd.PersistentFlags().StringVar(&controllerConfig.ConfigdirDefaultVolumeSize, "configSize", "10Mi", "The default size for configdir pvc")
 	cmd.PersistentFlags().StringVar(&controllerConfig.BuilddirDefaultVolumeSize, "builderSize", "999Ti", "The default size for builddir pvc")
-	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestDefaultTag, "defaultTag", "v2022.04.0", "The default tag for orchest components")
+	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestDefaultVersion, "defaultVersion", "v2022.04.0", "The default version for orchest components")
 	cmd.PersistentFlags().StringVar(&controllerConfig.CeleryWorkerImageName, "celeryImageName", "orchest/celery-worker", "The default celery-worker image name")
 	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestApiImageName, "orchestApiImageName", "orchest/orchest-api", "The default orchest-api image name")
 	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestWebserverImageName, "webserverImageName", "orchest/orchest-webserver", "The default orchest-webserver image name")
