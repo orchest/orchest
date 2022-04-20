@@ -319,13 +319,13 @@ func (r *OrchestReconciler) ensureBuildCacheDir(ctx context.Context, curHash str
 	size := orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize
 
 	// Retrive the created pvcs
-	pvc, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
+	pvc, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		buildDir := r.persistentVolumeClaim(builderDirName, r.namespace, storageClass, size, curHash, orchest)
 		_, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, buildDir, metav1.CreateOptions{})
 		if err != nil {
-			return errors.Wrapf(err, "failed to create %s pvc", userDirName)
+			return errors.Wrapf(err, "failed to create %s pvc", builderDirName)
 		}
 	}
 
