@@ -66,6 +66,11 @@ type OrchestComponent struct {
 
 // OrchestSpec describes the attributes of orchest components.
 type OrchestSpec struct {
+
+	// Indicate if the cluster is in Pause state or not
+
+	Pause bool `json:"pause,omitempty"`
+
 	Registry   string `json:"registry,omitempty"`
 	DefaultTag string `json:"defaultTag,omitempty"`
 

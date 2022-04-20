@@ -140,6 +140,11 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		}
 	}
 
+	// If the cluster paused, return
+	if orchest.Spec.Orchest.Pause {
+		return nil
+	}
+
 	err = r.ensureUserDir(ctx, curHash, orchest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to ensure %s pvc", userDirName)
