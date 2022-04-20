@@ -147,7 +147,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 
 	err = r.ensureBuildCacheDir(ctx, curHash, orchest)
 	if err != nil {
-		return errors.Wrapf(err, "failed to ensure %s pvc", userDirName)
+		return errors.Wrapf(err, "failed to ensure %s pvc", builderDirName)
 	}
 
 	// get the current deployments and pause them (change their replica to 0)
