@@ -7,10 +7,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getRabbitMqManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func getRabbitMqManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
 
-	matchLabels := getMatchLables(rabbitmqName, orchest)
-	metadata := getMetadata(rabbitmqName, orchest)
+	matchLabels := getMatchLables(rabbitmq, orchest)
+	metadata := getMetadata(rabbitmq, hash, orchest)
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -30,7 +30,7 @@ func getRabbitMqManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deploy
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  rabbitmqName,
+					Name:  rabbitmq,
 					Image: orchest.Spec.RabbitMq.Image,
 					Ports: []corev1.ContainerPort{
 						{

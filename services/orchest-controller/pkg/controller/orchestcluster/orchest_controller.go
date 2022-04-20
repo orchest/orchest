@@ -12,6 +12,7 @@ import (
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,6 +31,7 @@ import (
 
 var (
 	OrchestClusterKind             = "OrchestCluster"
+	OrchestClusterVersion          = "v1alpha1"
 	ControllerRevisionHashLabelKey = "controller-revision-hash"
 )
 
@@ -271,7 +273,7 @@ func (controller *OrchestClusterController) syncOrchestCluster(key string) error
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
-	err = AddFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
+	orchest, err = AddFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
 		errors.Wrap(err, "failed to add finalizer")
 	}
@@ -285,8 +287,8 @@ func (controller *OrchestClusterController) syncOrchestCluster(key string) error
 	// If Status struct is not initialized yet, the cluster is new, create it
 	if orchest.Status == nil {
 		// Set the default values in CR if not specified
-		copy := controller.getDefaultIfNotSpecified(ctx, orchest)
-		err := controller.updateClusterStatus(ctx, copy, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
+		clone := controller.getDefaultIfNotSpecified(ctx, orchest)
+		_, err = controller.updateClusterStatus(ctx, clone, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -320,16 +322,21 @@ func (controller *OrchestClusterController) deleteOrchestCluster(ctx context.Con
 	}
 
 	// Update Cluster status
-	err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
+	orchest, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
 	if err != nil {
 		return errors.Wrapf(err, "failed to update cluster status to orchestv1alpha1.Deleting, OrchestCluster: %s",
 			orchest.GetName())
 	}
+
 	// Remove finalizers
 	err = RemoveFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove finalizers")
 	}
+
+	// Delete the reconciler from the internal map
+	key := namespace + "/" + name
+	delete(controller.reconcilers, key)
 
 	return nil
 }
@@ -359,12 +366,12 @@ func (controller *OrchestClusterController) updateClusterStatus(ctx context.Cont
 		Message: message,
 	}
 
-	orchest, err := controller.ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+	result, err := controller.ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)
 	}
-	return orchest, nil
+	return result, nil
 }
 
 func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context.Context,
@@ -404,6 +411,30 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Resources.ConfigDirVolumeSize = controller.config.ConfigdirDefaultVolumeSize
 	}
 
+	if copy.Spec.Orchest.OrchestApi.Image == "" {
+		changed = true
+		copy.Spec.Orchest.OrchestApi.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi,
+			controller.config.OrchestDefaultTag)
+	}
+
+	if copy.Spec.Orchest.OrchestWebServer.Image == "" {
+		changed = true
+		copy.Spec.Orchest.OrchestWebServer.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver,
+			controller.config.OrchestDefaultTag)
+	}
+
+	if copy.Spec.Orchest.CeleryWorker.Image == "" {
+		changed = true
+		copy.Spec.Orchest.CeleryWorker.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker,
+			controller.config.OrchestDefaultTag)
+	}
+
+	if copy.Spec.Orchest.AuthServer.Image == "" {
+		changed = true
+		copy.Spec.Orchest.AuthServer.Image = utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer,
+			controller.config.OrchestDefaultTag)
+	}
+
 	if changed {
 		return copy
 	}
@@ -416,11 +447,12 @@ func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx con
 	switch orchest.Status.State {
 	case orchestv1alpha1.Initializing:
 		// First step is to deploy Argo
-		err := controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingArgo, "Deploying Argo")
+		_, err := controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingArgo, "Deploying Argo")
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
+		fallthrough
 	case orchestv1alpha1.DeployingArgo:
 		err := controller.deployerManager.Get("argo").InstallIfChanged(ctx, orchest.Namespace, nil)
 		if err != nil {
@@ -428,11 +460,12 @@ func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx con
 			return err
 		}
 
-		err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingRegistry, "Deploying Registry")
+		_, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingRegistry, "Deploying Registry")
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
+		fallthrough
 	case orchestv1alpha1.DeployingRegistry:
 		err := controller.deployerManager.Get("registry").InstallIfChanged(ctx, orchest.Namespace, nil)
 		if err != nil {
@@ -440,7 +473,7 @@ func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx con
 			return err
 		}
 
-		err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
+		_, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
 		if err != nil {
 			klog.Error(err)
 			return err

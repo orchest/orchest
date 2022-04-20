@@ -2,24 +2,17 @@ package orchestcluster
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (d *OrchestReconciler) getAuthServerManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func getAuthServerManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
 
-	matchLabels := getMatchLables(authServerName, orchest)
-	metadata := getMetadata(authServerName, orchest)
+	matchLabels := getMatchLables(authServer, orchest)
+	metadata := getMetadata(authServer, hash, orchest)
 
-	var image string
-	if orchest.Spec.Orchest.AuthServer.Image != "" {
-		image = orchest.Spec.Orchest.AuthServer.Image
-	} else {
-		image = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
-			d.config.AuthServerImageName, orchest.Spec.Orchest.DefaultTag)
-	}
+	image := orchest.Spec.Orchest.AuthServer.Image
 
 	env := []corev1.EnvVar{
 		{
@@ -53,7 +46,7 @@ func (d *OrchestReconciler) getAuthServerManifest(orchest *orchestv1alpha1.Orche
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  authServerName,
+					Name:  authServer,
 					Image: image,
 					Ports: []corev1.ContainerPort{
 						{

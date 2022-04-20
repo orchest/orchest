@@ -7,10 +7,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getOrchetDatabaseManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func getOrchetDatabaseManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
 
-	matchLabels := getMatchLables(orchestDBName, orchest)
-	metadata := getMetadata(orchestDBName, orchest)
+	matchLabels := getMatchLables(orchestDatabase, orchest)
+	metadata := getMetadata(orchestDatabase, hash, orchest)
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -30,7 +30,7 @@ func getOrchetDatabaseManifest(orchest *orchestv1alpha1.OrchestCluster) *appsv1.
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  orchestDBName,
+					Name:  orchestDatabase,
 					Image: orchest.Spec.Postgres.Image,
 					Ports: []corev1.ContainerPort{
 						{

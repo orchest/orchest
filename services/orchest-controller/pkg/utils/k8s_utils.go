@@ -11,14 +11,15 @@ import (
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/informers"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func GetClientInsideCluster() kubernetes.Interface {
@@ -108,20 +109,24 @@ func NewDeploymentInformer(client kubernetes.Interface) appsinformers.Deployment
 	return appsInformerFactory.Apps().V1().Deployments()
 }
 
-func RunningPodsForDeployment(ctx context.Context, client client.Client, depKey client.ObjectKey) (int, error) {
+// IsDeploymentReady checks if the number of required replicas is equal to number of created replicas
+func IsDeploymentReady(ctx context.Context, client kubernetes.Interface, name, namespace string) bool {
 
-	deployment := &appsv1.Deployment{}
-	err := client.Get(ctx, depKey, deployment)
+	deployment, err := client.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			klog.V(2).Info("deployment %s resource not found.", depKey)
-			return 0, nil
+			klog.V(2).Info("deployment %s resource not found.", name)
 		}
 		// Error reading Deployment.
-		return 0, errors.Wrap(err, "failed to get OrchestCluster")
+		return false
 	}
 
-	return int(deployment.Status.ReadyReplicas), nil
+	// Replicas is not intialized yet
+	if deployment.Spec.Replicas == nil {
+		return false
+	}
+
+	return *deployment.Spec.Replicas == deployment.Status.ReadyReplicas
 
 }
 
@@ -135,4 +140,22 @@ func GetFullImageName(registry, imageName, tag string) string {
 
 	return fmt.Sprintf("%s:%s", imageName, tag)
 
+}
+
+func PauseDeployment(ctx context.Context,
+	client kubernetes.Interface,
+	deployment *appsv1.Deployment) error {
+
+	scale := &autoscalingv1.Scale{
+		Spec: autoscalingv1.ScaleSpec{
+			Replicas: 0,
+		},
+	}
+
+	_, err := client.AppsV1().Deployments(deployment.Namespace).UpdateScale(ctx, deployment.Name, scale, metav1.UpdateOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
+	}
+
+	return nil
 }

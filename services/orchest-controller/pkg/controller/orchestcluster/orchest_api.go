@@ -2,25 +2,21 @@ package orchestcluster
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (d *OrchestReconciler) getOrchetApiManifest(orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, []client.Object) {
+func getOrchetApiManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment,
+	*rbacv1.ClusterRole,
+	*rbacv1.ClusterRoleBinding,
+	*corev1.ServiceAccount) {
 
-	matchLabels := getMatchLables(orchestApiName, orchest)
-	metadata := getMetadata(orchestApiName, orchest)
+	matchLabels := getMatchLables(orchestApi, orchest)
+	metadata := getMetadata(orchestApi, hash, orchest)
 
-	var orchestApiImage string
-	if orchest.Spec.Orchest.OrchestApi.Image != "" {
-		orchestApiImage = orchest.Spec.Orchest.OrchestApi.Image
-	} else {
-		orchestApiImage = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
-			d.config.OrchestApiImageName, orchest.Spec.Orchest.DefaultTag)
-	}
+	image := orchest.Spec.Orchest.OrchestApi.Image
 
 	env := []corev1.EnvVar{
 		{
@@ -45,7 +41,7 @@ func (d *OrchestReconciler) getOrchetApiManifest(orchest *orchestv1alpha1.Orches
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: orchestApiName,
+			ServiceAccountName: orchestApi,
 			Volumes: []corev1.Volume{
 				{
 					Name: userDirName,
@@ -59,8 +55,8 @@ func (d *OrchestReconciler) getOrchetApiManifest(orchest *orchestv1alpha1.Orches
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  orchestApiName,
-					Image: orchestApiImage,
+					Name:  orchestApi,
+					Image: image,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: 80,
@@ -93,9 +89,7 @@ func (d *OrchestReconciler) getOrchetApiManifest(orchest *orchestv1alpha1.Orches
 		},
 	}
 
-	// TODO: make it exactly what is needs, just in this namespace
-	rbacs := getRbacManifest(orchestApiImage, metadata)
+	role, roleBinding, sa := getRbacManifest(metadata)
 
-	return deployment, rbacs
-
+	return deployment, role, roleBinding, sa
 }

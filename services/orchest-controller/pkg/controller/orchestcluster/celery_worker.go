@@ -2,25 +2,20 @@ package orchestcluster
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (d *OrchestReconciler) getCeleryWorkerManifests(orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, []client.Object) {
+func getCeleryWorkerManifests(hash string, orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, *rbacv1.ClusterRole,
+	*rbacv1.ClusterRoleBinding,
+	*corev1.ServiceAccount) {
 
-	matchLabels := getMatchLables(celeryWorkerName, orchest)
-	metadata := getMetadata(celeryWorkerName, orchest)
+	matchLabels := getMatchLables(celeryWorker, orchest)
+	metadata := getMetadata(celeryWorker, hash, orchest)
 
-	var celeryWorkerImage string
-	if orchest.Spec.Orchest.CeleryWorker.Image != "" {
-		celeryWorkerImage = orchest.Spec.Orchest.CeleryWorker.Image
-	} else {
-		celeryWorkerImage = utils.GetFullImageName(orchest.Spec.Orchest.Registry,
-			d.config.CeleryWorkerImageName, orchest.Spec.Orchest.DefaultTag)
-	}
+	image := orchest.Spec.Orchest.CeleryWorker.Image
 
 	env := []corev1.EnvVar{
 		{
@@ -57,7 +52,7 @@ func (d *OrchestReconciler) getCeleryWorkerManifests(orchest *orchestv1alpha1.Or
 			Labels: matchLabels,
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: celeryWorkerName,
+			ServiceAccountName: celeryWorker,
 			Volumes: []corev1.Volume{
 				{
 					Name: userDirName,
@@ -71,8 +66,8 @@ func (d *OrchestReconciler) getCeleryWorkerManifests(orchest *orchestv1alpha1.Or
 			},
 			Containers: []corev1.Container{
 				{
-					Name:  celeryWorkerName,
-					Image: celeryWorkerImage,
+					Name:  celeryWorker,
+					Image: image,
 					Env:   env,
 					VolumeMounts: []corev1.VolumeMount{
 						{
@@ -101,8 +96,8 @@ func (d *OrchestReconciler) getCeleryWorkerManifests(orchest *orchestv1alpha1.Or
 	}
 
 	// TODO: make it exactly what is needs, just in this namespace
-	rbacs := getRbacManifest(celeryWorkerName, metadata)
+	role, roleBinding, sa := getRbacManifest(metadata)
 
-	return deployment, rbacs
+	return deployment, role, roleBinding, sa
 
 }

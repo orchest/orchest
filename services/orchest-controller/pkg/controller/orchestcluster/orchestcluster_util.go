@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/klog/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getDeploymentsSelector(orchest *orchestv1alpha1.OrchestCluster) (labels.Selector, error) {
@@ -38,16 +37,25 @@ func getDeploymentsLabels(orchest *orchestv1alpha1.OrchestCluster) map[string]st
 	return labels
 }
 
-func getMetadata(compoenentName string, orchest *orchestv1alpha1.OrchestCluster) metav1.ObjectMeta {
+func getMatchLables(deploymentName string, orchest *orchestv1alpha1.OrchestCluster) map[string]string {
+	labels := getDeploymentsLabels(orchest)
+	labels[deploymentName] = deploymentName
+	return labels
+}
+
+func getMetadata(compoenentName, hash string, orchest *orchestv1alpha1.OrchestCluster) metav1.ObjectMeta {
+
+	labels := getMatchLables(compoenentName, orchest)
+	labels[ControllerRevisionHashLabelKey] = hash
 
 	metadata := metav1.ObjectMeta{
 		Name:        compoenentName,
 		Namespace:   orchest.Namespace,
-		Labels:      orchest.Labels,
+		Labels:      labels,
 		Annotations: orchest.Annotations,
 		OwnerReferences: []metav1.OwnerReference{{
-			APIVersion:         orchest.APIVersion,
-			Kind:               orchest.Kind,
+			APIVersion:         OrchestClusterVersion,
+			Kind:               OrchestClusterKind,
 			Name:               orchest.Name,
 			UID:                orchest.UID,
 			Controller:         &isController,
@@ -58,9 +66,9 @@ func getMetadata(compoenentName string, orchest *orchestv1alpha1.OrchestCluster)
 	return metadata
 }
 
-func getServiceManifest(compoenentName string, port int, orchest *orchestv1alpha1.OrchestCluster) *corev1.Service {
+func getServiceManifest(compoenentName, hash string, port int, orchest *orchestv1alpha1.OrchestCluster) *corev1.Service {
 
-	metadata := getMetadata(compoenentName, orchest)
+	metadata := getMetadata(compoenentName, hash, orchest)
 	matchLable := getMatchLables(compoenentName, orchest)
 
 	service := &corev1.Service{
@@ -79,7 +87,7 @@ func getServiceManifest(compoenentName string, port int, orchest *orchestv1alpha
 
 }
 
-func getRbacManifest(componentName string, metadata metav1.ObjectMeta) []client.Object {
+func getRbacManifest(metadata metav1.ObjectMeta) (*rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding, *corev1.ServiceAccount) {
 
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metadata,
@@ -97,13 +105,13 @@ func getRbacManifest(componentName string, metadata metav1.ObjectMeta) []client.
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      celeryWorkerName,
+				Name:      celeryWorker,
 				Namespace: metadata.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
-			Name:     celeryWorkerName,
+			Name:     celeryWorker,
 			Kind:     "ClusterRole",
 		},
 	}
@@ -112,9 +120,7 @@ func getRbacManifest(componentName string, metadata metav1.ObjectMeta) []client.
 		ObjectMeta: metadata,
 	}
 
-	return []client.Object{
-		clusterRole, clusterRoleBinding, serviceAccount,
-	}
+	return clusterRole, clusterRoleBinding, serviceAccount
 
 }
 
@@ -122,19 +128,21 @@ func getRbacManifest(componentName string, metadata metav1.ObjectMeta) []client.
 func AddFinalizerIfNotPresent(ctx context.Context,
 	ocClient versioned.Interface,
 	orchest *orchestv1alpha1.OrchestCluster,
-	finalizer string) error {
+	finalizer string) (*orchestv1alpha1.OrchestCluster, error) {
 
-	if !utils.Contains(orchest.GetFinalizers(), finalizer) {
-		klog.Infof("Failed to get finalizers of OrchestCluster: %s", orchest.GetName())
-		orchest.SetFinalizers(append(orchest.GetFinalizers(), finalizer))
-
-		_, err := ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to add finalizer %q to %q", finalizer, orchest.GetName())
-		}
+	if utils.Contains(orchest.GetFinalizers(), finalizer) {
+		return orchest, nil
 	}
 
-	return nil
+	klog.Infof("OrchestCluster does not have orchest finalzier, OrchestCluster: %s", orchest.GetName())
+	orchest.SetFinalizers(append(orchest.GetFinalizers(), finalizer))
+
+	result, err := ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to add finalizer %q to %q", finalizer, orchest.GetName())
+	}
+
+	return result, nil
 }
 
 // RemoveFinalizers removes finalizersfrom object
