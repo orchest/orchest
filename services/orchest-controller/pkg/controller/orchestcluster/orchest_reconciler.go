@@ -186,7 +186,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 				}
 			*/
 		} else {
-			depHash, _ := deployment.GetLabels()[ControllerRevisionHashLabelKey]
+			depHash := deployment.GetLabels()[ControllerRevisionHashLabelKey]
 			//Update the deployment
 			if depHash != curHash {
 				orchest, err := r.controller.updateClusterStatus(ctx, orchest,
@@ -251,7 +251,7 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 			}
 			utils.PauseDeployment(ctx, r.getClient(), deployment)
 
-			orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Pausing %s", deployment.Name))
+			orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Paused %s", deployment.Name))
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to update status while pausing orchest-webserver")
 			}
