@@ -66,7 +66,7 @@ func getOrchetApiManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) 
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      userDirName,
-							MountPath: userDirName,
+							MountPath: userdirMountPath,
 						},
 					},
 				},

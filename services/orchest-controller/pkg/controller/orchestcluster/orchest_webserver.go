@@ -61,7 +61,7 @@ func getOrchetWebserverManifest(hash string, orchest *orchestv1alpha1.OrchestClu
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      userDirName,
-							MountPath: userDirName,
+							MountPath: userdirMountPath,
 						},
 					},
 				},
