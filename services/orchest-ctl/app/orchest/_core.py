@@ -152,12 +152,6 @@ def install(
         )
         utils.echo(msg, err=True)
 
-    logger.info("Creating the required directories.")
-    utils.create_required_directories()
-
-    logger.info("Setting 'userdir/' permissions.")
-    utils.fix_userdir_permissions()
-
     k8sw.set_orchest_cluster_log_level(log_level, patch_deployments=False)
     k8sw.set_orchest_cluster_cloud_mode(cloud, patch_deployments=False)
     injected_env_vars = {}

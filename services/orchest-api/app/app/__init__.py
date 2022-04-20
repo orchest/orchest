@@ -8,6 +8,7 @@ Additinal note:
 """
 import os
 from logging.config import dictConfig
+from pathlib import Path
 from pprint import pformat
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -134,12 +135,67 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             with app.app_context():
                 trigger_conditional_jupyter_image_build(app)
 
+    app.logger.info("Creating required directories for Orchest services.")
+    create_required_directories()
+    app.logger.info("Setting 'userdir/' permissions.")
+    fix_userdir_permissions(app)
+
     # Register blueprints at the end to avoid issues when migrating the
     # DB. When registering a blueprint the DB schema is also registered
     # and so the DB migration should happen before it..
     app.register_blueprint(api, url_prefix="/api")
 
     return app
+
+
+def create_required_directories() -> None:
+    """Creates required directories by Orchest services.
+
+    Should work fine when running multiple gunicorn workers.
+
+    Note:
+        It is very important, that this function is backwards compatible
+        meaning that new directories can be added but no old directories
+        can be (re)moved.
+
+    """
+    for path in [
+        _config.USERDIR_DATA,
+        _config.USERDIR_JOBS,
+        _config.USERDIR_PROJECTS,
+        _config.USERDIR_ENV_IMG_BUILDS,
+        _config.USERDIR_JUPYTER_IMG_BUILDS,
+        _config.USERDIR_JUPYTERLAB,
+    ]:
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+
+def fix_userdir_permissions(app: Flask) -> None:
+    """Fixes the permissions on files and dirs in the userdir.
+
+    Run setgid on all directories in the "userdir" to make sure new
+    files created by containers are read/write for sibling containers
+    and on a host machine of users (after downloading the files).
+
+    """
+    try:
+        # NOTE: The exit code is only returned on Unix systems
+        # (which includes macOS).
+        # Use the `-exec ... +` notation to try to pass all found files
+        # to `chmod` at once and reduce the number of invocations.
+        exit_code = os.system(
+            "find /userdir -type d -not -perm -g+s -exec chmod g+s '{}' +"
+        )
+    except Exception as e:
+        app.logger.warning("Could not set gid permissions on '/userdir'.")
+        raise e from None
+    else:
+        if exit_code != 0:
+            app.logger.warning(
+                "Could not set gid permissions the '/userdir'. This is an extra"
+                " check to make sure files created in Orchest are also read and"
+                " writable directly on a user's host.",
+            )
 
 
 def init_logging():

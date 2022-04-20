@@ -308,7 +308,6 @@ def test_start(
         }
     )
     docker_client.is_network_installed = MagicMock(return_value=True)
-    utils.fix_userdir_permissions = MagicMock(return_value=None)
     utils.wait_for_zero_exitcode = MagicMock(return_value=None)
 
     app = orchest.OrchestApp()
