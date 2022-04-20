@@ -4,10 +4,13 @@ import React from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
-export const useFetchPipelines = (
-  projectUuid: string | undefined,
-  shouldFetch = true
-) => {
+export const useFetchPipelines = ({
+  projectUuid,
+  shouldFetch = true,
+}: {
+  projectUuid: string | undefined;
+  shouldFetch?: boolean;
+}) => {
   const { cache } = useSWRConfig();
   const { data, error, isValidating, mutate } = useSWR<PipelineMetaData[]>(
     projectUuid && shouldFetch ? `/async/pipelines/${projectUuid}` : null,

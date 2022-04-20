@@ -58,6 +58,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
+    "@jest/transform": "^27.5.1",
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react-hooks": "^7.0.2",
     "@types/codemirror": "^5.60.5",
