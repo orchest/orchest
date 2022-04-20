@@ -30,7 +30,8 @@ const SessionToggleButton = (props: ISessionToggleButtonProps) => {
     getSession({
       pipelineUuid,
       projectUuid,
-    })?.status;
+    })?.status ||
+    "";
 
   const disabled =
     state.sessionsIsLoading || ["STOPPING", "LAUNCHING"].includes(status);

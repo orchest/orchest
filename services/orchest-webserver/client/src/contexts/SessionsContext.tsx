@@ -76,8 +76,8 @@ const stopSession = ({ pipelineUuid, projectUuid }: IOrchestSessionUuid) =>
  */
 
 type SessionsContextState = {
-  sessions?: IOrchestSession[];
-  sessionsIsLoading?: boolean;
+  sessions: IOrchestSession[] | undefined;
+  sessionsIsLoading: boolean;
   sessionsKillAllInProgress?: boolean;
 };
 
@@ -98,7 +98,10 @@ type SessionsContext = {
   state: SessionsContextState;
   dispatch: React.Dispatch<SessionsContextAction>;
   getSession: (session: Session) => IOrchestSession | undefined;
-  toggleSession: (payload: IOrchestSessionUuid) => Promise<void>;
+  toggleSession: (
+    payload: IOrchestSessionUuid,
+    shouldStart?: boolean
+  ) => Promise<void>;
   deleteAllSessions: () => Promise<void>;
 };
 
@@ -112,8 +115,6 @@ const reducer = (
 ) => {
   const action = _action instanceof Function ? _action(state) : _action;
 
-  if (process.env.NODE_ENV === "development")
-    console.log("(Dev Mode) useUserContext: action ", action);
   switch (action.type) {
     case "SET_SESSIONS": {
       const { sessionsIsLoading, sessions } = action.payload;
@@ -137,7 +138,7 @@ const reducer = (
 };
 
 const initialState: SessionsContextState = {
-  sessions: [],
+  sessions: undefined,
   sessionsIsLoading: true,
   sessionsKillAllInProgress: false,
 };
@@ -194,7 +195,7 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
   // NOTE: launch/delete session is an async operation from BE
   // to use toggleSession you need to make sure that your view component is added to useSessionsPoller's list
   const toggleSession = React.useCallback(
-    async (payload: IOrchestSessionUuid) => {
+    async (payload: IOrchestSessionUuid, shouldStart?: boolean | undefined) => {
       const foundSession = state.sessions?.find((session) =>
         isSameSession(session, payload)
       );
@@ -206,13 +207,20 @@ export const SessionsContextProvider: React.FC = ({ children }) => {
       ]);
 
       const isOperating =
-        session?.status && ["LAUNCHING", "STOPPING"].includes(session.status);
+        session?.status && ["STOPPING"].includes(session.status);
       if (isOperating) return;
 
-      // both "RUNNING", "LAUNCHING" are stoppable
-      // but we only allow RUNNING to be stopped here
-      if (session?.status === "RUNNING") {
-        setSession({ ...session, status: "STOPPING" });
+      const desiredState: IOrchestSession["status"] =
+        shouldStart !== undefined
+          ? shouldStart
+            ? "LAUNCHING"
+            : "STOPPING"
+          : ["LAUNCHING", "RUNNING"].includes(session?.status || "")
+          ? "STOPPING"
+          : "LAUNCHING";
+
+      if (hasValue(session) && desiredState === "STOPPING") {
+        setSession({ ...session, status: desiredState });
         try {
           await stopSession(session);
         } catch (error) {

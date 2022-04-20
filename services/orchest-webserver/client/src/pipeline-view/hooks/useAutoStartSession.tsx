@@ -1,5 +1,7 @@
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useAutoStartSession = ({
@@ -8,45 +10,51 @@ export const useAutoStartSession = ({
   isReadOnly: boolean;
 }) => {
   const {
-    state: { sessionsIsLoading },
+    state: { sessions },
     getSession,
     toggleSession,
   } = useSessionsContext();
   const {
     state: { projectUuid, pipeline },
   } = useProjectsContext();
+  const { pipelineUuid: pipelineUuidFromRoute } = useCustomRoute();
 
   const session = React.useMemo(
     () => getSession({ projectUuid, pipelineUuid: pipeline?.uuid }),
     [projectUuid, pipeline?.uuid, getSession]
   );
 
-  const [shouldAutoStart, setShouldAutoStart] = React.useState(false);
-
   const toggleSessionPayload = React.useMemo(() => {
     if (!pipeline?.uuid || !projectUuid) return null;
     return { pipelineUuid: pipeline?.uuid, projectUuid };
   }, [pipeline?.uuid, projectUuid]);
 
-  const hasFired = React.useRef(false);
-  React.useEffect(() => {
-    // session already alive from beginning
-    if (!sessionsIsLoading && session) {
-      hasFired.current = true;
-    }
+  const shouldCheckIfAutoStartIsNeeded =
+    hasValue(toggleSessionPayload) &&
+    !isReadOnly &&
+    hasValue(sessions) && // `sessions` is available to look up
+    session?.pipelineUuid !== pipeline?.uuid && // when user is switching pipelines
+    pipelineUuidFromRoute === pipeline?.uuid; // Only auto-start the pipeline that user is viewing.
 
-    if (!hasFired.current && !isReadOnly && !sessionsIsLoading && !session) {
-      hasFired.current = true;
-      setShouldAutoStart(true);
-    }
-  }, [sessionsIsLoading, session, isReadOnly, setShouldAutoStart, hasFired]);
+  const isPipelineUuidChanged = React.useRef(false);
 
   React.useEffect(() => {
-    if (toggleSessionPayload && shouldAutoStart) {
-      setShouldAutoStart(false);
-      toggleSession(toggleSessionPayload);
+    // useHasChanged is not applicable here.
+    // `shouldCheckIfAutoStartIsNeeded` might not be true in the same render when pipeline?.uuid is changed
+    if (pipeline?.uuid) isPipelineUuidChanged.current = true;
+  }, [pipeline?.uuid]);
+
+  React.useEffect(() => {
+    if (shouldCheckIfAutoStartIsNeeded && isPipelineUuidChanged.current) {
+      isPipelineUuidChanged.current = false;
+      toggleSession(toggleSessionPayload, true);
     }
-  }, [toggleSessionPayload, toggleSession, shouldAutoStart]);
+  }, [
+    toggleSessionPayload,
+    shouldCheckIfAutoStartIsNeeded,
+    isPipelineUuidChanged,
+    toggleSession,
+  ]);
 
   /**
    * ! session related global side effect
