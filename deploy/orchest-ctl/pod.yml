@@ -14,24 +14,24 @@ metadata:
     command: COMMAND%
 spec:
   containers:
-  - command:
-    - sleep
-    - "10000"
-    env:
-    - name: PYTHONUNBUFFERED
-      value: "TRUE"
-    - name: POD_NAME
-      valueFrom:
-        fieldRef:
-          fieldPath: metadata.name
-    image: IMAGE%
-    imagePullPolicy: IfNotPresent
-    name: orchest-ctl
-    volumeMounts:
-      - name: userdir-pvc
-        mountPath: /userdir
-      - name: config-pvc
-        mountPath: /config
+    - command:
+        - sleep
+        - "10000"
+      env:
+        - name: PYTHONUNBUFFERED
+          value: "TRUE"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+      image: IMAGE%
+      imagePullPolicy: IfNotPresent
+      name: orchest-ctl
+      volumeMounts:
+        - name: userdir-pvc
+          mountPath: /userdir
+        - name: config-pvc
+          mountPath: /config
   restartPolicy: Never
   # Concurrent orchest-ctl pods are supported, but some important
   # operations cannot run concurrently, like a restart or an update. To

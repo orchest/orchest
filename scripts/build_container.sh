@@ -61,7 +61,6 @@ if [ ${#IMGS[@]} -eq 0 ]; then
         "base-kernel-r"
         "base-kernel-julia"
         "orchest-api"
-        "orchest-ctl"
         "update-sidecar"
         "orchest-webserver"
         "memory-server"
@@ -77,7 +76,6 @@ LIB_IMAGES=(
     "base-kernel-py-gpu"
     "base-kernel-r"
     "base-kernel-julia"
-    "orchest-ctl"
     "orchest-api"
     "orchest-webserver"
     "memory-server"
@@ -109,7 +107,6 @@ SDK_IMAGES=(
 )
 
 HELM_IMAGES=(
-    "orchest-ctl"
     "orchest-api"
     "update-sidecar"
 )
@@ -320,17 +317,6 @@ do
             -t "orchest/orchest-api:$BUILD_TAG" \
             --no-cache=$NO_CACHE \
             -f $DIR/../services/orchest-api/Dockerfile \
-            --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
-            $build_ctx)
-    fi
-
-    if [ $IMG == "orchest-ctl" ]; then
-
-        build_ctx=$DIR/../services/orchest-ctl
-        build=(docker build --platform linux/amd64 --progress=plain \
-            -t "orchest/orchest-ctl:$BUILD_TAG" \
-            --no-cache=$NO_CACHE \
-            -f $DIR/../services/orchest-ctl/Dockerfile \
             --build-arg ORCHEST_VERSION="$ORCHEST_VERSION"
             $build_ctx)
     fi

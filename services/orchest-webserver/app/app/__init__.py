@@ -68,6 +68,7 @@ def create_app(to_migrate_db=False):
     app.config.from_object(config.CONFIG_CLASS)
 
     init_logging()
+    app.logger.warning("FLASK APP CREATED")
 
     # In development we want more verbose logging of every request.
     if os.getenv("FLASK_ENV") == "development":
