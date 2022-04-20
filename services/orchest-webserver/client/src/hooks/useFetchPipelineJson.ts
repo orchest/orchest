@@ -49,7 +49,9 @@ export const fetchPipelineJson = (url: string) =>
     return pipelineObj;
   });
 
-export const useFetchPipelineJson = (props: FetchPipelineJsonProps | null) => {
+export const useFetchPipelineJson = (
+  props: FetchPipelineJsonProps | undefined
+) => {
   const { cache } = useSWRConfig();
   const { pipelineUuid, projectUuid, jobUuid, runUuid } = props || {};
 

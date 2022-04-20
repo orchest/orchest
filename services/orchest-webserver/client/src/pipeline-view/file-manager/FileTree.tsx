@@ -344,6 +344,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       pipelineUuid?: string;
       skipReload?: boolean;
     }) => {
+      if (!projectUuid) return;
       const params = getFilePathChangeParams(oldFilePath, newFilePath);
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });

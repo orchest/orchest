@@ -10,12 +10,13 @@ import ParameterEditor from "@/components/ParameterEditor";
 import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { JobDocLink } from "@/job-view/JobDocLink";
 import { siteMap } from "@/Routes";
-import type { Job, Json, PipelineJson, StrategyJson } from "@/types";
+import type { Json, PipelineJson, StrategyJson } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -50,7 +51,6 @@ import { fetcher, HEADER } from "@orchest/lib-utils";
 import parser from "cron-parser";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
-import useSWR from "swr";
 import {
   flattenStrategyJson,
   generatePipelineRunParamCombinations,
@@ -233,15 +233,7 @@ const EditJobView: React.FC = () => {
 
   const [runJobLoading, setRunJobLoading] = React.useState(false);
 
-  const {
-    data: job,
-    error: fetchJobError,
-    isValidating: isFetchingJob,
-    mutate: setJob,
-  } = useSWR<Job>(
-    jobUuid ? `/catch/api-proxy/api/jobs/${jobUuid}` : null,
-    fetcher
-  );
+  const { setJob, job, isFetchingJob } = useFetchJob(jobUuid);
 
   const { pipelineJson, isFetchingPipelineJson } = useFetchPipelineJson(
     projectUuid && job
@@ -260,7 +252,9 @@ const EditJobView: React.FC = () => {
 
   const isLoading = isFetchingJob || isFetchingPipelineJson;
 
-  const [strategyJson, setStrategyJson] = React.useState<StrategyJson>(null);
+  const [strategyJson, setStrategyJson] = React.useState<
+    StrategyJson | undefined
+  >(undefined);
 
   React.useEffect(() => {
     if (job) {
@@ -313,7 +307,7 @@ const EditJobView: React.FC = () => {
   ]);
 
   const handleJobNameChange = (name: string) => {
-    setJob((prev) => (prev ? { ...prev, name } : prev), false);
+    setJob((prev) => (prev ? { ...prev, name } : prev));
     setAsSaved(false);
   };
 
@@ -359,7 +353,7 @@ const EditJobView: React.FC = () => {
     if (validation.pass === true) {
       runJob(e);
     } else {
-      setAlert("Error", validation.reason);
+      setAlert("Error", validation.reason || "Invalid job configuration");
       if (validation.selectView !== undefined) {
         setTabIndex(validation.selectView);
       }
@@ -493,7 +487,7 @@ const EditJobView: React.FC = () => {
         })
       );
     } else {
-      setAlert("Error", validation.reason);
+      setAlert("Error", validation.reason || "Invalid job configuration");
       if (validation.selectView !== undefined) {
         setTabIndex(validation.selectView);
       }

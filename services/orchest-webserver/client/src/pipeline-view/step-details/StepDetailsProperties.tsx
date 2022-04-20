@@ -170,7 +170,7 @@ export const StepDetailsProperties = ({
     onSave({ file_path: updatedFileName }, step.uuid);
   };
 
-  const onChangeParameterJSON = (updatedParameterJSON) => {
+  const onChangeParameterJSON = (updatedParameterJSON: string) => {
     setState((prevState) => ({
       ...prevState,
       editableParameters: updatedParameterJSON,
