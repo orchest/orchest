@@ -12,13 +12,6 @@ https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomO
 # TODO:
 # - Do we want to split the CLI commands into two modules: application
 #   and management? cmds_management.py
-# - Use `rich` to echo instead of `click`.
-#       - Loaders
-#       - Parsed line length
-#       All spinner libraries seem to be manipulating an output stream,
-#       where they write to it, clear the current line, and write to it
-#       in a loop. But not sure how to make sure this is compatible cross
-#       operating systems.
 
 import collections
 import enum
@@ -205,12 +198,7 @@ def install(**common_options) -> None:
             "name": cluster_name,
             "namespace": ns,
         },
-        "spec": {
-            "singleNode": True,
-            "orchest": {
-                "nodeAgent": {"image": "orchest/node-agent"},
-            },
-        },
+        "spec": {},
     }
 
     # Once the CR is created, the operator will read it and start
@@ -250,7 +238,21 @@ def install(**common_options) -> None:
         while curr_status != end_status:
             thread = t.cast("AsyncResult", thread)
             if thread.ready():
-                curr_status = _parse_cluster_status_from_custom_object(thread.get())
+                try:
+                    resp = thread.get()
+                except client.ApiException as e:
+                    if e.status == 404:  # not found
+                        echo()  # newline
+                        echo("🙅 Failed to install Orchest.")
+                        echo(
+                            "The CR Object defining the Orchest Cluster was removed"
+                            " by an external process during installation."
+                        )
+                        sys.exit(1)
+                    else:
+                        raise
+
+                curr_status = _parse_cluster_status_from_custom_object(resp)
                 thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
 
             if curr_status is None:

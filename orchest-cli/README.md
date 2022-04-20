@@ -54,12 +54,14 @@ Deploying a new controller:
 
 TODO:
 
-- GitHub Action workflow files to publish CLI on release
-- "Deploying Orchest" --> "Deploying Orchest control plane"
-- Structure of CLI code
-- Installation docs
-- Great CRD
-- Tests? Could also be as simple as running a type checker for now.
+- [ ] GitHub Action workflow files to publish CLI on release
+- [x] "Deploying Orchest" --> "Deploying Orchest control plane"
+- [ ] Structure of CLI code
+- [ ] Installation docs
+- [ ] Removal of `orchest-ctl` from codebase (and changes to `namespace_ctl.py`)
+- [x] Great CRD
+- [ ] Tests? Could also be as simple as running a type checker for now.
+- [ ] `orchest-controller` needs to be versioned as well instead of "latest"
 
 ### Questions
 
