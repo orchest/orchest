@@ -136,6 +136,35 @@ class Session(Resource):
         return {"message": "Session restart was successful."}, 200
 
 
+@api.route(
+    "/kernels/lock-image/<string:project_uuid>/<string:pipeline_uuid>/"
+    "<string:environment_uuid>"
+)
+@api.param("project_uuid", "UUID of project")
+@api.param("pipeline_uuid", "UUID of pipeline")
+@api.param("environment_uuid", "UUID of the environment")
+@api.response(404, "Session not found")
+class SessionKernelImageLock(Resource):
+    """For kernels to request which image to use for an environment.
+
+    The environment image that is returned will be considered as in use
+    by the session until the session is stopped.
+    """
+
+    @api.doc("get_kernel_image")
+    @api.marshal_with(schema.environment_image)
+    def get(self, project_uuid, pipeline_uuid, environment_uuid):
+        """Lock and get the environment image to use for the kernel."""
+        models.InteractiveSession.query.get_or_404(
+            ident=(project_uuid, pipeline_uuid), description="Session not found."
+        )
+        images = environments.lock_environment_images_for_interactive_session(
+            project_uuid, pipeline_uuid, set([environment_uuid])
+        )
+        db.session.commit()
+        return images[environment_uuid]
+
+
 class CreateInteractiveSession(TwoPhaseFunction):
     def _transaction(self, session_config: InteractiveSessionConfig):
 
@@ -183,6 +212,14 @@ class CreateInteractiveSession(TwoPhaseFunction):
                     env_as_services,
                 )
             )
+            for env_uuid, image in env_uuid_to_image.items():
+                env_uuid_to_image[env_uuid] = (
+                    _config.ENVIRONMENT_IMAGE_NAME.format(
+                        project_uuid=session_config["project_uuid"],
+                        environment_uuid=env_uuid,
+                    )
+                    + f":{image.tag}"
+                )
         except self_errors.ImageNotFound as e:
             raise self_errors.ImageNotFound(
                 "Pipeline services were referencing environments for "

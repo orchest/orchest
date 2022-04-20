@@ -10,6 +10,12 @@ deployment
           persistentVolumeClaim:
             claimName: userdir-pvc
             readOnly: false
+        - name: tls-secret
+          secret:
+            secretName: registry-tls-secret
+            items:
+              - key: ca.crt
+                path: additional-ca-cert-bundle.crt
       serviceAccountName: {{ template "library.metadata.name" . }}
       containers:
       - name: celery-worker
@@ -33,6 +39,10 @@ deployment
         volumeMounts:
          - name: userdir-pvc
            mountPath: /userdir
+         - name: tls-secret
+           mountPath: /usr/lib/ssl/certs/additional-ca-cert-bundle.crt
+           subPath: additional-ca-cert-bundle.crt
+           readOnly: True
         startupProbe:
           exec:
             command:

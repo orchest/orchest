@@ -211,11 +211,52 @@ class EnvironmentImage(BaseModel):
         primary_key=True,
     )
 
+    # sha256:<digest>
+    digest = db.Column(
+        db.String(71),
+        nullable=False,
+        index=True,
+        # To migrate existing entries.
+        server_default="Undefined",
+    )
+
+    # A way to tell us if a particular env image is to be considered
+    # inactive and has already been put in the deletion outbox, to avoid
+    # doing that again.
+    marked_for_removal = db.Column(
+        db.Boolean(),
+        index=True,
+        nullable=False,
+        # To migrate existing entries.
+        server_default="False",
+    )
+
     __table_args__ = (
         # To find all images of the environment of a project.
         Index(None, "project_uuid", "environment_uuid"),
         # To find the latest tag.
         Index(None, "project_uuid", "environment_uuid", tag.desc()),
+    )
+
+    sessions_using_image = db.relationship(
+        "InteractiveSessionInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    jobs_using_image = db.relationship(
+        "JobInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
+    runs_using_image = db.relationship(
+        "PipelineRunInUseImage",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
     )
 
     def __repr__(self):
@@ -264,9 +305,47 @@ class JupyterImageBuild(BaseModel):
     started_time = db.Column(db.DateTime, unique=False, nullable=True)
     finished_time = db.Column(db.DateTime, unique=False, nullable=True)
     status = db.Column(db.String(15), unique=False, nullable=True)
+    # Nullable to migrate existing values.
+    image_tag = db.Column(db.Integer, nullable=True, index=True, unique=True)
 
     def __repr__(self):
         return f"<JupyterEnvironmentBuildTask: {self.uuid}>"
+
+
+class JupyterImage(BaseModel):
+    __tablename__ = "jupyter_images"
+
+    # A new image record with a given tag will be created everytime a
+    # jupyter build is started, the tag only increments.
+    tag = db.Column(
+        db.Integer,
+        db.ForeignKey("jupyter_image_builds.image_tag", ondelete="CASCADE"),
+        primary_key=True,
+    )
+
+    # sha256:<digest>
+    digest = db.Column(
+        db.String(71),
+        nullable=False,
+        index=True,
+    )
+
+    # The image was built with a given Orchest version, this field is
+    # used to invalidate a jupyter image after an update.
+    base_image_version = db.Column(db.String(), nullable=False)
+
+    # A way to tell us if a particular env image is to be considered
+    # inactive and has already been put in the deletion outbox, to avoid
+    # doing that again.
+    marked_for_removal = db.Column(
+        db.Boolean(),
+        index=True,
+        nullable=False,
+        server_default="False",
+    )
+
+    def __repr__(self):
+        return f"<JupyterImage: {self.tag}>"
 
 
 class InteractiveSession(BaseModel):
