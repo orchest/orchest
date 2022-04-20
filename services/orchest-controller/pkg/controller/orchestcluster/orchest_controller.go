@@ -325,7 +325,7 @@ func (controller *OrchestClusterController) deleteOrchestCluster(ctx context.Con
 	orchest, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
 	if err != nil {
 		return errors.Wrapf(err, "failed to update cluster status to orchestv1alpha1.Deleting, OrchestCluster: %s",
-			orchest.GetName())
+			name)
 	}
 
 	// Remove finalizers
