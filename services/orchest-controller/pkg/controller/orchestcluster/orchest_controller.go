@@ -31,7 +31,7 @@ import (
 
 var (
 	OrchestClusterKind             = "OrchestCluster"
-	OrchestClusterVersion          = "v1alpha1"
+	OrchestClusterVersion          = "orchest.io/v1alpha1"
 	ControllerRevisionHashLabelKey = "controller-revision-hash"
 )
 
