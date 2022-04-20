@@ -212,8 +212,10 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 				}
 			}
 		}
-
 	}
+
+	_, err = r.controller.updateClusterStatus(ctx, orchest,
+		orchestv1alpha1.Running, "Orchest is Running")
 
 	return nil
 
