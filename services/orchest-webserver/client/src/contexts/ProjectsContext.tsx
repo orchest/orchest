@@ -4,7 +4,7 @@ import type { PipelineMetaData, Project } from "@/types";
 import React from "react";
 import { KeyedMutator } from "swr";
 
-export const ProjectsContext = React.createContext<IProjectsContext>(
+const ProjectsContext = React.createContext<IProjectsContext>(
   {} as IProjectsContext
 );
 
@@ -158,7 +158,7 @@ export const ProjectsContextProvider: React.FC = ({ children }) => {
     isFetchingPipelines,
     error,
     fetchPipelines,
-  } = useFetchPipelines(state.projectUuid);
+  } = useFetchPipelines({ projectUuid: state.projectUuid });
 
   const hasPipelinesChanged = useHasChanged(state.pipelines);
 

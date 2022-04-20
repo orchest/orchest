@@ -19,7 +19,7 @@ describe("useAutoSaveEnvironment", () => {
   it("should not save when given environment is unchanged", () => {
     jest.useFakeTimers();
 
-    const save = jest.fn(() => null);
+    const save = jest.fn(() => Promise.resolve(null));
 
     const { rerender } = renderHook(
       ({ environment }) => useAutoSaveEnvironment(environment, save),
@@ -40,7 +40,7 @@ describe("useAutoSaveEnvironment", () => {
   it("should fire save when given environment is changed", () => {
     jest.useFakeTimers();
 
-    const save = jest.fn(() => null);
+    const save = jest.fn(() => Promise.resolve(null));
 
     const { rerender } = renderHook(
       ({ environment }) => useAutoSaveEnvironment(environment, save),
