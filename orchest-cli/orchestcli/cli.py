@@ -243,10 +243,11 @@ def install(**common_options) -> None:
                 except client.ApiException as e:
                     if e.status == 404:  # not found
                         echo()  # newline
-                        echo("🙅 Failed to install Orchest.")
+                        echo("🙅 Failed to install Orchest.", err=True)
                         echo(
                             "The CR Object defining the Orchest Cluster was removed"
-                            " by an external process during installation."
+                            " by an external process during installation.",
+                            err=True,
                         )
                         sys.exit(1)
                     else:
@@ -315,7 +316,19 @@ def version(json_flag: bool, **common_options) -> None:
             echo(e, err=True)
         sys.exit(1)
 
-    version = custom_object["spec"]["orchest"]["defaultTag"]  # type: ignore
+    try:
+        version = custom_object["spec"]["orchest"]["defaultTag"]  # type: ignore
+    except KeyError:
+        if json_flag:
+            jecho({})
+        else:
+            echo("Failed to fetch Orchest Cluster version.", err=True)
+            echo(
+                "Make sure your CLI version is compatible with the running"
+                " Orchest Cluster version.",
+                err=True,
+            )
+        sys.exit(1)
 
     if json_flag:
         jecho({"version": version})
