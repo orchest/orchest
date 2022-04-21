@@ -31,12 +31,15 @@ echo "Building images locally with tag ${TAG}"
 eval $(minikube -p minikube docker-env)
 bash "${DIR}/build_container.sh" -m -t ${TAG} -o ${TAG}
 
+# Needs to happen to be able to drop the DB.
+bash "${DIR}/../orchest" start
+
 echo "Scaling down orchest-api and orchest-webserver deployments to avoid DB usage."
 kubectl scale -n orchest --replicas=0 deployment orchest-api --timeout 10m
 kubectl scale -n orchest --replicas=0 deployment orchest-webserver --timeout 10m
 
 set +e
-echo "Dropping the orchest_api and orchest_webserver databases, might take a while."
+echo "Dropping the orchest_api and orchest_webserver databases."
 minikube kubectl -- exec -it -n orchest deploy/orchest-database -- dropdb -U postgres -f orchest_api --if-exists
 minikube kubectl -- exec -it -n orchest deploy/orchest-database -- dropdb -U postgres -f orchest_webserver --if-exists
 set -e
