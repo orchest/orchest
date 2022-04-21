@@ -10,7 +10,7 @@ export const useAutoStartSession = ({
   isReadOnly: boolean;
 }) => {
   const {
-    state: { sessions },
+    state: { sessions, sessionsIsLoading },
     getSession,
     toggleSession,
   } = useSessionsContext();
@@ -36,15 +36,12 @@ export const useAutoStartSession = ({
     session?.pipelineUuid !== pipeline?.uuid && // when user is switching pipelines
     pipelineUuidFromRoute === pipeline?.uuid; // Only auto-start the pipeline that user is viewing.
 
-  const isAutoStartAllowed = React.useRef(false);
-
+  // The only case that auto-start should be disabled is that
+  // session.status was once set as "STOPPING"
+  const isAutoStartAllowed = React.useRef(true);
   React.useEffect(() => {
-    // useHasChanged is not applicable here.
-    // `shouldCheckIfAutoStartIsNeeded` might not be true in the same render when pipeline?.uuid is changed
-    // if user is stopping the session, do not auto-start it.
-    if (pipeline?.uuid && session?.status !== "STOPPING")
-      isAutoStartAllowed.current = true;
-  }, [pipeline?.uuid]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (session?.status === "STOPPING") isAutoStartAllowed.current = false;
+  }, [session]);
 
   React.useEffect(() => {
     if (shouldCheckIfAutoStartIsNeeded && isAutoStartAllowed.current) {
