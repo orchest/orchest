@@ -116,7 +116,7 @@ func NewOrchestReconciler(key string,
 func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 
 	// First we need to retrive the latest version of OrchestCluster
-	orchest, err := r.controller.ocClient.OrchestV1alpha1().OrchestClusters(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
+	orchest, err := r.controller.oClient.OrchestV1alpha1().OrchestClusters(r.namespace).Get(ctx, r.name, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			// OrchestCluster does not exist, return
@@ -303,11 +303,11 @@ func (r *OrchestReconciler) ensureUserDir(ctx context.Context, curHash string, o
 	size := orchest.Spec.Orchest.Resources.UserDirVolumeSize
 
 	// Retrive the created pvcs
-	pvc, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
+	pvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		uaerDir := r.persistentVolumeClaim(userDirName, r.namespace, storageClass, size, curHash, orchest)
-		_, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, uaerDir, metav1.CreateOptions{})
+		_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, uaerDir, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to create %s pvc", userDirName)
 		}
@@ -326,11 +326,11 @@ func (r *OrchestReconciler) ensureBuildCacheDir(ctx context.Context, curHash str
 	size := orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize
 
 	// Retrive the created pvcs
-	pvc, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
+	pvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		buildDir := r.persistentVolumeClaim(builderDirName, r.namespace, storageClass, size, curHash, orchest)
-		_, err := r.controller.client.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, buildDir, metav1.CreateOptions{})
+		_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Create(ctx, buildDir, metav1.CreateOptions{})
 		if err != nil {
 			return errors.Wrapf(err, "failed to create %s pvc", builderDirName)
 		}
@@ -592,5 +592,5 @@ func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, na
 }
 
 func (r *OrchestReconciler) getClient() kubernetes.Interface {
-	return r.controller.client
+	return r.controller.kClient
 }

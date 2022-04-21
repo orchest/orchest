@@ -5,11 +5,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
 
@@ -54,20 +52,17 @@ func runControllerCmd() error {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	var client kubernetes.Interface
-	var ocClient versioned.Interface
-	if controllerConfig.InCluster {
-		client = utils.GetClientInsideCluster()
-		ocClient = utils.GetOrchClientInsideCluster()
-	} else {
-		client = utils.GetClientOutOfCluster()
-		ocClient = utils.GetOrchClientOutOfCluster()
-	}
+	// Initialize scheme
+	scheme := utils.GetScheme()
 
-	ocInformer := utils.NewOrchestClusterInformer(ocClient)
-	depInformer := utils.NewDeploymentInformer(client)
-	orchestController := orchestcluster.NewOrchestClusterController(client,
-		ocClient,
+	// Initialize clients
+	kClient, oClient, gClient := utils.GetClientsOrDie(controllerConfig.InCluster, scheme)
+
+	depInformer := utils.NewDeploymentInformer(kClient)
+	ocInformer := utils.NewOrchestClusterInformer(oClient)
+	orchestController := orchestcluster.NewOrchestClusterController(kClient,
+		oClient,
+		gClient,
 		controllerConfig,
 		ocInformer,
 		depInformer)

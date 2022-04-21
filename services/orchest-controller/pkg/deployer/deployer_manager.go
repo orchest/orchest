@@ -3,16 +3,13 @@ package deployer
 import (
 	"context"
 
+	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"k8s.io/klog/v2"
 )
 
 type Deployer interface {
-
-	//returns the name of the addon
-	GetName() string
-
 	// Installs addons if the config is changed
-	InstallIfChanged(ctx context.Context, namespace string, config interface{}) error
+	InstallIfChanged(ctx context.Context, namespace string, orchest *orchestv1alpha1.OrchestCluster) error
 
 	// Uninstall the addon
 	Uninstall(ctx context.Context, namespace string) error
@@ -33,14 +30,14 @@ func NewDeployerManager() *DeployerManager {
 }
 
 // add a deployer, if not already registred with the manager
-func (m *DeployerManager) AddDeployer(deployer Deployer) {
+func (m *DeployerManager) AddDeployer(name string, deployer Deployer) {
 
 	// If already registred, log warning and return
-	if _, ok := m.deployers[deployer.GetName()]; ok {
-		klog.Warning("deployer %s is already registred with deployer manager", deployer.GetName())
+	if _, ok := m.deployers[name]; ok {
+		klog.Warning("deployer %s is already registred with deployer manager", name)
 	}
 
-	m.deployers[deployer.GetName()] = deployer
+	m.deployers[name] = deployer
 	klog.V(2).Info("Deployer is registred with deployer manager")
 }
 

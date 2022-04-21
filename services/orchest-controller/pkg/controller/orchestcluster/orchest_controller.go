@@ -11,12 +11,12 @@ import (
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	orchestlisters "github.com/orchest/orchest/services/orchest-controller/pkg/client/listers/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/deployer"
-	"github.com/orchest/orchest/services/orchest-controller/pkg/helm"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/component-base/metrics/prometheus/ratelimiter"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -53,9 +54,13 @@ type ControllerConfig struct {
 
 // OrchestClusterController reconciles OrchestCluster CRD.
 type OrchestClusterController struct {
-	client kubernetes.Interface
+	kClient kubernetes.Interface
 
-	ocClient versioned.Interface
+	oClient versioned.Interface
+
+	gClient client.Client
+
+	scheme *runtime.Scheme
 
 	config ControllerConfig
 
@@ -81,19 +86,21 @@ type OrchestClusterController struct {
 }
 
 // NewOrchestClusterController returns a new *OrchestClusterController.
-func NewOrchestClusterController(client kubernetes.Interface,
-	ocClient versioned.Interface,
+func NewOrchestClusterController(kClient kubernetes.Interface,
+	oClient versioned.Interface,
+	gClient client.Client,
 	config ControllerConfig,
 	ocInformer orchestinformers.OrchestClusterInformer,
 	depInformer appsinformers.DeploymentInformer) *OrchestClusterController {
 
-	if client != nil && client.CoreV1().RESTClient().GetRateLimiter() != nil {
-		ratelimiter.RegisterMetricAndTrackRateLimiterUsage("orchest_cluster_controller", client.CoreV1().RESTClient().GetRateLimiter())
+	if kClient != nil && kClient.CoreV1().RESTClient().GetRateLimiter() != nil {
+		ratelimiter.RegisterMetricAndTrackRateLimiterUsage("orchest_cluster_controller", kClient.CoreV1().RESTClient().GetRateLimiter())
 	}
 
 	controller := OrchestClusterController{
-		client:           client,
-		ocClient:         ocClient,
+		kClient:          kClient,
+		oClient:          oClient,
+		gClient:          gClient,
 		config:           config,
 		workerLoopPeriod: time.Second,
 		reconcilers:      make(map[string]*OrchestReconciler),
@@ -132,8 +139,13 @@ func NewOrchestClusterController(client kubernetes.Interface,
 func (r *OrchestClusterController) intiDeployerManager() {
 	r.deployerManager = deployer.NewDeployerManager()
 
-	r.deployerManager.AddDeployer(helm.NewHelmDeployer("argo", path.Join(r.config.DeployDir, "thirdparty/argo-workflows")))
-	r.deployerManager.AddDeployer(helm.NewHelmDeployer("registry", path.Join(r.config.DeployDir, "thirdparty/docker-registry")))
+	r.deployerManager.AddDeployer("argo",
+		deployer.NewHelmDeployer("argo", path.Join(r.config.DeployDir, "thirdparty/argo-workflows")))
+	r.deployerManager.AddDeployer("registry",
+		deployer.NewHelmDeployer("registry", path.Join(r.config.DeployDir, "thirdparty/docker-registry")))
+	r.deployerManager.AddDeployer("cert-manager",
+		deployer.NewPathDeployer("cert-manager", path.Join(r.config.DeployDir, "thirdparty/cert-manager"),
+			r.gClient, r.scheme))
 
 }
 
@@ -273,7 +285,7 @@ func (controller *OrchestClusterController) syncOrchestCluster(key string) error
 	}
 
 	// Set a finalizer so we can do cleanup before the object goes away
-	orchest, err = AddFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
+	orchest, err = AddFinalizerIfNotPresent(ctx, controller.oClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
 		errors.Wrap(err, "failed to add finalizer")
 	}
@@ -329,7 +341,7 @@ func (controller *OrchestClusterController) deleteOrchestCluster(ctx context.Con
 	}
 
 	// Remove finalizers
-	err = RemoveFinalizerIfNotPresent(ctx, controller.ocClient, orchest, orchestv1alpha1.Finalizer)
+	err = RemoveFinalizerIfNotPresent(ctx, controller.oClient, orchest, orchestv1alpha1.Finalizer)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove finalizers")
 	}
@@ -366,7 +378,7 @@ func (controller *OrchestClusterController) updateClusterStatus(ctx context.Cont
 		Message: message,
 	}
 
-	result, err := controller.ocClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+	result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)

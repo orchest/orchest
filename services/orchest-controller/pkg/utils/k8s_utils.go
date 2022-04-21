@@ -6,34 +6,80 @@ import (
 	"os"
 	"time"
 
+	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	ocinformersfactory "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions"
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/informers"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
-func GetClientInsideCluster() kubernetes.Interface {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		klog.Fatalf("Can not get kubernetes config: %v", err)
+func GetClientsOrDie(inCluster bool, scheme *runtime.Scheme) (
+	kubernetes.Interface,
+	versioned.Interface,
+	client.Client) {
+
+	var config *rest.Config
+	var err error
+	if inCluster {
+		config, err = rest.InClusterConfig()
+		if err != nil {
+			klog.Fatalf("Can not get kubernetes config: %v", err)
+		}
+	} else {
+		config, err = BuildOutsideClusterConfig()
+		if err != nil {
+			klog.Fatalf("Can not get kubernetes config: %v", err)
+		}
 	}
 
-	clientset, err := kubernetes.NewForConfig(config)
+	kClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		klog.Fatalf("Can not create kubernetes client: %v", err)
 	}
 
-	return clientset
+	oClient, err := versioned.NewForConfig(config)
+	if err != nil {
+		klog.Fatalf("Can not get orchest client: %v", err)
+	}
+
+	mapper, err := apiutil.NewDynamicRESTMapper(config)
+	if err != nil {
+		klog.Fatalf("Can not get rest mapper: %v", err)
+	}
+
+	clientOptions := client.Options{Scheme: scheme, Mapper: mapper}
+
+	gClient, err := client.New(config, clientOptions)
+	if err != nil {
+		klog.Fatalf("Can not general kubernetes client: %v", err)
+	}
+
+	return kClient, oClient, gClient
+}
+
+func GetScheme() *runtime.Scheme {
+
+	scheme := runtime.NewScheme()
+	clientgoscheme.AddToScheme(scheme)
+	orchestv1alpha1.AddToScheme(scheme)
+	apiextensionsv1.AddToScheme(scheme)
+
+	return scheme
 }
 
 // BuildOutsideClusterConfig returns k8s config
@@ -45,48 +91,6 @@ func BuildOutsideClusterConfig() (*rest.Config, error) {
 		return nil, errors.Wrap(err, "faile to build")
 	}
 	return config, nil
-}
-
-// GetClientOutOfCluster returns a k8s clientset to the request from outside of cluster
-func GetClientOutOfCluster() kubernetes.Interface {
-	config, err := BuildOutsideClusterConfig()
-	if err != nil {
-		klog.Fatalf("Can not get kubernetes config: %v", err)
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		klog.Fatalf("Can not get kubernetes client: %v", err)
-	}
-
-	return clientset
-}
-
-func GetOrchClientInsideCluster() versioned.Interface {
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		klog.Fatalf("Can not get kubernetes client: %v", err)
-	}
-
-	orchClient, err := versioned.NewForConfig(config)
-	if err != nil {
-		klog.Fatalf("Can not get agent client: %v", err)
-	}
-
-	return orchClient
-}
-
-func GetOrchClientOutOfCluster() versioned.Interface {
-	config, err := BuildOutsideClusterConfig()
-	if err != nil {
-		klog.Fatalf("Can not get kubernetes client: %v", err)
-	}
-	orchClient, err := versioned.NewForConfig(config)
-	if err != nil {
-		klog.Fatalf("Can not get orchest kubernetes client: %v", err)
-	}
-
-	return orchClient
 }
 
 func GetEnvOrDefault(key, defaultValue string) string {
