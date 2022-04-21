@@ -36,23 +36,25 @@ export const useAutoStartSession = ({
     session?.pipelineUuid !== pipeline?.uuid && // when user is switching pipelines
     pipelineUuidFromRoute === pipeline?.uuid; // Only auto-start the pipeline that user is viewing.
 
-  const isPipelineUuidChanged = React.useRef(false);
+  const isAutoStartAllowed = React.useRef(false);
 
   React.useEffect(() => {
     // useHasChanged is not applicable here.
     // `shouldCheckIfAutoStartIsNeeded` might not be true in the same render when pipeline?.uuid is changed
-    if (pipeline?.uuid) isPipelineUuidChanged.current = true;
-  }, [pipeline?.uuid]);
+    // if user is stopping the session, do not auto-start it.
+    if (pipeline?.uuid && session?.status !== "STOPPING")
+      isAutoStartAllowed.current = true;
+  }, [pipeline?.uuid]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => {
-    if (shouldCheckIfAutoStartIsNeeded && isPipelineUuidChanged.current) {
-      isPipelineUuidChanged.current = false;
+    if (shouldCheckIfAutoStartIsNeeded && isAutoStartAllowed.current) {
+      isAutoStartAllowed.current = false;
       toggleSession(toggleSessionPayload, true);
     }
   }, [
     toggleSessionPayload,
     shouldCheckIfAutoStartIsNeeded,
-    isPipelineUuidChanged,
+    isAutoStartAllowed,
     toggleSession,
   ]);
 
