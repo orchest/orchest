@@ -29,10 +29,8 @@ from app.apis.namespace_jupyter_image_builds import (
 )
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
-from app.celery_app import make_celery
 from app.connections import db
-from app.core import environments
-from app.core.scheduler import Scheduler
+from app.core.scheduler import add_recurring_jobs_to_scheduler
 from app.models import (
     EnvironmentImageBuild,
     InteractivePipelineRun,
@@ -127,21 +125,8 @@ def create_app(
         )
 
         app.config["SCHEDULER"] = scheduler
+        add_recurring_jobs_to_scheduler(scheduler, app, run_on_add=True)
         scheduler.start()
-        scheduler.add_job(
-            # Locks rows it is processing.
-            Scheduler.check_for_jobs_to_be_scheduled,
-            "interval",
-            seconds=app.config["SCHEDULER_INTERVAL"],
-            args=[app],
-        )
-
-        scheduler.add_job(
-            process_images_for_deletion,
-            "interval",
-            seconds=app.config["IMAGES_DELETION_INTERVAL"],
-            args=[app],
-        )
 
         if not _utils.is_running_from_reloader():
             with app.app_context():
@@ -154,47 +139,6 @@ def create_app(
         app.register_blueprint(api, url_prefix="/api")
 
     return app
-
-
-def process_images_for_deletion(app):
-    """Processes built images to find inactive ones.
-
-    Goes through env images and marks the inactive ones for removal,
-    moreover, if necessary, queues the celery task in charge of removing
-    images from the registry.
-
-    Note: this function should probably be moved in the scheduler module
-    to be consistent with the scheduler module of the webserver, said
-    module would need a bit of a refactoring.
-    """
-    with app.app_context():
-        environments.mark_env_images_that_can_be_removed()
-        utils.mark_custom_jupyter_images_to_be_removed()
-        db.session.commit()
-
-        # Don't queue the task if there are build tasks going, this is a
-        # "cheap" way to avoid piling up multiple garbage collection
-        # tasks while a build is ongoing.
-        if db.session.query(
-            db.session.query(EnvironmentImageBuild)
-            .filter(EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar():
-            app.logger.info("Ongoing build, not queueing registry gc task.")
-            return
-
-        if db.session.query(
-            db.session.query(JupyterImageBuild)
-            .filter(JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
-            .exists()
-        ).scalar():
-            app.logger.info("Ongoing build, not queueing registry gc task.")
-            return
-
-        celery = make_celery(app)
-        app.logger.info("Sending registry garbage collection task.")
-        res = celery.send_task(name="app.core.tasks.registry_garbage_collection")
-        res.forget()
 
 
 def init_logging():
