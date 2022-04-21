@@ -10,7 +10,7 @@ export const useAutoStartSession = ({
   isReadOnly: boolean;
 }) => {
   const {
-    state: { sessions, sessionsIsLoading },
+    state: { sessions },
     getSession,
     toggleSession,
   } = useSessionsContext();
