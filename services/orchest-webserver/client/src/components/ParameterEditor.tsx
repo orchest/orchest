@@ -7,7 +7,7 @@ import { Controlled as CodeMirror } from "react-codemirror2";
 import ParamTree from "./ParamTree";
 
 interface IParameterEditorProps {
-  strategyJSON: StrategyJson;
+  strategyJSON: StrategyJson | undefined;
   pipelineName: string;
   readOnly?: boolean;
   onParameterChange?: (value: StrategyJson) => void;
@@ -15,12 +15,15 @@ interface IParameterEditorProps {
 
 const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
   const [strategyJSON, setStrategyJson] = React.useState<StrategyJson>(
-    props.strategyJSON
+    props.strategyJSON || {}
   );
-  const [activeParameter, setActiveParameter] = React.useState<{
-    key: string;
-    strategyJSONKey: string;
-  }>(undefined);
+  const [activeParameter, setActiveParameter] = React.useState<
+    | {
+        key: string;
+        strategyJSONKey: string;
+      }
+    | undefined
+  >(undefined);
 
   const [codeMirrorValue, setCodeMirrorValue] = React.useState("");
 
@@ -70,7 +73,10 @@ const ParameterEditor: React.FC<IParameterEditorProps> = (props) => {
                     // put this block into event-loop to speed up the typing
                     window.setTimeout(() => {
                       try {
-                        if (Array.isArray(JSON.parse(value))) {
+                        if (
+                          Array.isArray(JSON.parse(value)) &&
+                          props.onParameterChange
+                        ) {
                           props.onParameterChange(json);
                         }
                       } catch {

@@ -293,20 +293,21 @@ const PipelineSettingsView: React.FC = () => {
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
         { method: "POST", body: formData }
       ),
-      // path cannot be changed when there is an active session
-      !session
-        ? fetcher<{ success: boolean; reason?: string; message?: string }>(
-            `/async/pipelines/${projectUuid}/${pipelineUuid}`,
-            {
-              method: "PUT",
-              headers: HEADER.JSON,
-              body: JSON.stringify({
-                env_variables: envVariablesObj.value,
-                path: pipelinePath,
-              }),
-            }
-          )
-        : Promise.resolve(pipelinePath),
+
+      fetcher<{ success: boolean; reason?: string; message?: string }>(
+        `/async/pipelines/${projectUuid}/${pipelineUuid}`,
+        {
+          method: "PUT",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            // `env_variables` can be saved anytime, but
+            // `path` cannot be changed when there is an active session
+            // JSON.strigify will remove the `undefined` value, so path won't be saved as undefined
+            env_variables: envVariablesObj.value,
+            path: !session ? pipelinePath : undefined,
+          }),
+        }
+      ),
     ]).then(([pipelineJsonChanges, pipelineChanges]) => {
       const errorMessages = [
         pipelineJsonChanges.status === "rejected"
