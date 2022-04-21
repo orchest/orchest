@@ -31,9 +31,14 @@ export const useFetchPipelineSettings = ({
    * hooks for fetching data for initialization
    */
 
-  const { job, isFetchingJob } = useFetchJob(jobUuid);
+  // Note: clear cache on unmount to ensure the states are not initialized with old values
+
+  const { job, isFetchingJob } = useFetchJob({
+    jobUuid,
+    clearCacheOnUnmount: true,
+  });
   const { pipelineRun } = useFetchPipelineRun(
-    jobUuid && runUuid ? { jobUuid, runUuid } : null
+    jobUuid && runUuid ? { jobUuid, runUuid, clearCacheOnUnmount: true } : null
   );
 
   const {
@@ -45,10 +50,13 @@ export const useFetchPipelineSettings = ({
     pipelineUuid,
     jobUuid,
     runUuid,
+    clearCacheOnUnmount: true,
   });
 
   const { pipeline, isFetchingPipeline } = useFetchPipeline(
-    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : null
+    !jobUuid && pipelineUuid
+      ? { projectUuid, pipelineUuid, clearCacheOnUnmount: true }
+      : null
   );
 
   const { initialPipelineName, initialPipelinePath } = React.useMemo<{
@@ -83,34 +91,34 @@ export const useFetchPipelineSettings = ({
    * hooks for persisting local mutations without changing the initial data
    */
 
-  const [inputParameters, setInputParameters] = usePipelineProperty(
-    pipelineJson?.parameters
+  const [inputParameters, setInputParameters] = usePipelineProperty({
+    initialValue: pipelineJson?.parameters
       ? JSON.stringify(pipelineJson.parameters || {})
       : undefined,
-    "{}"
-  );
+    fallbackValue: "{}",
+  });
 
-  const [pipelineName, setPipelineName] = usePipelineProperty(
-    initialPipelineName
-  );
-  const [pipelinePath, setPipelinePath] = usePipelineProperty(
-    initialPipelinePath
-  );
+  const [pipelineName, setPipelineName] = usePipelineProperty({
+    initialValue: initialPipelineName,
+  });
+  const [pipelinePath, setPipelinePath] = usePipelineProperty({
+    initialValue: initialPipelinePath,
+  });
 
-  const [services, setServices] = usePipelineProperty(
+  const [services, setServices] = usePipelineProperty({
     // use temporary uuid for easier FE manipulation, will be cleaned up when saving
-    pipelineJson?.services
+    initialValue: pipelineJson?.services
       ? (Object.values(pipelineJson?.services).reduce((all, curr) => {
           return { ...all, [uuidv4()]: curr };
         }, {}) as Record<string, Service>)
       : undefined,
-    {}
-  );
+    fallbackValue: {},
+  });
 
-  const [settings, setSettings] = usePipelineProperty(
-    pipelineJson?.settings,
-    {}
-  );
+  const [settings, setSettings] = usePipelineProperty({
+    initialValue: pipelineJson?.settings,
+    fallbackValue: {},
+  });
 
   const { envVariables, setEnvVariables } = usePipelineEnvVariables(
     pipeline,

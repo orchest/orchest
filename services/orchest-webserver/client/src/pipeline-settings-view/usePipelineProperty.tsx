@@ -4,23 +4,27 @@ import React from "react";
 /**
  * a generic hook that is used to persist mutations of properties of PipelineJson
  */
-export function usePipelineProperty<T>(
-  initialValue: T | undefined,
-  fallbackValue?: T
-) {
+export function usePipelineProperty<T>({
+  initialValue,
+  fallbackValue,
+}: {
+  initialValue: T | undefined;
+  fallbackValue?: T;
+}) {
   const { setAsSaved } = useAppContext();
 
   const [pipelineProperty, _setPipelineProperty] = React.useState<
     T | undefined
   >(undefined);
 
-  // Re-initialize the value if given `initialValue` is changed.
-  // This is because initialValue might be cached by SWR, and real value comes in
-  // after the first render.
-  // Apply `JSON.stringify` in case that the value is a new Object.
+  const isPropertyInitialized = React.useRef(false);
+
   React.useEffect(() => {
-    _setPipelineProperty(initialValue);
-  }, [JSON.stringify(initialValue), _setPipelineProperty]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!isPropertyInitialized.current && initialValue) {
+      isPropertyInitialized.current = true;
+      _setPipelineProperty(initialValue);
+    }
+  }, [initialValue, _setPipelineProperty]);
 
   const setPipelineProperty = React.useCallback(
     (value: React.SetStateAction<T | undefined>) => {

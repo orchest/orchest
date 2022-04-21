@@ -101,10 +101,7 @@ const tabs = [
 
 const PipelineSettingsView: React.FC = () => {
   // global states
-  const {
-    state: { pipeline },
-    dispatch,
-  } = useProjectsContext();
+  const { dispatch } = useProjectsContext();
   const {
     state: { hasUnsavedChanges },
     setAlert,

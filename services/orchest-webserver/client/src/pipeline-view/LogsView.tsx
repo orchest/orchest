@@ -2,6 +2,7 @@ import { IconButton } from "@/components/common/IconButton";
 import { Layout } from "@/components/Layout";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -121,13 +122,15 @@ export const LogsView: React.FC = () => {
 
   const isQueryArgsComplete = hasValue(pipelineUuid) && hasValue(projectUuid);
 
-  const { job } = useFetchJob(jobUuid);
+  const { job } = useFetchJob({ jobUuid });
   const { pipelineJson } = useFetchPipelineJson({
     pipelineUuid,
     projectUuid,
     jobUuid,
     runUuid,
   });
+
+  useEnsureValidPipeline();
 
   const sortedSteps = React.useMemo(() => {
     if (!pipelineJson) return undefined;

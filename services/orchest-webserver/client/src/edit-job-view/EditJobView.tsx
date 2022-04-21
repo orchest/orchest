@@ -233,7 +233,7 @@ const EditJobView: React.FC = () => {
 
   const [runJobLoading, setRunJobLoading] = React.useState(false);
 
-  const { setJob, job, isFetchingJob } = useFetchJob(jobUuid);
+  const { setJob, job, isFetchingJob } = useFetchJob({ jobUuid });
 
   const { pipelineJson, isFetchingPipelineJson } = useFetchPipelineJson(
     projectUuid && job
