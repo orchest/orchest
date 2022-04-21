@@ -249,6 +249,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const checkSessionForMovingPipelineFiles = React.useCallback(
     async (combinedPaths: string[]): Promise<[boolean, PipelineMetaData[]]> => {
+      if (!projectUuid) return [false, []];
       const { folderPaths, pipelineFilePaths } = combinedPaths.reduce(
         (all, dragPath) => {
           if (dragPath.endsWith("/"))
@@ -348,7 +349,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       const params = getFilePathChangeParams(oldFilePath, newFilePath);
       try {
         await doChangeFilePath({ ...params, projectUuid, pipelineUuid });
-        const pipelineFilePath = params.newPath.replace(/^\//, "");
+        const pipelineFilePath = cleanFilePath(params.newPath);
         dispatch((current) => {
           return {
             type: "SET_PIPELINES",
@@ -369,7 +370,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         setAlert(
           "Error",
           <>
-            {`Failed to rename file `}{" "}
+            {`Failed to rename file `}
             <Code>{cleanFilePath(oldFilePath, "Project files/")}</Code>
             {`. ${error?.message || ""}`}
           </>
@@ -400,7 +401,7 @@ export const FileTree = React.memo(function FileTreeComponent({
       if (foundPipeline.uuid === pipelineUuid) {
         dispatch({
           type: "UPDATE_PIPELINE",
-          payload: { uuid: pipelineUuid, path: newFilePath },
+          payload: { uuid: pipelineUuid, path: cleanFilePath(newFilePath) },
         });
       }
     },
@@ -456,7 +457,7 @@ export const FileTree = React.memo(function FileTreeComponent({
             if (pipelineUuid && foundPipeline?.uuid === pipelineUuid) {
               dispatch({
                 type: "UPDATE_PIPELINE",
-                payload: { uuid: pipelineUuid, path: newPath },
+                payload: { uuid: pipelineUuid, path: cleanFilePath(newPath) },
               });
             }
 
@@ -490,7 +491,7 @@ export const FileTree = React.memo(function FileTreeComponent({
         ([sourcePath, newPath]) => sourcePath !== newPath
       );
 
-      if (!hasPathChanged) return;
+      if (!projectUuid || !hasPathChanged) return;
 
       // if user attempts to move .ipynb or .orchest files to /data
       if (isWithinDataFolder(targetPath)) {

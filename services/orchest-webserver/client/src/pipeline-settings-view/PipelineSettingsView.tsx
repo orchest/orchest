@@ -13,6 +13,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type {
@@ -56,7 +57,7 @@ import {
   getOrderValue,
   instantiateNewService,
 } from "./common";
-import { useFetchPipelineMetadata } from "./useFetchPipelineMetadata";
+import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
@@ -100,7 +101,10 @@ const tabs = [
 
 const PipelineSettingsView: React.FC = () => {
   // global states
-  const { dispatch } = useProjectsContext();
+  const {
+    state: { pipeline },
+    dispatch,
+  } = useProjectsContext();
   const {
     state: { hasUnsavedChanges },
     setAlert,
@@ -109,6 +113,8 @@ const PipelineSettingsView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
+
+  useEnsureValidPipeline();
 
   // data from route
   const {
@@ -141,7 +147,7 @@ const PipelineSettingsView: React.FC = () => {
     setPipelineName,
     inputParameters,
     setInputParameters,
-  } = useFetchPipelineMetadata({ projectUuid, pipelineUuid, jobUuid, runUuid });
+  } = useFetchPipelineSettings({ projectUuid, pipelineUuid, jobUuid, runUuid });
 
   // local states
 

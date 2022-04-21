@@ -286,6 +286,7 @@ export const findFilesByExtension = async ({
 
     return response.files;
   }
+  return [];
 };
 
 /**

@@ -1,4 +1,3 @@
-import { Code } from "@/components/common/Code";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
@@ -6,11 +5,10 @@ import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/Routes";
 import { PipelineJson, StepsDict } from "@/types";
-import Box from "@mui/material/Box";
-import Stack from "@mui/material/Stack";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
+import { useEnsureValidPipeline } from "../../hooks/useEnsureValidPipeline";
 import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
@@ -19,95 +17,16 @@ export const useInitializePipelineEditor = (
   initializeEventVars: (steps: StepsDict) => void
 ) => {
   const {
-    state: {
-      pipelines,
-      pipeline,
-      projectUuid,
-      hasLoadedPipelinesInPipelineEditor,
-    },
-    dispatch,
+    state: { pipeline, projectUuid },
   } = useProjectsContext();
   const { setAlert } = useAppContext();
   const {
     navigateTo,
     projectUuid: projectUuidFromRoute,
-    pipelineUuid,
     jobUuid,
   } = useCustomRoute();
 
-  const isTryingToFindByUuid = hasValue(pipelines) && hasValue(pipelineUuid);
-  const foundPipelineByUuid = React.useMemo(
-    () =>
-      isTryingToFindByUuid
-        ? pipelines.find((pipeline) => pipeline.uuid === pipelineUuid)
-        : undefined,
-    [isTryingToFindByUuid, pipelineUuid, pipelines]
-  );
-
-  React.useEffect(() => {
-    // This check should only happens if user enter the URL by hand.
-    // Otherwise, this alert will appear when changing projects.
-    if (
-      !hasLoadedPipelinesInPipelineEditor &&
-      isTryingToFindByUuid &&
-      !foundPipelineByUuid
-    ) {
-      setAlert(
-        "Pipeline not found",
-        <Stack direction="column" spacing={2}>
-          <Box>
-            {`Pipeline with the given uuid `}
-            <Code>{pipelineUuid}</Code>
-            {` is not found. You might have had a wrong URL, or this pipeline might have been deleted.`}
-          </Box>
-          <Box>Will try to load other pipelines in this project.</Box>
-        </Stack>
-      );
-    }
-    if (pipelines) {
-      dispatch({ type: "SET_HAS_LOADED_PIPELINES", payload: true });
-    }
-  }, [
-    hasLoadedPipelinesInPipelineEditor,
-    pipelines,
-    dispatch,
-    foundPipelineByUuid,
-    isTryingToFindByUuid,
-    pipelineUuid,
-    setAlert,
-  ]);
-
-  React.useEffect(() => {
-    const pipelineToOpen = foundPipelineByUuid || pipelines?.find(Boolean);
-
-    if (pipelineToOpen && pipelineToOpen?.uuid !== pipelineUuid) {
-      // Navigate to a valid pipelineUuid.
-      navigateTo(siteMap.pipeline.path, {
-        query: {
-          projectUuid: projectUuidFromRoute,
-          pipelineUuid: pipelineToOpen.uuid,
-        },
-      });
-      return;
-    }
-
-    // Reaching this point, `pipelineUuid` must be valid.
-    // We can safely update `state.pipeline`.
-    if (pipelineUuid && pipeline?.uuid !== pipelineUuid) {
-      dispatch({
-        type: "UPDATE_PIPELINE",
-        payload: { uuid: pipelineUuid },
-      });
-    }
-  }, [
-    dispatch,
-    foundPipelineByUuid,
-    pipeline?.uuid,
-    pipelineUuid,
-    pipelines,
-    navigateTo,
-    projectUuidFromRoute,
-  ]);
+  useEnsureValidPipeline();
 
   const {
     pipelineJson,
