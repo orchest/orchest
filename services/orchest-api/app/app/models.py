@@ -68,6 +68,23 @@ class SchedulerJob(BaseModel):
         return f"<SchedulerJob: {self.type}>"
 
 
+class EventType(BaseModel):
+    """Type of events recorded by the orchest-api.
+
+    The table has been pre-populated in the schema migration that
+    created it, if you need to add more types add another schema
+    migration. Migrations that have added event types:
+    - services/orchest-api/app/migrations/versions/410e08270de4_.py
+    """
+
+    __tablename__ = "event_types"
+
+    name = db.Column(db.String(50), primary_key=True)
+
+    def __repr__(self):
+        return f"<EventType: {self.name}>"
+
+
 class Project(BaseModel):
     __tablename__ = "projects"
 
