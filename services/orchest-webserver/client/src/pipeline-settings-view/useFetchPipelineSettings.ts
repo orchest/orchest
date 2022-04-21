@@ -35,10 +35,9 @@ export const useFetchPipelineSettings = ({
 
   const { job, isFetchingJob } = useFetchJob({
     jobUuid,
-    clearCacheOnUnmount: true,
   });
   const { pipelineRun } = useFetchPipelineRun(
-    jobUuid && runUuid ? { jobUuid, runUuid, clearCacheOnUnmount: true } : null
+    jobUuid && runUuid ? { jobUuid, runUuid } : null
   );
 
   const {
@@ -50,13 +49,10 @@ export const useFetchPipelineSettings = ({
     pipelineUuid,
     jobUuid,
     runUuid,
-    clearCacheOnUnmount: true,
   });
 
   const { pipeline, isFetchingPipeline } = useFetchPipeline(
-    !jobUuid && pipelineUuid
-      ? { projectUuid, pipelineUuid, clearCacheOnUnmount: true }
-      : null
+    !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : null
   );
 
   const { initialPipelineName, initialPipelinePath } = React.useMemo<{
@@ -91,18 +87,32 @@ export const useFetchPipelineSettings = ({
    * hooks for persisting local mutations without changing the initial data
    */
 
+  // Because the fetch hooks uses SWR and they cache fetched value,
+  // pipeline properties might be initialized with cached value.
+  // But if the initialization depends on the fetched value, it will easily lead to indefinite re-rendering.
+  // Therefore, per update of the fetched value (either new value or cached value), a hash is generated.
+  // Inside of `usePipelineProperty` compares the hash and only re-init values accordingly.
+  // ? Question: why not clear the cache?
+  // Beacuse `SWR` cache is not scoped. If we clear cashe here, it might break all the other components using the same fetch hook.
+  const updateHash = React.useMemo(() => {
+    return uuidv4();
+  }, [job, pipeline, pipelineJson, pipelineRun]); //eslint-disable-line react-hooks/exhaustive-deps
+
   const [inputParameters, setInputParameters] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
       ? JSON.stringify(pipelineJson.parameters || {})
       : undefined,
     fallbackValue: "{}",
+    updateHash,
   });
 
   const [pipelineName, setPipelineName] = usePipelineProperty({
     initialValue: initialPipelineName,
+    updateHash,
   });
   const [pipelinePath, setPipelinePath] = usePipelineProperty({
     initialValue: initialPipelinePath,
+    updateHash,
   });
 
   const [services, setServices] = usePipelineProperty({
@@ -113,11 +123,13 @@ export const useFetchPipelineSettings = ({
         }, {}) as Record<string, Service>)
       : undefined,
     fallbackValue: {},
+    updateHash,
   });
 
   const [settings, setSettings] = usePipelineProperty({
     initialValue: pipelineJson?.settings,
     fallbackValue: {},
+    updateHash,
   });
 
   const { envVariables, setEnvVariables } = usePipelineEnvVariables(

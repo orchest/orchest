@@ -7,9 +7,11 @@ import React from "react";
 export function usePipelineProperty<T>({
   initialValue,
   fallbackValue,
+  updateHash,
 }: {
   initialValue: T | undefined;
   fallbackValue?: T;
+  updateHash: string;
 }) {
   const { setAsSaved } = useAppContext();
 
@@ -17,14 +19,15 @@ export function usePipelineProperty<T>({
     T | undefined
   >(undefined);
 
-  const isPropertyInitialized = React.useRef(false);
+  const localHash = React.useRef<string>("");
 
+  // Only re-initialize the value if hash is changed
   React.useEffect(() => {
-    if (!isPropertyInitialized.current && initialValue) {
-      isPropertyInitialized.current = true;
+    if (initialValue && localHash.current !== updateHash) {
+      localHash.current = updateHash;
       _setPipelineProperty(initialValue);
     }
-  }, [initialValue, _setPipelineProperty]);
+  }, [initialValue, updateHash, _setPipelineProperty]);
 
   const setPipelineProperty = React.useCallback(
     (value: React.SetStateAction<T | undefined>) => {

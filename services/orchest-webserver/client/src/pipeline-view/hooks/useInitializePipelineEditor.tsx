@@ -1,6 +1,7 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { siteMap } from "@/Routes";
@@ -8,7 +9,6 @@ import { PipelineJson, StepsDict } from "@/types";
 import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { MutatorCallback } from "swr";
-import { useEnsureValidPipeline } from "../../hooks/useEnsureValidPipeline";
 import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
@@ -47,8 +47,9 @@ export const useInitializePipelineEditor = (
     (
       data?:
         | PipelineJson
-        | Promise<PipelineJson>
-        | MutatorCallback<PipelineJson>,
+        | undefined
+        | Promise<PipelineJson | undefined>
+        | MutatorCallback<PipelineJson | undefined>,
       flushPage?: boolean
     ) => {
       // in case you want to re-initialize all components according to the new PipelineJson
