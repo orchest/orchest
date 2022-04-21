@@ -13,7 +13,7 @@ import (
 
 type Values map[string]interface{}
 
-func structToValues(valuesStruct interface{}) Values {
+func StructToValues(valuesStruct interface{}) Values {
 
 	values := Values{}
 	if valuesStruct == nil {
@@ -31,7 +31,7 @@ func structToValues(valuesStruct interface{}) Values {
 		field := reflectValue.Field(i).Interface()
 		if tag != "" && tag != "-" {
 			if v.Field(i).Type.Kind() == reflect.Struct {
-				values[tag] = structToValues(field)
+				values[tag] = StructToValues(field)
 			} else {
 				values[tag] = field
 			}
