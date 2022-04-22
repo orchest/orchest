@@ -428,25 +428,25 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 	}
 
 	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestApi.Image == apiImage {
+	if copy.Spec.Orchest.OrchestApi.Image != apiImage {
 		changed = true
 		copy.Spec.Orchest.OrchestApi.Image = apiImage
 	}
 
 	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestWebServer.Image == "" {
+	if copy.Spec.Orchest.OrchestWebServer.Image != webserverImage {
 		changed = true
 		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
 	}
 
 	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.CeleryWorker.Image == "" {
+	if copy.Spec.Orchest.CeleryWorker.Image != celeryWorkerImage {
 		changed = true
 		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
 	}
 
 	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.AuthServer.Image == "" {
+	if copy.Spec.Orchest.AuthServer.Image != authServerImage {
 		changed = true
 		copy.Spec.Orchest.AuthServer.Image = authServerImage
 	}
