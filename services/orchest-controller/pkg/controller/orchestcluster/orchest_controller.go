@@ -403,9 +403,9 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Version = controller.config.OrchestDefaultVersion
 	}
 
-	if copy.Spec.Orchest.Pause == "" {
+	if copy.Spec.Orchest.Pause == nil {
 		changed = true
-		copy.Spec.Orchest.Pause = controller.config.DefaultPause
+		copy.Spec.Orchest.Pause = &controller.config.DefaultPause
 	}
 
 	if copy.Spec.Postgres.Image == "" {
