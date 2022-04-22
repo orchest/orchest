@@ -69,50 +69,6 @@ class SchedulerJob(BaseModel):
         return f"<SchedulerJob: {self.type}>"
 
 
-class EventType(BaseModel):
-    """Type of events recorded by the orchest-api.
-
-    The table has been pre-populated in the schema migration that
-    created it, if you need to add more types add another schema
-    migration. Migrations that have added event types:
-    - services/orchest-api/app/migrations/versions/410e08270de4_.py
-    """
-
-    __tablename__ = "event_types"
-
-    name = db.Column(db.String(50), primary_key=True)
-
-    def __repr__(self):
-        return f"<EventType: {self.name}>"
-
-
-class Event(BaseModel):
-    """Events that happen in the orchest-api
-
-    See EventType for what events are currently covered.
-
-    """
-
-    __tablename__ = "events"
-
-    # as_uuid=False to be consistent with what already happens with
-    # other uuids in the db.
-    uuid = db.Column(UUID(as_uuid=False), primary_key=True, default=uuid.uuid4)
-
-    type = db.Column(
-        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE")
-    )
-
-    timestamp = db.Column(
-        TIMESTAMP(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-    )
-
-    def __repr__(self):
-        return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
-
-
 class Project(BaseModel):
     __tablename__ = "projects"
 
@@ -745,7 +701,7 @@ class NonInteractivePipelineRun(PipelineRun):
     # sqlalchemy has 3 kinds of inheritance: joined table, single table,
     # concrete.
     #
-    # Concrete is, essentially, not recommended unsless you have a
+    # Concrete is, essentially, not recommended unless you have a
     # reason to use it. Will also lead to FKs issues if the base table
     # is abstract.
     #
@@ -1084,3 +1040,96 @@ ForeignKeyConstraint(
     ],
     ondelete="CASCADE",
 )
+
+
+class EventType(BaseModel):
+    """Type of events recorded by the orchest-api.
+
+    The table has been pre-populated in the schema migration that
+    created it, if you need to add more types add another schema
+    migration. Migrations that have added event types:
+    - services/orchest-api/app/migrations/versions/410e08270de4_.py
+    """
+
+    __tablename__ = "event_types"
+
+    name = db.Column(db.String(50), primary_key=True)
+
+    def __repr__(self):
+        return f"<EventType: {self.name}>"
+
+
+class Event(BaseModel):
+    """Events that happen in the orchest-api
+
+    See EventType for what events are currently covered.
+
+    """
+
+    __tablename__ = "events"
+
+    # as_uuid=False to be consistent with what already happens with
+    # other uuids in the db.
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    type = db.Column(
+        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE")
+    )
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": case(
+            [
+                (type.startswith("project:job:"), "job_event"),
+                (type.startswith("project:"), "project_event"),
+            ],
+            else_="event",
+        ),
+        "polymorphic_identity": "event",
+    }
+
+    def __repr__(self):
+        return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
+
+
+class ProjectEvent(Event):
+    """Project events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    project_uuid = db.Column(
+        db.String(36), db.ForeignKey("projects.uuid", ondelete="CASCADE")
+    )
+
+    __mapper_args__ = {"polymorphic_identity": "project_event"}
+
+    def __repr__(self):
+        return (
+            f"<ProjectEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}>"
+        )
+
+
+class JobEvent(ProjectEvent):
+    """Job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    job_uuid = db.Column(db.String(36), db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
+
+    __mapper_args__ = {"polymorphic_identity": "job_event"}
+
+    def __repr__(self):
+        return (
+            f"<JobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
