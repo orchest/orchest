@@ -41,7 +41,6 @@ type ControllerConfig struct {
 	PostgresDefaultImage       string
 	RabbitmqDefaultImage       string
 	OrchestDefaultVersion      string
-	DefaultPause               bool
 	CeleryWorkerImageName      string
 	OrchestApiImageName        string
 	OrchestWebserverImageName  string
@@ -401,11 +400,6 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 	if copy.Spec.Orchest.Version == "" {
 		changed = true
 		copy.Spec.Orchest.Version = controller.config.OrchestDefaultVersion
-	}
-
-	if copy.Spec.Orchest.Pause == "" {
-		changed = true
-		copy.Spec.Orchest.Pause = controller.config.DefaultPause
 	}
 
 	if copy.Spec.Postgres.Image == "" {
