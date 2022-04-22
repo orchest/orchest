@@ -144,6 +144,8 @@ func (r *OrchestClusterController) intiDeployerManager() {
 	r.deployerManager.AddDeployer("argo",
 		deployer.NewHelmDeployer("argo", path.Join(r.config.DeployDir, "thirdparty/argo-workflows")))
 	r.deployerManager.AddDeployer("registry",
+		deployer.NewHelmDeployer("nginx-ingress", path.Join(r.config.DeployDir, "thirdparty/nginx-ingress")))
+	r.deployerManager.AddDeployer("registry",
 		deployer.NewHelmDeployer("registry", path.Join(r.config.DeployDir, "thirdparty/docker-registry")))
 	r.deployerManager.AddDeployer("cert-manager",
 		deployer.NewPathDeployer("cert-manager", path.Join(r.config.DeployDir, "thirdparty/cert-manager"),
