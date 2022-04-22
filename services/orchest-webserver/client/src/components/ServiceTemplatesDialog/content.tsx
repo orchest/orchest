@@ -11,8 +11,8 @@ import React from "react";
 
 export type ServiceTemplate = {
   label: string;
-  icon?: React.ReactNode;
-  config?: Service;
+  icon: React.ReactNode;
+  config: Service;
 };
 
 export type ServiceTemplates = Record<string, ServiceTemplate>;

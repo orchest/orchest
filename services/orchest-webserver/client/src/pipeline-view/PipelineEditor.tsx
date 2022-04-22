@@ -691,6 +691,7 @@ export const PipelineEditor = () => {
             ];
 
             let startNodePosition = getPosition(startNode);
+
             let endNodePosition =
               getPosition(endNode) ||
               (newConnection.current
