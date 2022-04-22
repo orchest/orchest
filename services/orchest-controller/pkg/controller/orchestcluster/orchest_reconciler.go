@@ -228,8 +228,9 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 
 func (r *OrchestReconciler) isPaused(orchest *orchestv1alpha1.OrchestCluster) bool {
 	return orchest.Status != nil &&
-		(orchest.Status.State != orchestv1alpha1.Paused ||
-			orchest.Status.State != orchestv1alpha1.Updating)
+		(orchest.Status.State == orchestv1alpha1.Paused ||
+			orchest.Status.State == orchestv1alpha1.Pausing ||
+			orchest.Status.State == orchestv1alpha1.Updating)
 }
 
 func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster,
