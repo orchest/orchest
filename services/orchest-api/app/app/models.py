@@ -8,6 +8,7 @@ TODO:
 
 """
 import copy
+import uuid
 from typing import Any, Dict
 
 from sqlalchemy import (
@@ -20,7 +21,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
 from sqlalchemy.orm import deferred
 
 from app.connections import db
@@ -83,6 +84,33 @@ class EventType(BaseModel):
 
     def __repr__(self):
         return f"<EventType: {self.name}>"
+
+
+class Event(BaseModel):
+    """Events that happen in the orchest-api
+
+    See EventType for what events are currently covered.
+
+    """
+
+    __tablename__ = "events"
+
+    # as_uuid=False to be consistent with what already happens with
+    # other uuids in the db.
+    uuid = db.Column(UUID(as_uuid=False), primary_key=True, default=uuid.uuid4)
+
+    type = db.Column(
+        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE")
+    )
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    def __repr__(self):
+        return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
 
 
 class Project(BaseModel):
