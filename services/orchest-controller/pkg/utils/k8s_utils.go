@@ -12,7 +12,6 @@ import (
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
-	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -148,15 +147,30 @@ func GetFullImageName(registry, imageName, tag string) string {
 
 func PauseDeployment(ctx context.Context,
 	client kubernetes.Interface,
+	hash string,
 	deployment *appsv1.Deployment) error {
 
-	scale := &autoscalingv1.Scale{
-		Spec: autoscalingv1.ScaleSpec{
-			Replicas: 0,
-		},
-	}
+	ZeroReplica := int32(0)
+	/*
+		scale := &autoscalingv1.Scale{
+			ObjectMeta: deployment.ObjectMeta,
+			Spec: autoscalingv1.ScaleSpec{
+				Replicas: 0,
+			},
+		}
 
-	_, err := client.AppsV1().Deployments(deployment.Namespace).UpdateScale(ctx, deployment.Name, scale, metav1.UpdateOptions{})
+		_, err := client.AppsV1().Deployments(deployment.Namespace).UpdateScale(ctx, deployment.Name, scale, metav1.UpdateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
+		}
+	*/
+
+	cloneDep := deployment.DeepCopy()
+	cloneDep.Spec.Paused = true
+	cloneDep.Spec.Replicas = &ZeroReplica
+	cloneDep.Labels[appsv1.ControllerRevisionHashLabelKey] = hash
+
+	_, err := client.AppsV1().Deployments(deployment.Namespace).Update(ctx, cloneDep, metav1.UpdateOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
 	}

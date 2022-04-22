@@ -128,13 +128,13 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 	// compute the hash of current version.
 	curHash := ComputeHash(&orchest.Spec)
 	// retrive the hash of the reconciled object
-	oldHash, _ := orchest.GetLabels()[ControllerLabelKey]
+	oldHash := orchest.GetLabels()[ControllerLabelKey]
 
 	needUpdate := curHash != oldHash
 
 	// If needUpdate is true, and the oldHash is present, the cluster should be paused first
-	if (needUpdate || *orchest.Spec.Orchest.Pause) && !r.isPaused(orchest) {
-		orchest, err = r.pauseOrchest(ctx, orchest)
+	if needUpdate && !r.isPaused(orchest) {
+		orchest, err = r.pauseOrchest(ctx, curHash, orchest)
 		if err != nil {
 			return errors.Wrapf(err, "failed to pause the cluster, cluster: %s", r.key)
 		}
@@ -156,7 +156,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 	}
 
 	// get the current deployments and pause them (change their replica to 0)
-	deployments, err := r.getDeployments(ctx, orchest)
+	deployments, err := r.getDeployments(orchest)
 	if err != nil {
 		return err
 	}
@@ -227,24 +227,40 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 }
 
 func (r *OrchestReconciler) isPaused(orchest *orchestv1alpha1.OrchestCluster) bool {
-	return orchest.Status != nil &&
-		(orchest.Status.State == orchestv1alpha1.Paused ||
-			orchest.Status.State == orchestv1alpha1.Pausing ||
-			orchest.Status.State == orchestv1alpha1.Updating)
-}
 
-func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster,
-	error) {
-
-	orchest, err := r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, "Pausing the cluster")
+	// get the current deployments
+	deployments, err := r.getDeployments(orchest)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
+		return false
 	}
 
+	for _, deployment := range deployments {
+		if !deployment.Spec.Paused {
+			return false
+		}
+	}
+
+	return true
+
+}
+
+func (r *OrchestReconciler) pauseOrchest(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster,
+	error) {
+
 	// get the current deployments and pause them (change their replica to 0)
-	deployments, err := r.getDeployments(ctx, orchest)
+	deployments, err := r.getDeployments(orchest)
 	if err != nil {
 		return nil, err
+	}
+
+	// There is no deployment, return early
+	if len(deployments) == 0 {
+		return orchest, nil
+	}
+
+	orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, "Pausing the cluster")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
 	}
 
 	// the deployments should be stopped in reverse order
@@ -253,11 +269,21 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 		deployment, ok := deployments[orderOfDeployment[i]]
 		// deployment exist, we need to scale it down
 		if ok {
+			// Deployment exist, and the hash of deployment is equal to hash object, there is no need for pausing
+			if deployment.GetLabels()[ControllerRevisionHashLabelKey] == hash {
+				continue
+			}
+
+			// Deployment is already paused, continue
+			if deployment.Spec.Paused {
+				continue
+			}
+
 			orchest, err := r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Pausing %s", deployment.Name))
 			if err != nil {
 				return orchest, errors.Wrapf(err, "failed to update status while pausing orchest-webserver")
 			}
-			utils.PauseDeployment(ctx, r.getClient(), deployment)
+			utils.PauseDeployment(ctx, r.getClient(), hash, deployment)
 
 			orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Paused %s", deployment.Name))
 			if err != nil {
@@ -276,7 +302,7 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 }
 
 // gets the deployments accociated with OrchestCluster and returns a map of them
-func (r *OrchestReconciler) getDeployments(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (
+func (r *OrchestReconciler) getDeployments(orchest *orchestv1alpha1.OrchestCluster) (
 	map[string]*appsv1.Deployment, error) {
 
 	// get the current deployments and pause them (change their replica to 0)

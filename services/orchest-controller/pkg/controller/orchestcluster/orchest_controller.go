@@ -34,6 +34,9 @@ var (
 	OrchestClusterKind             = "OrchestCluster"
 	OrchestClusterVersion          = "orchest.io/v1alpha1"
 	ControllerRevisionHashLabelKey = "controller-revision-hash"
+
+	True  = true
+	False = false
 )
 
 type ControllerConfig struct {
