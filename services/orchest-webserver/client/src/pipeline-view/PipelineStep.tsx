@@ -62,7 +62,11 @@ const formatSeconds = (seconds: number) => {
 export const getStateText = (executionState: ExecutionState) => {
   let stateText = "Ready";
 
-  if (executionState.status === "SUCCESS") {
+  if (
+    executionState.status === "SUCCESS" &&
+    executionState.started_time &&
+    executionState.finished_time
+  ) {
     let seconds = Math.round(
       (executionState.finished_time.getTime() -
         executionState.started_time.getTime()) /
@@ -74,7 +78,7 @@ export const getStateText = (executionState: ExecutionState) => {
   if (executionState.status === "FAILURE") {
     let seconds = 0;
 
-    if (executionState.started_time !== undefined) {
+    if (executionState.started_time && executionState.finished_time) {
       seconds = Math.round(
         (executionState.finished_time.getTime() -
           executionState.started_time.getTime()) /
@@ -87,7 +91,7 @@ export const getStateText = (executionState: ExecutionState) => {
   if (executionState.status === "STARTED") {
     let seconds = 0;
 
-    if (executionState.started_time !== undefined) {
+    if (executionState.started_time && executionState.server_time) {
       seconds = Math.round(
         (executionState.server_time.getTime() -
           executionState.started_time.getTime()) /
@@ -106,7 +110,20 @@ export const getStateText = (executionState: ExecutionState) => {
   return stateText;
 };
 
-const PipelineStepComponent = React.forwardRef(function PipelineStep(
+const PipelineStepComponent = React.forwardRef<
+  HTMLDivElement,
+  {
+    data: PipelineStepState;
+    selected: boolean;
+    movedToTop: boolean;
+    isStartNodeOfNewConnection: boolean;
+    savePositions: () => void;
+    onDoubleClick: (stepUUID: string) => void;
+    interactiveConnections: Connection[];
+    getPosition: (node: HTMLElement | undefined | null) => Position | null;
+    children: React.ReactNode;
+  }
+>(function PipelineStep(
   {
     data,
     selected,
@@ -118,18 +135,8 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
     interactiveConnections,
     getPosition,
     children, // expose children, so that children doesn't re-render when step is being dragged
-  }: {
-    data: PipelineStepState;
-    selected: boolean;
-    movedToTop: boolean;
-    isStartNodeOfNewConnection: boolean;
-    savePositions: () => void;
-    onDoubleClick: (stepUUID: string) => void;
-    interactiveConnections: Connection[];
-    getPosition: (element: HTMLElement) => Position;
-    children: React.ReactNode;
   },
-  ref: React.MutableRefObject<HTMLDivElement>
+  ref
 ) {
   const [, forceUpdate] = useForceUpdate();
   const { setAlert } = useAppContext();
@@ -225,6 +232,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
         return;
       }
 
+      if (!pipelineCwd) return;
       dispatch({
         type: "ASSIGN_FILE_TO_STEP",
         payload: {
@@ -315,7 +323,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
       }
       resetDraggingVariables();
     }
-    if (e.detail === 2) {
+    if (e.detail === 2 && projectUuid && pipelineUuid) {
       const valid = await isValidFile(projectUuid, pipelineUuid, file_path);
       if (valid) onDoubleClick(uuid);
     }
@@ -464,7 +472,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
           const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
           const endNode = endNodeUUID
             ? stepDomRefs.current[`${endNodeUUID}-incoming`]
-            : null;
+            : undefined;
 
           // startNode is required
           if (!startNode) return null;
@@ -478,7 +486,7 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
 
           const shouldUpdateEnd =
             cursorControlledStep === endNodeUUID ||
-            (selectedSteps.includes(endNodeUUID) &&
+            (selectedSteps.includes(endNodeUUID || "") &&
               selectedSteps.includes(cursorControlledStep));
 
           const shouldUpdate = [shouldUpdateStart, shouldUpdateEnd] as [
@@ -495,19 +503,21 @@ const PipelineStepComponent = React.forwardRef(function PipelineStep(
             selectedConnection?.endNodeUUID === endNodeUUID;
 
           return (
-            <InteractiveConnection
-              key={key}
-              startNodeUUID={startNodeUUID}
-              endNodeUUID={endNodeUUID}
-              getPosition={getPosition}
-              selected={selected}
-              stepDomRefs={stepDomRefs}
-              startNodeX={startNodePosition.x}
-              startNodeY={startNodePosition.y}
-              endNodeX={endNodePosition?.x}
-              endNodeY={endNodePosition?.y}
-              shouldUpdate={shouldUpdate}
-            />
+            startNodePosition && (
+              <InteractiveConnection
+                key={key}
+                startNodeUUID={startNodeUUID}
+                endNodeUUID={endNodeUUID}
+                getPosition={getPosition}
+                selected={selected}
+                stepDomRefs={stepDomRefs}
+                startNodeX={startNodePosition.x}
+                startNodeY={startNodePosition.y}
+                endNodeX={endNodePosition?.x}
+                endNodeY={endNodePosition?.y}
+                shouldUpdate={shouldUpdate}
+              />
+            )
           );
         })}
     </>

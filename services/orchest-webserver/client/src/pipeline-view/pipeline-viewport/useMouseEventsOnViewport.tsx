@@ -10,6 +10,7 @@ import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
  */
 export const useMouseEventsOnViewport = () => {
   const {
+    disabled,
     keysDown,
     eventVars,
     mouseTracker,
@@ -102,6 +103,7 @@ export const useMouseEventsOnViewport = () => {
   );
 
   React.useEffect(() => {
+    if (disabled) return;
     const supportPointerEvent = hasValue(window.PointerEvent);
 
     const downEventType = supportPointerEvent ? "pointerdown" : "mousedown";
@@ -120,6 +122,7 @@ export const useMouseEventsOnViewport = () => {
       document.body.removeEventListener(leaveEventType, onMouseLeaveViewport);
     };
   }, [
+    disabled,
     onMouseLeaveViewport,
     onMouseMoveDocument,
     onMouseDownDocument,

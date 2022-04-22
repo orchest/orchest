@@ -13,8 +13,11 @@ from celery.utils.log import get_task_logger
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree
 from app import create_app
+from app import errors as self_errors
+from app import utils
 from app.celery_app import make_celery
 from app.connections import k8s_custom_obj_api
+from app.core import environments, registry
 from app.core.environment_image_builds import build_environment_image_task
 from app.core.jupyter_image_builds import build_jupyter_image_task
 from app.core.pipelines import Pipeline, run_pipeline_workflow
@@ -28,7 +31,8 @@ logger = get_task_logger(__name__)
 # databases) is called twice, which means celery-worker needs the
 # /userdir bind to access the DB which is probably not a good idea.
 # create_all should only be called once per app right?
-celery = make_celery(create_app(CONFIG_CLASS, use_db=False), use_backend_db=True)
+application = create_app(CONFIG_CLASS, use_db=True, register_api=False)
+celery = make_celery(application, use_backend_db=True)
 
 
 # This will not work yet, because Celery does not yet support asyncio
@@ -257,9 +261,7 @@ def build_environment_image(
 # https://stackoverflow.com/questions/9034091/how-to-check-task-status-in-celery
 # @celery.task(bind=True, ignore_result=True)
 @celery.task(bind=True, base=AbortableTask)
-def build_jupyter_image(
-    self,
-) -> str:
+def build_jupyter_image(self, image_tag: str) -> str:
     """Builds Jupyter image, pushing a new image to the registry.
 
     Returns:
@@ -267,7 +269,7 @@ def build_jupyter_image(
 
     """
 
-    return build_jupyter_image_task(self.request.id)
+    return build_jupyter_image_task(self.request.id, image_tag)
 
 
 @celery.task(bind=True, base=AbortableTask)
@@ -284,3 +286,74 @@ def delete_job_pipeline_run_directories(
         shutil.rmtree(os.path.join(job_dir, uuid), ignore_errors=True)
 
     return "SUCCESS"
+
+
+@celery.task(bind=True, base=AbortableTask)
+def registry_garbage_collection(self) -> None:
+    """Runs the registry garbage collection task.
+
+    Images that are to be removed are removed from the registry and
+    registry garbage collection is run if necessary.
+    """
+    with application.app_context():
+        has_deleted_images = False
+        repositories_to_gc = []
+        repos = registry.get_list_of_repositories()
+
+        # Env images + custom Jupyter images.
+        repos_of_interest = [
+            repo
+            for repo in repos
+            if repo.startswith("orchest-env")
+            or repo.startswith(_config.JUPYTER_IMAGE_NAME)
+        ]
+        active_env_images = environments.get_active_environment_images()
+        active_env_image_names = set(
+            _config.ENVIRONMENT_IMAGE_NAME.format(
+                project_uuid=img.project_uuid, environment_uuid=img.environment_uuid
+            )
+            + f":{img.tag}"
+            for img in active_env_images
+        )
+        active_custom_jupyter_images = utils.get_active_custom_jupyter_images()
+        active_custom_jupyter_image_names = set(
+            f"{_config.JUPYTER_IMAGE_NAME}:{img.tag}"
+            for img in active_custom_jupyter_images
+        )
+
+        active_image_names = active_env_image_names.union(
+            active_custom_jupyter_image_names
+        )
+
+        # Go through all env image repos, for every tag, check if the
+        # image is in the active images, if not, delete it. If the
+        # image is not among the actives it means that it's either in
+        # the set of images where marked_for_removal = True, or the
+        # image isn't there at all, i.e. the project or environment has
+        # been deleted.
+        for repo in repos_of_interest:
+            tags = registry.get_tags_of_repository(repo)
+
+            all_tags_removed = True
+            for tag in tags:
+                name = f"{repo}:{tag}"
+                if name not in active_image_names:
+                    logger.info(f"Deleting {name} from the registry.")
+                    has_deleted_images = True
+                    digest = registry.get_manifest_digest(repo, tag)
+                    try:
+                        registry.delete_image_by_digest(
+                            repo, digest, run_garbage_collection=False
+                        )
+                    except self_errors.ImageRegistryDeletionError as e:
+                        logger.warning(e)
+                else:
+                    all_tags_removed = False
+                    logger.info(f"Not deleting {name} from the registry.")
+
+            if all_tags_removed:
+                repositories_to_gc.append(repo)
+
+        if has_deleted_images or repositories_to_gc:
+            registry.run_registry_garbage_collection(repositories_to_gc)
+        return "SUCCESS"

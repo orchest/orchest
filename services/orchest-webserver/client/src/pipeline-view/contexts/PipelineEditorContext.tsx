@@ -1,3 +1,4 @@
+import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useForceUpdate } from "@/hooks/useForceUpdate";
 import {
@@ -23,34 +24,41 @@ import {
 import { useFetchInteractiveRun } from "../hooks/useFetchInteractiveRun";
 import { useInitializePipelineEditor } from "../hooks/useInitializePipelineEditor";
 import { useIsReadOnly } from "../hooks/useIsReadOnly";
-import { SocketIO, useSocketIO } from "../hooks/useSocketIO";
 
 export type PipelineEditorContextType = {
-  projectUuid: string;
+  projectUuid: string | undefined;
   pipelineUuid: string | undefined;
-  jobUuid: string;
+  jobUuid: string | undefined;
   runUuid: string | undefined;
   eventVars: EventVars;
   dispatch: (value: EventVarsAction) => void;
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
-  pipelineCanvasRef: React.MutableRefObject<HTMLDivElement>;
-  newConnection: React.MutableRefObject<NewConnection>;
+  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  pipelineCanvasRef: React.MutableRefObject<HTMLDivElement | undefined>;
+  newConnection: React.MutableRefObject<NewConnection | undefined>;
   keysDown: Set<number | string>;
   trackMouseMovement: (clientX: number, clientY: number) => void;
   mouseTracker: React.MutableRefObject<MouseTracker>;
   metadataPositions: React.MutableRefObject<Record<string, [number, number]>>;
-  pipelineCwd: string;
+  pipelineCwd: string | undefined;
   pipelineJson: PipelineJson;
   environments: Environment[];
   setPipelineJson: (
-    data?: PipelineJson | Promise<PipelineJson> | MutatorCallback<PipelineJson>,
+    data?:
+      | PipelineJson
+      | undefined
+      | Promise<PipelineJson | undefined>
+      | MutatorCallback<PipelineJson | undefined>,
     flushPage?: boolean
   ) => void;
   hash: React.MutableRefObject<string>;
   fetchDataError: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   setRunUuid: (
-    data?: string | Promise<string> | MutatorCallback<string>
-  ) => Promise<string>;
+    data?:
+      | string
+      | Promise<string | undefined>
+      | MutatorCallback<string | undefined>
+      | undefined
+  ) => Promise<string | undefined>;
   zIndexMax: React.MutableRefObject<number>;
   isReadOnly: boolean;
   instantiateConnection: (
@@ -58,28 +66,33 @@ export type PipelineEditorContextType = {
     endNodeUUID?: string | undefined
   ) => {
     startNodeUUID: string;
-    endNodeUUID: string;
+    endNodeUUID: string | undefined;
   };
-  sio: SocketIO;
-  session: IOrchestSession;
+  session: IOrchestSession | undefined;
   getOnCanvasPosition: (offset: Position) => Position;
+  disabled: boolean;
 };
 
-export const PipelineEditorContext = React.createContext<
-  PipelineEditorContextType
->(null);
+export const PipelineEditorContext = React.createContext<PipelineEditorContextType | null>(
+  null
+);
 
-export const usePipelineEditorContext = () =>
-  React.useContext(PipelineEditorContext);
+export const usePipelineEditorContext = () => {
+  const context = React.useContext(PipelineEditorContext);
+  if (context === null) throw new Error("Context not initialized.");
+  return context;
+};
 
 export const PipelineEditorContextProvider: React.FC = ({ children }) => {
   const {
-    projectUuid,
-    pipelineUuid,
-    jobUuid,
-    runUuid: runUuidFromRoute,
-    isReadOnly: isReadOnlyFromQueryString,
-  } = useCustomRoute();
+    state: { pipelines, projectUuid, pipeline },
+  } = useProjectsContext();
+  const pipelineUuid = pipeline?.uuid;
+
+  const { jobUuid, runUuid: runUuidFromRoute } = useCustomRoute();
+
+  // No pipeline found. Editor is frozen and shows "Pipeline not found".
+  const disabled = hasValue(pipelines) && pipelines.length === 0;
 
   const pipelineCanvasRef = React.useRef<HTMLDivElement>();
 
@@ -135,13 +148,7 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     runUuidFromRoute
   );
 
-  const isJobRun = hasValue(jobUuid && runUuidFromRoute);
-  const isReadOnly = useIsReadOnly(
-    projectUuid,
-    jobUuid,
-    runUuid,
-    isJobRun || isReadOnlyFromQueryString
-  );
+  const isReadOnly = useIsReadOnly(projectUuid, jobUuid, runUuid);
 
   const {
     pipelineCwd,
@@ -150,22 +157,9 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
     setPipelineJson,
     hash,
     error: fetchDataError,
-  } = useInitializePipelineEditor(
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    runUuid,
-    isReadOnly,
-    initializeEventVars
-  );
+  } = useInitializePipelineEditor(runUuid, isReadOnly, initializeEventVars);
 
-  const sio = useSocketIO();
-
-  const session = useAutoStartSession({
-    projectUuid,
-    pipelineUuid,
-    isReadOnly,
-  });
+  const session = useAutoStartSession({ isReadOnly });
 
   React.useEffect(() => {
     const startTracking = (e: MouseEvent) =>
@@ -230,9 +224,9 @@ export const PipelineEditorContextProvider: React.FC = ({ children }) => {
         isReadOnly,
         instantiateConnection,
         jobUuid,
-        sio,
         session,
         getOnCanvasPosition,
+        disabled,
       }}
     >
       {children}

@@ -3,8 +3,10 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
+import { Job } from "@/types";
 import {
   getPipelineJSONEndpoint,
   getPipelineStepChildren,
@@ -16,6 +18,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import {
+  fetcher,
   hasValue,
   makeCancelable,
   makeRequest,
@@ -37,7 +40,7 @@ const MODE_MAPPING = {
 const FilePreviewView: React.FC = () => {
   // global states
   const { setAlert } = useAppContext();
-  const { dispatch } = useProjectsContext();
+  const { state: projectsState, dispatch } = useProjectsContext();
   useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
 
   // data from route
@@ -88,48 +91,37 @@ const FilePreviewView: React.FC = () => {
     );
   };
 
-  const fetchPipeline = () =>
-    new Promise((resolve, reject) => {
-      setState((prevState) => ({
-        ...prevState,
-        loadingFile: true,
-      }));
+  const fetchPipeline = async () => {
+    if (!pipelineUuid) return;
+    setState((prevState) => ({
+      ...prevState,
+      loadingFile: true,
+    }));
 
-      let pipelineURL = isJobRun
-        ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
-        : getPipelineJSONEndpoint(pipelineUuid, projectUuid);
+    let pipelineURL = isJobRun
+      ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
+      : getPipelineJSONEndpoint(pipelineUuid, projectUuid);
 
-      let fetchPipelinePromise = makeCancelable(
-        makeRequest("GET", pipelineURL),
-        promiseManager
-      );
+    const [pipelineJson, job] = await Promise.all([
+      fetchPipelineJson(pipelineURL),
+      jobUuid ? fetcher<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`) : null,
+    ]);
 
-      fetchPipelinePromise.promise
-        .then((response) => {
-          let pipelineJSON = JSON.parse(JSON.parse(response)["pipeline_json"]);
+    const pipelineFilePath =
+      job?.pipeline_run_spec.run_config.pipeline_path ||
+      projectsState?.pipeline?.path;
 
-          dispatch({
-            type: "pipelineSet",
-            payload: {
-              pipelineUuid,
-              projectUuid,
-              pipelineName: pipelineJSON.name,
-            },
-          });
-
-          setState((prevState) => ({
-            ...prevState,
-            parentSteps: getPipelineStepParents(stepUuid, pipelineJSON),
-            childSteps: getPipelineStepChildren(stepUuid, pipelineJSON),
-          }));
-
-          resolve(undefined);
-        })
-        .catch((err) => {
-          console.log(err);
-          reject();
-        });
+    dispatch({
+      type: "UPDATE_PIPELINE",
+      payload: { uuid: pipelineUuid, path: pipelineFilePath },
     });
+
+    setState((prevState) => ({
+      ...prevState,
+      parentSteps: getPipelineStepParents(stepUuid, pipelineJson),
+      childSteps: getPipelineStepChildren(stepUuid, pipelineJson),
+    }));
+  };
 
   const fetchAll = () =>
     new Promise((resolve, reject) => {
@@ -352,9 +344,9 @@ const FilePreviewView: React.FC = () => {
               }
 
               fileComponent = (
-                // @ts-ignore
                 <CodeMirror
                   value={state.fileDescription.content}
+                  onBeforeChange={undefined}
                   options={{
                     mode: fileMode,
                     theme: "jupyter",

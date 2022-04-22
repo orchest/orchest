@@ -4,9 +4,8 @@ import EnvironmentEditView from "./environment-edit-view/EnvironmentEditView";
 import JobView from "./job-view/JobView";
 import JobsView from "./jobs-view/JobsView";
 import PipelineSettingsView from "./pipeline-settings-view/PipelineSettingsView";
-import LogsView from "./pipeline-view/LogsView";
+import { LogsView } from "./pipeline-view/LogsView";
 import PipelineView from "./pipeline-view/PipelineView";
-import PipelinesView from "./pipelines-view/PipelinesView";
 import ExamplesView from "./projects-view/ExamplesView";
 import ProjectsView from "./projects-view/ProjectsView";
 import ConfigureJupyterLabView from "./views/ConfigureJupyterLabView";
@@ -23,7 +22,6 @@ type RouteName =
   | "projects"
   | "examples"
   | "projectSettings"
-  | "pipelines"
   | "pipeline"
   | "jupyterLab"
   | "pipelineSettings"
@@ -60,10 +58,7 @@ const _getTitle = (pageTitle: string) => `${pageTitle} · Orchest`;
 // to add new route, you would also need to add the route name to RouteName.
 // NOTE: the order of the routes matters, react-router loads the first route that matches the given path
 
-export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
-  if (getTitle === undefined) {
-    getTitle = _getTitle;
-  }
+export const getOrderedRoutes = (getTitle = _getTitle) => {
   return [
     {
       name: "projects",
@@ -86,43 +81,36 @@ export const getOrderedRoutes = (getTitle?: (props: unknown) => string) => {
       component: ProjectSettingsView,
     },
     {
-      name: "pipelines",
-      path: "/pipelines",
-      title: getTitle("Pipelines"),
-      component: PipelinesView,
-    },
-    {
       name: "pipeline",
       path: "/pipeline",
-      root: "/pipelines",
       title: getTitle("Pipeline"),
       component: PipelineView,
     },
     {
       name: "jupyterLab",
       path: "/jupyter-lab",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("JupyterLab"),
       component: JupyterLabView,
     },
     {
       name: "pipelineSettings",
       path: "/pipeline-settings",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Pipeline Settings"),
       component: PipelineSettingsView,
     },
     {
       name: "filePreview",
       path: "/file-preview",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Step File Preview"),
       component: FilePreviewView,
     },
     {
       name: "logs",
       path: "/logs",
-      root: "/pipelines",
+      root: "/pipeline",
       title: getTitle("Logs"),
       component: LogsView,
     },
@@ -247,7 +235,7 @@ export const siteMap = getOrderedRoutes().reduce<Record<RouteName, RouteData>>(
 export const projectRootPaths = [
   siteMap.jobs.path,
   siteMap.environments.path,
-  siteMap.pipelines.path,
+  siteMap.pipeline.path,
 ];
 
 export const withinProjectPaths = getOrderedRoutes().reduce<
@@ -257,7 +245,7 @@ export const withinProjectPaths = getOrderedRoutes().reduce<
   // i.e. if the context involves multiple projects, it should be excluded
   if (
     projectRootPaths.includes(curr.path) ||
-    projectRootPaths.includes(curr.root) ||
+    projectRootPaths.includes(curr.root || "") ||
     curr.path === "/project"
     // projectsPaths.includes(curr.path)
   ) {
@@ -279,7 +267,7 @@ const snakeCase = (str: string, divider = "_") =>
     .toLowerCase();
 
 export const toQueryString = <T extends string>(
-  query: Record<T, string | number | boolean | undefined | null>
+  query: Record<T, string | number | boolean | undefined | null> | null
 ) => {
   const isObject =
     typeof query === "object" &&

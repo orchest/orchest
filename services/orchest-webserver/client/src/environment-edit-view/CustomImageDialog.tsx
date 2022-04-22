@@ -36,7 +36,7 @@ export const CustomImageDialog = ({
   initialValue,
   setCustomImage,
 }: {
-  initialValue: CustomImage | null;
+  initialValue: CustomImage | undefined;
   isOpen: boolean;
   onClose: () => void;
   saveEnvironment: ({
@@ -176,14 +176,14 @@ export const CustomImageDialog = ({
                 </FormGroup>
                 {values.gpu_support && (
                   <Alert severity="info" tabIndex={-1}>
-                    {config.GPU_ENABLED_INSTANCE && (
+                    {config?.GPU_ENABLED_INSTANCE && (
                       <>
                         If enabled, the environment will request GPU
                         capabilities when in use.
                       </>
                     )}
-                    {!config.GPU_ENABLED_INSTANCE &&
-                      (config.CLOUD ? (
+                    {!config?.GPU_ENABLED_INSTANCE &&
+                      (config?.CLOUD ? (
                         <>
                           This instance is not configured with a GPU. Change the
                           instance type to a GPU enabled one if you need GPU
@@ -195,7 +195,7 @@ export const CustomImageDialog = ({
                           {`Could not detect a GPU. Check out `}
                           <Link
                             target="_blank"
-                            href={`${config.ORCHEST_WEB_URLS.readthedocs}/getting_started/installation.html#gpu-support`}
+                            href={`${config?.ORCHEST_WEB_URLS.readthedocs}/getting_started/installation.html#gpu-support`}
                             rel="noopener noreferrer"
                             tabIndex={-1}
                           >

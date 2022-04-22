@@ -56,10 +56,9 @@ def write_jupyter_dockerfile(work_dir, bash_script, path):
 
     """
     statements = []
-    statements.append(f"FROM orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}")
-    # Create a layer (apparently helps with buildkit caching base image
-    # layers). Also helps with logs (see _build_image).
-    statements.append("RUN echo orchest")
+    statements.append(
+        f"FROM docker.io/orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
+    )
     statements.append(f'WORKDIR {os.path.join("/", work_dir)}')
 
     statements.append("COPY . .")
@@ -141,7 +140,7 @@ def prepare_build_context(task_uuid):
     }
 
 
-def build_jupyter_image_task(task_uuid):
+def build_jupyter_image_task(task_uuid: str, image_tag: str):
     """Function called by the celery task to build Jupyter image.
 
     Builds a Jupyter image given the arguments, the logs produced by the
@@ -150,6 +149,7 @@ def build_jupyter_image_task(task_uuid):
 
     Args:
         task_uuid:
+        image_tag:
 
     Returns:
 
@@ -178,7 +178,7 @@ def build_jupyter_image_task(task_uuid):
                 task_lambda=lambda user_logs_fo: build_image(
                     task_uuid,
                     image_name,
-                    "latest",
+                    image_tag,
                     build_context,
                     user_logs_fo,
                     complete_logs_path,

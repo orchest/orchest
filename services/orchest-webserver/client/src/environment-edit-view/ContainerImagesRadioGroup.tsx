@@ -15,6 +15,7 @@ import { styled, SxProps, Theme } from "@mui/material/styles";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
   DEFAULT_BASE_IMAGES,
@@ -32,7 +33,7 @@ const ImageOption: React.FC<{
   sx?: SxProps<Theme>;
 }> = ({ title, value, supportGpu, sx, children, disabled }) => {
   const radioGroup = useRadioGroup();
-  const checked = radioGroup && radioGroup.value === value;
+  const checked = hasValue(radioGroup) && radioGroup.value === value;
 
   const icon = (
     <>
@@ -62,7 +63,7 @@ const ImageOption: React.FC<{
     <FormControlLabel
       value={value}
       disabled={disabled}
-      label={<Typography sx={visuallyHidden}>{value}</Typography>}
+      label={<Typography style={visuallyHidden}>{value}</Typography>}
       sx={{ margin: 0, width: "100%" }}
       control={
         <Radio
@@ -87,10 +88,10 @@ export const ContainerImagesRadioGroup = ({
   customImage,
   disabled,
 }: {
-  value: string;
+  value: string | undefined;
   onChange: (newImage: CustomImage) => void;
   onOpenCustomBaseImageDialog: () => void;
-  customImage: CustomImage;
+  customImage: CustomImage | undefined;
   disabled: boolean;
 }) => {
   const onChangeSelection = (baseImage: string) => {
@@ -99,9 +100,10 @@ export const ContainerImagesRadioGroup = ({
       onChange(customImage);
       return;
     }
-    onChange(
-      DEFAULT_BASE_IMAGES.find((image) => image.base_image === baseImage)
+    const foundDefaultImage = DEFAULT_BASE_IMAGES.find(
+      (image) => image.base_image === baseImage
     );
+    if (foundDefaultImage) onChange(foundDefaultImage);
   };
   return (
     <RadioGroup value={value} onChange={(e, value) => onChangeSelection(value)}>

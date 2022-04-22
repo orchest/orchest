@@ -5,7 +5,7 @@ import { siteMap } from "@/Routes";
 import { Position } from "@/types";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { hasValue } from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
@@ -77,6 +77,8 @@ export const FileManagerContextMenu: React.FC<{
   const handleContextView = React.useCallback(() => {
     handleClose();
 
+    if (!pipelineUuid) return;
+
     const foundStep = Object.values(pipelineJson.steps).find((step) => {
       return (
         step.file_path.replace(/^\.\//, "") ===
@@ -118,11 +120,20 @@ export const FileManagerContextMenu: React.FC<{
     setAlert,
   ]);
 
-  const rootIsProject = contextMenuCombinedPath
-    ? contextMenuCombinedPath.startsWith("/project-dir")
-    : false;
+  const rootIsProject =
+    hasValue(contextMenuCombinedPath) &&
+    contextMenuCombinedPath.startsWith("/project-dir");
+
   const contextPathIsFile =
     contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");
+
+  const contextPathIsAllowedFileType =
+    contextMenuCombinedPath &&
+    ALLOWED_STEP_EXTENSIONS.some((allowedType) =>
+      contextMenuCombinedPath
+        .toLocaleLowerCase()
+        .endsWith(`.${allowedType.toLocaleLowerCase()}`)
+    );
 
   return (
     <Menu
@@ -145,7 +156,7 @@ export const FileManagerContextMenu: React.FC<{
               Edit
             </MenuItem>
           )}
-          {contextPathIsFile && (
+          {pipelineUuid && contextPathIsAllowedFileType && (
             <MenuItem dense onClick={handleContextView}>
               View
             </MenuItem>

@@ -54,10 +54,10 @@ export const useValidateFilesOnSteps = () => {
           "Warning",
           <Stack spacing={2} direction="column">
             <Box>
-              Following Notebook files have already been used in the pipeline.
-              Assigning the same Notebook file to multiple steps is not
-              supported. Please convert to a script to re-use file across
-              pipeline steps.
+              The following Notebook files have already been used in the
+              pipeline. Assigning the same Notebook file to multiple steps is
+              not supported. Please convert them to language-specific files in
+              order to reuse the code.
             </Box>
             <ul>
               {usedNotebookFiles.map((file) => (

@@ -25,7 +25,7 @@ const getProjectMenuItems = (projectUuid: string): ItemData[] => [
   {
     label: "Pipelines",
     icon: <DeviceHubIcon />,
-    path: `${siteMap.pipelines.path}${toQueryString({ projectUuid })}`,
+    path: `${siteMap.pipeline.path}${toQueryString({ projectUuid })}`,
   },
   {
     label: "Jobs",
@@ -119,7 +119,7 @@ export const AppDrawer: React.FC<{ isOpen?: boolean }> = ({ isOpen }) => {
   const location = useLocation();
   const pathname = location.pathname;
 
-  const { navigateTo, jobUuid, runUuid } = useCustomRoute();
+  const { navigateTo } = useCustomRoute();
 
   const projectMenuItems = getProjectMenuItems(projectUuid);
 

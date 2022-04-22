@@ -36,3 +36,7 @@ class ImageBuildFailedError(Exception):
 
 class ImageNotFound(Exception):
     pass
+
+
+class ImageRegistryDeletionError(Exception):
+    ...

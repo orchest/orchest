@@ -1,7 +1,7 @@
 export type FetchError = {
   status?: number;
   message: string;
-  body?: any;
+  body?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
 };
 
 export const fetcher = async <T>(url: RequestInfo, params?: RequestInit) => {

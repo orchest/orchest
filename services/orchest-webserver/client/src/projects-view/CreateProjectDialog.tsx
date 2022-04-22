@@ -52,7 +52,7 @@ export const CreateProjectDialog = ({
       );
 
       dispatch((state) => ({
-        type: "projectsSet",
+        type: "SET_PROJECTS",
         payload: [
           ...state.projects,
           {
@@ -68,7 +68,7 @@ export const CreateProjectDialog = ({
         ],
       }));
 
-      navigateTo(siteMap.pipelines.path, {
+      navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: project_uuid },
       });
     } catch (error) {

@@ -4,21 +4,33 @@ import React from "react";
 /**
  * a generic hook that is used to persist mutations of properties of PipelineJson
  */
-export function usePipelineProperty<T>(initialValue: T, fallbackValue?: T) {
+export function usePipelineProperty<T>({
+  initialValue,
+  fallbackValue,
+  updateHash,
+}: {
+  initialValue: T | undefined;
+  fallbackValue?: T;
+  updateHash: string;
+}) {
   const { setAsSaved } = useAppContext();
 
-  const [pipelineProperty, _setPipelineProperty] = React.useState<T>(undefined);
-  const isNameInitialized = React.useRef(false);
+  const [pipelineProperty, _setPipelineProperty] = React.useState<
+    T | undefined
+  >(undefined);
 
+  const localHash = React.useRef<string>("");
+
+  // Only re-initialize the value if hash is changed
   React.useEffect(() => {
-    if (!isNameInitialized.current && initialValue) {
-      isNameInitialized.current = true;
+    if (initialValue && localHash.current !== updateHash) {
+      localHash.current = updateHash;
       _setPipelineProperty(initialValue);
     }
-  }, [initialValue, _setPipelineProperty]);
+  }, [initialValue, updateHash, _setPipelineProperty]);
 
   const setPipelineProperty = React.useCallback(
-    (value: React.SetStateAction<T>) => {
+    (value: React.SetStateAction<T | undefined>) => {
       _setPipelineProperty(value);
       setAsSaved(false);
     },

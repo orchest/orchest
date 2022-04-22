@@ -4,10 +4,13 @@ import React from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
-export const useFetchPipelines = (projectUuid: string | undefined) => {
+export const useFetchPipelines = (
+  projectUuid: string | undefined,
+  shouldFetch = true
+) => {
   const { cache } = useSWRConfig();
   const { data, error, isValidating, mutate } = useSWR<PipelineMetaData[]>(
-    projectUuid ? `/async/pipelines/${projectUuid}` : null,
+    projectUuid && shouldFetch ? `/async/pipelines/${projectUuid}` : null,
     (url) =>
       fetcher<{ result: PipelineMetaData[] }>(url).then(
         (response) => response.result
@@ -36,11 +39,5 @@ export const useFetchPipelines = (projectUuid: string | undefined) => {
     isFetchingPipelines: isValidating,
     fetchPipelines: mutate,
     setPipelines,
-    // provide a simple way to get fetched data via projectUuid
-    // in case that we need to fetch pipelines conditionally
-    getCache: (projectUuid: string) =>
-      cache.get(`/async/pipelines/${projectUuid}`) as
-        | PipelineMetaData[]
-        | undefined,
   };
 };

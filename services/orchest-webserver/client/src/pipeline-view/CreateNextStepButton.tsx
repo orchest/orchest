@@ -10,7 +10,7 @@ import { STEP_HEIGHT, STEP_WIDTH } from "./PipelineStep";
 export const CreateNextStepButton = ({
   pipelineViewportRef,
 }: {
-  pipelineViewportRef: React.MutableRefObject<HTMLDivElement>;
+  pipelineViewportRef: React.MutableRefObject<HTMLDivElement | null>;
 }) => {
   const { setAlert } = useAppContext();
   const { dispatch, environments } = usePipelineEditorContext();
@@ -55,7 +55,7 @@ export const CreateNextStepButton = ({
             name: environment?.language || "python",
             display_name: environment?.name || "Python",
           },
-          environment: environment?.uuid,
+          environment: environment?.uuid || "",
           parameters: {},
           meta_data: {
             position,

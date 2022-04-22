@@ -34,7 +34,7 @@ $.fn.overflowing = function () {
 };
 
 const App = () => {
-  const [jupyter, setJupyter] = React.useState(null);
+  const [jupyter, setJupyter] = React.useState<Jupyter>(null);
   const { boot } = useIntercom();
   const { setConfirm, isDrawerOpen, setIsDrawerOpen } = useAppContext();
 

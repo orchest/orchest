@@ -48,10 +48,10 @@ const JobView: React.FC = () => {
   const { navigateTo, jobUuid } = useCustomRoute();
 
   // data states
-  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob(
+  const { job, setJob, fetchJob, envVariables, isFetchingJob } = useFetchJob({
     jobUuid,
-    true
-  );
+    runStatuses: true,
+  });
 
   // monitor if there's any operations ongoing, if so, disable action buttons
   const { run, status } = useAsync<void>();

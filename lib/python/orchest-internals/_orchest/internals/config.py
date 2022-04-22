@@ -2,6 +2,8 @@ import os
 
 # TODO: add notice that some of these values have effect on the sdk!.
 
+ORCHEST_MAINTAINER_LABEL = "Orchest B.V. https://www.orchest.io"
+
 # Orchest directories that need to exist in the userdir.
 USERDIR_DATA = "/userdir/data"
 USERDIR_JOBS = "/userdir/jobs"
@@ -9,8 +11,6 @@ USERDIR_PROJECTS = "/userdir/projects"
 USERDIR_ENV_IMG_BUILDS = "/userdir/.orchest/env-img-builds"
 USERDIR_JUPYTER_IMG_BUILDS = "/userdir/.orchest/jupyter-img-builds"
 USERDIR_JUPYTERLAB = "/userdir/.orchest/user-configurations/jupyterlab"
-USERDIR_KANIKO_BASE_IMAGES_CACHE = "/userdir/.orchest/kaniko-base-images-cache"
-USERDIR_BUILDKIT_CACHE = "/userdir/.orchest/buildkit-cache"
 
 ALLOWED_FILE_EXTENSIONS = ["ipynb", "py", "R", "sh", "jl"]
 

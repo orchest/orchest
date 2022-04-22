@@ -1,5 +1,8 @@
 import { Position } from "@/types";
 import { getHeight, getOffset, getWidth } from "@/utils/jquery-replacement";
+import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
+import Typography from "@mui/material/Typography";
 import { uuidv4 } from "@orchest/lib-utils";
 import classNames from "classnames";
 import React from "react";
@@ -27,9 +30,16 @@ export type CanvasFunctions = {
   centerView: () => void;
 };
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
-  canvasFuncRef: React.MutableRefObject<CanvasFunctions>;
-};
+const Overlay = () => (
+  <Box
+    sx={{
+      width: "100vw",
+      height: "100vh",
+      backgroundColor: "rgba(0, 0, 0, 0.03)",
+      display: "block",
+    }}
+  />
+);
 
 // scaling and drag-n-drop behaviors can be (almost) entirely separated
 // scaling is only mutating the css properties of PipelineCanvas, it has nothing to do with drag-n-drop.
@@ -37,12 +47,19 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
 // therefore, all the scaling states should reside in this component
 // but some drag-n-drop behaviors requires the offset of PipelineCanvas, so we put usePipelineCanvasState in the context
 // so PipelineEditor can use these state
-const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
+
+export const PipelineViewport = React.forwardRef<
   HTMLDivElement,
-  Props
-> = ({ children, className, canvasFuncRef, style, ...props }, ref) => {
+  React.HTMLAttributes<HTMLDivElement> & {
+    canvasFuncRef: React.MutableRefObject<CanvasFunctions | undefined>;
+  }
+>(function PipelineViewportComponent(
+  { children, className, canvasFuncRef, style, ...props },
+  ref
+) {
   const { dragFile } = useFileManagerContext();
   const {
+    disabled,
     eventVars,
     trackMouseMovement,
     dispatch,
@@ -151,6 +168,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   }, [resizeCanvas, localRef]);
 
   const onMouseDown = (e: React.MouseEvent) => {
+    if (disabled) return;
     if (eventVars.selectedConnection) {
       dispatch({ type: "DESELECT_CONNECTION" });
     }
@@ -166,6 +184,7 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
   };
 
   const onMouseUp = () => {
+    if (disabled) return;
     if (eventVars.stepSelector.active) {
       dispatch({ type: "SET_STEP_SELECTOR_INACTIVE" });
     } else {
@@ -267,6 +286,42 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
       style={{ ...style, touchAction: "none" }}
       {...props}
     >
+      {disabled && (
+        <Box
+          sx={{
+            width: "100%" /* Full width (cover the whole page) */,
+            height: "100%" /* Full height (cover the whole page) */,
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              backgroundColor: "transparent",
+              zIndex: 1,
+              padding: (theme) => theme.spacing(10),
+              color: (theme) => theme.palette.grey[400],
+              borderRadius: (theme) => theme.spacing(1),
+            }}
+          >
+            <Typography
+              variant="h4"
+              component="h3"
+              sx={{
+                color: (theme) => theme.palette.grey[400],
+              }}
+            >
+              No pipeline found
+            </Typography>
+          </Paper>
+        </Box>
+      )}
       <PipelineCanvas
         ref={pipelineCanvasRef}
         style={{
@@ -280,10 +335,9 @@ const PipelineStepsOuterHolder: React.ForwardRefRenderFunction<
           ...canvasResizeStyle,
         }}
       >
+        {disabled && <Overlay />}
         {children}
       </PipelineCanvas>
     </div>
   );
-};
-
-export const PipelineViewport = React.forwardRef(PipelineStepsOuterHolder);
+});

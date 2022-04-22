@@ -16,14 +16,14 @@ const PipelineConnectionComponent: React.FC<{
   endNodeY: number | undefined;
   startNodeUUID: string;
   endNodeUUID?: string;
-  getPosition: (element: HTMLElement | undefined) => Position | null;
+  getPosition: (element: HTMLElement | undefined | null) => Position | null;
   eventVarsDispatch: React.Dispatch<EventVarsAction>;
   selected: boolean;
   zIndexMax: React.MutableRefObject<number>;
   shouldUpdate: [boolean, boolean];
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
-  cursorControlledStep: string;
-  newConnection: React.MutableRefObject<NewConnection>;
+  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
+  cursorControlledStep: string | undefined;
+  newConnection: React.MutableRefObject<NewConnection | undefined>;
 }> = ({
   shouldRedraw,
   isNew,
@@ -49,7 +49,7 @@ const PipelineConnectionComponent: React.FC<{
 
   const [shouldUpdateStart, shouldUpdateEnd] = shouldUpdate;
 
-  const containerRef = React.useRef<HTMLDivElement>();
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
   const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
@@ -59,8 +59,14 @@ const PipelineConnectionComponent: React.FC<{
     y: newConnection.current?.yEnd,
   };
 
-  const startNodeX = shouldUpdateStart ? startNodePosition.x : props.startNodeX;
-  const startNodeY = shouldUpdateStart ? startNodePosition.y : props.startNodeY;
+  const startNodeX =
+    shouldUpdateStart && startNodePosition
+      ? startNodePosition.x
+      : props.startNodeX;
+  const startNodeY =
+    shouldUpdateStart && startNodePosition
+      ? startNodePosition.y
+      : props.startNodeY;
   const endNodeX = shouldUpdateEnd ? endNodePosition.x : props.endNodeX;
   const endNodeY = shouldUpdateEnd ? endNodePosition.y : props.endNodeY;
 
@@ -114,7 +120,7 @@ const PipelineConnectionComponent: React.FC<{
     (e) => {
       // user is panning the canvas
       if (keysDown.has("Space")) return;
-      if (e.button === 0) {
+      if (e.button === 0 && endNodeUUID) {
         e.stopPropagation();
         eventVarsDispatch({
           type: "SELECT_CONNECTION",

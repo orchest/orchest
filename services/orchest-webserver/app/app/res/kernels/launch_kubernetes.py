@@ -76,13 +76,15 @@ def _get_kernel_pod_manifest(
             "ERROR - KERNEL_IMAGE not found in environment - kernel launch terminating!"
         )
     proj_uuid, env_uuid = _env_image_name_to_project_environment_uuid(image_name)
+    pipeline_uuid = os.environ["ORCHEST_PIPELINE_UUID"]
+
     resp = requests.get(
         "http://"
         + _config.ORCHEST_API_ADDRESS
-        + f"/api/environment-images/latest/{proj_uuid}/{env_uuid}"
+        + f"/api/sessions/kernels/lock-image/{proj_uuid}/{pipeline_uuid}/{env_uuid}"
     )
     if resp.status_code != 200:
-        sys.exit("Failed to retrieve latest environment image version.")
+        sys.exit("Failed to get environment image version to use.")
     tag = resp.json()["tag"]
     image_name = f'{os.environ["ORCHEST_REGISTRY"]}/{image_name}:{tag}'
 
@@ -120,7 +122,7 @@ def _get_kernel_pod_manifest(
     try:
         user_env_vars = _get_user_env_vars(
             os.environ["ORCHEST_PROJECT_UUID"],
-            os.environ["ORCHEST_PIPELINE_UUID"],
+            pipeline_uuid,
         )
     except RuntimeError as e:
         sys.exit(e)

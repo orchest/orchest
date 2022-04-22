@@ -1,14 +1,19 @@
 import { DEFAULT_BASE_IMAGES } from "@/environment-edit-view/common";
 import { CustomImage, Environment } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
+import { fetcher, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import useSWR from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
-export function useFetchEnvironment(initialEnvironment: Environment) {
+export const useFetchEnvironment = (
+  initialEnvironment: Partial<Omit<Environment, "uuid" | "project_uuid">> & {
+    uuid: string | undefined;
+    project_uuid: string | undefined;
+  }
+) => {
   const { project_uuid, uuid } = initialEnvironment;
 
-  const isExistingEnvironment = Boolean(project_uuid) && Boolean(uuid);
+  const isExistingEnvironment = hasValue(project_uuid) && hasValue(uuid);
 
   const { data, error, isValidating, mutate } = useSWR<Environment>(
     isExistingEnvironment
@@ -28,7 +33,9 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
    * according to the fetched environment, extract custom image (if any), and load it into the state `customImage`
    * Note that this only occurs when `customImage` is empty; otherwise, when user select other default images, the custom image will disappear
    */
-  const [customImage, setCustomImage] = React.useState<CustomImage>(null);
+  const [customImage, setCustomImage] = React.useState<CustomImage | undefined>(
+    undefined
+  );
 
   React.useEffect(() => {
     if (data && uuid && !customImage) {
@@ -37,7 +44,7 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
           (image) => data.base_image === image.base_image
         )
           ? data
-          : null
+          : undefined
       );
     }
   }, [data, uuid, customImage]);
@@ -51,4 +58,4 @@ export function useFetchEnvironment(initialEnvironment: Environment) {
     customImage,
     setCustomImage,
   };
-}
+};

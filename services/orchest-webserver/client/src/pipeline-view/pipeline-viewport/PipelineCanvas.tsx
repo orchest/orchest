@@ -1,9 +1,9 @@
 import React from "react";
 
-const PipelineStepsHolder = (
-  { children, ...props }: React.HTMLAttributes<HTMLDivElement>,
-  ref: React.ForwardedRef<HTMLDivElement>
-) => {
+export const PipelineCanvas = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(function PipelineStepsHolder({ children, ...props }, ref) {
   return (
     <div
       id="pipeline-canvas"
@@ -14,6 +14,4 @@ const PipelineStepsHolder = (
       {children}
     </div>
   );
-};
-
-export const PipelineCanvas = React.forwardRef(PipelineStepsHolder);
+});

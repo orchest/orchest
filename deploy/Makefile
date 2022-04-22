@@ -93,9 +93,10 @@ REGISTRY_PORT := ${if ${REGISTRY_PORT},${REGISTRY_PORT},443}
 DOCKER_REGISTRY_SECRET_CONFIG := --set tlsSecretName=${REGISTRY_SECRET}
 DOCKER_REGISTRY_NAME_CONFIG := --set fullnameOverride=${REGISTRY_NAME}
 DOCKER_REGISTRY_PORT_CONFIG := --set service.port=${REGISTRY_PORT}
-DOCKER_REGISTRY_PVC_CONFIG := --set persistence.enabled=true \
-							  --set persistence.size=999Ti \
-							  ${if ${REGISTRY_STORAGE_CLASS},--set persistence.storageClass=${REGISTRY_STORAGE_CLASS},}
+DOCKER_REGISTRY_PVC_CONFIG := --set persistence.size=${if ${REGISTRY_PVC_SIZE},${REGISTRY_PVC_SIZE},999Ti} \
+							  ${if ${REGISTRY_STORAGE_CLASS},--set persistence.storageClass=${REGISTRY_STORAGE_CLASS},} \
+							  --set persistence.enabled=true
+
 DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 								--namespace ${NAMESPACE} \
 								${SHARED_DEPLOY_CONFIG} \
@@ -103,6 +104,12 @@ DOCKER_REGISTRY_DEPLOY_CONFIG := registry \
 								${DOCKER_REGISTRY_NAME_CONFIG} \
 								${DOCKER_REGISTRY_PORT_CONFIG} \
 								${DOCKER_REGISTRY_PVC_CONFIG} \
+								--set configData.storage.delete.enabled=true \
+								--set configData.storage.cache.blobdescriptor=redis \
+								--set configData.redis.addr=localhost \
+								--set configData.redis.dialtimeout=0ms \
+								--set configData.redis.readtimeout=0ms \
+								--set configData.redis.writetimeout=0ms \
 								thirdparty/docker-registry
 
 # Cluste resources enable config

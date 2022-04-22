@@ -14,15 +14,19 @@ const useTransition = (
   const mountedStyle = { opacity: 1, transition };
   const unmountedStyle = { opacity: 0, transition };
 
+  const timeoutId = React.useRef(0);
+
   React.useEffect(() => {
-    let timeoutId: number;
-    if (!isMounted && !shouldRender && timeoutId)
-      window.clearTimeout(timeoutId);
+    if (!isMounted && !shouldRender && timeoutId.current)
+      window.clearTimeout(timeoutId.current);
     if (isMounted && !shouldRender) setShouldRender(true);
     if (!isMounted && shouldRender)
-      timeoutId = window.setTimeout(() => setShouldRender(false), delayTime);
+      timeoutId.current = window.setTimeout(
+        () => setShouldRender(false),
+        delayTime
+      );
 
-    return () => window.clearTimeout(timeoutId);
+    return () => window.clearTimeout(timeoutId.current);
   }, [isMounted, transitionTime, shouldRender, delayTime]);
 
   return { shouldRender, mountedStyle, unmountedStyle };

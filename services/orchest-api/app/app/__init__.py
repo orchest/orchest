@@ -29,7 +29,9 @@ from app.apis.namespace_jupyter_image_builds import (
 )
 from app.apis.namespace_runs import AbortPipelineRun
 from app.apis.namespace_sessions import StopInteractiveSession
+from app.celery_app import make_celery
 from app.connections import db
+from app.core import environments
 from app.core.scheduler import Scheduler
 from app.models import (
     EnvironmentImageBuild,
@@ -42,7 +44,13 @@ from app.models import (
 from config import CONFIG_CLASS
 
 
-def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db=False):
+def create_app(
+    config_class=None,
+    use_db=True,
+    be_scheduler=False,
+    to_migrate_db=False,
+    register_api=True,
+):
     """Create the Flask app and return it.
 
     Args:
@@ -59,6 +67,7 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             scheduler.
         to_migrate_db: If True, then only initialize the DB so that the
             DB can be migrated.
+        register_api: If api endpoints should be registered.
 
     Returns:
         Flask.app
@@ -127,16 +136,65 @@ def create_app(config_class=None, use_db=True, be_scheduler=False, to_migrate_db
             args=[app],
         )
 
+        scheduler.add_job(
+            process_images_for_deletion,
+            "interval",
+            seconds=app.config["IMAGES_DELETION_INTERVAL"],
+            args=[app],
+        )
+
         if not _utils.is_running_from_reloader():
             with app.app_context():
                 trigger_conditional_jupyter_image_build(app)
 
-    # Register blueprints at the end to avoid issues when migrating the
-    # DB. When registering a blueprint the DB schema is also registered
-    # and so the DB migration should happen before it..
-    app.register_blueprint(api, url_prefix="/api")
+    if register_api:
+        # Register blueprints at the end to avoid issues when migrating
+        # the DB. When registering a blueprint the DB schema is also
+        # registered and so the DB migration should happen before it..
+        app.register_blueprint(api, url_prefix="/api")
 
     return app
+
+
+def process_images_for_deletion(app):
+    """Processes built images to find inactive ones.
+
+    Goes through env images and marks the inactive ones for removal,
+    moreover, if necessary, queues the celery task in charge of removing
+    images from the registry.
+
+    Note: this function should probably be moved in the scheduler module
+    to be consistent with the scheduler module of the webserver, said
+    module would need a bit of a refactoring.
+    """
+    with app.app_context():
+        environments.mark_env_images_that_can_be_removed()
+        utils.mark_custom_jupyter_images_to_be_removed()
+        db.session.commit()
+
+        # Don't queue the task if there are build tasks going, this is a
+        # "cheap" way to avoid piling up multiple garbage collection
+        # tasks while a build is ongoing.
+        if db.session.query(
+            db.session.query(EnvironmentImageBuild)
+            .filter(EnvironmentImageBuild.status.in_(["PENDING", "STARTED"]))
+            .exists()
+        ).scalar():
+            app.logger.info("Ongoing build, not queueing registry gc task.")
+            return
+
+        if db.session.query(
+            db.session.query(JupyterImageBuild)
+            .filter(JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
+            .exists()
+        ).scalar():
+            app.logger.info("Ongoing build, not queueing registry gc task.")
+            return
+
+        celery = make_celery(app)
+        app.logger.info("Sending registry garbage collection task.")
+        res = celery.send_task(name="app.core.tasks.registry_garbage_collection")
+        res.forget()
 
 
 def init_logging():
@@ -224,15 +282,34 @@ def trigger_conditional_jupyter_image_build(app):
     if os.path.isfile(jupyter_setup_script):
         with open(jupyter_setup_script, "r") as file:
             if len(file.read()) == 0:
+                app.logger.info(
+                    "Empty setup script, no need to trigger a jupyter build."
+                )
                 return
     else:
+        app.logger.info("No setup script, no need to trigger a jupyter build.")
         return
 
-    # If the image has already been built no need to build again.
-    if not utils.get_jupyter_server_image_to_use().startswith("orchest/jupyter-server"):
+    if utils.get_active_custom_jupyter_images():
+        app.logger.info(
+            "There are active custom jupyter images, no need to trigger a build."
+        )
         return
 
+    if db.session.query(
+        db.session.query(JupyterImageBuild)
+        .filter(JupyterImageBuild.status.in_(["PENDING", "STARTED"]))
+        .exists()
+    ).scalar():
+        app.logger.info(
+            "Ongoing custom jupyter image build, no need to trigger a build."
+        )
+        return
+
+    # Note: this is not race condition free in case of concurrent APIs
+    # restarting.
     try:
+        app.logger.info("Triggering custom jupyter build.")
         with TwoPhaseExecutor(db.session) as tpe:
             CreateJupyterEnvironmentBuild(tpe).transaction()
     except Exception:
@@ -257,7 +334,9 @@ def register_teardown_request(app):
 
 
 def cleanup():
-    app = create_app(config_class=CONFIG_CLASS, use_db=True, be_scheduler=False)
+    app = create_app(
+        config_class=CONFIG_CLASS, use_db=True, be_scheduler=False, register_api=False
+    )
 
     with app.app_context():
         app.logger.info("Starting app cleanup.")
