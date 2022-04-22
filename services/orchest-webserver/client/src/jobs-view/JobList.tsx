@@ -198,16 +198,19 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
       )?.name;
 
       return run(
-        doCreateJob(projectUuid, newJobName, pipelineUuid, pipelineName).then(
-          (job) => {
-            navigateTo(siteMap.editJob.path, {
-              query: {
-                projectUuid,
-                jobUuid: job.uuid,
-              },
-            });
-          }
-        )
+        doCreateJob(
+          projectUuid,
+          newJobName,
+          pipelineUuid,
+          pipelineName || ""
+        ).then((job) => {
+          navigateTo(siteMap.editJob.path, {
+            query: {
+              projectUuid,
+              jobUuid: job.uuid,
+            },
+          });
+        })
       );
     },
     [pipelines, run, navigateTo, projectUuid]
@@ -217,7 +220,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
     if (createJobError) {
       setIsCreateDialogOpen(false);
 
-      if (createJobError.reason === "gate-failed") {
+      if (createJobError.reason === "gate-failed" && selectedPipeline) {
         requestBuild(projectUuid, createJobError.data, "CreateJob", () => {
           setIsCreateDialogOpen(true);
           createJob(jobName, selectedPipeline);
@@ -265,6 +268,7 @@ const JobList: React.FC<{ projectUuid: string }> = ({ projectUuid }) => {
         body: JSON.stringify({ name: newJobName.trim() }),
       });
       setJobs((currentJobs) => {
+        if (!currentJobs) return currentJobs;
         return currentJobs.map((currentJob) => {
           return currentJob.uuid === jobUuid
             ? { ...currentJob, name: newJobName }

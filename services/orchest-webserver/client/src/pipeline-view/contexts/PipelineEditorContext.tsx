@@ -43,7 +43,11 @@ export type PipelineEditorContextType = {
   pipelineJson: PipelineJson;
   environments: Environment[];
   setPipelineJson: (
-    data?: PipelineJson | Promise<PipelineJson> | MutatorCallback<PipelineJson>,
+    data?:
+      | PipelineJson
+      | undefined
+      | Promise<PipelineJson | undefined>
+      | MutatorCallback<PipelineJson | undefined>,
     flushPage?: boolean
   ) => void;
   hash: React.MutableRefObject<string>;

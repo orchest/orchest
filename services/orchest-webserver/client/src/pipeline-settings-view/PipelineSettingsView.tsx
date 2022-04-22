@@ -13,6 +13,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type {
@@ -56,7 +57,7 @@ import {
   getOrderValue,
   instantiateNewService,
 } from "./common";
-import { useFetchPipelineMetadata } from "./useFetchPipelineMetadata";
+import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
   padding: theme.spacing(4, 0),
@@ -110,6 +111,8 @@ const PipelineSettingsView: React.FC = () => {
 
   useSendAnalyticEvent("view load", { name: siteMap.pipelineSettings.path });
 
+  useEnsureValidPipeline();
+
   // data from route
   const {
     navigateTo,
@@ -141,7 +144,7 @@ const PipelineSettingsView: React.FC = () => {
     setPipelineName,
     inputParameters,
     setInputParameters,
-  } = useFetchPipelineMetadata({ projectUuid, pipelineUuid, jobUuid, runUuid });
+  } = useFetchPipelineSettings({ projectUuid, pipelineUuid, jobUuid, runUuid });
 
   // local states
 
@@ -293,20 +296,21 @@ const PipelineSettingsView: React.FC = () => {
         `/async/pipelines/json/${projectUuid}/${pipelineUuid}`,
         { method: "POST", body: formData }
       ),
-      // path cannot be changed when there is an active session
-      !session
-        ? fetcher<{ success: boolean; reason?: string; message?: string }>(
-            `/async/pipelines/${projectUuid}/${pipelineUuid}`,
-            {
-              method: "PUT",
-              headers: HEADER.JSON,
-              body: JSON.stringify({
-                env_variables: envVariablesObj.value,
-                path: pipelinePath,
-              }),
-            }
-          )
-        : Promise.resolve(pipelinePath),
+
+      fetcher<{ success: boolean; reason?: string; message?: string }>(
+        `/async/pipelines/${projectUuid}/${pipelineUuid}`,
+        {
+          method: "PUT",
+          headers: HEADER.JSON,
+          body: JSON.stringify({
+            // `env_variables` can be saved anytime, but
+            // `path` cannot be changed when there is an active session
+            // JSON.strigify will remove the `undefined` value, so path won't be saved as undefined
+            env_variables: envVariablesObj.value,
+            path: !session ? pipelinePath : undefined,
+          }),
+        }
+      ),
     ]).then(([pipelineJsonChanges, pipelineChanges]) => {
       const errorMessages = [
         pipelineJsonChanges.status === "rejected"

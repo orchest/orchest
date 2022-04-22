@@ -18,7 +18,7 @@ export const useFetchPipelinesOnCreateJob = ({
   const { navigateTo, projectUuid } = useCustomRoute();
 
   React.useEffect(() => {
-    if (isCreateDialogOpen && pipelines.length === 0) {
+    if (isCreateDialogOpen && pipelines?.length === 0) {
       closeCreateDialog();
       setConfirm(
         "Warning",

@@ -1,5 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, PipelineStepState, Service } from "@/types";
+import { PipelineJson, PipelineStepState, Service, Step } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import {
   extensionFromFilename,
@@ -26,11 +26,15 @@ export function isValidEnvironmentVariableName(name: string) {
 }
 
 export function validatePipeline(pipelineJson: PipelineJson) {
-  let errors = [];
+  let errors: string[] = [];
 
   let valid = pipelineValidator(pipelineJson);
   if (!valid) {
-    errors.concat(pipelineValidator.errors);
+    errors.concat(
+      (pipelineValidator.errors || []).map(
+        (error) => error.message || "Unknown error"
+      )
+    );
   }
 
   // Check for non schema validation
@@ -89,7 +93,9 @@ export function validatePipeline(pipelineJson: PipelineJson) {
 
         if (otherStep.file_path === step.file_path) {
           errors.push(
-            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
+            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}).` +
+              `Assigning the same Notebook file to multiple steps is not supported. Please convert them to language-specific files in
+              order to reuse the code.`
           );
 
           // found an error, stop checking
@@ -99,7 +105,7 @@ export function validatePipeline(pipelineJson: PipelineJson) {
     }
   }
 
-  return { valid: errors.length == 0, errors };
+  return { valid: errors.length === 0, errors };
 }
 
 export function filterServices(
@@ -108,7 +114,10 @@ export function filterServices(
 ) {
   let servicesCopy = cloneDeep(services);
   for (let serviceName in services) {
-    if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
+    if (
+      hasValue(servicesCopy[serviceName]?.scope) &&
+      !servicesCopy[serviceName]?.scope?.includes(scope)
+    ) {
       delete servicesCopy[serviceName];
     }
   }
@@ -328,10 +337,15 @@ export function getScrollLineHeight() {
 export function formatServerDateTime(
   serverDateTimeString: string | null | undefined
 ) {
-  if (!serverDateTimeString) return "";
+  const serverTimeAsDate = hasValue(serverDateTimeString)
+    ? serverTimeToDate(serverDateTimeString)
+    : undefined;
+
   // Keep this pattern and the one used in fuzzy DB search in sync, see
   // fuzzy_filter_non_interactive_pipeline_runs.
-  return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
+  return hasValue(serverTimeAsDate)
+    ? format(serverTimeAsDate, "LLL d',' yyyy p")
+    : "";
 }
 
 export function serverTimeToDate(serverDateTimeString: string | undefined) {
@@ -375,7 +389,7 @@ export function getPipelineStepParents(
   stepUUID: string,
   pipelineJSON: PipelineJson
 ) {
-  let incomingConnections = [];
+  let incomingConnections: string[] = [];
   for (let step of Object.values(pipelineJSON.steps)) {
     if (step.uuid === stepUUID) {
       incomingConnections = step.incoming_connections;
@@ -388,11 +402,14 @@ export function getPipelineStepParents(
   );
 }
 
-export function getPipelineStepChildren(stepUUID, pipelineJSON) {
-  let childSteps = [];
+export function getPipelineStepChildren(
+  stepUUID: string,
+  pipelineJSON: PipelineJson
+) {
+  let childSteps: Step[] = [];
 
-  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if ((step as any).incoming_connections.indexOf(stepUUID) !== -1) {
+  for (let step of Object.values(pipelineJSON.steps)) {
+    if (step.incoming_connections.includes(stepUUID)) {
       childSteps.push(step);
     }
   }

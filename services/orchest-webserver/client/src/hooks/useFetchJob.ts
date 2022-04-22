@@ -6,7 +6,15 @@ import React from "react";
 import useSWR from "swr";
 import { MutatorCallback } from "swr/dist/types";
 
-export const useFetchJob = (jobUuid?: string, runStatuses?: boolean) => {
+export const useFetchJob = ({
+  jobUuid,
+  runStatuses,
+  clearCacheOnUnmount,
+}: {
+  jobUuid?: string;
+  runStatuses?: boolean;
+  clearCacheOnUnmount?: boolean;
+}) => {
   const { setAlert } = useAppContext();
 
   const { data: job, mutate, error, isValidating } = useSWR<Job>(
@@ -26,6 +34,14 @@ export const useFetchJob = (jobUuid?: string, runStatuses?: boolean) => {
   React.useEffect(() => {
     if (error) setAlert("Error", error.message);
   }, [error, setAlert]);
+
+  React.useEffect(() => {
+    return () => {
+      if (clearCacheOnUnmount) {
+        setJob(undefined);
+      }
+    };
+  }, [clearCacheOnUnmount, setJob]);
 
   const envVariables: { name: string; value: string }[] = React.useMemo(() => {
     return job ? envVariablesDictToArray(job.env_variables) : [];

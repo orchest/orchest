@@ -93,13 +93,11 @@ export const useSessionsPoller = () => {
     }
   }, [error, setAlert]);
 
-  const sessions: IOrchestSession[] = React.useMemo(() => {
+  const sessions: IOrchestSession[] | undefined = React.useMemo(() => {
     return (
       data?.sessions.map((session) =>
         convertKeyToCamelCase(session, ["project_uuid", "pipeline_uuid"])
-      ) ||
-      cache.get(ENDPOINT)?.sessions || // in case sessions are needed when polling is not active
-      []
+      ) || cache.get(ENDPOINT)?.sessions // in case sessions are needed when polling is not active
     );
   }, [data, cache]);
 

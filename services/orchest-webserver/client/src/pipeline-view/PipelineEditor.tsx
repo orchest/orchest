@@ -515,9 +515,8 @@ export const PipelineEditor = () => {
         type: "SAVE_STEP_DETAILS",
         payload: { stepChanges, uuid, replace },
       });
-      saveSteps(eventVars.steps);
     },
-    [dispatch, eventVars.steps, saveSteps]
+    [dispatch]
   );
 
   const enableHotKeys = () => {
@@ -613,7 +612,9 @@ export const PipelineEditor = () => {
   // if timestamp is changed, auto-save
   // check useEventVars to see if the action return value is wrapped by withTimestamp
   React.useEffect(() => {
-    if (hasValue(eventVars.timestamp) && shouldSave) saveSteps(eventVars.steps);
+    if (hasValue(eventVars.timestamp) && shouldSave) {
+      saveSteps(eventVars.steps);
+    }
   }, [saveSteps, eventVars.timestamp, eventVars.steps, shouldSave]);
 
   const [connections, interactiveConnections] = React.useMemo(() => {
