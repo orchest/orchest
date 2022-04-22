@@ -436,6 +436,7 @@ const PipelineSettingsView: React.FC = () => {
   const prettifyInputParameters = () => {
     setInputParameters((current) => {
       try {
+        if (!current) return current;
         return JSON.stringify(JSON.parse(current));
       } catch (error) {
         return current;
