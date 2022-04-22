@@ -1,4 +1,3 @@
-import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -16,20 +15,13 @@ import { ServiceTemplate, templates } from "./content";
 
 export const ServiceTemplatesDialog: React.FC<{
   onSelection: (templateConfig: ServiceTemplate["config"]) => void;
-}> = ({ onSelection }) => {
+  children: (onClick: () => void) => React.ReactNode;
+}> = ({ onSelection, children }) => {
   const [isOpen, setIsOpen] = React.useState(false);
+  const onClick = React.useCallback(() => setIsOpen(true), []);
   return (
     <>
-      <Button
-        startIcon={<AddIcon />}
-        variant="contained"
-        color="secondary"
-        onClick={() => setIsOpen(true)}
-        sx={{ marginTop: (theme) => theme.spacing(2) }}
-        data-test-id="pipeline-service-add"
-      >
-        Add Service
-      </Button>
+      {children(onClick)}
       <Dialog open={isOpen} onClose={() => setIsOpen(false)}>
         <DialogTitle>Select service</DialogTitle>
         <DialogContent>

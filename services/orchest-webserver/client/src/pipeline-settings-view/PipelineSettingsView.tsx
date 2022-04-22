@@ -7,8 +7,6 @@ import {
 } from "@/components/DataTable";
 import EnvVarList from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
-import ServiceForm from "@/components/ServiceForm";
-import { ServiceTemplatesDialog } from "@/components/ServiceTemplatesDialog";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
@@ -27,6 +25,7 @@ import {
   OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
+import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ListIcon from "@mui/icons-material/List";
@@ -57,6 +56,8 @@ import {
   getOrderValue,
   instantiateNewService,
 } from "./common";
+import ServiceForm from "./ServiceForm";
+import { ServiceTemplatesDialog } from "./ServiceTemplatesDialog";
 import { useFetchPipelineSettings } from "./useFetchPipelineSettings";
 
 const CustomTabPanel = styled(TabPanel)(({ theme }) => ({
@@ -444,10 +445,26 @@ const PipelineSettingsView: React.FC = () => {
     });
   };
 
+  const inputParametersError = React.useMemo(() => {
+    try {
+      JSON.parse(inputParameters);
+      return null;
+    } catch {
+      return (
+        <div className="warning push-up push-down">
+          <i className="material-icons">warning</i> Your input is not valid
+          JSON.
+        </div>
+      );
+    }
+  }, [inputParameters]);
+
   return (
     <Layout>
       <div className="view-page pipeline-settings-view">
-        {hasLoaded ? (
+        {!hasLoaded ? (
+          <LinearProgress />
+        ) : (
           <div className="pipeline-settings">
             <Stack
               direction="row"
@@ -550,18 +567,7 @@ const PipelineSettingsView: React.FC = () => {
                           onBlur={() => prettifyInputParameters()}
                           onBeforeChange={onChangePipelineParameters}
                         />
-                        {(() => {
-                          try {
-                            JSON.parse(inputParameters);
-                          } catch {
-                            return (
-                              <div className="warning push-up push-down">
-                                <i className="material-icons">warning</i> Your
-                                input is not valid JSON.
-                              </div>
-                            );
-                          }
-                        })()}
+                        {inputParametersError}
                       </div>
                       <div className="clear"></div>
                     </div>
@@ -658,7 +664,20 @@ const PipelineSettingsView: React.FC = () => {
                         );
                         onChangeService(uuidv4(), newService);
                       }}
-                    />
+                    >
+                      {(openServiceTemplatesDialog) => (
+                        <Button
+                          startIcon={<AddIcon />}
+                          variant="contained"
+                          color="secondary"
+                          onClick={openServiceTemplatesDialog}
+                          sx={{ marginTop: (theme) => theme.spacing(2) }}
+                          data-test-id="pipeline-service-add"
+                        >
+                          Add Service
+                        </Button>
+                      )}
+                    </ServiceTemplatesDialog>
                   )}
                 </Stack>
               </CustomTabPanel>
@@ -678,8 +697,6 @@ const PipelineSettingsView: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
-          <LinearProgress />
         )}
       </div>
     </Layout>

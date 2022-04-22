@@ -28,13 +28,13 @@ import { visuallyHidden } from "@mui/utils";
 import { hasValue } from "@orchest/lib-utils";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
-import { getServiceURLs } from "../utils/webserver-utils";
 import {
   MultiSelect,
   MultiSelectError,
   MultiSelectInput,
   MultiSelectLabel,
-} from "./MultiSelect";
+} from "../components/MultiSelect";
+import { getServiceURLs } from "../utils/webserver-utils";
 
 const FormSectionTitle: React.FC<{ title: string }> = ({ children, title }) => (
   <Typography
