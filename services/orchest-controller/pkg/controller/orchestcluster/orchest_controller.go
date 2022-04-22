@@ -50,6 +50,7 @@ type ControllerConfig struct {
 	BuilddirDefaultVolumeSize  string
 	Threadiness                int
 	InCluster                  bool
+	DefaultPause               bool
 }
 
 // OrchestClusterController reconciles OrchestCluster CRD.

@@ -128,12 +128,12 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 	// compute the hash of current version.
 	curHash := ComputeHash(&orchest.Spec)
 	// retrive the hash of the reconciled object
-	oldHash, ok := orchest.GetLabels()[ControllerLabelKey]
+	oldHash, _ := orchest.GetLabels()[ControllerLabelKey]
 
 	needUpdate := curHash != oldHash
 
 	// If needUpdate is true, and the oldHash is present, the cluster should be paused first
-	if needUpdate && ok && !r.isPaused(orchest) {
+	if (needUpdate || *orchest.Spec.Orchest.Pause) && !r.isPaused(orchest) {
 		orchest, err = r.pauseOrchest(ctx, orchest)
 		if err != nil {
 			return errors.Wrapf(err, "failed to pause the cluster, cluster: %s", r.key)
@@ -141,7 +141,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 	}
 
 	// If the cluster paused, return
-	if orchest.Spec.Orchest.Pause != nil {
+	if orchest.Spec.Orchest.Pause != nil && *orchest.Spec.Orchest.Pause {
 		return nil
 	}
 
