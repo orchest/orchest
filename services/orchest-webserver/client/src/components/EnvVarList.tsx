@@ -26,6 +26,7 @@ export const EnvVarList: React.FC<{
   ["data-test-id"]: testId = "",
 }) => {
   const onChange = (payload: string, index: number, type: "name" | "value") => {
+    if (!setValue) return;
     setValue((current) => {
       const found = current[index];
       const updated = { ...found, [type]: payload };
@@ -34,10 +35,12 @@ export const EnvVarList: React.FC<{
   };
 
   const onAdd = () => {
+    if (!setValue) return;
     setValue((current) => [...current, { name: "", value: "" }]);
   };
 
   const remove = (index: number) => {
+    if (!setValue) return;
     setValue((current) => {
       if (index < 0 || index >= current.length) return current;
       return [...current.slice(0, index), ...current.slice(index + 1)];

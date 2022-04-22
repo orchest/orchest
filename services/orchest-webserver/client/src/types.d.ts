@@ -270,7 +270,10 @@ export type Step = {
   incoming_connections: string[];
   environment: string;
   file_path: string;
-  kernel: { display_name?: string; name?: string };
+  kernel: {
+    display_name?: string;
+    name?: string;
+  };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
 };
