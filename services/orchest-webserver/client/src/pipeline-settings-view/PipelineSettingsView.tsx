@@ -153,7 +153,7 @@ const PipelineSettingsView: React.FC = () => {
   }, [services]);
 
   const [tabIndex, setTabIndex] = React.useState<number>(
-    tabMapping[initialTab] || 0 // note that initialTab can be 'null' since it's a querystring
+    hasValue(initialTab) ? tabMapping[initialTab] : 0
   );
 
   const [servicesChanged, setServicesChanged] = React.useState(false);
@@ -192,7 +192,8 @@ const PipelineSettingsView: React.FC = () => {
 
   const deleteService = async (serviceUuid: string) => {
     setServices((current) => {
-      const { [serviceUuid]: serviceToRemove, ...remainder } = current; // eslint-disable-line @typescript-eslint/no-unused-vars
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [serviceUuid]: serviceToRemove, ...remainder } = current || {};
       return remainder;
     });
 
@@ -394,33 +395,39 @@ const PipelineSettingsView: React.FC = () => {
     },
   ];
 
-  const serviceRows: DataTableRow<ServiceRow>[] = Object.entries(services)
-    .sort((a, b) => a[1].order - b[1].order)
-    .map(([uuid, service]) => {
-      return {
-        uuid,
-        name: service.name,
-        scope: service.scope
-          .map((scopeAsString) => scopeMap[scopeAsString])
-          .join(", "),
-        exposed: service.exposed ? "Yes" : "No",
-        authenticationRequired: service.requires_authentication ? "Yes" : "No",
-        remove: uuid,
-        details: (
-          <ServiceForm
-            key={uuid}
-            serviceUuid={uuid}
-            service={service}
-            services={services}
-            disabled={isReadOnly}
-            updateService={(updated) => onChangeService(uuid, updated)}
-            pipeline_uuid={pipelineUuid}
-            project_uuid={projectUuid}
-            run_uuid={runUuid}
-          />
-        ),
-      };
-    });
+  const serviceRows: DataTableRow<ServiceRow>[] = !services
+    ? []
+    : Object.entries(services)
+        .sort((a, b) => {
+          if (hasValue(a[1].order) && hasValue(b[1].order)) {
+            return a[1].order - b[1].order;
+          } else {
+            return 0;
+          }
+        })
+        .map(([uuid, service]) => {
+          return {
+            uuid,
+            name: service.name,
+            scope: service.scope
+              .map((scopeAsString) => scopeMap[scopeAsString])
+              .join(", "),
+            exposed: service.exposed ? "Yes" : "No",
+            authenticationRequired: service.requires_authentication
+              ? "Yes"
+              : "No",
+            remove: uuid,
+            details: (
+              <ServiceForm
+                key={uuid}
+                service={service}
+                services={services}
+                disabled={isReadOnly}
+                updateService={(updated) => onChangeService(uuid, updated)}
+              />
+            ),
+          };
+        });
 
   const isMemorySizeValid = isValidMemorySize(
     settings?.data_passing_memory_size || ""

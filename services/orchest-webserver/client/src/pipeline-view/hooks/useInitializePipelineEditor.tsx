@@ -89,7 +89,7 @@ export const useInitializePipelineEditor = (
     }
   }, [isFetchingPipelineJson, pipelineJson, initializeEventVars]);
 
-  const { data: environments = [] } = useFetchEnvironments(
+  const { environments = [] } = useFetchEnvironments(
     !isReadOnly ? projectUuid : undefined
   );
 
