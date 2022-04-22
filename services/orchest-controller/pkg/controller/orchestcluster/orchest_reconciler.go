@@ -54,8 +54,8 @@ var (
 		orchestDatabase,
 		rabbitmq,
 		celeryWorker,
-		authServer,
 		orchestApi,
+		authServer,
 		orchestWebserver,
 	}
 
