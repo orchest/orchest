@@ -141,7 +141,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 	}
 
 	// If the cluster paused, return
-	if orchest.Spec.Orchest.Pause {
+	if orchest.Spec.Orchest.Pause != nil {
 		return nil
 	}
 

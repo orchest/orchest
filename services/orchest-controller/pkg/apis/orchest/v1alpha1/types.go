@@ -69,7 +69,7 @@ type OrchestSpec struct {
 
 	// Indicate if the cluster is in Pause state or not
 
-	Pause bool `json:"pause,omitempty"`
+	Pause *bool `json:"pause,omitempty"`
 
 	Registry string `json:"registry,omitempty"`
 	Version  string `json:"version,omitempty"`
