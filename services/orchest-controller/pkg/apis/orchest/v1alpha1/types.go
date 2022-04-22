@@ -68,7 +68,6 @@ type OrchestComponent struct {
 type OrchestSpec struct {
 
 	// Indicate if the cluster is in Pause state or not
-
 	Pause *bool `json:"pause,omitempty"`
 
 	Registry string `json:"registry,omitempty"`
@@ -158,7 +157,7 @@ type OrchestClusterStatus struct {
 }
 
 // +genclient
-// +genclient:noStatus
+// +kubebuilder:subresource:status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OrchestCluster is the Schema for the Orchest deployment

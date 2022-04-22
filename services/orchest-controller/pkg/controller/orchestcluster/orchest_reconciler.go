@@ -125,16 +125,10 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		return err
 	}
 
-	// compute the hash of current version.
-	curHash := ComputeHash(&orchest.Spec)
-	// retrive the hash of the reconciled object
-	oldHash := orchest.GetLabels()[ControllerLabelKey]
-
-	needUpdate := curHash != oldHash
-
+	needPause, err := r.shouldPause(orchest)
 	// If needUpdate is true, and the oldHash is present, the cluster should be paused first
-	if needUpdate && !r.isPaused(orchest) {
-		orchest, err = r.pauseOrchest(ctx, curHash, orchest)
+	if needPause {
+		orchest, err = r.pauseOrchest(ctx, orchest)
 		if err != nil {
 			return errors.Wrapf(err, "failed to pause the cluster, cluster: %s", r.key)
 		}
@@ -145,12 +139,14 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		return nil
 	}
 
-	err = r.ensureUserDir(ctx, curHash, orchest)
+	generation := fmt.Sprint(orchest.Generation)
+
+	err = r.ensureUserDir(ctx, generation, orchest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to ensure %s pvc", userDirName)
 	}
 
-	err = r.ensureBuildCacheDir(ctx, curHash, orchest)
+	err = r.ensureBuildCacheDir(ctx, generation, orchest)
 	if err != nil {
 		return errors.Wrapf(err, "failed to ensure %s pvc", builderDirName)
 	}
@@ -175,7 +171,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 				return errors.Wrapf(err, "failed to update status while changing the state to DeployingOrchest")
 			}
 
-			err = r.deploymentFunctions[deploymentName](ctx, curHash, orchest)
+			err = r.deploymentFunctions[deploymentName](ctx, generation, orchest)
 			if err != nil {
 				return errors.Wrapf(err, "failed to deploy %s component", deploymentName)
 			}
@@ -191,9 +187,9 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 				}
 			*/
 		} else {
-			depHash := deployment.GetLabels()[ControllerRevisionHashLabelKey]
+
 			//Update the deployment
-			if depHash != curHash {
+			if !isDeploymentUpdated(deployment, orchest.Generation) {
 				orchest, err := r.controller.updateClusterStatus(ctx, orchest,
 					orchestv1alpha1.Updating,
 					fmt.Sprintf("Updating %s", deploymentName))
@@ -202,7 +198,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 					return errors.Wrapf(err, "failed to update status while changing the state to Updating")
 				}
 
-				err = r.deploymentFunctions[deploymentName](ctx, curHash, orchest)
+				err = r.deploymentFunctions[deploymentName](ctx, generation, orchest)
 				if err != nil {
 					return errors.Wrapf(err, "failed to update %s component", deploymentName)
 				}
@@ -219,10 +215,14 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		}
 	}
 
-	_, err = r.controller.updateClusterStatus(ctx, orchest,
-		orchestv1alpha1.Running, "Orchest is Running")
+	// Update orchest status to running if it was updating or deploying
+	if orchest.Status.State == orchestv1alpha1.Updating ||
+		orchest.Status.State == orchestv1alpha1.DeployingOrchest {
+		_, err = r.controller.updateClusterStatus(ctx, orchest,
+			orchestv1alpha1.Running, "Orchest is Running")
+	}
 
-	return nil
+	return err
 
 }
 
@@ -244,7 +244,35 @@ func (r *OrchestReconciler) isPaused(orchest *orchestv1alpha1.OrchestCluster) bo
 
 }
 
-func (r *OrchestReconciler) pauseOrchest(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster,
+func (r *OrchestReconciler) shouldPause(orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
+
+	// get the current deployments
+	deployments, err := r.getDeployments(orchest)
+	if err != nil {
+		return false, nil
+	}
+
+	if *orchest.Spec.Orchest.Pause {
+		return true, nil
+	}
+
+	if orchest.Status.State == orchestv1alpha1.DeployingOrchest ||
+		orchest.Status.State == orchestv1alpha1.Updating ||
+		orchest.Status.State == orchestv1alpha1.Pausing {
+		return true, nil
+	}
+
+	for _, deployment := range deployments {
+		if !isDeploymentUpdated(deployment, orchest.Generation) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+
+}
+
+func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster,
 	error) {
 
 	// get the current deployments and pause them (change their replica to 0)
@@ -258,10 +286,7 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, hash string, orche
 		return orchest, nil
 	}
 
-	orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, "Pausing the cluster")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
-	}
+	deploymentsToPause := make([]*appsv1.Deployment, 0, len(deployments))
 
 	// the deployments should be stopped in reverse order
 	for i := len(orderOfDeployment) - 1; i >= 0; i-- {
@@ -269,8 +294,8 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, hash string, orche
 		deployment, ok := deployments[orderOfDeployment[i]]
 		// deployment exist, we need to scale it down
 		if ok {
-			// Deployment exist, and the hash of deployment is equal to hash object, there is no need for pausing
-			if deployment.GetLabels()[ControllerRevisionHashLabelKey] == hash {
+			// Deployment exist, but it is already updated, there is no need for pausing
+			if isDeploymentUpdated(deployment, orchest.Generation) {
 				continue
 			}
 
@@ -279,11 +304,22 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, hash string, orche
 				continue
 			}
 
+			deploymentsToPause = append(deploymentsToPause, deployment)
+		}
+	}
+
+	if len(deploymentsToPause) > 0 {
+		orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, "Pausing the cluster")
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
+		}
+
+		for _, deployment := range deploymentsToPause {
 			orchest, err := r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Pausing %s", deployment.Name))
 			if err != nil {
 				return orchest, errors.Wrapf(err, "failed to update status while pausing orchest-webserver")
 			}
-			utils.PauseDeployment(ctx, r.getClient(), hash, deployment)
+			utils.PauseDeployment(ctx, r.getClient(), orchest.Generation, deployment)
 
 			orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Paused %s", deployment.Name))
 			if err != nil {
@@ -291,11 +327,11 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, hash string, orche
 			}
 		}
 
-	}
+		orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Paused, "Paused the cluster")
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
+		}
 
-	orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Paused, "Paused the cluster")
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
 	}
 
 	return orchest, nil
@@ -424,6 +460,7 @@ func (r *OrchestReconciler) upsertDeployment(ctx context.Context, hash string, d
 		deployedHash := storedDeployment.GetLabels()[ControllerRevisionHashLabelKey]
 		if deployedHash != hash {
 			storedDeployment.Spec = *deployment.Spec.DeepCopy()
+			storedDeployment.Labels = deployment.Labels
 			_, err := r.getClient().AppsV1().Deployments(r.namespace).Update(ctx, storedDeployment, metav1.UpdateOptions{})
 			if err != nil {
 				return errors.Wrapf(err, "failed to update the deployment")

@@ -9,6 +9,7 @@ import (
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -167,4 +168,9 @@ func ComputeHash(spec *orchestv1alpha1.OrchestClusterSpec) string {
 	utils.DeepHashObject(hasher, *spec)
 
 	return rand.SafeEncodeString(fmt.Sprint(hasher.Sum32()))
+}
+
+func isDeploymentUpdated(dep *appsv1.Deployment, generation int64) bool {
+	templateMatches := dep.Labels[ControllerRevisionHashLabelKey] == fmt.Sprint(generation)
+	return templateMatches
 }

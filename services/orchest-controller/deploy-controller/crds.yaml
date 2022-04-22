@@ -578,6 +578,7 @@ spec:
                           type: object
                       type: object
                     pause:
+                      description: Indicate if the cluster is in Pause state or not
                       type: boolean
                     registry:
                       type: string
@@ -654,6 +655,8 @@ spec:
           type: object
       served: true
       storage: true
+      subresources:
+        status: {}
 status:
   acceptedNames:
     kind: ""

@@ -307,13 +307,17 @@ func (controller *OrchestClusterController) syncOrchestCluster(key string) error
 	// If Status struct is not initialized yet, the cluster is new, create it
 	if orchest.Status == nil {
 		// Set the default values in CR if not specified
-		clone := controller.getDefaultIfNotSpecified(ctx, orchest)
-		_, err = controller.updateClusterStatus(ctx, clone, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
+		_, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 		return nil
+	}
+
+	orchest, err = controller.setDefaultIfNotSpecified(ctx, orchest)
+	if err != nil {
+		return err
 	}
 
 	err = controller.ensureThirdPartyDependencies(ctx, orchest)
@@ -386,7 +390,7 @@ func (controller *OrchestClusterController) updateClusterStatus(ctx context.Cont
 		Message: message,
 	}
 
-	result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, orchest, metav1.UpdateOptions{})
+	result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).UpdateStatus(ctx, orchest, metav1.UpdateOptions{})
 
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)
@@ -394,10 +398,10 @@ func (controller *OrchestClusterController) updateClusterStatus(ctx context.Cont
 	return result, nil
 }
 
-func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context.Context,
-	cluster *orchestv1alpha1.OrchestCluster) *orchestv1alpha1.OrchestCluster {
+func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Context,
+	orchest *orchestv1alpha1.OrchestCluster) (*orchestv1alpha1.OrchestCluster, error) {
 
-	copy := cluster.DeepCopy()
+	copy := orchest.DeepCopy()
 
 	changed := false
 
@@ -461,9 +465,14 @@ func (controller *OrchestClusterController) getDefaultIfNotSpecified(ctx context
 	}
 
 	if changed {
-		return copy
+		result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).Update(ctx, copy, metav1.UpdateOptions{})
+
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to update orchest with default values  %q", orchest.Name)
+		}
+		return result, nil
 	}
-	return cluster
+	return orchest, nil
 }
 
 func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,

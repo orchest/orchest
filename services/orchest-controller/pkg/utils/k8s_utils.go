@@ -147,7 +147,7 @@ func GetFullImageName(registry, imageName, tag string) string {
 
 func PauseDeployment(ctx context.Context,
 	client kubernetes.Interface,
-	hash string,
+	generation int64,
 	deployment *appsv1.Deployment) error {
 
 	ZeroReplica := int32(0)
@@ -168,7 +168,7 @@ func PauseDeployment(ctx context.Context,
 	cloneDep := deployment.DeepCopy()
 	cloneDep.Spec.Paused = true
 	cloneDep.Spec.Replicas = &ZeroReplica
-	cloneDep.Labels[appsv1.ControllerRevisionHashLabelKey] = hash
+	cloneDep.Labels[appsv1.ControllerRevisionHashLabelKey] = fmt.Sprint(generation)
 
 	_, err := client.AppsV1().Deployments(deployment.Namespace).Update(ctx, cloneDep, metav1.UpdateOptions{})
 	if err != nil {
