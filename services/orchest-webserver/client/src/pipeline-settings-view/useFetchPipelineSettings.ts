@@ -8,7 +8,7 @@ import { useFetchPipelineRun } from "@/hooks/useFetchPipelineRun";
 import { useFetchProject } from "@/hooks/useFetchProject";
 import { Service } from "@/types";
 import { envVariablesDictToArray } from "@/utils/webserver-utils";
-import { hasValue, uuidv4 } from "@orchest/lib-utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEnvVariables } from "./usePipelineEnvVariables";
 import { usePipelineProperty } from "./usePipelineProperty";
@@ -27,15 +27,11 @@ export const useFetchPipelineSettings = ({
   const {
     state: { hasUnsavedChanges },
   } = useAppContext();
-  const { state, dispatch } = useProjectsContext();
-
-  const isPipelineLoaded = hasValue(state.pipeline);
+  const { dispatch } = useProjectsContext();
 
   /**
    * hooks for fetching data for initialization
    */
-
-  // Note: clear cache on unmount to ensure the states are not initialized with old values
 
   const { job, isFetchingJob } = useFetchJob({
     jobUuid,
@@ -63,12 +59,7 @@ export const useFetchPipelineSettings = ({
     initialPipelineName?: string | undefined;
     initialPipelinePath?: string | undefined;
   }>(() => {
-    if (
-      !isPipelineLoaded ||
-      isFetchingJob ||
-      isFetchingPipelineJson ||
-      isFetchingPipeline
-    )
+    if (isFetchingJob || isFetchingPipelineJson || isFetchingPipeline)
       return {};
 
     return {
@@ -77,7 +68,6 @@ export const useFetchPipelineSettings = ({
         job?.pipeline_run_spec.run_config.pipeline_path || pipeline?.path,
     };
   }, [
-    isPipelineLoaded,
     isFetchingJob,
     isFetchingPipeline,
     isFetchingPipelineJson,
@@ -150,10 +140,7 @@ export const useFetchPipelineSettings = ({
   React.useEffect(() => {
     if (!initialized.current && pipelineUuid && pipelineJson && pipelinePath) {
       initialized.current = true;
-      dispatch({
-        type: "UPDATE_PIPELINE",
-        payload: { uuid: pipelineUuid },
-      });
+      dispatch({ type: "UPDATE_PIPELINE", payload: { uuid: pipelineUuid } });
     }
   }, [
     pipelineJson,
