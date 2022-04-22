@@ -94,8 +94,8 @@ export function validatePipeline(pipelineJson: PipelineJson) {
         if (otherStep.file_path === step.file_path) {
           errors.push(
             `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}).` +
-              `Assigning the same Notebook file to multiple steps is not supported. Please convert them to language-specific files in
-              order to reuse the code.`
+              `Assigning the same Notebook file to multiple steps is not supported.` +
+              `Please convert them to scripts in order to reuse the code, e.g. .sh, .py,.R, or .jl.`
           );
 
           // found an error, stop checking
