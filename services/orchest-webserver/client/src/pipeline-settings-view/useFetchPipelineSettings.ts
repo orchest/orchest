@@ -1,4 +1,5 @@
 import { EnvVarPair } from "@/components/EnvVarList";
+import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useFetchJob } from "@/hooks/useFetchJob";
 import { useFetchPipeline } from "@/hooks/useFetchPipeline";
@@ -23,6 +24,9 @@ export const useFetchPipelineSettings = ({
   jobUuid: string | undefined;
   runUuid: string | undefined;
 }) => {
+  const {
+    state: { hasUnsavedChanges },
+  } = useAppContext();
   const { state, dispatch } = useProjectsContext();
 
   const isPipelineLoaded = hasValue(state.pipeline);
@@ -94,9 +98,14 @@ export const useFetchPipelineSettings = ({
   // Inside of `usePipelineProperty` compares the hash and only re-init values accordingly.
   // ? Question: why not clear the cache?
   // Beacuse `SWR` cache is not scoped. If we clear cashe here, it might break all the other components using the same fetch hook.
-  const updateHash = React.useMemo(() => {
-    return uuidv4();
-  }, [job, pipeline, pipelineJson, pipelineRun]); //eslint-disable-line react-hooks/exhaustive-deps
+
+  const [updateHash, setUpdateHash] = React.useState(uuidv4());
+
+  React.useEffect(() => {
+    // Only update if there is no change.
+    // Otherwise, user would lose all of their progress when switching browser tabs.
+    if (!hasUnsavedChanges) setUpdateHash(uuidv4());
+  }, [hasUnsavedChanges, job, pipeline, pipelineJson, pipelineRun]);
 
   const [inputParameters, setInputParameters] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
