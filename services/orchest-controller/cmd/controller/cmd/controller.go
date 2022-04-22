@@ -63,6 +63,7 @@ func runControllerCmd() error {
 	orchestController := orchestcluster.NewOrchestClusterController(kClient,
 		oClient,
 		gClient,
+		scheme,
 		controllerConfig,
 		ocInformer,
 		depInformer)
