@@ -4,6 +4,7 @@ import {
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
   fetcher,
+  hasValue,
 } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot } from "../common";
@@ -136,6 +137,7 @@ export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
   // Modifies tree
   // subTree root path
   let { parent } = searchTree(subTree.path, tree);
+  if (!parent) return;
   for (let x = 0; x < parent.children.length; x++) {
     let child = parent.children[x];
     if (child.path === subTree.path) {
@@ -332,7 +334,11 @@ export const validateFiles = (
         ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
         : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
     },
-    { usedNotebookFiles: [], forbidden: [], allowed: [] }
+    {
+      usedNotebookFiles: [] as string[],
+      forbidden: [] as string[],
+      allowed: [] as string[],
+    }
   );
 };
 
@@ -470,5 +476,7 @@ export const findPipelineFilePathsWithinFolders = async (
     })
   );
 
-  return files.filter((value) => value).flatMap((value) => value);
+  return (files.filter((value) => hasValue(value)) as UnpackedPath[]).flatMap(
+    (value) => value
+  );
 };
