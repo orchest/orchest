@@ -107,11 +107,10 @@ export const useFetchPipelineSettings = ({
     if (!hasUnsavedChanges) setUpdateHash(uuidv4());
   }, [hasUnsavedChanges, job, pipeline, pipelineJson, pipelineRun]);
 
-  const [inputParameters, setInputParameters] = usePipelineProperty({
+  const [inputParameters = "{}", setInputParameters] = usePipelineProperty({
     initialValue: pipelineJson?.parameters
       ? JSON.stringify(pipelineJson.parameters || {})
       : undefined,
-    fallbackValue: "{}",
     updateHash,
   });
 
@@ -124,20 +123,18 @@ export const useFetchPipelineSettings = ({
     updateHash,
   });
 
-  const [services, setServices] = usePipelineProperty({
+  const [services = {}, setServices] = usePipelineProperty({
     // use temporary uuid for easier FE manipulation, will be cleaned up when saving
     initialValue: pipelineJson?.services
       ? (Object.values(pipelineJson?.services).reduce((all, curr) => {
           return { ...all, [uuidv4()]: curr };
         }, {}) as Record<string, Service>)
       : undefined,
-    fallbackValue: {},
     updateHash,
   });
 
-  const [settings, setSettings] = usePipelineProperty({
+  const [settings = {}, setSettings] = usePipelineProperty({
     initialValue: pipelineJson?.settings,
-    fallbackValue: {},
     updateHash,
   });
 
@@ -169,7 +166,7 @@ export const useFetchPipelineSettings = ({
 
   // fetch project env vars only if it's not a job or a pipeline run
   // NOTE: project env var only makes sense for pipelines, because jobs and runs make an copy of all the effective variables
-  const { data: projectEnvVariables } = useFetchProject<EnvVarPair[]>({
+  const { data: projectEnvVariables = [] } = useFetchProject<EnvVarPair[]>({
     projectUuid: !jobUuid && !runUuid && projectUuid ? projectUuid : undefined,
     selector: (project) => envVariablesDictToArray(project.env_variables),
   });

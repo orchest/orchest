@@ -6,11 +6,9 @@ import React from "react";
  */
 export function usePipelineProperty<T>({
   initialValue,
-  fallbackValue,
   updateHash,
 }: {
   initialValue: T | undefined;
-  fallbackValue?: T;
   updateHash: string;
 }) {
   const { setAsSaved } = useAppContext();
@@ -37,5 +35,5 @@ export function usePipelineProperty<T>({
     [_setPipelineProperty, setAsSaved]
   );
 
-  return [pipelineProperty || fallbackValue, setPipelineProperty] as const;
+  return [pipelineProperty, setPipelineProperty] as const;
 }
