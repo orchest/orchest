@@ -33,49 +33,28 @@ export const useFetchPipelineSettings = ({
    * hooks for fetching data for initialization
    */
 
-  const { job, isFetchingJob } = useFetchJob({
-    jobUuid,
-  });
+  const { job } = useFetchJob({ jobUuid });
   const { pipelineRun } = useFetchPipelineRun(
     jobUuid && runUuid ? { jobUuid, runUuid } : null
   );
 
-  const {
-    pipelineJson,
-    setPipelineJson,
-    isFetchingPipelineJson,
-  } = useFetchPipelineJson({
+  const { pipelineJson, setPipelineJson } = useFetchPipelineJson({
     projectUuid,
     pipelineUuid,
     jobUuid,
     runUuid,
   });
 
-  const { pipeline, isFetchingPipeline } = useFetchPipeline(
+  const { pipeline } = useFetchPipeline(
     !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : null
   );
 
-  const { initialPipelineName, initialPipelinePath } = React.useMemo<{
-    initialPipelineName?: string | undefined;
-    initialPipelinePath?: string | undefined;
-  }>(() => {
-    if (isFetchingJob || isFetchingPipelineJson || isFetchingPipeline)
-      return {};
-
-    return {
-      initialPipelineName: job?.pipeline_name || pipelineJson?.name,
-      initialPipelinePath:
-        job?.pipeline_run_spec.run_config.pipeline_path || pipeline?.path,
-    };
-  }, [
-    isFetchingJob,
-    isFetchingPipeline,
-    isFetchingPipelineJson,
-    job?.pipeline_name,
-    pipelineJson?.name,
-    job?.pipeline_run_spec.run_config.pipeline_path,
-    pipeline?.path,
-  ]);
+  // fetch project env vars only if it's not a job or a pipeline run
+  // NOTE: project env var only makes sense for pipelines, because jobs and runs make an copy of all the effective variables
+  const { data: projectEnvVariables = [] } = useFetchProject<EnvVarPair[]>({
+    projectUuid: !jobUuid && !runUuid && projectUuid ? projectUuid : undefined,
+    selector: (project) => envVariablesDictToArray(project.env_variables),
+  });
 
   /**
    * hooks for persisting local mutations without changing the initial data
@@ -105,11 +84,12 @@ export const useFetchPipelineSettings = ({
   });
 
   const [pipelineName, setPipelineName] = usePipelineProperty({
-    initialValue: initialPipelineName,
+    initialValue: job?.pipeline_name || pipelineJson?.name,
     updateHash,
   });
   const [pipelinePath, setPipelinePath] = usePipelineProperty({
-    initialValue: initialPipelinePath,
+    initialValue:
+      job?.pipeline_run_spec.run_config.pipeline_path || pipeline?.path,
     updateHash,
   });
 
@@ -150,13 +130,6 @@ export const useFetchPipelineSettings = ({
     initialized,
     dispatch,
   ]);
-
-  // fetch project env vars only if it's not a job or a pipeline run
-  // NOTE: project env var only makes sense for pipelines, because jobs and runs make an copy of all the effective variables
-  const { data: projectEnvVariables = [] } = useFetchProject<EnvVarPair[]>({
-    projectUuid: !jobUuid && !runUuid && projectUuid ? projectUuid : undefined,
-    selector: (project) => envVariablesDictToArray(project.env_variables),
-  });
 
   return {
     envVariables,
