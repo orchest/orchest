@@ -1,116 +1,9 @@
-import Chance from "chance";
 import { rest } from "msw";
-import type { PipelineJson, PipelineMetaData, Step } from "../types";
-
-export const chance = new Chance();
-
-type MockPipelineData = {
-  metadata: PipelineMetaData;
-  definition: PipelineJson;
-};
-
-type MockProjectData = {
-  pipelines: {
-    get(pipelineUuid: string): MockPipelineData;
-    getAll(): Record<string, MockPipelineData>;
-  };
-};
-
-const generatePipelineDefinition = (
-  pipelineUuid: string,
-  pipelineName: string,
-  stepCount = 2
-): PipelineJson => {
-  const stepsObj: Record<string, Step> = {};
-
-  let prevStepUUid = "";
-
-  for (let i = 0; i < stepCount; i++) {
-    const stepName = chance.name();
-    const stepUuid = chance.guid();
-    stepsObj[stepUuid] = {
-      title: stepName,
-      uuid: chance.guid(),
-      incoming_connections: prevStepUUid.length > 0 ? [prevStepUUid] : [],
-      file_path: `${stepName.toLowerCase().replace(/ /g, "-")}.ipynb`,
-      kernel: {
-        name: "python",
-        display_name: "Python 3",
-      },
-      environment: chance.guid(),
-      parameters: {},
-      meta_data: {
-        position: [
-          chance.floating({ min: 0, max: 100 }),
-          chance.floating({ min: 0, max: 100 }),
-        ],
-        hidden: false,
-      },
-    };
-    prevStepUUid = stepUuid;
-  }
-
-  return {
-    name: pipelineName,
-    parameters: {},
-    settings: {
-      auto_eviction: false,
-      data_passing_memory_size: "1GB",
-    },
-    steps: stepsObj,
-    uuid: pipelineUuid,
-    version: "1.2.0",
-  };
-};
-
-const generateMockPipelineData = (pipelineUuid?: string): MockPipelineData => {
-  const pipelineName = chance.name();
-  const uuid = pipelineUuid || chance.guid();
-  return {
-    metadata: {
-      uuid,
-      path: `${pipelineName.toLowerCase().replace(/ /g, "-")}.orchest`,
-      name: pipelineName,
-    },
-    definition: generatePipelineDefinition(uuid, pipelineName),
-  };
-};
-
-const generateMockPipelineCollection = () => {
-  const collection: Record<string, MockPipelineData> = {};
-
-  return {
-    get(pipelineUuid: string) {
-      if (collection[pipelineUuid]) return collection[pipelineUuid];
-      collection[pipelineUuid] = generateMockPipelineData(pipelineUuid);
-      return collection[pipelineUuid];
-    },
-    getAll() {
-      return collection;
-    },
-  };
-};
-
-const generateMockProjectCollection = () => {
-  let collection: Record<string, MockProjectData> = {};
-  return {
-    get(projectUuid: string) {
-      if (collection[projectUuid]) return collection[projectUuid];
-      collection[projectUuid] = { pipelines: generateMockPipelineCollection() };
-      return collection[projectUuid];
-    },
-    reset() {
-      collection = {};
-    },
-  };
-};
-
-export const getPipelineMedadatas = (projectUuid: string) =>
-  Object.values(mockProjectCollection.get(projectUuid).pipelines.getAll()).map(
-    (pipelineData) => pipelineData.metadata
-  );
-
-export const mockProjectCollection = generateMockProjectCollection();
+import {
+  chance,
+  getPipelineMedadatas,
+  mockProjectCollection,
+} from "./mockData.mock";
 
 export const handlers = [
   rest.get("/async/server-config", (req, res, ctx) => {
@@ -167,6 +60,14 @@ export const handlers = [
       })
     );
   }),
+  rest.get(`/async/projects/:projectUuid`, (req, res, ctx) => {
+    const projectUuid = req.params.projectUuid as string;
+    if (!projectUuid) return res(ctx.status(404));
+
+    const project = mockProjectCollection.get(projectUuid);
+
+    return res(ctx.json(project));
+  }),
   rest.get(`/async/pipelines/:projectUuid`, (req, res, ctx) => {
     const projectUuid = req.params.projectUuid as string;
     if (!projectUuid) return res(ctx.status(404));
@@ -195,4 +96,16 @@ export const handlers = [
       );
     }
   ),
+  rest.get(`/async/pipelines/:projectUuid/:pipelineUuid`, (req, res, ctx) => {
+    const projectUuid = req.params.projectUuid as string;
+    const pipelineUuid = req.params.pipelineUuid as string;
+
+    if (!projectUuid || !pipelineUuid) return res(ctx.status(404));
+
+    const pipeline = mockProjectCollection
+      .get(pipelineUuid)
+      .pipelines.get(pipelineUuid).pipeline;
+
+    return res(ctx.json(pipeline));
+  }),
 ];

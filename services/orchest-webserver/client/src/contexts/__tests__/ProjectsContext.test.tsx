@@ -5,7 +5,7 @@ import {
   chance,
   getPipelineMedadatas,
   mockProjectCollection,
-} from "../../__mocks__/handlers.mock";
+} from "../../__mocks__/mockData.mock";
 import {
   ProjectsContextProvider,
   useProjectsContext,
