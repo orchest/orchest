@@ -92,12 +92,15 @@ const generateMockPipelineCollection = () => {
 };
 
 const generateMockProjectCollection = () => {
-  const collection: Record<string, MockProjectData> = {};
+  let collection: Record<string, MockProjectData> = {};
   return {
     get(projectUuid: string) {
       if (collection[projectUuid]) return collection[projectUuid];
       collection[projectUuid] = { pipelines: generateMockPipelineCollection() };
       return collection[projectUuid];
+    },
+    reset() {
+      collection = {};
     },
   };
 };

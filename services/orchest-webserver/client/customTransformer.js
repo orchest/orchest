@@ -2,6 +2,7 @@
 
 const { transformSync } = require("esbuild");
 const path = require("path");
+const babelJest = require("babel-jest");
 
 /**
  * Disclaimer
@@ -36,6 +37,19 @@ const esbuildOptions = {
   define: { __BASE_URL__: `"http://localhost:8080"` },
 };
 
+const { process: babelProcess } = babelJest.createTransformer({
+  plugins: ["@babel/plugin-transform-modules-commonjs"],
+  parserOpts: {
+    plugins: ["jsx", "typescript"],
+  },
+});
+
+function babelTransform(opts) {
+  const { sourceText, sourcePath, config, options } = opts;
+  const babelResult = babelProcess(sourceText, sourcePath, config, options);
+  return babelResult.code;
+}
+
 module.exports = {
   process(content, filename, config, opts) {
     const sources = { code: content };
@@ -59,7 +73,7 @@ module.exports = {
     /// https://github.com/aelbore/esbuild-jest/issues/12
     /// TODO: transform the jest.mock to a function using babel traverse/parse then hoist it
     if (sources.code.indexOf("ock(") >= 0 || (opts && opts.instrument)) {
-      const source = require("./transformer").babelTransform({
+      const source = babelTransform({
         sourceText: content,
         sourcePath: filename,
         config,

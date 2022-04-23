@@ -58,6 +58,8 @@
   },
   "devDependencies": {
     "@babel/core": "^7.16.0",
+    "@babel/preset-env": "^7.16.11",
+    "@babel/preset-typescript": "^7.16.7",
     "@jest/transform": "^27.5.1",
     "@testing-library/jest-dom": "^5.16.1",
     "@testing-library/react-hooks": "^7.0.2",
