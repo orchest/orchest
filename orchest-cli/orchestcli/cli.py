@@ -16,9 +16,11 @@ https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomO
 import collections
 import enum
 import json
+import os
 import sys
 import time
 import typing as t
+from functools import partial
 from gettext import gettext
 
 import click
@@ -36,6 +38,25 @@ CORE_API = client.CoreV1Api()
 NAMESPACE = "orchest"
 ORCHEST_CLUSTER_NAME = "cluster-1"
 APPLICATION_CMDS = ["adduser"]
+
+get_namespaced_custom_object = partial(
+    CUSTOM_OBJECT_API.get_namespaced_custom_object,
+    group="orchest.io",
+    version="v1alpha1",
+    plural="orchestclusters",
+)
+create_namespaced_custom_object = partial(
+    CUSTOM_OBJECT_API.create_namespaced_custom_object,
+    group="orchest.io",
+    version="v1alpha1",
+    plural="orchestclusters",
+)
+patch_namespaced_custom_object = partial(
+    CUSTOM_OBJECT_API.patch_namespaced_custom_object,
+    group="orchest.io",
+    version="v1alpha1",
+    plural="orchestclusters",
+)
 
 
 def echo(*args, **kwargs) -> None:
@@ -181,9 +202,12 @@ class ClusterStatus(enum.Enum):
     DELETING = "Deleting"
     RUNNING = "Running"
     UPDATING = "Updating"
+    PAUSING = "Pausing"
+    PAUSED = "Paused"
     ERROR = "Error"
 
 
+# TODO: Other flags / JSON file to specify how to install Orchest.
 @cli.command(cls=ClickCommonOptionsCmd)
 def install(**common_options) -> None:
     """Install Orchest."""
@@ -204,85 +228,21 @@ def install(**common_options) -> None:
     # Once the CR is created, the operator will read it and start
     # setting up the Orchest Cluster.
     try:
-        CUSTOM_OBJECT_API.create_namespaced_custom_object(
-            group="orchest.io",
-            version="v1alpha1",
+        create_namespaced_custom_object(
             namespace=ns,
-            plural="orchestclusters",
             body=custom_object,
         )
     except client.ApiException as e:
-        echo("Failed to install Orchest.")
         if e.status == 409:  # conflict
-            echo("Orchest is already installed. To update, run:")
-            echo("\torchest update")
+            echo("Orchest is already installed. To update, run:", err=True)
+            echo("\torchest update", err=True)
         else:
-            echo("Could not create the required namespaced custom object.")
+            echo("Failed to install Orchest.", err=True)
+            echo("Could not create the required namespaced custom object.", err=True)
         sys.exit(1)
 
     echo("Setting up the Orchest Cluster...", nl=True)
-    try:
-        # NOTE: Click's `echo` makes sure the ANSI characters work
-        # cross-platform. For Windows it uses `colorama` to do so.
-        echo("\033[?25l", nl=False)  # hide cursor
-
-        # NOTE: Watching (using `watch.Watch().stream(...)`) is not
-        # supported, thus we go for a loop instead:
-        # https://github.com/kubernetes-client/python/issues/1679
-        prev_status = ClusterStatus.INITIALIZING
-        curr_status = ClusterStatus.INITIALIZING
-        end_status = ClusterStatus.RUNNING
-
-        # Use `async_req` to make sure spinner is always loading.
-        thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
-        while curr_status != end_status:
-            thread = t.cast("AsyncResult", thread)
-            if thread.ready():
-                try:
-                    resp = thread.get()
-                except client.ApiException as e:
-                    if e.status == 404:  # not found
-                        echo()  # newline
-                        echo("🙅 Failed to install Orchest.", err=True)
-                        echo(
-                            "The CR Object defining the Orchest Cluster was removed"
-                            " by an external process during installation.",
-                            err=True,
-                        )
-                        sys.exit(1)
-                    else:
-                        raise
-
-                curr_status = _parse_cluster_status_from_custom_object(resp)
-                thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
-
-            if curr_status is None:
-                curr_status = prev_status
-
-            if curr_status == prev_status:
-                for _ in range(3):
-                    echo("\r", nl=False)  # Move cursor to beginning of line
-                    echo("\033[K", nl=False)  # Erase until end of line
-                    echo(f"🚶 {curr_status.value}", nl=False)
-                    time.sleep(0.2)
-                    echo("\r", nl=False)
-                    echo("\033[K", nl=False)
-                    echo(f"🏃 {curr_status.value}", nl=False)
-                    time.sleep(0.2)
-
-            else:
-                echo("\r", nl=False)
-                echo("\033[K", nl=False)
-                echo(f"🏁 {prev_status.value}", nl=True)
-                prev_status = curr_status
-
-                # Otherwise we would wait without reason once installation
-                # has finished.
-                if curr_status != end_status:
-                    thread.wait()  # type: ignore
-    finally:
-        echo("\033[?25h", nl=False)  # show cursor
-
+    display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
     echo("Successfully installed Orchest!")
 
 
@@ -317,7 +277,7 @@ def version(json_flag: bool, **common_options) -> None:
         sys.exit(1)
 
     try:
-        version = custom_object["spec"]["orchest"]["defaultTag"]  # type: ignore
+        version = custom_object["spec"]["orchest"]["version"]  # type: ignore
     except KeyError:
         if json_flag:
             jecho({})
@@ -379,6 +339,126 @@ def status(json_flag: bool, **common_options) -> None:
             jecho({"status": status.value})
         else:
             echo(status.value)
+
+
+@cli.command(cls=ClickCommonOptionsCmd)
+@click.option(
+    "--watch/--no-watch",
+    "watch",  # name for arg
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Watch status changes.",
+)
+def pause(watch: bool, **common_options) -> None:
+    """Pause Orchest.
+
+    All underlying Orchest deployments will scaled to zero replicas.
+
+    \b
+    Equivalent `kubectl` command:
+        kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": true}}}'
+    """
+    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
+
+    echo("Getting the Orchest Cluster into a paused state.")
+    try:
+        patch_namespaced_custom_object(
+            name=cluster_name,
+            namespace=ns,
+            body={"spec": {"orchest": {"pause": True}}},
+        )
+    except client.ApiException as e:
+        echo("Failed to pause the Orchest Cluster.", err=True)
+        if e.status == 404:  # not found
+            echo(
+                f"The Orchest Cluster named '{cluster_name}' in namespace"
+                f" '{ns}' could not be found.",
+                err=True,
+            )
+        else:
+            echo(f"Reason: {e.reason}", err=True)
+        sys.exit(1)
+
+    if watch:
+        display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
+        echo("Successfully paused Orchest.")
+
+
+@cli.command(cls=ClickCommonOptionsCmd)
+@click.option(
+    "--watch/--no-watch",
+    "watch",  # name for arg
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Watch status changes.",
+)
+def unpause(watch: bool, **common_options) -> None:
+    """Unpause Orchest.
+
+    \b
+    Equivalent `kubectl` command:
+        kubectl -n orchest patch orchestclusters cluster-1 --type='merge' -p='{"spec": {"orchest": {"pause": false}}}'
+    """
+    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
+
+    echo("Making sure Orchest is unpaused.")
+    try:
+        patch_namespaced_custom_object(
+            name=cluster_name,
+            namespace=ns,
+            body={"spec": {"orchest": {"pause": False}}},
+        )
+    except client.ApiException as e:
+        echo("Failed to unpause the Orchest Cluster.", err=True)
+        if e.status == 404:  # not found
+            echo(
+                f"The Orchest Cluster named '{cluster_name}' in namespace"
+                f" '{ns}' could not be found.",
+                err=True,
+            )
+        else:
+            echo(f"Reason: {e.reason}", err=True)
+        sys.exit(1)
+
+    if watch:
+        display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        echo("Successfully unpaused Orchest.")
+
+
+# TODO: restart can't be invoked by the orchest-api because it requires
+# first have paused the application, but then there is no process to
+# invoke the unpause.
+@cli.command(cls=ClickCommonOptionsCmd)
+@click.option(
+    "--watch/--no-watch",
+    "watch",  # name for arg
+    is_flag=True,
+    default=True,
+    show_default=True,
+    help="Watch status changes.",
+)
+@click.pass_context
+def restart(ctx, watch: bool, **common_options) -> None:
+    """Restart Orchest.
+
+    Useful to reinitialize the Orchest application for config changes to
+    take effect.
+
+    Under the hood all it does is: `orchest pause` followed by an
+    `orchest unpause` once paused.
+
+    """
+    ctx.forward(pause)
+
+    # NOTE: Even if the user doesn't want to watch the status change,
+    # we can only invoke `unpause` once the cluster is paused.
+    if not watch:
+        with open(os.devnull, "w") as f:
+            display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.PAUSED, file=f)
+
+    ctx.forward(unpause)
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -562,7 +642,7 @@ def _add_user(
 def _get_orchest_cluster_status(
     ns: str, cluster_name: str
 ) -> t.Optional[ClusterStatus]:
-    """
+    """Gets Orchest Cluster status.
 
     Note:
         Passes `kwargs` to underlying `get_namespaced_custom_object`
@@ -617,12 +697,9 @@ def _get_namespaced_custom_object(
 
     """
     try:
-        custom_object = CUSTOM_OBJECT_API.get_namespaced_custom_object(
-            group="orchest.io",
-            version="v1alpha1",
+        custom_object = get_namespaced_custom_object(
             name=cluster_name,
             namespace=ns,
-            plural="orchestclusters",
             **kwargs,
         )
     except client.ApiException as e:
@@ -635,3 +712,101 @@ def _get_namespaced_custom_object(
             raise
 
     return custom_object
+
+
+def display_spinner(
+    curr_status: ClusterStatus,
+    end_status: ClusterStatus,
+    file: t.Optional[t.IO] = None,
+) -> None:
+    """Displays a spinner until the end status is reached.
+
+    The spinner is displayed in `file` which defaults to `STDOUT`.
+
+    """
+
+    def echo(*args, **kwargs):
+        """Local echo function.
+
+        Inside the function one can now call the regular `echo` instead
+        of always having to call `echo(..., file=file)`.
+
+        """
+        global echo
+        nonlocal file
+
+        if file is None:
+            file = sys.stdout
+
+        if kwargs.get("file") is None:
+            return echo(*args, file=file, **kwargs)
+        else:
+            return echo(*args, **kwargs)
+
+    # Get the required arguments to get the status of the custom object
+    # from the click context.
+    click_ctx = click.get_current_context()
+    assert click_ctx is not None, "Can only be invoked inside the Click Context."
+
+    ns = click_ctx.params.get("namespace")
+    cluster_name = click_ctx.params.get("cluster_name")
+
+    try:
+        # NOTE: Click's `echo` makes sure the ANSI characters work
+        # cross-platform. For Windows it uses `colorama` to do so.
+        echo("\033[?25l", nl=False)  # hide cursor
+
+        # NOTE: Watching (using `watch.Watch().stream(...)`) is not
+        # supported, thus we go for a loop instead:
+        # https://github.com/kubernetes-client/python/issues/1679
+        prev_status = curr_status
+
+        # Use `async_req` to make sure spinner is always loading.
+        thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
+        while curr_status != end_status:
+            thread = t.cast("AsyncResult", thread)
+            if thread.ready():
+                try:
+                    resp = thread.get()
+                except client.ApiException as e:
+                    echo(err=True)  # newline
+                    echo(f"🙅 Failed to {click_ctx.command.name}", err=True)
+                    if e.status == 404:  # not found
+                        echo(
+                            "The CR Object defining the Orchest Cluster was removed"
+                            " by an external process during installation.",
+                            err=True,
+                        )
+                        sys.exit(1)
+                    else:
+                        raise
+
+                curr_status = _parse_cluster_status_from_custom_object(resp)  # type: ignore
+                thread = _get_namespaced_custom_object(ns, cluster_name, async_req=True)
+
+            if curr_status is None:
+                curr_status = prev_status
+
+            if curr_status == prev_status:
+                for _ in range(3):
+                    echo("\r", nl=False)  # Move cursor to beginning of line
+                    echo("\033[K", nl=False)  # Erase until end of line
+                    echo(f"🚶 {curr_status.value}", nl=False)
+                    time.sleep(0.2)
+                    echo("\r", nl=False)
+                    echo("\033[K", nl=False)
+                    echo(f"🏃 {curr_status.value}", nl=False)
+                    time.sleep(0.2)
+
+            else:
+                echo("\r", nl=False)
+                echo("\033[K", nl=False)
+                echo(f"🏁 {prev_status.value}", nl=True)
+                prev_status = curr_status
+
+                # Otherwise we would wait without reason once the
+                # command has finished.
+                if curr_status != end_status:
+                    thread.wait()  # type: ignore
+    finally:
+        echo("\033[?25h", nl=False)  # show cursor

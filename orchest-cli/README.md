@@ -58,15 +58,26 @@ TODO:
 - [x] "Deploying Orchest" --> "Deploying Orchest control plane"
 - [ ] Structure of CLI code
 - [ ] Installation docs
+  - [ ] We will recommend to install Orchest on a clean cluster (a non-existing cluster) because
+        it is hard to play well with other software already installed on the cluster, e.g. ingress,
+        argo, etc.
+  - [ ] Open an issue to fix the above point.
 - [ ] Removal of `orchest-ctl` from codebase (and changes to `namespace_ctl.py`)
 - [x] Great CRD
 - [ ] Tests? Could also be as simple as running a type checker for now.
+- [ ] TODOs in `cli.py`
+- [ ] CLI module docstring explaining architecture, e.g. manag. cmds and appl cmds
+- [ ] `orchest restart` doesn't work when invoked through the `orchest-api` because it requires two
+      CR changes (but no process will be running to invoke the second one).
+- [ ] Additional flags / options / file to specify installation
 - [ ] `orchest-controller` needs to be versioned as well instead of "latest"
+- [ ] Deleting the CRD no longer seems to work due to the finalizers.
+- [ ] Cluster is never put into `Paused` after pausing
+  - [ ] Unpausing (so doing `pause: false`) results in the cluster status being set to `Updating`
 
 ### Questions
 
 - How about the ingress addon?
-- How again are we creating the folders every service expects? Also how do run
-  `fix_userdir_permissions`?
 - Running Orchest with increased log-level and/or --cloud? Also how about --dev?
-- Do we want to change the `orchest/config.json` file to all just be included in the CR?
+- Do we want to install the `orchest-controller` in a dedicated namespace. Otherwise it could become
+  "impossible" to delete the `orchest` cluster (due to the finalizer on the CRD).
