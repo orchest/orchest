@@ -122,9 +122,9 @@ export const ProjectSelector = () => {
             <Box>
               {`Project with the given uuid `}
               <Code>{projectUuidFromRoute}</Code>
-              {` is not found. You might have had a wrong URL, or this Project might have been deleted.`}
+              {` is not found. This project might have been deleted, or you might have had a wrong URL.`}
             </Box>
-            <Box>Will try to load other projects if possible.</Box>
+            <Box>Will try to load another existing project if any.</Box>
           </Stack>
         );
       }
@@ -133,7 +133,7 @@ export const ProjectSelector = () => {
         ? projectUuidFromRoute
         : state.projects[0]?.uuid;
 
-      if (projectUuidFromRoute && !validProjectUuid && newProjectUuid) {
+      if (newProjectUuid) {
         dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
         onChangeProject(newProjectUuid);
       }
