@@ -1077,7 +1077,7 @@ class Event(BaseModel):
     )
 
     type = db.Column(
-        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE")
+        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE"), index=True
     )
 
     timestamp = db.Column(
@@ -1209,6 +1209,15 @@ class CronJobRunEvent(CronJobEvent):
             f"<CronJobRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}, {self.run_index}>"
         )
+
+
+Index(
+    None,
+    CronJobRunEvent.type,
+    CronJobRunEvent.project_uuid,
+    CronJobRunEvent.job_uuid,
+    CronJobRunEvent.run_index,
+)
 
 
 class CronJobRunPipelineRunEvent(CronJobRunEvent):
