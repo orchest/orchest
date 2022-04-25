@@ -720,7 +720,7 @@ class RunJob(TwoPhaseFunction):
         # thus we need to update that.
         if job.status == "PENDING":
             job.status = "STARTED"
-            events.registerJobStarted(job.project_uuid, job.uuid)
+            events.register_job_started(job.project_uuid, job.uuid)
 
         # To be later used by the collateral effect function.
         tasks_to_launch = []
@@ -856,7 +856,7 @@ class RunJob(TwoPhaseFunction):
         # Jobs that run only once are considered as entirely failed.
         if job["schedule"] is None:
             models.Job.query.filter_by(uuid=job["uuid"]).update({"status": "FAILURE"})
-            events.registerJobFailed(job["project_uuid"], job["uuid"])
+            events.register_job_failed(job["project_uuid"], job["uuid"])
 
         tasks_ids = [task[0] for task in self.collateral_kwargs["tasks_to_launch"]]
 
@@ -928,7 +928,7 @@ class AbortJob(TwoPhaseFunction):
                 status_update, model=models.PipelineRunStep, filter_by=filter_by
             )
 
-        events.registerJobCancelled(job.project_uuid, job.uuid)
+        events.register_job_cancelled(job.project_uuid, job.uuid)
 
         return True
 
@@ -1023,7 +1023,7 @@ class CreateJob(TwoPhaseFunction):
         )
 
         self.collateral_kwargs["job_uuid"] = job_spec["uuid"]
-        events.registerJobCreated(job["project_uuid"], job["uuid"])
+        events.register_job_created(job["project_uuid"], job["uuid"])
         return job
 
     def _collateral(self, job_uuid: str):
@@ -1199,7 +1199,7 @@ class UpdateJob(TwoPhaseFunction):
             else:
                 job.last_scheduled_time = job.next_scheduled_time
                 job.status = "STARTED"
-                events.registerJobStarted(job.project_uuid, job.uuid)
+                events.register_job_started(job.project_uuid, job.uuid)
 
     def _collateral(self):
         pass
@@ -1218,7 +1218,7 @@ class DeleteJob(TwoPhaseFunction):
         # Abort the job, won't do anything if the job is not running.
         AbortJob(self.tpe).transaction(job_uuid)
 
-        events.registerJobDeleted(job.project_uuid, job.uuid)
+        events.register_job_deleted(job.project_uuid, job.uuid)
 
         # Deletes cascade to: job -> non interactive run
         # non interactive runs -> non interactive run image mapping
@@ -1369,7 +1369,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                     # NOTIFICATIONS_TODO: we will probably need to alter
                     # how we define a job SUCCESS status, might require
                     # FE changes as well.
-                    events.registerJobSucceeded(job.project_uuid, job_uuid)
+                    events.register_job_succeeded(job.project_uuid, job_uuid)
                     # The job is completed.
                     self.collateral_kwargs["completed"] = True
 
