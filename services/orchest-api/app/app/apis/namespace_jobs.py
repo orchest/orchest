@@ -795,6 +795,11 @@ class RunJob(TwoPhaseFunction):
                 )
             db.session.bulk_save_objects(pipeline_steps)
 
+        if job.schedule is not None:
+            events.register_cronjob_run_started(
+                job.project_uuid, job.uuid, job.total_scheduled_executions
+            )
+
         job.total_scheduled_executions += 1
         # Must run after total_scheduled_executions has been updated.
         DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job.uuid)
@@ -872,6 +877,11 @@ class RunJob(TwoPhaseFunction):
         for task_id in tasks_ids:
             events.register_job_pipeline_run_failed(
                 job["project_uuid"], job["uuid"], task_id
+            )
+
+        if job.get("schedule") is not None:
+            events.register_cronjob_run_failed(
+                job["project_uuid"], job["uuid"], job["total_scheduled_executions"] - 1
             )
 
         models.NonInteractivePipelineRun.query.filter(
@@ -1310,21 +1320,20 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
 class UpdateJobPipelineRun(TwoPhaseFunction):
     """Update a pipeline run of a job."""
 
-    def _transaction(self, job_uuid: str, run_uuid: str, status_update: Dict[str, Any]):
+    def _transaction(
+        self, job_uuid: str, pipeline_run_uuid: str, status_update: Dict[str, Any]
+    ):
         """Set the status of a pipeline run."""
 
         filter_by = {
             "job_uuid": job_uuid,
-            "uuid": run_uuid,
+            "uuid": pipeline_run_uuid,
         }
 
         job = (
             db.session.query(
                 models.Job.project_uuid,
                 models.Job.schedule,
-                # The job has 1 run for every parameters set, this value
-                # tells us how many pipeline runs are in every job run.
-                func.jsonb_array_length(models.Job.parameters),
             )
             .filter_by(uuid=job_uuid)
             .one()
@@ -1343,7 +1352,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             }[status_update["status"]](
                 job.project_uuid,
                 job_uuid,
-                run_uuid,
+                pipeline_run_uuid,
             )
 
         # See if the job is done running (all its runs are done).
@@ -1353,52 +1362,110 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
-                # Avoid a race condition where the last runs would
-                # concurrently update their status, leading to
-                # runs_to_complete never being == 0.
-                models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
-
-                # Check how many runs still need to get to an end state.
-                # Checking this way is necessary because a run could
-                # have been deleted by the DB through the
-                # DeleteJobPipelineRun 2PF, so we can't rely on how many
-                # runs have finished. Note that this is possible because
-                # one off jobs create all their runs in a batch.
-                runs_to_complete = (
-                    models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
-                    .filter(
-                        models.NonInteractivePipelineRun.status.in_(
-                            ["PENDING", "STARTED"]
-                        )
-                    )
-                    .count()
+                self._update_one_off_job(job_uuid)
+            else:
+                self._update_cronjob_run(
+                    job_uuid, pipeline_run_uuid, status_update["status"]
                 )
-                current_app.logger.info(
-                    (
-                        f"Non recurring job {job_uuid} has completed "
-                        f"{job[2] - runs_to_complete}/{job[2]} runs."
-                    )
-                )
-
-                if runs_to_complete == 0:
-                    if (
-                        models.Job.query.filter_by(uuid=job_uuid)
-                        .filter(
-                            # This is needed because aborted runs that
-                            # are running will report reaching an end
-                            # state, which will trigger a call to this
-                            # 2PF.
-                            models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
-                        )
-                        .update({"status": "SUCCESS"})
-                        > 0
-                    ):
-                        # NOTIFICATIONS_TODO: we will probably need to
-                        # alter how we define a job SUCCESS status,
-                        # might require FE changes as well.
-                        events.register_job_succeeded(job.project_uuid, job_uuid)
 
         return {"message": "Status was updated successfully"}, 200
+
+    def _update_cronjob_run(
+        self, job_uuid: str, pipeline_run_uuid: str, run_status: str
+    ) -> None:
+        # Avoid a race condition where the last runs would concurrently
+        # update their status.
+        job = models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+
+        run_index = (
+            db.session.query(models.NonInteractivePipelineRun.job_run_index)
+            .filter(
+                models.NonInteractivePipelineRun.job_uuid == job_uuid,
+                models.NonInteractivePipelineRun.uuid == pipeline_run_uuid,
+            )
+            .one()
+        ).job_run_index
+
+        if run_status == "FAILED":
+            event = models.CronJobRunEvent.query.filter(
+                models.CronJobRunEvent.type == "project:cronjob:run:failed",
+                models.CronJobRunEvent.project_uuid == job.project_uuid,
+                models.CronJobRunEvent.job_uuid == job.uuid,
+                models.CronJobRunEvent.run_index == run_index,
+            ).first()
+            if event is None:
+                events.register_cronjob_run_failed(
+                    job.project_uuid, job.uuid, run_index
+                )
+        elif run_status in ["SUCCESS", "ABORTED"]:
+            runs_to_complete = models.NonInteractivePipelineRun.query.filter(
+                models.NonInteractivePipelineRun.job_uuid == job.uuid,
+                models.NonInteractivePipelineRun.job_run_index == run_index,
+                models.NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"]),
+            ).count()
+            failed_runs = models.NonInteractivePipelineRun.query.filter(
+                models.NonInteractivePipelineRun.job_uuid == job.uuid,
+                models.NonInteractivePipelineRun.job_run_index == run_index,
+                models.NonInteractivePipelineRun.status == "FAILED",
+            ).count()
+            if runs_to_complete == 0 and failed_runs == 0:
+                events.register_cronjob_run_succeeded(
+                    job.project_uuid, job.uuid, run_index
+                )
+
+    def _update_one_off_job(self, job_uuid: str) -> None:
+        # Avoid a race condition where the last runs would
+        # concurrently update their status, leading to
+        # runs_to_complete never being == 0.
+        models.Job.query.with_for_update().filter_by(uuid=job_uuid).one()
+
+        job = (
+            db.session.query(
+                models.Job.project_uuid,
+                models.Job.schedule,
+                # The job has 1 run for every parameters set, this value
+                # tells us how many pipeline runs are in every job run.
+                func.jsonb_array_length(models.Job.parameters),
+            )
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
+
+        # Check how many runs still need to get to an end state.
+        # Checking this way is necessary because a run could
+        # have been deleted by the DB through the
+        # DeleteJobPipelineRun 2PF, so we can't rely on how many
+        # runs have finished. Note that this is possible because
+        # one off jobs create all their runs in a batch.
+        runs_to_complete = (
+            models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+            .filter(models.NonInteractivePipelineRun.status.in_(["PENDING", "STARTED"]))
+            .count()
+        )
+        current_app.logger.info(
+            (
+                f"Non recurring job {job_uuid} has completed "
+                f"{job[2] - runs_to_complete}/{job[2]} runs."
+            )
+        )
+
+        if runs_to_complete == 0:
+            if (
+                models.Job.query.filter_by(uuid=job_uuid)
+                .filter(
+                    # This is needed because aborted runs that
+                    # are running will report reaching an end
+                    # state, which will trigger a call to this
+                    # 2PF.
+                    models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
+                )
+                .update({"status": "SUCCESS"})
+                > 0
+            ):
+                # NOTIFICATIONS_TODO: we will probably need to
+                # alter how we define a job SUCCESS status,
+                # might require FE changes as well.
+                events.register_job_succeeded(job.project_uuid, job_uuid)
 
     def _collateral(self):
         pass
@@ -1437,6 +1504,7 @@ class PauseCronJob(TwoPhaseFunction):
             return False
         job.status = "PAUSED"
         job.next_scheduled_time = None
+        events.register_cronjob_paused(job.project_uuid, job.uuid)
         return True
 
     def _collateral(self):
@@ -1459,6 +1527,7 @@ class ResumeCronJob(TwoPhaseFunction):
         job.next_scheduled_time = croniter(
             job.schedule, datetime.now(timezone.utc)
         ).get_next(datetime)
+        events.register_cronjob_unpaused(job.project_uuid, job.uuid)
         return str(job.next_scheduled_time)
 
     def _collateral(self):

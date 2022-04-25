@@ -22,7 +22,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
-from sqlalchemy.orm import deferred
+from sqlalchemy.orm import declared_attr, deferred
 
 from app.connections import db
 
@@ -1050,6 +1050,7 @@ class EventType(BaseModel):
     migration. Migrations that have added event types:
     - services/orchest-api/app/migrations/versions/410e08270de4_.py
     - services/orchest-api/app/migrations/versions/814961a3d525_.py
+    - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
     """
 
     __tablename__ = "event_types"
@@ -1088,6 +1089,12 @@ class Event(BaseModel):
     __mapper_args__ = {
         "polymorphic_on": case(
             [
+                (
+                    type.startswith("project:cronjob:run:pipeline-run:"),
+                    "cronjob_run_pipeline_run_event",
+                ),
+                (type.startswith("project:cronjob:run:"), "cronjob_run_event"),
+                (type.startswith("project:cronjob:"), "cronjob_event"),
                 (
                     type.startswith("project:job:pipeline-run:"),
                     "job_pipeline_run_event",
@@ -1146,7 +1153,11 @@ class JobPipelineRunEvent(JobEvent):
     # Single table inheritance.
     __tablename__ = None
 
-    pipeline_run_uuid = db.Column(db.String(36))
+    # See
+    # https://docs.sqlalchemy.org/en/14/orm/inheritance.html#resolving-column-conflicts
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
     __mapper_args__ = {"polymorphic_identity": "job_pipeline_run_event"}
 
@@ -1162,3 +1173,59 @@ ForeignKeyConstraint(
     [NonInteractivePipelineRun.uuid],
     ondelete="CASCADE",
 )
+
+
+class CronJobEvent(JobEvent):
+    """CronJob events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cronjob_event"}
+
+    def __repr__(self):
+        return (
+            f"<CronJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class CronJobRunEvent(CronJobEvent):
+    """CronJob run events that happen in the orchest-api.
+
+    A cronjob run is an instance of a cronjob being triggered, i.e. a
+    batch of runs.
+    """
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cronjob_run_event"}
+
+    run_index = db.Column(db.Integer)
+
+    def __repr__(self):
+        return (
+            f"<CronJobRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.run_index}>"
+        )
+
+
+class CronJobRunPipelineRunEvent(CronJobRunEvent):
+    """CronJob pipeline runs events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cronjob_run_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def __repr__(self):
+        return (
+            f"<CronJobRunPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.run_index}, "
+            f"{self.pipeline_run_uuid}>"
+        )
