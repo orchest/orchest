@@ -1049,6 +1049,7 @@ class EventType(BaseModel):
     created it, if you need to add more types add another schema
     migration. Migrations that have added event types:
     - services/orchest-api/app/migrations/versions/410e08270de4_.py
+    - services/orchest-api/app/migrations/versions/814961a3d525_.py
     """
 
     __tablename__ = "event_types"
@@ -1087,6 +1088,10 @@ class Event(BaseModel):
     __mapper_args__ = {
         "polymorphic_on": case(
             [
+                (
+                    type.startswith("project:job:pipeline-run:"),
+                    "job_pipeline_run_event",
+                ),
                 (type.startswith("project:job:"), "job_event"),
                 (type.startswith("project:"), "project_event"),
             ],
@@ -1133,3 +1138,27 @@ class JobEvent(ProjectEvent):
             f"<JobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}>"
         )
+
+
+class JobPipelineRunEvent(JobEvent):
+    """Job pipeline runs events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    pipeline_run_uuid = db.Column(db.String(36))
+
+    __mapper_args__ = {"polymorphic_identity": "job_pipeline_run_event"}
+
+    def __repr__(self):
+        return (
+            f"<JobPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.pipeline_run_uuid}>"
+        )
+
+
+ForeignKeyConstraint(
+    [JobPipelineRunEvent.pipeline_run_uuid],
+    [NonInteractivePipelineRun.uuid],
+    ondelete="CASCADE",
+)

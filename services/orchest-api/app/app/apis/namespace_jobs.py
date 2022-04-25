@@ -773,6 +773,10 @@ class RunJob(TwoPhaseFunction):
             # https://docs.sqlalchemy.org/en/13/orm/persistence_techniques.html#bulk-operations-caveats
             db.session.flush()
 
+            events.register_job_pipeline_run_created(
+                job.project_uuid, job.uuid, task_id
+            )
+
             # TODO: this code is also in `namespace_runs`. Could
             #       potentially be put in a function for modularity.
             # Set an initial value for the status of the pipeline
@@ -865,6 +869,11 @@ class RunJob(TwoPhaseFunction):
             models.PipelineRunStep.run_uuid.in_(tasks_ids)
         ).update({"status": "FAILURE"}, synchronize_session=False)
 
+        for task_id in tasks_ids:
+            events.register_job_pipeline_run_failed(
+                job["project_uuid"], job["uuid"], task_id
+            )
+
         models.NonInteractivePipelineRun.query.filter(
             models.PipelineRun.uuid.in_(tasks_ids)
         ).update({"status": "FAILURE"}, synchronize_session=False)
@@ -915,11 +924,14 @@ class AbortJob(TwoPhaseFunction):
             filter_by = {"uuid": run_uuid}
             status_update = {"status": "ABORTED"}
 
-            update_status_db(
+            if update_status_db(
                 status_update,
                 model=models.NonInteractivePipelineRun,
                 filter_by=filter_by,
-            )
+            ):
+                events.register_job_pipeline_run_cancelled(
+                    job.project_uuid, job.uuid, run_uuid
+                )
 
             filter_by = {"run_uuid": run_uuid}
             status_update = {"status": "ABORTED"}
@@ -1262,6 +1274,8 @@ class DeleteJobPipelineRun(TwoPhaseFunction):
         # locked env images, and processing stale ones.
         AbortJobPipelineRun(self.tpe).transaction(job_uuid, run_uuid)
 
+        events.register_job_pipeline_run_deleted(job.project_uuid, job_uuid, run_uuid)
+
         # Deletes cascade to: non interactive runs -> non interactive
         # run image mapping, non interactive runs -> pipeline run step.
         db.session.delete(run)
@@ -1298,35 +1312,43 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
 
     def _transaction(self, job_uuid: str, run_uuid: str, status_update: Dict[str, Any]):
         """Set the status of a pipeline run."""
-        # Setup for collateral/revert.
-        self.collateral_kwargs["project_uuid"] = None
-        self.collateral_kwargs["completed"] = False
 
         filter_by = {
             "job_uuid": job_uuid,
             "uuid": run_uuid,
         }
 
-        update_status_db(
+        job = (
+            db.session.query(
+                models.Job.project_uuid,
+                models.Job.schedule,
+                # The job has 1 run for every parameters set, this value
+                # tells us how many pipeline runs are in every job run.
+                func.jsonb_array_length(models.Job.parameters),
+            )
+            .filter_by(uuid=job_uuid)
+            .one()
+        )
+
+        if update_status_db(
             status_update,
             model=models.NonInteractivePipelineRun,
             filter_by=filter_by,
-        )
+        ):
+            {
+                "SUCCESS": events.register_job_pipeline_run_succeeded,
+                "FAILED": events.register_job_pipeline_run_failed,
+                "ABORTED": events.register_job_pipeline_run_cancelled,
+                "STARTED": events.register_job_pipeline_run_started,
+            }[status_update["status"]](
+                job.project_uuid,
+                job_uuid,
+                run_uuid,
+            )
 
         # See if the job is done running (all its runs are done).
         if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
 
-            # The job has 1 run for every parameters set.
-            job = (
-                db.session.query(
-                    models.Job.project_uuid,
-                    models.Job.schedule,
-                    func.jsonb_array_length(models.Job.parameters),
-                )
-                .filter_by(uuid=job_uuid)
-                .one()
-            )
-            self.collateral_kwargs["project_uuid"] = job.project_uuid
             DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
 
             # Only non recurring jobs terminate to SUCCESS.
@@ -1359,23 +1381,26 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 )
 
                 if runs_to_complete == 0:
-                    models.Job.query.filter_by(uuid=job_uuid).filter(
-                        # This is needed because aborted runs that are
-                        # running will report reaching an end state,
-                        # which will trigger a call to this 2PF.
-                        models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
-                    ).update({"status": "SUCCESS"})
-
-                    # NOTIFICATIONS_TODO: we will probably need to alter
-                    # how we define a job SUCCESS status, might require
-                    # FE changes as well.
-                    events.register_job_succeeded(job.project_uuid, job_uuid)
-                    # The job is completed.
-                    self.collateral_kwargs["completed"] = True
+                    if (
+                        models.Job.query.filter_by(uuid=job_uuid)
+                        .filter(
+                            # This is needed because aborted runs that
+                            # are running will report reaching an end
+                            # state, which will trigger a call to this
+                            # 2PF.
+                            models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
+                        )
+                        .update({"status": "SUCCESS"})
+                        > 0
+                    ):
+                        # NOTIFICATIONS_TODO: we will probably need to
+                        # alter how we define a job SUCCESS status,
+                        # might require FE changes as well.
+                        events.register_job_succeeded(job.project_uuid, job_uuid)
 
         return {"message": "Status was updated successfully"}, 200
 
-    def _collateral(self, project_uuid: str, completed: bool):
+    def _collateral(self):
         pass
 
 
