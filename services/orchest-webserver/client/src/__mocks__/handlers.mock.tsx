@@ -2,8 +2,8 @@ import { rest } from "msw";
 import {
   chance,
   getPipelineMedadatas,
-  mockProjectCollection,
-} from "./mockData.mock";
+  mockProjects,
+} from "./mockProjects.mock";
 
 export const handlers = [
   rest.get("/async/server-config", (req, res, ctx) => {
@@ -64,7 +64,7 @@ export const handlers = [
     const projectUuid = req.params.projectUuid as string;
     if (!projectUuid) return res(ctx.status(404));
 
-    const project = mockProjectCollection.get(projectUuid);
+    const project = mockProjects.get(projectUuid).project;
 
     return res(ctx.json(project));
   }),
@@ -84,8 +84,8 @@ export const handlers = [
 
       if (!projectUuid || !pipelineUuid) return res(ctx.status(404));
 
-      const pipelineJson = mockProjectCollection
-        .get(pipelineUuid)
+      const pipelineJson = mockProjects
+        .get(projectUuid)
         .pipelines.get(pipelineUuid).definition;
 
       return res(
@@ -102,9 +102,8 @@ export const handlers = [
 
     if (!projectUuid || !pipelineUuid) return res(ctx.status(404));
 
-    const pipeline = mockProjectCollection
-      .get(pipelineUuid)
-      .pipelines.get(pipelineUuid).pipeline;
+    const pipeline = mockProjects.get(projectUuid).pipelines.get(pipelineUuid)
+      .pipeline;
 
     return res(ctx.json(pipeline));
   }),

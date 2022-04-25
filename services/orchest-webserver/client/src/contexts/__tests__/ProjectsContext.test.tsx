@@ -4,8 +4,8 @@ import { PipelineMetaData } from "../../types";
 import {
   chance,
   getPipelineMedadatas,
-  mockProjectCollection,
-} from "../../__mocks__/mockData.mock";
+  mockProjects,
+} from "../../__mocks__/mockProjects.mock";
 import {
   ProjectsContextProvider,
   useProjectsContext,
@@ -28,14 +28,14 @@ let mockData: {
 };
 
 const resetMock = () => {
-  mockProjectCollection.reset();
+  mockProjects.reset();
 
   const project1Uuid = chance.guid();
   const project2Uuid = chance.guid();
 
   Array.from(Array(2)).forEach(() => {
-    mockProjectCollection.get(project1Uuid).pipelines.get(chance.guid());
-    mockProjectCollection.get(project2Uuid).pipelines.get(chance.guid());
+    mockProjects.get(project1Uuid).pipelines.get(chance.guid());
+    mockProjects.get(project2Uuid).pipelines.get(chance.guid());
   });
 
   const project1Pipelines = getPipelineMedadatas(project1Uuid);
@@ -59,7 +59,7 @@ describe("useProjectsContext", () => {
     resetMock();
     rerender();
 
-    // Before each case, MOCK_PROJECT_1_ID should be loaded
+    // Before each case, `mockData.project1Uuid` should be loaded
 
     expect(result.current.state.projectUuid).toEqual(undefined);
     expect(result.current.state.pipelines).toEqual(undefined);

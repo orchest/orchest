@@ -15,9 +15,13 @@ type MockPipelineData = {
   definition: PipelineJson;
 };
 
-type MockProjectData = {
+export type MockProjectData = {
   pipelines: {
     get(pipelineUuid: string): MockPipelineData;
+    set(
+      pipelineUuid: string,
+      setter: (prev: MockPipelineData) => MockPipelineData
+    ): MockPipelineData;
     getAll(): Record<string, MockPipelineData>;
   };
   project: Project;
@@ -45,7 +49,7 @@ const generatePipelineDefinition = (
         display_name: "Python 3",
       },
       environment: chance.guid(),
-      parameters: {},
+      parameters: { [chance.string()]: chance.string() },
       meta_data: {
         position: [
           chance.floating({ min: 0, max: 100 }),
@@ -67,6 +71,22 @@ const generatePipelineDefinition = (
     steps: stepsObj,
     uuid: pipelineUuid,
     version: "1.2.0",
+    services: {
+      vscode: {
+        args:
+          "-c 'umask 002 && code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/code-server'",
+        binds: { "/project-dir": "/home/coder/code-server" },
+        command: "bash",
+        env_variables: { [chance.string()]: chance.string() },
+        exposed: true,
+        image: "codercom/code-server:latest",
+        name: "vscode",
+        order: 1,
+        ports: [8080],
+        requires_authentication: true,
+        scope: ["interactive"],
+      },
+    },
   };
 };
 
@@ -104,6 +124,15 @@ const generateMockPipelineCollection = (projectUuid: string) => {
         projectUuid,
         pipelineUuid
       );
+
+      return collection[pipelineUuid];
+    },
+    set(pipelineUuid: string, setter: (MockPipelineData) => MockPipelineData) {
+      const targetPipeline =
+        collection[pipelineUuid] ||
+        generateMockPipelineData(projectUuid, pipelineUuid);
+
+      collection[pipelineUuid] = setter(targetPipeline);
       return collection[pipelineUuid];
     },
     getAll() {
@@ -114,8 +143,9 @@ const generateMockPipelineCollection = (projectUuid: string) => {
 
 const generateMockProjectData = (projectUuid: string): Project => {
   // NOTE: most of the values are not used, so we only put dummy values only for testing
-  // Use `mockProjectCollection.set` to update the values depending on your test case,
+  // Use `mockProjects.set` to update the values depending on your test case,
   // e.g. if you create a new pipeline in your test case and you need to verify `pipeline_count`.
+
   return {
     uuid: projectUuid,
     path: "dummy-project",
@@ -129,38 +159,40 @@ const generateMockProjectData = (projectUuid: string): Project => {
   };
 };
 
-const generateMockProjectCollection = () => {
-  let collection: Record<string, MockProjectData> = {};
+let projectCollection: Record<string, MockProjectData> = {};
+
+export const generateMockProjectCollection = () => {
   return {
     get(projectUuid: string) {
-      if (collection[projectUuid]) return collection[projectUuid];
-      collection[projectUuid] = {
+      if (projectCollection[projectUuid]) return projectCollection[projectUuid];
+
+      projectCollection[projectUuid] = {
         project: generateMockProjectData(projectUuid),
         pipelines: generateMockPipelineCollection(projectUuid),
       };
-      return collection[projectUuid];
+      return projectCollection[projectUuid];
     },
     set(
       projectUuid: string,
       setter: (MockProjectData: MockProjectData) => MockProjectData
     ) {
-      const project = collection[projectUuid] || {
+      const project = projectCollection[projectUuid] || {
         project: generateMockProjectData(projectUuid),
         pipelines: generateMockPipelineCollection(projectUuid),
       };
 
-      collection[projectUuid] = setter(project);
-      return collection[projectUuid];
+      projectCollection[projectUuid] = setter(project);
+      return projectCollection[projectUuid];
     },
     reset() {
-      collection = {};
+      projectCollection = {};
     },
   };
 };
 
+export const mockProjects = generateMockProjectCollection();
+
 export const getPipelineMedadatas = (projectUuid: string) =>
-  Object.values(mockProjectCollection.get(projectUuid).pipelines.getAll()).map(
+  Object.values(mockProjects.get(projectUuid).pipelines.getAll()).map(
     (pipelineData) => pipelineData.metadata
   );
-
-export const mockProjectCollection = generateMockProjectCollection();

@@ -77,6 +77,7 @@ export type OrchestConfig = {
     readthedocs: string;
     slack: string;
     website: string;
+    orchest_update_info_json: string;
     orchest_examples_repo: string;
     orchest_examples_json: string;
   };

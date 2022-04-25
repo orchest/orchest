@@ -38,23 +38,35 @@ export const useFetchPipelineSettings = ({
     jobUuid && runUuid ? { jobUuid, runUuid } : null
   );
 
-  const { pipelineJson, setPipelineJson } = useFetchPipelineJson({
+  const {
+    pipelineJson,
+    setPipelineJson,
+    fetchPipelineJson,
+  } = useFetchPipelineJson({
     projectUuid,
     pipelineUuid,
     jobUuid,
     runUuid,
   });
 
-  const { pipeline } = useFetchPipeline(
+  const { pipeline, fetchPipeline } = useFetchPipeline(
     !jobUuid && pipelineUuid ? { projectUuid, pipelineUuid } : null
   );
 
   // fetch project env vars only if it's not a job or a pipeline run
   // NOTE: project env var only makes sense for pipelines, because jobs and runs make an copy of all the effective variables
-  const { data: projectEnvVariables = [] } = useFetchProject<EnvVarPair[]>({
+  const { data: projectEnvVariables = [], fetchProject } = useFetchProject<
+    EnvVarPair[]
+  >({
     projectUuid: !jobUuid && !runUuid && projectUuid ? projectUuid : undefined,
     selector: (project) => envVariablesDictToArray(project.env_variables),
   });
+
+  const refetch = React.useCallback(() => {
+    fetchPipelineJson();
+    fetchPipeline();
+    fetchProject();
+  }, [fetchPipelineJson, fetchPipeline, fetchProject]);
 
   /**
    * hooks for persisting local mutations without changing the initial data
@@ -147,5 +159,6 @@ export const useFetchPipelineSettings = ({
     setPipelineJson,
     inputParameters,
     setInputParameters,
+    refetch,
   };
 };
