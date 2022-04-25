@@ -12,7 +12,7 @@ const EnvironmentsView: React.FC = () => {
 
   return (
     <Layout>
-      <ProjectBasedView projectUuid={projectUuid}>
+      <ProjectBasedView>
         <EnvironmentList projectUuid={projectUuid} />
       </ProjectBasedView>
     </Layout>
