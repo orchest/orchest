@@ -317,19 +317,19 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 		for _, deployment := range deploymentsToPause {
 			orchest, err := r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Pausing %s", deployment.Name))
 			if err != nil {
-				return orchest, errors.Wrapf(err, "failed to update status while pausing orchest-webserver")
+				return orchest, errors.Wrapf(err, "failed to update status while pausing %s", deployment.Name)
 			}
 			utils.PauseDeployment(ctx, r.getClient(), orchest.Generation, deployment)
 
 			orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Pausing, fmt.Sprintf("Paused %s", deployment.Name))
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to update status while pausing orchest-webserver")
+				return nil, errors.Wrapf(err, "failed to update status after pausing %s", deployment.Name)
 			}
 		}
 
 		orchest, err = r.controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Paused, "Paused the cluster")
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to update status while changin the state to pausing")
+			return nil, errors.Wrapf(err, "failed to update status while changing the state to Paused")
 		}
 
 	}

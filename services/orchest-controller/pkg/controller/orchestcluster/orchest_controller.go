@@ -393,7 +393,7 @@ func (controller *OrchestClusterController) updateClusterStatus(ctx context.Cont
 	result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).UpdateStatus(ctx, orchest, metav1.UpdateOptions{})
 
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update orchest with status  %q", orchest.Name)
+		return nil, errors.Wrapf(err, "failed to update orchest with status %q", orchest.Status.State)
 	}
 	return result, nil
 }
