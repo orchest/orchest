@@ -5,12 +5,24 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getOrchetWebserverManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func getOrchetWebserverManifests(hash string, orchest *orchestv1alpha1.OrchestCluster) []client.Object {
 
+	objects := make([]client.Object, 0, 3)
 	matchLabels := getMatchLables(orchestWebserver, orchest)
 	metadata := getMetadata(orchestWebserver, hash, orchest)
+
+	objects = append(objects, getOrchetWebserverDeployment(metadata, matchLabels, orchest))
+	objects = append(objects, getServiceManifest(metadata, matchLabels, 80, orchest))
+	objects = append(objects, getIngressManifest(metadata, "/", true, orchest))
+
+	return objects
+}
+
+func getOrchetWebserverDeployment(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, orchest *orchestv1alpha1.OrchestCluster) client.Object {
 
 	image := orchest.Spec.Orchest.OrchestWebServer.Image
 

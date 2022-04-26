@@ -4,16 +4,24 @@ import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getCeleryWorkerManifests(hash string, orchest *orchestv1alpha1.OrchestCluster) (*appsv1.Deployment, *rbacv1.ClusterRole,
-	*rbacv1.ClusterRoleBinding,
-	*corev1.ServiceAccount) {
+func getCeleryWorkerManifests(hash string, orchest *orchestv1alpha1.OrchestCluster) []client.Object {
 
+	objects := make([]client.Object, 0, 4)
 	matchLabels := getMatchLables(celeryWorker, orchest)
 	metadata := getMetadata(celeryWorker, hash, orchest)
+
+	objects = append(objects, getRbacManifest(metadata)...)
+	objects = append(objects, getCeleryWorkerDeployment(metadata, matchLabels, orchest))
+
+	return objects
+}
+
+func getCeleryWorkerDeployment(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, orchest *orchestv1alpha1.OrchestCluster) client.Object {
 
 	image := orchest.Spec.Orchest.CeleryWorker.Image
 
@@ -96,8 +104,7 @@ func getCeleryWorkerManifests(hash string, orchest *orchestv1alpha1.OrchestClust
 	}
 
 	// TODO: make it exactly what is needs, just in this namespace
-	role, roleBinding, sa := getRbacManifest(metadata)
+	//role, roleBinding, sa := getRbacManifest(metadata)
 
-	return deployment, role, roleBinding, sa
-
+	return deployment
 }

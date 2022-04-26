@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func getDeploymentsSelector(orchest *orchestv1alpha1.OrchestCluster) (labels.Selector, error) {
@@ -70,15 +72,14 @@ func getMetadata(compoenentName, hash string, orchest *orchestv1alpha1.OrchestCl
 	return metadata
 }
 
-func getServiceManifest(compoenentName, hash string, port int, orchest *orchestv1alpha1.OrchestCluster) *corev1.Service {
-
-	metadata := getMetadata(compoenentName, hash, orchest)
-	matchLable := getMatchLables(compoenentName, orchest)
+func getServiceManifest(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, port int,
+	orchest *orchestv1alpha1.OrchestCluster) client.Object {
 
 	service := &corev1.Service{
 		ObjectMeta: metadata,
 		Spec: corev1.ServiceSpec{
-			Selector: matchLable,
+			Selector: matchLabels,
 			Ports: []corev1.ServicePort{
 				{
 					Port: int32(port),
@@ -91,7 +92,7 @@ func getServiceManifest(compoenentName, hash string, port int, orchest *orchestv
 
 }
 
-func getRbacManifest(metadata metav1.ObjectMeta) (*rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding, *corev1.ServiceAccount) {
+func getRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metadata,
@@ -124,8 +125,58 @@ func getRbacManifest(metadata metav1.ObjectMeta) (*rbacv1.ClusterRole, *rbacv1.C
 		ObjectMeta: metadata,
 	}
 
-	return clusterRole, clusterRoleBinding, serviceAccount
+	return []client.Object{
+		clusterRole,
+		clusterRoleBinding,
+		serviceAccount,
+	}
+}
 
+func getIngressManifest(metadata metav1.ObjectMeta, path string,
+	enableAuth bool, orchest *orchestv1alpha1.OrchestCluster) client.Object {
+
+	var ingressMeta metav1.ObjectMeta
+	if enableAuth {
+		ingressMeta = *metadata.DeepCopy()
+		authServiceName := fmt.Sprintf("http://auth-server.%s.svc.cluster.local/auth", orchest.Namespace)
+		ingressMeta.Annotations["nginx.ingress.kubernetes.io/auth-url"] = authServiceName
+	} else {
+		ingressMeta = metadata
+	}
+
+	rule := networkingv1.IngressRule{}
+	if orchest.Spec.Orchest.OrchestHost != nil {
+		rule.Host = *orchest.Spec.Orchest.OrchestHost
+	}
+
+	rule.HTTP = &networkingv1.HTTPIngressRuleValue{
+		Paths: []networkingv1.HTTPIngressPath{
+			{
+				Path:     path,
+				PathType: &PrefixPathType,
+				Backend: networkingv1.IngressBackend{
+					Service: &networkingv1.IngressServiceBackend{
+						Name: metadata.Name,
+						Port: networkingv1.ServiceBackendPort{
+							Number: 80,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: ingressMeta,
+		Spec: networkingv1.IngressSpec{
+			IngressClassName: &OrchestIngressClassName,
+			Rules: []networkingv1.IngressRule{
+				rule,
+			},
+		},
+	}
+
+	return ingress
 }
 
 // AddFinalizer adds specified finalizer string to object

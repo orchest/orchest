@@ -12,6 +12,10 @@ import (
 	ocinformersfactory "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions"
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -160,4 +164,28 @@ func GetPatchData(oldObj, newObj interface{}) ([]byte, error) {
 		return nil, fmt.Errorf("CreateTwoWayMergePatch failed: %v", err)
 	}
 	return patchBytes, nil
+}
+
+/*
+role *rbacv1.ClusterRole,
+	roleBinding *rbacv1.ClusterRoleBinding, sa *corev1.ServiceAccount
+*/
+
+func GetInstanceOfObj(obj interface{}) client.Object {
+	switch obj.(type) {
+	case *corev1.Service:
+		return &corev1.Service{}
+	case *corev1.ServiceAccount:
+		return &corev1.ServiceAccount{}
+	case *appsv1.Deployment:
+		return &appsv1.Deployment{}
+	case *rbacv1.ClusterRole:
+		return &rbacv1.ClusterRole{}
+	case *rbacv1.ClusterRoleBinding:
+		return &rbacv1.ClusterRoleBinding{}
+	case *networkingv1.Ingress:
+		return &networkingv1.Ingress{}
+	}
+
+	return nil
 }

@@ -5,12 +5,23 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getRabbitMqManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func getRabbitMqManifests(hash string, orchest *orchestv1alpha1.OrchestCluster) []client.Object {
 
+	objects := make([]client.Object, 0, 3)
 	matchLabels := getMatchLables(rabbitmq, orchest)
 	metadata := getMetadata(rabbitmq, hash, orchest)
+
+	objects = append(objects, getRabbitMqDeployment(metadata, matchLabels, orchest))
+	objects = append(objects, getServiceManifest(metadata, matchLabels, 5672, orchest))
+
+	return objects
+}
+
+func getRabbitMqDeployment(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, orchest *orchestv1alpha1.OrchestCluster) client.Object {
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{

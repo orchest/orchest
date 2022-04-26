@@ -5,12 +5,23 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func getOrchetDatabaseManifest(hash string, orchest *orchestv1alpha1.OrchestCluster) *appsv1.Deployment {
+func getOrchetDatabaseManifests(hash string, orchest *orchestv1alpha1.OrchestCluster) []client.Object {
 
+	objects := make([]client.Object, 0, 2)
 	matchLabels := getMatchLables(orchestDatabase, orchest)
 	metadata := getMetadata(orchestDatabase, hash, orchest)
+
+	objects = append(objects, getOrchetDatabaseDeployment(metadata, matchLabels, orchest))
+	objects = append(objects, getServiceManifest(metadata, matchLabels, 5432, orchest))
+
+	return objects
+}
+
+func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, orchest *orchestv1alpha1.OrchestCluster) client.Object {
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
@@ -75,5 +86,4 @@ func getOrchetDatabaseManifest(hash string, orchest *orchestv1alpha1.OrchestClus
 	}
 
 	return deployment
-
 }

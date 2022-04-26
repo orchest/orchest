@@ -3,6 +3,7 @@ package orchestcluster
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"time"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
@@ -14,10 +15,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -490,6 +493,42 @@ func (r *OrchestReconciler) upsertService(ctx context.Context, hash string, serv
 	return nil
 }
 
+func (r *OrchestReconciler) upsertObject(ctx context.Context, object client.Object) error {
+
+	err := r.getGeneralClient().Create(ctx, object, &client.CreateOptions{})
+	if err != nil && !kerrors.IsAlreadyExists(err) {
+		return errors.Wrapf(err, "failed to create object %v", object)
+	}
+
+	if err == nil {
+		return nil
+	}
+
+	oldObj := utils.GetInstanceOfObj(object)
+	err = r.getGeneralClient().Get(ctx, client.ObjectKeyFromObject(object), oldObj)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get the object %v", object)
+	}
+
+	if reflect.DeepEqual(oldObj, object) {
+		return nil
+	}
+
+	patchData, err := utils.GetPatchData(oldObj, object)
+	if err != nil {
+		return nil
+	}
+
+	patch := client.RawPatch(types.StrategicMergePatchType, patchData)
+
+	err = r.getGeneralClient().Patch(ctx, oldObj, patch)
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch the object %v", object)
+	}
+
+	return nil
+}
+
 func (r *OrchestReconciler) upsertRbac(ctx context.Context, role *rbacv1.ClusterRole,
 	roleBinding *rbacv1.ClusterRoleBinding, sa *corev1.ServiceAccount) error {
 
@@ -513,16 +552,12 @@ func (r *OrchestReconciler) upsertRbac(ctx context.Context, role *rbacv1.Cluster
 
 func (r *OrchestReconciler) deployOrchestDatabase(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	deployment := getOrchetDatabaseManifest(hash, orchest)
-	err := r.upsertDeployment(ctx, hash, deployment)
-	if err != nil {
-		return err
-	}
-
-	service := getServiceManifest(orchestDatabase, hash, 5432, orchest)
-	err = r.upsertService(ctx, hash, service)
-	if err != nil {
-		return err
+	objects := getOrchetDatabaseManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
 	}
 
 	return r.waitForDeployment(ctx, r.namespace, orchestDatabase)
@@ -530,16 +565,12 @@ func (r *OrchestReconciler) deployOrchestDatabase(ctx context.Context, hash stri
 
 func (r *OrchestReconciler) deployAuthServer(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	deployment := getAuthServerManifest(hash, orchest)
-	err := r.upsertDeployment(ctx, hash, deployment)
-	if err != nil {
-		return err
-	}
-
-	service := getServiceManifest(authServer, hash, 80, orchest)
-	err = r.upsertService(ctx, hash, service)
-	if err != nil {
-		return err
+	objects := getAuthServerManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
 	}
 
 	return r.waitForDeployment(ctx, r.namespace, authServer)
@@ -547,22 +578,12 @@ func (r *OrchestReconciler) deployAuthServer(ctx context.Context, hash string, o
 
 func (r *OrchestReconciler) deployOrchestApi(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	deployment, role, roleBinding, sa := getOrchetApiManifest(hash, orchest)
-
-	err := r.upsertRbac(ctx, role, roleBinding, sa)
-	if err != nil {
-		return err
-	}
-
-	err = r.upsertDeployment(ctx, hash, deployment)
-	if err != nil {
-		return err
-	}
-
-	service := getServiceManifest(orchestApi, hash, 80, orchest)
-	err = r.upsertService(ctx, hash, service)
-	if err != nil {
-		return err
+	objects := getOrchestApiManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
 	}
 
 	return r.waitForDeployment(ctx, r.namespace, orchestApi)
@@ -570,33 +591,25 @@ func (r *OrchestReconciler) deployOrchestApi(ctx context.Context, hash string, o
 
 func (r *OrchestReconciler) deployCeleryWorker(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	deployment, role, roleBinding, sa := getCeleryWorkerManifests(hash, orchest)
-
-	err := r.upsertRbac(ctx, role, roleBinding, sa)
-	if err != nil {
-		return err
+	objects := getCeleryWorkerManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = r.upsertDeployment(ctx, hash, deployment)
-	if err != nil {
-		return err
-	}
-
-	return r.waitForDeployment(ctx, r.namespace, celeryWorker)
+	return r.waitForDeployment(ctx, r.namespace, orchestApi)
 }
 
 func (r *OrchestReconciler) deployWebserver(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	deployment := getOrchetWebserverManifest(hash, orchest)
-	err := r.upsertDeployment(ctx, hash, deployment)
-	if err != nil {
-		return err
-	}
-
-	service := getServiceManifest(orchestWebserver, hash, 80, orchest)
-	err = r.upsertService(ctx, hash, service)
-	if err != nil {
-		return err
+	objects := getOrchetWebserverManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
 	}
 
 	return r.waitForDeployment(ctx, r.namespace, orchestWebserver)
@@ -604,16 +617,12 @@ func (r *OrchestReconciler) deployWebserver(ctx context.Context, hash string, or
 
 func (r *OrchestReconciler) deployRabbitmq(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	deployment := getRabbitMqManifest(hash, orchest)
-	err := r.upsertDeployment(ctx, hash, deployment)
-	if err != nil {
-		return err
-	}
-
-	service := getServiceManifest(rabbitmq, hash, 5672, orchest)
-	err = r.upsertService(ctx, hash, service)
-	if err != nil {
-		return err
+	objects := getRabbitMqManifests(hash, orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
 	}
 
 	return r.waitForDeployment(ctx, r.namespace, rabbitmq)
@@ -650,4 +659,8 @@ func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, na
 
 func (r *OrchestReconciler) getClient() kubernetes.Interface {
 	return r.controller.kClient
+}
+
+func (r *OrchestReconciler) getGeneralClient() client.Client {
+	return r.controller.gClient
 }
