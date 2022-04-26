@@ -5,6 +5,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
+import { DropZone, generateUploadFiles } from "@/components/DropZone";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -52,8 +53,7 @@ const ProjectsView: React.FC = () => {
   } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
-  const [projectName, setProjectName] = React.useState<string>();
-  const [projectPath, setProjectPath] = React.useState<string | undefined>();
+  const [projectName, setProjectName] = React.useState<string>("");
   const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
     string | undefined
   >();
@@ -76,12 +76,8 @@ const ProjectsView: React.FC = () => {
         e
       );
     };
-    const onEditProjectName = (
-      projectUUID: string,
-      projectPathToBeEdited: string
-    ) => {
+    const onEditProjectName = (projectUUID: string) => {
       setProjectUuidOnEdit(projectUUID);
-      setProjectPath(projectPathToBeEdited);
     };
     return [
       {
@@ -111,7 +107,7 @@ const ProjectsView: React.FC = () => {
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  onEditProjectName(row.uuid, row.path);
+                  onEditProjectName(row.uuid);
                 }}
                 onAuxClick={(e) => {
                   e.stopPropagation();
@@ -148,7 +144,7 @@ const ProjectsView: React.FC = () => {
         },
       },
     ];
-  }, [setProjectPath, navigateTo]);
+  }, [navigateTo]);
 
   const onCloseEditProjectPathModal = () => {
     setProjectUuidOnEdit(undefined);
@@ -286,6 +282,28 @@ const ProjectsView: React.FC = () => {
     }
   }, [importUrl, state.hasCompletedOnboarding]);
 
+  const createProjectAndUploadFiles = React.useCallback(
+    async (files: File[] | FileList) => {
+      // 0. open create project dialog
+      // 1. create a dummy project, get the new `projectUuid`
+      const newProjectUuid = "newProjectUuid";
+      // 2. upload files
+      await Promise.all(
+        generateUploadFiles({
+          projectUuid: newProjectUuid,
+          root: "/project-dir",
+          path: "/",
+        })(files, () => {
+          // update the progress of the create project dialog
+        })
+      );
+      // 3. update project name
+
+      // 4. close create project dialog, redirect to `/pipeline` of this project
+    },
+    []
+  );
+
   return (
     <Layout>
       <div className={"view-page projects-view"}>
@@ -313,7 +331,7 @@ const ProjectsView: React.FC = () => {
         {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
-          <>
+          <DropZone uploadFiles={createProjectAndUploadFiles}>
             <Stack
               direction="row"
               spacing={2}
@@ -359,7 +377,7 @@ const ProjectsView: React.FC = () => {
               rows={projectRows}
               data-test-id="projects-table"
             />
-          </>
+          </DropZone>
         )}
       </div>
     </Layout>

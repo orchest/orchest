@@ -267,11 +267,11 @@ const snakeCase = (str: string, divider = "_") =>
     .toLowerCase();
 
 export const toQueryString = <T extends string>(
-  query: Record<T, string | number | boolean | undefined | null> | null
+  query: Record<T, string | number | boolean | undefined | null> | undefined
 ) => {
   const isObject =
     typeof query === "object" &&
-    query !== null &&
+    query !== undefined &&
     typeof query !== "function" &&
     !Array.isArray(query);
   return isObject
