@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 )
 
@@ -163,6 +164,23 @@ func RemoveFinalizerIfNotPresent(ctx context.Context,
 	return nil
 }
 
+func RemoveOrchestAnnotation(oClient versioned.Interface, name string, namespace string, key string) error {
+	orchest, err := oClient.OrchestV1alpha1().OrchestClusters(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	delete(orchest.Annotations, key)
+
+	_, err = oClient.OrchestV1alpha1().OrchestClusters(namespace).Update(context.Background(), orchest, metav1.UpdateOptions{})
+
+	if err != nil {
+		klog.Errorf("Failed to remove annotation: %s from OrchestCluster %s, error %v", key, orchest.Name, err)
+		return err
+	}
+
+	return nil
+}
+
 func ComputeHash(spec *orchestv1alpha1.OrchestClusterSpec) string {
 	hasher := fnv.New32a()
 	utils.DeepHashObject(hasher, *spec)
@@ -173,4 +191,31 @@ func ComputeHash(spec *orchestv1alpha1.OrchestClusterSpec) string {
 func isDeploymentUpdated(dep *appsv1.Deployment, generation int64) bool {
 	templateMatches := dep.Labels[ControllerRevisionHashLabelKey] == fmt.Sprint(generation)
 	return templateMatches
+}
+
+func shouldUpdateDeployment(dep *appsv1.Deployment) bool {
+	_, ok := dep.Annotations[PauseReasonAnnotationKey]
+	return ok
+}
+
+func PauseDeployment(ctx context.Context,
+	client kubernetes.Interface,
+	pauseReason string,
+	generation int64,
+	deployment *appsv1.Deployment) error {
+
+	ZeroReplica := int32(0)
+
+	cloneDep := deployment.DeepCopy()
+	cloneDep.Spec.Paused = true
+	cloneDep.Annotations[PauseReasonAnnotationKey] = pauseReason
+	cloneDep.Spec.Replicas = &ZeroReplica
+	cloneDep.Labels[appsv1.ControllerRevisionHashLabelKey] = fmt.Sprint(generation)
+
+	_, err := client.AppsV1().Deployments(deployment.Namespace).Update(ctx, cloneDep, metav1.UpdateOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
+	}
+
+	return nil
 }

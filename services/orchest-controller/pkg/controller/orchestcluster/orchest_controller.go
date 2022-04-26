@@ -14,6 +14,7 @@ import (
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +35,12 @@ var (
 	OrchestClusterKind             = "OrchestCluster"
 	OrchestClusterVersion          = "orchest.io/v1alpha1"
 	ControllerRevisionHashLabelKey = "controller-revision-hash"
+	RestartAnnotationKey           = "orchest.io/restart"
+	PauseReasonAnnotationKey       = "orchest.io/pause-reason"
+
+	PauseReasonOrchestUpdated    = "Orchest Updated"
+	PauseReasonRestartAnnotation = "Restart Annotation"
+	PauseReasonOrchestPaused     = "Restart OrchestPaused"
 
 	True  = true
 	False = false
@@ -307,7 +314,8 @@ func (controller *OrchestClusterController) syncOrchestCluster(key string) error
 	// If Status struct is not initialized yet, the cluster is new, create it
 	if orchest.Status == nil {
 		// Set the default values in CR if not specified
-		_, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Initializing, "Initializing Orchest Cluster")
+		err = controller.updateClusterCondition(ctx, orchest,
+			orchestv1alpha1.Initializing, corev1.ConditionTrue, "Initializing Orchest Cluster")
 		if err != nil {
 			klog.Error(err)
 			return err
@@ -346,7 +354,8 @@ func (controller *OrchestClusterController) deleteOrchestCluster(ctx context.Con
 	}
 
 	// Update Cluster status
-	orchest, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.Deleting, "Deleting the Cluster")
+	err = controller.updateClusterCondition(ctx, orchest,
+		orchestv1alpha1.Deleting, corev1.ConditionTrue, "")
 	if err != nil {
 		return errors.Wrapf(err, "failed to update cluster status to orchestv1alpha1.Deleting, OrchestCluster: %s",
 			name)
@@ -377,25 +386,6 @@ func (controller *OrchestClusterController) reconcileCluster(ctx context.Context
 	reconciler.Reconcile(ctx)
 
 	return nil
-
-}
-
-func (controller *OrchestClusterController) updateClusterStatus(ctx context.Context,
-	orchest *orchestv1alpha1.OrchestCluster,
-	state orchestv1alpha1.OrchestClusterState,
-	message string) (*orchestv1alpha1.OrchestCluster, error) {
-
-	orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
-		State:   state,
-		Message: message,
-	}
-
-	result, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).UpdateStatus(ctx, orchest, metav1.UpdateOptions{})
-
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to update orchest with status %q", orchest.Status.State)
-	}
-	return result, nil
 }
 
 func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Context,
@@ -478,40 +468,116 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx context.Context,
 	orchest *orchestv1alpha1.OrchestCluster) error {
 
-	switch orchest.Status.State {
+	switch orchest.Status.Phase {
 	case orchestv1alpha1.Initializing:
 		// First step is to deploy Argo
-		_, err := controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingArgo, "Deploying Argo")
+		err := controller.updateClusterCondition(ctx, orchest,
+			orchestv1alpha1.DeployingThirdParties, corev1.ConditionTrue, orchestv1alpha1.DeployingArgo)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 		fallthrough
-	case orchestv1alpha1.DeployingArgo:
+	case orchestv1alpha1.DeployedThirdParties:
 		err := controller.deployerManager.Get("argo").InstallIfChanged(ctx, orchest.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 
-		_, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingRegistry, "Deploying Registry")
-		if err != nil {
-			klog.Error(err)
-			return err
-		}
-		fallthrough
-	case orchestv1alpha1.DeployingRegistry:
-		err := controller.deployerManager.Get("registry").InstallIfChanged(ctx, orchest.Namespace, nil)
+		err = controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
+			orchestv1alpha1.DeployingThirdParties, corev1.ConditionTrue, orchestv1alpha1.DeployingRegistry)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
 
-		_, err = controller.updateClusterStatus(ctx, orchest, orchestv1alpha1.DeployingOrchest, "Deploying Orchest control plane")
+		err = controller.deployerManager.Get("registry").InstallIfChanged(ctx, orchest.Namespace, nil)
 		if err != nil {
 			klog.Error(err)
 			return err
 		}
+
+		err = controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
+			orchestv1alpha1.DeployedThirdParties, corev1.ConditionTrue, "")
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (controller *OrchestClusterController) updateCondition(ctx context.Context,
+	namespace, name string,
+	conditionType orchestv1alpha1.OrchestClusterPhase,
+	status corev1.ConditionStatus,
+	reason string) error {
+
+	orchest, err := controller.ocLister.OrchestClusters(namespace).Get(name)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("OrchestCluster %s resource not found.", name)
+			return nil
+		}
+		// Error reading OrchestCluster - The request will be requeued.
+		return errors.Wrap(err, "failed to get OrchestCluster")
+	}
+
+	return controller.updateClusterCondition(ctx, orchest, conditionType, status, reason)
+}
+
+// UpdateClusterCondition function will export each condition into the cluster custom resource
+func (controller *OrchestClusterController) updateClusterCondition(ctx context.Context,
+	orchest *orchestv1alpha1.OrchestCluster,
+	conditionType orchestv1alpha1.OrchestClusterPhase,
+	status corev1.ConditionStatus,
+	reason string) error {
+
+	if orchest.Status == nil {
+		orchest.Status = &orchestv1alpha1.OrchestClusterStatus{
+			Conditions: make([]orchestv1alpha1.Condition, 0),
+		}
+	}
+
+	conditions := make([]orchestv1alpha1.Condition, 0, len(orchest.Status.Conditions))
+	var currentCondition *orchestv1alpha1.Condition
+	for _, condition := range orchest.Status.Conditions {
+		if conditionType == condition.Type && reason == condition.Reason {
+			condition.LastHeartbeatTime = metav1.NewTime(time.Now())
+			currentCondition = &condition
+		}
+		conditions = append(conditions, condition)
+	}
+
+	if currentCondition == nil {
+		currentCondition = &orchestv1alpha1.Condition{
+			Type:               conditionType,
+			Status:             status,
+			Reason:             reason,
+			LastTransitionTime: metav1.NewTime(time.Now()),
+			LastHeartbeatTime:  metav1.NewTime(time.Now()),
+		}
+
+		conditions = append(conditions, *currentCondition)
+	}
+
+	orchest.Status.Conditions = conditions
+
+	if orchest.Status.Phase == orchestv1alpha1.Running ||
+		orchest.Status.Phase == orchestv1alpha1.Paused {
+		hash := ComputeHash(&orchest.Spec)
+		orchest.Status.ObservedGeneration = orchest.Generation
+		orchest.Status.ObservedHash = hash
+	}
+
+	orchest.Status.Phase = conditionType
+	orchest.Status.Reason = reason
+
+	_, err := controller.oClient.OrchestV1alpha1().OrchestClusters(orchest.Namespace).UpdateStatus(ctx, orchest, metav1.UpdateOptions{})
+	if err != nil {
+		return errors.Wrapf(err, "failed to update orchest with phase %q", orchest.Status.Phase)
 	}
 
 	return nil

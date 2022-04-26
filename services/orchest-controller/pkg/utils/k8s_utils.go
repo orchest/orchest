@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
@@ -11,11 +12,11 @@ import (
 	ocinformersfactory "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions"
 	orchestinformers "github.com/orchest/orchest/services/orchest-controller/pkg/client/informers/externalversions/orchest/v1alpha1"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/informers"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
 	"k8s.io/client-go/kubernetes"
@@ -145,35 +146,18 @@ func GetFullImageName(registry, imageName, tag string) string {
 
 }
 
-func PauseDeployment(ctx context.Context,
-	client kubernetes.Interface,
-	generation int64,
-	deployment *appsv1.Deployment) error {
-
-	ZeroReplica := int32(0)
-	/*
-		scale := &autoscalingv1.Scale{
-			ObjectMeta: deployment.ObjectMeta,
-			Spec: autoscalingv1.ScaleSpec{
-				Replicas: 0,
-			},
-		}
-
-		_, err := client.AppsV1().Deployments(deployment.Namespace).UpdateScale(ctx, deployment.Name, scale, metav1.UpdateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
-		}
-	*/
-
-	cloneDep := deployment.DeepCopy()
-	cloneDep.Spec.Paused = true
-	cloneDep.Spec.Replicas = &ZeroReplica
-	cloneDep.Labels[appsv1.ControllerRevisionHashLabelKey] = fmt.Sprint(generation)
-
-	_, err := client.AppsV1().Deployments(deployment.Namespace).Update(ctx, cloneDep, metav1.UpdateOptions{})
+func GetPatchData(oldObj, newObj interface{}) ([]byte, error) {
+	oldData, err := json.Marshal(oldObj)
 	if err != nil {
-		return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
+		return nil, fmt.Errorf("marshal old object failed: %v", err)
 	}
-
-	return nil
+	newData, err := json.Marshal(newObj)
+	if err != nil {
+		return nil, fmt.Errorf("marshal new object failed: %v", err)
+	}
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, oldObj)
+	if err != nil {
+		return nil, fmt.Errorf("CreateTwoWayMergePatch failed: %v", err)
+	}
+	return patchBytes, nil
 }
