@@ -99,8 +99,8 @@ const FilePreviewView: React.FC = () => {
     }));
 
     let pipelineURL = isJobRun
-      ? getPipelineJSONEndpoint(pipelineUuid, projectUuid, jobUuid, runUuid)
-      : getPipelineJSONEndpoint(pipelineUuid, projectUuid);
+      ? getPipelineJSONEndpoint({ pipelineUuid, projectUuid, jobUuid, runUuid })
+      : getPipelineJSONEndpoint({ pipelineUuid, projectUuid });
 
     const [pipelineJson, job] = await Promise.all([
       fetchPipelineJson(pipelineURL),
