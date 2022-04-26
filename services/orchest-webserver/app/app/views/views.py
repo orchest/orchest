@@ -338,7 +338,8 @@ def register_views(app, db):
         else:
             try:
                 with open(setup_script_path, "r") as f:
-                    return jsonify({"script": f.read()})
+                    script = f.read()
+                    return jsonify({"script": script if script else ""})
             except FileNotFoundError as fnf_error:
                 current_app.logger.error(f"Failed to read setup_script {fnf_error}")
                 return ""

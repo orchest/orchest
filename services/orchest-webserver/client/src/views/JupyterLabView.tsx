@@ -150,10 +150,10 @@ const JupyterLabView: React.FC = () => {
   );
 
   const fetchPipeline = async () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint(
+    let pipelineJSONEndpoint = getPipelineJSONEndpoint({
       pipelineUuid,
-      projectUuid
-    );
+      projectUuid,
+    });
 
     try {
       const [pipelineJson, pipeline] = await Promise.all([

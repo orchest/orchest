@@ -14,23 +14,19 @@ type FetchPipelineJsonProps = {
   clearCacheOnUnmount?: boolean;
 };
 
-export const fetchPipelineJson = ({
-  pipelineUuid,
-  projectUuid,
-  jobUuid,
-  runUuid,
-}: {
-  pipelineUuid: string | undefined;
-  projectUuid: string | undefined;
-  jobUuid: string | undefined;
-  runUuid: string | undefined;
-}) => {
-  const url = getPipelineJSONEndpoint(
-    pipelineUuid,
-    projectUuid,
-    jobUuid,
-    runUuid
-  );
+export const fetchPipelineJson = (
+  props:
+    | string
+    | {
+        pipelineUuid: string | undefined;
+        projectUuid: string | undefined;
+        jobUuid: string | undefined;
+        runUuid: string | undefined;
+      }
+) => {
+  const url =
+    typeof props === "string" ? props : getPipelineJSONEndpoint(props);
+
   if (!url) return;
 
   return fetcher<{
@@ -76,12 +72,12 @@ export const useFetchPipelineJson = (
   const { pipelineUuid, projectUuid, jobUuid, runUuid, clearCacheOnUnmount } =
     props || {};
 
-  const cacheKey = getPipelineJSONEndpoint(
+  const cacheKey = getPipelineJSONEndpoint({
     pipelineUuid,
     projectUuid,
     jobUuid,
-    runUuid
-  );
+    runUuid,
+  });
 
   const { data, error, isValidating, mutate } = useSWR<
     PipelineJson | undefined
