@@ -2,6 +2,7 @@ package orchestcluster
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"hash/fnv"
 
@@ -14,6 +15,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -162,6 +164,21 @@ func RemoveFinalizerIfNotPresent(ctx context.Context,
 	}
 
 	return nil
+}
+
+func AnnotateOrchest(oClient versioned.Interface, name, namespace, key, value string) error {
+
+	patchData := map[string]interface{}{"metadata": map[string]map[string]string{"annotations": {
+		key: value,
+	}}}
+
+	patchBytes, err := json.Marshal(patchData)
+	if err != nil {
+		return err
+	}
+
+	_, err = oClient.OrchestV1alpha1().OrchestClusters(namespace).Patch(context.Background(), name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	return err
 }
 
 func RemoveOrchestAnnotation(oClient versioned.Interface, name string, namespace string, key string) error {
