@@ -44,7 +44,6 @@ const ProjectSettingsView: React.FC = () => {
 
   // local states
   const [state, setState] = React.useState({
-    // envVariables: null,
     pipeline_count: null,
     job_count: null,
     environment_count: null,
@@ -133,12 +132,12 @@ const ProjectSettingsView: React.FC = () => {
 
   const paths = React.useMemo(
     () =>
-      ["pipelines", "jobs", "environments"].reduce((all, curr) => {
+      ["pipeline", "jobs", "environments"].reduce((all, curr) => {
         return {
           ...all,
           [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
         };
-      }, {}) as Record<"pipelines" | "jobs" | "environments", string>,
+      }, {}) as Record<"pipeline" | "jobs" | "environments", string>,
     [projectUuid]
   );
 
@@ -175,7 +174,7 @@ const ProjectSettingsView: React.FC = () => {
                   <div className="column">
                     <br />
                     <h3>
-                      <Link to={paths.pipelines} className="text-button">
+                      <Link to={paths.pipeline} className="text-button">
                         {state.pipeline_count +
                           " " +
                           (state.pipeline_count == 1
