@@ -178,7 +178,7 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		} else {
 
 			//Update the deployment
-			if isDeploymentUpdated(deployment, orchest.Generation) {
+			if !isDeploymentUpdated(deployment, orchest.Generation) || isDeploymentPaused(deployment) {
 				err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
 					orchestv1alpha1.Upgrading, corev1.ConditionTrue, fmt.Sprintf("Upgrading %s", deploymentName))
 				if err != nil {
@@ -200,12 +200,8 @@ func (r *OrchestReconciler) Reconcile(ctx context.Context) error {
 		}
 	}
 
-	// Update orchest status to running if it was updating or deploying
-	if orchest.Status.Phase == orchestv1alpha1.Upgrading ||
-		orchest.Status.Phase == orchestv1alpha1.DeployingOrchest {
-		err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
-			orchestv1alpha1.Running, corev1.ConditionTrue, "Orchest is running")
-	}
+	err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
+		orchestv1alpha1.Running, corev1.ConditionTrue, "Orchest is running")
 
 	return err
 
@@ -284,15 +280,13 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 		// deployment exist, we need to scale it down
 		if ok {
 			// Deployment is already paused, continue
-			if deployment.Spec.Paused {
+			if isDeploymentPaused(deployment) {
 				continue
 			}
 
-			if !restartExist {
+			// Deployment exist, but it is already updated, and the restart key is not present
+			if isDeploymentUpdated(deployment, orchest.Generation) && !restartExist {
 				continue
-			} else if isDeploymentUpdated(deployment, orchest.Generation) {
-				// Deployment exist, but it is already updated, and the restart key is not present
-				pauseReason = PauseReasonOrchestUpdated
 			}
 
 			deploymentsToPause = append(deploymentsToPause, deployment)
@@ -312,7 +306,7 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 			if err != nil {
 				return orchest, errors.Wrapf(err, "failed to update status while pausing %s", deployment.Name)
 			}
-			PauseDeployment(ctx, r.getClient(), pauseReason, orchest.Generation, deployment)
+			pauseDeployment(ctx, r.getClient(), pauseReason, orchest.Generation, deployment)
 
 			err = r.controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
 				orchestv1alpha1.Pausing, corev1.ConditionTrue, fmt.Sprintf("Paused %s", deployment.Name))
@@ -459,14 +453,11 @@ func (r *OrchestReconciler) upsertDeployment(ctx context.Context, hash string, d
 			return errors.Wrapf(err, "failed to create the deployment")
 		}
 	} else {
-		deployedHash := storedDeployment.GetLabels()[ControllerRevisionHashLabelKey]
-		if deployedHash != hash {
-			storedDeployment.Spec = *deployment.Spec.DeepCopy()
-			storedDeployment.Labels = deployment.Labels
-			_, err := r.getClient().AppsV1().Deployments(r.namespace).Update(ctx, storedDeployment, metav1.UpdateOptions{})
-			if err != nil {
-				return errors.Wrapf(err, "failed to update the deployment")
-			}
+		storedDeployment.Spec = *deployment.Spec.DeepCopy()
+		storedDeployment.Labels = deployment.Labels
+		_, err := r.getClient().AppsV1().Deployments(r.namespace).Update(ctx, storedDeployment, metav1.UpdateOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to update the deployment")
 		}
 	}
 

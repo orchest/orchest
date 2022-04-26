@@ -669,6 +669,9 @@ spec:
                   description: The generation observed by the controller.
                   format: int64
                   type: integer
+                observedHash:
+                  description: The observed hash of the spec by the controller.
+                  type: string
                 reason:
                   type: string
                 state:

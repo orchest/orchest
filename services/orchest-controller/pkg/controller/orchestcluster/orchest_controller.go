@@ -567,7 +567,7 @@ func (controller *OrchestClusterController) updateClusterCondition(ctx context.C
 
 	if orchest.Status.Phase == orchestv1alpha1.Running ||
 		orchest.Status.Phase == orchestv1alpha1.Paused {
-		hash := ComputeHash(&orchest.Spec)
+		hash := computeHash(&orchest.Spec)
 		orchest.Status.ObservedGeneration = orchest.Generation
 		orchest.Status.ObservedHash = hash
 	}

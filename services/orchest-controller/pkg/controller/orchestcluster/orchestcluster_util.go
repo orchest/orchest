@@ -198,7 +198,7 @@ func RemoveOrchestAnnotation(oClient versioned.Interface, name string, namespace
 	return nil
 }
 
-func ComputeHash(spec *orchestv1alpha1.OrchestClusterSpec) string {
+func computeHash(spec *orchestv1alpha1.OrchestClusterSpec) string {
 	hasher := fnv.New32a()
 	utils.DeepHashObject(hasher, *spec)
 
@@ -215,7 +215,11 @@ func shouldUpdateDeployment(dep *appsv1.Deployment) bool {
 	return ok
 }
 
-func PauseDeployment(ctx context.Context,
+func isDeploymentPaused(dep *appsv1.Deployment) bool {
+	return dep.Status.Replicas == 0
+}
+
+func pauseDeployment(ctx context.Context,
 	client kubernetes.Interface,
 	pauseReason string,
 	generation int64,
@@ -224,7 +228,6 @@ func PauseDeployment(ctx context.Context,
 	ZeroReplica := int32(0)
 
 	cloneDep := deployment.DeepCopy()
-	cloneDep.Spec.Paused = true
 	cloneDep.Annotations[PauseReasonAnnotationKey] = pauseReason
 	cloneDep.Spec.Replicas = &ZeroReplica
 	cloneDep.Labels[appsv1.ControllerRevisionHashLabelKey] = fmt.Sprint(generation)
