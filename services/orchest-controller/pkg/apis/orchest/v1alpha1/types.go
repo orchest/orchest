@@ -87,8 +87,11 @@ type OrchestSpec struct {
 	// Indicate if the cluster is in Pause state or not
 	Pause *bool `json:"pause,omitempty"`
 
+	OrchestHost *string `json:"orchestHost,omitempty"`
+
 	Registry string `json:"registry,omitempty"`
-	Version  string `json:"version,omitempty"`
+
+	Version string `json:"version,omitempty"`
 
 	Env []corev1.EnvVar `json:"env,omitempty"`
 

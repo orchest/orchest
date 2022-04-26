@@ -228,6 +228,11 @@ func (in *OrchestSpec) DeepCopyInto(out *OrchestSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.OrchestHost != nil {
+		in, out := &in.OrchestHost, &out.OrchestHost
+		*out = new(string)
+		**out = **in
+	}
 	if in.Env != nil {
 		in, out := &in.Env, &out.Env
 		*out = make([]v1.EnvVar, len(*in))
