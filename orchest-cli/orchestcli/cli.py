@@ -16,7 +16,6 @@ https://github.com/kubernetes-client/python/blob/v21.7.0/kubernetes/docs/CustomO
 import collections
 import enum
 import json
-import os
 import sys
 import time
 import typing as t
@@ -182,29 +181,24 @@ def cli():
     pass
 
 
-# TODO: Easy point of breakage between versions of the CLI that needs
-# to communicate with the CR Object. So we need to make a great first
-# design for the different cluster statuses.
 # NOTE: Schema to be kept in sync with:
 # `services/orchest-controller/pkg/apis/orchest/v1alpha1/types.go`
 class ClusterStatus(enum.Enum):
     INITIALIZING = "Initializing"
-    DEPLOYING_ARGO = "Deploying Argo"
-    DEPLOYING_REGISTRY = "Deploying Registry"
-    DEPLOYING_ORCHEST_CONTROL_PLANE = "Deploying Orchest Control Plane"
-    DEPLOYING_ORCHEST_RESOURCES = "Deploying Orchest Resources"
+    DEPLOYINGTHIRDPARTIES = "Deploying Third Parties"
+    DEPLOYEDTHIRDPARTIES = "Deployed Third Parties"
+    DEPLOYINGORCHEST = "Deploying Orchest Control Plane"
+    DEPLOYEDORCHEST = "Deployed Orchest Control Plane"
     RESTARTING = "Restarting"
     STARTING = "Starting"
-    STOPPING = "Stopping"
-    STOPPED = "Stopped"
-    UNHEALTHY = "Unhealthy"
-    PENDING = "Pending"
-    DELETING = "Deleting"
     RUNNING = "Running"
-    UPDATING = "Updating"
     PAUSING = "Pausing"
     PAUSED = "Paused"
+    UPGRADING = "Updating"
     ERROR = "Error"
+    UNKNOWN = "Unknown"
+    UNHEALTHY = "Unhealthy"
+    DELETING = "Deleting"
 
 
 # TODO: Other flags / JSON file to specify how to install Orchest.
@@ -381,6 +375,7 @@ def pause(watch: bool, **common_options) -> None:
         sys.exit(1)
 
     if watch:
+        # TODO: Controller never reaches PAUSED for some reason.
         display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
         echo("Successfully paused Orchest.")
 
@@ -427,9 +422,6 @@ def unpause(watch: bool, **common_options) -> None:
         echo("Successfully unpaused Orchest.")
 
 
-# TODO: restart can't be invoked by the orchest-api because it requires
-# first have paused the application, but then there is no process to
-# invoke the unpause.
 @cli.command(cls=ClickCommonOptionsCmd)
 @click.option(
     "--watch/--no-watch",
@@ -439,26 +431,48 @@ def unpause(watch: bool, **common_options) -> None:
     show_default=True,
     help="Watch status changes.",
 )
-@click.pass_context
-def restart(ctx, watch: bool, **common_options) -> None:
+def restart(watch: bool, **common_options) -> None:
     """Restart Orchest.
 
     Useful to reinitialize the Orchest application for config changes to
     take effect.
 
-    Under the hood all it does is: `orchest pause` followed by an
-    `orchest unpause` once paused.
+    \b
+    Equivalent `kubectl` command:
+        kubectl -n orchest patch orchestclusters cluster-1 --type='merge' \\
+        \t-p='{"metadata": {"annotations": {"orchest.io/restart": "true"}}}'
 
     """
-    ctx.forward(pause)
+    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
 
-    # NOTE: Even if the user doesn't want to watch the status change,
-    # we can only invoke `unpause` once the cluster is paused.
-    if not watch:
-        with open(os.devnull, "w") as f:
-            display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.PAUSED, file=f)
+    echo("Restarting the Orchest Cluster.")
+    try:
+        patch_namespaced_custom_object(
+            name=cluster_name,
+            namespace=ns,
+            # `RestartAnnotationKey` in the `orchest-controller`.
+            body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
+            # Don't replace the annotations instead merge with existing
+            # keys.
+            field_manager="StrategicMergePatch",
+        )
+    except client.ApiException as e:
+        echo("Failed to restart the Orchest Cluster.", err=True)
+        if e.status == 404:  # not found
+            echo(
+                f"The Orchest Cluster named '{cluster_name}' in namespace"
+                f" '{ns}' could not be found.",
+                err=True,
+            )
+        else:
+            echo(f"Reason: {e.reason}", err=True)
+        sys.exit(1)
 
-    ctx.forward(unpause)
+    if watch:
+        # TODO: Controller never reaches PAUSED for some reason.
+        display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
+        display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
+        echo("Successfully restarted Orchest.")
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -746,7 +760,7 @@ def display_spinner(
     # Get the required arguments to get the status of the custom object
     # from the click context.
     click_ctx = click.get_current_context()
-    assert click_ctx is not None, "Can only be invoked inside the Click Context."
+    assert click_ctx is not None, "Can only be invoked inside a Click Context."
 
     ns = click_ctx.params.get("namespace")
     cluster_name = click_ctx.params.get("cluster_name")

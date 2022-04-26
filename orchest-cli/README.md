@@ -46,7 +46,6 @@ Deploying a new controller:
 
 ### Notes
 
-- At this point in time the controller doesn't do anything yet.
 - The exact schema can be found in `services/orchest-controller/pkg/apis/orchest/v1alpha1/types.go`
 - `STATUS` endpoint is not yet implemented, but good to add later so that commands like
   `kubectl -n orchest get orchestclusters` have the expected output (including a `STATUS` column).
@@ -74,10 +73,14 @@ TODO:
 - [ ] Deleting the CRD no longer seems to work due to the finalizers.
 - [ ] Cluster is never put into `Paused` after pausing
   - [ ] Unpausing (so doing `pause: false`) results in the cluster status being set to `Updating`
+- [ ] `orchest update` --> `orchest upgrade`. Then it is not strange if you see the cluster in the
+      state `Updating`, which can just mean it is updating but not upgrading.
+- [ ] I think it would be nice to have a visualization indicating the different state transitions
+      the operator makes. Sort of a state machine.
 
 ### Questions
 
 - How about the ingress addon?
-- Running Orchest with increased log-level and/or --cloud? Also how about --dev?
+- Running Orchest with increased log-level and/or --cloud? Also how about --dev? --> `orchest patch`
 - Do we want to install the `orchest-controller` in a dedicated namespace. Otherwise it could become
   "impossible" to delete the `orchest` cluster (due to the finalizer on the CRD).
