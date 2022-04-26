@@ -1346,7 +1346,7 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         ):
             {
                 "SUCCESS": events.register_job_pipeline_run_succeeded,
-                "FAILED": events.register_job_pipeline_run_failed,
+                "FAILURE": events.register_job_pipeline_run_failed,
                 "ABORTED": events.register_job_pipeline_run_cancelled,
                 "STARTED": events.register_job_pipeline_run_started,
             }[status_update["status"]](

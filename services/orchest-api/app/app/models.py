@@ -1051,6 +1051,11 @@ class EventType(BaseModel):
     - services/orchest-api/app/migrations/versions/410e08270de4_.py
     - services/orchest-api/app/migrations/versions/814961a3d525_.py
     - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
+
+    To add more types, add an empty revision with
+    `bash scripts/migration_manager.sh orchest-api revision`, then
+    add the statements to add more types to the event_types table in the
+    revision, take a look at the existing migrations for that.
     """
 
     __tablename__ = "event_types"
