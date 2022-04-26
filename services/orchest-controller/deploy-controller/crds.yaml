@@ -645,11 +645,36 @@ spec:
             status:
               description: OrchestClusterStatus defines the status of OrchestCluster
               properties:
-                message:
-                  type: string
+                conditions:
+                  items:
+                    properties:
+                      lastHeartbeatTime:
+                        format: date-time
+                        type: string
+                      lastTransitionTime:
+                        format: date-time
+                        type: string
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                      status:
+                        type: string
+                      type:
+                        description: PodPhase is a label for the condition of a OrchestCluster at the current time.
+                        type: string
+                    type: object
+                  type: array
+                observedGeneration:
+                  description: The generation observed by the controller.
+                  format: int64
+                  type: integer
                 reason:
                   type: string
                 state:
+                  description: PodPhase is a label for the condition of a OrchestCluster at the current time.
+                  type: string
+                version:
                   type: string
               type: object
           type: object

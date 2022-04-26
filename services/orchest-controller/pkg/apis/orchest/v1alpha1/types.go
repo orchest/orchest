@@ -15,26 +15,43 @@ const (
 	EventFailed  = "Failed"
 )
 
-type OrchestClusterState string
+// PodPhase is a label for the condition of a OrchestCluster at the current time.
+type OrchestClusterPhase string
 
 const (
-	Initializing        OrchestClusterState = "Initializing"
-	DeployingArgo       OrchestClusterState = "Deploying Argo"
-	DeployingRegistry   OrchestClusterState = "Deploying Registry"
-	DeployingOrchestRsc OrchestClusterState = "Deploying Orchest Resources"
-	DeployingOrchest    OrchestClusterState = "Deploying Orchest Control Plane"
-	Restarting          OrchestClusterState = "Restarting"
-	Starting            OrchestClusterState = "Starting"
-	Stopping            OrchestClusterState = "Stopping"
-	Stopped             OrchestClusterState = "Stopped"
-	Unhealthy           OrchestClusterState = "Unhealthy"
-	Pending             OrchestClusterState = "Pending"
-	Deleting            OrchestClusterState = "Deleting"
-	Running             OrchestClusterState = "Running"
-	Pausing             OrchestClusterState = "Pausing"
-	Paused              OrchestClusterState = "Paused"
-	Updating            OrchestClusterState = "Updating"
-	Error               OrchestClusterState = "Error"
+	// OrchestClusterPhase
+	Initializing          OrchestClusterPhase = "Initializing"
+	DeployingThirdParties OrchestClusterPhase = "Deploying Third Parties"
+	DeployedThirdParties  OrchestClusterPhase = "Deployed Third Parties"
+	DeployingOrchest      OrchestClusterPhase = "Deploying Orchest Control Plane"
+	DeployedOrchest       OrchestClusterPhase = "Deployed Orchest Control Plane"
+	Restarting            OrchestClusterPhase = "Restarting"
+	Starting              OrchestClusterPhase = "Starting"
+	Running               OrchestClusterPhase = "Running"
+	Pausing               OrchestClusterPhase = "Pausing"
+	Paused                OrchestClusterPhase = "Paused"
+	Upgrading             OrchestClusterPhase = "Updating"
+	Error                 OrchestClusterPhase = "Error"
+	Unknown               OrchestClusterPhase = "Unknown"
+	Unhealthy             OrchestClusterPhase = "Unhealthy"
+	Deleting              OrchestClusterPhase = "Deleting"
+
+	//Reasons
+	DeployingArgo         = "Deploying argo-workflow"
+	DeployingCertManager  = "Deploying cert-manager"
+	DeployingRegistry     = "Deploying docker-registry"
+	DeployingNginxIngress = "Deploying nginx-ingress"
+
+	DeployingOrchestDatabase  = "Deploying orchest-database"
+	UpgradingOrchestDatabase  = "Upgrading orchest-database"
+	DeployingAuthServer       = "Deploying auth-server"
+	UpgradingAuthServer       = "Upgrading auth-server"
+	DeployingCeleryWorker     = "Deploying celery-worker"
+	UpgradingCeleryWorker     = "Upgrading celery-worker"
+	DeployingOrchestApi       = "Deploying orchest-api"
+	UpgradingOrchestApi       = "Upgrading orchest-api"
+	DeployingOrchestWebserver = "Deploying orchest-webserver"
+	UpgradingOrchestWebserver = "Upgrading orchest-webserver"
 )
 
 type OrchestResourcesSpec struct {
@@ -149,11 +166,30 @@ type OrchestClusterSpec struct {
 	RabbitMq RabbitMQSpec `json:"rabbitMq,omitempty"`
 }
 
+type Condition struct {
+	Type               OrchestClusterPhase    `json:"type,omitempty"`
+	Status             corev1.ConditionStatus `json:"status,omitempty"`
+	Reason             string                 `json:"reason,omitempty"`
+	Message            string                 `json:"message,omitempty"`
+	LastHeartbeatTime  metav1.Time            `json:"lastHeartbeatTime,omitempty"`
+	LastTransitionTime metav1.Time            `json:"lastTransitionTime,omitempty"`
+}
+
 // OrchestClusterStatus defines the status of OrchestCluster
 type OrchestClusterStatus struct {
-	State   OrchestClusterState `json:"state,omitempty"`
-	Message string              `json:"message,omitempty"`
-	Reason  string              `json:"reason,omitempty"`
+	// The generation observed by the controller.
+	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
+
+	// The observed hash of the spec by the controller.
+	ObservedHash string `json:"observedHash,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
+
+	Phase OrchestClusterPhase `json:"state,omitempty"`
+
+	Reason string `json:"reason,omitempty"`
+
+	Conditions []Condition `json:"conditions,omitempty"`
+
+	Version string `json:"version,omitempty"`
 }
 
 // +genclient
