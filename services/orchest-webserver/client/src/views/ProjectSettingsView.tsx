@@ -4,7 +4,8 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
-import { siteMap, toQueryString } from "@/Routes";
+import { siteMap } from "@/Routes";
+import { RouteName, toQueryString } from "@/routingConfig";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
@@ -22,6 +23,8 @@ import {
 } from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
+
+type RoutePath = Extract<RouteName, "pipeline" | "jobs" | "environments">;
 
 const ProjectSettingsView: React.FC = () => {
   // global states
@@ -44,7 +47,6 @@ const ProjectSettingsView: React.FC = () => {
 
   // local states
   const [state, setState] = React.useState({
-    // envVariables: null,
     pipeline_count: null,
     job_count: null,
     environment_count: null,
@@ -131,16 +133,15 @@ const ProjectSettingsView: React.FC = () => {
     attachResizeListener();
   }, [state]);
 
-  const paths = React.useMemo(
-    () =>
-      ["pipelines", "jobs", "environments"].reduce((all, curr) => {
-        return {
-          ...all,
-          [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
-        };
-      }, {}) as Record<"pipelines" | "jobs" | "environments", string>,
-    [projectUuid]
-  );
+  const paths = React.useMemo(() => {
+    const paths = ["pipeline", "jobs", "environments"] as RoutePath[];
+    return paths.reduce((all, curr) => {
+      return {
+        ...all,
+        [curr]: `${siteMap[curr].path}${toQueryString({ projectUuid })}`,
+      };
+    }, {} as Record<RoutePath, string>);
+  }, [projectUuid]);
 
   return (
     <Layout>
@@ -175,7 +176,7 @@ const ProjectSettingsView: React.FC = () => {
                   <div className="column">
                     <br />
                     <h3>
-                      <Link to={paths.pipelines} className="text-button">
+                      <Link to={paths.pipeline} className="text-button">
                         {state.pipeline_count +
                           " " +
                           (state.pipeline_count == 1
