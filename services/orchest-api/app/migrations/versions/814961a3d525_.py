@@ -31,12 +31,12 @@ def upgrade():
     op.execute(
         """
         INSERT INTO event_types (name) values
-        ('project:job:pipeline-run:created'),
-        ('project:job:pipeline-run:started'),
-        ('project:job:pipeline-run:cancelled'),
-        ('project:job:pipeline-run:failed'),
-        ('project:job:pipeline-run:deleted'),
-        ('project:job:pipeline-run:succeeded')
+        ('project:one-off-job:pipeline-run:created'),
+        ('project:one-off-job:pipeline-run:started'),
+        ('project:one-off-job:pipeline-run:cancelled'),
+        ('project:one-off-job:pipeline-run:failed'),
+        ('project:one-off-job:pipeline-run:deleted'),
+        ('project:one-off-job:pipeline-run:succeeded')
         ;
         """
     )

@@ -24,12 +24,12 @@ def upgrade():
     op.execute(
         """
         INSERT INTO event_types (name) values
-        ('project:job:created'),
-        ('project:job:started'),
-        ('project:job:deleted'),
-        ('project:job:cancelled'),
-        ('project:job:failed'),
-        ('project:job:succeeded')
+        ('project:one-off-job:created'),
+        ('project:one-off-job:started'),
+        ('project:one-off-job:deleted'),
+        ('project:one-off-job:cancelled'),
+        ('project:one-off-job:failed'),
+        ('project:one-off-job:succeeded')
         ;
         """
     )

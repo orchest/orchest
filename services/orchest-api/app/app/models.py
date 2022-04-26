@@ -18,6 +18,7 @@ from sqlalchemy import (
     case,
     cast,
     func,
+    or_,
     text,
 )
 from sqlalchemy.dialects import postgresql
@@ -1095,16 +1096,26 @@ class Event(BaseModel):
         "polymorphic_on": case(
             [
                 (
-                    type.startswith("project:cronjob:run:pipeline-run:"),
-                    "cronjob_run_pipeline_run_event",
+                    type.startswith("project:cron-job:run:pipeline-run:"),
+                    "cron_job_run_pipeline_run_event",
                 ),
-                (type.startswith("project:cronjob:run:"), "cronjob_run_event"),
-                (type.startswith("project:cronjob:"), "cronjob_event"),
                 (
-                    type.startswith("project:job:pipeline-run:"),
-                    "job_pipeline_run_event",
+                    type.startswith("project:cron-job:run:"),
+                    "cron_job_run_event",
                 ),
-                (type.startswith("project:job:"), "job_event"),
+                (type.startswith("project:cron-job:"), "cron_job_event"),
+                (
+                    type.startswith("project:one-off-job:pipeline-run:"),
+                    "one_off_job_pipeline_run_event",
+                ),
+                (type.startswith("project:one-off-job:"), "one_off_job_event"),
+                (
+                    or_(
+                        type.startswith("project:one-off-job:"),
+                        type.startswith("project:cron-job:"),
+                    ),
+                    "job_event",
+                ),
                 (type.startswith("project:"), "project_event"),
             ],
             else_="event",
@@ -1152,8 +1163,23 @@ class JobEvent(ProjectEvent):
         )
 
 
-class JobPipelineRunEvent(JobEvent):
-    """Job pipeline runs events that happen in the orchest-api."""
+class OneOffJobEvent(JobEvent):
+    """One-off job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_event"}
+
+    def __repr__(self):
+        return (
+            f"<OneOffJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class OneOffJobPipelineRunEvent(OneOffJobEvent):
+    """OneOffJob ppl runs events that happen in the orchest-api."""
 
     # Single table inheritance.
     __tablename__ = None
@@ -1164,29 +1190,29 @@ class JobPipelineRunEvent(JobEvent):
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
-    __mapper_args__ = {"polymorphic_identity": "job_pipeline_run_event"}
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
 
     def __repr__(self):
         return (
-            f"<JobPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"<OneOffJobPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}, {self.pipeline_run_uuid}>"
         )
 
 
 ForeignKeyConstraint(
-    [JobPipelineRunEvent.pipeline_run_uuid],
+    [OneOffJobPipelineRunEvent.pipeline_run_uuid],
     [NonInteractivePipelineRun.uuid],
     ondelete="CASCADE",
 )
 
 
 class CronJobEvent(JobEvent):
-    """CronJob events that happen in the orchest-api."""
+    """Cron Job events that happen in the orchest-api."""
 
     # Single table inheritance.
     __tablename__ = None
 
-    __mapper_args__ = {"polymorphic_identity": "cronjob_event"}
+    __mapper_args__ = {"polymorphic_identity": "cron_job_event"}
 
     def __repr__(self):
         return (
@@ -1196,16 +1222,16 @@ class CronJobEvent(JobEvent):
 
 
 class CronJobRunEvent(CronJobEvent):
-    """CronJob run events that happen in the orchest-api.
+    """Cron Job run events that happen in the orchest-api.
 
-    A cronjob run is an instance of a cronjob being triggered, i.e. a
-    batch of runs.
+    A recurring run is an instance of a recurring job being triggered,
+    i.e. a batch of runs.
     """
 
     # Single table inheritance.
     __tablename__ = None
 
-    __mapper_args__ = {"polymorphic_identity": "cronjob_run_event"}
+    __mapper_args__ = {"polymorphic_identity": "cron_job_run_event"}
 
     run_index = db.Column(db.Integer)
 
@@ -1226,12 +1252,12 @@ Index(
 
 
 class CronJobRunPipelineRunEvent(CronJobRunEvent):
-    """CronJob pipeline runs events that happen in the orchest-api."""
+    """CronJob ppl runs events that happen in the orchest-api."""
 
     # Single table inheritance.
     __tablename__ = None
 
-    __mapper_args__ = {"polymorphic_identity": "cronjob_run_pipeline_run_event"}
+    __mapper_args__ = {"polymorphic_identity": "cron_job_run_pipeline_run_event"}
 
     @declared_attr
     def pipeline_run_uuid(cls):
@@ -1239,7 +1265,7 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
 
     def __repr__(self):
         return (
-            f"<CronJobRunPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
-            f"{self.project_uuid}, {self.job_uuid}, {self.run_index}, "
+            f"<CronJobRunPipelineRunEvent: {self.uuid}, {self.type}, "
+            f"{self.timestamp} {self.project_uuid}, {self.job_uuid}, {self.run_index}, "
             f"{self.pipeline_run_uuid}>"
         )

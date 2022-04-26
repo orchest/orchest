@@ -15,27 +15,27 @@ depends_on = None
 
 
 def upgrade():
-    # Note the lack of ('project:cronjob:succeeded'), that's because
+    # Note the lack of ('project:cron-job:succeeded'), that's because
     # cronjobs never succeed.
     op.execute(
         """
         INSERT INTO event_types (name) values
-        ('project:cronjob:created'),
-        ('project:cronjob:started'),
-        ('project:cronjob:deleted'),
-        ('project:cronjob:cancelled'),
-        ('project:cronjob:failed'),
-        ('project:cronjob:paused'),
-        ('project:cronjob:unpaused'),
-        ('project:cronjob:run:started'),
-        ('project:cronjob:run:succeeded'),
-        ('project:cronjob:run:failed'),
-        ('project:cronjob:run:pipeline-run:created'),
-        ('project:cronjob:run:pipeline-run:started'),
-        ('project:cronjob:run:pipeline-run:cancelled'),
-        ('project:cronjob:run:pipeline-run:failed'),
-        ('project:cronjob:run:pipeline-run:deleted'),
-        ('project:cronjob:run:pipeline-run:succeeded')
+        ('project:cron-job:created'),
+        ('project:cron-job:started'),
+        ('project:cron-job:deleted'),
+        ('project:cron-job:cancelled'),
+        ('project:cron-job:failed'),
+        ('project:cron-job:paused'),
+        ('project:cron-job:unpaused'),
+        ('project:cron-job:run:started'),
+        ('project:cron-job:run:succeeded'),
+        ('project:cron-job:run:failed'),
+        ('project:cron-job:run:pipeline-run:created'),
+        ('project:cron-job:run:pipeline-run:started'),
+        ('project:cron-job:run:pipeline-run:cancelled'),
+        ('project:cron-job:run:pipeline-run:failed'),
+        ('project:cron-job:run:pipeline-run:deleted'),
+        ('project:cron-job:run:pipeline-run:succeeded')
         ;
         """
     )

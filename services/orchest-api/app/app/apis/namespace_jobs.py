@@ -796,7 +796,7 @@ class RunJob(TwoPhaseFunction):
             db.session.bulk_save_objects(pipeline_steps)
 
         if job.schedule is not None:
-            events.register_cronjob_run_started(
+            events.register_cron_job_run_started(
                 job.project_uuid, job.uuid, job.total_scheduled_executions
             )
 
@@ -880,7 +880,7 @@ class RunJob(TwoPhaseFunction):
             )
 
         if job.get("schedule") is not None:
-            events.register_cronjob_run_failed(
+            events.register_cron_job_run_failed(
                 job["project_uuid"], job["uuid"], job["total_scheduled_executions"] - 1
             )
 
@@ -1364,13 +1364,13 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             if job.schedule is None:
                 self._update_one_off_job(job_uuid)
             else:
-                self._update_cronjob_run(
+                self._update_cron_job_run(
                     job_uuid, pipeline_run_uuid, status_update["status"]
                 )
 
         return {"message": "Status was updated successfully"}, 200
 
-    def _update_cronjob_run(
+    def _update_cron_job_run(
         self, job_uuid: str, pipeline_run_uuid: str, run_status: str
     ) -> None:
         # Avoid a race condition where the last runs would concurrently
@@ -1386,15 +1386,15 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             .one()
         ).job_run_index
 
-        if run_status == "FAILED":
+        if run_status == "FAILURE":
             event = models.CronJobRunEvent.query.filter(
-                models.CronJobRunEvent.type == "project:cronjob:run:failed",
+                models.CronJobRunEvent.type == "project:cron-job:run:failed",
                 models.CronJobRunEvent.project_uuid == job.project_uuid,
                 models.CronJobRunEvent.job_uuid == job.uuid,
                 models.CronJobRunEvent.run_index == run_index,
             ).first()
             if event is None:
-                events.register_cronjob_run_failed(
+                events.register_cron_job_run_failed(
                     job.project_uuid, job.uuid, run_index
                 )
         elif run_status in ["SUCCESS", "ABORTED"]:
@@ -1406,10 +1406,10 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
             failed_runs = models.NonInteractivePipelineRun.query.filter(
                 models.NonInteractivePipelineRun.job_uuid == job.uuid,
                 models.NonInteractivePipelineRun.job_run_index == run_index,
-                models.NonInteractivePipelineRun.status == "FAILED",
+                models.NonInteractivePipelineRun.status == "FAILURE",
             ).count()
             if runs_to_complete == 0 and failed_runs == 0:
-                events.register_cronjob_run_succeeded(
+                events.register_cron_job_run_succeeded(
                     job.project_uuid, job.uuid, run_index
                 )
 
@@ -1504,7 +1504,7 @@ class PauseCronJob(TwoPhaseFunction):
             return False
         job.status = "PAUSED"
         job.next_scheduled_time = None
-        events.register_cronjob_paused(job.project_uuid, job.uuid)
+        events.register_cron_job_paused(job.project_uuid, job.uuid)
         return True
 
     def _collateral(self):
@@ -1527,7 +1527,7 @@ class ResumeCronJob(TwoPhaseFunction):
         job.next_scheduled_time = croniter(
             job.schedule, datetime.now(timezone.utc)
         ).get_next(datetime)
-        events.register_cronjob_unpaused(job.project_uuid, job.uuid)
+        events.register_cron_job_unpaused(job.project_uuid, job.uuid)
         return str(job.next_scheduled_time)
 
     def _collateral(self):
