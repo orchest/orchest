@@ -8,6 +8,7 @@ TODO:
 
 """
 import copy
+import uuid
 from typing import Any, Dict
 
 from sqlalchemy import (
@@ -17,11 +18,12 @@ from sqlalchemy import (
     case,
     cast,
     func,
+    or_,
     text,
 )
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
-from sqlalchemy.orm import deferred
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP, UUID
+from sqlalchemy.orm import declared_attr, deferred
 
 from app.connections import db
 
@@ -700,7 +702,7 @@ class NonInteractivePipelineRun(PipelineRun):
     # sqlalchemy has 3 kinds of inheritance: joined table, single table,
     # concrete.
     #
-    # Concrete is, essentially, not recommended unsless you have a
+    # Concrete is, essentially, not recommended unless you have a
     # reason to use it. Will also lead to FKs issues if the base table
     # is abstract.
     #
@@ -1039,3 +1041,231 @@ ForeignKeyConstraint(
     ],
     ondelete="CASCADE",
 )
+
+
+class EventType(BaseModel):
+    """Type of events recorded by the orchest-api.
+
+    The table has been pre-populated in the schema migration that
+    created it, if you need to add more types add another schema
+    migration. Migrations that have added event types:
+    - services/orchest-api/app/migrations/versions/410e08270de4_.py
+    - services/orchest-api/app/migrations/versions/814961a3d525_.py
+    - services/orchest-api/app/migrations/versions/92dcc9963a9c_.py
+
+    To add more types, add an empty revision with
+    `bash scripts/migration_manager.sh orchest-api revision`, then
+    add the statements to add more types to the event_types table in the
+    revision, take a look at the existing migrations for that.
+    """
+
+    __tablename__ = "event_types"
+
+    name = db.Column(db.String(50), primary_key=True)
+
+    def __repr__(self):
+        return f"<EventType: {self.name}>"
+
+
+class Event(BaseModel):
+    """Events that happen in the orchest-api
+
+    See EventType for what events are currently covered.
+
+    """
+
+    __tablename__ = "events"
+
+    # as_uuid=False to be consistent with what already happens with
+    # other uuids in the db.
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    type = db.Column(
+        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE"), index=True
+    )
+
+    timestamp = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    __mapper_args__ = {
+        "polymorphic_on": case(
+            [
+                (
+                    type.startswith("project:cron-job:run:pipeline-run:"),
+                    "cron_job_run_pipeline_run_event",
+                ),
+                (
+                    type.startswith("project:cron-job:run:"),
+                    "cron_job_run_event",
+                ),
+                (type.startswith("project:cron-job:"), "cron_job_event"),
+                (
+                    type.startswith("project:one-off-job:pipeline-run:"),
+                    "one_off_job_pipeline_run_event",
+                ),
+                (type.startswith("project:one-off-job:"), "one_off_job_event"),
+                (
+                    or_(
+                        type.startswith("project:one-off-job:"),
+                        type.startswith("project:cron-job:"),
+                    ),
+                    "job_event",
+                ),
+                (type.startswith("project:"), "project_event"),
+            ],
+            else_="event",
+        ),
+        "polymorphic_identity": "event",
+    }
+
+    def __repr__(self):
+        return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
+
+
+class ProjectEvent(Event):
+    """Project events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    project_uuid = db.Column(
+        db.String(36), db.ForeignKey("projects.uuid", ondelete="CASCADE")
+    )
+
+    __mapper_args__ = {"polymorphic_identity": "project_event"}
+
+    def __repr__(self):
+        return (
+            f"<ProjectEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}>"
+        )
+
+
+class JobEvent(ProjectEvent):
+    """Job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    job_uuid = db.Column(db.String(36), db.ForeignKey("jobs.uuid", ondelete="CASCADE"))
+
+    __mapper_args__ = {"polymorphic_identity": "job_event"}
+
+    def __repr__(self):
+        return (
+            f"<JobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class OneOffJobEvent(JobEvent):
+    """One-off job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_event"}
+
+    def __repr__(self):
+        return (
+            f"<OneOffJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class OneOffJobPipelineRunEvent(OneOffJobEvent):
+    """OneOffJob ppl runs events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    # See
+    # https://docs.sqlalchemy.org/en/14/orm/inheritance.html#resolving-column-conflicts
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
+
+    def __repr__(self):
+        return (
+            f"<OneOffJobPipelineRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.pipeline_run_uuid}>"
+        )
+
+
+ForeignKeyConstraint(
+    [OneOffJobPipelineRunEvent.pipeline_run_uuid],
+    [NonInteractivePipelineRun.uuid],
+    ondelete="CASCADE",
+)
+
+
+class CronJobEvent(JobEvent):
+    """Cron Job events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_event"}
+
+    def __repr__(self):
+        return (
+            f"<CronJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}>"
+        )
+
+
+class CronJobRunEvent(CronJobEvent):
+    """Cron Job run events that happen in the orchest-api.
+
+    A recurring run is an instance of a recurring job being triggered,
+    i.e. a batch of runs.
+    """
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_run_event"}
+
+    run_index = db.Column(db.Integer)
+
+    def __repr__(self):
+        return (
+            f"<CronJobRunEvent: {self.uuid}, {self.type}, {self.timestamp}, "
+            f"{self.project_uuid}, {self.job_uuid}, {self.run_index}>"
+        )
+
+
+Index(
+    None,
+    CronJobRunEvent.type,
+    CronJobRunEvent.project_uuid,
+    CronJobRunEvent.job_uuid,
+    CronJobRunEvent.run_index,
+)
+
+
+class CronJobRunPipelineRunEvent(CronJobRunEvent):
+    """CronJob ppl runs events that happen in the orchest-api."""
+
+    # Single table inheritance.
+    __tablename__ = None
+
+    __mapper_args__ = {"polymorphic_identity": "cron_job_run_pipeline_run_event"}
+
+    @declared_attr
+    def pipeline_run_uuid(cls):
+        return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def __repr__(self):
+        return (
+            f"<CronJobRunPipelineRunEvent: {self.uuid}, {self.type}, "
+            f"{self.timestamp} {self.project_uuid}, {self.job_uuid}, {self.run_index}, "
+            f"{self.pipeline_run_uuid}>"
+        )
