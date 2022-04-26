@@ -833,3 +833,72 @@ update_sidecar_info = Model(
         ),
     },
 )
+
+subscription_spec = Model(
+    "SubscriptionSpec",
+    {
+        "event_type": fields.String(
+            required=True, description="Event type to subscribe to."
+        ),
+        "project_uuid": fields.String(
+            required=False,
+            description="Specifies if the subscription is only for a specific project.",
+        ),
+        "job_uuid": fields.String(
+            required=False,
+            description=(
+                "Specifies if the subscription is only for a "
+                "specific job of a project.",
+            ),
+        ),
+    },
+)
+
+subscriber_spec = Model(
+    "SubscriberSpec",
+    {
+        "subscriptions": fields.List(
+            fields.Nested(subscription_spec),
+            description="Collection of subscriptions, elements should be unique.",
+        ),
+    },
+)
+
+subscription = Model(
+    "Subscription",
+    {
+        "uuid": fields.String(required=True, description="UUID of the subscription."),
+        "subscriber_uuid": fields.String(
+            required=True, description="UUID of the subscriber."
+        ),
+        "event_type": fields.String(
+            required=True, description="Event type subscribed to."
+        ),
+        "type": fields.String(
+            required=True,
+            description=("Type of the subscription (global vs project specific etc.)."),
+        ),
+    },
+)
+
+
+subscriber = Model(
+    "Subscriber",
+    {
+        "uuid": fields.String(required=True, description="UUID of the subscriber."),
+        "subscriptions": fields.List(
+            fields.Nested(subscription),
+            description="Subscriptions of the subscriber.",
+            required=False,
+        ),
+    },
+)
+
+subscribers = Model(
+    "Subscribers",
+    {
+        "subscribers": fields.List(
+            fields.Nested(subscriber), description="List of subscribers."
+        ),
+    },
+)

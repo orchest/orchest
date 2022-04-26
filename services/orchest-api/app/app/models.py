@@ -1282,6 +1282,13 @@ class Subscriber(BaseModel):
         UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
     )
 
+    subscriptions = db.relationship(
+        "Subscription",
+        lazy="select",
+        passive_deletes=True,
+        cascade="all, delete",
+    )
+
 
 class Subscription(BaseModel):
     __tablename__ = "subscriptions"
@@ -1291,14 +1298,18 @@ class Subscription(BaseModel):
     )
 
     subscriber_uuid = db.Column(
-        UUID(as_uuid=False), db.ForeignKey("subscribers.uuid", ondelete="CASCADE")
+        UUID(as_uuid=False),
+        db.ForeignKey("subscribers.uuid", ondelete="CASCADE"),
+        nullable=False,
     )
 
     event_type = db.Column(
-        db.String(50), db.ForeignKey("event_types.name", ondelete="CASCADE")
+        db.String(50),
+        db.ForeignKey("event_types.name", ondelete="CASCADE"),
+        nullable=False,
     )
 
-    type = db.Column(db.String(50))
+    type = db.Column(db.String(50), nullable=False)
 
     __mapper_args__ = {
         "polymorphic_on": "type",
