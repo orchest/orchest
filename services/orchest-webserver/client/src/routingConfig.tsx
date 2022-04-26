@@ -18,7 +18,7 @@ import ProjectSettingsView from "./views/ProjectSettingsView";
 import SettingsView from "./views/SettingsView";
 import UpdateView from "./views/UpdateView";
 
-type RouteName =
+export type RouteName =
   | "projects"
   | "examples"
   | "projectSettings"
