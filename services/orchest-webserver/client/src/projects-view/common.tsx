@@ -1,4 +1,6 @@
-export const validProjectName = (projectName: string | undefined) => {
+export const validProjectName = (
+  projectName: string | undefined
+): { valid: true } | { valid: false; reason: string } => {
   if (projectName === undefined || projectName.length === 0) {
     return {
       valid: false,

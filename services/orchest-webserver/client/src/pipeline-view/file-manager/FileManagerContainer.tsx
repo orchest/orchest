@@ -20,7 +20,7 @@ export const FileManagerContainer = React.forwardRef<
     uploadFiles: (files: File[] | FileList) => Promise<void>;
   }
 >(function FileManagerContainerComponent({ children, uploadFiles, sx }, ref) {
-  const localRef = React.useRef<typeof Stack>(null);
+  const localRef = React.useRef<typeof Stack | null>(null);
 
   const { pipelineUuid } = useCustomRoute();
   const disabled = !pipelineUuid;

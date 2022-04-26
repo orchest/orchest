@@ -19,7 +19,7 @@ export const EditProjectPathDialog = ({
   setProjects,
   projects,
 }: {
-  projectUuid: string;
+  projectUuid: string | undefined;
   onClose: () => void;
   setProjects: (
     data?: Project[] | Promise<Project[]> | MutatorCallback<Project[]>
@@ -44,7 +44,7 @@ export const EditProjectPathDialog = ({
   }, [projectUuid, projects, setProjectName]);
 
   const isFormValid =
-    (projectName.length > 0 && validation.length === 0) ||
+    (projectName.length > 0 && validation && validation.length === 0) ||
     isUpdatingProjectPath;
 
   const closeDialog = () => {
@@ -64,9 +64,10 @@ export const EditProjectPathDialog = ({
         body: JSON.stringify({ name: projectName }),
       });
       setProjects((projects) => {
+        if (!projects) return projects;
         const copy = [...projects];
         const found = copy.find((p) => p.uuid === projectUuid);
-        found.path = projectName;
+        if (found) found.path = projectName;
         return copy;
       });
     } catch (error) {

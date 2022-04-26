@@ -1,4 +1,5 @@
 import React from "react";
+import { useCancellablePromise } from "./useCancellablePromise";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
@@ -11,24 +12,8 @@ export type Action<T, E> = {
 
 type State<T, E> = {
   status: STATUS;
-  data: T | null;
-  error: E | null;
-};
-
-const useSafeDispatch = <T, E>(dispatch: React.Dispatch<Action<T, E>>) => {
-  const mounted = React.useRef(false);
-
-  React.useLayoutEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
-
-  return React.useCallback(
-    (action: Action<T, E>) => (mounted.current ? dispatch(action) : void 0),
-    [dispatch]
-  );
+  data: T | undefined;
+  error: E | undefined;
 };
 
 const asyncReducer = <T, E>(
@@ -37,18 +22,18 @@ const asyncReducer = <T, E>(
 ): State<T, E> => {
   switch (action.type) {
     case "PENDING": {
-      const payload = action.caching ? state.data : null;
-      return { status: "PENDING", data: payload, error: null };
+      const payload = action.caching ? state.data : undefined;
+      return { status: "PENDING", data: payload, error: undefined };
     }
     case "RESOLVED": {
       return {
         status: "RESOLVED",
         data: action.data,
-        error: null,
+        error: undefined,
       };
     }
     case "REJECTED": {
-      return { status: "REJECTED", data: null, error: action.error };
+      return { status: "REJECTED", data: undefined, error: action.error };
     }
     default: {
       throw new Error(`Unhandled action type: ${action.type}`);
@@ -63,38 +48,41 @@ type AsyncParams<T> = {
 
 const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   const { initialState, caching = false } = params || {};
-  const [state, unsafeDispatch] = React.useReducer<
+  const [state, dispatch] = React.useReducer<
     (state: State<T, E>, action: Action<T, E>) => State<T, E>
   >(asyncReducer, {
     status: "IDLE",
-    data: null,
-    error: null,
+    data: undefined,
+    error: undefined,
     ...initialState,
   });
 
-  const dispatch = useSafeDispatch(unsafeDispatch);
-
   const { data, error, status } = state as State<T, E>;
+  const { makeCancellable } = useCancellablePromise();
 
   const run = React.useCallback(
     (promise: Promise<T>) => {
       dispatch({ type: "PENDING", caching });
-      return promise.then(
-        (data) => {
-          dispatch({ type: "RESOLVED", data });
-          return data;
-        },
-        (error) => {
-          dispatch({ type: "REJECTED", error });
-          return;
-        }
+      return makeCancellable(
+        promise.then(
+          (data) => {
+            dispatch({ type: "RESOLVED", data });
+            return data;
+          },
+          (error) => {
+            dispatch({ type: "REJECTED", error });
+            return;
+          }
+        )
       );
     },
-    [dispatch, caching]
+    [dispatch, caching, makeCancellable]
   );
 
   const setData = React.useCallback(
-    (action: T | ((currentValue: T) => T)) => {
+    (
+      action: T | undefined | ((currentValue: T | undefined) => T | undefined)
+    ) => {
       const newData = action instanceof Function ? action(data) : action;
       dispatch({ type: "RESOLVED", data: newData });
     },
