@@ -1,6 +1,7 @@
 // @ts-check
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCancellableFetch } from "@/hooks/useCancellablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectPaths } from "@/routingConfig";
@@ -13,12 +14,7 @@ import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
-import {
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { Code } from "./common/Code";
 
@@ -50,7 +46,7 @@ export const ProjectSelector = () => {
   // if current view only involves ONE project, ProjectSelector would appear
   const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
-  const promiseManager = React.useMemo(() => new PromiseManager(), []);
+  const { fetcher } = useCancellableFetch();
 
   const onChangeProject = (uuid: string) => {
     if (uuid) {
@@ -76,21 +72,6 @@ export const ProjectSelector = () => {
       : false;
   };
 
-  const fetchProjects = () => {
-    let fetchProjectsPromise = makeCancelable(
-      makeRequest("GET", "/async/projects?skip_discovery=true"),
-      promiseManager
-    );
-
-    fetchProjectsPromise.promise
-      .then((response) => {
-        let fetchedProjects: Project[] = JSON.parse(response);
-
-        dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
-      })
-      .catch((error) => console.log(error));
-  };
-
   // sync state.projectUuid and the route param projectUuid
   React.useEffect(() => {
     if (projectUuidFromRoute) {
@@ -101,12 +82,14 @@ export const ProjectSelector = () => {
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
     // in case that project is deleted
-    if (matchWithinProjectPaths) fetchProjects();
-
-    return () => {
-      promiseManager.cancelCancelablePromises();
-    };
-  }, [matchWithinProjectPaths]);
+    if (matchWithinProjectPaths) {
+      fetcher<Project[]>("/async/projects?skip_discovery=true")
+        .then((fetchedProjects) => {
+          dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
+        })
+        .catch((error) => console.log(error));
+    }
+  }, [matchWithinProjectPaths, fetcher, dispatch]);
 
   React.useEffect(() => {
     if (state.hasLoadedProjects && matchWithinProjectPaths) {

@@ -2,6 +2,10 @@ import { ConsoleOutput } from "@/components/ConsoleOutput";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
+import {
+  useCancellableFetch,
+  useCancellablePromise,
+} from "@/hooks/useCancellablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
@@ -9,17 +13,15 @@ import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import {
-  checkHeartbeat,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { checkHeartbeat } from "@orchest/lib-utils";
 import React from "react";
 
 const UpdateView: React.FC = () => {
   const { setConfirm, setAlert } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
+
+  const { fetcher } = useCancellableFetch();
+  const { makeCancelable } = useCancellablePromise();
 
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,
@@ -30,8 +32,6 @@ const UpdateView: React.FC = () => {
   const [updatePollInterval, setUpdatePollInterval] = React.useState<
     number | null
   >(null);
-
-  const [promiseManager] = React.useState(new PromiseManager());
 
   const startUpdateTrigger = () => {
     return setConfirm(
@@ -46,15 +46,18 @@ const UpdateView: React.FC = () => {
         console.log("Starting update.");
 
         try {
-          makeRequest("POST", "/async/start-update", {}).then((response) => {
-            let json = JSON.parse(response);
+          fetcher<{ token: string }>(
+            "/async/start-update",
+            { method: "POST" },
+            false
+          ).then((json) => {
             setState((prevState) => ({
               ...prevState,
               token: json.token,
             }));
             console.log("Update started, polling update-sidecar.");
 
-            checkHeartbeat("/update-sidecar/heartbeat")
+            makeCancelable(checkHeartbeat("/update-sidecar/heartbeat"))
               .then(() => {
                 console.log("Heartbeat successful.");
                 resolve(true);
@@ -85,14 +88,10 @@ const UpdateView: React.FC = () => {
   };
 
   useInterval(() => {
-    let updateStatusPromise = makeCancelable(
-      makeRequest("GET", `/update-sidecar/update-status?token=${state.token}`),
-      promiseManager
-    );
-
-    updateStatusPromise.promise
-      .then((response) => {
-        let json = JSON.parse(response);
+    fetcher<{ updating: boolean; update_output: any }>(
+      `/update-sidecar/update-status?token=${state.token}`
+    )
+      .then((json) => {
         if (json.updating === false) {
           setState((prevState) => ({
             ...prevState,
@@ -111,10 +110,6 @@ const UpdateView: React.FC = () => {
         }
       });
   }, updatePollInterval);
-
-  React.useEffect(() => {
-    return () => promiseManager.cancelCancelablePromises();
-  }, []);
 
   let updateOutputLines = state.updateOutput.split("\n").reverse();
   updateOutputLines =

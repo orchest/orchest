@@ -2,6 +2,7 @@ import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCancellableFetch } from "@/hooks/useCancellablePromise";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -18,12 +19,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
-import {
-  checkHeartbeat,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { checkHeartbeat } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
@@ -39,12 +35,13 @@ const SettingsView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.settings.path });
+  const { fetcher } = useCancellableFetch();
 
   const [state, setState] = React.useState({
     status: "...",
     restarting: false,
     // text representation of config object, filtered for certain keys
-    config: undefined,
+    config: "",
     // the full JSON config object
     configJSON: undefined,
     version: undefined,
@@ -53,21 +50,17 @@ const SettingsView: React.FC = () => {
     requiresRestart: [],
   });
 
-  const [promiseManager] = React.useState(new PromiseManager());
-
   const getVersion = () => {
-    makeRequest("GET", "/async/version").then((data) => {
-      let parsed_data = JSON.parse(data);
-      setState((prevState) => ({ ...prevState, version: parsed_data.version }));
+    fetcher<{ version: string }>("/async/version").then((response) => {
+      setState((prevState) => ({ ...prevState, version: response.version }));
     });
   };
 
   const getHostInfo = () => {
-    makeRequest("GET", "/async/host-info")
-      .then((data: string) => {
+    fetcher("/async/host-info")
+      .then((hostInfo: any) => {
         try {
-          let parsed_data = JSON.parse(data);
-          setState((prevState) => ({ ...prevState, hostInfo: parsed_data }));
+          setState((prevState) => ({ ...prevState, hostInfo }));
         } catch (error) {
           console.warn("Received invalid host-info JSON from the server.");
         }
@@ -76,16 +69,9 @@ const SettingsView: React.FC = () => {
   };
 
   const getConfig = () => {
-    let getConfigPromise = makeCancelable(
-      makeRequest("GET", "/async/user-config"),
-      promiseManager
-    );
-
-    getConfigPromise.promise
-      .then((data) => {
+    fetcher<{ user_config: any }>("/async/user-config")
+      .then(({ user_config: configJSON }) => {
         try {
-          let configJSON = JSON.parse(data);
-          configJSON = configJSON.user_config;
           let visibleJSON = configToVisibleConfig(configJSON);
 
           setState((prevState) => ({
@@ -155,10 +141,7 @@ const SettingsView: React.FC = () => {
 
       setAsSaved(true);
 
-      makeRequest("POST", "/async/user-config", {
-        type: "FormData",
-        content: formData,
-      })
+      fetcher("/async/user-config", { method: "POST", body: formData }, false)
         .catch((e) => {
           console.error(e);
           setAlert("Error", JSON.parse(e.body).message);
@@ -191,12 +174,7 @@ const SettingsView: React.FC = () => {
   };
 
   const checkOrchestStatus = () => {
-    let checkOrchestPromise = makeCancelable(
-      makeRequest("GET", "/heartbeat"),
-      promiseManager
-    );
-
-    checkOrchestPromise.promise
+    fetcher("/heartbeat")
       .then(() => {
         setState((prevState) => ({
           ...prevState,
@@ -225,7 +203,7 @@ const SettingsView: React.FC = () => {
           requiresRestart: [],
         }));
         try {
-          await makeRequest("POST", "/async/restart");
+          await fetcher("/async/restart", { method: "POST" }, false);
           resolve(true);
 
           setTimeout(() => {

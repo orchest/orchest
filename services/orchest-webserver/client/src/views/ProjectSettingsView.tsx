@@ -2,25 +2,22 @@ import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
+import { useCancellableFetch } from "@/hooks/useCancellablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import { RouteName, toQueryString } from "@/routingConfig";
+import { Project } from "@/types";
 import {
   envVariablesArrayToDict,
   envVariablesDictToArray,
   isValidEnvironmentVariableName,
-  OverflowListener,
 } from "@/utils/webserver-utils";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
-import {
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -35,54 +32,30 @@ const ProjectSettingsView: React.FC = () => {
     state: { hasUnsavedChanges },
   } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projectSettings.path });
+  const { fetcher } = useCancellableFetch();
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
 
-  const [envVariables, _setEnvVariables] = React.useState<EnvVarPair[]>([]);
-  const setEnvVariables = (value: React.SetStateAction<EnvVarPair[]>) => {
+  const [envVariables, _setEnvVariables] = React.useState<
+    EnvVarPair[] | undefined
+  >(undefined);
+  const setEnvVariables = (
+    value: React.SetStateAction<EnvVarPair[] | undefined>
+  ) => {
     _setEnvVariables(value);
     setAsSaved(false);
   };
 
   // local states
-  const [state, setState] = React.useState({
-    pipeline_count: null,
-    job_count: null,
-    environment_count: null,
-    projectName: null,
+  const [state, setState] = React.useState<
+    Pick<Project, "pipeline_count" | "job_count" | "environment_count" | "path">
+  >({
+    pipeline_count: 0,
+    job_count: 0,
+    environment_count: 0,
+    path: "",
   });
-
-  const [promiseManager] = React.useState(new PromiseManager());
-  const [overflowListener] = React.useState(new OverflowListener());
-
-  const attachResizeListener = () => {
-    overflowListener.attach();
-  };
-
-  const fetchSettings = () => {
-    let projectPromise = makeCancelable(
-      makeRequest("GET", "/async/projects/" + projectUuid),
-      promiseManager
-    );
-
-    projectPromise.promise
-      .then((response) => {
-        let result = JSON.parse(response);
-
-        _setEnvVariables(envVariablesDictToArray(result["env_variables"]));
-
-        setState((prevState) => ({
-          ...prevState,
-          // envVariables: envVariablesDictToArray(result["env_variables"]),
-          pipeline_count: result["pipeline_count"],
-          job_count: result["job_count"],
-          environment_count: result["environment_count"],
-          projectName: result["path"],
-        }));
-      })
-      .catch(console.log);
-  };
 
   const returnToProjects = (e: React.MouseEvent) => {
     navigateTo(siteMap.projects.path, undefined, e);
@@ -91,7 +64,7 @@ const ProjectSettingsView: React.FC = () => {
   const saveGeneralForm = (e) => {
     e.preventDefault();
 
-    let envVariablesObj = envVariablesArrayToDict(envVariables);
+    let envVariablesObj = envVariablesArrayToDict(envVariables || []);
     // Do not go through if env variables are not correctly defined.
     if (envVariablesObj.status === "rejected") {
       setAlert("Error", envVariablesObj.error);
@@ -110,10 +83,14 @@ const ProjectSettingsView: React.FC = () => {
     }
 
     // perform PUT to update
-    makeRequest("PUT", "/async/projects/" + projectUuid, {
-      type: "json",
-      content: { env_variables: envVariablesObj.value },
-    })
+    fetcher(
+      `/async/projects/${projectUuid}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ env_variables: envVariablesObj.value }),
+      },
+      false // don't cancel this PUT request
+    )
       .then(() => {
         setAsSaved();
       })
@@ -122,16 +99,34 @@ const ProjectSettingsView: React.FC = () => {
       });
   };
 
+  useOverflowListener();
+
+  const fetchSettings = () => {
+    fetcher<Project>(`/async/projects/${projectUuid}`)
+      .then((result) => {
+        const {
+          env_variables,
+          pipeline_count,
+          job_count,
+          environment_count,
+          path,
+        } = result;
+
+        _setEnvVariables(envVariablesDictToArray(env_variables));
+        setState((prevState) => ({
+          ...prevState,
+          pipeline_count,
+          job_count,
+          environment_count,
+          path,
+        }));
+      })
+      .catch(console.log);
+  };
+
   React.useEffect(() => {
     fetchSettings();
-    attachResizeListener();
-
-    return () => promiseManager.cancelCancelablePromises();
   }, []);
-
-  React.useEffect(() => {
-    attachResizeListener();
-  }, [state]);
 
   const paths = React.useMemo(() => {
     const paths = ["pipeline", "jobs", "environments"] as RoutePath[];
@@ -171,7 +166,7 @@ const ProjectSettingsView: React.FC = () => {
                 <div className="columns four push-down top-labels">
                   <div className="column">
                     <label>Project</label>
-                    <h3>{state.projectName}</h3>
+                    <h3>{state.path}</h3>
                   </div>
                   <div className="column">
                     <br />

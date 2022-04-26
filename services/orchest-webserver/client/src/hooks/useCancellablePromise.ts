@@ -7,7 +7,7 @@ type CancelablePromise<T> = {
 };
 
 // https://reactjs.org/blog/2015/12/16/ismounted-antipattern.html
-function makeCancelable<T>(promise: Promise<T>) {
+function _makeCancelable<T>(promise: Promise<T>) {
   let isCanceled = false;
   const wrappedPromise = new Promise<T>((resolve, reject) => {
     promise
@@ -31,23 +31,29 @@ export function useCancellablePromise() {
     };
   }, []);
 
-  const makeCancellable = React.useCallback(function <T>(p: Promise<T>) {
-    const cPromise = makeCancelable(p);
+  const makeCancelable = React.useCallback(function <T>(p: Promise<T>) {
+    const cPromise = _makeCancelable(p);
     cancelablePromises.current.push(cPromise);
     return cPromise.promise;
   }, []);
 
-  return { makeCancellable };
+  return { makeCancelable };
 }
 
-export function useCancalableFetch() {
-  const { makeCancellable } = useCancellablePromise();
+export function useCancellableFetch() {
+  const { makeCancelable } = useCancellablePromise();
   const cancellableFetch = React.useCallback(
-    function <T>(url: string, params?: RequestInit | undefined) {
-      return makeCancellable(fetcher<T>(url, params));
+    function <T>(
+      url: string,
+      params?: RequestInit | undefined,
+      cancelable = true
+    ) {
+      return cancelable
+        ? makeCancelable(fetcher<T>(url, params))
+        : fetcher<T>(url, params);
     },
-    [makeCancellable]
+    [makeCancelable]
   );
 
-  return { fecther: cancellableFetch };
+  return { fetcher: cancellableFetch };
 }

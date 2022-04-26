@@ -1,3 +1,4 @@
+import { useCancellableFetch } from "@/hooks/useCancellablePromise";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
@@ -6,7 +7,6 @@ import {
   OrchestServerConfig,
   OrchestUserConfig,
 } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 /** Utility functions
@@ -357,6 +357,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
   const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+  const { fetcher } = useCancellableFetch();
 
   /**
    * =========================== side effects
