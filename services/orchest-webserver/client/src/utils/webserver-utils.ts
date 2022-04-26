@@ -360,19 +360,24 @@ export function cleanServerDateTime(dateTimeString) {
   return dateTimeString.replace(regex, subst);
 }
 
-export function getPipelineJSONEndpoint(
-  pipeline_uuid: string | undefined,
-  project_uuid: string | undefined,
-  job_uuid?: string | null,
-  pipeline_run_uuid?: string | null
-) {
-  if (!pipeline_uuid || !project_uuid) return "";
-  let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
+export function getPipelineJSONEndpoint({
+  pipelineUuid,
+  jobUuid,
+  projectUuid,
+  runUuid,
+}: {
+  pipelineUuid: string | undefined;
+  projectUuid: string | undefined;
+  jobUuid?: string | undefined;
+  runUuid?: string | undefined;
+}) {
+  if (!pipelineUuid || !projectUuid) return "";
+  let pipelineURL = `/async/pipelines/json/${projectUuid}/${pipelineUuid}`;
 
-  const queryArgs = { job_uuid, pipeline_run_uuid };
+  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: runUuid };
   // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
   // i.e. a job run requires both uuid's
-  const queryString = job_uuid
+  const queryString = jobUuid
     ? Object.entries(queryArgs)
         .map(([key, value]) => {
           if (!value) return null;
