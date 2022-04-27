@@ -46,7 +46,7 @@ class SubscriberList(Resource):
 class WebhookList(Resource):
     @api.doc("create_webhook")
     @api.expect(schema.webhook_spec, validate=True)
-    @api.response(200, "Success", schema.webhook)
+    @api.response(200, "Success", schema.webhook_with_secret)
     def post(self):
         """Creates a webhook with the given subscriptions.
 
@@ -62,7 +62,7 @@ class WebhookList(Resource):
             return {"message": str(e)}, 400
 
         db.session.commit()
-        return marshal(webhook, schema.webhook), 201
+        return marshal(webhook, schema.webhook_with_secret), 201
 
 
 @api.route("/subscribers/<string:uuid>")

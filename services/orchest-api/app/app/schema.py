@@ -930,9 +930,6 @@ webhook = subscriber.inherit(
         "verify_ssl": fields.Boolean(
             required=True, description="If https certificate should be verified."
         ),
-        "secret": fields.String(
-            required=True, description="Secret used for HMAC signing the payload."
-        ),
         "content_type": fields.String(
             required=True,
             description="Content type of the payload, e.g. json, urlencoded, etc.",
@@ -940,6 +937,15 @@ webhook = subscriber.inherit(
                 models.Webhook.ContentType.JSON.value,
                 models.Webhook.ContentType.URLENCODED.value,
             ],
+        ),
+    },
+)
+
+webhook_with_secret = webhook.inherit(
+    "WebhookWithSecret",
+    {
+        "secret": fields.String(
+            required=True, description="Secret used for HMAC signing the payload."
         ),
     },
 )
