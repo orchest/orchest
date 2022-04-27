@@ -374,6 +374,21 @@ func (controller *OrchestClusterController) syncOrchestCluster(key string) error
 		return nil
 	}
 
+	ok, err := controller.validateOrchestCluster(ctx, orchest)
+	if err != nil {
+		klog.Error(err)
+		return err
+	}
+
+	if !ok {
+		err = controller.updateClusterCondition(ctx, orchest,
+			orchestv1alpha1.Error, corev1.ConditionTrue, fmt.Sprintf("OrchestCluster object is not valid %s", key))
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+	}
+
 	orchest, err = controller.setDefaultIfNotSpecified(ctx, orchest)
 	if err != nil {
 		return err
@@ -437,6 +452,18 @@ func (controller *OrchestClusterController) reconcileCluster(ctx context.Context
 	reconciler.Reconcile(ctx)
 
 	return nil
+}
+
+func (controller *OrchestClusterController) validateOrchestCluster(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) (bool, error) {
+
+	var err error
+	if orchest.Spec.Orchest.Resources.StorageClassName != "" {
+		_, err := controller.kClient.StorageV1().StorageClasses().Get(ctx, orchest.Spec.Orchest.Resources.StorageClassName, metav1.GetOptions{})
+		if err != nil && kerrors.IsNotFound(err) {
+			return false, nil
+		}
+	}
+	return true, err
 }
 
 func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context.Context,
