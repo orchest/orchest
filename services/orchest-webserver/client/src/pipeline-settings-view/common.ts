@@ -1,5 +1,6 @@
-import { ServiceTemplate } from "@/components/ServiceTemplatesDialog/content";
-import type { PipelineJson, PipelineSettings, Service } from "@/types";
+import { ServiceTemplate } from "@/pipeline-settings-view/ServiceTemplatesDialog/content";
+import type { Json, PipelineJson, PipelineSettings, Service } from "@/types";
+import { hasValue } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
 import cloneDeep from "lodash.clonedeep";
 
@@ -9,7 +10,7 @@ export const getOrderValue = () => {
   if (!window.localStorage.getItem(lsKey)) {
     window.localStorage.setItem(lsKey, "0");
   }
-  let value = parseInt(window.localStorage.getItem(lsKey)) + 1;
+  let value = parseInt(window.localStorage.getItem(lsKey) || "null") + 1;
   window.localStorage.setItem(lsKey, value + "");
   return value;
 };
@@ -33,18 +34,17 @@ export const instantiateNewService = (
   return clonedService;
 };
 
-export const parseJsonString = (str: string) => {
+export function parseJsonString<T = Json>(str: string | undefined) {
+  if (!hasValue(str)) return undefined;
   try {
     const json = JSON.parse(str);
-    return json;
+    return json as Record<string, T>;
   } catch (err) {
-    return null;
+    return undefined;
   }
-};
+}
 
-export const cleanPipelineJson = (
-  pipelineJson: PipelineJson
-): Omit<PipelineJson, "order"> => {
+export const cleanPipelineJson = (pipelineJson: PipelineJson): PipelineJson => {
   let pipelineCopy = cloneDeep(pipelineJson);
   for (let uuid in pipelineCopy.services) {
     const serviceName = pipelineCopy.services[uuid].name;
@@ -62,21 +62,20 @@ export const generatePipelineJsonForSaving = ({
   inputParameters,
   pipelineName,
   services,
-  settings,
+  settings = {},
 }: {
   pipelineJson: PipelineJson;
-  inputParameters: string;
-  pipelineName: string;
-  services: Record<string, Service>;
-  settings: PipelineSettings;
+  inputParameters: string | undefined;
+  pipelineName: string | undefined;
+  services: Record<string, Service> | undefined;
+  settings: PipelineSettings | undefined;
 }): PipelineJson => {
-  if (!pipelineJson) return null;
-  const parameters = parseJsonString(inputParameters);
+  const parameters = parseJsonString<Json>(inputParameters);
 
   // Remove order property from services
   return cleanPipelineJson({
     ...pipelineJson,
-    name: pipelineName,
+    name: pipelineName || "",
     parameters: parameters || pipelineJson.parameters,
     services,
     settings,

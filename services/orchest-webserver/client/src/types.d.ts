@@ -77,6 +77,7 @@ export type OrchestConfig = {
     readthedocs: string;
     slack: string;
     website: string;
+    orchest_update_info_json: string;
     orchest_examples_repo: string;
     orchest_examples_json: string;
   };
@@ -270,7 +271,10 @@ export type Step = {
   incoming_connections: string[];
   environment: string;
   file_path: string;
-  kernel: { display_name?: string; name?: string };
+  kernel: {
+    display_name?: string;
+    name?: string;
+  };
   meta_data: { hidden: boolean; position: [number, number] };
   parameters: Record<string, any>;
 };

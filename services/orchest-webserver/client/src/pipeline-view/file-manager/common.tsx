@@ -252,7 +252,7 @@ export const searchFilePathsByExtension = ({
   extensions: string[];
 }) =>
   fetcher<{ files: string[] }>(
-    `/async/file-management/extension-search?${queryArgs({
+    `${FILE_MANAGEMENT_ENDPOINT}/extension-search?${queryArgs({
       project_uuid: projectUuid,
       root,
       path,

@@ -21,7 +21,7 @@ export function useFetchEnvironments(projectUuid: string | undefined) {
   );
 
   return {
-    data,
+    environments: data,
     error,
     isFetchingEnvironments: isValidating,
     fetchEnvironments: mutate,

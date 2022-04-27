@@ -22,6 +22,7 @@ import React from "react";
 import { FileManagementRoot } from "../common";
 import {
   allowedExtensionsMarkup,
+  FILE_MANAGEMENT_ENDPOINT,
   lastSelectedFolderPath,
   queryArgs,
   ROOT_SEPARATOR,
@@ -76,7 +77,7 @@ export const CreateFileDialog = ({
 
     await run(
       fetcher(
-        `/async/file-management/create?${queryArgs({
+        `${FILE_MANAGEMENT_ENDPOINT}/create?${queryArgs({
           project_uuid: projectUuid,
           root,
           path: fullFilePath,
