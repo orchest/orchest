@@ -45,9 +45,9 @@ export const useEnsureValidPipeline = () => {
         "Pipeline not found",
         <Stack direction="column" spacing={2}>
           <Box>
-            {`Pipeline with the given uuid `}
+            {`Couldn't find pipeline `}
             <Code>{pipelineUuid}</Code>
-            {` is not found. This pipeline might have been deleted, or you might have had a wrong URL.`}
+            {` . The pipeline might have been deleted, or you might have had a wrong URL.`}
           </Box>
           <Box>Will try to load another pipeline in this project.</Box>
         </Stack>

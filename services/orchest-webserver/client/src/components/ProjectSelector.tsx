@@ -120,9 +120,9 @@ export const ProjectSelector = () => {
           "Project not found",
           <Stack direction="column" spacing={2}>
             <Box>
-              {`Project with the given uuid `}
+              {`Couldn't find project `}
               <Code>{projectUuidFromRoute}</Code>
-              {` is not found. This project might have been deleted, or you might have had a wrong URL.`}
+              {` . The project might have been deleted, or you might have had a wrong URL.`}
             </Box>
             <Box>Will try to load another existing project if any.</Box>
           </Stack>
