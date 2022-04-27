@@ -68,12 +68,12 @@ describe("useProjectsContext", () => {
     // Test case starts
 
     act(() => {
-      // Temporarily not mocking the payload fully.
       result.current.dispatch({
-        // @ts-ignore
         type: "SET_PROJECTS",
-        // @ts-ignore
-        payload: [{ uuid: MOCK_PROJECT_ID_1 }, { uuid: MOCK_PROJECT_ID_2 }],
+        payload: [
+          mockProjects.get(mockData.project1Uuid).project,
+          mockProjects.get(mockData.project2Uuid).project,
+        ],
       });
       result.current.dispatch({
         type: "SET_PROJECT",
