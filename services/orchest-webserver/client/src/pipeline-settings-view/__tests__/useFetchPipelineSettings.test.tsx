@@ -51,12 +51,12 @@ describe("useFetchPipelineSettings", () => {
       { wrapper }
     );
 
-    await waitForNextUpdate();
-
     const project = mockProjects.get(mockProjectUuid).project;
     const pipeline = mockProjects
       .get(mockProjectUuid)
       .pipelines.get(mockPipelineUuid);
+
+    await waitForNextUpdate();
 
     expect(result.current.pipelineName).toEqual(pipeline.metadata.name);
     expect(result.current.pipelinePath).toEqual(pipeline.metadata.path);
