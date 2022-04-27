@@ -2,7 +2,7 @@ import { PageTitle } from "@/components/common/PageTitle";
 import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useCancellableFetch } from "@/hooks/useCancellablePromise";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -32,7 +32,7 @@ const ProjectSettingsView: React.FC = () => {
     state: { hasUnsavedChanges },
   } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projectSettings.path });
-  const { fetcher } = useCancellableFetch();
+  const { fetcher } = useCancelableFetch();
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();

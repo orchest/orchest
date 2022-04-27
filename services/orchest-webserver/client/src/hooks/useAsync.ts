@@ -1,5 +1,5 @@
 import React from "react";
-import { useCancellablePromise } from "./useCancellablePromise";
+import { useCancelablePromise } from "./useCancelablePromise";
 
 export type STATUS = "IDLE" | "PENDING" | "RESOLVED" | "REJECTED";
 
@@ -58,7 +58,7 @@ const useAsync = <T, E = Error>(params?: AsyncParams<T> | undefined) => {
   });
 
   const { data, error, status } = state as State<T, E>;
-  const { makeCancelable } = useCancellablePromise();
+  const { makeCancelable } = useCancelablePromise();
 
   const run = React.useCallback(
     (promise: Promise<T>) => {

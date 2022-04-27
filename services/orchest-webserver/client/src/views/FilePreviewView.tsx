@@ -3,9 +3,9 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import {
-  useCancellableFetch,
-  useCancellablePromise,
-} from "@/hooks/useCancellablePromise";
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -39,8 +39,8 @@ const FilePreviewView: React.FC = () => {
   const { setAlert } = useAppContext();
   const { state: projectsState, dispatch } = useProjectsContext();
   useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
-  const { fetcher } = useCancellableFetch();
-  const { makeCancelable } = useCancellablePromise();
+  const { fetcher } = useCancelableFetch();
+  const { makeCancelable } = useCancelablePromise();
 
   // data from route
   const {

@@ -3,9 +3,9 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
 import {
-  useCancellableFetch,
-  useCancellablePromise,
-} from "@/hooks/useCancellablePromise";
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -27,8 +27,8 @@ const JupyterLabView: React.FC = () => {
   // global states
   const { requestBuild } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
-  const { makeCancelable } = useCancellablePromise();
-  const { fetcher } = useCancellableFetch();
+  const { makeCancelable } = useCancelablePromise();
+  const { fetcher } = useCancelableFetch();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();

@@ -1,4 +1,4 @@
-import { useCancellableFetch } from "@/hooks/useCancellablePromise";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
 import { Environment, PipelineStepState, Step } from "@/types";
@@ -82,7 +82,7 @@ export const StepDetailsProperties = ({
     EnvironmentOption[]
   >([]);
 
-  const { fetcher } = useCancellableFetch();
+  const { fetcher } = useCancelableFetch();
   const refManager = React.useMemo(() => new RefManager(), []);
 
   const isNotebookStep = extensionFromFilename(step.file_path) === "ipynb";

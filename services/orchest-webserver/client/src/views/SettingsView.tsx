@@ -2,7 +2,7 @@ import { Code } from "@/components/common/Code";
 import { PageTitle } from "@/components/common/PageTitle";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
-import { useCancellableFetch } from "@/hooks/useCancellablePromise";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCheckUpdate } from "@/hooks/useCheckUpdate";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -35,7 +35,7 @@ const SettingsView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.settings.path });
-  const { fetcher } = useCancellableFetch();
+  const { fetcher } = useCancelableFetch();
 
   const [state, setState] = React.useState({
     status: "...",

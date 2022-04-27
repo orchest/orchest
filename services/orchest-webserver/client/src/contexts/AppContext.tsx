@@ -1,4 +1,4 @@
-import { useCancellableFetch } from "@/hooks/useCancellablePromise";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
@@ -357,7 +357,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
   const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
-  const { fetcher } = useCancellableFetch();
+  const { fetcher } = useCancelableFetch();
 
   /**
    * =========================== side effects

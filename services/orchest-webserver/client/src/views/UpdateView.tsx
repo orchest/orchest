@@ -3,9 +3,9 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useInterval } from "@/hooks/use-interval";
 import {
-  useCancellableFetch,
-  useCancellablePromise,
-} from "@/hooks/useCancellablePromise";
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/routingConfig";
 import SystemUpdateAltIcon from "@mui/icons-material/SystemUpdateAlt";
@@ -20,8 +20,8 @@ const UpdateView: React.FC = () => {
   const { setConfirm, setAlert } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
-  const { fetcher } = useCancellableFetch();
-  const { makeCancelable } = useCancellablePromise();
+  const { fetcher } = useCancelableFetch();
+  const { makeCancelable } = useCancelablePromise();
 
   const [state, setState] = React.useState((prevState) => ({
     ...prevState,

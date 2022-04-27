@@ -22,7 +22,7 @@ function _makeCancelable<T>(promise: Promise<T>) {
   };
 }
 
-export function useCancellablePromise() {
+export function useCancelablePromise() {
   const cancelablePromises = React.useRef<CancelablePromise<unknown>[]>([]);
   React.useEffect(() => {
     return () => {
@@ -40,9 +40,9 @@ export function useCancellablePromise() {
   return { makeCancelable };
 }
 
-export function useCancellableFetch() {
-  const { makeCancelable } = useCancellablePromise();
-  const cancellableFetch = React.useCallback(
+export function useCancelableFetch() {
+  const { makeCancelable } = useCancelablePromise();
+  const cancelableFetch = React.useCallback(
     function <T>(
       url: string,
       params?: RequestInit | undefined,
@@ -55,5 +55,5 @@ export function useCancellableFetch() {
     [makeCancelable]
   );
 
-  return { fetcher: cancellableFetch };
+  return { fetcher: cancelableFetch };
 }

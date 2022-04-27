@@ -1,7 +1,7 @@
 // @ts-check
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
-import { useCancellableFetch } from "@/hooks/useCancellablePromise";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectPaths } from "@/routingConfig";
@@ -46,7 +46,7 @@ export const ProjectSelector = () => {
   // if current view only involves ONE project, ProjectSelector would appear
   const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
-  const { fetcher } = useCancellableFetch();
+  const { fetcher } = useCancelableFetch();
 
   const onChangeProject = (uuid: string) => {
     if (uuid) {

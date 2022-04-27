@@ -4,7 +4,7 @@ import { ImageBuildLog } from "@/components/ImageBuildLog";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
-import { useCancellableFetch } from "@/hooks/useCancellablePromise";
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import { EnvironmentImageBuild } from "@/types";
@@ -32,7 +32,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   } = useSessionsContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
-  const { fetcher } = useCancellableFetch();
+  const { fetcher } = useCancelableFetch();
 
   // local states
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
