@@ -107,7 +107,7 @@ export const ProjectSelector = () => {
               <Code>{projectUuidFromRoute}</Code>
               {` . The project might have been deleted, or you might have had a wrong URL.`}
             </Box>
-            <Box>Will try to load another existing project if any.</Box>
+            <Box>Will try to load another existing project.</Box>
           </Stack>
         );
       }
