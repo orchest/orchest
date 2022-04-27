@@ -958,3 +958,28 @@ subscribers = Model(
         ),
     },
 )
+
+event = Model(
+    "Event",
+    {
+        "uuid": fields.String(required=True, description="UUID of the event."),
+        "type": fields.String(required=True, description="Type of event."),
+        "timestamp": fields.DateTime(
+            required=True, description="When the event happened."
+        ),
+    },
+)
+
+project_event = event.inherit(
+    "ProjectEvent",
+    {
+        "project_uuid": fields.String(required=True, description="UUID of project"),
+    },
+)
+
+job_event = project_event.inherit(
+    "JobEvent",
+    {
+        "job_uuid": fields.String(required=True, description="UUID of job"),
+    },
+)
