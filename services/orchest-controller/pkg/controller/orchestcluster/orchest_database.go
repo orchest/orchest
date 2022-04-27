@@ -48,16 +48,7 @@ func getOrchetDatabaseDeployment(metadata metav1.ObjectMeta,
 							ContainerPort: 5432,
 						},
 					},
-					Env: []corev1.EnvVar{
-						{
-							Name:  "PGDATA",
-							Value: "/userdir/.orchest/database/data",
-						},
-						{
-							Name:  "POSTGRES_HOST_AUTH_METHOD",
-							Value: "trust",
-						},
-					},
+					Env: orchest.Spec.Postgres.Env,
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      userDirName,

@@ -49,20 +49,66 @@ var (
 )
 
 type ControllerConfig struct {
-	DeployDir                  string
-	PostgresDefaultImage       string
-	RabbitmqDefaultImage       string
-	OrchestDefaultVersion      string
-	CeleryWorkerImageName      string
-	OrchestApiImageName        string
-	OrchestWebserverImageName  string
-	AuthServerImageName        string
-	UserdirDefaultVolumeSize   string
-	ConfigdirDefaultVolumeSize string
-	BuilddirDefaultVolumeSize  string
-	Threadiness                int
-	InCluster                  bool
-	DefaultPause               bool
+	DeployDir                      string
+	PostgresDefaultImage           string
+	RabbitmqDefaultImage           string
+	OrchestDefaultVersion          string
+	CeleryWorkerImageName          string
+	OrchestApiImageName            string
+	OrchestWebserverImageName      string
+	AuthServerImageName            string
+	UserdirDefaultVolumeSize       string
+	BuilddirDefaultVolumeSize      string
+	OrchestDefaultEnvVars          map[string]string
+	OrchestApiDefaultEnvVars       map[string]string
+	OrchestWebserverDefaultEnvVars map[string]string
+	AuthServerDefaultEnvVars       map[string]string
+	CeleryWorkerDefaultEnvVars     map[string]string
+	OrchestDatabaseDefaultEnvVars  map[string]string
+	RabbitmqDefaultEnvVars         map[string]string
+	Threadiness                    int
+	InCluster                      bool
+	DefaultPause                   bool
+}
+
+func NewDefaultControllerConfig() ControllerConfig {
+	return ControllerConfig{
+		DeployDir:                 "/deploy",
+		PostgresDefaultImage:      "postgres:13.1",
+		RabbitmqDefaultImage:      "rabbitmq:3",
+		OrchestDefaultVersion:     "v2022.05.0",
+		CeleryWorkerImageName:     "orchest/celery-worker",
+		OrchestApiImageName:       "orchest/orchest-api",
+		OrchestWebserverImageName: "orchest/orchest-webserver",
+		AuthServerImageName:       "orchest/auth-server",
+		UserdirDefaultVolumeSize:  "999Ti",
+		BuilddirDefaultVolumeSize: "999Ti",
+		OrchestDefaultEnvVars: map[string]string{
+			"PYTHONUNBUFFERED":  "TRUE",
+			"ORCHEST_LOG_LEVEL": "INFO",
+			"ORCHEST_HOST_GID":  "1",
+		},
+		OrchestApiDefaultEnvVars: map[string]string{
+			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
+		},
+		OrchestWebserverDefaultEnvVars: map[string]string{
+			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
+		},
+		AuthServerDefaultEnvVars: make(map[string]string, 0),
+		CeleryWorkerDefaultEnvVars: map[string]string{
+			"ORCHEST_GPU_ENABLED_INSTANCE":     "FALSE",
+			"MAX_JOB_RUNS_PARALLELISM":         "1",
+			"MAX_INTERACTIVE_RUNS_PARALLELISM": "1",
+		},
+		OrchestDatabaseDefaultEnvVars: map[string]string{
+			"PGDATA":                    "/userdir/.orchest/database/data",
+			"POSTGRES_HOST_AUTH_METHOD": "trust",
+		},
+		RabbitmqDefaultEnvVars: make(map[string]string, 0),
+		Threadiness:            1,
+		InCluster:              true,
+		DefaultPause:           false,
+	}
 }
 
 // OrchestClusterController reconciles OrchestCluster CRD.
@@ -156,10 +202,13 @@ func (r *OrchestClusterController) intiDeployerManager() {
 
 	r.deployerManager.AddDeployer("argo",
 		deployer.NewHelmDeployer("argo", path.Join(r.config.DeployDir, "thirdparty/argo-workflows")))
-	r.deployerManager.AddDeployer("registry",
+
+	r.deployerManager.AddDeployer("nginx-ingress",
 		deployer.NewHelmDeployer("nginx-ingress", path.Join(r.config.DeployDir, "thirdparty/nginx-ingress")))
+
 	r.deployerManager.AddDeployer("registry",
 		deployer.NewHelmDeployer("registry", path.Join(r.config.DeployDir, "thirdparty/docker-registry")))
+
 	r.deployerManager.AddDeployer("cert-manager",
 		deployer.NewPathDeployer("cert-manager", path.Join(r.config.DeployDir, "thirdparty/cert-manager"),
 			r.gClient, r.scheme))
@@ -397,6 +446,7 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 
 	changed := false
 
+	// Orchest configs
 	if copy.Spec.Orchest.Version == "" {
 		changed = true
 		copy.Spec.Orchest.Version = controller.config.OrchestDefaultVersion
@@ -407,14 +457,79 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 		copy.Spec.Orchest.Pause = &controller.config.DefaultPause
 	}
 
+	if copy.Spec.Orchest.Env == nil {
+		changed = true
+		copy.Spec.Orchest.Env = utils.GetEnvVarFromMap(controller.config.OrchestDefaultEnvVars)
+	}
+
+	// Orchest-API configs
+	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.OrchestApi.Image != apiImage {
+		changed = true
+		copy.Spec.Orchest.OrchestApi.Image = apiImage
+	}
+
+	if copy.Spec.Orchest.OrchestApi.Env == nil {
+		changed = true
+		copy.Spec.Orchest.OrchestApi.Env = utils.GetEnvVarFromMap(controller.config.OrchestApiDefaultEnvVars)
+	}
+
+	// Orchest-Webserver configs
+	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.OrchestWebServer.Image != webserverImage {
+		changed = true
+		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
+	}
+
+	if copy.Spec.Orchest.OrchestWebServer.Env == nil {
+		changed = true
+		copy.Spec.Orchest.OrchestWebServer.Env = utils.GetEnvVarFromMap(controller.config.OrchestWebserverDefaultEnvVars)
+	}
+
+	// Celery-Worker configs
+	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.CeleryWorker.Image != celeryWorkerImage {
+		changed = true
+		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
+	}
+
+	if copy.Spec.Orchest.CeleryWorker.Env == nil {
+		changed = true
+		copy.Spec.Orchest.CeleryWorker.Env = utils.GetEnvVarFromMap(controller.config.CeleryWorkerDefaultEnvVars)
+	}
+
+	// Auth-Server configs
+	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer, copy.Spec.Orchest.Version)
+	if copy.Spec.Orchest.AuthServer.Image != authServerImage {
+		changed = true
+		copy.Spec.Orchest.AuthServer.Image = authServerImage
+	}
+
+	if copy.Spec.Orchest.AuthServer.Env == nil {
+		changed = true
+		copy.Spec.Orchest.AuthServer.Env = utils.GetEnvVarFromMap(controller.config.AuthServerDefaultEnvVars)
+	}
+
+	// Postgres configs
 	if copy.Spec.Postgres.Image == "" {
 		changed = true
 		copy.Spec.Postgres.Image = controller.config.PostgresDefaultImage
 	}
 
+	if copy.Spec.Postgres.Env == nil {
+		changed = true
+		copy.Spec.Postgres.Env = utils.GetEnvVarFromMap(controller.config.OrchestDatabaseDefaultEnvVars)
+	}
+
+	// RabbitMq configs
 	if copy.Spec.RabbitMq.Image == "" {
 		changed = true
 		copy.Spec.RabbitMq.Image = controller.config.RabbitmqDefaultImage
+	}
+
+	if copy.Spec.RabbitMq.Env == nil {
+		changed = true
+		copy.Spec.RabbitMq.Env = utils.GetEnvVarFromMap(controller.config.RabbitmqDefaultEnvVars)
 	}
 
 	if copy.Spec.Orchest.Resources.UserDirVolumeSize == "" {
@@ -425,35 +540,6 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 	if copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize == "" {
 		changed = true
 		copy.Spec.Orchest.Resources.BuilderCacheDirVolumeSize = controller.config.BuilddirDefaultVolumeSize
-	}
-
-	if copy.Spec.Orchest.Resources.ConfigDirVolumeSize == "" {
-		changed = true
-		copy.Spec.Orchest.Resources.ConfigDirVolumeSize = controller.config.ConfigdirDefaultVolumeSize
-	}
-
-	apiImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestApi, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestApi.Image != apiImage {
-		changed = true
-		copy.Spec.Orchest.OrchestApi.Image = apiImage
-	}
-
-	webserverImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, orchestWebserver, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.OrchestWebServer.Image != webserverImage {
-		changed = true
-		copy.Spec.Orchest.OrchestWebServer.Image = webserverImage
-	}
-
-	celeryWorkerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, celeryWorker, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.CeleryWorker.Image != celeryWorkerImage {
-		changed = true
-		copy.Spec.Orchest.CeleryWorker.Image = celeryWorkerImage
-	}
-
-	authServerImage := utils.GetFullImageName(copy.Spec.Orchest.Registry, authServer, copy.Spec.Orchest.Version)
-	if copy.Spec.Orchest.AuthServer.Image != authServerImage {
-		changed = true
-		copy.Spec.Orchest.AuthServer.Image = authServerImage
 	}
 
 	if changed {

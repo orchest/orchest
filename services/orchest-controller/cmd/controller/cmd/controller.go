@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	controllerConfig orchestcluster.ControllerConfig
+	controllerConfig = orchestcluster.NewDefaultControllerConfig()
 )
 
 func NewControllerCommand() *cobra.Command {
@@ -29,20 +29,65 @@ func NewControllerCommand() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&controllerConfig.DeployDir, "deployDir", "/deploy", "The directory which holds the deployment folders")
-	cmd.PersistentFlags().StringVar(&controllerConfig.PostgresDefaultImage, "postgresImage", "postgres:13.1", "The default postgres image if not provided in CR")
-	cmd.PersistentFlags().StringVar(&controllerConfig.RabbitmqDefaultImage, "rabbitmqImage", "rabbitmq:3", "The default rabbitmq image if not provided in CR")
-	cmd.PersistentFlags().StringVar(&controllerConfig.UserdirDefaultVolumeSize, "userdirSize", "999Ti", "The default size for userdir pvc")
-	cmd.PersistentFlags().StringVar(&controllerConfig.ConfigdirDefaultVolumeSize, "configSize", "10Mi", "The default size for configdir pvc")
-	cmd.PersistentFlags().StringVar(&controllerConfig.BuilddirDefaultVolumeSize, "builderSize", "999Ti", "The default size for builddir pvc")
-	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestDefaultVersion, "defaultVersion", "v2022.04.0", "The default version for orchest components")
-	cmd.PersistentFlags().BoolVar(&controllerConfig.DefaultPause, "pause", false, "Default Orchest Cluster pause state")
-	cmd.PersistentFlags().StringVar(&controllerConfig.CeleryWorkerImageName, "celeryImageName", "orchest/celery-worker", "The default celery-worker image name")
-	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestApiImageName, "orchestApiImageName", "orchest/orchest-api", "The default orchest-api image name")
-	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestWebserverImageName, "webserverImageName", "orchest/orchest-webserver", "The default orchest-webserver image name")
-	cmd.PersistentFlags().StringVar(&controllerConfig.AuthServerImageName, "authServerImageName", "orchest/auth-server", "The default auth server image name")
-	cmd.PersistentFlags().IntVar(&controllerConfig.Threadiness, "threadiness", 1, "threadiness of the controller")
-	cmd.PersistentFlags().BoolVar(&controllerConfig.InCluster, "inCluster", true, "In/Out cluster indicator")
+	cmd.PersistentFlags().StringVar(&controllerConfig.DeployDir,
+		"deployDir", controllerConfig.DeployDir, "The directory which holds the deployment folders")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.PostgresDefaultImage,
+		"postgresImage", controllerConfig.PostgresDefaultImage, "The default postgres image if not provided in CR")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.RabbitmqDefaultImage,
+		"rabbitmqImage", controllerConfig.RabbitmqDefaultImage, "The default rabbitmq image if not provided in CR")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.UserdirDefaultVolumeSize,
+		"userdirSize", controllerConfig.UserdirDefaultVolumeSize, "The default size for userdir pvc")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.BuilddirDefaultVolumeSize,
+		"builderSize", controllerConfig.BuilddirDefaultVolumeSize, "The default size for builddir pvc")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestDefaultVersion,
+		"defaultVersion", controllerConfig.OrchestDefaultVersion, "The default version for orchest components")
+
+	cmd.PersistentFlags().BoolVar(&controllerConfig.DefaultPause,
+		"pause", controllerConfig.DefaultPause, "Default Orchest Cluster pause state")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.CeleryWorkerImageName,
+		"celeryImageName", controllerConfig.CeleryWorkerImageName, "The default celery-worker image name")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestApiImageName,
+		"orchestApiImageName", controllerConfig.OrchestApiImageName, "The default orchest-api image name")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.OrchestWebserverImageName,
+		"webserverImageName", controllerConfig.OrchestWebserverImageName, "The default orchest-webserver image name")
+
+	cmd.PersistentFlags().StringVar(&controllerConfig.AuthServerImageName,
+		"authServerImageName", controllerConfig.AuthServerImageName, "The default auth server image name")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.OrchestDefaultEnvVars,
+		"envVars", controllerConfig.OrchestDefaultEnvVars, "The default env vars for orchest components")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.OrchestApiDefaultEnvVars,
+		"orchestApiEnvVars", controllerConfig.OrchestApiDefaultEnvVars, "The default env vars for orchest-api")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.OrchestWebserverDefaultEnvVars,
+		"webServerEnvVars", controllerConfig.OrchestWebserverDefaultEnvVars, "The default env vars for orchest-webserver")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.AuthServerDefaultEnvVars,
+		"authServerEnvVars", controllerConfig.AuthServerDefaultEnvVars, "The default env vars for auth-webserver")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.CeleryWorkerDefaultEnvVars,
+		"celeryWorkerEnvVars", controllerConfig.CeleryWorkerDefaultEnvVars, "The default env vars for celery-worker")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.OrchestDatabaseDefaultEnvVars,
+		"dbEnvVars", controllerConfig.OrchestDatabaseDefaultEnvVars, "The default env vars for orchest-database")
+
+	cmd.PersistentFlags().StringToStringVar(&controllerConfig.RabbitmqDefaultEnvVars,
+		"rabbitVars", controllerConfig.RabbitmqDefaultEnvVars, "The default env vars for rabbitmq-server")
+
+	cmd.PersistentFlags().IntVar(&controllerConfig.Threadiness,
+		"threadiness", controllerConfig.Threadiness, "threadiness of the controller")
+
+	cmd.PersistentFlags().BoolVar(&controllerConfig.InCluster,
+		"inCluster", controllerConfig.InCluster, "In/Out cluster indicator")
 
 	return cmd
 }

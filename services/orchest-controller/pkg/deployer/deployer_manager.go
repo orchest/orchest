@@ -34,7 +34,7 @@ func (m *DeployerManager) AddDeployer(name string, deployer Deployer) {
 
 	// If already registred, log warning and return
 	if _, ok := m.deployers[name]; ok {
-		klog.Warning("deployer %s is already registred with deployer manager", name)
+		klog.Warningf("deployer %s is already registred with deployer manager", name)
 	}
 
 	m.deployers[name] = deployer

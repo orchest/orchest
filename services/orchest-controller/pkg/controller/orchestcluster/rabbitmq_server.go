@@ -48,6 +48,7 @@ func getRabbitMqDeployment(metadata metav1.ObjectMeta,
 							ContainerPort: 5672,
 						},
 					},
+					Env: orchest.Spec.RabbitMq.Env,
 					VolumeMounts: []corev1.VolumeMount{
 						{
 							Name:      userDirName,

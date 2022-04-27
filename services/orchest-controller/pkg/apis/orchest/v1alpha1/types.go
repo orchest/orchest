@@ -128,26 +128,6 @@ type DockerRegistrySpec struct {
 	StorageClass string `json:"storageClass,omitempty" helm:"persistence.storageClass"`
 }
 
-// PostgresSpec describes the attributes of postgres which will be used by orchest components.
-type PostgresSpec struct {
-	Image string `json:"image,omitempty"`
-
-	// NodeSelector is a selector which must be true for the pod to fit on a node.
-	// Selector which must match a node's labels for the pod to be scheduled on that node.
-	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-}
-
-// RabbitMq describes the attributes of rabbit which will be used by orchest components.
-type RabbitMQSpec struct {
-	Image string `json:"image,omitempty"`
-
-	// NodeSelector is a selector which must be true for the pod to fit on a node.
-	// Selector which must match a node's labels for the pod to be scheduled on that node.
-	// More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
-}
-
 // OrchestClusterSpec describes the attributes that a user creates on a OrchestCluster.
 type OrchestClusterSpec struct {
 	// Wether Orchest is Single Node or not, if specified, all pods of the orchest
@@ -164,9 +144,9 @@ type OrchestClusterSpec struct {
 
 	Registry DockerRegistrySpec `json:"registry,omitempty"`
 
-	Postgres PostgresSpec `json:"postgres,omitempty"`
+	Postgres OrchestComponent `json:"postgres,omitempty"`
 
-	RabbitMq RabbitMQSpec `json:"rabbitMq,omitempty"`
+	RabbitMq OrchestComponent `json:"rabbitMq,omitempty"`
 }
 
 type Condition struct {

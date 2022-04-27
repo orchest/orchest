@@ -147,7 +147,6 @@ func GetFullImageName(registry, imageName, tag string) string {
 	}
 
 	return fmt.Sprintf("orchest/%s:%s", imageName, tag)
-
 }
 
 func GetPatchData(oldObj, newObj interface{}) ([]byte, error) {
@@ -166,11 +165,6 @@ func GetPatchData(oldObj, newObj interface{}) ([]byte, error) {
 	return patchBytes, nil
 }
 
-/*
-role *rbacv1.ClusterRole,
-	roleBinding *rbacv1.ClusterRoleBinding, sa *corev1.ServiceAccount
-*/
-
 func GetInstanceOfObj(obj interface{}) client.Object {
 	switch obj.(type) {
 	case *corev1.Service:
@@ -186,6 +180,33 @@ func GetInstanceOfObj(obj interface{}) client.Object {
 	case *networkingv1.Ingress:
 		return &networkingv1.Ingress{}
 	}
-
 	return nil
+}
+
+func GetEnvVarFromMap(envVars map[string]string) []corev1.EnvVar {
+
+	result := make([]corev1.EnvVar, 0, len(envVars))
+	for name, value := range envVars {
+		result = append(result, corev1.EnvVar{Name: name, Value: value})
+	}
+
+	return result
+}
+
+func MergeEnvVars(envVarLists ...[]corev1.EnvVar) []corev1.EnvVar {
+
+	length := 0
+	for _, envVarList := range envVarLists {
+		length += len(envVarList)
+	}
+
+	mapEnvVars := make(map[string]string, length)
+
+	for _, envVars := range envVarLists {
+		for _, envVar := range envVars {
+			mapEnvVars[envVar.Name] = envVar.Value
+		}
+	}
+
+	return GetEnvVarFromMap(mapEnvVars)
 }

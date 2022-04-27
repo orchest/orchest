@@ -2,6 +2,7 @@ package orchestcluster
 
 import (
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -27,23 +28,7 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 
 	image := orchest.Spec.Orchest.OrchestApi.Image
 
-	env := []corev1.EnvVar{
-		{
-			Name:  "ORCHEST_HOST_GID",
-			Value: "1",
-		},
-		{
-			Name:  "PYTHONUNBUFFERED",
-			Value: "TRUE",
-		},
-		{
-			Name:  "ORCHEST_GPU_ENABLED_INSTANCE",
-			Value: "FALSE",
-		},
-	}
-
-	env = append(env, orchest.Spec.Orchest.Env...)
-	env = append(env, orchest.Spec.Orchest.OrchestApi.Env...)
+	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestApi.Env)
 
 	template := corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
