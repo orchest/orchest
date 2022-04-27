@@ -1408,3 +1408,56 @@ event.listen(
     "before_insert",
     ProjectJobSpecificSubscription.check_constraints,
 )
+
+
+class Delivery(BaseModel):
+    """Essentially, a transactional outbox for notifications.
+
+    Extend this class if you need to keep track of information that
+    depends on the deliveree, like response status code etc.
+    """
+
+    __tablename__ = "deliveries"
+
+    uuid = db.Column(
+        UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+
+    # The event which the delivery is about.
+    event = db.Column(
+        UUID(as_uuid=False),
+        db.ForeignKey("events.uuid", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # The subscriber that subscribed to the event.
+    deliveree = db.Column(
+        UUID(as_uuid=False),
+        db.ForeignKey("subscribers.uuid", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    # SCHEDULED, RESCHEDULED, DELIVERED
+    status = db.Column(db.String(15), nullable=False)
+
+    # Used for capped exponential backoff of retries in combination with
+    # scheduled_at.
+    n_delivery_attempts = db.Column(db.Integer, nullable=False, default=0)
+
+    scheduled_at = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    delivered_at = db.Column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+    )
+
+
+Index(
+    None,
+    Delivery.status,
+    Delivery.scheduled_at,
+)
