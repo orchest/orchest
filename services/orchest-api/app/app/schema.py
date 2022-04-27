@@ -870,7 +870,7 @@ subscriber_spec = Model(
 webhook_spec = subscriber_spec.inherit(
     "WebhookSpec",
     {
-        "url": fields.Url(required=True, description="URL of the webhook."),
+        "url": fields.String(required=True, description="URL of the webhook."),
         "name": fields.String(required=True, description="Name of the webhook."),
         "verify_ssl": fields.Boolean(
             required=True, description="If https certificate should be verified."
@@ -925,7 +925,7 @@ subscriber = Model(
 webhook = subscriber.inherit(
     "Webhook",
     {
-        "url": fields.Url(required=True, description="URL of the webhook."),
+        "url": fields.String(required=True, description="URL of the webhook."),
         "name": fields.String(required=True, description="Name of the webhook."),
         "verify_ssl": fields.Boolean(
             required=True, description="If https certificate should be verified."
