@@ -1,6 +1,10 @@
+import { hasValue } from "@orchest/lib-utils";
 import * as React from "react";
 
-export const useInterval = (callback: () => void, delay: number | null) => {
+export const useInterval = (
+  callback: () => void,
+  delay: number | null | undefined
+) => {
   const savedCallback = React.useRef(callback);
 
   React.useEffect(() => {
@@ -8,7 +12,7 @@ export const useInterval = (callback: () => void, delay: number | null) => {
   }, [callback]);
 
   React.useEffect(() => {
-    if (delay === null) return;
+    if (!hasValue(delay)) return;
 
     const id = setInterval(() => savedCallback.current(), delay);
 

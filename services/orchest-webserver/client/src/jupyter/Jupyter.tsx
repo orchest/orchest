@@ -18,7 +18,7 @@ class Jupyter {
     this.baseAddress = "";
     this.reloadOnShow = false;
     this.iframeHasLoaded = false;
-    this.showCheckInterval = undefined;
+    this.showCheckInterval = 0;
     this.pendingKernelChanges = {};
     this.setConfirm = setConfirm;
 
@@ -46,9 +46,8 @@ class Jupyter {
     }
 
     // make sure the baseAddress has loaded
-    if (
-      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
-    ) {
+
+    if (!this.iframe.contentWindow.location.href.includes(this.baseAddress)) {
       this._setJupyterAddress(this.baseAddress + "/lab");
     }
 
@@ -72,7 +71,7 @@ class Jupyter {
     this._setJupyterAddress("about:blank");
   }
 
-  _setJupyterAddress(url) {
+  _setJupyterAddress(url: string) {
     this.iframeHasLoaded = false;
     this.iframe.contentWindow.location.replace(url);
   }
@@ -258,16 +257,14 @@ class Jupyter {
     }
   }
 
-  navigateTo(filePath) {
+  navigateTo(filePath: string) {
     /**
      *   @param {string} filePath relative path to the Jupyter file from the
      *   perspective of the root of the project directory.
      *   E.g. somedir/myipynb.ipynb (no starting slash)
      */
 
-    if (!filePath) {
-      return;
-    }
+    if (!filePath) return;
 
     tryUntilTrue(
       () => {
