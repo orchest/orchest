@@ -75,8 +75,11 @@ class Subscriber(Resource):
         subscriber = (
             models.Subscriber.query.options(joinedload(models.Subscriber.subscriptions))
             .filter(models.Subscriber.uuid == uuid)
-            .one()
+            .first()
         )
+        if subscriber is None:
+            return {"message": f"Subscriber {uuid} does not exist."}, 404
+
         if isinstance(subscriber, models.Webhook):
             subscriber = marshal(subscriber, schema.webhook)
         else:
