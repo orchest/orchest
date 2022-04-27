@@ -40,7 +40,7 @@ describe("useFetchPipelineSettings", () => {
     const mockProjectUuid = chance.guid();
     const mockPipelineUuid = chance.guid();
 
-    const { result, waitForNextUpdate, rerender, unmount } = renderHook(
+    const { result, waitForNextUpdate } = renderHook(
       () =>
         useTestHook({
           projectUuid: mockProjectUuid,
@@ -51,12 +51,12 @@ describe("useFetchPipelineSettings", () => {
       { wrapper }
     );
 
-    await waitForNextUpdate();
-
     const project = mockProjects.get(mockProjectUuid).project;
     const pipeline = mockProjects
       .get(mockProjectUuid)
       .pipelines.get(mockPipelineUuid);
+
+    await waitForNextUpdate();
 
     expect(result.current.pipelineName).toEqual(pipeline.metadata.name);
     expect(result.current.pipelinePath).toEqual(pipeline.metadata.path);
