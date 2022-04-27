@@ -261,11 +261,17 @@ export type CreateProjectError =
   | "project move failed"
   | "project name contains illegal character";
 
-export type BackgroundTask = {
-  uuid: string;
-  status: "SUCCESS" | "FAILURE" | "PENDING";
-  result: CreateProjectError | string | null;
-};
+export type BackgroundTask =
+  | {
+      uuid: string;
+      status: "SUCCESS" | "FAILURE";
+      result: CreateProjectError | string;
+    }
+  | {
+      uuid: string;
+      status: "PENDING";
+      result: null;
+    };
 
 export class BackgroundTaskPoller {
   private END_STATUSES: string[];

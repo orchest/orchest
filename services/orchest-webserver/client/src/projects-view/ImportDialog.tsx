@@ -1,10 +1,9 @@
-import { BoldText } from "@/components/common/BoldText";
 import { Code } from "@/components/common/Code";
+import { DropZone } from "@/components/DropZone";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
 import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
-import CloseIcon from "@mui/icons-material/Close";
-import InputIcon from "@mui/icons-material/Input";
+import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -12,13 +11,13 @@ import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
-import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
+import { alpha } from "@mui/material/styles";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
-import { makeRequest } from "@orchest/lib-utils";
+import { fetcher, validURL } from "@orchest/lib-utils";
 import React from "react";
-import { useImportProject } from "./hooks/useImportProject";
+import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
   "project move failed": "failed to move project because the directory exists.",
@@ -30,28 +29,68 @@ const getMappedErrorMessage = (key: CreateProjectError | string | null) => {
   if (key && ERROR_MAPPING[key] !== undefined) {
     return ERROR_MAPPING[key];
   } else {
-    return "undefined error. Please try again.";
+    return "Unknown error. Please try again.";
   }
-};
-
-const ImportStatusNotification = ({ data }: { data?: BackgroundTask }) => {
-  return data ? (
-    <>
-      {data.status === "PENDING" && (
-        <LinearProgress sx={{ margin: (theme) => theme.spacing(2, 0) }} />
-      )}
-      {data.status === "FAILURE" && (
-        <Alert severity="error">
-          Import failed: {getMappedErrorMessage(data.result)}
-        </Alert>
-      )}
-    </>
-  ) : null;
 };
 
 const getProjectNameFromUrl = (importUrl: string) => {
   const matchGithubRepoName = importUrl.match(/\/([^\/]+)\/?$/);
   return matchGithubRepoName ? matchGithubRepoName[1] : "";
+};
+
+const HelperText: React.FC = ({ children }) => (
+  <Typography
+    variant="caption"
+    sx={{
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+    }}
+  >
+    <WarningIcon
+      sx={{
+        marginRight: (theme) => theme.spacing(1),
+        fontSize: (theme) => theme.typography.subtitle2.fontSize,
+      }}
+    />
+    {children}
+  </Typography>
+);
+
+const validateImportUrl = (
+  shouldValidate: boolean,
+  importUrl: string
+): { error: boolean; helperText: React.ReactNode } => {
+  if (!shouldValidate) return { error: false, helperText: " " };
+  if (importUrl.length === 0) return { error: false, helperText: " " };
+
+  // if the URL is not from Orchest, we warn the user
+  const isOrchestExample = /^https:\/\/github.com\/orchest(\-examples)?\//.test(
+    importUrl
+  );
+
+  if (!validURL(importUrl))
+    return {
+      error: true,
+      helperText: (
+        <HelperText>
+          Please make sure you enter a valid HTTPS git-repo URL.
+        </HelperText>
+      ),
+    };
+
+  if (!isOrchestExample)
+    return {
+      error: false,
+      helperText: (
+        <HelperText>
+          The import URL was not from Orchest. Make sure you trust this git
+          repository.
+        </HelperText>
+      ),
+    };
+
+  return { error: false, helperText: " " };
 };
 
 const ImportDialog: React.FC<{
@@ -75,72 +114,101 @@ const ImportDialog: React.FC<{
 
   const [isAllowedToClose, setIsAllowedToClose] = React.useState(true);
 
-  const { startImport: fireImportRequest, importResult } = useImportProject(
-    projectName,
-    importUrl,
-    async (result) => {
-      if (!result) {
-        // failed to import
-        setIsAllowedToClose(true);
-        return;
-      }
-      if (result.status === "SUCCESS") {
-        setImportUrl("");
-        setProjectName("");
-        onClose();
-
-        if (onImportComplete) {
-          // currently result.result is project.path (projectName)
-          // Ideally we'd like to have project_uuid, then we don't need to fetch the projects again.
-          // TODO: change the BE so we can get project_uuid as result.result
-          const response = await makeRequest("GET", "/async/projects");
-
-          let projects: Project[] = JSON.parse(response);
-
-          dispatch({
-            type: "SET_PROJECTS",
-            payload: projects,
-          });
-
-          const finalProjectName =
-            projectName || getProjectNameFromUrl(importUrl);
-
-          setProjectName(finalProjectName);
-
-          const foundByName = projects.find(
-            (project) => project.path === finalProjectName
-          ) as Project;
-
-          // use result as the payload to pass along projectUuid
-          onImportComplete({ ...result, result: foundByName.uuid });
-        }
-      }
-    }
+  const [shouldValidateImportUrl, setShouldValidateImportUrl] = React.useState(
+    false
   );
-  React.useEffect(() => {
-    if (importResult && importResult.status !== "PENDING") {
+
+  const [
+    shouldValidateProjectName,
+    setShouldValidateProjectName,
+  ] = React.useState(false);
+
+  const {
+    startImport: fireImportRequest,
+    importResult,
+    clearImportResult,
+  } = useImportGitRepo(projectName, importUrl, async (result) => {
+    if (!result) {
+      // failed to import
       setIsAllowedToClose(true);
+      return;
     }
-  }, [importResult]);
+    if (result.status === "SUCCESS") {
+      setImportUrl("");
+      setProjectName("");
+      onClose();
+
+      if (onImportComplete) {
+        // result.result is project.path (projectName), but project_uuid is not yet available,
+        // because it requires a file-discovery request to instantiate `project_uuid`.
+        // Therefore, it requires another GET call to get it's uuid
+        const projects = await fetcher<Project[]>("/async/projects");
+
+        dispatch({ type: "SET_PROJECTS", payload: projects });
+
+        const finalProjectName =
+          projectName || getProjectNameFromUrl(importUrl);
+
+        setProjectName(finalProjectName);
+
+        const foundByName = projects.find(
+          (project) => project.path === finalProjectName
+        ) as Project;
+
+        // use result as the payload to pass along projectUuid
+        onImportComplete({ ...result, result: foundByName.uuid });
+      }
+    }
+  });
+
+  const [status, setStatus] = React.useState<
+    "READY" | "IMPORTING" | "IMPORTED"
+  >("READY");
+
+  React.useEffect(() => {
+    if (status === "IMPORTED") setIsAllowedToClose(true);
+  }, [status]);
 
   const startImport = () => {
     setIsAllowedToClose(false);
+    setStatus("IMPORTING");
     fireImportRequest();
   };
 
   const closeDialog = () => {
     setImportUrl("");
     setProjectName("");
+    setStatus("READY");
     onClose();
   };
 
-  // if the URL is not from Orchest, we warn the user
-  const shouldShowWarning =
-    importUrl !== "" &&
-    !/^https:\/\/github.com\/orchest(\-examples)?\//.test(importUrl);
+  const importUrlValidation = React.useMemo(
+    () =>
+      validateImportUrl(!importResult && shouldValidateImportUrl, importUrl),
+    [importUrl, shouldValidateImportUrl, importResult]
+  );
+
+  const projectNameValidation = React.useMemo(() => {
+    if (!shouldValidateProjectName) return { error: false, helperText: " " };
+    const validation = validProjectName(projectName);
+    if (validation.valid)
+      return {
+        error: false,
+        helperText: "",
+      };
+    return {
+      error: !validation.valid,
+      helperText: validation.reason,
+    };
+  }, [shouldValidateProjectName, projectName]);
 
   return (
-    <Dialog open={open} onClose={isAllowedToClose ? closeDialog : undefined}>
+    <Dialog
+      open={open}
+      onClose={isAllowedToClose ? closeDialog : undefined}
+      fullWidth
+      maxWidth="sm"
+    >
       <form
         id="import-project"
         onSubmit={(e) => {
@@ -148,84 +216,109 @@ const ImportDialog: React.FC<{
           startImport();
         }}
       >
-        <DialogTitle>Import a project</DialogTitle>
+        <DialogTitle>Import project</DialogTitle>
         <DialogContent>
-          <Stack
-            direction="column"
-            spacing={2}
-            data-test-id="import-project-dialog"
-          >
-            <Typography>
-              Import a <Code>git</Code> repository by specifying the{" "}
-              <Code>HTTPS</Code> URL below:
-            </Typography>
-            <TextField
-              fullWidth
-              autoFocus
-              label="Git repository URL"
-              value={importUrl}
-              helperText={
-                !shouldShowWarning ? (
-                  " "
-                ) : (
-                  <Typography
-                    variant="caption"
+          <Stack direction="column" spacing={2}>
+            <Stack
+              direction="column"
+              data-test-id="import-project-dialog"
+              spacing={1}
+            >
+              <Typography>
+                Paste <Code>HTTPS</Code> link to <Code>git</Code> repository:
+              </Typography>
+              <TextField
+                fullWidth
+                autoFocus
+                placeholder="Git repository URL"
+                onBlur={() => setShouldValidateImportUrl(true)}
+                {...importUrlValidation}
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                data-test-id="project-url-textfield"
+              />
+              {importResult?.status === "FAILURE" && (
+                <Alert
+                  severity="error"
+                  sx={{ marginTop: (theme) => theme.spacing(1) }}
+                  onClose={clearImportResult}
+                >
+                  Import failed: {getMappedErrorMessage(importResult.result)}
+                </Alert>
+              )}
+            </Stack>
+            <Stack direction="column" spacing={1}>
+              <Typography>Or upload from computer:</Typography>
+              <DropZone disableOverlay uploadFiles={() => Promise.resolve()}>
+                {(isDragActive: boolean) => (
+                  <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    direction="column"
+                    spacing={1}
                     sx={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
+                      height: "16vh",
+                      border: (theme) =>
+                        `2px dashed ${
+                          isDragActive
+                            ? theme.palette.primary.main
+                            : theme.palette.grey[400]
+                        }`,
+                      borderRadius: (theme) => theme.spacing(0.5),
+                      backgroundColor: (theme) =>
+                        isDragActive
+                          ? alpha(theme.palette.primary.main, 0.08)
+                          : theme.palette.common.white,
                     }}
                   >
-                    <WarningIcon
+                    <DriveFolderUploadOutlinedIcon
+                      fontSize="large"
                       sx={{
-                        marginRight: (theme) => theme.spacing(1),
-                        fontSize: (theme) =>
-                          theme.typography.subtitle2.fontSize,
+                        color: (theme) =>
+                          isDragActive
+                            ? theme.palette.primary.main
+                            : theme.palette.grey[500],
                       }}
                     />
-                    {`The import URL was not from Orchest. Make sure you trust this git repository.`}
-                  </Typography>
-                )
-              }
-              onChange={(e) => setImportUrl(e.target.value)}
-              data-test-id="project-url-textfield"
-            />
-            <TextField
-              fullWidth
-              label="Project name (optional)"
-              value={projectName}
-              onChange={(e) => {
-                setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
-              }}
-              data-test-id="project-name-textfield"
-            />
-            {importResult && <ImportStatusNotification data={importResult} />}
-            <Alert severity="info">
-              To import <BoldText>private</BoldText> git
-              {` repositories upload them directly through the File Manager into the `}
-              <Code dark sx={{ marginTop: (theme) => theme.spacing(1) }}>
-                projects/
-              </Code>
-              {` directory.`}
-            </Alert>
+                    <Typography variant="body2">{`Drag & drop project folder here`}</Typography>
+                    <Button>Browse files</Button>
+                  </Stack>
+                )}
+              </DropZone>
+            </Stack>
+            {false && (
+              <Stack>
+                <TextField
+                  fullWidth
+                  label="Project name"
+                  value={projectName}
+                  onChange={(e) => {
+                    if (!shouldValidateProjectName)
+                      setShouldValidateProjectName(true);
+                    setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
+                  }}
+                  {...projectNameValidation}
+                  data-test-id="project-name-textfield"
+                />
+              </Stack>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions>
-          {isAllowedToClose && (
-            <Button
-              startIcon={<CloseIcon />}
-              color="secondary"
-              onClick={closeDialog}
-            >
-              Close
-            </Button>
-          )}
+          <Button
+            color="secondary"
+            onClick={closeDialog}
+            disabled={!isAllowedToClose}
+          >
+            Cancel
+          </Button>
           <Button
             variant="contained"
-            startIcon={<InputIcon />}
             // So that the button is disabled when in a states
             // that requires so (currently ["PENDING"]).
-            disabled={importResult?.status === "PENDING"}
+            disabled={
+              importUrlValidation.error || importResult?.status === "PENDING"
+            }
             type="submit"
             form="import-project"
             data-test-id="import-project-ok"

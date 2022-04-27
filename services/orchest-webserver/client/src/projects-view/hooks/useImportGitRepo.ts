@@ -1,12 +1,11 @@
-import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
-import { fetcher, HEADER, validURL } from "@orchest/lib-utils";
+import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
-const validProjectName = (
+export const validProjectName = (
   projectName = ""
-): { valid: boolean; reason?: string } => {
+): { valid: true } | { valid: false; reason: string } => {
   const headsUpText = "Please make sure you enter a valid project name. ";
   if (projectName.match("[^A-Za-z0-9_.-]")) {
     return {
@@ -19,41 +18,17 @@ const validProjectName = (
   return { valid: true };
 };
 
-const validateImportData = ({
-  importUrl,
-  projectName,
-  setAlert,
-}: {
-  importUrl: string;
-  projectName: string;
-  setAlert: (title: string, content: string) => void;
-}) => {
-  const invalidUrl = !validURL(importUrl) || !importUrl.startsWith("https://");
-  const projectNameValidation = validProjectName(projectName);
-  const shouldShowAlert = invalidUrl || !projectNameValidation.valid;
-
-  if (shouldShowAlert) {
-    const reason = invalidUrl
-      ? "Please make sure you enter a valid HTTPS git-repo URL."
-      : projectNameValidation.reason;
-
-    setAlert("Error", reason);
-    return false;
-  }
-  return true;
-};
-
-const useImportProject = (
+export const useImportGitRepo = (
   projectName = "",
   importUrl: string,
   onComplete: (result?: BackgroundTask) => void
 ) => {
-  const { setAlert } = useAppContext();
+  const onCompleteRef = React.useRef(onComplete);
   const backgroundTaskPollerRef = React.useRef(new BackgroundTaskPoller());
 
   const { data, run, status: fetchStatus, setData } = useAsync<BackgroundTask>({
     initialState: {
-      uuid: null,
+      uuid: "",
       result: null,
       status: "PENDING",
     },
@@ -65,21 +40,20 @@ const useImportProject = (
         data.uuid,
         (result) => {
           setData(result);
-          onComplete(result);
+          if (onCompleteRef.current) onCompleteRef.current(result);
         }
       );
     }
+    const poller = backgroundTaskPollerRef.current;
     return () => {
-      backgroundTaskPollerRef.current.removeAllTasks();
+      poller.removeAllTasks();
     };
-  }, [fetchStatus, data]);
+  }, [fetchStatus, data, setData]);
 
   const startImport = () => {
-    const isValid = validateImportData({ importUrl, projectName, setAlert });
-    if (!isValid) {
-      onComplete();
-      return;
-    }
+    const { valid } = validProjectName(projectName);
+    if (!valid) return;
+
     const jsonData =
       projectName.length > 0
         ? { url: importUrl, project_name: projectName }
@@ -94,7 +68,13 @@ const useImportProject = (
     );
   };
 
-  return { startImport, importResult: data };
-};
+  const clearImportResult = React.useCallback(() => {
+    setData({
+      uuid: "",
+      result: null,
+      status: "PENDING",
+    });
+  }, [setData]);
 
-export { useImportProject };
+  return { startImport, importResult: data, clearImportResult };
+};

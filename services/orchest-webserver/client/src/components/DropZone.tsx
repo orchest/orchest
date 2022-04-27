@@ -79,12 +79,21 @@ export const defaultOverlaySx: SxProps<Theme> = {
 };
 
 export const DropZone: React.FC<
-  {
+  BoxProps & {
     disabled?: boolean;
     uploadFiles: (files: File[] | FileList) => Promise<void>;
     overlayProps?: BoxProps;
-  } & BoxProps
-> = ({ children, disabled, uploadFiles, overlayProps, ...props }) => {
+    disableOverlay?: boolean;
+    children: React.ReactNode | ((isDragActive: boolean) => React.ReactNode);
+  }
+> = ({
+  children,
+  disabled,
+  uploadFiles,
+  overlayProps,
+  disableOverlay = false,
+  ...props
+}) => {
   // The built-in state `acceptedFiles` is persisted, and cannot be cleared.
   // while `onDropAccepted` is an one-off action
   const { getInputProps, getRootProps, isDragActive } = useDropzone({
@@ -102,9 +111,11 @@ export const DropZone: React.FC<
         },
       })}
     >
-      {isDragActive && <Box sx={defaultOverlaySx} {...overlayProps} />}
+      {!disableOverlay && isDragActive && (
+        <Box sx={defaultOverlaySx} {...overlayProps} />
+      )}
       <input {...getInputProps()} webkitdirectory="" directory="" />
-      {children}
+      {children instanceof Function ? children(isDragActive) : children}
     </Box>
   );
 };
