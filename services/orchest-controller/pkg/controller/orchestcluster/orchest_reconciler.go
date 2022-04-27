@@ -599,7 +599,7 @@ func (r *OrchestReconciler) deployCeleryWorker(ctx context.Context, hash string,
 		}
 	}
 
-	return r.waitForDeployment(ctx, r.namespace, orchestApi)
+	return r.waitForDeployment(ctx, r.namespace, celeryWorker)
 }
 
 func (r *OrchestReconciler) deployWebserver(ctx context.Context, hash string, orchest *orchestv1alpha1.OrchestCluster) error {
