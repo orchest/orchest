@@ -40,7 +40,7 @@ describe("useFetchPipelineSettings", () => {
     const mockProjectUuid = chance.guid();
     const mockPipelineUuid = chance.guid();
 
-    const { result, waitForNextUpdate, rerender, unmount } = renderHook(
+    const { result, waitForNextUpdate } = renderHook(
       () =>
         useTestHook({
           projectUuid: mockProjectUuid,
