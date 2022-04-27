@@ -116,8 +116,14 @@ export const ProjectSelector = () => {
         ? projectUuidFromRoute
         : state.projects[0]?.uuid;
 
+      // Always update state.projectuuid.
+      // This is the only place that set a valid projectUuid
       if (newProjectUuid) {
         dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
+      }
+
+      // Only change project if newProjectUuid is different from projectUuidFromRoute
+      if (newProjectUuid && newProjectUuid !== projectUuidFromRoute) {
         onChangeProject(newProjectUuid);
       }
     }

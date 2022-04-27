@@ -7,6 +7,7 @@ import {
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
@@ -29,6 +30,7 @@ const JupyterLabView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
   const { makeCancelable } = useCancelablePromise();
   const { cancelableFetch } = useCancelableFetch();
+  useEnsureValidPipeline();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
