@@ -46,7 +46,7 @@ const PipelineView = () => {
           </FileManagerContextProvider>
         </PipelineEditorContextProvider>
       ) : (
-        <ProjectBasedView projectUuid={projectUuid} />
+        <ProjectBasedView />
       )}
     </Layout>
   );
