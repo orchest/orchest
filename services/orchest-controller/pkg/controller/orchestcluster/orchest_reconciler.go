@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -443,56 +442,6 @@ func (d *OrchestReconciler) persistentVolumeClaim(name, namespace, storageClass 
 	return pvc
 }
 
-func (r *OrchestReconciler) upsertDeployment(ctx context.Context, hash string, deployment *appsv1.Deployment) error {
-
-	storedDeployment, err := r.getClient().AppsV1().Deployments(r.namespace).Get(ctx, deployment.Name, metav1.GetOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get the deployment")
-	}
-
-	if kerrors.IsNotFound(err) {
-		_, err := r.getClient().AppsV1().Deployments(r.namespace).Create(ctx, deployment, metav1.CreateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to create the deployment")
-		}
-	} else {
-		storedDeployment.Spec = *deployment.Spec.DeepCopy()
-		storedDeployment.Labels = deployment.Labels
-		_, err := r.getClient().AppsV1().Deployments(r.namespace).Update(ctx, storedDeployment, metav1.UpdateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to update the deployment")
-		}
-	}
-
-	return nil
-}
-
-func (r *OrchestReconciler) upsertService(ctx context.Context, hash string, service *corev1.Service) error {
-
-	storedService, err := r.getClient().CoreV1().Services(r.namespace).Get(ctx, service.Name, metav1.GetOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to get the service")
-	}
-
-	if kerrors.IsNotFound(err) {
-		_, err := r.getClient().CoreV1().Services(r.namespace).Create(ctx, service, metav1.CreateOptions{})
-		if err != nil {
-			return errors.Wrapf(err, "failed to create the service")
-		}
-	} else {
-		deployedHash := storedService.GetLabels()[ControllerRevisionHashLabelKey]
-		if deployedHash != hash {
-			storedService.Spec = *service.Spec.DeepCopy()
-			_, err := r.getClient().CoreV1().Services(r.namespace).Update(ctx, storedService, metav1.UpdateOptions{})
-			if err != nil {
-				return errors.Wrapf(err, "failed to update the service")
-			}
-		}
-	}
-
-	return nil
-}
-
 func (r *OrchestReconciler) upsertObject(ctx context.Context, object client.Object) error {
 
 	err := r.getGeneralClient().Create(ctx, object, &client.CreateOptions{})
@@ -524,27 +473,6 @@ func (r *OrchestReconciler) upsertObject(ctx context.Context, object client.Obje
 	err = r.getGeneralClient().Patch(ctx, oldObj, patch)
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch the object %v", object)
-	}
-
-	return nil
-}
-
-func (r *OrchestReconciler) upsertRbac(ctx context.Context, role *rbacv1.ClusterRole,
-	roleBinding *rbacv1.ClusterRoleBinding, sa *corev1.ServiceAccount) error {
-
-	_, err := r.getClient().RbacV1().ClusterRoles().Create(ctx, role, metav1.CreateOptions{})
-	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create cluster role")
-	}
-
-	_, err = r.getClient().RbacV1().ClusterRoleBindings().Create(ctx, roleBinding, metav1.CreateOptions{})
-	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create cluster role binding")
-	}
-
-	_, err = r.getClient().CoreV1().ServiceAccounts(r.namespace).Create(ctx, sa, metav1.CreateOptions{})
-	if err != nil && !kerrors.IsAlreadyExists(err) {
-		return errors.Wrapf(err, "failed to create service account")
 	}
 
 	return nil
