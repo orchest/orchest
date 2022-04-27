@@ -97,7 +97,7 @@ func getRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 	clusterRole := &rbacv1.ClusterRole{
 		ObjectMeta: metadata,
 		Rules: []rbacv1.PolicyRule{
-			rbacv1.PolicyRule{
+			{
 				APIGroups: []string{"*"},
 				Resources: []string{"*"},
 				Verbs:     []string{"*"},
@@ -139,7 +139,9 @@ func getIngressManifest(metadata metav1.ObjectMeta, path string,
 	if enableAuth {
 		ingressMeta = *metadata.DeepCopy()
 		authServiceName := fmt.Sprintf("http://auth-server.%s.svc.cluster.local/auth", orchest.Namespace)
-		ingressMeta.Annotations["nginx.ingress.kubernetes.io/auth-url"] = authServiceName
+		annotations := make(map[string]string, 0)
+		annotations["nginx.ingress.kubernetes.io/auth-url"] = authServiceName
+		ingressMeta.Annotations = annotations
 	} else {
 		ingressMeta = metadata
 	}

@@ -183,7 +183,7 @@ func (controller *OrchestClusterController) onDeploymentUpdate(obj interface{}) 
 
 	if dep.ObjectMeta.OwnerReferences != nil && dep.ObjectMeta.OwnerReferences[0].Kind == OrchestClusterKind {
 		orchest, err := controller.ocLister.OrchestClusters(dep.Namespace).Get(dep.ObjectMeta.OwnerReferences[0].Name)
-		if err != nil {
+		if err != nil && !kerrors.IsNotFound(err) {
 			utilruntime.HandleError(fmt.Errorf("couldn't get OrchestCluster=%s in namespace=%s",
 				dep.ObjectMeta.OwnerReferences[0].Name,
 				dep.Namespace))
