@@ -166,10 +166,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const onOpen = React.useCallback(
     (filePath) => {
-      if (
-        isWithinDataFolder(filePath) &&
-        isFileByExtension(["orchest", "ipynb"], filePath)
-      ) {
+      if (isWithinDataFolder(filePath)) {
         setAlert(
           "Notice",
           <>
