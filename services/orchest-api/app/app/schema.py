@@ -899,10 +899,8 @@ subscription = Model(
         "event_type": fields.String(
             required=True, description="Event type subscribed to."
         ),
-        "type": fields.String(
-            required=True,
-            description=("Type of the subscription (global vs project specific etc.)."),
-        ),
+        "project_uuid": fields.String(required=False, description="Project uuid."),
+        "job_uuid": fields.String(required=False, description="Job uuid."),
     },
 )
 
