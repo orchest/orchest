@@ -10,6 +10,8 @@ import datetime
 
 from flask_restx import Model, fields
 
+from app import models
+
 pagination_data = Model(
     "PaginationData",
     {
@@ -860,6 +862,29 @@ subscriber_spec = Model(
         "subscriptions": fields.List(
             fields.Nested(subscription_spec),
             description="Collection of subscriptions, elements should be unique.",
+            min_items=1,
+        ),
+    },
+)
+
+webhook_spec = subscriber_spec.inherit(
+    "WebhookSpec",
+    {
+        "url": fields.Url(required=True, description="URL of the webhook."),
+        "name": fields.String(required=True, description="Name of the webhook."),
+        "verify_ssl": fields.Boolean(
+            required=True, description="If https certificate should be verified."
+        ),
+        "secret": fields.String(
+            required=False, description="Secret used for HMAC signing the payload."
+        ),
+        "content_type": fields.String(
+            required=True,
+            description="Content type of the payload, e.g. json, urlencoded, etc.",
+            enum=[
+                models.Webhook.ContentType.JSON.value,
+                models.Webhook.ContentType.URLENCODED.value,
+            ],
         ),
     },
 )
@@ -890,6 +915,28 @@ subscriber = Model(
             fields.Nested(subscription),
             description="Subscriptions of the subscriber.",
             required=False,
+        ),
+    },
+)
+
+webhook = subscriber.inherit(
+    "Webhook",
+    {
+        "url": fields.Url(required=True, description="URL of the webhook."),
+        "name": fields.String(required=True, description="Name of the webhook."),
+        "verify_ssl": fields.Boolean(
+            required=True, description="If https certificate should be verified."
+        ),
+        "secret": fields.String(
+            required=True, description="Secret used for HMAC signing the payload."
+        ),
+        "content_type": fields.String(
+            required=True,
+            description="Content type of the payload, e.g. json, urlencoded, etc.",
+            enum=[
+                models.Webhook.ContentType.JSON.value,
+                models.Webhook.ContentType.URLENCODED.value,
+            ],
         ),
     },
 )

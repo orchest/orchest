@@ -8,6 +8,7 @@ from sqlalchemy.orm import joinedload, noload
 from app import models, schema, utils
 from app.connections import db
 from app.core import notifications
+from app.core.notifications import webhooks
 
 api = Namespace("notifications", description="Orchest-api notifications API.")
 api = utils.register_schema(api)
@@ -34,24 +35,28 @@ class SubscriberList(Resource):
         ).all()
         return {"subscribers": subscribers}, 200
 
-    @api.doc("create_subscriber")
-    @api.expect(schema.subscriber_spec)
-    @api.response(200, "Success", schema.subscriber)
+
+@api.route("/subscribers/webhooks")
+class WebhookList(Resource):
+    @api.doc("create_webhook")
+    @api.expect(schema.webhook_spec, validate=True)
+    @api.response(200, "Success", schema.webhook)
     def post(self):
-        """Creates a subscriber with the given subscriptions.
+        """Creates a webhook with the given subscriptions.
 
-        Repeated subscription entries are ignored.
+        Repeated subscription entries are ignored. If no secret is
+        passed a secret will be generated through the BE. This endpoint
+        returns a model with said secret, all other endpoints do not,
+        meaning that it's not possible to get back a secret from the BE
+        once the webhook has been created, for security reasons.
         """
-        subscriber_spec = request.get_json()
-        subscriptions = subscriber_spec.get("subscriptions", [])
-
         try:
-            subscriber = notifications.create_subscriber(subscriptions)
+            webhook = webhooks.create_webhook(request.get_json())
         except (ValueError, sqlalchemy.exc.IntegrityError) as e:
             return {"message": str(e)}, 400
 
         db.session.commit()
-        return marshal(subscriber, schema.subscriber), 201
+        return marshal(webhook, schema.webhook), 201
 
 
 @api.route("/subscribers/<string:uuid>")
