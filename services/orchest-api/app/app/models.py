@@ -8,6 +8,7 @@ TODO:
 
 """
 import copy
+import enum
 import uuid
 from typing import Any, Dict
 
@@ -1282,12 +1283,43 @@ class Subscriber(BaseModel):
         UUID(as_uuid=False), primary_key=True, default=lambda: str(uuid.uuid4())
     )
 
+    type = db.Column(db.String(50), nullable=False)
+
     subscriptions = db.relationship(
         "Subscription",
         lazy="select",
         passive_deletes=True,
         cascade="all, delete",
     )
+
+    __mapper_args__ = {
+        "polymorphic_on": "type",
+        "polymorphic_identity": "subscriber",
+        "with_polymorphic": "*",
+    }
+
+
+class Webhook(Subscriber):
+    class ContentType(enum.Enum):
+        JSON = "application/json"
+        URLENCODED = "application/x-www-form-urlencoded"
+
+    __tablename__ = None
+
+    url = db.Column(db.String(), nullable=False)
+
+    name = db.Column(db.String(100), nullable=False)
+
+    verify_ssl = db.Column(db.Boolean(), nullable=False)
+
+    # Used to calculate the HMAC digest of the payload and sign it.
+    secret = deferred(db.Column(db.String(), nullable=False))
+
+    content_type = db.Column(db.String(50), nullable=False)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "webhook",
+    }
 
 
 class Subscription(BaseModel):
