@@ -909,6 +909,11 @@ subscriber = Model(
     "Subscriber",
     {
         "uuid": fields.String(required=True, description="UUID of the subscriber."),
+        "type": fields.String(
+            required=True,
+            description="Type of subscriber",
+            enum=["webhook", "subscriber"],
+        ),
         "subscriptions": fields.List(
             fields.Nested(subscription),
             description="Subscriptions of the subscriber.",

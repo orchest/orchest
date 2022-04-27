@@ -27,13 +27,19 @@ class SubscribableEventList(Resource):
 @api.route("/subscribers")
 class SubscriberList(Resource):
     @api.doc("get_subscribers")
-    @api.marshal_with(schema.subscribers)
+    @api.response(200, "Success", schema.subscribers)
     def get(self):
         """Gets all subscribers, without subscriptions."""
         subscribers = models.Subscriber.query.options(
             noload(models.Subscriber.subscriptions)
         ).all()
-        return {"subscribers": subscribers}, 200
+        marshalled = []
+        for subscriber in subscribers:
+            if isinstance(subscriber, models.Webhook):
+                marshalled.append(marshal(subscriber, schema.webhook))
+            else:
+                marshalled.append(marshal(subscriber, schema.subscriber))
+        return {"subscribers": marshalled}, 200
 
 
 @api.route("/subscribers/webhooks")
@@ -62,7 +68,8 @@ class WebhookList(Resource):
 @api.route("/subscribers/<string:uuid>")
 class Subscriber(Resource):
     @api.doc("subscriber")
-    @api.marshal_with(schema.subscriber)
+    @api.response(200, "Success", schema.subscriber)
+    @api.response(200, "Success", schema.webhook)
     def get(self, uuid: str):
         """Gets a subscriber, including its subscriptions."""
         subscriber = (
@@ -70,6 +77,10 @@ class Subscriber(Resource):
             .filter(models.Subscriber.uuid == uuid)
             .one()
         )
+        if isinstance(subscriber, models.Webhook):
+            subscriber = marshal(subscriber, schema.webhook)
+        else:
+            subscriber = marshal(subscriber, schema.subscriber)
 
         return subscriber, 200
 
@@ -83,7 +94,7 @@ class Subscriber(Resource):
 @api.route("/subscribers/subscribed-to/<string:event_type>")
 class SubscribersSubscribedToEvent(Resource):
     @api.doc("get_subscribers_subscribed_to_event")
-    @api.marshal_with(schema.subscribers)
+    @api.response(200, "Success", schema.subscribers)
     @api.doc(
         "get_subscribers_subscribed_to_event",
         params={
@@ -133,4 +144,11 @@ class SubscribersSubscribedToEvent(Resource):
         except ValueError as e:
             return {"message": str(e)}, 400
 
-        return {"subscribers": alerted_subscribers}, 200
+        marshalled = []
+        for subscriber in alerted_subscribers:
+            if isinstance(subscriber, models.Webhook):
+                marshalled.append(marshal(subscriber, schema.webhook))
+            else:
+                marshalled.append(marshal(subscriber, schema.subscriber))
+
+        return {"subscribers": marshalled}, 200
