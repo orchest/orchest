@@ -10,14 +10,16 @@ import (
 )
 
 type HelmDeployer struct {
-	name      string
-	deployDir string
+	name       string
+	deployDir  string
+	valuesPath string
 }
 
-func NewHelmDeployer(name, deployDir string) Deployer {
+func NewHelmDeployer(name, deployDir string, valuesPath string) Deployer {
 	return &HelmDeployer{
-		name:      name,
-		deployDir: deployDir,
+		name:       name,
+		deployDir:  deployDir,
+		valuesPath: valuesPath,
 	}
 }
 
@@ -42,6 +44,10 @@ func (d *HelmDeployer) InstallIfChanged(ctx context.Context, namespace string,
 		WithNamespace(namespace).
 		WithCreateNamespace().
 		WithAtomic().WithTimeout(time.Second * 1800)
+
+	if d.valuesPath != "" {
+		args.WithValuesFile(d.valuesPath)
+	}
 
 	/*
 		for key, value := range newValues {

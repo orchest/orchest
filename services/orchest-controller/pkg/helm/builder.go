@@ -47,6 +47,11 @@ func (builder *HelmArgBuilder) WithAtomic() *HelmArgBuilder {
 	return builder
 }
 
+func (builder *HelmArgBuilder) WithValuesFile(values string) *HelmArgBuilder {
+	builder.args = append(builder.args, "-f", values)
+	return builder
+}
+
 func (builder *HelmArgBuilder) WithName(name string) *HelmArgBuilder {
 	builder.args = append(builder.args, name)
 	return builder
