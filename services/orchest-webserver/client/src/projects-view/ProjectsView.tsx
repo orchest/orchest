@@ -5,7 +5,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
-import { DropZone } from "@/components/DropZone";
+import { defaultOverlaySx, DropZone } from "@/components/DropZone";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -292,7 +292,28 @@ const ProjectsView: React.FC = () => {
 
   return (
     <Layout>
-      <div className={"view-page projects-view"}>
+      <DropZone
+        className="view-page projects-view"
+        uploadFiles={dropFilesToCreateProject}
+        disabled={
+          isImportDialogOpen || (projectRows.length === 0 && isFetchingProjects)
+        }
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minHeight: "100%",
+          width: "100%",
+        }}
+        overlayProps={{
+          sx: {
+            ...defaultOverlaySx,
+            margin: (theme) => theme.spacing(-2),
+            width: "calc(100% - 32px)",
+            height: "calc(100% - 96px)",
+            border: (theme) => `2px dashed ${theme.palette.primary.main}`,
+          },
+        }}
+      >
         <ImportDialog
           onImportComplete={onImportComplete}
           importUrl={importUrl}
@@ -316,7 +337,7 @@ const ProjectsView: React.FC = () => {
         {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
-          <DropZone uploadFiles={dropFilesToCreateProject}>
+          <>
             <Stack
               direction="row"
               spacing={2}
@@ -362,9 +383,9 @@ const ProjectsView: React.FC = () => {
               rows={projectRows}
               data-test-id="projects-table"
             />
-          </DropZone>
+          </>
         )}
-      </div>
+      </DropZone>
     </Layout>
   );
 };

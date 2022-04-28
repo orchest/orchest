@@ -408,18 +408,13 @@ export const ImportDialog: React.FC<{
   // Immediately jump to `IMPORTING`.
   React.useEffect(() => {
     if (filesToUpload && tempProjectName && importStatus === "READY") {
-      createProjectAndUploadFiles(
-        tempProjectName,
-        filesToUpload,
-        updateProgress
-      );
+      uploadFilesAndSetImportStatus(filesToUpload);
     }
   }, [
     filesToUpload,
     tempProjectName,
     importStatus,
-    updateProgress,
-    createProjectAndUploadFiles,
+    uploadFilesAndSetImportStatus,
   ]);
 
   const theme = useTheme();
