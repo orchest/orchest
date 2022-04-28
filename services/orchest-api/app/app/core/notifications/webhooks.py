@@ -141,6 +141,7 @@ def deliver(delivery_uuid: str) -> None:
         .first()
     )
     if delivery is None:
+        logger.info(f"No need to deliver {delivery_uuid}.")
         return
 
     deliveree = models.Webhook.query.filter(
