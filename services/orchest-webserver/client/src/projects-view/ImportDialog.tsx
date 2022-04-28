@@ -2,10 +2,18 @@ import { Code } from "@/components/common/Code";
 import { DropZone, generateUploadFiles } from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useAppContext } from "@/contexts/AppContext";
-import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { Project } from "@/types";
-import { BackgroundTask, CreateProjectError } from "@/utils/webserver-utils";
+import {
+  BackgroundTask,
+  CreateProjectError,
+  isNumber,
+  withPlural,
+} from "@/utils/webserver-utils";
+import DeviceHubIcon from "@mui/icons-material/DeviceHub";
 import DriveFolderUploadOutlinedIcon from "@mui/icons-material/DriveFolderUploadOutlined";
+import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
+import PendingActionsIcon from "@mui/icons-material/PendingActions";
+import ViewComfyIcon from "@mui/icons-material/ViewComfy";
 import WarningIcon from "@mui/icons-material/Warning";
 import Alert from "@mui/material/Alert";
 import Button from "@mui/material/Button";
@@ -22,6 +30,7 @@ import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import { fetcher, HEADER, uuidv4, validURL } from "@orchest/lib-utils";
 import React from "react";
+import { useFetchProjects } from "./hooks/useFetchProjects";
 import { useImportGitRepo, validProjectName } from "./hooks/useImportGitRepo";
 
 const ERROR_MAPPING: Record<CreateProjectError, string> = {
@@ -94,6 +103,56 @@ const validateImportUrl = (
   return { error: false, helperText: " " };
 };
 
+const ProjectMetadata = ({
+  value,
+}: {
+  value: Project & { fileCount: number };
+}) => {
+  return (
+    <Stack direction="row" justifyContent="space-between">
+      <Stack direction="column" alignItems="center">
+        <InsertDriveFileOutlinedIcon fontSize="small" />
+        <Typography variant="caption">
+          {withPlural(value.fileCount, "File")}
+        </Typography>
+      </Stack>
+      <Stack direction="column" alignItems="center">
+        <DeviceHubIcon fontSize="small" />
+        <Typography variant="caption">
+          {withPlural(value.pipeline_count, "Pipeline")}
+        </Typography>
+      </Stack>
+      <Stack direction="column" alignItems="center">
+        <PendingActionsIcon fontSize="small" />
+        <Typography variant="caption">
+          {withPlural(value.job_count, "Job")}
+        </Typography>
+      </Stack>
+      <Stack direction="column" alignItems="center">
+        <ViewComfyIcon fontSize="small" />
+        <Typography variant="caption">
+          {withPlural(value.environment_count, "Environment")}
+        </Typography>
+      </Stack>
+    </Stack>
+  );
+};
+
+type ImportStatus =
+  | "READY"
+  | "IMPORTING"
+  | "UPLOADING"
+  | "FILES_STORED"
+  | "SAVING_PROJECT_NAME";
+
+const dialogTitleMappings: Record<ImportStatus, string> = {
+  READY: "Import project",
+  IMPORTING: "Importing project",
+  UPLOADING: "Uploading project",
+  FILES_STORED: "Complete",
+  SAVING_PROJECT_NAME: "Complete",
+};
+
 export const ImportDialog: React.FC<{
   importUrl: string;
   setImportUrl: (url: string) => void;
@@ -112,7 +171,8 @@ export const ImportDialog: React.FC<{
   filesToUpload,
 }) => {
   const { setAlert } = useAppContext();
-  const { state, dispatch } = useProjectsContext();
+
+  const { projects, fetchProjects } = useFetchProjects();
 
   // Because import will occur before user giving a name,
   // a temporary projectName (`project.path`) is needed to start with.
@@ -131,9 +191,7 @@ export const ImportDialog: React.FC<{
     setShouldShowImportUrlValidation,
   ] = React.useState(false);
 
-  const [importStatus, setImportStatus] = React.useState<
-    "READY" | "IMPORTING" | "IMPORTED" | "SAVING"
-  >("READY");
+  const [importStatus, setImportStatus] = React.useState<ImportStatus>("READY");
 
   const isAllowedToClose = React.useMemo(() => {
     return ["READY"].includes(importStatus);
@@ -151,25 +209,21 @@ export const ImportDialog: React.FC<{
         setShouldShowImportUrlValidation(false);
       }
       if (result.status === "SUCCESS") {
-        setImportStatus("IMPORTED");
-        setProgress(100);
+        setImportStatus("FILES_STORED");
+        setProgress("imported");
         // result.result is project.path (tempProjectName), but project_uuid is not yet available,
         // because it requires a file-discovery request to instantiate `project_uuid`.
         // Therefore, send another GET call to get its uuid.
-        const projects = await fetcher<Project[]>("/async/projects");
-        dispatch({ type: "SET_PROJECTS", payload: projects });
+        const fetchedProjects = await fetchProjects();
 
-        const foundProject = projects.find(
+        const foundProject = (fetchedProjects || []).find(
           (project) => project.path === result.result
         );
 
         if (foundProject) setNewProjectUuid(foundProject.uuid);
-
-        // Prefill projectName for user if user hasn't filled in anything.
-        if (!projectName) setProjectName(getProjectNameFromUrl(importUrl));
       }
     },
-    [dispatch, projectName, importUrl]
+    [fetchProjects]
   );
 
   const {
@@ -184,13 +238,18 @@ export const ImportDialog: React.FC<{
     setImportStatus("IMPORTING");
     setProgress("unknown");
     fireImportGitRepoRequest();
+    setProjectName(getProjectNameFromUrl(importUrl));
   };
 
-  const closeDialog = () => {
+  const reset = () => {
     setShouldShowImportUrlValidation(false);
     setImportUrl("");
     setProjectName("");
     setImportStatus("READY");
+  };
+
+  const closeDialog = () => {
+    reset();
     onClose();
   };
 
@@ -200,10 +259,16 @@ export const ImportDialog: React.FC<{
   );
 
   const existingProjectNames = React.useMemo(() => {
-    return state.projects.map((project) => project.path);
-  }, [state.projects]);
+    return projects.map((project) => project.path);
+  }, [projects]);
   const projectNameValidation = React.useMemo(() => {
-    if (existingProjectNames.includes(projectName)) {
+    // Before the dialog is fully closed (importStatus is set to `READY`),
+    // the new name is already saved into BE, so it will prompt with "project name already exists" error.
+    const hasProjectNameAlreadyExistsError =
+      !["SAVING_PROJECT_NAME", "READY"].includes(importStatus) &&
+      existingProjectNames.includes(projectName);
+
+    if (hasProjectNameAlreadyExistsError) {
       return {
         error: true,
         helperText: `A project with the name "${projectName}" already exists.`,
@@ -216,11 +281,11 @@ export const ImportDialog: React.FC<{
       // to prevent UI jumping because of the height of `helperText` of `TextField`.
       helperText: validation.valid ? " " : validation.reason,
     };
-  }, [existingProjectNames, projectName]);
+  }, [existingProjectNames, projectName, importStatus]);
 
   const saveProjectName = async () => {
     if (projectNameValidation.error) return;
-    setImportStatus("SAVING");
+    setImportStatus("SAVING_PROJECT_NAME");
     try {
       await fetcher(`/async/projects/${newProjectUuid}`, {
         method: "PUT",
@@ -228,17 +293,20 @@ export const ImportDialog: React.FC<{
         body: JSON.stringify({ name: projectName }),
       });
       onImportComplete({ path: projectName, uuid: newProjectUuid });
-      closeDialog();
+      reset();
     } catch (error) {
       // Project is imported with a uuid (i.e. `tempProjectName`), but failed to rename.
       // Because we want user to give a meaningful name before closing,
       // user is not allowed to close the dialog before successfully submit and save projectName.
       // NOTE: user will get stuck here if changing project name cannot be done.
-      setImportStatus("IMPORTED");
+      setImportStatus("FILES_STORED");
     }
   };
 
-  const [progress, setProgress] = React.useState<number | "unknown">("unknown");
+  // When importing a git repo, the progress cannot be tracked. So the progress is `unknown`.
+  const [progress, setProgress] = React.useState<
+    number | "unknown" | "imported"
+  >("unknown");
 
   const progressStyle = React.useMemo<LinearProgressProps["variant"]>(() => {
     if (progress === "unknown") return "indeterminate";
@@ -251,6 +319,10 @@ export const ImportDialog: React.FC<{
     },
     []
   );
+
+  const [newProjectMetadata, setNewProjectMetadata] = React.useState<
+    Project & { fileCount: number }
+  >();
 
   const createProjectAndUploadFiles = React.useCallback(
     async (
@@ -266,9 +338,17 @@ export const ImportDialog: React.FC<{
           body: JSON.stringify({ name: projectName }),
         }
       );
-      // Update state.projects to get all the default info for this project.
-      const projects = await fetcher<Project[]>("/async/projects");
-      dispatch({ type: "SET_PROJECTS", payload: projects });
+      // Get all the default info for this project.
+      const fetchedProjects = await fetchProjects();
+
+      const tempProject = fetchedProjects?.find(
+        (fetchedProject) => fetchedProject.uuid === project_uuid
+      );
+
+      if (tempProject) {
+        setNewProjectMetadata({ ...tempProject, fileCount: files.length });
+      }
+
       // Upload files
       await Promise.all(
         generateUploadFiles({
@@ -279,7 +359,7 @@ export const ImportDialog: React.FC<{
       );
       return project_uuid;
     },
-    [dispatch]
+    [fetchProjects]
   );
 
   const uploadFilesAndSetImportStatus = React.useCallback(
@@ -292,13 +372,13 @@ export const ImportDialog: React.FC<{
         return;
       }
 
-      setImportStatus("IMPORTING");
+      setImportStatus("UPLOADING");
       const projectUuid = await createProjectAndUploadFiles(
         tempProjectName,
         files,
         updateProgress
       );
-      setImportStatus("IMPORTED");
+      setImportStatus("FILES_STORED");
       setNewProjectUuid(projectUuid);
       setProjectName("");
     },
@@ -337,7 +417,7 @@ export const ImportDialog: React.FC<{
       fullWidth
       maxWidth="sm"
     >
-      <DialogTitle>Import project</DialogTitle>
+      <DialogTitle>{dialogTitleMappings[importStatus]}</DialogTitle>
       <DialogContent>
         <Stack
           direction="column"
@@ -448,10 +528,23 @@ export const ImportDialog: React.FC<{
           )}
           {importStatus !== "READY" && (
             <Stack direction="column" spacing={2}>
-              <LinearProgress
-                value={progress === "unknown" ? undefined : progress}
-                variant={progressStyle}
-              />
+              {newProjectMetadata && (
+                <ProjectMetadata value={newProjectMetadata} />
+              )}
+              <Stack direction="row" spacing={1} alignItems="center">
+                <LinearProgress
+                  value={isNumber(progress) ? progress : undefined}
+                  variant={progressStyle}
+                  sx={{ margin: (theme) => theme.spacing(1, 0), flex: 1 }}
+                />
+                <Typography variant="caption">
+                  {isNumber(progress)
+                    ? `${progress} %`
+                    : progress === "unknown"
+                    ? "Importing..."
+                    : "Imported!"}
+                </Typography>
+              </Stack>
               <form
                 id="save-project-name"
                 onSubmit={(e) => {
@@ -468,7 +561,7 @@ export const ImportDialog: React.FC<{
                     setProjectName(e.target.value.replace(/[^\w\.]/g, "-"));
                   }}
                   {...(projectName.length > 0 ? projectNameValidation : {})}
-                  disabled={importStatus === "SAVING"}
+                  disabled={importStatus === "SAVING_PROJECT_NAME"}
                   data-test-id="project-name-textfield"
                 />
               </form>
@@ -498,7 +591,9 @@ export const ImportDialog: React.FC<{
             disabled={
               !projectName ||
               projectNameValidation.error ||
-              ["IMPORTING", "SAVING"].includes(importStatus)
+              ["IMPORTING", "UPLOADING", "SAVING_PROJECT_NAME"].includes(
+                importStatus
+              )
             }
             type="submit"
             form="save-project-name"

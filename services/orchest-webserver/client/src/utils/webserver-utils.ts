@@ -546,3 +546,9 @@ export function pascalCaseToCapitalized(viewName) {
 export function isNumber(value: unknown): value is number {
   return !isNaN(Number(value));
 }
+
+export const withPlural = (
+  value: number,
+  unit: string,
+  toPlural = (singular: string) => `${singular}s`
+) => `${value} ${value > 1 ? toPlural(unit) : unit}`;
