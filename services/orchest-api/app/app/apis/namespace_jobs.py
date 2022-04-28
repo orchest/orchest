@@ -722,6 +722,11 @@ class RunJob(TwoPhaseFunction):
             job.status = "STARTED"
             events.register_job_started(job.project_uuid, job.uuid)
 
+        if job.schedule is not None:
+            events.register_cron_job_run_started(
+                job.project_uuid, job.uuid, job.total_scheduled_executions
+            )
+
         # To be later used by the collateral effect function.
         tasks_to_launch = []
 
@@ -794,11 +799,6 @@ class RunJob(TwoPhaseFunction):
                     )
                 )
             db.session.bulk_save_objects(pipeline_steps)
-
-        if job.schedule is not None:
-            events.register_cron_job_run_started(
-                job.project_uuid, job.uuid, job.total_scheduled_executions
-            )
 
         job.total_scheduled_executions += 1
         # Must run after total_scheduled_executions has been updated.

@@ -1375,6 +1375,8 @@ class CronJobRunEvent(CronJobEvent):
 
     run_index = db.Column(db.Integer)
 
+    total_pipeline_runs = db.Column(db.Integer)
+
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
 
@@ -1386,16 +1388,11 @@ class CronJobRunEvent(CronJobEvent):
             status = "FAILURE"
         else:
             status = None
+
         payload["job"]["run"] = {}
         payload["job"]["run"]["status"] = status
         payload["job"]["run"]["number"] = self.run_index
-        payload["job"]["run"]["total_runs"] = None
-
-        job = Job.query.filter(Job.uuid == self.job_uuid).first()
-        if job is None:
-            return payload
-
-        payload["job"]["run"]["total_runs"] = len(job.parameters)
+        payload["job"]["run"]["total_pipeline_runs"] = self.total_pipeline_runs
 
         return payload
 
