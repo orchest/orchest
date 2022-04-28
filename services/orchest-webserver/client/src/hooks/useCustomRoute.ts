@@ -122,10 +122,11 @@ const useCustomRoute = () => {
       e?: React.MouseEvent
     ) => {
       const [pathname, existingQueryString] = path.split("?");
-      const { query = null, state = {} } = params || {};
+      const { query = {}, state = {} } = params || {};
 
       const isMouseMiddleClick = e?.nativeEvent && e.nativeEvent.button === 1;
       const shouldOpenNewTab = e?.ctrlKey || e?.metaKey || isMouseMiddleClick;
+
       const queryString = existingQueryString
         ? `${existingQueryString}&${toQueryString(query)}`
         : toQueryString(query);

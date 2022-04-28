@@ -32,9 +32,14 @@ export const generateUploadFiles = ({
   projectUuid: string;
   root: FileManagementRoot;
   path: string;
-}) => (files: File[] | FileList, onUploaded?: () => void) => {
+}) => (
+  files: File[] | FileList,
+  onUploaded?: (completedCount: number, totalCount: number) => void
+) => {
   // ensure that we are handling File[] instead of FileList
-  return Array.from(files).map(async (file: File | FileWithValidPath) => {
+  const fileArray = Array.from(files);
+  let completedCount = 0;
+  return fileArray.map(async (file: File | FileWithValidPath) => {
     // Derive folder to upload the file to if webkitRelativePath includes a slash
     // (means the file was uploaded as a folder through drag or folder file selection)
     const isUploadedAsFolder = isUploadedViaDropzone(file)
@@ -65,7 +70,9 @@ export const generateUploadFiles = ({
       { method: "POST", body: formData }
     );
 
-    if (onUploaded) onUploaded();
+    completedCount += 1;
+
+    if (onUploaded) onUploaded(completedCount, fileArray.length);
   });
 };
 
@@ -81,7 +88,7 @@ export const defaultOverlaySx: SxProps<Theme> = {
 export const DropZone: React.FC<
   BoxProps & {
     disabled?: boolean;
-    uploadFiles: (files: File[] | FileList) => Promise<void>;
+    uploadFiles: (files: File[] | FileList) => Promise<any> | any;
     overlayProps?: BoxProps;
     disableOverlay?: boolean;
     children: React.ReactNode | ((isDragActive: boolean) => React.ReactNode);

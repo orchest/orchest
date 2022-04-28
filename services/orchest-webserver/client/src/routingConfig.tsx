@@ -1,3 +1,4 @@
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import EditJobView from "./edit-job-view/EditJobView";
 import EnvironmentEditView from "./environment-edit-view/EnvironmentEditView";
@@ -270,10 +271,11 @@ export const toQueryString = <T extends string>(
   query: Record<T, string | number | boolean | undefined | null> | undefined
 ) => {
   const isObject =
+    hasValue(query) &&
     typeof query === "object" &&
-    query !== undefined &&
     typeof query !== "function" &&
     !Array.isArray(query);
+
   return isObject
     ? Object.entries<string | number | boolean | undefined | null>(query)
         .reduce((str, entry) => {

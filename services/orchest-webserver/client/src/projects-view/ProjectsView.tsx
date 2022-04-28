@@ -5,7 +5,7 @@ import {
   DataTableColumn,
   DataTableRow,
 } from "@/components/DataTable";
-import { DropZone, generateUploadFiles } from "@/components/DropZone";
+import { DropZone } from "@/components/DropZone";
 import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -16,7 +16,6 @@ import { useMounted } from "@/hooks/useMounted";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type { Project } from "@/types";
-import { BackgroundTask } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import InputIcon from "@mui/icons-material/Input";
@@ -53,14 +52,13 @@ const ProjectsView: React.FC = () => {
   } = useProjectsContext();
   const { navigateTo } = useCustomRoute();
 
-  const [projectName, setProjectName] = React.useState<string>("");
   const [projectUuidOnEdit, setProjectUuidOnEdit] = React.useState<
     string | undefined
   >();
 
   const [isShowingCreateModal, setIsShowingCreateModal] = React.useState(false);
 
-  const [isImporting, setIsImporting] = React.useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = React.useState(false);
 
   useCheckUpdate();
 
@@ -262,15 +260,13 @@ const ProjectsView: React.FC = () => {
   };
 
   const onImport = () => {
-    setIsImporting(true);
+    setIsImportDialogOpen(true);
   };
 
-  const onImportComplete = (result: BackgroundTask) => {
-    if (result.status === "SUCCESS") {
-      navigateTo(siteMap.pipeline.path, {
-        query: { projectUuid: result.result },
-      });
-    }
+  const onImportComplete = (newProject: Pick<Project, "uuid" | "path">) => {
+    navigateTo(siteMap.pipeline.path, {
+      query: { projectUuid: newProject.uuid },
+    });
   };
 
   const [importUrl, setImportUrl] = useImportUrl();
@@ -278,28 +274,18 @@ const ProjectsView: React.FC = () => {
   // we prompt them directly with the import modal
   React.useEffect(() => {
     if (state.hasCompletedOnboarding && importUrl !== "") {
-      setIsImporting(true);
+      setIsImportDialogOpen(true);
     }
   }, [importUrl, state.hasCompletedOnboarding]);
 
-  const createProjectAndUploadFiles = React.useCallback(
-    async (files: File[] | FileList) => {
-      // 0. open create project dialog
-      // 1. create a dummy project, get the new `projectUuid`
-      const newProjectUuid = "newProjectUuid";
-      // 2. upload files
-      await Promise.all(
-        generateUploadFiles({
-          projectUuid: newProjectUuid,
-          root: "/project-dir",
-          path: "/",
-        })(files, () => {
-          // update the progress of the create project dialog
-        })
-      );
-      // 3. update project name
+  const [filesToUpload, setFilesToUpload] = React.useState<
+    FileList | File[] | undefined
+  >();
 
-      // 4. close create project dialog, redirect to `/pipeline` of this project
+  const dropFilesToCreateProject = React.useCallback(
+    (files: FileList | File[]) => {
+      setFilesToUpload(files);
+      setIsImportDialogOpen(true);
     },
     []
   );
@@ -308,13 +294,12 @@ const ProjectsView: React.FC = () => {
     <Layout>
       <div className={"view-page projects-view"}>
         <ImportDialog
-          projectName={projectName}
-          setProjectName={setProjectName}
           onImportComplete={onImportComplete}
           importUrl={importUrl}
           setImportUrl={setImportUrl}
-          open={isImporting}
-          onClose={() => setIsImporting(false)}
+          open={isImportDialogOpen}
+          onClose={() => setIsImportDialogOpen(false)}
+          filesToUpload={filesToUpload}
         />
         <EditProjectPathDialog
           projects={projects}
@@ -331,7 +316,7 @@ const ProjectsView: React.FC = () => {
         {projectRows.length === 0 && isFetchingProjects ? (
           <LinearProgress />
         ) : (
-          <DropZone uploadFiles={createProjectAndUploadFiles}>
+          <DropZone uploadFiles={dropFilesToCreateProject}>
             <Stack
               direction="row"
               spacing={2}

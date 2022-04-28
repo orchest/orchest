@@ -175,8 +175,9 @@ export function FileManager() {
 
       await doUploadFiles(files, () => {
         progressHolder.progress += 1;
-        let progressPercentage =
-          (progressHolder.progress / progressTotal) * 100;
+        let progressPercentage = Math.round(
+          (progressHolder.progress / progressTotal) * 100
+        );
         setProgress(progressPercentage);
       });
 

@@ -4,10 +4,14 @@ import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
 
 export const validProjectName = (
-  projectName = ""
-): { valid: true } | { valid: false; reason: string } => {
+  projectName: unknown
+): { valid: true; value: string } | { valid: false; reason: string } => {
   const headsUpText = "Please make sure you enter a valid project name. ";
-  if (projectName.match("[^A-Za-z0-9_.-]")) {
+  if (
+    typeof projectName !== "string" ||
+    projectName.length === 0 ||
+    projectName.match("[^A-Za-z0-9_.-]")
+  ) {
     return {
       valid: false,
       reason:
@@ -15,11 +19,11 @@ export const validProjectName = (
         `A project name has to be a valid git repository name and thus can only contain alphabetic characters, numbers and the special characters: '_.-'. The regex would be [A-Za-z0-9_.-].`,
     };
   }
-  return { valid: true };
+  return { valid: true, value: projectName };
 };
 
 export const useImportGitRepo = (
-  projectName = "",
+  projectName: unknown,
   importUrl: string,
   onComplete: (result?: BackgroundTask) => void
 ) => {
@@ -51,19 +55,17 @@ export const useImportGitRepo = (
   }, [fetchStatus, data, setData]);
 
   const startImport = () => {
-    const { valid } = validProjectName(projectName);
-    if (!valid) return;
-
-    const jsonData =
-      projectName.length > 0
-        ? { url: importUrl, project_name: projectName }
-        : { url: importUrl };
+    const validation = validProjectName(projectName);
+    if (!validation.valid) return;
 
     run(
       fetcher<BackgroundTask>(`/async/projects/import-git`, {
         method: "POST",
         headers: HEADER.JSON,
-        body: JSON.stringify(jsonData),
+        body: JSON.stringify({
+          url: importUrl,
+          project_name: validation.value,
+        }),
       })
     );
   };
