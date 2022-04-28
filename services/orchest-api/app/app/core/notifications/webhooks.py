@@ -8,7 +8,6 @@ at least the following:
     deliver(delivery_uuid).
 
 """
-import datetime
 import hashlib
 import hmac
 import json
@@ -156,19 +155,15 @@ def deliver(delivery_uuid: str) -> None:
         try:
             response = session.send(request, verify=deliveree.verify_ssl, timeout=5)
             if response.status_code >= 200 and response.status_code <= 299:
-                delivery.status = "DELIVERED"
-                delivery.delivered_at = datetime.datetime.now(datetime.timezone.utc)
                 logger.info(f"Delivered {delivery_uuid}.")
+                delivery.set_delivered()
             else:
                 raise self_errors.DeliveryFailed(
                     f"Failed to deliver {delivery_uuid}: {response.status_code}."
                 )
         except Exception as e:
             logger.error(e)
-            delivery.status = "RESCHEDULED"
-            delivery.n_delivery_attempts = delivery.n_delivery_attempts + 1
-            backoff = min(2 ** (delivery.n_delivery_attempts), 3600)
-            now = datetime.datetime.now(datetime.timezone.utc)
-            delivery.scheduled_at = now + datetime.timedelta(seconds=backoff)
+            delivery.reschedule()
+            logger.info(f"Rescheduling {delivery_uuid} at {delivery.scheduled_at}.")
 
     db.session.commit()
