@@ -94,6 +94,33 @@ class Subscriber(Resource):
         return {"message": ""}, 201
 
 
+@api.route("/subscribers/test-ping-delivery/<string:uuid>")
+class SendSubscriberTestPingDelivery(Resource):
+    @api.doc("subscribers/test-ping-delivery")
+    @api.response(200, "Success")
+    @api.response(500, "Failure")
+    def get(self, uuid: str):
+        """Send a test ping delivery to the subscriber.
+
+        This endpoint allows to send a ping event notifications to the
+        subscriber, so that it's possible to test if a given webhook
+        is working end to end, i.e. the deliveree is reachable.
+
+        The endpoint will return a 200 if the response obtained from the
+        deliveree is to be considered successfull, 500 otherwise.
+
+        """
+        response = webhooks.send_test_ping_delivery(uuid)
+        if (
+            response is not None
+            and response.status_code >= 200
+            and response.status_code <= 299
+        ):
+            return {"message": "success"}, 200
+        else:
+            return {"message": "success"}, 500
+
+
 @api.route("/subscribers/subscribed-to/<string:event_type>")
 class SubscribersSubscribedToEvent(Resource):
     @api.doc("get_subscribers_subscribed_to_event")

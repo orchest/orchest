@@ -8,10 +8,13 @@ at least the following:
     deliver(delivery_uuid).
 
 """
+import datetime
 import hashlib
 import hmac
 import json
 import secrets
+import uuid
+from typing import Optional
 
 import requests
 import validators
@@ -72,6 +75,15 @@ def _create_delivery_payload(delivery: models.Delivery) -> dict:
     return payload
 
 
+def _inject_headers(
+    headers: dict, event_type: str, delivery_uuid: str, signature: str
+) -> None:
+    headers["X-Orchest-Event"] = event_type
+    headers["X-Orchest-Delivery"] = delivery_uuid
+    headers["X-Orchest-Signature"] = signature
+    headers["User-Agent"] = "Orchest"
+
+
 def _prepare_request(
     delivery: models.Delivery, deliveree: models.Webhook
 ) -> requests.PreparedRequest:
@@ -92,12 +104,51 @@ def _prepare_request(
         body = body.encode("utf-8")
     signature = hmac.new(bytes(deliveree.secret, "utf-8"), body, hashlib.sha256)
 
-    request.headers["X-Orchest-Event"] = payload["event"]["type"]
-    request.headers["X-Orchest-Delivery"] = delivery.uuid
-    request.headers["X-Orchest-Signature"] = signature.hexdigest()
-    request.headers["User-Agent"] = "Orchest"
+    _inject_headers(
+        request.headers, payload["event"]["type"], delivery.uuid, signature.hexdigest()
+    )
 
     return request
+
+
+def send_test_ping_delivery(deliveree_uuid: str) -> Optional[requests.Response]:
+    webhook = models.Webhook.query.filter(models.Webhook.uuid == deliveree_uuid).one()
+
+    payload = {
+        "delivered_for": marshal(webhook, schema.webhook),
+        "event": {
+            "type": "ping",
+            "uuid": str(uuid.uuid4()),
+            "timestamp": str(datetime.datetime.now(datetime.timezone.utc)),
+        },
+    }
+
+    if webhook.content_type == models.Webhook.ContentType.URLENCODED.value:
+        payload["delivered_for"] = json.dumps(payload["delivered_for"])
+        payload["event"] = json.dumps(payload["event"])
+        request = requests.Request("POST", webhook.url, data=payload)
+    elif webhook.content_type == models.Webhook.ContentType.JSON.value:
+        request = requests.Request("POST", webhook.url, json=payload)
+
+    request = request.prepare()
+    body = request.body
+    if not isinstance(body, bytes):
+        body = body.encode("utf-8")
+    signature = hmac.new(bytes(webhook.secret, "utf-8"), body, hashlib.sha256)
+
+    _inject_headers(
+        request.headers,
+        payload["event"]["type"],
+        str(uuid.uuid4()),
+        signature.hexdigest(),
+    )
+
+    try:
+        with requests.Session() as session:
+            return session.send(request, verify=webhook.verify_ssl, timeout=5)
+    except Exception as e:
+        logger.error(e)
+        return None
 
 
 def deliver(delivery_uuid: str) -> None:
