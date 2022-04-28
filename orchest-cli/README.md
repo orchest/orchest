@@ -54,9 +54,13 @@ Deploying a new controller:
 TODO:
 
 - [ ] GitHub Action workflow files to publish CLI on release
+- [ ] Installation successful messages on how to reach Orchest?
+- [ ] Whenever the CRD is changed, users need to `kubectl apply` its changes. Otherwise the
+      controller might use fields that aren't defined yet. So we need a robust first version of the CRD.
+- [ ] Stay with `update` and not go with `upgrade`
 - [x] "Deploying Orchest" --> "Deploying Orchest control plane"
 - [ ] Structure of CLI code
-- [ ] Installation docs
+- [ ] Installation docs (and how to self-host as you might need nginx reverse-proxy)
   - [ ] We will recommend to install Orchest on a clean cluster (a non-existing cluster) because
         it is hard to play well with other software already installed on the cluster, e.g. ingress,
         argo, etc.
@@ -66,21 +70,17 @@ TODO:
 - [ ] Tests? Could also be as simple as running a type checker for now.
 - [ ] TODOs in `cli.py`
 - [ ] CLI module docstring explaining architecture, e.g. manag. cmds and appl cmds
-- [ ] `orchest restart` doesn't work when invoked through the `orchest-api` because it requires two
+- [x] `orchest restart` doesn't work when invoked through the `orchest-api` because it requires two
       CR changes (but no process will be running to invoke the second one).
 - [ ] Additional flags / options / file to specify installation
 - [ ] `orchest-controller` needs to be versioned as well instead of "latest"
-- [ ] Deleting the CRD no longer seems to work due to the finalizers.
-- [ ] Cluster is never put into `Paused` after pausing
+- [x] Cluster is never put into `Paused` after pausing
   - [ ] Unpausing (so doing `pause: false`) results in the cluster status being set to `Updating`
-- [ ] `orchest update` --> `orchest upgrade`. Then it is not strange if you see the cluster in the
-      state `Updating`, which can just mean it is updating but not upgrading.
 - [ ] I think it would be nice to have a visualization indicating the different state transitions
       the operator makes. Sort of a state machine.
 
 ### Questions
 
 - How about the ingress addon?
-- Running Orchest with increased log-level and/or --cloud? Also how about --dev? --> `orchest patch`
 - Do we want to install the `orchest-controller` in a dedicated namespace. Otherwise it could become
   "impossible" to delete the `orchest` cluster (due to the finalizer on the CRD).

@@ -90,11 +90,15 @@ func NewDefaultControllerConfig() ControllerConfig {
 		},
 		OrchestApiDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
+			"FLASK_ENV": "production",
 		},
 		OrchestWebserverDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
+			"FLASK_ENV": "production",
 		},
-		AuthServerDefaultEnvVars: make(map[string]string, 0),
+		AuthServerDefaultEnvVars: map[string]string{
+			"FLASK_ENV": "production",
+		},
 		CeleryWorkerDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE":     "FALSE",
 			"MAX_JOB_RUNS_PARALLELISM":         "1",

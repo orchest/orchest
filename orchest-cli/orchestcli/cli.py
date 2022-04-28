@@ -239,6 +239,181 @@ def install(**common_options) -> None:
     display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
     echo("Successfully installed Orchest!")
 
+    # TODO: Do we want this?
+    fqdn = "localorchest.io"
+    if fqdn:
+        echo(
+            f"Orchest is running with an FQDN equal to {fqdn}. To access it locally,"
+            " add an entry to your '/etc/hosts' file mapping the cluster ip"
+            f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
+            f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
+            f"You will then be able to reach Orchest at http://{fqdn}."
+        )
+    else:
+        echo(
+            "Orchest is running without an FQDN. To access Orchest locally, simply"
+            " go to the IP returned by `minikube ip`. If you are on mac run the"
+            " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
+            "'/etc/hosts' file instead."
+        )
+
+
+class LogLevel(str, enum.Enum):
+    DEBUG = "DEBUG"
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+
+
+@cli.command(cls=ClickCommonOptionsCmd)
+@click.option(
+    "--dev/--no-dev",
+    is_flag=True,
+    default=None,
+    show_default=True,
+    help="Run in development mode.",
+)
+@click.option(
+    "--cloud/--no-cloud",
+    is_flag=True,
+    default=None,
+    show_default=True,
+    hidden=True,
+    help="Run in cloud mode.",
+)
+@click.option(
+    "--log-level",
+    default=None,
+    show_default=True,
+    type=click.Choice(LogLevel),
+    help="Log level to set on Orchest services.",
+)
+def patch(
+    dev: t.Optional[bool],
+    cloud: t.Optional[bool],
+    log_level: t.Optional[LogLevel],
+    **common_options,
+) -> None:
+    """Patch the Orchest Cluster.
+
+    \b
+    Usage:
+        # Run Orchest in development mode.
+        orchest patch --dev
+
+    """
+
+    def convert_to_strategic_merge_patch(patch_obj: t.Dict, obj: t.Dict) -> None:
+        """Strategically merges list[dict] of `patch_obj` with `obj`.
+
+        `patch_obj` is changed in-place.
+
+        Precedence is given to `patch_obj`, i.e. if a key only exists in
+        `patch_obj` then that value is preserved.
+
+        Note:
+            It is assumed that all lists inside the given objects are
+            lists of dictionaries, i.e. list[dict], and those
+            dictionaries are of the format::
+
+                {"name": ..., "value", ...}
+
+        """
+        for key, spec in patch_obj.items():
+            if key not in obj:
+                continue
+
+            if isinstance(spec, dict):
+                convert_to_strategic_merge_patch(patch_obj[key], obj[key])
+            elif isinstance(spec, list):
+                # Strategically merge it.
+                patch_items = set(d["name"] for d in spec)
+                for obj_item in obj[key]:
+                    if obj_item["name"] not in patch_items:
+                        spec.append(obj_item)
+
+    echo("Patching the Orchest Cluster.")
+    ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
+
+    # Only update changed values.
+    if dev is None:
+        env_var_dev = None
+    elif dev:
+        # TODO: Make request to `orchest-api` to disable Telemetry.
+        env_var_dev = {"name": "FLASK_ENV", "value": "development"}
+
+        _cmd = (
+            "minikube start --memory 16000 --cpus 12 "
+            '--mount-string="$(pwd):/orchest-dev-repo" --mount'
+        )
+        echo(
+            "Note that when running in dev mode you need to have mounted the orchest "
+            "repository into minikube. For example by running the following when "
+            f"creating the cluster, while being in the repo: '{_cmd}'. The behaviour "
+            "of mounting in minikube is driver dependant and has some open issues, "
+            "so try to stay on the proven path. A cluster created through the "
+            "scripts/install_minikube.sh script, for example, would lead to the mount "
+            "only working on the master node, due to the kvm driver."
+        )
+    else:
+        env_var_dev = {"name": "FLASK_ENV", "value": "production"}
+
+    if cloud is None:
+        env_var_cloud = None
+    else:
+        env_var_cloud = {"name": "CLOUD", "value": str(cloud)}
+
+    if log_level is None:
+        env_var_log_level = None
+    else:
+        env_var_log_level = {"name": "ORCHEST_LOG_LEVEL", "value": log_level.value}
+
+    # NOTE: The merge strategy of a PATCH will always be replace. It
+    # should be possible to define strategic merge on CRDs, but for some
+    # reason we didn't get this to work:
+    # https://kubernetes.io/docs/reference/using-api/server-side-apply/#custom-resources
+    # Therefore, we first GET the custom object, PATCH it at runtime
+    # our selves, then send the PATCH request.
+    custom_object = _get_namespaced_custom_object(ns, cluster_name)
+    orchest_spec_patch = {
+        "authServer": {
+            "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
+        },
+        "orchestWebServer": {
+            "env": [env for env in [env_var_dev, env_var_cloud] if env is not None],
+        },
+        "orchestApi": {
+            "env": [env for env in [env_var_dev] if env is not None],
+        },
+        "env": [env for env in [env_var_log_level] if env is not None],
+    }
+    convert_to_strategic_merge_patch(
+        orchest_spec_patch,
+        custom_object["spec"]["orchest"],  # type: ignore
+    )
+
+    try:
+        patch_namespaced_custom_object(
+            name=cluster_name,
+            namespace=ns,
+            body={"spec": {"orchest": orchest_spec_patch}},
+        )
+    except client.ApiException as e:
+        echo("Failed to patch the Orchest Cluster.", err=True)
+        if e.status == 404:  # not found
+            echo(
+                f"The Orchest Cluster named '{cluster_name}' in namespace"
+                f" '{ns}' could not be found.",
+                err=True,
+            )
+        else:
+            echo(f"Reason: {e.reason}", err=True)
+        sys.exit(1)
+
+    display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSING)
+    display_spinner(ClusterStatus.PAUSING, ClusterStatus.RUNNING)
+    echo("Successfully patched the Orchest Cluster.")
+
 
 @cli.command(cls=ClickCommonOptionsCmd)
 @click.option(
@@ -254,7 +429,7 @@ def version(json_flag: bool, **common_options) -> None:
 
     \b
     Equivalent `kubectl` command:
-        kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.defaultTag}"
+        kubectl -n <namespace> get orchestclusters <cluster-name> -o jsonpath="{.spec.orchest.version}"
 
     """
     try:
@@ -290,8 +465,6 @@ def version(json_flag: bool, **common_options) -> None:
         echo(version)
 
 
-# TODO: Add to docstring what the possible statuses are and how
-# to interpret them.
 @cli.command(cls=ClickCommonOptionsCmd)
 @click.option(
     "--json",
@@ -335,6 +508,10 @@ def status(json_flag: bool, **common_options) -> None:
             echo(status.value)
 
 
+# TODO: Instead be stop/start? Because pausing Orchest would lose
+# ongoing builds etc. It is not like they are resumed, i.e. losing
+# state. You are starting from a clean slate on unpause/start so it
+# should be start.
 @cli.command(cls=ClickCommonOptionsCmd)
 @click.option(
     "--watch/--no-watch",
@@ -375,7 +552,6 @@ def pause(watch: bool, **common_options) -> None:
         sys.exit(1)
 
     if watch:
-        # TODO: Controller never reaches PAUSED for some reason.
         display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
         echo("Successfully paused Orchest.")
 
@@ -450,6 +626,8 @@ def restart(watch: bool, **common_options) -> None:
         patch_namespaced_custom_object(
             name=cluster_name,
             namespace=ns,
+            # NOTE: strategic merge does work on the annotations in the
+            # metadata.
             # `RestartAnnotationKey` in the `orchest-controller`.
             body={"metadata": {"annotations": {"orchest.io/restart": "true"}}},
             # Don't replace the annotations instead merge with existing
