@@ -90,11 +90,11 @@ func NewDefaultControllerConfig() ControllerConfig {
 		},
 		OrchestApiDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
-			"FLASK_ENV": "production",
+			"FLASK_ENV":                    "production",
 		},
 		OrchestWebserverDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
-			"FLASK_ENV": "production",
+			"FLASK_ENV":                    "production",
 		},
 		AuthServerDefaultEnvVars: map[string]string{
 			"FLASK_ENV": "production",
@@ -240,6 +240,8 @@ func (controller *OrchestClusterController) onDeploymentUpdate(obj interface{}) 
 			utilruntime.HandleError(fmt.Errorf("couldn't get OrchestCluster=%s in namespace=%s",
 				dep.ObjectMeta.OwnerReferences[0].Name,
 				dep.Namespace))
+			return
+		} else if err != nil && kerrors.IsNotFound(err) {
 			return
 		}
 
