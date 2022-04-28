@@ -38,7 +38,7 @@ var (
 	ControllerRevisionHashLabelKey = "controller-revision-hash"
 	RestartAnnotationKey           = "orchest.io/restart"
 	PauseReasonAnnotationKey       = "orchest.io/pause-reason"
-	OrchestIngressClassName        = "orchest-ingress"
+	OrchestIngressClassName        = "nginx"
 	PauseReasonOrchestUpdated      = "Orchest Updated"
 	PauseReasonRestartAnnotation   = "Restart Annotation"
 	PauseReasonOrchestPaused       = "Restart OrchestPaused"
