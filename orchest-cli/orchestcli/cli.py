@@ -201,14 +201,25 @@ class ClusterStatus(enum.Enum):
     DELETING = "Deleting"
 
 
-# TODO: Other flags / JSON file to specify how to install Orchest.
+@click.option(
+    "--cloud",
+    is_flag=True,
+    default=False,
+    show_default=True,
+    hidden=True,
+    help="Run in cloud mode after install.",
+)
+@click.option(
+    "--fqdn",
+    default=None,
+    show_default=True,
+    help="Fully Qualified Domain Name that Orchest listens on.",
+)
 @cli.command(cls=ClickCommonOptionsCmd)
-def install(**common_options) -> None:
+def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
     """Install Orchest."""
     ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
 
-    # TODO: Do we want to put everything in JSON? Probably easier to
-    # merge it with flags passed by the user.
     custom_object = {
         "apiVersion": "orchest.io/v1alpha1",
         "kind": "OrchestCluster",
@@ -216,7 +227,15 @@ def install(**common_options) -> None:
             "name": cluster_name,
             "namespace": ns,
         },
-        "spec": {},
+        "spec": {
+            "orchest": {
+                # TODO: Not sure whether the fqdn is allowed to be
+                # specified at all when None.
+                "orchestHost": fqdn,
+                "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+                "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
+            },
+        },
     }
 
     # Once the CR is created, the operator will read it and start
@@ -239,23 +258,25 @@ def install(**common_options) -> None:
     display_spinner(ClusterStatus.INITIALIZING, ClusterStatus.RUNNING)
     echo("Successfully installed Orchest!")
 
-    # TODO: Do we want this?
-    fqdn = "localorchest.io"
-    if fqdn:
+    if fqdn is not None:
         echo(
             f"Orchest is running with an FQDN equal to {fqdn}. To access it locally,"
             " add an entry to your '/etc/hosts' file mapping the cluster ip"
             f" (`minikube ip`) to '{fqdn}'. If you are on mac run the `minikube tunnel`"
             f" daemon and map '127.0.0.1' to {fqdn} in the '/etc/hosts' file instead."
-            f"You will then be able to reach Orchest at http://{fqdn}."
+            f" You will then be able to reach Orchest at http://{fqdn}."
         )
     else:
         echo(
             "Orchest is running without an FQDN. To access Orchest locally, simply"
             " go to the IP returned by `minikube ip`. If you are on mac run the"
             " `minikube tunnel` daemon and map '127.0.0.1' to `minikube ip` in the"
-            "'/etc/hosts' file instead."
+            " '/etc/hosts' file instead."
         )
+
+
+# TODO:
+# def update()
 
 
 class LogLevel(str, enum.Enum):
@@ -508,10 +529,6 @@ def status(json_flag: bool, **common_options) -> None:
             echo(status.value)
 
 
-# TODO: Instead be stop/start? Because pausing Orchest would lose
-# ongoing builds etc. It is not like they are resumed, i.e. losing
-# state. You are starting from a clean slate on unpause/start so it
-# should be start.
 @cli.command(cls=ClickCommonOptionsCmd)
 @click.option(
     "--watch/--no-watch",
@@ -521,8 +538,8 @@ def status(json_flag: bool, **common_options) -> None:
     show_default=True,
     help="Watch status changes.",
 )
-def pause(watch: bool, **common_options) -> None:
-    """Pause Orchest.
+def stop(watch: bool, **common_options) -> None:
+    """Stop Orchest.
 
     All underlying Orchest deployments will scaled to zero replicas.
 
@@ -532,7 +549,7 @@ def pause(watch: bool, **common_options) -> None:
     """
     ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
 
-    echo("Getting the Orchest Cluster into a paused state.")
+    echo("Stopping the Orchest Cluster.")
     try:
         patch_namespaced_custom_object(
             name=cluster_name,
@@ -553,7 +570,7 @@ def pause(watch: bool, **common_options) -> None:
 
     if watch:
         display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
-        echo("Successfully paused Orchest.")
+        echo("Successfully stopped Orchest.")
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -565,8 +582,8 @@ def pause(watch: bool, **common_options) -> None:
     show_default=True,
     help="Watch status changes.",
 )
-def unpause(watch: bool, **common_options) -> None:
-    """Unpause Orchest.
+def start(watch: bool, **common_options) -> None:
+    """Start Orchest.
 
     \b
     Equivalent `kubectl` command:
@@ -574,7 +591,7 @@ def unpause(watch: bool, **common_options) -> None:
     """
     ns, cluster_name = common_options["namespace"], common_options["cluster_name"]
 
-    echo("Making sure Orchest is unpaused.")
+    echo("Starting the Orchest Cluster.")
     try:
         patch_namespaced_custom_object(
             name=cluster_name,
@@ -595,7 +612,7 @@ def unpause(watch: bool, **common_options) -> None:
 
     if watch:
         display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
-        echo("Successfully unpaused Orchest.")
+        echo("Successfully started Orchest.")
 
 
 @cli.command(cls=ClickCommonOptionsCmd)
@@ -647,7 +664,6 @@ def restart(watch: bool, **common_options) -> None:
         sys.exit(1)
 
     if watch:
-        # TODO: Controller never reaches PAUSED for some reason.
         display_spinner(ClusterStatus.RUNNING, ClusterStatus.PAUSED)
         display_spinner(ClusterStatus.PAUSED, ClusterStatus.RUNNING)
         echo("Successfully restarted Orchest.")

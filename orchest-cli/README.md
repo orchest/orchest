@@ -54,7 +54,8 @@ Deploying a new controller:
 TODO:
 
 - [ ] GitHub Action workflow files to publish CLI on release
-- [ ] Installation successful messages on how to reach Orchest?
+- [ ] Make sure `cleanup` is invoked on certain actions, e.g. restart/pause.
+- [ ] Are ingresses etc. working?
 - [ ] Whenever the CRD is changed, users need to `kubectl apply` its changes. Otherwise the
       controller might use fields that aren't defined yet. So we need a robust first version of the CRD.
 - [ ] Stay with `update` and not go with `upgrade`
@@ -65,6 +66,7 @@ TODO:
         it is hard to play well with other software already installed on the cluster, e.g. ingress,
         argo, etc.
   - [ ] Open an issue to fix the above point.
+  - [ ] Show usage of CLI and direct yaml apply.
 - [ ] Removal of `orchest-ctl` from codebase (and changes to `namespace_ctl.py`)
 - [x] Great CRD
 - [ ] Tests? Could also be as simple as running a type checker for now.
