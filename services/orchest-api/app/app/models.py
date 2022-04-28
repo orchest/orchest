@@ -1388,7 +1388,7 @@ class CronJobRunEvent(CronJobEvent):
             status = None
         payload["job"]["run"] = {}
         payload["job"]["run"]["status"] = status
-        payload["job"]["run"]["index"] = self.run_index
+        payload["job"]["run"]["number"] = self.run_index
         payload["job"]["run"]["total_runs"] = None
 
         job = Job.query.filter(Job.uuid == self.job_uuid).first()
