@@ -10,8 +10,11 @@ import React from "react";
 
 /**
  * Ensure that `pipeline` in ProjectsContext is a valid one.
- * If the given `pipeline_uuid` in the route is not valid, it will show an alert and navigate the
+ * If the given `pipeline_uuid` in the route is not valid, it will show an alert and navigate to the
  * first pipeline in the project.
+ *
+ * This hook should be used in the views that user could provide `pipeline_uuid`, such as
+ * `PipelineEditor`, `PipelineSettingsView`, `LogsView`, and `JupyterLabView`.
  */
 export const useEnsureValidPipeline = () => {
   const { setAlert } = useAppContext();
