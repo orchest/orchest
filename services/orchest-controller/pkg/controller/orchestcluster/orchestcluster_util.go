@@ -7,6 +7,7 @@ import (
 	"hash/fnv"
 
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/certs"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/client/clientset/versioned"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/pkg/errors"
@@ -288,6 +289,37 @@ func pauseDeployment(ctx context.Context,
 	_, err := client.AppsV1().Deployments(deployment.Namespace).Update(ctx, cloneDep, metav1.UpdateOptions{})
 	if err != nil {
 		return errors.Wrapf(err, "failed to pause a deployment %s", deployment.Name)
+	}
+
+	return nil
+}
+
+// This function is borrowed from projectcountour
+func registryCertgen(ctx context.Context,
+	client kubernetes.Interface,
+	orchest *orchestv1alpha1.OrchestCluster) error {
+	generatedCerts, err := certs.GenerateCerts(
+		&certs.Configuration{
+			Lifetime:  365,
+			Namespace: orchest.Namespace,
+		})
+	if err != nil {
+		klog.Error("failed to generate certificates")
+		return err
+	}
+
+	owner := metav1.OwnerReference{
+		APIVersion:         OrchestClusterVersion,
+		Kind:               OrchestClusterKind,
+		Name:               orchest.Name,
+		UID:                orchest.UID,
+		Controller:         &isController,
+		BlockOwnerDeletion: &blockOwnerDeletion,
+	}
+
+	if err := utils.OutputCerts(ctx, orchest.Namespace, owner, client, generatedCerts); err != nil {
+		klog.Errorf("failed output certificates, error: %v", err)
+		return err
 	}
 
 	return nil

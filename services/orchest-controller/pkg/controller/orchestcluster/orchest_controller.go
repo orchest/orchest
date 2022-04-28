@@ -213,10 +213,6 @@ func (r *OrchestClusterController) intiDeployerManager() {
 	r.deployerManager.AddDeployer("registry",
 		deployer.NewHelmDeployer("registry", path.Join(r.config.DeployDir, "thirdparty/docker-registry")))
 
-	r.deployerManager.AddDeployer("cert-manager",
-		deployer.NewPathDeployer("cert-manager", path.Join(r.config.DeployDir, "thirdparty/cert-manager"),
-			r.gClient, r.scheme))
-
 }
 
 func (controller *OrchestClusterController) onDeploymentUpdate(obj interface{}) {
@@ -608,6 +604,12 @@ func (controller *OrchestClusterController) ensureThirdPartyDependencies(ctx con
 
 		err = controller.updateCondition(ctx, orchest.Namespace, orchest.Name,
 			orchestv1alpha1.DeployingThirdParties, corev1.ConditionTrue, orchestv1alpha1.DeployingRegistry)
+		if err != nil {
+			klog.Error(err)
+			return err
+		}
+
+		err = registryCertgen(ctx, controller.kClient, orchest)
 		if err != nil {
 			klog.Error(err)
 			return err
