@@ -8,7 +8,7 @@ import zipfile
 
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request, send_file
+from flask import current_app, jsonify, request, send_file, safe_join
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
@@ -1164,7 +1164,7 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if os.path.isfile(target_path):
             return send_file(target_path, as_attachment=True)
