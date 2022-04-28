@@ -92,9 +92,15 @@ func NewDefaultControllerConfig() ControllerConfig {
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
 			"FLASK_ENV":                    "production",
 		},
+
 		OrchestWebserverDefaultEnvVars: map[string]string{
 			"ORCHEST_GPU_ENABLED_INSTANCE": "FALSE",
 			"FLASK_ENV":                    "production",
+			"ORCHEST_PORT":                 "8000",
+			"USERDIR_PVC":                  "userdir-pvc",
+			"HOST_CONFIG_DIR":              "/var/lib/orchest/config",
+			"HOST_REPO_DIR":                "/var/lib/orchest/repo",
+			"HOST_OS":                      "linux",
 		},
 		AuthServerDefaultEnvVars: map[string]string{
 			"FLASK_ENV": "production",
@@ -493,6 +499,12 @@ func (controller *OrchestClusterController) setDefaultIfNotSpecified(ctx context
 	if copy.Spec.Orchest.Env == nil {
 		changed = true
 		copy.Spec.Orchest.Env = utils.GetEnvVarFromMap(controller.config.OrchestDefaultEnvVars)
+		if copy.Spec.Orchest.OrchestHost != nil {
+			copy.Spec.Orchest.Env = append(copy.Spec.Orchest.Env, corev1.EnvVar{
+				Name:  "ORCHEST_FQDN",
+				Value: *copy.Spec.Orchest.OrchestHost,
+			})
+		}
 	}
 
 	// Orchest-API configs
