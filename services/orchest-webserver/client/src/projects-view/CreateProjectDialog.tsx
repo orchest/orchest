@@ -3,8 +3,6 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { siteMap } from "@/Routes";
 import { Project } from "@/types";
-import CloseIcon from "@mui/icons-material/Close";
-import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
@@ -106,17 +104,11 @@ export const CreateProjectDialog = ({
           />
         </DialogContent>
         <DialogActions>
-          <Button
-            startIcon={<CloseIcon />}
-            color="secondary"
-            tabIndex={-1}
-            onClick={closeDialog}
-          >
+          <Button color="secondary" tabIndex={-1} onClick={closeDialog}>
             Cancel
           </Button>
           <Button
             variant="contained"
-            startIcon={<FormatListBulletedIcon />}
             type="submit"
             form="create-project"
             disabled={!isFormValid}
