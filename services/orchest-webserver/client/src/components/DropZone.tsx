@@ -18,7 +18,7 @@ import { FileWithPath, useDropzone } from "react-dropzone";
 
 export type FileWithValidPath = FileWithPath & { readonly path: string };
 
-function isUploadedViaDropzone(
+export function isUploadedViaDropzone(
   file: File | FileWithPath
 ): file is FileWithValidPath {
   return hasValue((file as FileWithPath).path);

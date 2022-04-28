@@ -1,5 +1,10 @@
 import { Code } from "@/components/common/Code";
-import { DropZone, generateUploadFiles } from "@/components/DropZone";
+import {
+  DropZone,
+  FileWithValidPath,
+  generateUploadFiles,
+  isUploadedViaDropzone,
+} from "@/components/DropZone";
 import { UploadFilesForm } from "@/components/UploadFilesForm";
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
@@ -293,8 +298,6 @@ export const ImportDialog: React.FC<{
     };
   }, [existingProjectNames, projectName, importStatus]);
 
-  console.log("DEV projectNameValidation: ", projectNameValidation);
-
   const saveProjectName = async () => {
     if (!newProjectUuid || projectNameValidation.error) return;
     setImportStatus("SAVING_PROJECT_NAME");
@@ -358,7 +361,19 @@ export const ImportDialog: React.FC<{
       );
 
       if (tempProject) {
-        setNewProjectMetadata({ ...tempProject, fileCount: files.length });
+        setNewProjectMetadata({
+          ...tempProject,
+          pipeline_count: Array.from(files).reduce(
+            (count, file: File | FileWithValidPath) => {
+              const isPipelineFile = isUploadedViaDropzone(file)
+                ? file.path.endsWith(".orchest")
+                : file.webkitRelativePath.endsWith(".orchest");
+              return isPipelineFile ? count + 1 : count;
+            },
+            0
+          ),
+          fileCount: files.length,
+        });
       }
 
       // Upload files
