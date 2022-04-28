@@ -6,7 +6,6 @@ import {
   fetcher,
   hasValue,
   HEADER,
-  makeRequest,
 } from "@orchest/lib-utils";
 import Ajv from "ajv";
 import dashify from "dashify";
@@ -318,22 +317,21 @@ export class BackgroundTaskPoller {
     this.activeTasks = {};
   }
 
-  requestStatus(taskUuid: string) {
-    makeRequest("GET", `/async/background-tasks/${taskUuid}`).then(
-      (response: string) => {
-        try {
-          let data: BackgroundTask = JSON.parse(response);
-          if (this.END_STATUSES.includes(data.status)) {
-            this.taskCallbacks[taskUuid](data);
-            this.removeTask(taskUuid);
-          } else {
-            this.executeDelayedRequest(taskUuid);
-          }
-        } catch (error) {
-          console.error(error);
-        }
+  async requestStatus(taskUuid: string) {
+    try {
+      const data = await fetcher<BackgroundTask>(
+        `/async/background-tasks/${taskUuid}`
+      );
+
+      if (this.END_STATUSES.includes(data.status)) {
+        this.taskCallbacks[taskUuid](data);
+        this.removeTask(taskUuid);
+      } else {
+        this.executeDelayedRequest(taskUuid);
       }
-    );
+    } catch (error) {
+      console.error(error);
+    }
   }
 }
 

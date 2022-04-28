@@ -1,4 +1,6 @@
+import { useAppContext } from "@/contexts/AppContext";
 import { useAsync } from "@/hooks/useAsync";
+import { useHasChanged } from "@/hooks/useHasChanged";
 import { BackgroundTask, BackgroundTaskPoller } from "@/utils/webserver-utils";
 import { fetcher, HEADER } from "@orchest/lib-utils";
 import React from "react";
@@ -27,8 +29,11 @@ export const useImportGitRepo = (
   importUrl: string,
   onComplete: (result?: BackgroundTask) => void
 ) => {
-  const onCompleteRef = React.useRef(onComplete);
-  const backgroundTaskPollerRef = React.useRef(new BackgroundTaskPoller());
+  const { setAlert } = useAppContext();
+  const backgroundTaskPoller = React.useMemo(
+    () => new BackgroundTaskPoller(),
+    []
+  );
 
   const { data, run, status: fetchStatus, setData } = useAsync<BackgroundTask>({
     initialState: {
@@ -38,25 +43,42 @@ export const useImportGitRepo = (
     },
   });
 
+  const hasStartedBackgroundTask = React.useRef(false);
+  const shouldReset = useHasChanged(projectName);
   React.useEffect(() => {
-    if (fetchStatus === "RESOLVED" && data) {
-      backgroundTaskPollerRef.current.startPollingBackgroundTask(
-        data.uuid,
-        (result) => {
-          setData(result);
-          if (onCompleteRef.current) onCompleteRef.current(result);
-        }
-      );
-    }
-    const poller = backgroundTaskPollerRef.current;
-    return () => {
-      poller.removeAllTasks();
-    };
-  }, [fetchStatus, data, setData]);
+    hasStartedBackgroundTask.current = false;
+  }, [shouldReset]);
 
-  const startImport = () => {
+  React.useEffect(() => {
+    if (
+      fetchStatus === "RESOLVED" &&
+      data &&
+      !hasStartedBackgroundTask.current
+    ) {
+      backgroundTaskPoller.startPollingBackgroundTask(data.uuid, (result) => {
+        if (result.status === "SUCCESS" && !hasStartedBackgroundTask.current) {
+          hasStartedBackgroundTask.current = true;
+          setData(result);
+          onComplete(result);
+        }
+      });
+    }
+
+    return () => {
+      backgroundTaskPoller.removeAllTasks();
+    };
+  }, [fetchStatus, onComplete, data, setData, backgroundTaskPoller]);
+
+  const startImport = React.useCallback(() => {
     const validation = validProjectName(projectName);
-    if (!validation.valid) return;
+    if (!validation.valid) {
+      setAlert(
+        "Warning",
+        `Invalid project name: ${projectName}. ${validation.reason}`
+      );
+      onComplete();
+      return;
+    }
 
     run(
       fetcher<BackgroundTask>(`/async/projects/import-git`, {
@@ -68,7 +90,7 @@ export const useImportGitRepo = (
         }),
       })
     );
-  };
+  }, [importUrl, projectName, onComplete, run, setAlert]);
 
   const clearImportResult = React.useCallback(() => {
     setData({
