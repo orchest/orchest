@@ -111,13 +111,13 @@ func getRbacManifest(metadata metav1.ObjectMeta) []client.Object {
 		Subjects: []rbacv1.Subject{
 			{
 				Kind:      "ServiceAccount",
-				Name:      celeryWorker,
+				Name:      metadata.Name,
 				Namespace: metadata.Namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
-			Name:     celeryWorker,
+			Name:     metadata.Name,
 			Kind:     "ClusterRole",
 		},
 	}
