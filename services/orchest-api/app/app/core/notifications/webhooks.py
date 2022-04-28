@@ -66,13 +66,7 @@ def _create_delivery_payload(delivery: models.Delivery) -> dict:
     webhook = marshal(webhook, schema.webhook)
 
     event = models.Event.query.filter(models.Event.uuid == delivery.event).one()
-    # TODO: make this a method of the Event class and children.
-    if isinstance(event, models.JobEvent):
-        event = marshal(event, schema.job_event)
-    elif isinstance(event, models.ProjectEvent):
-        event = marshal(event, schema.project_event)
-    else:
-        event = marshal(event, schema.event)
+    event = event.to_notification_payload()
 
     payload = {"delivered_for": webhook, "event": event}
     return payload

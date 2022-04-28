@@ -1129,6 +1129,14 @@ class Event(BaseModel):
         "with_polymorphic": "*",
     }
 
+    def to_notification_payload(self) -> dict:
+        payload = {
+            "uuid": self.uuid,
+            "type": self.type,
+            "timestamp": str(self.timestamp),
+        }
+        return payload
+
     def __repr__(self):
         return f"<Event: {self.uuid}, {self.type}, {self.timestamp}>"
 
@@ -1144,6 +1152,14 @@ class ProjectEvent(Event):
     )
 
     __mapper_args__ = {"polymorphic_identity": "project_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        project_payload = {
+            "uuid": self.project_uuid,
+        }
+        payload["project"] = project_payload
+        return payload
 
     def __repr__(self):
         return (
@@ -1162,6 +1178,26 @@ class JobEvent(ProjectEvent):
 
     __mapper_args__ = {"polymorphic_identity": "job_event"}
 
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        job_payload = {
+            "uuid": self.job_uuid,
+            "name": None,
+            "status": None,
+            "pipeline_name": None,
+        }
+        payload["job"] = job_payload
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+
+        job_payload["name"] = job.name
+        job_payload["status"] = job.status
+        job_payload["pipeline_name"] = job.pipeline_name
+
+        return payload
+
     def __repr__(self):
         return (
             f"<JobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
@@ -1177,11 +1213,78 @@ class OneOffJobEvent(JobEvent):
 
     __mapper_args__ = {"polymorphic_identity": "one_off_job_event"}
 
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+
+        payload["job"]["total_runs"] = None
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+
+        payload["job"]["total_runs"] = len(job.parameters)
+
+        return payload
+
     def __repr__(self):
         return (
             f"<OneOffJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
             f"{self.project_uuid}, {self.job_uuid}>"
         )
+
+
+def _prepare_parameters_payload(
+    pipeline_definition: dict, run_parameters: dict
+) -> dict:
+    parameters_payload = {}
+    for k, v in run_parameters.items():
+        if k == "pipeline_parameters":
+            parameters_payload[k] = v
+        else:
+            step_name = pipeline_definition.get("steps").get(k, {}).get("title")
+            parameters_payload[f"step-{step_name}-{k}"] = v
+    return parameters_payload
+
+
+def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> dict:
+    payload = {
+        "uuid": pipeline_run_uuid,
+        "parameters": None,
+        "status": None,
+    }
+
+    job = Job.query.filter(Job.uuid == job_uuid).first()
+    if job is None:
+        return payload
+
+    pipeline_run = NonInteractivePipelineRun.query.filter(
+        NonInteractivePipelineRun.job_uuid == job_uuid,
+        NonInteractivePipelineRun.uuid == pipeline_run_uuid,
+    ).first()
+    if pipeline_run is None:
+        return payload
+
+    payload["status"] = pipeline_run.status
+    payload["parameters"] = _prepare_parameters_payload(
+        job.pipeline_definition, pipeline_run.parameters
+    )
+
+    if pipeline_run.status == "FAILURE":
+        failed_steps_payload = []
+        failed_steps = PipelineRunStep.query.filter(
+            PipelineRunStep.run_uuid == pipeline_run_uuid,
+            PipelineRunStep.status == "FAILURE",
+        ).all()
+        for step in failed_steps:
+            step_name = (
+                job.pipeline_definition.get("steps")
+                .get(step.step_uuid, {})
+                .get("title")
+            )
+            failed_steps_payload.append(f"step-{step_name}-{step.step_uuid}")
+            payload["failed_steps"] = failed_steps_payload
+
+    return payload
 
 
 class OneOffJobPipelineRunEvent(OneOffJobEvent):
@@ -1197,6 +1300,14 @@ class OneOffJobPipelineRunEvent(OneOffJobEvent):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
 
     __mapper_args__ = {"polymorphic_identity": "one_off_job_pipeline_run_event"}
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+            self.job_uuid, self.pipeline_run_uuid
+        )
+
+        return payload
 
     def __repr__(self):
         return (
@@ -1220,6 +1331,18 @@ class CronJobEvent(JobEvent):
 
     __mapper_args__ = {"polymorphic_identity": "cron_job_event"}
 
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["job"]["schedule"] = None
+        payload["job"]["next_scheduled_time"] = None
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+        payload["job"]["schedule"] = job.schedule
+        payload["job"]["next_scheduled_time"] = str(job.next_scheduled_time)
+        return payload
+
     def __repr__(self):
         return (
             f"<CronJobEvent: {self.uuid}, {self.type}, {self.timestamp}, "
@@ -1240,6 +1363,30 @@ class CronJobRunEvent(CronJobEvent):
     __mapper_args__ = {"polymorphic_identity": "cron_job_run_event"}
 
     run_index = db.Column(db.Integer)
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+
+        if self.type == "project:cron-job:run:started":
+            status = "STARTED"
+        elif self.type == "project:cron-job:run:succeeded":
+            status = "SUCCESS"
+        elif self.type == "project:cron-job:run:failed":
+            status = "FAILURE"
+        else:
+            status = None
+        payload["job"]["run"] = {}
+        payload["job"]["run"]["status"] = status
+        payload["job"]["run"]["index"] = self.run_index
+        payload["job"]["run"]["total_runs"] = None
+
+        job = Job.query.filter(Job.uuid == self.job_uuid).first()
+        if job is None:
+            return payload
+
+        payload["job"]["run"]["total_runs"] = len(job.parameters)
+
+        return payload
 
     def __repr__(self):
         return (
@@ -1268,6 +1415,14 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
     @declared_attr
     def pipeline_run_uuid(cls):
         return Event.__table__.c.get("pipeline_run_uuid", db.Column(db.String(36)))
+
+    def to_notification_payload(self) -> dict:
+        payload = super().to_notification_payload()
+        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+            self.job_uuid, self.pipeline_run_uuid
+        )
+
+        return payload
 
     def __repr__(self):
         return (

@@ -969,17 +969,3 @@ event = Model(
         ),
     },
 )
-
-project_event = event.inherit(
-    "ProjectEvent",
-    {
-        "project_uuid": fields.String(required=True, description="UUID of project"),
-    },
-)
-
-job_event = project_event.inherit(
-    "JobEvent",
-    {
-        "job_uuid": fields.String(required=True, description="UUID of job"),
-    },
-)
