@@ -76,6 +76,14 @@ class SchedulerJob(BaseModel):
 class Project(BaseModel):
     __tablename__ = "projects"
 
+    name = db.Column(
+        db.String(255),
+        unique=False,
+        nullable=False,
+        # For migrating old projects.
+        server_default=text("'Project'"),
+    )
+
     uuid = db.Column(db.String(36), primary_key=True, nullable=False)
     env_variables = deferred(db.Column(JSONB, nullable=False, server_default="{}"))
 
@@ -1155,10 +1163,13 @@ class ProjectEvent(Event):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        project_payload = {
-            "uuid": self.project_uuid,
-        }
+        project_payload = {"uuid": self.project_uuid, "name": None}
         payload["project"] = project_payload
+
+        proj = Project.query.filter(Project.uuid == self.project_uuid).first()
+        if proj is not None:
+            project_payload["name"] = proj.name
+
         return payload
 
     def __repr__(self):
