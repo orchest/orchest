@@ -1481,6 +1481,9 @@ class Webhook(Subscriber):
 
     content_type = db.Column(db.String(50), nullable=False)
 
+    def is_slack_webhook(self) -> bool:
+        return self.url.startswith("https://hooks.slack.com/")
+
     __mapper_args__ = {
         "polymorphic_identity": "webhook",
     }

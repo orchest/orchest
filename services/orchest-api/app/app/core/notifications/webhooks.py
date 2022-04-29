@@ -19,7 +19,7 @@ from typing import Optional
 import requests
 import validators
 from flask_restx import marshal
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import noload
 
 from app import errors as self_errors
 from app import models, schema
@@ -61,18 +61,30 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
 
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
-    webhook = (
-        models.Webhook.query.options(joinedload(models.Webhook.subscriptions))
-        .filter(models.Webhook.uuid == delivery.deliveree)
-        .one()
-    )
-    webhook = marshal(webhook, schema.webhook)
 
     event = models.Event.query.filter(models.Event.uuid == delivery.event).one()
     event = event.to_notification_payload()
 
-    payload = {"delivered_for": webhook, "event": event}
+    webhook = (
+        models.Webhook.query.options(noload(models.Webhook.subscriptions))
+        .filter(models.Webhook.uuid == delivery.deliveree)
+        .one()
+    )
+
+    payload = {"delivered_for": marshal(webhook, schema.webhook), "event": event}
+    _post_process_payload(payload, webhook)
+
     return payload
+
+
+def _post_process_payload(payload: dict, webhook: models.Webhook) -> None:
+    # For security, might contain secrets etc.
+    payload["delivered_for"].pop("url", None)
+    # To keep thing brief.
+    payload["delivered_for"].pop("subscriptions", None)
+
+    if webhook.is_slack_webhook():
+        payload["text"] = json.dumps(payload, sort_keys=True, indent=1)
 
 
 def _inject_headers(
@@ -112,7 +124,11 @@ def _prepare_request(
 
 
 def send_test_ping_delivery(deliveree_uuid: str) -> Optional[requests.Response]:
-    webhook = models.Webhook.query.filter(models.Webhook.uuid == deliveree_uuid).one()
+    webhook = (
+        models.Webhook.query.options(noload(models.Subscriber.subscriptions))
+        .filter(models.Webhook.uuid == deliveree_uuid)
+        .one()
+    )
 
     payload = {
         "delivered_for": marshal(webhook, schema.webhook),
@@ -122,6 +138,7 @@ def send_test_ping_delivery(deliveree_uuid: str) -> Optional[requests.Response]:
             "timestamp": str(datetime.datetime.now(datetime.timezone.utc)),
         },
     }
+    _post_process_payload(payload, webhook)
 
     if webhook.content_type == models.Webhook.ContentType.URLENCODED.value:
         payload["delivered_for"] = json.dumps(payload["delivered_for"])

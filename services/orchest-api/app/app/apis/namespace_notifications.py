@@ -118,7 +118,7 @@ class SendSubscriberTestPingDelivery(Resource):
         ):
             return {"message": "success"}, 200
         else:
-            return {"message": "success"}, 500
+            return {"message": "failure"}, 500
 
 
 @api.route("/subscribers/subscribed-to/<string:event_type>")
