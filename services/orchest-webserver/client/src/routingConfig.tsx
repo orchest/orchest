@@ -247,7 +247,6 @@ export const withinProjectPaths = getOrderedRoutes().reduce<
     projectRootPaths.includes(curr.path) ||
     projectRootPaths.includes(curr.root || "") ||
     curr.path === "/project"
-    // projectsPaths.includes(curr.path)
   ) {
     return [
       ...all,

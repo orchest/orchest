@@ -133,12 +133,20 @@ export const ProjectSelector = () => {
         ? projectUuidFromRoute
         : state.projects[0]?.uuid;
 
-      if (newProjectUuid) {
+      // If state.projectUuid is no loaded, the page is being loaded for the first time.
+      // When newProjectUuid !== projectUuidFromRoute, user provides an invalid projectUuid.
+      if (!state.projectUuid || newProjectUuid !== projectUuidFromRoute) {
         dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
+  }, [
+    matchWithinProjectPaths,
+    dispatch,
+    state.hasLoadedProjects,
+    state.projectUuid,
+    setAlert,
+  ]);
 
   if (
     !matchWithinProjectPaths ||
