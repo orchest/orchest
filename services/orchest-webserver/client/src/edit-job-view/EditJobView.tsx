@@ -88,7 +88,7 @@ const generateJobParameters = (
 };
 
 const findParameterization = (
-  parameterization: Record<string, any>,
+  parameterization: Record<string, any>, // eslint-disable-line @typescript-eslint/no-explicit-any
   parameters: Record<string, Json>[]
 ) => {
   let JSONstring = JSON.stringify(parameterization);
@@ -195,6 +195,17 @@ const generateStrategyJson = (pipeline: PipelineJson, reservedKey: string) => {
   }
 
   return strategyJSON;
+};
+
+type JobUpdatePayload = {
+  name: string;
+  confirm_draft: boolean;
+  strategy_json: StrategyJson | undefined;
+  parameters: Record<string, Json>[];
+  env_variables: Record<string, unknown>;
+  max_retained_pipeline_runs: number;
+  next_scheduled_time?: string;
+  cron_schedule?: string;
 };
 
 const EditJobView: React.FC = () => {
@@ -393,7 +404,7 @@ const EditJobView: React.FC = () => {
       return;
     }
 
-    let jobPUTData = {
+    let jobPUTData: JobUpdatePayload = {
       name: job.name,
       confirm_draft: true,
       strategy_json: strategyJson,
@@ -416,10 +427,8 @@ const EditJobView: React.FC = () => {
         );
       }
 
-      // @ts-ignore
       jobPUTData.next_scheduled_time = formValueScheduledStart;
     } else if (scheduleOption === "cron") {
-      // @ts-ignore
       jobPUTData.cron_schedule = cronString;
     }
     // Else: both entries are undefined, the run is considered to be

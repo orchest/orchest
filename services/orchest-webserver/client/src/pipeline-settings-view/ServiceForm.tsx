@@ -1,5 +1,7 @@
 import EnvVarList from "@/components/EnvVarList";
-import { Environment, Service } from "@/types";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
+import { Service } from "@/types";
 import CheckIcon from "@mui/icons-material/Check";
 import InfoIcon from "@mui/icons-material/Info";
 import Box from "@mui/material/Box";
@@ -23,21 +25,16 @@ import TextField from "@mui/material/TextField";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import { visuallyHidden } from "@mui/utils";
-import {
-  hasValue,
-  makeCancelable,
-  makeRequest,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { hasValue } from "@orchest/lib-utils";
 import cloneDeep from "lodash.clonedeep";
 import React from "react";
-import { getServiceURLs } from "../utils/webserver-utils";
 import {
   MultiSelect,
   MultiSelectError,
   MultiSelectInput,
   MultiSelectLabel,
-} from "./MultiSelect";
+} from "../components/MultiSelect";
+import { getServiceURLs } from "../utils/webserver-utils";
 
 const FormSectionTitle: React.FC<{ title: string }> = ({ children, title }) => (
   <Typography
@@ -62,81 +59,70 @@ const FormSectionTitle: React.FC<{ title: string }> = ({ children, title }) => (
 const ServiceForm: React.FC<{
   service: Service;
   services: Record<string, Service>;
-  serviceUuid: string;
-  project_uuid: string;
-  pipeline_uuid: string;
-  run_uuid: string;
   updateService: (service: Service) => void;
   disabled: boolean;
-}> = (props) => {
+}> = ({ service, services, updateService, disabled }) => {
+  const { projectUuid, pipelineUuid, runUuid } = useCustomRoute();
   const environmentPrefix = "environment@";
 
+  const { environments: environmentOptions = [] } = useFetchEnvironments(
+    projectUuid
+  );
+
   let [showImageDialog, setShowImageDialog] = React.useState(false);
-  let [environmentOptions, setEnvironmentOptions] = React.useState<
-    Environment[]
-  >([]);
   let [editImageName, setEditImageName] = React.useState(
-    props.service.image.startsWith(environmentPrefix) ? "" : props.service.image
+    service.image.startsWith(environmentPrefix) ? "" : service.image
   );
   let [editImageEnvironmentUUID, setEditImageEnvironmentUUID] = React.useState(
-    props.service.image.startsWith(environmentPrefix)
-      ? props.service.image.replace(environmentPrefix, "")
+    service.image.startsWith(environmentPrefix)
+      ? service.image.replace(environmentPrefix, "")
       : ""
   );
 
-  const [promiseManager] = React.useState(new PromiseManager());
-
-  React.useEffect(() => {
-    return () => {
-      promiseManager.cancelCancelablePromises();
-    };
-  }, []);
-
-  React.useEffect(() => {
-    fetchEnvironmentOptions();
-  }, [props.project_uuid]);
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleServiceChange = (key: string, value: any) => {
-    let service = cloneDeep(props.service);
-    service[key] = value;
-    props.updateService(service);
+    let serviceClone = cloneDeep(service);
+    serviceClone[key] = value;
+    updateService(serviceClone);
   };
 
-  const [serviceName, setServiceName] = React.useState(props.service.name);
+  const [serviceName, setServiceName] = React.useState(service.name);
   const [serviceNameError, setServiceNameError] = React.useState<string | null>(
     null
   );
   const hasServiceNameError = hasValue(serviceNameError);
 
   const allServiceNames = React.useMemo(() => {
-    return Object.values(props.services).map((s) => s.name);
-  }, [props.services]);
+    return Object.values(services).map((s) => s.name);
+  }, [services]);
   const handleNameChange = (newName: string) => {
     setServiceName(newName);
 
-    if (newName !== props.service.name && allServiceNames.includes(newName)) {
+    if (newName !== service.name && allServiceNames.includes(newName)) {
       setServiceNameError("Same service name has been taken");
       return;
     }
     setServiceNameError(null);
-    props.updateService({ ...props.service, name: newName });
+    updateService({ ...service, name: newName });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleServiceBindsChange = (key: string, value: any) => {
-    let service = cloneDeep(props.service);
-    service.binds = service.binds !== undefined ? service.binds : {};
-    service.binds[key] = value;
+    let serviceClone = cloneDeep(service);
+    serviceClone.binds =
+      serviceClone.binds !== undefined ? serviceClone.binds : {};
+    serviceClone.binds[key] = value;
 
     // Clear empty value bind entries
     if (value.trim().length == 0) {
-      delete service.binds[key];
+      delete serviceClone.binds[key];
     }
 
-    props.updateService(service);
+    updateService(serviceClone);
   };
 
   const handleScopeCheckbox = (isChecked, checkboxScope) => {
-    let _scope = cloneDeep(props.service.scope);
+    let _scope = cloneDeep(service.scope);
     if (!isChecked) {
       _scope = _scope.filter((el) => el !== checkboxScope);
     } else if (_scope.indexOf(checkboxScope) == -1) {
@@ -150,24 +136,6 @@ const ServiceForm: React.FC<{
       name: key,
       value: envVariables[key],
     }));
-  };
-
-  const fetchEnvironmentOptions = () => {
-    let environmentsEndpoint = `/store/environments/${props.project_uuid}`;
-
-    let fetchEnvironmentOptionsPromise = makeCancelable(
-      makeRequest("GET", environmentsEndpoint),
-      promiseManager
-    );
-
-    fetchEnvironmentOptionsPromise.promise
-      .then((response) => {
-        let result: Environment[] = JSON.parse(response);
-        setEnvironmentOptions(result);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
   };
 
   const onCloseEditImageName = () => {
@@ -187,7 +155,7 @@ const ServiceForm: React.FC<{
     }
   };
 
-  return (
+  return !projectUuid || !pipelineUuid ? null : (
     <>
       <Paper
         sx={{
@@ -202,7 +170,7 @@ const ServiceForm: React.FC<{
           <Box sx={{ padding: (theme) => theme.spacing(3) }}>
             <Box component="fieldset" sx={{ border: 0 }}>
               <Box component="legend" sx={visuallyHidden}>
-                {["Configure", `"${props.service.name}"`, "service"]
+                {["Configure", `"${service.name}"`, "service"]
                   .filter(Boolean)
                   .join(" ")}
               </Box>
@@ -210,7 +178,7 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Name"
                   type="text"
-                  disabled={props.disabled}
+                  disabled={disabled}
                   error={hasServiceNameError}
                   value={serviceName}
                   onChange={(e) => {
@@ -222,27 +190,27 @@ const ServiceForm: React.FC<{
                     "The name of the service. Up to 36 digits, letters or dashes are allowed."
                   }
                   aria-describedby="tooltip-name"
-                  data-test-id={`service-${props.service.name}-name`}
+                  data-test-id={`service-${service.name}-name`}
                 />
                 <TextField
                   label="Image"
                   type="text"
-                  disabled={props.disabled || hasServiceNameError}
+                  disabled={disabled || hasServiceNameError}
                   onClick={() => {
                     // TODO:  improve this
                     setShowImageDialog(true);
                   }}
                   onChange={() => {
                     // Override direct edits
-                    handleServiceChange("image", props.service.image);
+                    handleServiceChange("image", service.image);
                   }}
                   value={
-                    props.service.image.startsWith(environmentPrefix)
-                      ? resolveEnvironmentName(props.service.image)
-                      : props.service.image
+                    service.image.startsWith(environmentPrefix)
+                      ? resolveEnvironmentName(service.image)
+                      : service.image
                   }
                   fullWidth
-                  data-test-id={`service-${props.service.name}-image`}
+                  data-test-id={`service-${service.name}-image`}
                 />
               </Stack>
               <FormSectionTitle title="Change the service start up behavior by specifying the command and args options.">
@@ -252,29 +220,29 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Command (optional)"
                   type="text"
-                  disabled={props.disabled || hasServiceNameError}
-                  value={props.service.command}
+                  disabled={disabled || hasServiceNameError}
+                  value={service.command}
                   onChange={(e) => {
                     handleServiceChange("command", e.target.value);
                   }}
                   fullWidth
                   aria-describedby="tooltip-command"
                   helperText="This is the same `command` as the command for a k8s Pod. E.g. `bash`."
-                  data-test-id={`service-${props.service.name}-command`}
+                  data-test-id={`service-${service.name}-command`}
                 />
 
                 <TextField
                   label="Args (optional)"
                   type="text"
-                  disabled={props.disabled || hasServiceNameError}
-                  value={props.service.args}
+                  disabled={disabled || hasServiceNameError}
+                  value={service.args}
                   onChange={(e) => {
                     handleServiceChange("args", e.target.value);
                   }}
                   fullWidth
                   helperText="This is the same `args` as the args for a k8s Pod. E.g. `-c 'echo hello'`. They are appended to the command."
                   aria-describedby="tooltip-args"
-                  data-test-id={`service-${props.service.name}-args`}
+                  data-test-id={`service-${service.name}-args`}
                 />
               </Stack>
               <FormSectionTitle title="Mounts give you access to the project files or /data files from within the service. Entered paths should be absolute paths in the container image.">
@@ -285,24 +253,24 @@ const ServiceForm: React.FC<{
                 <TextField
                   label="Project directory (optional)"
                   type="text"
-                  disabled={props.disabled || hasServiceNameError}
-                  value={props.service.binds?.["/project-dir"]}
+                  disabled={disabled || hasServiceNameError}
+                  value={service.binds?.["/project-dir"]}
                   onChange={(e) => {
                     handleServiceBindsChange("/project-dir", e.target.value);
                   }}
                   fullWidth
-                  data-test-id={`service-${props.service.name}-project-mount`}
+                  data-test-id={`service-${service.name}-project-mount`}
                 />
                 <TextField
                   label="Data directory (optional)"
                   type="text"
-                  disabled={props.disabled || hasServiceNameError}
-                  value={props.service?.binds?.["/data"]}
+                  disabled={disabled || hasServiceNameError}
+                  value={service?.binds?.["/data"]}
                   onChange={(e) => {
                     handleServiceBindsChange("/data", e.target.value);
                   }}
                   fullWidth
-                  data-test-id={`service-${props.service.name}-data-mount`}
+                  data-test-id={`service-${service.name}-data-mount`}
                 />
               </Stack>
 
@@ -314,13 +282,13 @@ const ServiceForm: React.FC<{
                   <MultiSelect
                     type="number"
                     items={
-                      props.service.ports
-                        ? props.service.ports.map((port) => ({
+                      service.ports
+                        ? service.ports.map((port) => ({
                             value: port.toString(),
                           }))
                         : []
                     }
-                    disabled={props.disabled || hasServiceNameError}
+                    disabled={disabled || hasServiceNameError}
                     onChange={(ports) => {
                       handleServiceChange(
                         "ports",
@@ -340,12 +308,12 @@ const ServiceForm: React.FC<{
                     URLs
                   </FormSectionTitle>
                   <Stack direction="column" spacing={2}>
-                    {props.service.ports &&
+                    {service.ports &&
                       getServiceURLs(
-                        props.service,
-                        props.project_uuid,
-                        props.pipeline_uuid,
-                        props.run_uuid
+                        service,
+                        projectUuid,
+                        pipelineUuid,
+                        runUuid
                       ).map((url) => (
                         <Link
                           key={url}
@@ -370,8 +338,8 @@ const ServiceForm: React.FC<{
                       label="Preserve base path"
                       control={
                         <Checkbox
-                          checked={props.service?.preserve_base_path === true}
-                          disabled={props.disabled || hasServiceNameError}
+                          checked={service?.preserve_base_path === true}
+                          disabled={disabled || hasServiceNameError}
                           onChange={(e) => {
                             handleServiceChange(
                               "preserve_base_path",
@@ -398,10 +366,10 @@ const ServiceForm: React.FC<{
                   <FormGroup>
                     <FormControlLabel
                       label="Exposed"
-                      disabled={props.disabled || hasServiceNameError}
+                      disabled={disabled || hasServiceNameError}
                       control={
                         <Checkbox
-                          checked={props.service.exposed}
+                          checked={service.exposed}
                           onChange={(e) => {
                             handleServiceChange("exposed", e.target.checked);
                           }}
@@ -410,10 +378,10 @@ const ServiceForm: React.FC<{
                     />
                     <FormControlLabel
                       label="Authentication required"
-                      disabled={props.disabled || hasServiceNameError}
+                      disabled={disabled || hasServiceNameError}
                       control={
                         <Checkbox
-                          checked={props.service.requires_authentication}
+                          checked={service.requires_authentication}
                           onChange={(e) => {
                             handleServiceChange(
                               "requires_authentication",
@@ -434,12 +402,10 @@ const ServiceForm: React.FC<{
                   <FormGroup>
                     <FormControlLabel
                       label="Interactive sessions"
-                      disabled={props.disabled || hasServiceNameError}
+                      disabled={disabled || hasServiceNameError}
                       control={
                         <Checkbox
-                          checked={
-                            props.service.scope.indexOf("interactive") >= 0
-                          }
+                          checked={service.scope.indexOf("interactive") >= 0}
                           onChange={(e) => {
                             handleScopeCheckbox(
                               e.target.checked,
@@ -451,12 +417,10 @@ const ServiceForm: React.FC<{
                     />
                     <FormControlLabel
                       label="Job sessions"
-                      disabled={props.disabled || hasServiceNameError}
+                      disabled={disabled || hasServiceNameError}
                       control={
                         <Checkbox
-                          checked={
-                            props.service.scope.indexOf("noninteractive") >= 0
-                          }
+                          checked={service.scope.indexOf("noninteractive") >= 0}
                           onChange={(e) => {
                             handleScopeCheckbox(
                               e.target.checked,
@@ -471,19 +435,19 @@ const ServiceForm: React.FC<{
                 <Stack
                   direction="column"
                   flex={1}
-                  data-test-id={`service-${props.service.name}-inherited-env-vars`}
+                  data-test-id={`service-${service.name}-inherited-env-vars`}
                 >
                   <FormSectionTitle title="Services don't get access to project, pipeline and job level environment variables by default. Enter the names of environment variables you want to have access to within the service. Note, inherited environment variables override any service defined environment variables, but only if they are defined at the project, pipeline or job level.">
                     Inherited environment variables
                   </FormSectionTitle>
                   <MultiSelect
-                    items={props.service?.env_variables_inherit?.map(
+                    items={(service?.env_variables_inherit || []).map(
                       (env_variable) =>
                         env_variable && {
                           value: env_variable.toString(),
                         }
                     )}
-                    disabled={props.disabled || hasServiceNameError}
+                    disabled={disabled || hasServiceNameError}
                     onChange={(env_variables) => {
                       handleServiceChange(
                         "env_variables_inherit",
@@ -505,11 +469,11 @@ const ServiceForm: React.FC<{
                   Environment variables
                 </FormSectionTitle>
                 <EnvVarList
-                  value={envVarsDictToList(props.service.env_variables || {})}
-                  readOnly={props.disabled}
+                  value={envVarsDictToList(service.env_variables || {})}
+                  readOnly={disabled}
                   setValue={(dispatcher) => {
                     const updated = dispatcher(
-                      envVarsDictToList(props.service.env_variables || {})
+                      envVarsDictToList(service.env_variables || {})
                     );
                     handleServiceChange(
                       "env_variables",
@@ -518,7 +482,7 @@ const ServiceForm: React.FC<{
                       }, {})
                     );
                   }}
-                  data-test-id={`service-${props.service.name}`}
+                  data-test-id={`service-${service.name}`}
                 />
               </Stack>
             </Box>

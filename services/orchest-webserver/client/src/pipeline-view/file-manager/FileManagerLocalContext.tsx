@@ -73,7 +73,7 @@ const downloadFile = (
 ) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `/async/file-management/download?${queryArgs({
+  let downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
     path,
     root,
     project_uuid: projectUuid,
