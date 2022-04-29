@@ -20,7 +20,7 @@ const InnerDot = styled(Box)<{ active?: boolean }>(({ theme, active }) => ({
 type DotType = BoxProps & {
   incoming?: boolean;
   outgoing?: boolean;
-  newConnection: React.MutableRefObject<NewConnection>;
+  newConnection: React.MutableRefObject<NewConnection | undefined>;
   disabled?: boolean;
   isReadOnly: boolean;
   active?: boolean;
@@ -29,7 +29,10 @@ type DotType = BoxProps & {
   endCreateConnection?: () => void;
 };
 
-export const ConnectionDot = React.forwardRef(function Dot(
+export const ConnectionDot = React.forwardRef<
+  Extract<BoxProps, "ref">,
+  DotType
+>(function Dot(
   {
     incoming,
     outgoing,
@@ -45,8 +48,8 @@ export const ConnectionDot = React.forwardRef(function Dot(
     endCreateConnection,
     sx,
     ...props
-  }: DotType,
-  ref: React.MutableRefObject<Extract<BoxProps, "ref">>
+  },
+  ref
 ) {
   const { keysDown } = usePipelineEditorContext();
 

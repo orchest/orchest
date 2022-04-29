@@ -15,9 +15,12 @@ import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import Tab from "@mui/material/Tab";
 import React from "react";
+import {
+  ClientPosition,
+  useDragElementWithPosition,
+} from "../../hooks/useDragElementWithPosition";
 import { ResizeBar } from "../components/ResizeBar";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { PositionX, useResizeWidth } from "../hooks/useResizeWidth";
 import { StepDetailsLogs } from "./StepDetailsLogs";
 import { ConnectionDict, StepDetailsProperties } from "./StepDetailsProperties";
 
@@ -39,7 +42,7 @@ const StepDetailsComponent: React.FC<{
   onOpenNotebook: (e: React.MouseEvent) => void;
   onOpenFilePreviewView: (e: React.MouseEvent, uuid: string) => void;
   onDelete: () => void;
-  onSave: (stepChanges: Partial<Step>, uuid: string, replace: boolean) => void;
+  onSave: (stepChanges: Partial<Step>, uuid: string, replace?: boolean) => void;
 }> = ({ onOpenNotebook, onOpenFilePreviewView, onSave, onDelete }) => {
   const {
     eventVars,
@@ -49,12 +52,11 @@ const StepDetailsComponent: React.FC<{
     pipelineJson,
     pipelineUuid,
     dispatch,
-    sio,
     jobUuid,
     projectUuid,
   } = usePipelineEditorContext();
 
-  const step = eventVars.steps[eventVars.openedStep];
+  const step = eventVars.steps[eventVars.openedStep || ""];
 
   const connections = React.useMemo(() => {
     if (!step) return {};
@@ -81,13 +83,13 @@ const StepDetailsComponent: React.FC<{
   const [panelWidth, setPanelWidth] = React.useState(storedPanelWidth);
 
   const onDragging = React.useCallback(
-    (positionX: React.MutableRefObject<PositionX>) => {
+    (position: React.MutableRefObject<ClientPosition>) => {
       setPanelWidth((prevPanelWidth) => {
         let newPanelWidth = Math.max(
           50, // panelWidth min: 50px
-          prevPanelWidth - positionX.current.delta
+          prevPanelWidth - position.current.delta.x
         );
-        positionX.current.delta = 0;
+        position.current.delta.x = 0;
         return newPanelWidth;
       });
     },
@@ -101,7 +103,7 @@ const StepDetailsComponent: React.FC<{
     });
   }, [setStoredPanelWidth]);
 
-  const startDragging = useResizeWidth(onDragging, onStopDragging);
+  const startDragging = useDragElementWithPosition(onDragging, onStopDragging);
 
   const onSelectSubView = (
     e: React.SyntheticEvent<Element, Event>,
@@ -155,8 +157,6 @@ const StepDetailsComponent: React.FC<{
         </Tabs>
         <CustomTabPanel value={subViewIndex} index={0} name="pipeline-details">
           <StepDetailsProperties
-            projectUuid={projectUuid}
-            pipelineUuid={pipelineJson.uuid}
             pipelineCwd={pipelineCwd}
             readOnly={isReadOnly}
             onSave={onSave}
@@ -167,7 +167,6 @@ const StepDetailsComponent: React.FC<{
         </CustomTabPanel>
         <CustomTabPanel value={subViewIndex} index={1} name="pipeline-logs">
           <StepDetailsLogs
-            sio={sio}
             projectUuid={projectUuid}
             jobUuid={jobUuid}
             runUuid={runUuid}

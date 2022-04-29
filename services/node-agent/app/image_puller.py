@@ -59,28 +59,29 @@ class ImagePuller(object):
         """Fetches the image names by calling following endpoints
         of the orchest-api.
             1. /ctl/orchest-images-to-pre-pull
-            2. /environment-images/latest
+            2. /environment-images/active
         Args:
             queue: The queue to put the image names to, the queue will
             be consumed by puller tasks.
 
         """
 
-        endpoints = [
-            f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull",
-            f"{self.orchest_api_host}/api/environment-images/to-pre-pull",
-        ]
-
         async with aiohttp.ClientSession(trust_env=True) as session:
             while True:
                 try:
-                    for endpoint in endpoints:
-                        async with session.get(endpoint) as response:
-                            response_json = await response.json()
-                            for image_name in response_json["pre_pull_images"]:
-                                # Add image_name to the queue to be
-                                # consumed by the pullers
-                                await queue.put(image_name)
+                    endpoint = (
+                        f"{self.orchest_api_host}/api/ctl/orchest-images-to-pre-pull"
+                    )
+                    async with session.get(endpoint) as response:
+                        response_json = await response.json()
+                        for image_name in response_json["pre_pull_images"]:
+                            await queue.put(image_name)
+
+                    endpoint = f"{self.orchest_api_host}/api/environment-images/active"
+                    async with session.get(endpoint) as response:
+                        response_json = await response.json()
+                        for image_name in response_json["active_environment_images"]:
+                            await queue.put(image_name)
                 except Exception as ex:
                     self.logger.error(
                         f"Attempt to get image name from '{self.interval}' "

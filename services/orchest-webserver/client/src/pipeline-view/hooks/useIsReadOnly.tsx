@@ -1,46 +1,53 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { checkGate } from "@/utils/webserver-utils";
+import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 
 export const useIsReadOnly = (
-  projectUuid: string,
-  jobUuid: string,
-  runUuid: string,
-  initialValue: boolean
+  projectUuid: string | undefined,
+  jobUuid: string | undefined,
+  runUuid: string | undefined
 ) => {
-  const { dispatch } = useProjectsContext();
+  const {
+    dispatch,
+    state: { pipelineIsReadOnly },
+  } = useProjectsContext();
   const { requestBuild } = useAppContext();
 
-  const [isReadOnly, setIsReadOnly] = React.useState(initialValue);
+  const setIsReadOnly = React.useCallback(
+    (value: boolean) => {
+      dispatch({
+        type: "SET_PIPELINE_IS_READONLY",
+        payload: value,
+      });
+    },
+    [dispatch]
+  );
+
+  const hasActiveRun = hasValue(runUuid && jobUuid);
 
   React.useEffect(() => {
-    dispatch({
-      type: "SET_PIPELINE_IS_READONLY",
-      payload: isReadOnly,
-    });
-  }, [dispatch, isReadOnly]);
-
-  const hasActiveRun = runUuid && jobUuid;
-  const isNonPipelineRun = !hasActiveRun && isReadOnly;
+    if (hasActiveRun) setIsReadOnly(true);
+  }, [hasActiveRun, setIsReadOnly]);
 
   React.useEffect(() => {
-    if (isNonPipelineRun) {
+    if (!hasActiveRun && hasValue(projectUuid)) {
       // for non pipelineRun - read only check gate
-      let checkGatePromise = checkGate(projectUuid);
-      checkGatePromise
+      checkGate(projectUuid)
         .then(() => {
           setIsReadOnly(false);
         })
         .catch((result) => {
           if (result.reason === "gate-failed") {
+            setIsReadOnly(true);
             requestBuild(projectUuid, result.data, "Pipeline", () => {
               setIsReadOnly(false);
             });
           }
         });
     }
-  }, [isNonPipelineRun, projectUuid, requestBuild, setIsReadOnly]);
+  }, [hasActiveRun, projectUuid, requestBuild, setIsReadOnly]);
 
-  return isReadOnly;
+  return pipelineIsReadOnly;
 };

@@ -1,7 +1,7 @@
 import React from "react";
-import LogViewer, { ILogViewerProps } from "../LogViewer";
+import { ILogViewerProps, LogViewer } from "../LogViewer";
 
-export const StepDetailsLogs: React.FC<ILogViewerProps> = (props) => (
+export const StepDetailsLogs = (props: ILogViewerProps) => (
   <div className={"detail-subview"}>
     <LogViewer {...props} />
   </div>

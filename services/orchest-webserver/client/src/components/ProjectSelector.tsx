@@ -1,21 +1,26 @@
 // @ts-check
+import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMatchRoutePaths } from "@/hooks/useMatchProjectRoot";
 import { siteMap, withinProjectPaths } from "@/routingConfig";
 import type { Project } from "@/types";
+import Box from "@mui/material/Box";
 import FormControl from "@mui/material/FormControl";
 import InputBase from "@mui/material/InputBase";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
+import Stack from "@mui/material/Stack";
 import { styled } from "@mui/material/styles";
 import {
+  hasValue,
   makeCancelable,
   makeRequest,
   PromiseManager,
 } from "@orchest/lib-utils";
 import React from "react";
+import { Code } from "./common/Code";
 
 const CustomInput = styled(InputBase)(({ theme }) => ({
   "&.Mui-focused .MuiInputBase-input": {
@@ -33,8 +38,15 @@ const CustomInput = styled(InputBase)(({ theme }) => ({
 }));
 
 export const ProjectSelector = () => {
+  const { setAlert } = useAppContext();
   const { state, dispatch } = useProjectsContext();
-  const { navigateTo, projectUuid: projectUuidFromRoute } = useCustomRoute();
+  const {
+    navigateTo,
+    projectUuid: projectUuidFromRoute,
+    pipelineUuid,
+    jobUuid,
+    runUuid,
+  } = useCustomRoute();
   // if current view only involves ONE project, ProjectSelector would appear
   const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
@@ -44,9 +56,11 @@ export const ProjectSelector = () => {
     if (uuid) {
       const path = matchWithinProjectPaths
         ? matchWithinProjectPaths.root || matchWithinProjectPaths.path
-        : siteMap.pipelines.path;
+        : siteMap.pipeline.path;
 
-      navigateTo(path, { query: { projectUuid: uuid } });
+      navigateTo(path, {
+        query: { projectUuid: uuid, pipelineUuid, jobUuid, runUuid },
+      });
     }
   };
 
@@ -54,12 +68,12 @@ export const ProjectSelector = () => {
   const validateProjectUuid = (
     uuidToValidate: string | undefined | null,
     projects: Project[]
-  ): string | undefined => {
-    let isValid = uuidToValidate
+  ): uuidToValidate is string => {
+    if (!hasValue(uuidToValidate)) return false;
+
+    return uuidToValidate
       ? projects.some((project) => project.uuid == uuidToValidate)
       : false;
-
-    return isValid ? uuidToValidate : undefined;
   };
 
   const fetchProjects = () => {
@@ -72,10 +86,7 @@ export const ProjectSelector = () => {
       .then((response) => {
         let fetchedProjects: Project[] = JSON.parse(response);
 
-        dispatch({
-          type: "projectsSet",
-          payload: fetchedProjects,
-        });
+        dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
       })
       .catch((error) => console.log(error));
   };
@@ -83,9 +94,9 @@ export const ProjectSelector = () => {
   // sync state.projectUuid and the route param projectUuid
   React.useEffect(() => {
     if (projectUuidFromRoute) {
-      dispatch({ type: "projectSet", payload: projectUuidFromRoute });
+      dispatch({ type: "SET_PROJECT", payload: projectUuidFromRoute });
     }
-  }, [projectUuidFromRoute]);
+  }, [projectUuidFromRoute, dispatch]);
 
   React.useEffect(() => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
@@ -99,24 +110,35 @@ export const ProjectSelector = () => {
 
   React.useEffect(() => {
     if (state.hasLoadedProjects && matchWithinProjectPaths) {
-      const invalidProjectUuid = !validateProjectUuid(
-        projectUuidFromRoute,
-        state.projects
-      );
+      const validProjectUuid =
+        state.projects.length > 0 &&
+        projectUuidFromRoute &&
+        validateProjectUuid(projectUuidFromRoute, state.projects);
 
-      if (invalidProjectUuid) {
-        // Select the first one from the given projects
-        let newProjectUuid =
-          state.projects.length > 0 ? state.projects[0].uuid : undefined;
+      if (projectUuidFromRoute && !validProjectUuid) {
+        setAlert(
+          "Project not found",
+          <Stack direction="column" spacing={2}>
+            <Box>
+              {`Couldn't find project `}
+              <Code>{projectUuidFromRoute}</Code>
+              {` . The project might have been deleted, or you might have had a wrong URL.`}
+            </Box>
+            <Box>Will try to load another existing project if any.</Box>
+          </Stack>
+        );
+      }
 
-        // navigate ONLY if user is at the project root and
-        // we're switching projects (because of detecting an
-        // invalidProjectUuid)
-        dispatch({ type: "projectSet", payload: newProjectUuid });
+      const newProjectUuid = validProjectUuid
+        ? projectUuidFromRoute
+        : state.projects[0]?.uuid;
+
+      if (newProjectUuid) {
+        dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
 
   if (
     !matchWithinProjectPaths ||

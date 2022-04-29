@@ -69,6 +69,7 @@ const RenameField = ({
               fileRenameNewName +
               (isFolder ? "/" : "");
             let newCombinedPath = createCombinedPath(root, newPath);
+
             handleRename(combinedPath, newCombinedPath);
             setFileInRename(undefined);
           }

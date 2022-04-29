@@ -6,15 +6,14 @@ import { siteMap } from "@/Routes";
 import { Position } from "@/types";
 import Box from "@mui/material/Box";
 import Stack from "@mui/material/Stack";
-import { hasValue } from "@orchest/lib-utils";
 import React from "react";
 import {
   baseNameFromPath,
   FILE_MANAGEMENT_ENDPOINT,
   filterRedundantChildPaths,
-  isFileByExtension,
+  findPipelineFilePathsWithinFolders,
+  getBaseNameFromPath,
   queryArgs,
-  searchFilePathsByExtension,
   unpackCombinedPath,
 } from "./common";
 import { useFileManagerContext } from "./FileManagerContext";
@@ -67,14 +66,6 @@ const deleteFetch = (projectUuid: string, combinedPath: string) => {
   );
 };
 
-const getBaseNameFromContextMenu = (contextMenuCombinedPath: string) => {
-  let pathComponents = contextMenuCombinedPath.split("/");
-  if (contextMenuCombinedPath.endsWith("/")) {
-    pathComponents = pathComponents.slice(0, -1);
-  }
-  return pathComponents.slice(-1)[0];
-};
-
 const downloadFile = (
   projectUuid: string,
   combinedPath: string,
@@ -82,7 +73,7 @@ const downloadFile = (
 ) => {
   let { root, path } = unpackCombinedPath(combinedPath);
 
-  let downloadUrl = `/async/file-management/download?${queryArgs({
+  let downloadUrl = `${FILE_MANAGEMENT_ENDPOINT}/download?${queryArgs({
     path,
     root,
     project_uuid: projectUuid,
@@ -105,13 +96,13 @@ export const FileManagerLocalContextProvider: React.FC<{
   >;
 }> = ({ children, reload, setContextMenu }) => {
   const { setConfirm } = useAppContext();
+  const {
+    state: { pipelines = [] },
+    fetchPipelines,
+  } = useProjectsContext();
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
 
-  const {
-    selectedFiles,
-    setSelectedFiles,
-    pipelines,
-  } = useFileManagerContext();
+  const { selectedFiles, setSelectedFiles } = useFileManagerContext();
 
   // When deleting or downloading selectedFiles, we need to avoid
   // the redundant child paths.
@@ -168,6 +159,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
   const {
     state: { pipelineIsReadOnly },
+    dispatch,
   } = useProjectsContext();
 
   const handleContextRename = React.useCallback(() => {
@@ -187,49 +179,41 @@ export const FileManagerLocalContextProvider: React.FC<{
       ? selectedFilesWithoutRedundantChildPaths
       : [contextMenuCombinedPath];
 
+    const fileBaseName = getBaseNameFromPath(filesToDelete[0]);
     const filesToDeleteString =
-      filesToDelete.length > 1
-        ? `${filesToDelete.length} files`
-        : `'${getBaseNameFromContextMenu(filesToDelete[0])}'`;
+      filesToDelete.length > 1 ? (
+        `${filesToDelete.length} files`
+      ) : (
+        <Code>{fileBaseName}</Code>
+      );
 
-    const searchResult = await Promise.all(
-      filesToDelete.map((pathToDelete) => {
-        if (!pathToDelete.endsWith("/"))
-          return isFileByExtension(["orchest"], pathToDelete)
-            ? pathToDelete
-            : null;
-        let { root, path } = unpackCombinedPath(pathToDelete);
-        return searchFilePathsByExtension({
-          root,
-          projectUuid,
-          extensions: ["orchest"],
-          path,
-        }).then((response) =>
-          response.files.length > 0 ? pathToDelete : null
-        );
-      })
+    const pathsThatContainsPipelineFiles = await findPipelineFilePathsWithinFolders(
+      projectUuid,
+      filesToDelete.map((combinedPath) => unpackCombinedPath(combinedPath))
     );
 
-    const pathsThatContainsPipelineFiles = searchResult
-      .filter((result) => hasValue(result))
-      .map((combinedPath) => unpackCombinedPath(combinedPath));
+    const shouldShowPipelineFilePaths =
+      !fileBaseName.endsWith(".orchest") && // Only one file to delete and it is a `.orchest` file
+      pathsThatContainsPipelineFiles.length > 0;
 
     setConfirm(
       "Warning",
       <Stack spacing={2} direction="column">
-        <Box>{`Are you sure you want to delete ${filesToDeleteString}? `}</Box>
-        {pathsThatContainsPipelineFiles.length > 0 && (
+        <Box>
+          {`Are you sure you want to delete `} {filesToDeleteString}
+          {` ?`}
+        </Box>
+        {shouldShowPipelineFilePaths && (
           <>
             <Box>
-              {`Following file paths contain pipeline files `}
-              <Code>*.orchest</Code>
-              {`. They will also be deleted and it cannot be undone.`}
+              Following pipeline files will also be deleted and it cannot be
+              undone.
             </Box>
             <ul>
               {pathsThatContainsPipelineFiles.map((file) => (
                 <Box key={`${file.root}/${file.path}`}>
                   <Code>{`${
-                    file.root === "/project-dir" ? "/Project files" : file.root
+                    file.root === "/project-dir" ? "Project files" : file.root
                   }${file.path}`}</Code>
                 </Box>
               ))}
@@ -243,6 +227,22 @@ export const FileManagerLocalContextProvider: React.FC<{
             deleteFetch(projectUuid, combinedPath)
           )
         );
+        // Send a GET request for file dicovery
+        // to ensure that the pipeline is removed from DB.
+        // It's not needed to await it because we don't use the response
+        fetchPipelines();
+
+        // Clean up `state.pipelines` is still needed.
+        const pipelinePaths = pathsThatContainsPipelineFiles.map(({ path }) =>
+          path.replace(/^\//, "")
+        );
+
+        dispatch((state) => {
+          const updatedPipelines = state.pipelines.filter((pipeline) => {
+            return !pipelinePaths.some((path) => pipeline.path === path);
+          });
+          return { type: "SET_PIPELINES", payload: updatedPipelines };
+        });
 
         const shouldRedirect = filesToDelete.some((fileToDelete) => {
           const { path } = unpackCombinedPath(fileToDelete);
@@ -259,7 +259,7 @@ export const FileManagerLocalContextProvider: React.FC<{
 
         if (shouldRedirect) {
           // redirect back to pipelines
-          navigateTo(siteMap.pipelines.path, {
+          navigateTo(siteMap.pipeline.path, {
             query: { projectUuid },
           });
           resolve(true);
@@ -282,12 +282,14 @@ export const FileManagerLocalContextProvider: React.FC<{
     pipelineIsReadOnly,
     pipeline?.path,
     navigateTo,
+    dispatch,
+    fetchPipelines,
   ]);
 
   const handleDownload = React.useCallback(() => {
     handleClose();
 
-    const downloadLink = getBaseNameFromContextMenu(contextMenuCombinedPath);
+    const downloadLink = getBaseNameFromPath(contextMenuCombinedPath);
 
     if (selectedFiles.includes(contextMenuCombinedPath)) {
       selectedFilesWithoutRedundantChildPaths.forEach((combinedPath, i) => {

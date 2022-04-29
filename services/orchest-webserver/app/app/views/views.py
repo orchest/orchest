@@ -328,11 +328,14 @@ def register_views(app, db):
         else:
             try:
                 with open(setup_script_path, "r") as f:
-                    return f.read()
+                    script = f.read()
+                    return jsonify({"script": script if script else ""})
             except FileNotFoundError as fnf_error:
-                current_app.logger.error("Failed to read setup_script %s" % fnf_error)
+                current_app.logger.error(f"Failed to read setup_script {fnf_error}")
                 return ""
 
+    # Deprecated: With the new FileManager, this endpoint is no longer
+    # used by FE.
     @app.route(
         "/async/pipelines/delete/<project_uuid>/<pipeline_uuid>", methods=["DELETE"]
     )
@@ -893,8 +896,8 @@ def register_views(app, db):
                     jsonify(
                         {
                             "success": False,
-                            "reason": ".orchest file doesn't exist at location %s"
-                            % pipeline_json_path,
+                            "reason": ".orchest file doesn't exist at location "
+                            + pipeline_json_path,
                         }
                     ),
                     404,
@@ -1102,15 +1105,16 @@ def register_views(app, db):
         if file and allowed_file(file.filename):
             filename = file.filename.split(os.sep)[-1]
             # Trim path for joining (up until this point paths always
-            # start and end with a /)
+            # start and end with a "/")
             path = path[1:]
             dir_path = os.path.join(root_dir_path, path)
             # Create directory if it doesn't exist
             if not os.path.isdir(dir_path):
                 os.makedirs(dir_path, exist_ok=True)
-            file.save(os.path.join(dir_path, filename))
+            file_path = os.path.join(dir_path, filename)
+            file.save(file_path)
 
-        return jsonify({"message": "Success"})
+        return jsonify({"file_path": file_path})
 
     @app.route("/async/file-management/rename", methods=["POST"])
     def filemanager_rename():

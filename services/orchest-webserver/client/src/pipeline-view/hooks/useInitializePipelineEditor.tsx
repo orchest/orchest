@@ -1,57 +1,55 @@
 import { useAppContext } from "@/contexts/AppContext";
 import { useProjectsContext } from "@/contexts/ProjectsContext";
+import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { useFetchPipelineJson } from "@/hooks/useFetchPipelineJson";
+import { siteMap } from "@/Routes";
 import { PipelineJson, StepsDict } from "@/types";
-import { fetcher, uuidv4 } from "@orchest/lib-utils";
+import { uuidv4 } from "@orchest/lib-utils";
 import React from "react";
-import useSWR, { MutatorCallback } from "swr";
+import { MutatorCallback } from "swr";
 import { extractStepsFromPipelineJson } from "../common";
 
 export const useInitializePipelineEditor = (
-  pipelineUuid: string,
-  projectUuid: string,
-  jobUuid: string | undefined,
   runUuid: string | undefined,
   isReadOnly: boolean,
   initializeEventVars: (steps: StepsDict) => void
 ) => {
-  const { dispatch } = useProjectsContext();
+  const {
+    state: { pipeline, projectUuid },
+  } = useProjectsContext();
   const { setAlert } = useAppContext();
+  const {
+    navigateTo,
+    projectUuid: projectUuidFromRoute,
+    jobUuid,
+  } = useCustomRoute();
+
+  useEnsureValidPipeline();
 
   const {
     pipelineJson,
     setPipelineJson: originalSetPipelineJson,
     isFetchingPipelineJson,
-    error: fetchPipelineJsonError,
-  } = useFetchPipelineJson({ pipelineUuid, projectUuid, jobUuid, runUuid });
-
-  React.useEffect(() => {
-    if (pipelineJson && !fetchPipelineJsonError) {
-      dispatch({
-        type: "pipelineSet",
-        payload: {
-          pipelineUuid,
-          projectUuid,
-          pipelineName: pipelineJson.name,
-        },
-      });
-    }
-  }, [
-    pipelineJson,
-    fetchPipelineJsonError,
-    dispatch,
-    pipelineUuid,
+    error,
+  } = useFetchPipelineJson({
+    // This `projectUuid` cannot be from route. It has to be from ProjectsContext, aligned with `pipeline?.uuid`.
+    // Otherwise, when user switch to another project, pipeline?.uuid does not exist.
     projectUuid,
-  ]);
+    pipelineUuid: pipeline?.uuid,
+    jobUuid,
+    runUuid,
+  });
 
   const hash = React.useRef<string>(uuidv4());
   const setPipelineJson = React.useCallback(
     (
       data?:
         | PipelineJson
-        | Promise<PipelineJson>
-        | MutatorCallback<PipelineJson>,
+        | undefined
+        | Promise<PipelineJson | undefined>
+        | MutatorCallback<PipelineJson | undefined>,
       flushPage?: boolean
     ) => {
       // in case you want to re-initialize all components according to the new PipelineJson
@@ -62,27 +60,23 @@ export const useInitializePipelineEditor = (
     [originalSetPipelineJson]
   );
 
-  const {
-    data: pipelineCwd,
-    error: fetchCwdError,
-    isValidating: isFetchingCwd,
-  } = useSWR(
-    !isReadOnly && projectUuid && pipelineUuid
-      ? `/async/file-picker-tree/pipeline-cwd/${projectUuid}/${pipelineUuid}`
-      : null,
-    (url) =>
-      fetcher<{ cwd: string }>(url).then(
-        (cwdPromiseResult) => `${cwdPromiseResult.cwd}/`
-      )
-  );
-
-  const error = fetchPipelineJsonError || fetchCwdError;
+  const pipelineCwd = pipeline?.path.replace(/\/?[^\/]*.orchest$/, "/");
 
   React.useEffect(() => {
     if (error) {
-      setAlert("Error", `Failed to initialize pipeline. ${error.message}`);
+      setAlert(
+        "Error",
+        `Failed to initialize pipeline. ${error.message}`,
+        (resolve) => {
+          navigateTo(siteMap.pipeline.path, {
+            query: { projectUuid: projectUuidFromRoute },
+          });
+          resolve(true);
+          return true;
+        }
+      );
     }
-  }, [error, setAlert]);
+  }, [error, setAlert, pipeline, navigateTo, projectUuidFromRoute]);
 
   // initialize eventVars.steps
   const initialized = React.useRef(false);
@@ -95,7 +89,7 @@ export const useInitializePipelineEditor = (
     }
   }, [isFetchingPipelineJson, pipelineJson, initializeEventVars]);
 
-  const { data: environments = [] } = useFetchEnvironments(
+  const { environments = [] } = useFetchEnvironments(
     !isReadOnly ? projectUuid : undefined
   );
 
@@ -106,6 +100,6 @@ export const useInitializePipelineEditor = (
     setPipelineJson,
     hash,
     error,
-    isFetching: isFetchingPipelineJson || isFetchingCwd,
+    isFetching: isFetchingPipelineJson,
   };
 };

@@ -8,10 +8,12 @@ from flask_restx import Namespace, Resource
 from sqlalchemy import desc, func, or_
 
 import app.models as models
+from _orchest.internals import config as _config
 from _orchest.internals.two_phase_executor import TwoPhaseExecutor, TwoPhaseFunction
 from app import schema
 from app.celery_app import make_celery
 from app.connections import db
+from app.core import registry
 from app.utils import register_schema, update_status_db
 
 api = Namespace("environment-builds", description="Managing environment builds")
@@ -143,11 +145,18 @@ class EnvironmentImageBuild(Resource):
                 filter_by=filter_by,
             )
             if status_update["status"] == "SUCCESS":
+                digest = registry.get_manifest_digest(
+                    _config.ENVIRONMENT_IMAGE_NAME.format(
+                        project_uuid=project_uuid, environment_uuid=environment_uuid
+                    ),
+                    image_tag,
+                )
                 db.session.add(
                     models.EnvironmentImage(
                         project_uuid=project_uuid,
                         environment_uuid=environment_uuid,
                         tag=int(image_tag),
+                        digest=digest,
                     )
                 )
             db.session.commit()

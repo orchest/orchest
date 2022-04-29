@@ -5,11 +5,16 @@ import { siteMap } from "@/Routes";
 import { Position } from "@/types";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
-import { hasValue } from "@orchest/lib-utils";
+import { ALLOWED_STEP_EXTENSIONS, hasValue } from "@orchest/lib-utils";
 import React from "react";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
 import { useOpenNoteBook } from "../hooks/useOpenNoteBook";
-import { cleanFilePath, queryArgs, unpackCombinedPath } from "./common";
+import {
+  cleanFilePath,
+  FILE_MANAGEMENT_ENDPOINT,
+  queryArgs,
+  unpackCombinedPath,
+} from "./common";
 import { useFileManagerLocalContext } from "./FileManagerLocalContext";
 
 export type ContextMenuType = "tree" | "background";
@@ -58,7 +63,7 @@ export const FileManagerContextMenu: React.FC<{
     let { root, path } = unpackCombinedPath(contextMenuCombinedPath);
 
     await fetch(
-      `/async/file-management/duplicate?${queryArgs({
+      `${FILE_MANAGEMENT_ENDPOINT}/duplicate?${queryArgs({
         path,
         root,
         project_uuid: projectUuid,
@@ -76,6 +81,8 @@ export const FileManagerContextMenu: React.FC<{
 
   const handleContextView = React.useCallback(() => {
     handleClose();
+
+    if (!pipelineUuid) return;
 
     const foundStep = Object.values(pipelineJson.steps).find((step) => {
       return (
@@ -118,11 +125,20 @@ export const FileManagerContextMenu: React.FC<{
     setAlert,
   ]);
 
-  const rootIsProject = contextMenuCombinedPath
-    ? contextMenuCombinedPath.startsWith("/project-dir")
-    : false;
+  const rootIsProject =
+    hasValue(contextMenuCombinedPath) &&
+    contextMenuCombinedPath.startsWith("/project-dir");
+
   const contextPathIsFile =
     contextMenuCombinedPath && !contextMenuCombinedPath.endsWith("/");
+
+  const contextPathIsAllowedFileType =
+    contextMenuCombinedPath &&
+    ALLOWED_STEP_EXTENSIONS.some((allowedType) =>
+      contextMenuCombinedPath
+        .toLocaleLowerCase()
+        .endsWith(`.${allowedType.toLocaleLowerCase()}`)
+    );
 
   return (
     <Menu
@@ -145,7 +161,7 @@ export const FileManagerContextMenu: React.FC<{
               Edit
             </MenuItem>
           )}
-          {contextPathIsFile && (
+          {pipelineUuid && contextPathIsAllowedFileType && (
             <MenuItem dense onClick={handleContextView}>
               View
             </MenuItem>

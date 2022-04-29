@@ -695,6 +695,11 @@ environment_images_to_pre_pull = Model(
     {"pre_pull_images": fields.List(fields.String(required=True))},
 )
 
+active_environment_images = Model(
+    "ActiveEnvironmentImages",
+    {"active_environment_images": fields.List(fields.String(required=True))},
+)
+
 
 jupyter_image_build = Model(
     "JupyterEnvironmentBuild",

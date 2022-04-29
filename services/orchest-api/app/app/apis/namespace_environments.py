@@ -137,17 +137,17 @@ class DeleteEnvironment(TwoPhaseFunction):
         for job in jobs:
             AbortJob(self.tpe).transaction(job.uuid)
 
+        # Mark images to be removed from nodes and registry.
+        environments.mark_all_proj_env_images_to_be_removed_on_env_deletion(
+            project_uuid=project_uuid,
+            environment_uuid=environment_uuid,
+        )
+
         # Cleanup references to the builds and dangling images of this
         # environment.
         DeleteProjectEnvironmentImageBuilds(self.tpe).transaction(
             project_uuid, environment_uuid
         )
-
-        # K8S_TODO: for every image, delete it. This todo is not about
-        # deleting the image entry from the db, which wil be cascade
-        # deleted, but about setting up a ~DeleteImage~ operation that
-        # will take care of deleting the image from the registry etc.
-        # Something to do for the environment image lifecycle PR.
 
         self.collateral_kwargs["project_uuid"] = project_uuid
         self.collateral_kwargs["environment_uuid"] = environment_uuid

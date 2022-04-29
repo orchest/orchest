@@ -2,6 +2,7 @@ import { useAppContext } from "@/contexts/AppContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useMounted } from "@/hooks/useMounted";
 import { siteMap } from "@/Routes";
+import { IOrchestSession } from "@/types";
 import AddIcon from "@mui/icons-material/Add";
 import LensIcon from "@mui/icons-material/Lens";
 import Box from "@mui/material/Box";
@@ -230,7 +231,7 @@ const EnvironmentList: React.FC<IEnvironmentListProps> = ({ projectUuid }) => {
     environmentName: string
   ) => {
     if (!projectUuid) return false;
-    const sessionData = await fetcher<{ sessions: any[] }>(
+    const sessionData = await fetcher<{ sessions: IOrchestSession[] }>(
       `/catch/api-proxy/api/sessions/?project_uuid=${projectUuid}`
     );
     if (sessionData.sessions.length > 0) {

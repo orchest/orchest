@@ -28,7 +28,7 @@ export const ServicesMenu = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  anchor: React.MutableRefObject<Element>;
+  anchor: React.MutableRefObject<Element | null>;
   services: Record<string, Partial<Service>> | null;
 }) => {
   const {
@@ -61,16 +61,17 @@ export const ServicesMenu = ({
     );
   };
 
-  const serviceLinks = services
-    ? Object.entries(services)
-        .filter((serviceTuple) => serviceTuple[1].exposed)
-        .map(([serviceName, service]) => {
-          return {
-            name: serviceName,
-            urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
-          };
-        })
-    : null;
+  const serviceLinks =
+    services && projectUuid && pipelineUuid
+      ? Object.entries(services)
+          .filter((serviceTuple) => serviceTuple[1].exposed)
+          .map(([serviceName, service]) => {
+            return {
+              name: serviceName,
+              urls: getServiceURLs(service, projectUuid, pipelineUuid, runUuid),
+            };
+          })
+      : null;
 
   return (
     <Menu

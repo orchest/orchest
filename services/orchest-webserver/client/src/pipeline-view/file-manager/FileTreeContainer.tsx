@@ -10,10 +10,10 @@ export const FileTreeContainer: React.FC = ({ children }) => {
     <Box
       sx={{
         userSelect: "none",
-        whiteSpace: "nowrap",
         maxHeight: "100%",
         overflowY: "auto",
         flex: 1,
+        paddingBottom: (theme) => theme.spacing(2),
       }}
       onContextMenu={(e) => {
         handleContextMenu(e, undefined, "background");

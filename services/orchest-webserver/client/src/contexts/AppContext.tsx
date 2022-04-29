@@ -8,7 +8,6 @@ import {
 } from "@/types";
 import { fetcher } from "@orchest/lib-utils";
 import React from "react";
-import { IntercomProvider } from "react-use-intercom";
 
 /** Utility functions
  =====================================================
@@ -288,7 +287,7 @@ const withPromptMessageDispatcher = function <T extends PromptMessage>(
         !(callbackOrParams instanceof Function) && callbackOrParams?.onCancel;
       const cancelHandler = !hasCustomOnCancel
         ? () => defaultOnCancel(resolve)
-        : () => callbackOrParams.onCancel(resolve);
+        : () => callbackOrParams.onCancel && callbackOrParams.onCancel(resolve);
 
       const confirmLabel =
         !callbackOrParams || callbackOrParams instanceof Function
@@ -439,22 +438,20 @@ export const AppContextProvider: React.FC = ({ children }) => {
   );
 
   return (
-    <IntercomProvider appId={state.config?.INTERCOM_APP_ID}>
-      <Context.Provider
-        value={{
-          state,
-          dispatch,
-          setAlert,
-          setConfirm,
-          requestBuild,
-          deletePromptMessage,
-          setAsSaved,
-          isDrawerOpen,
-          setIsDrawerOpen,
-        }}
-      >
-        {state.isLoaded ? children : null}
-      </Context.Provider>
-    </IntercomProvider>
+    <Context.Provider
+      value={{
+        state,
+        dispatch,
+        setAlert,
+        setConfirm,
+        requestBuild,
+        deletePromptMessage,
+        setAsSaved,
+        isDrawerOpen,
+        setIsDrawerOpen,
+      }}
+    >
+      {state.isLoaded ? children : null}
+    </Context.Provider>
   );
 };

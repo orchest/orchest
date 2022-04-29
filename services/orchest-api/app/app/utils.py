@@ -11,7 +11,7 @@ from flask import current_app
 from flask_restx import Model, Namespace
 from flask_sqlalchemy import Pagination
 from kubernetes import client as k8s_client
-from sqlalchemy import or_, text
+from sqlalchemy import and_, desc, or_, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import query, undefer
 
@@ -23,6 +23,17 @@ from app import schema
 from app.celery_app import make_celery
 from app.connections import db, k8s_core_api
 from config import CONFIG_CLASS
+
+
+def get_logger() -> logging.Logger:
+    try:
+        return current_app.logger
+    except Exception:
+        pass
+    return get_task_logger(__name__)
+
+
+logger = get_logger()
 
 
 def register_schema(api: Namespace) -> Namespace:
@@ -120,14 +131,6 @@ def get_proj_pip_env_variables(project_uuid: str, pipeline_uuid: str) -> Dict[st
     return {**project_env_vars, **pipeline_env_vars}
 
 
-def get_logger() -> logging.Logger:
-    try:
-        return current_app.logger
-    except Exception:
-        pass
-    return get_task_logger(__name__)
-
-
 def page_to_pagination_data(pagination: Pagination) -> dict:
     """Pagination to a dictionary containing data of interest.
 
@@ -215,15 +218,30 @@ def fuzzy_filter_non_interactive_pipeline_runs(
     return query
 
 
+def get_active_custom_jupyter_images() -> List[models.JupyterImage]:
+    """Returns the list of active jupyter images, sorted by tag DESC."""
+    custom_image = (
+        models.JupyterImage.query.filter(
+            models.JupyterImage.marked_for_removal.is_(False),
+            # Only allow an image that matches this orchest cluster
+            # version.
+            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
+        )
+        .order_by(desc(models.JupyterImage.tag))
+        .all()
+    )
+    return custom_image
+
+
 def get_jupyter_server_image_to_use() -> str:
-    has_customized_jupyter = db.session.query(
-        db.session.query(models.JupyterImageBuild).filter_by(status="SUCCESS").exists()
-    ).scalar()
-    if has_customized_jupyter:
+    active_custom_images = get_active_custom_jupyter_images()
+    if active_custom_images:
+        custom_image = active_custom_images[0]
+        # K8S_TODO
         registry_ip = k8s_core_api.read_namespaced_service(
             _config.REGISTRY, _config.ORCHEST_NAMESPACE
         ).spec.cluster_ip
-        return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:latest"
+        return f"{registry_ip}/{_config.JUPYTER_IMAGE_NAME}:{custom_image.tag}"
     else:
         return f"orchest/jupyter-server:{CONFIG_CLASS.ORCHEST_VERSION}"
 
@@ -457,7 +475,7 @@ class OrchestSettings:
     def __getitem__(self, key):
         return self._values[key]
 
-    def _apply_runtime_changes(self, flask_app, new: dict) -> None:
+    def _apply_runtime_changes(self, flask_app, new: dict) -> List[str]:
         """Updates settings at runtime when possible.
 
         Changes that can be updated dynamically and do not require a
@@ -594,3 +612,54 @@ class OrchestSettings:
             settings[setting.name] = setting.value["value"]
 
         return settings
+
+
+def mark_custom_jupyter_images_to_be_removed() -> None:
+    """Marks custom jupyter images to be removed.
+
+    The JupyterImage.marked_for_removal flag is set to True, based on
+    this, said image won't be considered as active and thus won't be
+    used to start a jupyter server, and will be deleted by both nodes
+    and the registry.
+
+    Note: this function does not commit, it's responsibility of the
+    caller to do so.
+
+    """
+    logger.info("Marking custom jupyter images for removal.")
+    images_to_be_removed = models.JupyterImage.query.with_for_update().filter(
+        models.JupyterImage.marked_for_removal.is_(False)
+    )
+
+    # Only consider the latest valid image as active. This is because
+    # to build a jupyter server image you need to stop all sessions, so
+    # we know that only the latest could be in use.
+    latest_custom_image = (
+        models.JupyterImage.query.filter(
+            models.JupyterImage.marked_for_removal.is_(False),
+            # Only allow an image that matches this orchest cluster
+            # version.
+            models.JupyterImage.base_image_version == CONFIG_CLASS.ORCHEST_VERSION,
+        )
+        .order_by(desc(models.JupyterImage.tag))
+        .first()
+    )
+    if latest_custom_image is not None:
+        images_to_be_removed = images_to_be_removed.filter(
+            or_(
+                and_(
+                    # Don't remove the latest valid image.
+                    models.JupyterImage.tag < latest_custom_image.tag,
+                    # Can't delete an image from the registry if it has
+                    # the same digest of an active image.
+                    models.JupyterImage.digest != latest_custom_image.digest,
+                ),
+                models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION,
+            )
+        )
+    else:
+        images_to_be_removed = images_to_be_removed.filter(
+            models.JupyterImage.base_image_version != CONFIG_CLASS.ORCHEST_VERSION
+        )
+
+    images_to_be_removed.update({"marked_for_removal": True})

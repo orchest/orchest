@@ -10,7 +10,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import LinearProgress from "@mui/material/LinearProgress";
-import { hasValue, makeRequest } from "@orchest/lib-utils";
+import { fetcher, hasValue, HEADER } from "@orchest/lib-utils";
 import React from "react";
 import { checkGate } from "../utils/webserver-utils";
 
@@ -20,20 +20,20 @@ const buildFailMessage = `Some environment builds of this project have failed.
   order for the build to succeed.`;
 
 const solutionMessages = {
-  Pipeline: " You can cancel to open the pipeline in read-only mode.",
+  Pipeline: " You can cancel to open the project in read-only mode.",
   JupyterLab:
     " To start JupyterLab all environments in the project need to be built.",
 };
 
 const getInactiveEnvironmentsMessage = (
   inactiveEnvironments: string[],
-  requestedFromView: string
+  requestedFromView: string | undefined
 ) => {
   const inactiveEnvironmentsMessage =
     inactiveEnvironments.length > 0
       ? `Not all environments of this project have been built. Would you like to build them?`
       : `Some environments of this project are still building. Please wait until the build is complete.`;
-  const solutionMessage = solutionMessages[requestedFromView] || "";
+  const solutionMessage = solutionMessages[requestedFromView || ""] || "";
 
   return `${inactiveEnvironmentsMessage}${solutionMessage}`;
 };
@@ -45,15 +45,16 @@ const BuildPendingDialog: React.FC = () => {
     dispatch,
   } = useAppContext();
 
-  const [gateInterval, setGateInterval] = React.useState(null);
+  const [gateInterval, setGateInterval] = React.useState<number | null>(null);
+
+  const [building, setBuilding] = React.useState(false);
+  const [showBuildStatus, setShowBuildStatus] = React.useState(false);
+  const [allowBuild, setAllowBuild] = React.useState(false);
   const [state, setState] = React.useState<{
     buildHasFailed: boolean;
     message: string;
     environmentsBuilding: number;
-    allowBuild: boolean;
-    showBuildStatus: boolean;
-    building: boolean;
-  }>(null);
+  } | null>(null);
   const [environmentsToBeBuilt, setEnvironmentsToBeBuilt] = React.useState<
     string[]
   >([]);
@@ -62,12 +63,9 @@ const BuildPendingDialog: React.FC = () => {
     if (!buildRequest) return;
     checkGate(buildRequest.projectUuid)
       .then(() => {
-        setState((prevState) => ({
-          ...prevState,
-          building: false,
-        }));
+        setBuilding(false);
 
-        if (onBuildComplete) onBuildComplete();
+        if (buildRequest?.onBuildComplete) buildRequest.onBuildComplete();
 
         onClose();
       })
@@ -78,65 +76,64 @@ const BuildPendingDialog: React.FC = () => {
       });
   }, gateInterval);
 
+  const processValidationData = React.useCallback(
+    (data: EnvironmentValidationData) => {
+      let inactiveEnvironments: string[] = [];
+      let buildHasFailed = false;
+      let environmentsBuilding = 0;
+      let buildingValue = false;
+
+      for (let x = 0; x < data.actions.length; x++) {
+        const action = data.actions[x];
+
+        if (["BUILD", "RETRY"].includes(action))
+          inactiveEnvironments.push(data.fail[x]);
+
+        if (action === "RETRY") buildHasFailed = true;
+        if (action === "WAIT") {
+          buildingValue = true;
+          environmentsBuilding++;
+        }
+      }
+
+      let message = buildHasFailed
+        ? buildFailMessage
+        : getInactiveEnvironmentsMessage(
+            inactiveEnvironments,
+            buildRequest?.requestedFromView
+          );
+
+      setEnvironmentsToBeBuilt(inactiveEnvironments);
+      setBuilding(buildingValue);
+      setShowBuildStatus(inactiveEnvironments.length === 0);
+      setAllowBuild(inactiveEnvironments.length > 0);
+      setState((prevState) => ({
+        ...prevState,
+        buildHasFailed,
+        message,
+        environmentsBuilding,
+      }));
+
+      if (environmentsBuilding > 0) {
+        startPollingGate();
+      } else {
+        setGateInterval(null);
+      }
+    },
+    [buildRequest?.requestedFromView]
+  );
+
   React.useEffect(() => {
     if (buildRequest?.environmentValidationData)
       processValidationData(buildRequest.environmentValidationData);
 
     return () => setGateInterval(null);
-  }, [buildRequest]);
+  }, [buildRequest, processValidationData]);
 
   if (!buildRequest) return null;
 
-  const {
-    onCancel,
-    onBuildComplete,
-    projectUuid,
-    requestedFromView,
-  } = buildRequest;
-
   const onClose = () => {
     dispatch({ type: "SET_BUILD_REQUEST", payload: undefined });
-  };
-
-  const processValidationData = (data: EnvironmentValidationData) => {
-    let inactiveEnvironments: string[] = [];
-    let buildHasFailed = false;
-    let environmentsBuilding = 0;
-    let building = false;
-
-    for (let x = 0; x < data.actions.length; x++) {
-      const action = data.actions[x];
-
-      if (["BUILD", "RETRY"].includes(action))
-        inactiveEnvironments.push(data.fail[x]);
-
-      if (action === "RETRY") buildHasFailed = true;
-      if (action === "WAIT") {
-        building = true;
-        environmentsBuilding++;
-      }
-    }
-
-    let message = buildHasFailed
-      ? buildFailMessage
-      : getInactiveEnvironmentsMessage(inactiveEnvironments, requestedFromView);
-
-    setEnvironmentsToBeBuilt(inactiveEnvironments);
-    setState((prevState) => ({
-      ...prevState,
-      building,
-      buildHasFailed,
-      message,
-      environmentsBuilding,
-      showBuildStatus: inactiveEnvironments.length == 0,
-      allowBuild: inactiveEnvironments.length > 0,
-    }));
-
-    if (environmentsBuilding > 0) {
-      startPollingGate();
-    } else {
-      setGateInterval(null);
-    }
   };
 
   const startPollingGate = () => {
@@ -144,23 +141,23 @@ const BuildPendingDialog: React.FC = () => {
   };
 
   const onBuild = () => {
-    setState((prevState) => ({
-      ...prevState,
-      allowBuild: false,
-      showBuildStatus: true,
-      building: true,
-    }));
+    if (!buildRequest) return;
+
+    setBuilding(true);
+    setShowBuildStatus(true);
+    setAllowBuild(false);
 
     let environment_image_build_requests = environmentsToBeBuilt.map(
       (environmentUuid) => ({
         environment_uuid: environmentUuid,
-        project_uuid: projectUuid,
+        project_uuid: buildRequest.projectUuid,
       })
     );
 
-    makeRequest("POST", "/catch/api-proxy/api/environment-builds", {
-      type: "json",
-      content: { environment_image_build_requests },
+    fetcher("/catch/api-proxy/api/environment-builds", {
+      method: "POST",
+      headers: HEADER.JSON,
+      body: JSON.stringify({ environment_image_build_requests }),
     })
       .then(() => startPollingGate())
       .catch((error) => {
@@ -169,13 +166,19 @@ const BuildPendingDialog: React.FC = () => {
   };
 
   const onViewBuildStatus = (e: React.MouseEvent) => {
-    navigateTo(siteMap.environments.path, { query: { projectUuid } }, e);
+    if (!buildRequest) return;
+
+    navigateTo(
+      siteMap.environments.path,
+      { query: { projectUuid: buildRequest.projectUuid } },
+      e
+    );
 
     onClose();
   };
 
   const cancel = () => {
-    if (onCancel) onCancel();
+    if (buildRequest?.onCancel) buildRequest.onCancel();
 
     onClose();
   };
@@ -186,7 +189,7 @@ const BuildPendingDialog: React.FC = () => {
       <DialogContent>
         <div>
           <p>{state?.message}</p>
-          {state?.building && (
+          {building && (
             <Box sx={{ marginTop: 4 }}>
               <LinearProgress />
             </Box>
@@ -195,17 +198,17 @@ const BuildPendingDialog: React.FC = () => {
       </DialogContent>
       <DialogActions>
         <Button onClick={cancel}>Cancel</Button>
-        {state?.showBuildStatus && (
+        {showBuildStatus && (
           <Button
-            variant={!state?.allowBuild ? "contained" : undefined}
-            color={!state?.allowBuild ? "primary" : undefined}
+            variant={!allowBuild ? "contained" : undefined}
+            color={!allowBuild ? "primary" : undefined}
             onClick={onViewBuildStatus}
             onAuxClick={onViewBuildStatus}
           >
             View build status
           </Button>
         )}
-        {state?.allowBuild && (
+        {allowBuild && (
           <Button
             autoFocus
             variant="contained"

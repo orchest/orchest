@@ -20,9 +20,9 @@ export const InteractiveConnection = ({
   selected: boolean;
   startNodeUUID: string;
   endNodeUUID?: string;
-  getPosition: (element: HTMLElement | undefined) => Position | null;
+  getPosition: (element: HTMLElement | undefined | null) => Position | null;
   shouldUpdate: [boolean, boolean];
-  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement>>;
+  stepDomRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }) => {
   const [transformProperty, setTransformProperty] = React.useState(() =>
     getTransformProperty(props)
@@ -33,17 +33,25 @@ export const InteractiveConnection = ({
 
   const [shouldUpdateStart, shouldUpdateEnd] = shouldUpdate;
 
-  const containerRef = React.useRef<HTMLDivElement>();
+  const containerRef = React.useRef<HTMLDivElement | null>(null);
 
   const startNode = stepDomRefs.current[`${startNodeUUID}-outgoing`];
   const endNode = stepDomRefs.current[`${endNodeUUID}-incoming`];
   const startNodePosition = getPosition(startNode);
   const endNodePosition = getPosition(endNode);
 
-  const startNodeX = shouldUpdateStart ? startNodePosition.x : props.startNodeX;
-  const startNodeY = shouldUpdateStart ? startNodePosition.y : props.startNodeY;
-  const endNodeX = shouldUpdateEnd ? endNodePosition.x : props.endNodeX;
-  const endNodeY = shouldUpdateEnd ? endNodePosition.y : props.endNodeY;
+  const startNodeX =
+    shouldUpdateStart && startNodePosition
+      ? startNodePosition.x
+      : props.startNodeX;
+  const startNodeY =
+    shouldUpdateStart && startNodePosition
+      ? startNodePosition.y
+      : props.startNodeY;
+  const endNodeX =
+    shouldUpdateEnd && endNodePosition ? endNodePosition.x : props.endNodeX;
+  const endNodeY =
+    shouldUpdateEnd && endNodePosition ? endNodePosition.y : props.endNodeY;
 
   const transform = React.useCallback(() => {
     setTransformProperty(

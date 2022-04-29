@@ -2,6 +2,7 @@ import argparse
 import asyncio
 import logging
 
+from image_deleter import run as image_deleter_run
 from image_puller import ImagePuller, Policy
 
 if __name__ == "__main__":
@@ -62,6 +63,9 @@ if __name__ == "__main__":
     arguments = vars(parser.parse_args())
     image_puller = ImagePuller(**arguments)
 
-    asyncio.run(image_puller.run())
+    async def tasks():
+        await asyncio.gather(image_puller.run(), image_deleter_run())
+
+    asyncio.run(tasks())
 
     logger.info("Stopping node_agent.")

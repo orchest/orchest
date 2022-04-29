@@ -4,6 +4,7 @@ import {
   ALLOWED_STEP_EXTENSIONS,
   extensionFromFilename,
   fetcher,
+  hasValue,
 } from "@orchest/lib-utils";
 import React from "react";
 import { FileManagementRoot } from "../common";
@@ -41,10 +42,17 @@ export const searchTree = (
   return res;
 };
 
-export const unpackCombinedPath = (combinedPath: string) => {
+/**
+ * `path` always starts with "/"
+ */
+export type UnpackedPath = { root: FileManagementRoot; path: string };
+
+export const unpackCombinedPath = (combinedPath: string): UnpackedPath => {
   // combinedPath includes the root
   // e.g. /project-dir:/abc/def
-  // Note, the root can't contain the special character ':'
+  // => root: /project-dir
+  // => path: /abc/def
+
   let root = combinedPath.split(ROOT_SEPARATOR)[0] as FileManagementRoot;
   let path = combinedPath.slice(root.length + ROOT_SEPARATOR.length);
   return { root, path };
@@ -129,6 +137,7 @@ export const mergeTrees = (subTree: TreeNode, tree: TreeNode) => {
   // Modifies tree
   // subTree root path
   let { parent } = searchTree(subTree.path, tree);
+  if (!parent) return;
   for (let x = 0; x < parent.children.length; x++) {
     let child = parent.children[x];
     if (child.path === subTree.path) {
@@ -203,8 +212,10 @@ export const searchTrees = ({
   }
 };
 
-export const cleanFilePath = (filePath: string) =>
-  filePath.replace(/^\/project-dir\:\//, "").replace(/^\/data\:\//, "/data/");
+export const cleanFilePath = (filePath: string, replaceProjectDirWith = "") =>
+  filePath
+    .replace(/^\/project-dir\:\//, replaceProjectDirWith)
+    .replace(/^\/data\:\//, "/data/");
 
 /**
  * remove leading "./" of a file path
@@ -241,7 +252,7 @@ export const searchFilePathsByExtension = ({
   extensions: string[];
 }) =>
   fetcher<{ files: string[] }>(
-    `/async/file-management/extension-search?${queryArgs({
+    `${FILE_MANAGEMENT_ENDPOINT}/extension-search?${queryArgs({
       project_uuid: projectUuid,
       root,
       path,
@@ -277,6 +288,7 @@ export const findFilesByExtension = async ({
 
     return response.files;
   }
+  return [];
 };
 
 /**
@@ -322,7 +334,11 @@ export const validateFiles = (
         ? { ...all, forbidden: [...all.forbidden, cleanFilePath(curr)] }
         : { ...all, allowed: [...all.allowed, cleanFilePath(curr)] };
     },
-    { usedNotebookFiles: [], forbidden: [], allowed: [] }
+    {
+      usedNotebookFiles: [] as string[],
+      forbidden: [] as string[],
+      allowed: [] as string[],
+    }
   );
 };
 
@@ -428,4 +444,39 @@ export const filterRedundantChildPaths = (list: string[]) => {
   }
 
   return [...listSet];
+};
+
+export const getBaseNameFromPath = (combinedPath: string) => {
+  let pathComponents = combinedPath.split("/");
+  if (combinedPath.endsWith("/")) {
+    pathComponents = pathComponents.slice(0, -1);
+  }
+  return pathComponents.slice(-1)[0];
+};
+
+export const findPipelineFilePathsWithinFolders = async (
+  projectUuid: string,
+  filePaths: UnpackedPath[]
+): Promise<UnpackedPath[]> => {
+  const files = await Promise.all(
+    filePaths.map(({ root, path }) => {
+      if (!path.endsWith("/"))
+        return isFileByExtension(["orchest"], path) ? { root, path } : null;
+      return searchFilePathsByExtension({
+        projectUuid,
+        extensions: ["orchest"],
+        root,
+        path,
+      }).then((response) =>
+        response.files.map((file) => ({
+          root,
+          path: `/${file}`,
+        }))
+      );
+    })
+  );
+
+  return (files.filter((value) => hasValue(value)) as UnpackedPath[]).flatMap(
+    (value) => value
+  );
 };

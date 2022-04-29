@@ -177,7 +177,7 @@ const ProjectsView: React.FC = () => {
       projects
     ) {
       dispatch({
-        type: "projectsSet",
+        type: "SET_PROJECTS",
         payload: projects,
       });
     }
@@ -193,7 +193,7 @@ const ProjectsView: React.FC = () => {
   }, [projects]);
 
   const onRowClick = (e: React.MouseEvent, projectUuid: string) => {
-    navigateTo(siteMap.pipelines.path, { query: { projectUuid } }, e);
+    navigateTo(siteMap.pipeline.path, { query: { projectUuid } }, e);
   };
 
   const deleteSelectedRows = async (projectUuids: string[]) => {
@@ -231,7 +231,7 @@ const ProjectsView: React.FC = () => {
   const deleteProjectRequest = (toBeDeletedId: string) => {
     if (projectUuid === toBeDeletedId) {
       dispatch({
-        type: "projectSet",
+        type: "SET_PROJECT",
         payload: undefined,
       });
     }
@@ -274,7 +274,7 @@ const ProjectsView: React.FC = () => {
 
   const onImportComplete = (result: BackgroundTask) => {
     if (result.status === "SUCCESS") {
-      navigateTo(siteMap.pipelines.path, {
+      navigateTo(siteMap.pipeline.path, {
         query: { projectUuid: result.result },
       });
     }

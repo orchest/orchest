@@ -1,9 +1,11 @@
 import { EnvVarPair } from "@/components/EnvVarList";
-import { PipelineJson, PipelineStepState, Service } from "@/types";
+import { PipelineJson, PipelineStepState, Service, Step } from "@/types";
 import { pipelineSchema } from "@/utils/pipeline-schema";
 import {
   extensionFromFilename,
+  fetcher,
   hasValue,
+  HEADER,
   makeRequest,
 } from "@orchest/lib-utils";
 import Ajv from "ajv";
@@ -24,11 +26,15 @@ export function isValidEnvironmentVariableName(name: string) {
 }
 
 export function validatePipeline(pipelineJson: PipelineJson) {
-  let errors = [];
+  let errors: string[] = [];
 
   let valid = pipelineValidator(pipelineJson);
   if (!valid) {
-    errors.concat(pipelineValidator.errors);
+    errors.concat(
+      (pipelineValidator.errors || []).map(
+        (error) => error.message || "Unknown error"
+      )
+    );
   }
 
   // Check for non schema validation
@@ -87,7 +93,9 @@ export function validatePipeline(pipelineJson: PipelineJson) {
 
         if (otherStep.file_path === step.file_path) {
           errors.push(
-            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}). Assigning the same Notebook file to multiple steps is not supported. Please convert to a script to re-use file across pipeline steps.`
+            `Pipeline step "${step.title}" (${step.uuid}) has the same Notebook assigned as pipeline step "${otherStep.title}" (${otherStep.uuid}).` +
+              `Assigning the same Notebook file to multiple steps is not supported.` +
+              `Please convert them to scripts in order to reuse the code, e.g. .sh, .py,.R, or .jl.`
           );
 
           // found an error, stop checking
@@ -97,7 +105,7 @@ export function validatePipeline(pipelineJson: PipelineJson) {
     }
   }
 
-  return { valid: errors.length == 0, errors };
+  return { valid: errors.length === 0, errors };
 }
 
 export function filterServices(
@@ -106,7 +114,10 @@ export function filterServices(
 ) {
   let servicesCopy = cloneDeep(services);
   for (let serviceName in services) {
-    if (servicesCopy[serviceName].scope.indexOf(scope) == -1) {
+    if (
+      hasValue(servicesCopy[serviceName]?.scope) &&
+      !servicesCopy[serviceName]?.scope?.includes(scope)
+    ) {
       delete servicesCopy[serviceName];
     }
   }
@@ -159,7 +170,7 @@ export function getServiceURLs(
   service: Partial<Service>,
   projectUuid: string,
   pipelineUuid: string,
-  runUuid: string
+  runUuid: string | undefined
 ): string[] {
   if (service.ports === undefined) {
     return [];
@@ -193,25 +204,20 @@ export function getServiceURLs(
 export function checkGate(project_uuid: string) {
   return new Promise<void>((resolve, reject) => {
     // we validate whether all environments have been built on the server
-    makeRequest("POST", `/catch/api-proxy/api/validations/environments`, {
-      type: "json",
-      content: { project_uuid },
-    })
-      .then((response: string) => {
-        try {
-          let json = JSON.parse(response);
-          if (json.validation === "pass") {
-            resolve();
-          } else {
-            reject({ reason: "gate-failed", data: json });
-          }
-        } catch (error) {
-          console.error(error);
-        }
-      })
-      .catch((error) => {
-        reject({ reason: "request-failed", error: error });
-      });
+    fetcher<{ actions: string[]; validation: "pass" | "fail" }>(
+      `/catch/api-proxy/api/validations/environments`,
+      {
+        method: "POST",
+        headers: HEADER.JSON,
+        body: JSON.stringify({ project_uuid }),
+      }
+    ).then((response) => {
+      if (response.validation === "pass") {
+        resolve();
+      } else {
+        reject({ reason: "gate-failed", data: response });
+      }
+    });
   });
 }
 
@@ -331,10 +337,15 @@ export function getScrollLineHeight() {
 export function formatServerDateTime(
   serverDateTimeString: string | null | undefined
 ) {
-  if (!serverDateTimeString) return "";
+  const serverTimeAsDate = hasValue(serverDateTimeString)
+    ? serverTimeToDate(serverDateTimeString)
+    : undefined;
+
   // Keep this pattern and the one used in fuzzy DB search in sync, see
   // fuzzy_filter_non_interactive_pipeline_runs.
-  return format(serverTimeToDate(serverDateTimeString), "LLL d',' yyyy p");
+  return hasValue(serverTimeAsDate)
+    ? format(serverTimeAsDate, "LLL d',' yyyy p")
+    : "";
 }
 
 export function serverTimeToDate(serverDateTimeString: string | undefined) {
@@ -349,19 +360,24 @@ export function cleanServerDateTime(dateTimeString) {
   return dateTimeString.replace(regex, subst);
 }
 
-export function getPipelineJSONEndpoint(
-  pipeline_uuid: string,
-  project_uuid: string,
-  job_uuid?: string | null,
-  pipeline_run_uuid?: string | null
-) {
-  if (!pipeline_uuid || !project_uuid) return "";
-  let pipelineURL = `/async/pipelines/json/${project_uuid}/${pipeline_uuid}`;
+export function getPipelineJSONEndpoint({
+  pipelineUuid,
+  jobUuid,
+  projectUuid,
+  runUuid,
+}: {
+  pipelineUuid: string | undefined;
+  projectUuid: string | undefined;
+  jobUuid?: string | undefined;
+  runUuid?: string | undefined;
+}) {
+  if (!pipelineUuid || !projectUuid) return "";
+  let pipelineURL = `/async/pipelines/json/${projectUuid}/${pipelineUuid}`;
 
-  const queryArgs = { job_uuid, pipeline_run_uuid };
+  const queryArgs = { job_uuid: jobUuid, pipeline_run_uuid: runUuid };
   // NOTE: pipeline_run_uuid only makes sense if job_uuid is given
   // i.e. a job run requires both uuid's
-  const queryString = job_uuid
+  const queryString = jobUuid
     ? Object.entries(queryArgs)
         .map(([key, value]) => {
           if (!value) return null;
@@ -378,7 +394,7 @@ export function getPipelineStepParents(
   stepUUID: string,
   pipelineJSON: PipelineJson
 ) {
-  let incomingConnections = [];
+  let incomingConnections: string[] = [];
   for (let step of Object.values(pipelineJSON.steps)) {
     if (step.uuid === stepUUID) {
       incomingConnections = step.incoming_connections;
@@ -391,11 +407,14 @@ export function getPipelineStepParents(
   );
 }
 
-export function getPipelineStepChildren(stepUUID, pipelineJSON) {
-  let childSteps = [];
+export function getPipelineStepChildren(
+  stepUUID: string,
+  pipelineJSON: PipelineJson
+) {
+  let childSteps: Step[] = [];
 
-  for (let [_, step] of Object.entries(pipelineJSON.steps)) {
-    if ((step as any).incoming_connections.indexOf(stepUUID) !== -1) {
+  for (let step of Object.values(pipelineJSON.steps)) {
+    if (step.incoming_connections.includes(stepUUID)) {
       childSteps.push(step);
     }
   }
@@ -511,4 +530,8 @@ export function pascalCaseToCapitalized(viewName) {
   const regex = /([A-Z])/gm;
   const subst = ` $1`;
   return viewName.replace(regex, subst).trim();
+}
+
+export function isNumber(value: unknown): value is number {
+  return !isNaN(Number(value));
 }
