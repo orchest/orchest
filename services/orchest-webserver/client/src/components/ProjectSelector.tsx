@@ -123,11 +123,13 @@ export const ProjectSelector = () => {
       }
 
       // Only change project if newProjectUuid is different from projectUuidFromRoute
+      // if newProjectUuid is undefined, it means that the page is being loaded for the first time,
+      // no need to change project.
       if (newProjectUuid && newProjectUuid !== projectUuidFromRoute) {
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects, setAlert]);
 
   if (
     !matchWithinProjectPaths ||
