@@ -52,7 +52,7 @@ Breaking schema changes
 -----------------------
 **What it looks like**
     The client can't be accessed (the webserver is not up) or the client can be accessed but a lot
-    of functionality seems to not be working, e.g.  creating an environment.
+    of functionality seems to not be working, e.g. creating an environment.
 
 **How to solve**
     .. code-block:: bash
@@ -77,3 +77,50 @@ Breaking schema changes
 **Verify**
     Check the webserver and the api logs. It will be easy to spot because the service won't produce other logs
     but the ones related to incompatible schema changes and database issues.
+
+Error: Multiple head revisions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+**What it looks like**
+    You see an error along the lines of ``Error: Multiple head revisions are present for given
+    argument 'head'`` inside one of the services interacting with the DB, e.g. the ``orchest-api``.
+
+**How to solve**
+    Using the ``orchest-api`` as an example here.
+
+    .. code-block:: bash
+
+       bash scripts/migration_manager.sh orchest-api merge heads
+
+    It may be that the above doesn't work, because the ``orchest-api`` never reaches a running
+    state. In that case we need to:
+
+    .. code-block:: bash
+
+       # Change the deployment so that it does a sleep instead of invoke
+       # the cmd of the container.
+       kubectl -n orchest edit deploy orchest-api
+       # command: ["sleep"]
+       # args: ["1000"]
+
+       # Now run the migration script inside the orchest-api container
+       python migration_manager.py db merge heads
+
+       # Next we need to copy the file out of the container and into
+       # the migration revisions directly inside the orchest-api
+       kubectl cp \
+           "orchest/${pod_name}:/orchest/services/orchest-api/app/migrations/versions" \
+           "services/orchest-api/app/migrations/versions"
+
+       # Rebuild the orchest-api container on the node
+       scripts/build_container.sh -i orcehst-api -t "v2022.04.0" -o "v2022.04.0"
+
+       # Edit the orchest-api deployment again to make sure to not
+       # run the sleep command anymore.
+       kubectl -n orchest edit deploy orchest-api
+
+
+**Context**
+    Alembic creates revision files to do migrations. When two different branches have done schema
+    migrations than the head will diverge, similar to git now having two different branches which
+    point to different commits. Once these branches get merged, the alembic revision heads need to
+    be merged as well.
