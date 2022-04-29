@@ -8,7 +8,7 @@ import zipfile
 
 import requests
 import sqlalchemy
-from flask import current_app, jsonify, request, send_file
+from flask import current_app, jsonify, request, safe_join, send_file
 from flask_restful import Api, Resource
 from nbconvert import HTMLExporter
 from sqlalchemy.orm.exc import NoResultFound
@@ -759,7 +759,7 @@ def register_views(app, db):
                 if step_file_path.startswith("/"):
                     file_path = resolve_absolute_path(step_file_path)
                 else:
-                    file_path = os.path.join(pipeline_dir, step_file_path)
+                    file_path = safe_join(pipeline_dir, step_file_path)
 
                 filename = pipeline_json["steps"][step_uuid]["file_path"]
                 step_title = pipeline_json["steps"][step_uuid]["title"]
@@ -948,7 +948,7 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        file_path = os.path.join(root_dir_path, path[1:])
+        file_path = safe_join(root_dir_path, path[1:])
 
         if not file_path.split(".")[-1] in _config.ALLOWED_FILE_EXTENSIONS:
             return jsonify({"message": "Given file type is not supported."}), 409
@@ -986,7 +986,7 @@ def register_views(app, db):
         else:
             pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
             file_path = normalize_project_relative_path(path)
-            file_path = os.path.join(pipeline_dir, file_path)
+            file_path = safe_join(pipeline_dir, file_path)
 
         if file_path is None:
             return jsonify({"message": "Failed to process file_path."}), 500
@@ -1010,7 +1010,7 @@ def register_views(app, db):
             return jsonify({"message": str(e)}), 400
 
         # Make absolute path relative
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if target_path == root_dir_path:
             return (
@@ -1049,7 +1049,7 @@ def register_views(app, db):
             return jsonify({"message": str(e)}), 400
 
         # Make absolute path relative
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if os.path.isfile(target_path) or os.path.isdir(target_path):
             new_path = find_unique_duplicate_filepath(target_path)
@@ -1082,7 +1082,7 @@ def register_views(app, db):
         # Make absolute path relative
         path = "/".join(path.split("/")[1:])
 
-        full_path = os.path.join(root_dir_path, path)
+        full_path = safe_join(root_dir_path, path)
 
         if os.path.isdir(full_path) or os.path.isfile(full_path):
             return jsonify({"message": "Path already exists"}), 500
@@ -1117,11 +1117,11 @@ def register_views(app, db):
             # Trim path for joining (up until this point paths always
             # start and end with a "/")
             path = path[1:]
-            dir_path = os.path.join(root_dir_path, path)
+            dir_path = safe_join(root_dir_path, path)
             # Create directory if it doesn't exist
             if not os.path.isdir(dir_path):
                 os.makedirs(dir_path, exist_ok=True)
-            file_path = os.path.join(dir_path, filename)
+            file_path = safe_join(dir_path, filename)
             file.save(file_path)
 
         return jsonify({"file_path": file_path})
@@ -1144,8 +1144,8 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        abs_old_path = os.path.join(old_root_path, old_path[1:])
-        abs_new_path = os.path.join(new_root_path, new_path[1:])
+        abs_old_path = safe_join(old_root_path, old_path[1:])
+        abs_new_path = safe_join(new_root_path, new_path[1:])
 
         try:
             os.rename(abs_old_path, abs_new_path)
@@ -1166,7 +1166,7 @@ def register_views(app, db):
         except Exception as e:
             return jsonify({"message": str(e)}), 400
 
-        target_path = os.path.join(root_dir_path, path[1:])
+        target_path = safe_join(root_dir_path, path[1:])
 
         if os.path.isfile(target_path):
             return send_file(target_path, as_attachment=True)
@@ -1211,7 +1211,7 @@ def register_views(app, db):
 
         for extension in extensions:
             matches += list(
-                pathlib.Path(os.path.join(root_dir_path, path_filter)).glob(
+                pathlib.Path(safe_join(root_dir_path, path_filter)).glob(
                     "**/*.{}".format(extension)
                 )
             )

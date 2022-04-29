@@ -3,7 +3,7 @@ import os
 import re
 from typing import List, Optional, Tuple
 
-from flask import jsonify
+from flask import jsonify, safe_join
 
 from _orchest.internals import config as _config
 from app.models import Project
@@ -80,8 +80,8 @@ def find_unique_duplicate_filepath(fp):
         base_no_ext = base_no_ext[: -(len(group_match) + 3)]
 
     while True:
-        new_path = os.path.join(
-            os.path.abspath(os.path.join(fp, os.pardir)),
+        new_path = safe_join(
+            os.path.abspath(safe_join(fp, os.pardir)),
             new_path_fs.format(base=base_no_ext, counter=counter, ext=ext),
         )
 
@@ -96,9 +96,7 @@ def generate_abs_path(path, root, dir, is_dir=False):
     """
     This generates a new absolute path, relative from the `dir`
     """
-    return (
-        "/" + os.path.relpath(os.path.join(root, path), dir) + ("/" if is_dir else "")
-    )
+    return "/" + os.path.relpath(safe_join(root, path), dir) + ("/" if is_dir else "")
 
 
 def zipdir(path, ziph):
@@ -106,8 +104,8 @@ def zipdir(path, ziph):
     for root, _, files in os.walk(path):
         for file in files:
             ziph.write(
-                os.path.join(root, file),
-                os.path.relpath(os.path.join(root, file), os.path.join(path, "..")),
+                safe_join(root, file),
+                os.path.relpath(safe_join(root, file), os.path.join(path, "..")),
             )
 
 
@@ -138,7 +136,7 @@ def generate_tree(
     dir_nodes = {}
 
     if path_filter != "/":
-        filtered_path = os.path.join(dir, path_filter[1:-1])
+        filtered_path = safe_join(dir, path_filter[1:-1])
     else:
         filtered_path = dir
 
@@ -152,7 +150,7 @@ def generate_tree(
         dir_delete_set = set()
         for dirname in dirs:
 
-            dir_path = os.path.join(root, dirname)
+            dir_path = safe_join(root, dirname)
             dir_node = {
                 "type": "directory",
                 "name": dirname,
