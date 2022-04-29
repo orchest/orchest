@@ -85,6 +85,10 @@ def _post_process_payload(payload: dict, webhook: models.Webhook) -> None:
 
     if webhook.is_slack_webhook():
         payload["text"] = json.dumps(payload, sort_keys=True, indent=1)
+    elif webhook.is_discord_webhook():
+        payload["content"] = json.dumps(payload, sort_keys=True, indent=1)
+        # 2000 max allowed characters.
+        payload["content"] = f'{payload["content"][:1997]}...'
 
 
 def _inject_headers(

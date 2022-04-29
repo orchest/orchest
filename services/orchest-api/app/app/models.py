@@ -1484,6 +1484,9 @@ class Webhook(Subscriber):
     def is_slack_webhook(self) -> bool:
         return self.url.startswith("https://hooks.slack.com/")
 
+    def is_discord_webhook(self) -> bool:
+        return self.url.startswith("https://discord.com/api/webhooks/")
+
     __mapper_args__ = {
         "polymorphic_identity": "webhook",
     }
