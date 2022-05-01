@@ -6,6 +6,7 @@ import (
 	"syscall"
 
 	"github.com/orchest/orchest/services/orchest-controller/pkg/controller/orchestcluster"
+	"github.com/orchest/orchest/services/orchest-controller/pkg/server"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	"github.com/spf13/cobra"
 	"k8s.io/klog/v2"
@@ -13,6 +14,7 @@ import (
 
 var (
 	controllerConfig = orchestcluster.NewDefaultControllerConfig()
+	serverConfig     = server.NewDefaultServerConfig()
 )
 
 func NewControllerCommand() *cobra.Command {
@@ -86,6 +88,9 @@ func NewControllerCommand() *cobra.Command {
 	cmd.PersistentFlags().IntVar(&controllerConfig.Threadiness,
 		"threadiness", controllerConfig.Threadiness, "threadiness of the controller")
 
+	cmd.PersistentFlags().StringVar(&serverConfig.Endpoint,
+		"endpoint", serverConfig.Endpoint, "The endpoint of Http Server")
+
 	cmd.PersistentFlags().BoolVar(&controllerConfig.InCluster,
 		"inCluster", controllerConfig.InCluster, "In/Out cluster indicator")
 
@@ -114,9 +119,12 @@ func runControllerCmd() error {
 		ocInformer,
 		depInformer)
 
+	server := server.NewServer(serverConfig, ocInformer)
+
 	go orchestController.Run(stopCh)
 	go ocInformer.Informer().Run(stopCh)
 	go depInformer.Informer().Run(stopCh)
+	go server.Run(stopCh)
 
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGTERM)
