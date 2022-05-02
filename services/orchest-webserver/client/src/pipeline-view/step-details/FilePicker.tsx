@@ -77,7 +77,7 @@ type FilePickerProps = {
   cwd: string;
   icon?: React.ReactNode;
   helperText: string;
-  onChangeValue?: (value: FilePickerProps["value"]) => void;
+  onChangeValue: (value: FilePickerProps["value"]) => void;
   tree: FileTree;
   value: string;
   menuMaxWidth?: string;
@@ -139,10 +139,10 @@ const FilePicker: React.FC<FilePickerProps> = ({
     return computeAbsPath({ cwd, value, tree });
   }, [cwd, value, tree]);
 
-  const [absPath, setAbsPath] = React.useState(computedAbsPath);
+  const [absPath, setAbsPath] = React.useState<string>(computedAbsPath);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>();
-  const menuRef = React.useRef<HTMLDivElement>();
+  const menuRef = React.useRef<HTMLDivElement | null>(null);
   useClickOutside(menuRef, () => setIsDropdownOpen(false));
 
   const isBlurAllowed = React.useRef(true);
@@ -165,7 +165,6 @@ const FilePicker: React.FC<FilePickerProps> = ({
       setAbsPath((oldPath) => {
         // If it's root, it needs to be handled differently.
         // It is either "/project-dir:/", or "/data:/".
-        if (!selectedNode.depth) return selectedNode.path;
 
         return `${oldPath}${selectedNode.name}/`;
       });
@@ -207,9 +206,10 @@ const FilePicker: React.FC<FilePickerProps> = ({
         // Root nodes need to be handled differently.
         // Because `node.name` is used to render UI, we have to check node.path, which ends with ":/".
         // For the rest of the nodes, simply compare node.name.
-        const isRoot = child.depth === 0 && /^\/(.*):\/$/.test(child.path);
+        const isRoot =
+          child.depth === 0 && /^\/(.*):\/$/.test(child.path || "");
         const valueToCompare = isRoot
-          ? child.path.replace(/\//g, "")
+          ? (child.path || "").replace(/\//g, "")
           : child.name;
 
         if (valueToCompare === component) {

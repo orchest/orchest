@@ -81,7 +81,7 @@ export const PipelineViewport = React.forwardRef<
     resetPipelineCanvas,
   } = usePipelineCanvasContext();
 
-  const localRef = React.useRef<HTMLDivElement>(null);
+  const localRef = React.useRef<HTMLDivElement | null>(null);
   const [canvasResizeStyle, resizeCanvas] = React.useState<React.CSSProperties>(
     {}
   );
@@ -206,6 +206,7 @@ export const PipelineViewport = React.forwardRef<
 
   const createStepsWithFiles = React.useCallback(
     (dropPosition: Position) => {
+      if (!pipelineCwd) return;
       const { allowed } = getApplicableStepFiles();
 
       const environment = environments.length > 0 ? environments[0] : null;
@@ -222,7 +223,7 @@ export const PipelineViewport = React.forwardRef<
               name: environment?.language || "python",
               display_name: environment?.name || "Python",
             },
-            environment: environment?.uuid,
+            environment: environment?.uuid || "",
             parameters: {},
             meta_data: {
               position: [dropPosition.x, dropPosition.y],
