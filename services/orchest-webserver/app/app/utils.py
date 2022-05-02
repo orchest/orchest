@@ -764,6 +764,10 @@ def is_valid_pipeline_relative_path(
     return abs_path.startswith(project_path)
 
 
+def is_valid_data_path(path: str):
+    return os.path.abspath(os.path.normpath(path)).startswith("/data")
+
+
 def resolve_absolute_path(abs_path: str) -> Optional[str]:
     """Resolves an absolute path to the FS-layout of the webserver.
 

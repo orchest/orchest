@@ -57,6 +57,7 @@ from app.utils import (
     get_project_snapshot_size,
     get_repo_tag,
     get_session_counts,
+    is_valid_data_path,
     is_valid_pipeline_relative_path,
     normalize_project_relative_path,
     pipeline_set_notebook_kernels,
@@ -997,12 +998,9 @@ def register_views(app, db):
 
         if path.startswith("/"):
             file_path = resolve_absolute_path(path)
-            if not is_valid_pipeline_relative_path(
-                project_uuid,
-                pipeline_uuid,
-            ):
-                raise app_error.OutOfProjectError(
-                    "Step path points outside of the project directory."
+            if not is_valid_data_path(file_path):
+                raise app_error.OutOfDataDirectoryError(
+                    "Path points outside of the data directory."
                 )
         else:
             pipeline_dir = get_pipeline_directory(pipeline_uuid, project_uuid)
