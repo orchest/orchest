@@ -107,7 +107,7 @@ export const ProjectSelector = () => {
               <Code>{projectUuidFromRoute}</Code>
               {` . The project might have been deleted, or you might have had a wrong URL.`}
             </Box>
-            <Box>Will try to load another existing project if any.</Box>
+            <Box>Will try to load another existing project.</Box>
           </Stack>
         );
       }
@@ -116,12 +116,20 @@ export const ProjectSelector = () => {
         ? projectUuidFromRoute
         : state.projects[0]?.uuid;
 
+      // Always update state.projectuuid.
+      // This is the only place that set a valid projectUuid
       if (newProjectUuid) {
         dispatch({ type: "SET_PROJECT", payload: newProjectUuid });
+      }
+
+      // Only change project if newProjectUuid is different from projectUuidFromRoute
+      // if newProjectUuid is undefined, it means that the page is being loaded for the first time,
+      // no need to change project.
+      if (newProjectUuid && newProjectUuid !== projectUuidFromRoute) {
         onChangeProject(newProjectUuid);
       }
     }
-  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects]);
+  }, [matchWithinProjectPaths, dispatch, state.hasLoadedProjects, setAlert]);
 
   if (
     !matchWithinProjectPaths ||

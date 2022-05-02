@@ -18,7 +18,7 @@ class Jupyter {
     this.baseAddress = "";
     this.reloadOnShow = false;
     this.iframeHasLoaded = false;
-    this.showCheckInterval = undefined;
+    this.showCheckInterval = 0;
     this.pendingKernelChanges = {};
     this.setConfirm = setConfirm;
 
@@ -46,19 +46,26 @@ class Jupyter {
     }
 
     // make sure the baseAddress has loaded
-    if (
-      this.iframe.contentWindow.location.href.indexOf(this.baseAddress) === -1
-    ) {
+
+    if (!this.iframe.contentWindow.location.href.includes(this.baseAddress)) {
       this._setJupyterAddress(this.baseAddress + "/lab");
     }
-
-    this.fixJupyterRenderingGlitch();
 
     window.clearInterval(this.showCheckInterval);
     this.showCheckInterval = window.setInterval(() => {
       if (this.iframeHasLoaded) {
-        this._unhide();
-        window.clearInterval(this.showCheckInterval);
+        if (this.hasJupyterRenderingGlitched()) {
+          console.log("Reloading iframe because JupyterLab failed to render");
+          this.reloadIframe();
+        } else if (!this.isJupyterPage()) {
+          console.log(
+            "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
+          );
+          this.reloadIframe();
+        } else {
+          this._unhide();
+          window.clearInterval(this.showCheckInterval);
+        }
       }
     }, 10);
   }
@@ -72,7 +79,7 @@ class Jupyter {
     this._setJupyterAddress("about:blank");
   }
 
-  _setJupyterAddress(url) {
+  _setJupyterAddress(url: string) {
     this.iframeHasLoaded = false;
     this.iframe.contentWindow.location.replace(url);
   }
@@ -112,6 +119,18 @@ class Jupyter {
           }
         }
       }
+    }
+  }
+
+  isJupyterPage() {
+    try {
+      if (
+        this.iframe.contentWindow.document.getElementById("jupyter-config-data")
+      ) {
+        return true;
+      }
+    } catch {
+      return false;
     }
   }
 
@@ -157,11 +176,13 @@ class Jupyter {
     }
   }
 
-  fixJupyterRenderingGlitch() {
-    if (this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly()) {
-      this.iframeHasLoaded = false;
-      this.iframe.contentWindow.location.reload();
-    }
+  hasJupyterRenderingGlitched() {
+    return this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly();
+  }
+
+  reloadIframe() {
+    this.iframeHasLoaded = false;
+    this.iframe.contentWindow.location.reload();
   }
 
   isKernelChangePending(notebook, kernel) {
@@ -258,16 +279,14 @@ class Jupyter {
     }
   }
 
-  navigateTo(filePath) {
+  navigateTo(filePath: string) {
     /**
      *   @param {string} filePath relative path to the Jupyter file from the
      *   perspective of the root of the project directory.
      *   E.g. somedir/myipynb.ipynb (no starting slash)
      */
 
-    if (!filePath) {
-      return;
-    }
+    if (!filePath) return;
 
     tryUntilTrue(
       () => {

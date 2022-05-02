@@ -230,10 +230,7 @@ const ProjectsView: React.FC = () => {
 
   const deleteProjectRequest = (toBeDeletedId: string) => {
     if (projectUuid === toBeDeletedId) {
-      dispatch({
-        type: "SET_PROJECT",
-        payload: undefined,
-      });
+      dispatch({ type: "SET_PROJECT", payload: undefined });
     }
 
     let deletePromise = makeRequest("DELETE", "/async/projects", {

@@ -7,11 +7,16 @@ import {
   useCancelablePromise,
 } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
+import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
-import type { Pipeline, TViewPropsWithRequiredQueryArgs } from "@/types";
-import { checkGate, getPipelineJSONEndpoint } from "@/utils/webserver-utils";
+import type {
+  Pipeline,
+  PipelineJson,
+  TViewPropsWithRequiredQueryArgs,
+} from "@/types";
+import { checkGate } from "@/utils/webserver-utils";
 import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
@@ -29,6 +34,7 @@ const JupyterLabView: React.FC = () => {
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
   const { makeCancelable } = useCancelablePromise();
   const { cancelableFetch } = useCancelableFetch();
+  useEnsureValidPipeline();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
@@ -36,11 +42,11 @@ const JupyterLabView: React.FC = () => {
   const { getSession, toggleSession, state } = useSessionsContext();
 
   // local states
-  const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState(
-    1000
-  );
-  const [pipeline, setPipeline] = React.useState(null);
-  const [pipelineCwd, setPipelineCwd] = React.useState(undefined);
+  const [verifyKernelsInterval, setVerifyKernelsInterval] = React.useState<
+    number | undefined
+  >(1000);
+  const [pipelineJson, setPipelineJson] = React.useState<PipelineJson>();
+  const [pipelineCwd, setPipelineCwd] = React.useState<string>();
   const [
     hasEnvironmentCheckCompleted,
     setHasEnvironmentCheckCompleted,
@@ -64,13 +70,13 @@ const JupyterLabView: React.FC = () => {
         window.orchest.jupyter.hide();
       }
 
-      setVerifyKernelsInterval(null);
+      setVerifyKernelsInterval(undefined);
     };
   }, []);
 
   // Launch the session if it doesn't exist
   React.useEffect(() => {
-    if (!state.sessionsIsLoading && !session) {
+    if (!state.sessionsIsLoading && !session && pipelineUuid && projectUuid) {
       toggleSession({ pipelineUuid, projectUuid });
     }
   }, [session, toggleSession, state, pipelineUuid, projectUuid]);
@@ -112,22 +118,18 @@ const JupyterLabView: React.FC = () => {
             },
             () => {
               // back to pipelines view
-              navigateTo(siteMap.pipeline.path, {
-                query: { projectUuid },
-              });
+              navigateTo(siteMap.pipeline.path, { query: { projectUuid } });
             }
           );
         }
       });
   };
 
-  const verifyKernelsCallback = (pipeline) => setPipeline(pipeline);
-
   useInterval(
     () => {
-      if (window.orchest.jupyter.isJupyterLoaded()) {
-        for (let stepUUID in pipeline.steps) {
-          let step = pipeline.steps[stepUUID];
+      if (window.orchest.jupyter.isJupyterLoaded() && pipelineJson) {
+        for (let stepUUID in pipelineJson.steps) {
+          let step = pipelineJson.steps[stepUUID];
 
           if (step.file_path.length > 0 && step.environment.length > 0) {
             window.orchest.jupyter.setNotebookKernel(
@@ -137,32 +139,24 @@ const JupyterLabView: React.FC = () => {
           }
         }
 
-        setVerifyKernelsInterval(null);
+        setVerifyKernelsInterval(undefined);
       }
     },
-    pipeline ? verifyKernelsInterval : null
+    pipelineJson ? verifyKernelsInterval : undefined
   );
 
   const fetchPipeline = async () => {
-    let pipelineJSONEndpoint = getPipelineJSONEndpoint({
-      projectUuid,
-      pipelineUuid,
-    });
+    if (!pipelineUuid || !projectUuid) return;
 
     try {
-      const [pipelineJson, pipeline] = await makeCancelable(
-        Promise.all([
-          fetchPipelineJson(pipelineJSONEndpoint),
-          pipelineUuid
-            ? cancelableFetch<Pipeline>(
-                `/async/pipelines/${projectUuid}/${pipelineUuid}`
-              )
-            : null,
-        ])
-      );
+      const [fetchedPipelineJson, pipeline] = await Promise.all([
+        makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
+        cancelableFetch<Pipeline>(
+          `/async/pipelines/${projectUuid}/${pipelineUuid}`
+        ),
+      ]);
 
-      verifyKernelsCallback(pipelineJson);
-
+      setPipelineJson(fetchedPipelineJson);
       setPipelineCwd(pipeline.path.replace(/\/?[^\/]*.orchest$/, "/"));
     } catch (error) {
       console.error("Could not load pipeline.json");
