@@ -1430,7 +1430,7 @@ class CronJobRunPipelineRunEvent(CronJobRunEvent):
 
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
-        payload["job"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
+        payload["job"]["run"]["pipeline_run"] = _prepare_job_pipeline_run_payload(
             self.job_uuid, self.pipeline_run_uuid
         )
 
