@@ -1596,7 +1596,19 @@ class Delivery(BaseModel):
     # The event which the delivery is about.
     event = db.Column(
         UUID(as_uuid=False),
-        db.ForeignKey("events.uuid", ondelete="CASCADE"),
+        # Allow deletion of parent entities of an event (like a pipeline
+        # run) while retaining the delivery.
+        db.ForeignKey("events.uuid", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    # The information content of the notification. The payload is
+    # created in the same transaction where the event that triggered
+    # this delivery is created, this way we can cover edge cases like
+    # max_retained_pipeline_runs leading to the deletion of failed runs,
+    # which would make it impossible to construct such a payload.
+    notification_payload = db.Column(
+        JSONB,
         nullable=False,
     )
 
