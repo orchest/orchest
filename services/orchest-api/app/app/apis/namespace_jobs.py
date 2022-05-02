@@ -1450,6 +1450,15 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         )
 
         if runs_to_complete == 0:
+            status = "SUCCESS"
+
+            if (
+                models.NonInteractivePipelineRun.query.filter_by(job_uuid=job_uuid)
+                .filter(models.NonInteractivePipelineRun.status == "FAILURE")
+                .count()
+            ) > 0:
+                status = "FAILURE"
+
             if (
                 models.Job.query.filter_by(uuid=job_uuid)
                 .filter(
@@ -1459,13 +1468,13 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                     # 2PF.
                     models.Job.status.not_in(["SUCCESS", "ABORTED", "FAILURE"])
                 )
-                .update({"status": "SUCCESS"})
+                .update({"status": status})
                 > 0
             ):
-                # NOTIFICATIONS_TODO: we will probably need to
-                # alter how we define a job SUCCESS status,
-                # might require FE changes as well.
-                events.register_job_succeeded(job.project_uuid, job_uuid)
+                if status == "SUCCESS":
+                    events.register_job_succeeded(job.project_uuid, job_uuid)
+                else:
+                    events.register_job_failed(job.project_uuid, job_uuid)
 
     def _collateral(self):
         pass
