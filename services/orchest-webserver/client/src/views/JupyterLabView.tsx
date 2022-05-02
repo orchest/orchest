@@ -151,7 +151,9 @@ const JupyterLabView: React.FC = () => {
     try {
       const [fetchedPipelineJson, pipeline] = await Promise.all([
         makeCancelable(fetchPipelineJson({ pipelineUuid, projectUuid })),
-        cancelableFetch<Pipeline>(`/async/pipelines/${projectUuid}/${pipelineUuid}`),
+        cancelableFetch<Pipeline>(
+          `/async/pipelines/${projectUuid}/${pipelineUuid}`
+        ),
       ]);
 
       setPipelineJson(fetchedPipelineJson);
