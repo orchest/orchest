@@ -13,9 +13,9 @@ import { useHistory, useLocation } from "react-router-dom";
 // console.log(isReadOnly); // true
 const useLocationState = <T>(stateNames: string[]) => {
   const location = useLocation<{ state: Record<string, T> }>();
-  return stateNames.map((stateName) =>
+  return (stateNames.map((stateName) =>
     location.state ? location.state[stateName] : null
-  );
+  ) as unknown) as T;
 };
 
 // see https://reactrouter.com/web/example/query-parameters

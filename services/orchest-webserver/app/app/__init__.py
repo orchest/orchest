@@ -21,7 +21,7 @@ from subprocess import Popen
 import posthog
 import requests
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, safe_join, send_from_directory
 from flask_migrate import Migrate
 from flask_socketio import SocketIO
 from sqlalchemy_utils import create_database, database_exists
@@ -165,7 +165,7 @@ def create_app(to_migrate_db=False):
     @app.route("/", defaults={"path": ""}, methods=["GET"])
     @app.route("/<path:path>", methods=["GET"])
     def index(path):
-        file_path = os.path.join(app.config["STATIC_DIR"], path)
+        file_path = safe_join(app.config["STATIC_DIR"], path)
         if os.path.isfile(file_path):
             return send_from_directory(app.config["STATIC_DIR"], path)
         else:

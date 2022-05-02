@@ -20,21 +20,18 @@ export const FileManagerContainer = React.forwardRef<
     uploadFiles: (files: File[] | FileList) => Promise<void>;
   }
 >(function FileManagerContainerComponent({ children, uploadFiles, sx }, ref) {
-  const localRef = React.useRef<typeof Stack>(null);
+  const localRef = React.useRef<typeof Stack | null>(null);
 
   const { pipelineUuid } = useCustomRoute();
   const disabled = !pipelineUuid;
 
-  const {
-    acceptedFiles,
-    getInputProps,
-    getRootProps,
-    isDragActive,
-  } = useDropzone();
-
-  React.useEffect(() => {
-    if (!disabled && acceptedFiles.length > 0) uploadFiles(acceptedFiles);
-  }, [disabled, uploadFiles, acceptedFiles]);
+  // The built-in state `acceptedFiles` is persisted, and cannot be cleared.
+  // while `onDropAccepted` is an one-off action
+  const { getInputProps, getRootProps, isDragActive } = useDropzone({
+    onDropAccepted: (files: File[]) => {
+      if (!disabled) uploadFiles(files);
+    },
+  });
 
   const [storedHeight, setStoredHeight] = useLocalStorage(
     "pipelineEditor.fileManagerHeight",
