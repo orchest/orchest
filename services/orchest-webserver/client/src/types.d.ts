@@ -191,6 +191,7 @@ export type JobStatus =
   | "PAUSED"
   | "SUCCESS"
   | "ABORTED"
+  | "FAILURE"
   | "DRAFT";
 
 export type PipelineRun = {
