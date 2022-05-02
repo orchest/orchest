@@ -1384,12 +1384,29 @@ class CronJobRunEvent(CronJobEvent):
     def to_notification_payload(self) -> dict:
         payload = super().to_notification_payload()
 
-        if self.type == "project:cron-job:run:started":
-            status = "STARTED"
-        elif self.type == "project:cron-job:run:succeeded":
+        # Covers case of models inheriting from this.
+        job_run_events = (
+            db.session.query(CronJobRunEvent.type).filter(
+                CronJobRunEvent.type.in_(
+                    [
+                        "project:cron-job:run:started",
+                        "project:cron-job:run:succeeded",
+                        "project:cron-job:run:failed",
+                    ]
+                ),
+                CronJobRunEvent.project_uuid == self.project_uuid,
+                CronJobRunEvent.job_uuid == self.job_uuid,
+                CronJobRunEvent.run_index == self.run_index,
+            )
+        ).all()
+        job_run_events = [ev.type for ev in job_run_events]
+
+        if "project:cron-job:run:succeeded" in job_run_events:
             status = "SUCCESS"
-        elif self.type == "project:cron-job:run:failed":
+        elif "project:cron-job:run:failed" in job_run_events:
             status = "FAILURE"
+        elif "project:cron-job:run:started" in job_run_events:
+            status = "STARTED"
         else:
             status = None
 
