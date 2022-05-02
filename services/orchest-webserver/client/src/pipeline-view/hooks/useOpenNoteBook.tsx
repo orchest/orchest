@@ -7,7 +7,7 @@ export const useOpenNoteBook = () => {
 
   const openNotebook = React.useCallback(
     (e: React.MouseEvent | undefined, filePath: string) => {
-      // JupyterLabView will auto-start session,
+      // JupyterLabView will start the session automatically,
       // so no need to check if there's a running session.
       navigateTo(
         siteMap.jupyterLab.path,
