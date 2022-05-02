@@ -232,4 +232,5 @@ def deliver(delivery_uuid: str) -> None:
             delivery.reschedule()
             logger.info(f"Rescheduling {delivery_uuid} at {delivery.scheduled_at}.")
 
+    db.session.delete(delivery)
     db.session.commit()
