@@ -229,8 +229,6 @@ def install(cloud: bool, fqdn: t.Optional[str], **common_options) -> None:
         },
         "spec": {
             "orchest": {
-                # TODO: Not sure whether the fqdn is allowed to be
-                # specified at all when None.
                 "orchestHost": fqdn,
                 "orchestWebServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
                 "authServer": {"env": [{"name": "CLOUD", "value": str(cloud)}]},
