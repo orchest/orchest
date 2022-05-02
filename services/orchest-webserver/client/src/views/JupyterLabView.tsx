@@ -167,10 +167,8 @@ const JupyterLabView: React.FC = () => {
   const conditionalRenderingOfJupyterLab = () => {
     if (window.orchest.jupyter) {
       if (session?.status === "RUNNING" && hasEnvironmentCheckCompleted) {
-        window.setTimeout(() => {
-          window.orchest.jupyter.show();
-          if (filePath) window.orchest.jupyter.navigateTo(filePath);
-        }, 2000); // If set to smaller, it gets 503 Temorarily unavailable and get stuck.
+        window.orchest.jupyter.show();
+        if (filePath) window.orchest.jupyter.navigateTo(filePath);
       } else {
         window.orchest.jupyter.hide();
       }
