@@ -53,16 +53,16 @@ class Jupyter {
 
     window.clearInterval(this.showCheckInterval);
     this.showCheckInterval = window.setInterval(() => {
-
       if (this.iframeHasLoaded) {
-        if(this.hasJupyterRenderingGlitched()){
+        if (this.hasJupyterRenderingGlitched()) {
           console.log("Reloading iframe because JupyterLab failed to render");
           this.reloadIframe();
-        } else if (!this.isJupyterPage()){
-          console.log("Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)");
+        } else if (!this.isJupyterPage()) {
+          console.log(
+            "Reloading iframe page because JupyterLab page not loaded (4XX or 5XX)"
+          );
           this.reloadIframe();
-        }
-        else {
+        } else {
           this._unhide();
           window.clearInterval(this.showCheckInterval);
         }
@@ -124,11 +124,12 @@ class Jupyter {
 
   isJupyterPage() {
     try {
-      if(this.iframe.contentWindow.document.getElementById("jupyter-config-data")){
-        return true
+      if (
+        this.iframe.contentWindow.document.getElementById("jupyter-config-data")
+      ) {
+        return true;
       }
-    }
-    catch {
+    } catch {
       return false;
     }
   }
@@ -175,7 +176,7 @@ class Jupyter {
     }
   }
 
-  hasJupyterRenderingGlitched(){
+  hasJupyterRenderingGlitched() {
     return this.isJupyterLoaded() && !this.isJupyterShellRenderedCorrectly();
   }
 
