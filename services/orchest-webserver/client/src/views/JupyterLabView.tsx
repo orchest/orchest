@@ -28,7 +28,7 @@ const JupyterLabView: React.FC = () => {
   const { requestBuild } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
   const { makeCancelable } = useCancelablePromise();
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
@@ -154,7 +154,7 @@ const JupyterLabView: React.FC = () => {
         Promise.all([
           fetchPipelineJson(pipelineJSONEndpoint),
           pipelineUuid
-            ? fetcher<Pipeline>(
+            ? cancelableFetch<Pipeline>(
                 `/async/pipelines/${projectUuid}/${pipelineUuid}`
               )
             : null,

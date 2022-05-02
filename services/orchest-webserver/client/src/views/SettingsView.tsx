@@ -35,7 +35,7 @@ const SettingsView: React.FC = () => {
   } = useAppContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.settings.path });
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
 
   const [state, setState] = React.useState({
     status: "...",
@@ -51,13 +51,13 @@ const SettingsView: React.FC = () => {
   });
 
   const getVersion = () => {
-    fetcher<{ version: string }>("/async/version").then((response) => {
+    cancelableFetch<{ version: string }>("/async/version").then((response) => {
       setState((prevState) => ({ ...prevState, version: response.version }));
     });
   };
 
   const getHostInfo = () => {
-    fetcher("/async/host-info")
+    cancelableFetch("/async/host-info")
       .then((hostInfo: any) => {
         try {
           setState((prevState) => ({ ...prevState, hostInfo }));
@@ -69,7 +69,7 @@ const SettingsView: React.FC = () => {
   };
 
   const getConfig = () => {
-    fetcher<{ user_config: any }>("/async/user-config")
+    cancelableFetch<{ user_config: any }>("/async/user-config")
       .then(({ user_config: configJSON }) => {
         try {
           let visibleJSON = configToVisibleConfig(configJSON);
@@ -141,7 +141,11 @@ const SettingsView: React.FC = () => {
 
       setAsSaved(true);
 
-      fetcher("/async/user-config", { method: "POST", body: formData }, false)
+      cancelableFetch(
+        "/async/user-config",
+        { method: "POST", body: formData },
+        false
+      )
         .catch((e) => {
           console.error(e);
           setAlert("Error", JSON.parse(e.body).message);
@@ -174,7 +178,7 @@ const SettingsView: React.FC = () => {
   };
 
   const checkOrchestStatus = () => {
-    fetcher("/heartbeat")
+    cancelableFetch("/heartbeat")
       .then(() => {
         setState((prevState) => ({
           ...prevState,
@@ -203,7 +207,7 @@ const SettingsView: React.FC = () => {
           requiresRestart: [],
         }));
         try {
-          await fetcher("/async/restart", { method: "POST" }, false);
+          await cancelableFetch("/async/restart", { method: "POST" }, false);
           resolve(true);
 
           setTimeout(() => {

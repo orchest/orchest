@@ -20,7 +20,7 @@ const UpdateView: React.FC = () => {
   const { setConfirm, setAlert } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.update.path });
 
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();
 
   const [state, setState] = React.useState((prevState) => ({
@@ -46,7 +46,7 @@ const UpdateView: React.FC = () => {
         console.log("Starting update.");
 
         try {
-          fetcher<{ token: string }>(
+          cancelableFetch<{ token: string }>(
             "/async/start-update",
             { method: "POST" },
             false
@@ -88,7 +88,7 @@ const UpdateView: React.FC = () => {
   };
 
   useInterval(() => {
-    fetcher<{ updating: boolean; update_output: any }>(
+    cancelableFetch<{ updating: boolean; update_output: any }>(
       `/update-sidecar/update-status?token=${state.token}`
     )
       .then((json) => {

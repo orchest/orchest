@@ -82,7 +82,7 @@ export const StepDetailsProperties = ({
     EnvironmentOption[]
   >([]);
 
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
   const refManager = React.useMemo(() => new RefManager(), []);
 
   const isNotebookStep = extensionFromFilename(step.file_path) === "ipynb";
@@ -118,7 +118,7 @@ export const StepDetailsProperties = ({
         "?language=" + kernelNameToLanguage(step.kernel.name);
     }
 
-    fetcher<Environment[]>(environmentsEndpoint)
+    cancelableFetch<Environment[]>(environmentsEndpoint)
       .then((result) => {
         let options: EnvironmentOption[] = [];
 

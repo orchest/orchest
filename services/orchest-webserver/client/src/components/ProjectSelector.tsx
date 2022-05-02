@@ -46,7 +46,7 @@ export const ProjectSelector = () => {
   // if current view only involves ONE project, ProjectSelector would appear
   const matchWithinProjectPaths = useMatchRoutePaths(withinProjectPaths);
 
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
 
   const onChangeProject = (uuid: string) => {
     if (uuid) {
@@ -83,13 +83,13 @@ export const ProjectSelector = () => {
     // ProjectSelector only appears at Project Root, i.e. pipelines, jobs, and environments
     // in case that project is deleted
     if (matchWithinProjectPaths) {
-      fetcher<Project[]>("/async/projects?skip_discovery=true")
+      cancelableFetch<Project[]>("/async/projects?skip_discovery=true")
         .then((fetchedProjects) => {
           dispatch({ type: "SET_PROJECTS", payload: fetchedProjects });
         })
         .catch((error) => console.log(error));
     }
-  }, [matchWithinProjectPaths, fetcher, dispatch]);
+  }, [matchWithinProjectPaths, cancelableFetch, dispatch]);
 
   React.useEffect(() => {
     if (state.hasLoadedProjects && matchWithinProjectPaths) {

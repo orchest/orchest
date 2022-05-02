@@ -32,7 +32,7 @@ const ProjectSettingsView: React.FC = () => {
     state: { hasUnsavedChanges },
   } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.projectSettings.path });
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
 
   // data from route
   const { navigateTo, projectUuid } = useCustomRoute();
@@ -83,7 +83,7 @@ const ProjectSettingsView: React.FC = () => {
     }
 
     // perform PUT to update
-    fetcher(
+    cancelableFetch(
       `/async/projects/${projectUuid}`,
       {
         method: "PUT",
@@ -102,7 +102,7 @@ const ProjectSettingsView: React.FC = () => {
   useOverflowListener();
 
   const fetchSettings = () => {
-    fetcher<Project>(`/async/projects/${projectUuid}`)
+    cancelableFetch<Project>(`/async/projects/${projectUuid}`)
       .then((result) => {
         const {
           env_variables,

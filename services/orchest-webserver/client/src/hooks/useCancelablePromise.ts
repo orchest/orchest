@@ -55,5 +55,5 @@ export function useCancelableFetch() {
     [makeCancelable]
   );
 
-  return { fetcher: cancelableFetch };
+  return { cancelableFetch };
 }

@@ -39,7 +39,7 @@ const FilePreviewView: React.FC = () => {
   const { setAlert } = useAppContext();
   const { state: projectsState, dispatch } = useProjectsContext();
   useSendAnalyticEvent("view load", { name: siteMap.filePreview.path });
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
   const { makeCancelable } = useCancelablePromise();
 
   // data from route
@@ -103,7 +103,9 @@ const FilePreviewView: React.FC = () => {
     const [pipelineJson, job] = await makeCancelable(
       Promise.all([
         fetchPipelineJson(pipelineURL),
-        jobUuid ? fetcher<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`) : null,
+        jobUuid
+          ? cancelableFetch<Job>(`/catch/api-proxy/api/jobs/${jobUuid}`)
+          : null,
       ])
     );
 
@@ -154,7 +156,7 @@ const FilePreviewView: React.FC = () => {
       fileURL += "&job_uuid=" + jobUuid;
     }
 
-    return fetcher(fileURL).then((response) => {
+    return cancelableFetch(fileURL).then((response) => {
       setState((prevState) => ({
         ...prevState,
         fileDescription: response,

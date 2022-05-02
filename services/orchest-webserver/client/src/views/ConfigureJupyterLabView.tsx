@@ -32,7 +32,7 @@ const ConfigureJupyterLabView: React.FC = () => {
   } = useSessionsContext();
 
   useSendAnalyticEvent("view load", { name: siteMap.configureJupyterLab.path });
-  const { fetcher } = useCancelableFetch();
+  const { cancelableFetch } = useCancelableFetch();
 
   // local states
   const [ignoreIncomingLogs, setIgnoreIncomingLogs] = React.useState(false);
@@ -66,7 +66,7 @@ const ConfigureJupyterLabView: React.FC = () => {
     formData.append("setup_script", jupyterSetupScript);
 
     try {
-      await fetcher("/async/jupyter-setup-script", {
+      await cancelableFetch("/async/jupyter-setup-script", {
         method: "POST",
         body: formData,
       });
@@ -85,7 +85,7 @@ const ConfigureJupyterLabView: React.FC = () => {
 
     try {
       await save();
-      let response = await fetcher<{ jupyter_image_build: any }>(
+      let response = await cancelableFetch<{ jupyter_image_build: any }>(
         "/catch/api-proxy/api/jupyter-builds",
         { method: "POST" }
       );
@@ -141,7 +141,7 @@ const ConfigureJupyterLabView: React.FC = () => {
       setIsCancellingBuild(true);
 
       try {
-        await fetcher(
+        await cancelableFetch(
           `/catch/api-proxy/api/jupyter-builds/${jupyterBuild.uuid}`,
           { method: "DELETE" }
         );
@@ -164,7 +164,7 @@ const ConfigureJupyterLabView: React.FC = () => {
 
   const getSetupScript = React.useCallback(async () => {
     try {
-      const { script } = await fetcher<{ script: string }>(
+      const { script } = await cancelableFetch<{ script: string }>(
         "/async/jupyter-setup-script"
       );
       setJupyterSetupScript(script || "");
