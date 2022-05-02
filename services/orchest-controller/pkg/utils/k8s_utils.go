@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -140,7 +141,20 @@ func IsDeploymentReady(ctx context.Context, client kubernetes.Interface, name, n
 	}
 
 	return *deployment.Spec.Replicas == deployment.Status.ReadyReplicas
+}
 
+func IsPodActive(ctx context.Context, client kubernetes.Interface, name, namespace string) bool {
+
+	pod, err := client.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			klog.V(2).Info("pod %s resource not found.", name)
+		}
+		return false
+	}
+
+	return v1.PodSucceeded != pod.Status.Phase &&
+		v1.PodFailed != pod.Status.Phase
 }
 
 func GetFullImageName(registry, imageName, tag string) string {

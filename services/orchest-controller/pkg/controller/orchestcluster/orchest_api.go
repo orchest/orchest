@@ -1,6 +1,8 @@
 package orchestcluster
 
 import (
+	"fmt"
+
 	orchestv1alpha1 "github.com/orchest/orchest/services/orchest-controller/pkg/apis/orchest/v1alpha1"
 	"github.com/orchest/orchest/services/orchest-controller/pkg/utils"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,6 +21,18 @@ func getOrchestApiManifests(hash string, orchest *orchestv1alpha1.OrchestCluster
 	objects = append(objects, getOrchetApiDeployment(metadata, matchLabels, orchest))
 	objects = append(objects, getServiceManifest(metadata, matchLabels, 80, orchest))
 	objects = append(objects, getIngressManifest(metadata, "/orchest-api", true, orchest))
+
+	return objects
+}
+
+func getCleanupManifests(orchest *orchestv1alpha1.OrchestCluster) []client.Object {
+
+	generation := fmt.Sprint(orchest.Generation)
+	objects := make([]client.Object, 0, 5)
+	matchLabels := getMatchLables(orchestApiCleanup, orchest)
+	metadata := getMetadata(orchestApiCleanup, generation, orchest)
+
+	objects = append(objects, getCleanupPod(metadata, matchLabels, orchest))
 
 	return objects
 }
@@ -84,4 +98,33 @@ func getOrchetApiDeployment(metadata metav1.ObjectMeta,
 	}
 
 	return deployment
+}
+
+func getCleanupPod(metadata metav1.ObjectMeta,
+	matchLabels map[string]string, orchest *orchestv1alpha1.OrchestCluster) client.Object {
+
+	image := orchest.Spec.Orchest.OrchestApi.Image
+
+	env := utils.MergeEnvVars(orchest.Spec.Orchest.Env, orchest.Spec.Orchest.OrchestApi.Env)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metadata,
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{
+					Name: metadata.Name,
+					Command: []string{
+						"/bin/sh", "-c",
+					},
+					Args: []string{
+						"python migration_manager.py db migrate && python cleanup.py",
+					},
+					Image: image,
+					Env:   env,
+				},
+			},
+		},
+	}
+
+	return pod
 }

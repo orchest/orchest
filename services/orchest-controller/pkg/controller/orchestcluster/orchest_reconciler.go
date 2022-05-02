@@ -42,13 +42,14 @@ var (
 	rabbitSubPath   = ".orchest/rabbitmq-mnesia"
 
 	//Components
-	orchestDatabase  = "orchest-database"
-	orchestApi       = "orchest-api"
-	rabbitmq         = "rabbitmq-server"
-	celeryWorker     = "celery-worker"
-	authServer       = "auth-server"
-	orchestWebserver = "orchest-webserver"
-	nodeAgentName    = "node-agent"
+	orchestDatabase   = "orchest-database"
+	orchestApi        = "orchest-api"
+	orchestApiCleanup = "orchest-api-cleanup"
+	rabbitmq          = "rabbitmq-server"
+	celeryWorker      = "celery-worker"
+	authServer        = "auth-server"
+	orchestWebserver  = "orchest-webserver"
+	nodeAgentName     = "node-agent"
 
 	orderOfDeployment = []string{
 		orchestDatabase,
@@ -315,6 +316,14 @@ func (r *OrchestReconciler) pauseOrchest(ctx context.Context, orchest *orchestv1
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to update status after pausing %s", deployment.Name)
 			}
+
+			// we need to cleanup after orchest-api is paused
+			if deployment.Name == orchestApi {
+				err := r.cleanup(ctx, orchest)
+				if err != nil {
+					return nil, errors.Wrapf(err, "failed to cleanup OrchestCluster")
+				}
+			}
 		}
 	}
 
@@ -364,7 +373,7 @@ func (r *OrchestReconciler) ensureUserDir(ctx context.Context, curHash string, o
 	size := orchest.Spec.Orchest.Resources.UserDirVolumeSize
 
 	// Retrive the created pvcs
-	pvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
+	_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, userDirName, metav1.GetOptions{})
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		uaerDir := r.persistentVolumeClaim(userDirName, r.namespace, storageClass, size, curHash, orchest)
@@ -375,10 +384,8 @@ func (r *OrchestReconciler) ensureUserDir(ctx context.Context, curHash string, o
 		return nil
 	}
 
-	hash := pvc.GetLabels()[ControllerRevisionHashLabelKey]
-	if hash != curHash {
-		// TODO: create a new userdir, move the data from old userdir to new one and delete the old one
-	}
+	// TODO: create a new userdir, move the data from old userdir to new one and delete the old one
+
 	return nil
 }
 
@@ -387,7 +394,7 @@ func (r *OrchestReconciler) ensureBuildCacheDir(ctx context.Context, curHash str
 	size := orchest.Spec.Orchest.Resources.BuilderCacheDirVolumeSize
 
 	// Retrive the created pvcs
-	pvc, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
+	_, err := r.controller.kClient.CoreV1().PersistentVolumeClaims(r.namespace).Get(ctx, builderDirName, metav1.GetOptions{})
 	// userdir is not created or is removed, we have to recreate it
 	if err != nil && kerrors.IsNotFound(err) {
 		buildDir := r.persistentVolumeClaim(builderDirName, r.namespace, storageClass, size, curHash, orchest)
@@ -397,10 +404,7 @@ func (r *OrchestReconciler) ensureBuildCacheDir(ctx context.Context, curHash str
 		}
 	}
 
-	hash := pvc.GetLabels()[ControllerRevisionHashLabelKey]
-	if hash != curHash {
-		// TODO: create a new userdir, move the data from old userdir to new one and delete the old one
-	}
+	// TODO: create a new userdir, move the data from old userdir to new one and delete the old one
 	return nil
 }
 
@@ -556,16 +560,27 @@ func (r *OrchestReconciler) deployRabbitmq(ctx context.Context, hash string, orc
 	return r.waitForDeployment(ctx, r.namespace, rabbitmq)
 }
 
-func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, name string) error {
-	klog.Infof("Waiting for deployment to become ready object key: %s/%s", namespace, name)
+func (r *OrchestReconciler) cleanup(ctx context.Context, orchest *orchestv1alpha1.OrchestCluster) error {
 
-	// wait for deployment to become ready
-	retryCount := 0
+	objects := getCleanupManifests(orchest)
+	for _, obj := range objects {
+		err := r.upsertObject(ctx, obj)
+		if err != nil {
+			return err
+		}
+	}
+
+	return r.waitForCleanupPod(ctx, r.namespace, orchestApiCleanup)
+}
+
+func (r *OrchestReconciler) waitForCleanupPod(ctx context.Context, namespace, name string) error {
+	klog.V(2).Infof("Waiting for pod to become Succeed or faild object key: %s/%s", namespace, name)
+
 	retryMax := 30
-	for {
+	for retryCount := 0; retryCount < retryMax; retryCount++ {
 		retryCount++
 		if retryCount > retryMax {
-			return errors.Errorf("exceeded max retry count waiting for deployment to become ready %s", name)
+			return errors.Errorf("exceeded max retry count waiting for pod to become succeed %s", name)
 		}
 
 		if retryCount > 1 {
@@ -573,16 +588,37 @@ func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, na
 			<-time.After(r.sleepTime)
 		}
 
-		if utils.IsDeploymentReady(ctx, r.getClient(), name, r.namespace) {
-			break
+		if !utils.IsPodActive(ctx, r.getClient(), name, r.namespace) {
+			klog.V(2).Infof("pod is succeeded. object key : %s/%s", name, namespace)
+			return nil
 		}
 
-		klog.Infof("Deployment %s is not ready, trying again.", name)
+		klog.V(2).Infof("Pod %s is not succeeded, trying again.", name)
 	}
 
-	klog.Infof("Deployment is ready. object key : %s/%s", name, namespace)
+	return errors.Errorf("exceeded max retry count waiting for pod to succeed %s", name)
+}
 
-	return nil
+func (r *OrchestReconciler) waitForDeployment(ctx context.Context, namespace, name string) error {
+	klog.V(2).Infof("Waiting for deployment to become ready object key: %s/%s", namespace, name)
+
+	// wait for deployment to become ready
+	retryMax := 30
+	for retryCount := 0; retryCount < retryMax; retryCount++ {
+		if retryCount > 1 {
+			// only sleep after the first time
+			<-time.After(r.sleepTime)
+		}
+
+		if utils.IsDeploymentReady(ctx, r.getClient(), name, r.namespace) {
+			klog.V(2).Infof("Deployment is ready. object key : %s/%s", name, namespace)
+			return nil
+		}
+
+		klog.V(2).Infof("Deployment %s is not ready, trying again.", name)
+	}
+
+	return errors.Errorf("exceeded max retry count waiting for deployment to become ready %s", name)
 }
 
 func (r *OrchestReconciler) getClient() kubernetes.Interface {
