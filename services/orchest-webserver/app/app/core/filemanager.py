@@ -81,7 +81,7 @@ def find_unique_duplicate_filepath(fp):
 
     while True:
         new_path = safe_join(
-            os.path.abspath(safe_join(fp, os.pardir)),
+            os.path.abspath(os.path.join(fp, os.pardir)),
             new_path_fs.format(base=base_no_ext, counter=counter, ext=ext),
         )
 
