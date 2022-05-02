@@ -1275,6 +1275,10 @@ def _prepare_job_pipeline_run_payload(job_uuid: str, pipeline_run_uuid: str) -> 
     if pipeline_run is None:
         return payload
 
+    payload["number"] = pipeline_run.pipeline_run_index
+    if job.schedule is not None:
+        payload["number_in_run"] = pipeline_run.job_run_pipeline_run_index
+
     payload["status"] = pipeline_run.status
     payload["parameters"] = _prepare_parameters_payload(
         job.pipeline_definition, pipeline_run.parameters
