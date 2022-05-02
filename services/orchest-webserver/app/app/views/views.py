@@ -844,12 +844,12 @@ def register_views(app, db):
 
             # Normalize relative paths.
             for step in pipeline_json["steps"].values():
-                if not is_valid_pipeline_relative_path(
-                    project_uuid, pipeline_uuid, step["file_path"]
-                ):
-                    raise app_error.OutOfProjectError(
-                        "Step path points outside of the project directory."
-                    )
+                extensions = list(
+                    map(lambda x: f".{x.lower()}", ["ipynb", "py", "R", "sh", "jl"])
+                )
+
+                if not step["file_path"].endswith(tuple(extensions)):
+                    raise ValueError("Unsupported pipeline step file type.")
 
                 if not step["file_path"].startswith("/"):
                     step["file_path"] = normalize_project_relative_path(
