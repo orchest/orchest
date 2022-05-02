@@ -62,16 +62,16 @@ def create_webhook(webhook_spec: dict) -> models.Webhook:
 
 def _create_delivery_payload(delivery: models.Delivery) -> dict:
 
-    event = models.Event.query.filter(models.Event.uuid == delivery.event).one()
-    event = event.to_notification_payload()
-
     webhook = (
         models.Webhook.query.options(noload(models.Webhook.subscriptions))
         .filter(models.Webhook.uuid == delivery.deliveree)
         .one()
     )
 
-    payload = {"delivered_for": marshal(webhook, schema.webhook), "event": event}
+    payload = {
+        "delivered_for": marshal(webhook, schema.webhook),
+        "event": delivery.notification_payload,
+    }
     _post_process_payload(payload, webhook)
 
     return payload

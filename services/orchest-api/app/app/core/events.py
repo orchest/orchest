@@ -37,6 +37,7 @@ def _register_event(ev: models.Event) -> None:
             event=ev.uuid,
             deliveree=sub.uuid,
             status="SCHEDULED",
+            notification_payload=ev.to_notification_payload(),
         )
         db.session.add(delivery)
 

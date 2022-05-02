@@ -1358,8 +1358,6 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
         # See if the job is done running (all its runs are done).
         if status_update["status"] in ["SUCCESS", "FAILURE", "ABORTED"]:
 
-            DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
-
             # Only non recurring jobs terminate to SUCCESS.
             if job.schedule is None:
                 self._update_one_off_job(job_uuid)
@@ -1367,6 +1365,8 @@ class UpdateJobPipelineRun(TwoPhaseFunction):
                 self._update_cron_job_run(
                     job_uuid, pipeline_run_uuid, status_update["status"]
                 )
+
+            DeleteNonRetainedJobPipelineRuns(self.tpe).transaction(job_uuid)
 
         return {"message": "Status was updated successfully"}, 200
 
