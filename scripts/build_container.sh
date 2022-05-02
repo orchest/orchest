@@ -7,8 +7,8 @@ SKIP_IMGS=()
 NO_CACHE=false
 VERBOSE=false
 ENABLE_SSL=false
-BUILD_TAG="latest"
-ORCHEST_VERSION=$(git describe --tags)
+BUILD_TAG="v2022.04.1"
+ORCHEST_VERSION="v2022.04.1"
 
 # Read flags.
 while getopts "s:i:t:no:vem" opt; do
@@ -32,7 +32,7 @@ while getopts "s:i:t:no:vem" opt; do
       ;;
     m)
       # Build minimal set of images.
-      SKIP_IMGS+=("base-kernel-py") 
+      SKIP_IMGS+=("base-kernel-py")
       SKIP_IMGS+=("base-kernel-py-gpu")
       SKIP_IMGS+=("base-kernel-julia")
       SKIP_IMGS+=("base-kernel-r")
@@ -418,4 +418,3 @@ wait < <(jobs -p)
 cleanup
 
 echo "[Done]!"
-

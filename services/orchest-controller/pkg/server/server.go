@@ -49,7 +49,7 @@ func (s *Server) setupHandlers() {
 	s.router.Use(middlewares.LoggingHandler)
 
 	// get user followers statistics
-	s.router.Methods(http.MethodGet).Path("/namespaces/{namespace}/clusters/{name}/status").HandlerFunc(s.GetOrchetsClusterLogs)
+	s.router.Methods(http.MethodGet).Path("/namespaces/{namespace}/clusters/{name}/status").HandlerFunc(s.GetOrchetsClusterStatus)
 }
 
 func (s *Server) Run(stopCh <-chan struct{}) {
