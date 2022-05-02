@@ -12,6 +12,7 @@ from flask import current_app, safe_join
 
 from _orchest.internals import config as _config
 from _orchest.internals.utils import copytree, is_services_definition_valid, rmtree
+from app import error
 from app.compat import migrate_pipeline
 from app.config import CONFIG_CLASS as StaticConfig
 from app.models import Environment, Pipeline, Project
@@ -623,7 +624,14 @@ def pipeline_set_notebook_kernels(pipeline_json, pipeline_directory, project_uui
 
         if "ipynb" == step["file_path"].split(".")[-1]:
 
-            notebook_path = safe_join(pipeline_directory, step["file_path"])
+            notebook_path = os.path.join(pipeline_directory, step["file_path"])
+
+            if not is_valid_pipeline_relative_path(
+                project_uuid, pipeline_json["uuid"], step["file_path"]
+            ):
+                raise error.OutOfProjectError(
+                    "Step path points outside of the project directory."
+                )
 
             if os.path.isfile(notebook_path):
 
@@ -728,7 +736,7 @@ def normalize_project_relative_path(path: str) -> str:
     return os.path.normpath(path)
 
 
-def is_valid_project_relative_path(project_uuid, path: str) -> str:
+def is_valid_project_relative_path(project_uuid, path: str) -> bool:
     project_path = os.path.abspath(
         os.path.normpath(get_project_directory(project_uuid))
     )
@@ -741,6 +749,19 @@ def is_valid_project_relative_path(project_uuid, path: str) -> str:
         )
     )
     return new_path_abs.startswith(project_path)
+
+
+def is_valid_pipeline_relative_path(
+    project_uuid: str, pipeline_uuid: str, path: str
+) -> bool:
+    project_path = os.path.abspath(
+        os.path.normpath(get_project_directory(project_uuid))
+    )
+    pipeline_path = get_pipeline_path(pipeline_uuid, project_uuid)
+    abs_path = os.path.abspath(
+        os.path.normpath(os.path.join(os.path.split(pipeline_path)[0], path))
+    )
+    return abs_path.startswith(project_path)
 
 
 def resolve_absolute_path(abs_path: str) -> Optional[str]:
