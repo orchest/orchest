@@ -1,3 +1,4 @@
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import ProjectFilePicker from "@/pipeline-view/step-details/ProjectFilePicker";
 import { Environment, PipelineStepState, Step } from "@/types";
@@ -14,9 +15,7 @@ import Typography from "@mui/material/Typography";
 import {
   collapseDoubleDots,
   extensionFromFilename,
-  fetcher,
   kernelNameToLanguage,
-  PromiseManager,
   RefManager,
 } from "@orchest/lib-utils";
 import "codemirror/mode/javascript/javascript";
@@ -83,7 +82,7 @@ export const StepDetailsProperties = ({
     EnvironmentOption[]
   >([]);
 
-  const promiseManager = React.useMemo(() => new PromiseManager(), []);
+  const { cancelableFetch } = useCancelableFetch();
   const refManager = React.useMemo(() => new RefManager(), []);
 
   const isNotebookStep = extensionFromFilename(step.file_path) === "ipynb";
@@ -119,7 +118,7 @@ export const StepDetailsProperties = ({
         "?language=" + kernelNameToLanguage(step.kernel.name);
     }
 
-    fetcher<Environment[]>(environmentsEndpoint)
+    cancelableFetch<Environment[]>(environmentsEndpoint)
       .then((result) => {
         let options: EnvironmentOption[] = [];
 
@@ -325,7 +324,6 @@ export const StepDetailsProperties = ({
     fetchEnvironmentOptions();
 
     return () => {
-      promiseManager.cancelCancelablePromises();
       clearConnectionListener();
     };
   }, []);

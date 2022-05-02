@@ -2,6 +2,10 @@ import { Layout } from "@/components/Layout";
 import { useAppContext } from "@/contexts/AppContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useInterval } from "@/hooks/use-interval";
+import {
+  useCancelableFetch,
+  useCancelablePromise,
+} from "@/hooks/useCancelablePromise";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { fetchPipelineJson } from "@/hooks/useFetchPipelineJson";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
@@ -12,12 +16,7 @@ import Box from "@mui/material/Box";
 import LinearProgress from "@mui/material/LinearProgress";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
-import {
-  collapseDoubleDots,
-  fetcher,
-  makeCancelable,
-  PromiseManager,
-} from "@orchest/lib-utils";
+import { collapseDoubleDots } from "@orchest/lib-utils";
 import React from "react";
 
 export type IJupyterLabViewProps = TViewPropsWithRequiredQueryArgs<
@@ -28,6 +27,8 @@ const JupyterLabView: React.FC = () => {
   // global states
   const { requestBuild } = useAppContext();
   useSendAnalyticEvent("view load", { name: siteMap.jupyterLab.path });
+  const { makeCancelable } = useCancelablePromise();
+  const { cancelableFetch } = useCancelableFetch();
 
   // data from route
   const { navigateTo, projectUuid, pipelineUuid, filePath } = useCustomRoute();
@@ -54,8 +55,6 @@ const JupyterLabView: React.FC = () => {
     [pipelineUuid, projectUuid, getSession]
   );
 
-  const [promiseManager] = React.useState(new PromiseManager());
-
   React.useEffect(() => {
     // mount
     checkEnvironmentGate();
@@ -64,7 +63,7 @@ const JupyterLabView: React.FC = () => {
       if (window.orchest.jupyter) {
         window.orchest.jupyter.hide();
       }
-      promiseManager.cancelCancelablePromises();
+
       setVerifyKernelsInterval(null);
     };
   }, []);
@@ -89,12 +88,7 @@ const JupyterLabView: React.FC = () => {
   }, [session, hasEnvironmentCheckCompleted]);
 
   const checkEnvironmentGate = () => {
-    let gateCancelablePromise = makeCancelable(
-      checkGate(projectUuid),
-      promiseManager
-    );
-
-    gateCancelablePromise.promise
+    makeCancelable(checkGate(projectUuid))
       .then(() => {
         setHasEnvironmentCheckCompleted(true);
         conditionalRenderingOfJupyterLab();
@@ -151,17 +145,21 @@ const JupyterLabView: React.FC = () => {
 
   const fetchPipeline = async () => {
     let pipelineJSONEndpoint = getPipelineJSONEndpoint({
-      pipelineUuid,
       projectUuid,
+      pipelineUuid,
     });
 
     try {
-      const [pipelineJson, pipeline] = await Promise.all([
-        fetchPipelineJson(pipelineJSONEndpoint),
-        pipelineUuid
-          ? fetcher<Pipeline>(`/async/pipelines/${projectUuid}/${pipelineUuid}`)
-          : null,
-      ]);
+      const [pipelineJson, pipeline] = await makeCancelable(
+        Promise.all([
+          fetchPipelineJson(pipelineJSONEndpoint),
+          pipelineUuid
+            ? cancelableFetch<Pipeline>(
+                `/async/pipelines/${projectUuid}/${pipelineUuid}`
+              )
+            : null,
+        ])
+      );
 
       verifyKernelsCallback(pipelineJson);
 

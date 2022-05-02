@@ -12,6 +12,7 @@ import { useProjectsContext } from "@/contexts/ProjectsContext";
 import { useSessionsContext } from "@/contexts/SessionsContext";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useEnsureValidPipeline } from "@/hooks/useEnsureValidPipeline";
+import { useOverflowListener } from "@/hooks/useOverflowListener";
 import { useSendAnalyticEvent } from "@/hooks/useSendAnalyticEvent";
 import { siteMap } from "@/Routes";
 import type {
@@ -22,7 +23,6 @@ import type {
 import {
   envVariablesArrayToDict,
   isValidEnvironmentVariableName,
-  OverflowListener,
   validatePipeline,
 } from "@/utils/webserver-utils";
 import AddIcon from "@mui/icons-material/Add";
@@ -170,15 +170,12 @@ const PipelineSettingsView: React.FC = () => {
   }
 
   const hasLoaded =
-    pipelineJson && envVariables && (isReadOnly || projectEnvVariables);
+    pipelineJson &&
+    envVariables &&
+    (isReadOnly || hasValue(projectEnvVariables));
 
   // If the component has loaded, attach the resize listener
-  const overflowListener = React.useMemo(() => new OverflowListener(), []);
-  React.useEffect(() => {
-    if (hasLoaded) {
-      overflowListener.attach();
-    }
-  }, [hasLoaded, overflowListener]);
+  useOverflowListener(hasLoaded);
 
   const onChangeService = (uuid: string, service: Service) => {
     setServices((current) => {

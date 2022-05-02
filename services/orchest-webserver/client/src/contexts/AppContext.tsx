@@ -1,3 +1,4 @@
+import { useCancelableFetch } from "@/hooks/useCancelablePromise";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import {
   BuildRequest,
@@ -6,7 +7,6 @@ import {
   OrchestServerConfig,
   OrchestUserConfig,
 } from "@/types";
-import { fetcher } from "@orchest/lib-utils";
 import React from "react";
 
 /** Utility functions
@@ -357,6 +357,7 @@ const convertConfirm: PromptMessageConverter<Confirm> = ({
 export const AppContextProvider: React.FC = ({ children }) => {
   const [state, dispatch] = React.useReducer(reducer, initialState);
   const [isDrawerOpen, setIsDrawerOpen] = useLocalStorage("drawer", true);
+  const { cancelableFetch } = useCancelableFetch();
 
   /**
    * =========================== side effects
@@ -367,7 +368,7 @@ export const AppContextProvider: React.FC = ({ children }) => {
   React.useEffect(() => {
     const fetchServerConfig = async () => {
       try {
-        const serverConfig = await fetcher<OrchestServerConfig>(
+        const serverConfig = await cancelableFetch<OrchestServerConfig>(
           "/async/server-config"
         );
         dispatch({ type: "SET_SERVER_CONFIG", payload: serverConfig });
