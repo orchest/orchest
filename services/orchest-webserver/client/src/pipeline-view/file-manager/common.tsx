@@ -353,26 +353,33 @@ export const allowedExtensionsMarkup = ALLOWED_STEP_EXTENSIONS.map(
   }
 );
 
-export const findFirstDiffIndex = (a: string, b: string) => {
+export const findFirstDiffIndex = (arrA: string[], arrB: string[]) => {
   let i = 0;
-  if (a === b) return -1;
-  while (a[i] === b[i]) i++;
+  while (arrA[i] === arrB[i]) i++;
   return i;
 };
 
-export const getRelativePathTo = (filePath: string, targetFolder: string) => {
-  const cleanFilePath = filePath.replace(/^\//, "");
-  const cleanTargetFolder = targetFolder.replace(/^\//, "");
-  const firstDiffIndex = findFirstDiffIndex(cleanFilePath, cleanTargetFolder);
+const getRelativePathComponents = (path: string) =>
+  path.replace(/^\//, "").split("/");
 
-  const upLevels = cleanTargetFolder
-    .substring(firstDiffIndex)
-    .split("/")
-    .filter((value) => value).length;
+export const getRelativePathTo = (filePath: string, targetFolder: string) => {
+  const cleanFilePathComponents = getRelativePathComponents(filePath);
+  const cleanTargetFolderComponents = getRelativePathComponents(targetFolder);
+
+  const firstDiffIndex = findFirstDiffIndex(
+    cleanFilePathComponents,
+    cleanTargetFolderComponents
+  );
+
+  const remainingFilePathComponents = cleanFilePathComponents.slice(
+    firstDiffIndex
+  );
+
+  const upLevels = cleanTargetFolderComponents.length - firstDiffIndex - 1;
 
   const leadingString = "../".repeat(upLevels);
 
-  return `${leadingString}${cleanFilePath.substring(firstDiffIndex)}`;
+  return `${leadingString}${remainingFilePathComponents.join("/")}`;
 };
 
 export const filePathFromHTMLElement = (element: HTMLElement) => {
@@ -394,13 +401,13 @@ export const isWithinDataFolder = (filePath: string) =>
 const getFilePathInDataFolder = (dragFilePath: string) =>
   cleanFilePath(dragFilePath);
 
-export const getFilePathForDragFile = (
-  dragFilePath: string,
+export const getFilePathForRelativeToProject = (
+  absFilePath: string,
   pipelineCwd: string
 ) => {
-  return isWithinDataFolder(dragFilePath)
-    ? getFilePathInDataFolder(dragFilePath)
-    : getRelativePathTo(cleanFilePath(dragFilePath), pipelineCwd);
+  return isWithinDataFolder(absFilePath)
+    ? getFilePathInDataFolder(absFilePath)
+    : getRelativePathTo(cleanFilePath(absFilePath), pipelineCwd);
 };
 
 export const lastSelectedFolderPath = (selectedFiles: string[]) => {

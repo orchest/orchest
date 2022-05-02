@@ -13,7 +13,7 @@ import {
 } from "../common";
 import { usePipelineCanvasContext } from "../contexts/PipelineCanvasContext";
 import { usePipelineEditorContext } from "../contexts/PipelineEditorContext";
-import { getFilePathForDragFile } from "../file-manager/common";
+import { getFilePathForRelativeToProject } from "../file-manager/common";
 import { useFileManagerContext } from "../file-manager/FileManagerContext";
 import { useValidateFilesOnSteps } from "../file-manager/useValidateFilesOnSteps";
 import { INITIAL_PIPELINE_POSITION } from "../hooks/usePipelineCanvasState";
@@ -218,7 +218,7 @@ export const PipelineViewport = React.forwardRef<
             title: "",
             uuid: uuidv4(),
             incoming_connections: [],
-            file_path: getFilePathForDragFile(filePath, pipelineCwd),
+            file_path: getFilePathForRelativeToProject(filePath, pipelineCwd),
             kernel: {
               name: environment?.language || "python",
               display_name: environment?.name || "Python",
@@ -239,7 +239,6 @@ export const PipelineViewport = React.forwardRef<
   const onDropFiles = React.useCallback(() => {
     // assign a file to a step cannot be handled here because PipelineStep onMouseUp has e.stopPropagation()
     // here we only handle "create a new step".
-    // const targetElement = target as HTMLElement;
     const dropPosition = getOnCanvasPosition({
       x: STEP_WIDTH / 2,
       y: STEP_HEIGHT / 2,
