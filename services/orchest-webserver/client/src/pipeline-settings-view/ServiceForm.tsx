@@ -1,4 +1,4 @@
-import EnvVarList from "@/components/EnvVarList";
+import EnvVarList, { EnvVarPair } from "@/components/EnvVarList";
 import { useCustomRoute } from "@/hooks/useCustomRoute";
 import { useFetchEnvironments } from "@/hooks/useFetchEnvironments";
 import { Service } from "@/types";
@@ -471,10 +471,15 @@ const ServiceForm: React.FC<{
                 <EnvVarList
                   value={envVarsDictToList(service.env_variables || {})}
                   readOnly={disabled}
-                  setValue={(dispatcher) => {
-                    const updated = dispatcher(
-                      envVarsDictToList(service.env_variables || {})
-                    );
+                  setValue={(
+                    dispatcher: (
+                      currentValue: EnvVarPair[] | undefined
+                    ) => EnvVarPair[] | undefined
+                  ) => {
+                    const updated =
+                      dispatcher(
+                        envVarsDictToList(service.env_variables || {})
+                      ) || [];
                     handleServiceChange(
                       "env_variables",
                       updated.reduce((obj, current) => {

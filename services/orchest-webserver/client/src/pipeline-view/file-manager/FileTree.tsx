@@ -147,7 +147,7 @@ export const FileTree = React.memo(function FileTreeComponent({
   const { projectUuid, pipelineUuid, navigateTo } = useCustomRoute();
   const { getSession, toggleSession } = useSessionsContext();
   const {
-    state: { pipelines = [] },
+    state: { pipelines = [], pipeline },
     dispatch,
   } = useProjectsContext();
 
@@ -166,10 +166,7 @@ export const FileTree = React.memo(function FileTreeComponent({
 
   const onOpen = React.useCallback(
     (filePath) => {
-      if (
-        isWithinDataFolder(filePath) &&
-        isFileByExtension(["orchest", "ipynb"], filePath)
-      ) {
+      if (isWithinDataFolder(filePath)) {
         setAlert(
           "Notice",
           <>
@@ -386,10 +383,10 @@ export const FileTree = React.memo(function FileTreeComponent({
         oldFilePath,
       ]);
 
-      if (!isSafeToProceed) return;
+      if (!isSafeToProceed || !pipeline) return;
 
-      const filePathRelativeToProjectDir = cleanFilePath(oldFilePath);
-      const foundPipeline = pipelineDics[filePathRelativeToProjectDir];
+      const projectFilePathRelativeToProjectDir = cleanFilePath(pipeline.path);
+      const foundPipeline = pipelineDics[projectFilePathRelativeToProjectDir];
 
       await handleChangeFilePath({
         oldFilePath,
@@ -407,6 +404,7 @@ export const FileTree = React.memo(function FileTreeComponent({
     },
     [
       dispatch,
+      pipeline,
       pipelineUuid,
       pipelineDics,
       handleChangeFilePath,

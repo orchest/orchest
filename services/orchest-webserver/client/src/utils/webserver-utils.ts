@@ -222,7 +222,8 @@ export function checkGate(project_uuid: string) {
 }
 
 export class OverflowListener {
-  triggerOverflow: any;
+  private observer: ResizeObserver | undefined;
+  private triggerOverflow: HTMLElement | undefined;
 
   constructor() {} // eslint-disable-line @typescript-eslint/no-empty-function
 
@@ -233,19 +234,25 @@ export class OverflowListener {
 
       let triggerOverflow = $(".trigger-overflow").first()[0];
       if (triggerOverflow && this.triggerOverflow !== triggerOverflow) {
-        new ResizeObserver(() => {
-          if (triggerOverflow) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            if ($(triggerOverflow).overflowing()) {
-              $(".observe-overflow").addClass("overflowing");
-            } else {
-              $(".observe-overflow").removeClass("overflowing");
-            }
-          }
-        }).observe(triggerOverflow);
         this.triggerOverflow = triggerOverflow;
+        this.observer = new ResizeObserver(() => {
+          if (!this.triggerOverflow) return;
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          if ($(this.triggerOverflow).overflowing()) {
+            $(".observe-overflow").addClass("overflowing");
+          } else {
+            $(".observe-overflow").removeClass("overflowing");
+          }
+        });
+        this.observer.observe(this.triggerOverflow);
       }
+    }
+  }
+
+  detach() {
+    if (this.observer && this.triggerOverflow) {
+      this.observer.unobserve(this.triggerOverflow);
     }
   }
 }
